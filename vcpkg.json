@@ -1,0 +1,12 @@
+{
+  "name": "mirage",
+  "version": "0.1.0",
+  "description": "Video player for video engineers",
+  "dependencies": [
+    {
+      "name": "ffmpeg",
+      "features": ["avcodec", "avformat", "swresample", "swscale", "openssl"]
+    },
+    "glfw3"
+  ]
+}
