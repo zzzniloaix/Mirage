@@ -6,11 +6,32 @@
 extern "C" {
 #include <libavutil/avutil.h>
 #include <libavutil/pixdesc.h>
+#include <libavutil/samplefmt.h>
 }
 
 void Demuxer::request_seek(double seconds)
 {
     seek_target_.store(seconds);
+}
+
+void Demuxer::request_audio_switch(int stream_idx)
+{
+    pending_audio_switch_.store(stream_idx);
+}
+
+void Demuxer::request_video_switch(int stream_idx)
+{
+    pending_video_switch_.store(stream_idx);
+}
+
+bool Demuxer::consume_audio_reopen()
+{
+    return audio_reopen_.exchange(false);
+}
+
+bool Demuxer::consume_video_reopen()
+{
+    return video_reopen_.exchange(false);
 }
 
 void Demuxer::read_loop(std::stop_token st,
@@ -20,6 +41,29 @@ void Demuxer::read_loop(std::stop_token st,
     AVPacket* pkt = av_packet_alloc();
 
     while (!st.stop_requested()) {
+        // ── Handle pending stream switches ────────────────────────────────
+        int audio_sw = pending_audio_switch_.exchange(-1);
+        if (audio_sw >= 0 && audio_sw != audio_idx_) {
+            AVPacket* stale;
+            while (audioq.try_pop(stale))
+                if (stale && stale != flush_sentinel()) av_packet_free(&stale);
+            audio_idx_ = audio_sw;
+            audioq.push(flush_sentinel());
+            audio_reopen_.store(true);
+            logger::info("Audio stream switched to index {}", audio_idx_);
+        }
+
+        int video_sw = pending_video_switch_.exchange(-1);
+        if (video_sw >= 0 && video_sw != video_idx_) {
+            AVPacket* stale;
+            while (videoq.try_pop(stale))
+                if (stale && stale != flush_sentinel()) av_packet_free(&stale);
+            video_idx_ = video_sw;
+            videoq.push(flush_sentinel());
+            video_reopen_.store(true);
+            logger::info("Video stream switched to index {}", video_idx_);
+        }
+
         // ── Handle a pending seek request ─────────────────────────────────
         double seek_secs = seek_target_.exchange(-1.0);
         if (seek_secs >= 0.0) {
@@ -110,6 +154,7 @@ bool Demuxer::open(const std::string& url_or_path)
     if (audio_idx_ < 0)
         logger::warn("No audio stream found");
 
+    build_track_lists();
     print_stream_info();
     return true;
 }
@@ -160,6 +205,49 @@ bool Demuxer::is_network_url(const std::string& url) const
            url.starts_with("https://") ||
            url.starts_with("rtmp://")  ||
            url.starts_with("rtsp://");
+}
+
+void Demuxer::build_track_lists()
+{
+    audio_tracks_.clear();
+    video_tracks_.clear();
+
+    for (unsigned i = 0; i < fmt_ctx_->nb_streams; ++i) {
+        AVStream* s = fmt_ctx_->streams[i];
+        AVCodecParameters* par = s->codecpar;
+
+        if (par->codec_type == AVMEDIA_TYPE_AUDIO) {
+            AudioTrackInfo info;
+            info.stream_idx = static_cast<int>(i);
+            info.codec_name = avcodec_get_name(par->codec_id);
+            info.sample_rate = par->sample_rate;
+            info.channels    = par->ch_layout.nb_channels;
+            info.bit_rate    = par->bit_rate;
+
+            // Language/title from stream metadata
+            auto* lang  = av_dict_get(s->metadata, "language", nullptr, 0);
+            auto* title = av_dict_get(s->metadata, "title",    nullptr, 0);
+            if (title && lang)
+                info.language = std::string(title->value) + " (" + lang->value + ")";
+            else if (title)
+                info.language = title->value;
+            else if (lang)
+                info.language = lang->value;
+
+            audio_tracks_.push_back(std::move(info));
+
+        } else if (par->codec_type == AVMEDIA_TYPE_VIDEO) {
+            VideoTrackInfo info;
+            info.stream_idx = static_cast<int>(i);
+            info.codec_name = avcodec_get_name(par->codec_id);
+            info.width      = par->width;
+            info.height     = par->height;
+            info.bit_rate   = par->bit_rate;
+            AVRational fps  = s->avg_frame_rate;
+            info.fps = (fps.den > 0) ? av_q2d(fps) : 0.0;
+            video_tracks_.push_back(std::move(info));
+        }
+    }
 }
 
 void Demuxer::print_stream_info() const

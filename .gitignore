@@ -8,11 +8,32 @@ build/
 .idea/
 .vscode/
 
-# Video test data (large files — keep local, don't commit)
-data/*.mp4
-data/*.mkv
-data/*.mov
+# Video / audio test data (large files — keep local, don't commit)
+data/
+*.mp4
+*.mkv
+*.mov
+*.avi
+*.webm
+*.ts
+*.m2ts
+*.flv
+*.wmv
+*.mp3
+*.aac
+*.flac
+*.wav
 
 # FFmpeg / encoder intermediate files
 *.yuv
 *.raw
+*.h264
+*.hevc
+
+# CMake user-local files
+CMakeUserPresets.json
+
+# Compiler output / crash dumps
+*.dSYM/
+*.o
+*.a

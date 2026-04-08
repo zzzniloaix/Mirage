@@ -33,6 +33,10 @@ public:
     // Flush codec + filter buffers after a seek.
     void flush();
 
+    // Tear down and reinitialise for a new audio stream (track switch).
+    [[nodiscard]] bool reopen(AVCodecParameters* par, AudioPlayer& player,
+                               AVRational time_base);
+
     // Rebuild the atempo filter graph for the given playback speed.
     // speed in [0.25, 4.0] — uses two chained atempo stages if needed.
     void set_speed(double speed);

@@ -26,10 +26,11 @@ public:
     void draw(double pos, double duration, int fb_w, int fb_h);
 
     // Logical window-pixel height of the interactive zone (for mouse hit-testing).
-    static constexpr int kHitPx = 40;
+    static constexpr int kHitPx     = 40;
+    // Framebuffer-pixel height of the dark backing panel.
+    static constexpr int kBackingPx = 32;
 
 private:
-    static constexpr int kBackingPx = 32;  // total panel height (fb px)
     static constexpr int kTrackPx   = 4;   // thin track line height (fb px)
     static constexpr int kThumbDiam = 14;  // playhead circle diameter (fb px)
 

@@ -198,6 +198,17 @@ void AudioDecoder::flush()
     }
 }
 
+bool AudioDecoder::reopen(AVCodecParameters* par, AudioPlayer& player, AVRational time_base)
+{
+    free_filter_graph();
+    if (swr_) { swr_free(&swr_); swr_ = nullptr; }
+    decoder_.close();
+    out_media_pts_ = 0.0;
+    pts_inited_    = false;
+    speed_         = 1.0;
+    return open(par, player, time_base);
+}
+
 // ── Decode ────────────────────────────────────────────────────────────────────
 
 void AudioDecoder::push_to_filter(AVFrame* frame, AudioPlayer& player)

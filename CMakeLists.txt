@@ -39,6 +39,13 @@ FetchContent_Declare(miniaudio
 )
 FetchContent_MakeAvailable(miniaudio)
 
+# stb — single-header utilities (stb_easy_font for debug HUD text rendering)
+FetchContent_Declare(stb
+    GIT_REPOSITORY https://github.com/nothings/stb.git
+    GIT_TAG        master
+)
+FetchContent_MakeAvailable(stb)
+
 # ── Executable ───────────────────────────────────────────────────────────────
 
 add_executable(mirage
@@ -49,11 +56,14 @@ add_executable(mirage
     src/AudioPlayer.cpp
     src/VideoRenderer.cpp
     src/ScrubBar.cpp
+    src/DebugHUD.cpp
+    src/ThumbnailStrip.cpp
     src/Sync.cpp
 )
 
 target_include_directories(mirage PRIVATE
     ${miniaudio_SOURCE_DIR}
+    ${stb_SOURCE_DIR}
 )
 
 target_link_libraries(mirage PRIVATE

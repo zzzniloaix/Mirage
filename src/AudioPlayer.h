@@ -35,6 +35,9 @@ public:
     int    sample_rate() const { return sample_rate_; }
     double clock()       const { return clock_.load(); }
 
+    // Estimated device output latency (seconds): time between fill_buffer and audible output.
+    double output_latency_seconds() const;
+
 private:
     ma_device device_      = {};
     bool      running_     = false;
