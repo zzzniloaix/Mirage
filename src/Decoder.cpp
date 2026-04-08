@@ -7,6 +7,11 @@ extern "C" {
 
 Decoder::~Decoder()
 {
+    close();
+}
+
+void Decoder::close()
+{
     if (ctx_)
         avcodec_free_context(&ctx_);
 }

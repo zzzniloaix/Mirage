@@ -3,6 +3,7 @@
 #include "Queue.h"
 
 #include <string>
+#include <vector>
 #include <stop_token>
 #include <atomic>
 
@@ -18,6 +19,23 @@ inline AVPacket* flush_sentinel() {
     return reinterpret_cast<AVPacket*>(&s_marker);
 }
 
+struct AudioTrackInfo {
+    int         stream_idx;
+    std::string language;    // from "language" / "title" metadata, may be empty
+    std::string codec_name;
+    int         sample_rate = 0;
+    int         channels    = 0;
+    int64_t     bit_rate    = 0;
+};
+
+struct VideoTrackInfo {
+    int         stream_idx;
+    std::string codec_name;
+    int         width = 0, height = 0;
+    double      fps   = 0.0;
+    int64_t     bit_rate = 0;
+};
+
 class Demuxer {
 public:
     Demuxer() = default;
@@ -30,8 +48,17 @@ public:
     void close();
 
     // Request a seek to `seconds` from any thread.
-    // The actual seek runs inside read_loop on the demux thread.
     void request_seek(double seconds);
+
+    // Request switching to a different audio/video stream.
+    // Picked up by read_loop; triggers a flush sentinel + decoder reopen flag.
+    void request_audio_switch(int stream_idx);
+    void request_video_switch(int stream_idx);
+
+    // Called by the decode threads after the flush sentinel caused by a stream switch.
+    // Returns true (and clears the flag) if the decoder needs to be reopened.
+    bool consume_audio_reopen();
+    bool consume_video_reopen();
 
     // Runs on a std::jthread — reads packets and routes to the right queue.
     // Returns when EOF, read error, or stop is requested.
@@ -54,12 +81,24 @@ public:
     // Total duration in seconds, or -1 if unknown (live streams).
     double duration() const;
 
+    // All audio/video tracks in the container, populated at open().
+    const std::vector<AudioTrackInfo>& audio_tracks() const { return audio_tracks_; }
+    const std::vector<VideoTrackInfo>& video_tracks() const { return video_tracks_; }
+
 private:
     AVFormatContext*    fmt_ctx_      = nullptr;
     int                 video_idx_    = -1;
     int                 audio_idx_    = -1;
-    std::atomic<double> seek_target_{ -1.0 };  // seconds, negative = no seek pending
+    std::atomic<double> seek_target_{ -1.0 };
+    std::atomic<int>    pending_audio_switch_{ -1 };
+    std::atomic<int>    pending_video_switch_{ -1 };
+    std::atomic<bool>   audio_reopen_{ false };
+    std::atomic<bool>   video_reopen_{ false };
+
+    std::vector<AudioTrackInfo> audio_tracks_;
+    std::vector<VideoTrackInfo> video_tracks_;
 
     bool is_network_url(const std::string& url) const;
+    void build_track_lists();
     void print_stream_info() const;
 };

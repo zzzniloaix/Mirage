@@ -40,7 +40,11 @@ bool AudioPlayer::init(int sample_rate)
     }
 
     running_ = true;
-    logger::info("AudioPlayer: {} Hz stereo float32", sample_rate);
+    logger::info("AudioPlayer: {} Hz stereo float32  device latency {:.1f} ms ({} frames × {} periods)",
+        sample_rate,
+        output_latency_seconds() * 1000.0,
+        device_.playback.internalPeriodSizeInFrames,
+        device_.playback.internalPeriods);
     return true;
 }
 
@@ -84,6 +88,14 @@ void AudioPlayer::push(const float* samples, int frame_count, double pts)
 
     // PTS of the hypothetical "next sample" after everything in the buffer
     ring_end_pts_ = pts + static_cast<double>(frame_count) / sample_rate_;
+}
+
+double AudioPlayer::output_latency_seconds() const
+{
+    if (!running_) return 0.0;
+    ma_uint32 frames = device_.playback.internalPeriodSizeInFrames
+                     * device_.playback.internalPeriods;
+    return static_cast<double>(frames) / static_cast<double>(sample_rate_);
 }
 
 void AudioPlayer::fill_buffer(float* out, int frame_count)
