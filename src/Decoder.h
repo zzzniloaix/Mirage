@@ -18,11 +18,12 @@ public:
     bool pull(AVFrame* frame);  // avcodec_receive_frame; true = got frame
     void flush();               // avcodec_flush_buffers (call after seek)
 
-    int             width()        const;
-    int             height()       const;
-    AVPixelFormat   pixel_format() const;
-    AVColorSpace    colorspace()   const;
-    AVColorRange    color_range()  const;
+    int             width()                const;
+    int             height()               const;
+    AVPixelFormat   pixel_format()         const;
+    AVColorSpace    colorspace()           const;
+    AVColorRange    color_range()          const;
+    AVRational      sample_aspect_ratio()  const;  // {0,1} means "unspecified / square"
 
 private:
     AVCodecContext* ctx_ = nullptr;

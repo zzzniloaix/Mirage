@@ -72,6 +72,11 @@ void AudioPlayer::flush()
     count_        = 0;
     ring_end_pts_ = 0.0;
     clock_.store(0.0);
+    // Reset waveform so stale peaks don't show after seek
+    wave_head_  = 0;
+    wave_count_ = 0;
+    wave_accum_ = 0;
+    wave_peak_  = 0.0f;
 }
 
 void AudioPlayer::push(const float* samples, int frame_count, double pts)
@@ -88,6 +93,35 @@ void AudioPlayer::push(const float* samples, int frame_count, double pts)
 
     // PTS of the hypothetical "next sample" after everything in the buffer
     ring_end_pts_ = pts + static_cast<double>(frame_count) / sample_rate_;
+
+    // ── Waveform downsampling (left channel peak, every kWaveStride samples) ──
+    for (int i = 0; i < frame_count; ++i) {
+        float s = std::abs(samples[i * kChannels]);
+        if (s > wave_peak_) wave_peak_ = s;
+        if (++wave_accum_ >= kWaveStride) {
+            wave_buf_[wave_head_] = wave_peak_;
+            wave_head_ = (wave_head_ + 1) % kWaveCap;
+            if (wave_count_ < kWaveCap) ++wave_count_;
+            wave_accum_ = 0;
+            wave_peak_  = 0.0f;
+        }
+    }
+}
+
+void AudioPlayer::set_volume(float v)
+{
+    volume_.store(std::clamp(v, 0.0f, 1.0f));
+}
+
+void AudioPlayer::copy_waveform(float* out, int n)
+{
+    std::lock_guard lock(ring_mtx_);
+    int avail = std::min(n, wave_count_);
+    int start = (wave_count_ < kWaveCap) ? 0 : wave_head_;
+    for (int i = 0; i < avail; ++i)
+        out[i] = wave_buf_[(start + i) % kWaveCap];
+    for (int i = avail; i < n; ++i)
+        out[i] = 0.0f;
 }
 
 double AudioPlayer::output_latency_seconds() const
@@ -115,6 +149,12 @@ void AudioPlayer::fill_buffer(float* out, int frame_count)
 
     if (silence > 0)
         std::memset(out + to_read, 0, silence * sizeof(float));
+
+    // Apply volume gain
+    float vol = volume_.load();
+    if (vol != 1.0f) {
+        for (int i = 0; i < to_read; ++i) out[i] *= vol;
+    }
 
     // Audio clock = PTS at end of buffer minus time still buffered
     clock_.store(ring_end_pts_ - static_cast<double>(count_ / kChannels) / sample_rate_);

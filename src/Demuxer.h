@@ -81,6 +81,13 @@ public:
     // Total duration in seconds, or -1 if unknown (live streams).
     double duration() const;
 
+    // Clockwise rotation of the video stream in degrees (0, 90, 180, 270).
+    // Derived from the AV_PKT_DATA_DISPLAYMATRIX side-data attached to the stream.
+    double video_rotation() const;
+
+    // Stream-level SAR for the video stream ({0,1} = unspecified / square pixels).
+    AVRational video_sar() const;
+
     // All audio/video tracks in the container, populated at open().
     const std::vector<AudioTrackInfo>& audio_tracks() const { return audio_tracks_; }
     const std::vector<VideoTrackInfo>& video_tracks() const { return video_tracks_; }

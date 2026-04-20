@@ -74,6 +74,60 @@ public:
     void draw_drift_graph(int fb_w, int fb_h, float scale = 1.0f,
                           float bottom_offset_px = 0.0f);
 
+    // ── Waveform (W key) ──────────────────────────────────────────────────────
+
+    // Height of the waveform strip in framebuffer pixels.
+    static constexpr int kWaveformPx = 48;
+
+    // Draw the audio waveform strip spanning the full window width.
+    // peaks: array of n downsampled absolute-amplitude values in [0,1],
+    //        chronological order (oldest first).
+    // bottom_offset_px: fb pixels already used at the bottom (scrub bar, etc.)
+    void draw_waveform(const float* peaks, int n,
+                       int fb_w, int fb_h, float scale,
+                       float bottom_offset_px = 0.0f);
+
+    // ── Network log + Manifest tags (N key) ───────────────────────────────────
+
+    // One entry in the network request log.
+    struct NetLogEntry {
+        std::string time;   // "HH:MM:SS.mmm"
+        std::string type;   // "manifest" | "variant" | "init" | "segment" | "other"
+        std::string url;    // last ~60 chars of URL
+        float r, g, b;      // colour coding
+    };
+
+    // Draw the network log panel (right side of screen).
+    void draw_network_log(const std::vector<NetLogEntry>& entries,
+                          int fb_w, int fb_h, float scale = 1.0f);
+
+    // One manifest tag entry for display.
+    struct TagEntry {
+        double      pts;     // stream time in seconds
+        std::string label;   // short display string, e.g. "DISCONTINUITY", "CUE-OUT 30s"
+        float r, g, b;       // colour coding
+    };
+
+    // Draw the manifest tag inspector panel (left side of screen).
+    void draw_manifest_tags(const std::vector<TagEntry>& tags,
+                             double cur_pts,
+                             int fb_w, int fb_h, float scale = 1.0f);
+
+    // Draw a thin timeline strip above the scrub bar with coloured tick marks.
+    // Returns the pts seeked to if a click lands in the strip, or -1.
+    static constexpr int kTimelinePx = 10;  // strip height in framebuffer pixels
+
+    double draw_timeline_ticks(const std::vector<TagEntry>& tags,
+                                double duration,
+                                int fb_w, int fb_h, float scale,
+                                float bottom_offset_px,
+                                float click_x = -1.0f, float click_y = -1.0f);
+
+    // ── Help overlay (H key) ──────────────────────────────────────────────────
+
+    // Draw a centered panel listing all keyboard controls.
+    void draw_help(int fb_w, int fb_h, float scale = 1.0f);
+
 private:
     // ── A/V drift ring buffer ─────────────────────────────────────────────────
     static constexpr int kDriftCap = 600;  // ≈10s at 60fps

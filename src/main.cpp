@@ -13,11 +13,20 @@
 #include "Sync.h"
 #include "Queue.h"
 #include "Logger.h"
+#include "NetworkLogger.h"
+#include "ManifestParser.h"
+#include "PlayerUI.h"
+
+// imgui headers (needed for WantCapture* guards in GLFW callbacks)
+#include "imgui.h"
 
 #include <thread>
 #include <chrono>
 #include <cstdlib>
 #include <limits>
+#include <fstream>
+#include <filesystem>
+#include <algorithm>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -28,6 +37,12 @@ extern "C" {
 #include <libavutil/channel_layout.h>
 }
 
+// File-scope pointer so GLFW callbacks can call notify_activity().
+static PlayerUI* g_player_ui = nullptr;
+
+// Set by GLFW drop callback (main thread only).
+static std::string g_drop_pending;
+
 static std::atomic<double> s_seek_delta{ 0.0 };
 static std::atomic<bool>   s_paused{ false };
 static std::atomic<double> s_speed{ 1.0 };
@@ -37,6 +52,9 @@ static std::atomic<bool>   s_show_hud{ false };
 static std::atomic<bool>   s_show_inspector{ false };
 static std::atomic<bool>   s_show_drift{ false };
 static std::atomic<bool>   s_show_tracks{ false };
+static std::atomic<bool>   s_show_waveform{ false };
+static std::atomic<bool>   s_show_network{ false };
+static std::atomic<bool>   s_show_help{ false };
 static std::atomic<double> s_cursor_x{ -1.0 };   // window-space cursor, always updated
 static std::atomic<double> s_cursor_y{ -1.0 };
 static std::atomic<double> s_click_x{ -1.0 };    // window-space left-click (consumed once)
@@ -49,6 +67,9 @@ static constexpr int    kNumPresets     = static_cast<int>(std::size(kSpeedPrese
 
 static void on_key(GLFWwindow* window, int key, int /*scancode*/, int action, int /*mods*/)
 {
+    if (g_player_ui) g_player_ui->notify_activity();
+    // Let ImGui consume keyboard events when it wants exclusive input (e.g. text fields).
+    if (ImGui::GetIO().WantCaptureKeyboard) return;
     if (action != GLFW_PRESS) return;
     if (key == GLFW_KEY_ESCAPE || key == GLFW_KEY_Q)
         glfwSetWindowShouldClose(window, GLFW_TRUE);
@@ -61,6 +82,9 @@ static void on_key(GLFWwindow* window, int key, int /*scancode*/, int action, in
     else if (key == GLFW_KEY_I) s_show_inspector.store(!s_show_inspector.load());
     else if (key == GLFW_KEY_G) s_show_drift.store(!s_show_drift.load());
     else if (key == GLFW_KEY_T) s_show_tracks.store(!s_show_tracks.load());
+    else if (key == GLFW_KEY_W) s_show_waveform.store(!s_show_waveform.load());
+    else if (key == GLFW_KEY_N) s_show_network.store(!s_show_network.load());
+    else if (key == GLFW_KEY_H) s_show_help.store(!s_show_help.load());
     else if (key == GLFW_KEY_PERIOD) { s_paused.store(true); s_step_frames.fetch_add(1); }
     else if (key == GLFW_KEY_COMMA)  { s_paused.store(true); s_step_frames.fetch_add(-1); }
     else if (key == GLFW_KEY_RIGHT_BRACKET || key == GLFW_KEY_LEFT_BRACKET) {
@@ -86,6 +110,9 @@ static const int kBarWinPx = ScrubBar::kHitPx;  // window-pixel hit zone for scr
 
 static void on_mouse_button(GLFWwindow* window, int button, int action, int /*mods*/)
 {
+    if (g_player_ui) g_player_ui->notify_activity();
+    // Let ImGui consume mouse events when it owns a window under the cursor.
+    if (ImGui::GetIO().WantCaptureMouse) return;
     if (button != GLFW_MOUSE_BUTTON_LEFT) return;
 
     if (action == GLFW_PRESS) {
@@ -108,6 +135,7 @@ static void on_mouse_button(GLFWwindow* window, int button, int action, int /*mo
 
 static void on_cursor_pos(GLFWwindow* window, double mx, double my)
 {
+    if (g_player_ui) g_player_ui->notify_activity();
     s_cursor_x.store(mx);
     s_cursor_y.store(my);
     if (!s_scrubbing.load()) return;
@@ -219,41 +247,45 @@ static void audio_decode_loop(AudioDecoder&     audio_decoder,
     }
 }
 
+// ── Recent files helpers ──────────────────────────────────────────────────────
+
+static std::string recent_file_path()
+{
+    const char* home = std::getenv("HOME");
+    if (!home) return "";
+    return std::string(home) + "/.config/mirage/recent.txt";
+}
+
+static std::vector<std::string> load_recents()
+{
+    std::vector<std::string> v;
+    auto p = recent_file_path();
+    if (p.empty()) return v;
+    std::ifstream f(p);
+    std::string line;
+    while (std::getline(f, line) && v.size() < 8)
+        if (!line.empty()) v.push_back(line);
+    return v;
+}
+
+static void save_recent(const std::string& entry)
+{
+    auto p = recent_file_path();
+    if (p.empty() || entry.empty()) return;
+    auto v = load_recents();
+    v.erase(std::remove(v.begin(), v.end(), entry), v.end());
+    v.insert(v.begin(), entry);
+    if (v.size() > 8) v.resize(8);
+    std::error_code ec;
+    std::filesystem::create_directories(std::filesystem::path(p).parent_path(), ec);
+    std::ofstream f(p);
+    for (const auto& r : v) f << r << "\n";
+}
+
+// ── main ──────────────────────────────────────────────────────────────────────
+
 int main(int argc, char* argv[])
 {
-    if (argc < 2) {
-        std::fprintf(stderr, "Usage: mirage <file-or-url>\n");
-        return EXIT_FAILURE;
-    }
-
-    // ── Open container ────────────────────────────────────────────────────────
-    Demuxer demuxer;
-    if (!demuxer.open(argv[1]))
-        return EXIT_FAILURE;
-
-    if (demuxer.video_stream_index() < 0) {
-        logger::error("No video stream — nothing to display");
-        return EXIT_FAILURE;
-    }
-
-    // ── Decoders ──────────────────────────────────────────────────────────────
-    Decoder video_decoder;
-    if (!video_decoder.open(demuxer.video_codecpar()))
-        return EXIT_FAILURE;
-
-    AudioPlayer  audio_player;
-    AudioDecoder audio_decoder;
-    const bool   has_audio = demuxer.audio_stream_index() >= 0;
-
-    if (has_audio) {
-        if (!audio_player.init(48000))           return EXIT_FAILURE;
-        if (!audio_decoder.open(demuxer.audio_codecpar(), audio_player,
-                                demuxer.audio_time_base()))
-            return EXIT_FAILURE;
-    }
-
-    const AVRational video_tb = demuxer.video_time_base();
-
     // ── GLFW + OpenGL ─────────────────────────────────────────────────────────
     if (!glfwInit()) {
         logger::error("Failed to initialise GLFW");
@@ -286,16 +318,107 @@ int main(int argc, char* argv[])
         reinterpret_cast<const char*>(glGetString(GL_VERSION)),
         reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION)));
 
+    // Register app callbacks BEFORE ImGui so ImGui can chain to them.
     glfwSetKeyCallback(window, on_key);
     glfwSetFramebufferSizeCallback(window, on_framebuffer_resize);
     glfwSetMouseButtonCallback(window, on_mouse_button);
     glfwSetCursorPosCallback(window, on_cursor_pos);
+    glfwSetDropCallback(window, [](GLFWwindow*, int count, const char** paths) {
+        if (count > 0) g_drop_pending = paths[0];
+    });
+
+    // ImGui UI — init after callbacks so it can install wrapper callbacks that chain to ours.
+    PlayerUI player_ui;
+    g_player_ui = &player_ui;
+    if (!player_ui.init(window)) {
+        logger::error("PlayerUI: failed to init Dear ImGui");
+        glfwDestroyWindow(window);
+        glfwTerminate();
+        return EXIT_FAILURE;
+    }
 
     {
         int w, h;
         glfwGetFramebufferSize(window, &w, &h);
         glViewport(0, 0, w, h);
     }
+
+    // ── Choose file: command-line arg or launcher screen ──────────────────────
+    std::string open_path;
+    if (argc >= 2) {
+        open_path = argv[1];
+    } else {
+        auto recents = load_recents();
+        while (!glfwWindowShouldClose(window) && open_path.empty()) {
+            // Check drop
+            if (!g_drop_pending.empty()) {
+                open_path = g_drop_pending;
+                g_drop_pending.clear();
+                break;
+            }
+            glfwPollEvents();
+
+            int fb_w, fb_h;
+            glfwGetFramebufferSize(window, &fb_w, &fb_h);
+            glViewport(0, 0, fb_w, fb_h);
+            glClearColor(0.13f, 0.14f, 0.16f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+
+            player_ui.begin_frame();
+            open_path = player_ui.draw_launcher(recents);
+            player_ui.end_frame();
+
+            glfwSwapBuffers(window);
+        }
+        if (open_path.empty()) {
+            // User closed the window without choosing
+            g_player_ui = nullptr;
+            player_ui.shutdown();
+            glfwDestroyWindow(window);
+            glfwTerminate();
+            return EXIT_SUCCESS;
+        }
+        save_recent(open_path);
+    }
+
+    // ── Network logger (must be installed before any FFmpeg call) ─────────────
+    NetworkLogger net_logger;
+    net_logger.install();
+
+    // ── Open container ────────────────────────────────────────────────────────
+    Demuxer demuxer;
+    if (!demuxer.open(open_path.c_str()))
+        return EXIT_FAILURE;
+
+    // ── Manifest parser (HLS / DASH only — non-fatal) ─────────────────────────
+    ManifestParser manifest;
+    if (ManifestParser::is_manifest(open_path.c_str())) {
+        if (!manifest.parse(open_path.c_str()))
+            logger::warn("ManifestParser: failed to parse {}", open_path);
+    }
+
+    if (demuxer.video_stream_index() < 0) {
+        logger::error("No video stream — nothing to display");
+        return EXIT_FAILURE;
+    }
+
+    // ── Decoders ──────────────────────────────────────────────────────────────
+    Decoder video_decoder;
+    if (!video_decoder.open(demuxer.video_codecpar()))
+        return EXIT_FAILURE;
+
+    AudioPlayer  audio_player;
+    AudioDecoder audio_decoder;
+    const bool   has_audio = demuxer.audio_stream_index() >= 0;
+
+    if (has_audio) {
+        if (!audio_player.init(48000))           return EXIT_FAILURE;
+        if (!audio_decoder.open(demuxer.audio_codecpar(), audio_player,
+                                demuxer.audio_time_base()))
+            return EXIT_FAILURE;
+    }
+
+    const AVRational video_tb = demuxer.video_time_base();
 
     VideoRenderer renderer;
     if (!renderer.init(video_decoder.width(), video_decoder.height(),
@@ -325,7 +448,7 @@ int main(int argc, char* argv[])
 
     ThumbnailStrip thumb_strip;
     // Non-fatal: live streams or formats without a keyframe index won't have thumbnails.
-    (void)thumb_strip.init(argv[1],
+    (void)thumb_strip.init(open_path.c_str(),
                      demuxer.video_stream_index(),
                      demuxer.video_time_base(),
                      duration,
@@ -391,6 +514,7 @@ int main(int argc, char* argv[])
                 static_cast<AVSampleFormat>(apar->format));
             inspector_lines.push_back({ std::format("  Format   {}", sf ? sf : "?") });
         }
+        (void)L{};  // suppress unused typedef warning
     }
 
     // ── Track selector items (built once; labels for each stream) ────────────
@@ -451,8 +575,27 @@ int main(int argc, char* argv[])
     double  cur_speed   = 1.0;
     int64_t frame_count = 0;
 
-    const int vid_w = video_decoder.width();
-    const int vid_h = video_decoder.height();
+    const int coded_w = video_decoder.width();
+    const int coded_h = video_decoder.height();
+
+    // Compute display dimensions applying SAR and rotation metadata.
+    // Priority: stream-level SAR > codec-level SAR > 1:1 (square pixels).
+    AVRational sar = demuxer.video_sar();
+    if (sar.num <= 0 || sar.den <= 0) sar = video_decoder.sample_aspect_ratio();
+    if (sar.num <= 0 || sar.den <= 0) sar = {1, 1};
+
+    // Apply SAR to get the "natural" display width (height is unchanged).
+    int disp_w = static_cast<int>(coded_w * static_cast<double>(sar.num) / sar.den + 0.5);
+    int disp_h = coded_h;
+    if (disp_w <= 0) disp_w = coded_w;  // clamp in case of bad metadata
+
+    // Swap display dimensions if the stream carries a 90° or 270° rotation tag.
+    // (Common for videos recorded on phones stored landscape with a rotation flag.)
+    const double rotation = demuxer.video_rotation();
+    const bool transposed = (rotation > 45.0 && rotation < 135.0)   // 90°
+                         || (rotation > 225.0 && rotation < 315.0); // 270°
+    const int vid_w = transposed ? disp_h : disp_w;
+    const int vid_h = transposed ? disp_w : disp_h;
 
     // Currently active stream indices (updated when track switches complete).
     int cur_audio_stream = demuxer.audio_stream_index();
@@ -460,8 +603,9 @@ int main(int argc, char* argv[])
 
 
     // When to show the next frame (wall clock)
-    auto next_pts_time  = std::chrono::steady_clock::now();
-    auto last_title_upd = std::chrono::steady_clock::now();
+    const auto startup_time = std::chrono::steady_clock::now();
+    auto next_pts_time  = startup_time;
+    auto last_title_upd = startup_time;
     // After a seek, ignore the audio clock until it has settled at the new position.
     auto audio_clock_valid_at = std::chrono::steady_clock::now();
 
@@ -666,12 +810,28 @@ int main(int argc, char* argv[])
             // else: frame not decoded yet — retry next iteration
         }
 
+        // ── ImGui: begin frame (before any GL drawing) ────────────────────
+        player_ui.begin_frame();
+
         // ── Draw with correct aspect ratio ────────────────────────────────
         int fb_w, fb_h;
         glfwGetFramebufferSize(window, &fb_w, &fb_h);
 
+        int win_w_for_scale, win_h_for_scale;
+        glfwGetWindowSize(window, &win_w_for_scale, &win_h_for_scale);
+        float global_ps = (win_w_for_scale > 0)
+            ? static_cast<float>(fb_w) / static_cast<float>(win_w_for_scale) : 1.0f;
+
+        // Reserve menu bar space at the top (menu bar height is in logical pixels).
+        int menu_bar_fb = static_cast<int>(player_ui.menu_bar_height() * global_ps);
+        // Video occupies the fb area below the menu bar.
+        int video_fb_h = fb_h - menu_bar_fb;
+
         int vx, vy, vw, vh;
-        compute_video_rect(fb_w, fb_h, vid_w, vid_h, vx, vy, vw, vh);
+        compute_video_rect(fb_w, video_fb_h, vid_w, vid_h, vx, vy, vw, vh);
+        // In GL framebuffer coords (y=0 at bottom), the video area starts at y=0
+        // and ends at y=video_fb_h. No extra y offset is needed because the menu
+        // bar occupies the top of the screen (high y in GL space isn't the video area).
 
         glViewport(0, 0, fb_w, fb_h);
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -684,11 +844,6 @@ int main(int argc, char* argv[])
 
         // ── Debug HUD (D key) ─────────────────────────────────────────────
         if (s_show_hud.load()) {
-            int win_w, win_h;
-            glfwGetWindowSize(window, &win_w, &win_h);
-            float pixel_scale = win_w > 0
-                ? static_cast<float>(fb_w) / static_cast<float>(win_w) : 1.0f;
-
             // av_diff: meaningful only during active playback.
             // paused  → NaN displayed as "--"
             // no audio → NaN displayed as "N/A" (handled in DebugHUD via separate flag)
@@ -698,16 +853,12 @@ int main(int argc, char* argv[])
 
             debug_hud.draw(
                 { last_pts, frame_count, av_diff, has_audio, s_decode_time_ms.load() },
-                fb_w, fb_h, pixel_scale);
+                fb_w, fb_h, global_ps);
         }
 
         // ── Stream inspector (I key) ──────────────────────────────────────
         if (s_show_inspector.load()) {
-            int win_w, win_h;
-            glfwGetWindowSize(window, &win_w, &win_h);
-            float pixel_scale = win_w > 0
-                ? static_cast<float>(fb_w) / static_cast<float>(win_w) : 1.0f;
-            debug_hud.draw_inspector(inspector_lines, fb_w, fb_h, pixel_scale);
+            debug_hud.draw_inspector(inspector_lines, fb_w, fb_h, global_ps);
         }
 
         // ── A/V drift graph (G key) ───────────────────────────────────────
@@ -719,35 +870,30 @@ int main(int argc, char* argv[])
             debug_hud.push_drift(av_diff);
         }
         if (s_show_drift.load()) {
-            int win_w, win_h;
-            glfwGetWindowSize(window, &win_w, &win_h);
-            float pixel_scale = win_w > 0
-                ? static_cast<float>(fb_w) / static_cast<float>(win_w) : 1.0f;
-            // Bottom offset: clear scrub bar + thumbnail strip area
-            float bottom_off = static_cast<float>(
-                ScrubBar::kBackingPx + ThumbnailStrip::kStripPx) + 10.0f * pixel_scale;
-            debug_hud.draw_drift_graph(fb_w, fb_h, pixel_scale, bottom_off);
+            // Bottom offset: scrub bar + optional timeline + optional waveform + thumb area
+            float bottom_off = player_ui.visible_bar_height_logical() * global_ps;
+            if (s_show_network.load() && !manifest.tags().empty() && duration > 0.0)
+                bottom_off += static_cast<float>(DebugHUD::kTimelinePx) * global_ps;
+            if (s_show_waveform.load() && has_audio)
+                bottom_off += static_cast<float>(DebugHUD::kWaveformPx) * global_ps;
+            bottom_off += static_cast<float>(ThumbnailStrip::kStripPx) + 10.0f * global_ps;
+            debug_hud.draw_drift_graph(fb_w, fb_h, global_ps, bottom_off);
         }
 
         // ── Track selector (T key) ────────────────────────────────────────
         if (s_show_tracks.load()) {
-            int win_w, win_h;
-            glfwGetWindowSize(window, &win_w, &win_h);
-            float ps = win_w > 0
-                ? static_cast<float>(fb_w) / static_cast<float>(win_w) : 1.0f;
-
             // Convert window-space cursor/click → framebuffer space.
-            float cx = static_cast<float>(s_cursor_x.load()) * ps;
-            float cy = static_cast<float>(s_cursor_y.load()) * ps;
+            float cx = static_cast<float>(s_cursor_x.load()) * global_ps;
+            float cy = static_cast<float>(s_cursor_y.load()) * global_ps;
             double raw_click_x = s_click_x.exchange(-1.0);
             double raw_click_y = s_click_y.exchange(-1.0);
-            float  click_x = (raw_click_x >= 0.0) ? static_cast<float>(raw_click_x) * ps : -1.0f;
-            float  click_y = (raw_click_y >= 0.0) ? static_cast<float>(raw_click_y) * ps : -1.0f;
+            float  click_x = (raw_click_x >= 0.0) ? static_cast<float>(raw_click_x) * global_ps : -1.0f;
+            float  click_y = (raw_click_y >= 0.0) ? static_cast<float>(raw_click_y) * global_ps : -1.0f;
 
             auto tc = debug_hud.draw_tracks(
                 audio_track_items, cur_audio_stream,
                 video_track_items, cur_video_stream,
-                fb_w, fb_h, ps,
+                fb_w, fb_h, global_ps,
                 click_x, click_y, cx, cy);
 
             if (tc.audio >= 0 && tc.audio != cur_audio_stream) {
@@ -779,12 +925,134 @@ int main(int argc, char* argv[])
         double bar_pts = (scrubbing && last_scrub_frac >= 0.0)
             ? last_scrub_frac * duration : last_pts;
 
-        bool show_thumbs = scrubbing ||
-            (now - last_any_seek_at < std::chrono::milliseconds(1500));
-        if (show_thumbs)
-            thumb_strip.draw(bar_pts, duration, fb_w, fb_h);
+        // ── Bottom stack: compute cumulative offset for stacked UI strips ──────
+        // Each strip sits above the one below, lowest → highest:
+        //   scrub bar → timeline ticks → waveform → thumbnail strip
+        {
+            const float ps = global_ps;
 
-        scrub_bar.draw(bar_pts, duration, fb_w, fb_h);
+            float bottom_off = player_ui.visible_bar_height_logical() * global_ps;
+
+            // ── Timeline ticks (N key, only when manifest has tags) ───────────
+            const auto& mtags = manifest.tags();
+            if (s_show_network.load() && !mtags.empty() && duration > 0.0) {
+                // Build TagEntry list from ManifestTag list
+                std::vector<DebugHUD::TagEntry> tag_entries;
+                for (const auto& t : mtags) {
+                    float r = 0.9f, g = 0.3f, b = 0.3f;  // red default
+                    std::string lbl = t.raw;
+                    switch (t.kind) {
+                        case ManifestTagKind::Discontinuity:
+                            r=0.9f; g=0.25f; b=0.25f; lbl = "DISCONTINUITY"; break;
+                        case ManifestTagKind::CueOut:
+                            r=0.9f; g=0.65f; b=0.10f; lbl = "CUE-OUT " + t.value; break;
+                        case ManifestTagKind::CueIn:
+                            r=0.20f; g=0.80f; b=0.30f; lbl = "CUE-IN"; break;
+                        case ManifestTagKind::Period:
+                            r=0.50f; g=0.50f; b=0.90f; lbl = t.value; break;
+                        case ManifestTagKind::Event:
+                            r=0.70f; g=0.70f; b=0.20f; lbl = t.value; break;
+                        case ManifestTagKind::Map:
+                            r=0.60f; g=0.60f; b=0.60f; lbl = "MAP"; break;
+                        case ManifestTagKind::ProgramDateTime:
+                            r=0.50f; g=0.70f; b=0.70f;
+                            lbl = "DATE-TIME " + t.value.substr(0, 16);
+                            break;
+                        default: r=0.55f; g=0.55f; b=0.55f; break;
+                    }
+                    tag_entries.push_back({ t.pts, lbl, r, g, b });
+                }
+
+                // Consume any pending click for the timeline zone
+                double raw_clk_x = s_click_x.load();
+                double raw_clk_y = s_click_y.load();
+                float  clk_x     = (raw_clk_x >= 0.0) ? static_cast<float>(raw_clk_x) * ps : -1.0f;
+                float  clk_y     = (raw_clk_y >= 0.0) ? static_cast<float>(raw_clk_y) * ps : -1.0f;
+
+                double tick_seek = debug_hud.draw_timeline_ticks(
+                    tag_entries, duration, fb_w, fb_h, ps,
+                    bottom_off, clk_x, clk_y);
+
+                if (tick_seek >= 0.0) {
+                    // Consume click and seek
+                    s_click_x.store(-1.0);
+                    s_click_y.store(-1.0);
+                    s_seek_delta.store(0.0);
+                    last_any_seek_at = now;
+                    demuxer.request_seek(tick_seek);
+                    AVFrame* stale;
+                    while (frameq.try_pop(stale)) av_frame_free(&stale);
+                    last_pts  = tick_seek;
+                    next_pts_time = now;
+                    audio_clock_valid_at = now + std::chrono::milliseconds(300);
+                }
+                bottom_off += static_cast<float>(DebugHUD::kTimelinePx) * ps;
+
+                // Tag inspector panel
+                debug_hud.draw_manifest_tags(tag_entries, last_pts, fb_w, fb_h, ps);
+            }
+
+            // ── Waveform strip (W key) ────────────────────────────────────────
+            if (s_show_waveform.load() && has_audio) {
+                static float wave_buf[AudioPlayer::kWaveCap];
+                audio_player.copy_waveform(wave_buf, AudioPlayer::kWaveCap);
+                debug_hud.draw_waveform(wave_buf, AudioPlayer::kWaveCap,
+                                        fb_w, fb_h, ps, bottom_off);
+                bottom_off += static_cast<float>(DebugHUD::kWaveformPx) * ps;
+            }
+
+            // ── Thumbnails ────────────────────────────────────────────────────
+            bool show_thumbs = scrubbing ||
+                (now - last_any_seek_at < std::chrono::milliseconds(1500));
+            if (show_thumbs)
+                thumb_strip.draw(bar_pts, duration, fb_w, fb_h);
+        }
+
+        // Custom ScrubBar replaced by VLC-style ImGui control bar.
+        // scrub_bar.draw(bar_pts, duration, fb_w, fb_h);
+
+        // ── Network log panel (N key) ─────────────────────────────────────────
+        if (s_show_network.load()) {
+            // Convert NetworkLogger::Entry → DebugHUD::NetLogEntry
+            auto raw = net_logger.get_recent(20);
+            std::vector<DebugHUD::NetLogEntry> net_entries;
+            net_entries.reserve(raw.size());
+            for (const auto& e : raw)
+                net_entries.push_back({ e.time, e.type, e.url, e.r, e.g, e.b });
+            debug_hud.draw_network_log(net_entries, fb_w, fb_h, global_ps);
+        }
+
+        // ── Help overlay (H key) — drawn last so it's on top of everything ──
+        if (s_show_help.load()) {
+            debug_hud.draw_help(fb_w, fb_h, global_ps);
+        }
+
+        // ── ImGui: build UI and render (above all GL content) ────────────────
+        {
+            auto ui = player_ui.build(
+                duration, last_pts,
+                paused, speed, has_audio ? audio_player.volume() : 1.0f,
+                has_audio,
+                s_show_hud.load(), s_show_inspector.load(), s_show_drift.load(),
+                s_show_tracks.load(), s_show_waveform.load(), s_show_network.load(),
+                s_show_help.load());
+
+            player_ui.end_frame();
+
+            // Act on commands
+            if (ui.quit)               glfwSetWindowShouldClose(window, GLFW_TRUE);
+            if (ui.play_pause_clicked) s_paused.store(!paused);
+            if (ui.seek_to >= 0.0)     s_seek_delta.store(ui.seek_to - last_pts);
+            if (ui.speed_set >= 0.0)   s_speed.store(ui.speed_set);
+            if (ui.volume_set >= 0.0f && has_audio) audio_player.set_volume(ui.volume_set);
+            if (ui.toggle_hud)       s_show_hud.store(!s_show_hud.load());
+            if (ui.toggle_inspector) s_show_inspector.store(!s_show_inspector.load());
+            if (ui.toggle_drift)     s_show_drift.store(!s_show_drift.load());
+            if (ui.toggle_tracks)    s_show_tracks.store(!s_show_tracks.load());
+            if (ui.toggle_waveform)  s_show_waveform.store(!s_show_waveform.load());
+            if (ui.toggle_network)   s_show_network.store(!s_show_network.load());
+            if (ui.toggle_help)      s_show_help.store(!s_show_help.load());
+        }
 
         glfwSwapBuffers(window);
 
@@ -793,11 +1061,15 @@ int main(int argc, char* argv[])
             last_title_upd = now;
             int s = static_cast<int>(last_pts);
             std::string speed_str = (speed == 1.0) ? "" : std::format("  [{:.2g}x]", speed);
+
+            // Show "H for help" hint during the first 5 seconds after launch
+            bool show_hint = (now - startup_time < std::chrono::seconds(5));
             glfwSetWindowTitle(window,
-                std::format("Mirage  {:02d}:{:02d}:{:02d}{}{}",
+                std::format("Mirage  {:02d}:{:02d}:{:02d}{}{}{}",
                     s / 3600, (s % 3600) / 60, s % 60,
                     speed_str,
-                    paused ? "  [PAUSED]" : "").c_str());
+                    paused ? "  [PAUSED]" : "",
+                    show_hint ? "   --  H for controls" : "").c_str());
         }
 
         // ── Sleep ─────────────────────────────────────────────────────────
@@ -832,6 +1104,9 @@ int main(int argc, char* argv[])
     // jthreads auto-join on destruction
 
     audio_player.stop();
+    net_logger.uninstall();
+    g_player_ui = nullptr;
+    player_ui.shutdown();
     glfwDestroyWindow(window);
     glfwTerminate();
     return EXIT_SUCCESS;
