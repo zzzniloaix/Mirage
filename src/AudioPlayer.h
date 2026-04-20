@@ -38,6 +38,18 @@ public:
     // Estimated device output latency (seconds): time between fill_buffer and audible output.
     double output_latency_seconds() const;
 
+    // Copy the last n downsampled peak values [0,1] into out[0..n-1], chronological order.
+    // Each peak represents the max absolute amplitude over kWaveStride samples.
+    // Thread-safe.
+    void copy_waveform(float* out, int n);
+
+    // Volume control [0, 1]. Applied as a gain multiplier in fill_buffer().
+    void  set_volume(float v);
+    float volume()  const { return volume_.load(); }
+
+    static constexpr int kWaveCap    = 1200;  // ≈3.6 s at 48 kHz / kWaveStride
+    static constexpr int kWaveStride = 40;    // samples per peak entry
+
 private:
     ma_device device_      = {};
     bool      running_     = false;
@@ -57,4 +69,13 @@ private:
     // Updated in fill_buffer() — readable from any thread via clock().
     std::atomic<double> clock_{ 0.0 };
     double              ring_end_pts_{ 0.0 }; // PTS right after last pushed sample
+
+    // Waveform downsampled peak ring buffer (updated in push() under ring_mtx_)
+    float wave_buf_[kWaveCap]{};
+    int   wave_head_  = 0;
+    int   wave_count_ = 0;
+    int   wave_accum_ = 0;
+    float wave_peak_  = 0.0f;
+
+    std::atomic<float> volume_{ 1.0f };
 };

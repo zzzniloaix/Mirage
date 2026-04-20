@@ -2,11 +2,16 @@
 #include "Logger.h"
 
 #include <cstring>
+#include <thread>
+#include <chrono>
 
 extern "C" {
 #include <libavutil/avutil.h>
+#include <libavutil/error.h>
 #include <libavutil/pixdesc.h>
 #include <libavutil/samplefmt.h>
+#include <libavutil/display.h>
+#include <libavcodec/packet.h>
 }
 
 void Demuxer::request_seek(double seconds)
@@ -84,7 +89,13 @@ void Demuxer::read_loop(std::stop_token st,
 
         int ret = av_read_frame(fmt_ctx_, pkt);
         if (ret < 0) {
-            // EOF or read error — push a null sentinel so decoders know to flush
+            if (ret == AVERROR(EAGAIN)) {
+                // Network stream not ready yet (e.g. waiting for next HLS segment).
+                // Yield briefly and retry — do NOT treat this as EOF.
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                continue;
+            }
+            // True EOF or unrecoverable error — signal decoders to flush and stop.
             videoq.push(nullptr);
             if (audio_idx_ >= 0) audioq.push(nullptr);
             break;
@@ -118,10 +129,14 @@ bool Demuxer::open(const std::string& url_or_path)
 
     AVDictionary* opts = nullptr;
     if (is_network_url(url_or_path)) {
-        av_dict_set(&opts, "timeout",            "5000000", 0);
-        av_dict_set(&opts, "reconnect",          "1",       0);
-        av_dict_set(&opts, "reconnect_streamed", "1",       0);
-        av_dict_set(&opts, "buffer_size",        "1048576", 0);
+        av_dict_set(&opts, "timeout",             "5000000", 0);
+        av_dict_set(&opts, "reconnect",           "1",       0);
+        av_dict_set(&opts, "reconnect_streamed",  "1",       0);
+        av_dict_set(&opts, "buffer_size",         "1048576", 0);
+        // Allow non-standard segment extensions (e.g. .mp4a used by Disney+/some HLS streams).
+        // FFmpeg 8 uses allowed_segment_extensions; extension_picky=0 disables the check entirely.
+        av_dict_set(&opts, "allowed_segment_extensions", "ALL", 0);
+        av_dict_set(&opts, "extension_picky",            "0",   0);
     }
 
     int ret = avformat_open_input(&fmt_ctx_, url_or_path.c_str(), nullptr, &opts);
@@ -197,6 +212,30 @@ double Demuxer::duration() const
 {
     if (!fmt_ctx_ || fmt_ctx_->duration == AV_NOPTS_VALUE) return -1.0;
     return static_cast<double>(fmt_ctx_->duration) / AV_TIME_BASE;
+}
+
+double Demuxer::video_rotation() const
+{
+    if (video_idx_ < 0 || !fmt_ctx_) return 0.0;
+    AVStream* s = fmt_ctx_->streams[video_idx_];
+    // FFmpeg 8: display matrix is in codecpar->coded_side_data.
+    const AVPacketSideData* sd = av_packet_side_data_get(
+        s->codecpar->coded_side_data,
+        s->codecpar->nb_coded_side_data,
+        AV_PKT_DATA_DISPLAYMATRIX);
+    if (!sd || sd->size < static_cast<int>(9 * sizeof(int32_t))) return 0.0;
+    // av_display_rotation_get returns CCW degrees; negate for CW.
+    double rot = -av_display_rotation_get(reinterpret_cast<const int32_t*>(sd->data));
+    // Normalise to [0, 360).
+    while (rot < 0.0)    rot += 360.0;
+    while (rot >= 360.0) rot -= 360.0;
+    return rot;
+}
+
+AVRational Demuxer::video_sar() const
+{
+    if (video_idx_ < 0 || !fmt_ctx_) return {0, 1};
+    return fmt_ctx_->streams[video_idx_]->sample_aspect_ratio;
 }
 
 bool Demuxer::is_network_url(const std::string& url) const
