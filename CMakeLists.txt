@@ -22,6 +22,9 @@ pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET
 # GLFW (via homebrew)
 pkg_check_modules(GLFW REQUIRED IMPORTED_TARGET glfw3)
 
+# libvmaf (via homebrew — brew install libvmaf)
+pkg_check_modules(VMAF REQUIRED IMPORTED_TARGET libvmaf)
+
 # GLAD2 — generates a minimal OpenGL 4.1 Core loader at configure time
 include(FetchContent)
 FetchContent_Declare(glad
@@ -109,6 +112,7 @@ add_executable(mirage
     src/NetworkLogger.cpp
     src/ManifestParser.cpp
     src/PlayerUI.cpp
+    src/VMAFAnalyzer.cpp
 )
 
 target_include_directories(mirage PRIVATE
@@ -121,6 +125,7 @@ target_link_libraries(mirage PRIVATE
     glad_gl_core_41
     PkgConfig::GLFW
     PkgConfig::FFMPEG
+    PkgConfig::VMAF
     pugixml
     imgui_impl
     nfd

@@ -128,6 +128,28 @@ public:
     // Draw a centered panel listing all keyboard controls.
     void draw_help(int fb_w, int fb_h, float scale = 1.0f);
 
+    // ── VMAF panel (V key) ────────────────────────────────────────────────────
+
+    // One entry in the compact VMAF panel.
+    struct VMAFPanelEntry {
+        std::string         label;          // e.g. "720p  2.0 Mbps" or "Analysis"
+        double              mean   = -1.0;
+        double              min_val= -1.0;
+        double              p5     = -1.0;
+        std::vector<double> per_frame;      // empty until done
+        bool                done   = false;
+        std::string         error;
+    };
+
+    // Draw the compact VMAF stats panel in the bottom-right corner.
+    // pos_frac: current playback position as fraction [0, 1] for graph marker.
+    // bottom_offset_px: fb pixels occupied at the bottom (same stack as drift graph).
+    void draw_vmaf_panel(const std::vector<VMAFPanelEntry>& entries,
+                         bool analyzing, float progress,
+                         float pos_frac,
+                         int fb_w, int fb_h, float scale = 1.0f,
+                         float bottom_offset_px = 0.0f);
+
 private:
     // ── A/V drift ring buffer ─────────────────────────────────────────────────
     static constexpr int kDriftCap = 600;  // ≈10s at 60fps

@@ -23,6 +23,12 @@ struct PlayerUIState {
     bool toggle_waveform  = false;
     bool toggle_network   = false;
     bool toggle_help      = false;
+    bool toggle_vmaf      = false;   // V key / View menu
+
+    // VMAF analysis triggers (set to true for exactly one frame)
+    bool vmaf_pick_ref         = false;  // open file picker to choose reference
+    bool vmaf_analyze_manifest = false;  // start manifest variant comparison
+    bool vmaf_export_json      = false;  // write JSON report to disk
 };
 
 // Dear ImGui–based player UI: top menu bar + auto-hiding floating control bar.
@@ -54,7 +60,28 @@ public:
         bool   has_audio,
         bool   show_hud,     bool show_inspector, bool show_drift,
         bool   show_tracks,  bool show_waveform,  bool show_network,
-        bool   show_help);
+        bool   show_help,    bool show_vmaf,
+        bool   has_manifest_variants);
+
+    // ── VMAF results window ────────────────────────────────────────────────────
+
+    struct VMAFResultEntry {
+        std::string label;
+        double      mean    = -1.0;
+        double      min_val = -1.0;
+        double      p5      = -1.0;
+        int         width   = 0, height = 0;
+        int64_t     bandwidth = 0;
+        bool        done    = false;
+        std::string error;
+        std::vector<double> per_frame;
+    };
+
+    // Draw the VMAF results ImGui window.  Call between begin_frame()/end_frame().
+    // Returns true when the user clicks "Export JSON".
+    bool draw_vmaf_results(const std::vector<VMAFResultEntry>& entries,
+                           bool analyzing, float progress,
+                           float pos_frac);
 
     // Submit the ImGui draw data to the GPU (call after all other drawing is done).
     void end_frame();
