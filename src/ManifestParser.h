@@ -24,6 +24,15 @@ struct ManifestTag {
     std::string     value;                        // parsed value / attributes string
 };
 
+// One rendition from an HLS EXT-X-STREAM-INF or DASH Representation element.
+struct VariantStream {
+    std::string url;            // fully-resolved playback URL
+    int64_t     bandwidth = 0;  // bits/sec
+    int         width     = 0;
+    int         height    = 0;
+    std::string codecs;
+};
+
 // Fetches and parses HLS (.m3u8) or DASH (.mpd) manifests.
 //
 // Call is_manifest() first to check if the URL looks like a manifest.
@@ -39,14 +48,16 @@ public:
     // Returns true on success.
     [[nodiscard]] bool parse(const std::string& url);
 
-    const std::vector<ManifestTag>& tags() const { return tags_; }
+    const std::vector<ManifestTag>&    tags()     const { return tags_; }
+    const std::vector<VariantStream>&  variants() const { return variants_; }
 
     // Returns the discontinuity sequence number active at the given pts.
     int disc_seq_at(double pts) const;
 
     // Parse from already-fetched text — public so unit tests can drive them directly
     // without needing a network or filesystem.
-    [[nodiscard]] bool parse_hls_text(const std::string& text);
+    [[nodiscard]] bool parse_hls_text(const std::string& text,
+                                      const std::string& base_url = {});
     [[nodiscard]] bool parse_dash_text(const std::string& text);
 
 private:
@@ -56,5 +67,10 @@ private:
     // Fetch raw text content via FFmpeg avio. Returns true on success.
     static bool fetch_text(const std::string& url, std::string& out);
 
-    std::vector<ManifestTag> tags_;
+    // Resolve a possibly-relative variant URL against a base manifest URL.
+    static std::string resolve_url(const std::string& base_url,
+                                   const std::string& variant_url);
+
+    std::vector<ManifestTag>   tags_;
+    std::vector<VariantStream> variants_;
 };

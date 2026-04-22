@@ -739,6 +739,7 @@ void DebugHUD::draw_help(int fb_w, int fb_h, float scale)
         { "T",           "Track selector"               },
         { "W",           "Waveform strip"               },
         { "N",           "Network / manifest log"       },
+        { "V",           "VMAF analysis panel"          },
         { "H",           "This help"                    },
         { nullptr,       nullptr                       },
         { "Q / Esc",     "Quit"                         },
@@ -844,6 +845,210 @@ float DebugHUD::draw_text(const char* text, float px, float py,
     glDrawArrays(GL_TRIANGLES, 0, num_tris * 3);
 
     return static_cast<float>(stb_easy_font_width(const_cast<char*>(text))) * scale;
+}
+
+// ── VMAF panel ────────────────────────────────────────────────────────────────
+
+void DebugHUD::draw_vmaf_panel(const std::vector<VMAFPanelEntry>& entries,
+                                bool analyzing, float progress,
+                                float pos_frac,
+                                int fb_w, int fb_h, float scale,
+                                float bottom_offset_px)
+{
+    if (fb_w <= 0 || fb_h <= 0) return;
+    glViewport(0, 0, fb_w, fb_h);
+
+    // ── Panel geometry ────────────────────────────────────────────────────────
+    const float margin  = 10.0f * scale;
+    const float pad     = 8.0f  * scale;
+    const float char_h  = 13.0f * scale;
+    const float line_sp = 4.0f  * scale;
+    const float line_h  = char_h + line_sp;
+
+    // Height: title + (analyzing line or N entry lines) + mini-graph or progress bar
+    const float graph_h  = 44.0f * scale;
+    const float n_lines  = static_cast<float>(std::max<int>(1, (int)entries.size()));
+    const float panel_w  = 300.0f * scale;
+    const float panel_h  = pad + line_h          // title
+                         + line_h                 // status or progress
+                         + n_lines * line_h       // entry rows
+                         + graph_h               // mini-graph
+                         + pad;
+
+    const float panel_x  = static_cast<float>(fb_w) - margin - panel_w;
+    const float panel_y  = static_cast<float>(fb_h) - margin - bottom_offset_px - panel_h;
+
+    auto px2x = [&](float p) { return p / static_cast<float>(fb_w) * 2.0f - 1.0f; };
+    auto px2y = [&](float p) { return 1.0f - p / static_cast<float>(fb_h) * 2.0f; };
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // Dark background
+    draw_bg(px2x(panel_x), px2x(panel_x + panel_w),
+            px2y(panel_y + panel_h), px2y(panel_y),
+            0.0f, 0.0f, 0.0f, 0.72f);
+
+    glDisable(GL_BLEND);
+
+    float cy = panel_y + pad;  // current Y cursor (screen-down)
+
+    // ── Title ─────────────────────────────────────────────────────────────────
+    draw_text("VMAF", panel_x + pad, cy, 0.75f, 0.80f, 0.90f, scale, fb_w, fb_h);
+    cy += line_h;
+
+    // ── Status line ───────────────────────────────────────────────────────────
+    if (analyzing) {
+        char buf[64];
+        std::snprintf(buf, sizeof(buf), "Analyzing...  %.0f%%", progress * 100.0f);
+        draw_text(buf, panel_x + pad, cy, 0.85f, 0.70f, 0.20f, scale, fb_w, fb_h);
+    } else if (entries.empty()) {
+        draw_text("No results yet", panel_x + pad, cy, 0.55f, 0.55f, 0.55f, scale, fb_w, fb_h);
+    } else {
+        draw_text("Done", panel_x + pad, cy, 0.30f, 0.85f, 0.30f, scale, fb_w, fb_h);
+    }
+    cy += line_h;
+
+    // Helper: color-code VMAF score (green ≥ 80, yellow 60–80, red < 60)
+    auto vmaf_color = [](double v, float& r, float& g, float& b) {
+        if (v < 0.0) { r = 0.55f; g = 0.55f; b = 0.55f; }  // unknown
+        else if (v >= 80.0) { r = 0.25f; g = 0.90f; b = 0.35f; }  // green
+        else if (v >= 60.0) { r = 0.90f; g = 0.75f; b = 0.20f; }  // yellow
+        else                { r = 0.90f; g = 0.30f; b = 0.25f; }  // red
+    };
+
+    // ── Per-entry rows ────────────────────────────────────────────────────────
+    for (const auto& e : entries) {
+        if (!e.error.empty()) {
+            // Truncate long error messages
+            std::string msg = e.label + ": " + e.error;
+            if (msg.size() > 44) msg = msg.substr(0, 41) + "...";
+            draw_text(msg.c_str(), panel_x + pad, cy,
+                      0.90f, 0.35f, 0.30f, scale, fb_w, fb_h);
+        } else if (!e.done) {
+            std::string msg = e.label + "  —  pending";
+            draw_text(msg.c_str(), panel_x + pad, cy,
+                      0.55f, 0.55f, 0.55f, scale, fb_w, fb_h);
+        } else {
+            // Label + mean score (color-coded)
+            char lbl[80];
+            std::snprintf(lbl, sizeof(lbl), "%-20s", e.label.c_str());
+            draw_text(lbl, panel_x + pad, cy, 0.80f, 0.80f, 0.80f, scale, fb_w, fb_h);
+
+            char stats[64];
+            std::snprintf(stats, sizeof(stats), "mean %5.1f  min %5.1f  p5 %5.1f",
+                          e.mean, e.min_val, e.p5);
+            float r, g, b;
+            vmaf_color(e.mean, r, g, b);
+            // Position scores to the right side of the label column
+            float label_w = 22.0f * 6.0f * scale;
+            draw_text(stats, panel_x + pad + label_w, cy, r, g, b, scale, fb_w, fb_h);
+        }
+        cy += line_h;
+    }
+
+    // ── Mini per-frame graph (only for the first done entry with per_frame data) ──
+    const VMAFPanelEntry* graph_entry = nullptr;
+    for (const auto& e : entries)
+        if (e.done && e.error.empty() && !e.per_frame.empty()) { graph_entry = &e; break; }
+
+    // Graph area
+    const float gx0 = panel_x + pad;
+    const float gx1 = panel_x + panel_w - pad;
+    const float gy0 = cy;
+    const float gy1 = cy + graph_h;
+    const float gw  = gx1 - gx0;
+    const float gh  = gy1 - gy0;
+
+    // Graph background bands (green / yellow / red thresholds)
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    auto score_to_py = [&](double s) -> float {
+        float t = static_cast<float>(std::clamp(s / 100.0, 0.0, 1.0));
+        return gy1 - t * gh;
+    };
+
+    float py80 = score_to_py(80.0);
+    float py60 = score_to_py(60.0);
+    draw_bg(px2x(gx0), px2x(gx1), px2y(gy0),  px2y(py80),
+            0.10f, 0.50f, 0.10f, 0.25f);   // green band ≥ 80
+    draw_bg(px2x(gx0), px2x(gx1), px2y(py80), px2y(py60),
+            0.55f, 0.45f, 0.05f, 0.25f);   // yellow band 60–80
+    draw_bg(px2x(gx0), px2x(gx1), px2y(py60), px2y(gy1),
+            0.50f, 0.05f, 0.05f, 0.25f);   // red band < 60
+
+    glDisable(GL_BLEND);
+
+    if (graph_entry) {
+        // Downsample per_frame to graph pixel width
+        const auto& pf = graph_entry->per_frame;
+        const int   N  = static_cast<int>(pf.size());
+        const int   W  = static_cast<int>(gw);
+        if (N > 0 && W > 1) {
+            std::vector<float> verts;
+            verts.reserve(W * 2);
+
+            bool prev_valid = false;
+            for (int xi = 0; xi < W; ++xi) {
+                // Map pixel column → frame range
+                int f0 = xi * N / W;
+                int f1 = std::max(f0 + 1, (xi + 1) * N / W);
+                f1 = std::min(f1, N);
+
+                // Average the range
+                double sum = 0.0;
+                for (int fi = f0; fi < f1; ++fi) sum += pf[fi];
+                double avg = sum / (f1 - f0);
+
+                float vx = gx0 + static_cast<float>(xi);
+                float vy = score_to_py(avg);
+                verts.push_back(vx);
+                verts.push_back(vy);
+                prev_valid = true;
+            }
+
+            if (!verts.empty()) {
+                glUseProgram(text_program_);
+                glUniform2f(u_fb_size_, static_cast<float>(fb_w), static_cast<float>(fb_h));
+                glUniform4f(u_text_color_, 0.40f, 0.80f, 1.0f, 0.90f);  // light blue
+                glBindVertexArray(text_vao_);
+                glBindBuffer(GL_ARRAY_BUFFER, text_vbo_);
+                glBufferData(GL_ARRAY_BUFFER,
+                             static_cast<GLsizeiptr>(verts.size() * sizeof(float)),
+                             verts.data(), GL_DYNAMIC_DRAW);
+                glDrawArrays(GL_LINE_STRIP, 0, static_cast<GLsizei>(verts.size() / 2));
+            }
+
+            // Current playback position marker (vertical white line)
+            if (pos_frac >= 0.0f && pos_frac <= 1.0f) {
+                float mx = gx0 + pos_frac * gw;
+                float marker[4] = { mx, gy0, mx, gy1 };
+                glUseProgram(text_program_);
+                glUniform2f(u_fb_size_, static_cast<float>(fb_w), static_cast<float>(fb_h));
+                glUniform4f(u_text_color_, 1.0f, 1.0f, 1.0f, 0.60f);
+                glBindVertexArray(text_vao_);
+                glBindBuffer(GL_ARRAY_BUFFER, text_vbo_);
+                glBufferData(GL_ARRAY_BUFFER, sizeof(marker), marker, GL_DYNAMIC_DRAW);
+                glDrawArrays(GL_LINES, 0, 2);
+            }
+        }
+    } else if (analyzing) {
+        // Draw a progress bar in place of the graph
+        float bar_x1 = gx0 + gw * progress;
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        float bar_cx = (gy0 + gy1) * 0.5f;
+        float bar_h  = 6.0f * scale;
+        draw_bg(px2x(gx0), px2x(gx1),
+                px2y(bar_cx - bar_h), px2y(bar_cx + bar_h),
+                0.20f, 0.20f, 0.20f, 0.80f);
+        if (bar_x1 > gx0)
+            draw_bg(px2x(gx0), px2x(bar_x1),
+                    px2y(bar_cx - bar_h), px2y(bar_cx + bar_h),
+                    0.85f, 0.60f, 0.10f, 0.90f);
+        glDisable(GL_BLEND);
+    }
 }
 
 bool DebugHUD::compile_shaders()

@@ -68,6 +68,7 @@ bool ManifestParser::is_manifest(const std::string& url)
 bool ManifestParser::parse(const std::string& url)
 {
     tags_.clear();
+    variants_.clear();
     std::string low = str_lower(url);
     if (str_ends_with(low, ".mpd") || low.find(".mpd?") != std::string::npos)
         return parse_dash(url);
@@ -106,32 +107,101 @@ bool ManifestParser::fetch_text(const std::string& url, std::string& out)
     return true;
 }
 
+// ── URL resolution ────────────────────────────────────────────────────────────
+
+std::string ManifestParser::resolve_url(const std::string& base_url,
+                                        const std::string& variant_url)
+{
+    // Already absolute
+    if (variant_url.starts_with("http://") || variant_url.starts_with("https://") ||
+        variant_url.starts_with("file://")  || variant_url.starts_with('/'))
+        return variant_url;
+
+    // Relative: take everything up to and including the last '/' in base_url
+    auto pos = base_url.rfind('/');
+    if (pos == std::string::npos) return variant_url;
+    return base_url.substr(0, pos + 1) + variant_url;
+}
+
 // ── HLS fetch wrapper ─────────────────────────────────────────────────────────
 
 bool ManifestParser::parse_hls(const std::string& url)
 {
     std::string text;
     if (!fetch_text(url, text)) return false;
-    bool ok = parse_hls_text(text);
+    bool ok = parse_hls_text(text, url);
     if (ok)
-        logger::info("ManifestParser: parsed HLS — {} tags from {}", tags_.size(), url);
+        logger::info("ManifestParser: parsed HLS — {} tags, {} variants from {}",
+                     tags_.size(), variants_.size(), url);
     return ok;
 }
 
 // ── HLS line-by-line parser ───────────────────────────────────────────────────
 
-bool ManifestParser::parse_hls_text(const std::string& text)
+// Parse a name=value attribute from an HLS attribute list string.
+// e.g. given "BANDWIDTH=2000000,RESOLUTION=1280x720" and name "BANDWIDTH", returns "2000000".
+static std::string hls_attr(const std::string& attrs, const char* name)
+{
+    std::string key = std::string(name) + "=";
+    auto pos = attrs.find(key);
+    if (pos == std::string::npos) return {};
+    pos += key.size();
+    if (pos >= attrs.size()) return {};
+    // Quoted value
+    if (attrs[pos] == '"') {
+        auto end = attrs.find('"', pos + 1);
+        return (end != std::string::npos) ? attrs.substr(pos + 1, end - pos - 1) : "";
+    }
+    // Unquoted: up to next comma or end
+    auto end = attrs.find(',', pos);
+    return attrs.substr(pos, (end != std::string::npos) ? end - pos : std::string::npos);
+}
+
+bool ManifestParser::parse_hls_text(const std::string& text, const std::string& base_url)
 {
     tags_.clear();
+    variants_.clear();
 
     double running_pts = 0.0;
     int    disc_seq    = 0;
+
+    bool        in_stream_inf = false;  // previous line was #EXT-X-STREAM-INF
+    std::string stream_inf_attrs;       // attribute string from that line
 
     std::istringstream ss(text);
     std::string line;
     while (std::getline(ss, line)) {
         // Strip Windows-style CR
         if (!line.empty() && line.back() == '\r') line.pop_back();
+
+        // ── Variant stream (master playlist) ─────────────────────────────────
+        if (line.starts_with("#EXT-X-STREAM-INF:")) {
+            in_stream_inf   = true;
+            stream_inf_attrs = line.substr(18);  // after "#EXT-X-STREAM-INF:"
+            continue;
+        }
+        if (in_stream_inf && !line.empty() && line[0] != '#') {
+            in_stream_inf = false;
+            VariantStream vs;
+            vs.url = base_url.empty() ? line : resolve_url(base_url, line);
+
+            std::string bw_s = hls_attr(stream_inf_attrs, "BANDWIDTH");
+            if (!bw_s.empty()) vs.bandwidth = std::stoll(bw_s);
+
+            std::string res_s = hls_attr(stream_inf_attrs, "RESOLUTION");
+            if (!res_s.empty()) {
+                auto x = res_s.find('x');
+                if (x != std::string::npos) {
+                    vs.width  = std::stoi(res_s.substr(0, x));
+                    vs.height = std::stoi(res_s.substr(x + 1));
+                }
+            }
+
+            vs.codecs = hls_attr(stream_inf_attrs, "CODECS");
+            variants_.push_back(std::move(vs));
+            continue;
+        }
+        in_stream_inf = false;
 
         if (line == "#EXT-X-DISCONTINUITY") {
             tags_.push_back({ running_pts, disc_seq,

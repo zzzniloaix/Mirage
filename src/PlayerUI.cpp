@@ -11,6 +11,7 @@
 
 #include <cstdio>
 #include <algorithm>
+#include <format>
 
 // Speed presets — must match main.cpp
 static constexpr double kSpeedPresets[] = { 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 4.0 };
@@ -228,7 +229,8 @@ PlayerUIState PlayerUI::build(
     bool   has_audio,
     bool   show_hud,   bool show_inspector, bool show_drift,
     bool   show_tracks,bool show_waveform,  bool show_network,
-    bool   show_help)
+    bool   show_help,  bool show_vmaf,
+    bool   has_manifest_variants)
 {
     PlayerUIState out{};
 
@@ -270,6 +272,16 @@ PlayerUIState PlayerUI::build(
             v = show_network;   if (ImGui::MenuItem("Network Log",      "N", &v)) out.toggle_network   = true;
             v = show_drift;     if (ImGui::MenuItem("A/V Drift Graph",  "G", &v)) out.toggle_drift     = true;
             v = show_tracks;    if (ImGui::MenuItem("Track Switcher",   "T", &v)) out.toggle_tracks    = true;
+            v = show_vmaf;      if (ImGui::MenuItem("VMAF Panel",       "V", &v)) out.toggle_vmaf      = true;
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Analyze")) {
+            if (ImGui::MenuItem("VMAF — Single File...",
+                                nullptr, false, true))
+                out.vmaf_pick_ref = true;
+            if (ImGui::MenuItem("VMAF — Manifest Variants",
+                                nullptr, false, has_manifest_variants))
+                out.vmaf_analyze_manifest = true;
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Help")) {
@@ -605,4 +617,172 @@ std::string PlayerUI::draw_launcher(const std::vector<std::string>& recents)
     ImGui::PopStyleColor(2);
 
     return result;
+}
+
+// ── VMAF results window ───────────────────────────────────────────────────────
+
+bool PlayerUI::draw_vmaf_results(const std::vector<VMAFResultEntry>& entries,
+                                  bool analyzing, float progress,
+                                  float pos_frac)
+{
+    bool export_requested = false;
+
+    ImGuiIO& io = ImGui::GetIO();
+    ImGui::SetNextWindowSize(ImVec2(640.0f, 480.0f), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(
+        ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f),
+        ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
+
+    if (!ImGui::Begin("VMAF Analysis", nullptr, ImGuiWindowFlags_NoCollapse)) {
+        ImGui::End();
+        return false;
+    }
+
+    // Status / progress
+    if (analyzing) {
+        ImGui::TextColored(ImVec4(0.90f, 0.70f, 0.20f, 1.0f),
+                           "Analyzing... %.0f%%", progress * 100.0f);
+        ImGui::SameLine();
+        ImGui::ProgressBar(progress, ImVec2(-1.0f, 0.0f));
+    } else if (!entries.empty()) {
+        ImGui::TextColored(ImVec4(0.30f, 0.90f, 0.30f, 1.0f), "Analysis complete.");
+        ImGui::SameLine();
+        if (ImGui::Button("Export JSON")) export_requested = true;
+    } else {
+        ImGui::TextDisabled("No analysis running. Use Analyze menu to start.");
+    }
+
+    ImGui::Separator();
+
+    if (entries.empty()) {
+        ImGui::End();
+        return export_requested;
+    }
+
+    // ── Summary table ─────────────────────────────────────────────────────────
+    constexpr ImGuiTableFlags kTblFlags =
+        ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg |
+        ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_ScrollY;
+
+    if (ImGui::BeginTable("vmaf_table", 6, kTblFlags,
+                          ImVec2(0.0f, entries.size() > 4 ? 160.0f : 0.0f))) {
+        ImGui::TableSetupColumn("Label",      ImGuiTableColumnFlags_WidthStretch);
+        ImGui::TableSetupColumn("Resolution", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+        ImGui::TableSetupColumn("Bitrate",    ImGuiTableColumnFlags_WidthFixed, 80.0f);
+        ImGui::TableSetupColumn("Mean",       ImGuiTableColumnFlags_WidthFixed, 60.0f);
+        ImGui::TableSetupColumn("Min",        ImGuiTableColumnFlags_WidthFixed, 60.0f);
+        ImGui::TableSetupColumn("P5",         ImGuiTableColumnFlags_WidthFixed, 60.0f);
+        ImGui::TableHeadersRow();
+
+        auto score_color = [](double v) -> ImVec4 {
+            if (v < 0.0) return ImVec4(0.55f, 0.55f, 0.55f, 1.0f);
+            if (v >= 80.0) return ImVec4(0.25f, 0.90f, 0.35f, 1.0f);
+            if (v >= 60.0) return ImVec4(0.90f, 0.75f, 0.20f, 1.0f);
+            return ImVec4(0.90f, 0.30f, 0.25f, 1.0f);
+        };
+
+        for (const auto& e : entries) {
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            if (!e.error.empty())
+                ImGui::TextColored(ImVec4(0.90f, 0.30f, 0.25f, 1.0f),
+                                   "%s", e.label.c_str());
+            else
+                ImGui::TextUnformatted(e.label.c_str());
+
+            ImGui::TableSetColumnIndex(1);
+            if (e.width > 0)
+                ImGui::Text("%dx%d", e.width, e.height);
+            else
+                ImGui::TextDisabled("—");
+
+            ImGui::TableSetColumnIndex(2);
+            if (e.bandwidth > 0)
+                ImGui::Text("%.1f Mbps", e.bandwidth / 1e6);
+            else
+                ImGui::TextDisabled("—");
+
+            auto fmt_score = [&](int col, double v) {
+                ImGui::TableSetColumnIndex(col);
+                if (!e.done) { ImGui::TextDisabled("..."); return; }
+                if (!e.error.empty()) { ImGui::TextDisabled("err"); return; }
+                ImGui::TextColored(score_color(v), "%.1f", v);
+            };
+            fmt_score(3, e.mean);
+            fmt_score(4, e.min_val);
+            fmt_score(5, e.p5);
+        }
+        ImGui::EndTable();
+    }
+
+    // ── Per-frame graph for the first completed entry with per_frame data ─────
+    const VMAFResultEntry* graph_e = nullptr;
+    for (const auto& e : entries)
+        if (e.done && e.error.empty() && !e.per_frame.empty()) { graph_e = &e; break; }
+
+    if (graph_e) {
+        ImGui::Spacing();
+        ImGui::Text("Per-frame VMAF: %s", graph_e->label.c_str());
+
+        ImVec2 canvas_tl = ImGui::GetCursorScreenPos();
+        ImVec2 canvas_sz = ImVec2(ImGui::GetContentRegionAvail().x,
+                                  std::max(80.0f, ImGui::GetContentRegionAvail().y - 8.0f));
+        ImGui::InvisibleButton("##vmaf_graph", canvas_sz);
+
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        ImVec2 br = ImVec2(canvas_tl.x + canvas_sz.x, canvas_tl.y + canvas_sz.y);
+
+        // Background
+        dl->AddRectFilled(canvas_tl, br, IM_COL32(20, 20, 20, 200));
+
+        // Score bands
+        float h = canvas_sz.y;
+        float y80 = canvas_tl.y + h * (1.0f - 0.80f);
+        float y60 = canvas_tl.y + h * (1.0f - 0.60f);
+        dl->AddRectFilled(canvas_tl, ImVec2(br.x, y80),
+                          IM_COL32(20, 100, 20, 60));
+        dl->AddRectFilled(ImVec2(canvas_tl.x, y80), ImVec2(br.x, y60),
+                          IM_COL32(120, 90, 10, 60));
+        dl->AddRectFilled(ImVec2(canvas_tl.x, y60), br,
+                          IM_COL32(100, 20, 20, 60));
+
+        // Line strip (downsampled)
+        const auto& pf = graph_e->per_frame;
+        int N = static_cast<int>(pf.size());
+        int W = static_cast<int>(canvas_sz.x);
+        if (N > 0 && W > 1) {
+            std::vector<ImVec2> pts;
+            pts.reserve(W);
+            for (int xi = 0; xi < W; ++xi) {
+                int f0 = xi * N / W;
+                int f1 = std::max(f0 + 1, (xi + 1) * N / W);
+                f1 = std::min(f1, N);
+                double sum = 0.0;
+                for (int fi = f0; fi < f1; ++fi) sum += pf[fi];
+                double avg = sum / (f1 - f0);
+                float vx = canvas_tl.x + static_cast<float>(xi);
+                float vy = canvas_tl.y + h * (1.0f - static_cast<float>(avg) / 100.0f);
+                pts.push_back(ImVec2(vx, vy));
+            }
+            dl->AddPolyline(pts.data(), (int)pts.size(),
+                            IM_COL32(100, 200, 255, 220), 0, 1.5f);
+        }
+
+        // Playback position marker
+        if (pos_frac >= 0.0f && pos_frac <= 1.0f) {
+            float mx = canvas_tl.x + pos_frac * canvas_sz.x;
+            dl->AddLine(ImVec2(mx, canvas_tl.y), ImVec2(mx, br.y),
+                        IM_COL32(255, 255, 255, 160), 1.5f);
+
+            // Score at current position
+            int fi = static_cast<int>(pos_frac * N);
+            fi = std::clamp(fi, 0, N - 1);
+            dl->AddText(ImVec2(mx + 4.0f, canvas_tl.y + 4.0f),
+                        IM_COL32(255, 255, 255, 220),
+                        std::format("{:.1f}", pf[fi]).c_str());
+        }
+    }
+
+    ImGui::End();
+    return export_requested;
 }

@@ -16,9 +16,11 @@
 #include "NetworkLogger.h"
 #include "ManifestParser.h"
 #include "PlayerUI.h"
+#include "VMAFAnalyzer.h"
 
 // imgui headers (needed for WantCapture* guards in GLFW callbacks)
 #include "imgui.h"
+#include <nfd.h>
 
 #include <thread>
 #include <chrono>
@@ -55,6 +57,7 @@ static std::atomic<bool>   s_show_tracks{ false };
 static std::atomic<bool>   s_show_waveform{ false };
 static std::atomic<bool>   s_show_network{ false };
 static std::atomic<bool>   s_show_help{ false };
+static std::atomic<bool>   s_show_vmaf{ false };
 static std::atomic<double> s_cursor_x{ -1.0 };   // window-space cursor, always updated
 static std::atomic<double> s_cursor_y{ -1.0 };
 static std::atomic<double> s_click_x{ -1.0 };    // window-space left-click (consumed once)
@@ -85,6 +88,7 @@ static void on_key(GLFWwindow* window, int key, int /*scancode*/, int action, in
     else if (key == GLFW_KEY_W) s_show_waveform.store(!s_show_waveform.load());
     else if (key == GLFW_KEY_N) s_show_network.store(!s_show_network.load());
     else if (key == GLFW_KEY_H) s_show_help.store(!s_show_help.load());
+    else if (key == GLFW_KEY_V) s_show_vmaf.store(!s_show_vmaf.load());
     else if (key == GLFW_KEY_PERIOD) { s_paused.store(true); s_step_frames.fetch_add(1); }
     else if (key == GLFW_KEY_COMMA)  { s_paused.store(true); s_step_frames.fetch_add(-1); }
     else if (key == GLFW_KEY_RIGHT_BRACKET || key == GLFW_KEY_LEFT_BRACKET) {
@@ -345,11 +349,24 @@ int main(int argc, char* argv[])
 
     // ── Choose file: command-line arg or launcher screen ──────────────────────
     std::string open_path;
-    if (argc >= 2) {
-        open_path = argv[1];
-    } else {
+    bool        auto_vmaf     = false;
+    std::string vmaf_ref_path;   // --vmaf ref.mp4 for single-file mode
+
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg == "--vmaf") {
+            auto_vmaf = true;
+            if (i + 1 < argc && argv[i + 1][0] != '-')
+                vmaf_ref_path = argv[++i];
+        } else if (open_path.empty()) {
+            open_path = arg;
+        }
+    }
+
+    if (open_path.empty()) {
         auto recents = load_recents();
         while (!glfwWindowShouldClose(window) && open_path.empty()) {
+            // launcher screen
             // Check drop
             if (!g_drop_pending.empty()) {
                 open_path = g_drop_pending;
@@ -395,6 +412,26 @@ int main(int argc, char* argv[])
     if (ManifestParser::is_manifest(open_path.c_str())) {
         if (!manifest.parse(open_path.c_str()))
             logger::warn("ManifestParser: failed to parse {}", open_path);
+    }
+
+    // ── VMAF analyzer ─────────────────────────────────────────────────────────
+    VMAFAnalyzer vmaf_analyzer;
+    bool vmaf_was_running = false;  // for detecting completion (auto-export)
+
+    if (auto_vmaf) {
+        s_show_vmaf.store(true);
+        if (!manifest.variants().empty()) {
+            logger::info("VMAFAnalyzer: auto-starting manifest variant analysis");
+            vmaf_analyzer.start_manifest(manifest.variants());
+        } else if (!vmaf_ref_path.empty()) {
+            logger::info("VMAFAnalyzer: auto-starting single-file analysis vs {}",
+                         vmaf_ref_path);
+            vmaf_analyzer.start(vmaf_ref_path, open_path);
+        } else {
+            logger::warn("VMAFAnalyzer: --vmaf used but no ref file or manifest variants "
+                         "— open VMAF panel (V) and use Analyze menu");
+        }
+        vmaf_was_running = vmaf_analyzer.running();
     }
 
     if (demuxer.video_stream_index() < 0) {
@@ -624,6 +661,17 @@ int main(int argc, char* argv[])
     while (!glfwWindowShouldClose(window)) {
         auto now    = std::chrono::steady_clock::now();
         bool paused = s_paused.load();
+
+        // ── Auto-export VMAF report when --vmaf analysis finishes ────────────
+        {
+            bool vmaf_running_now = vmaf_analyzer.running();
+            if (auto_vmaf && vmaf_was_running && !vmaf_running_now) {
+                std::string json_path = open_path + ".vmaf.json";
+                vmaf_analyzer.write_json(json_path);
+                logger::info("VMAF report written to {}", json_path);
+            }
+            vmaf_was_running = vmaf_running_now;
+        }
 
         // ── Pause state change ────────────────────────────────────────────
         if (paused != was_paused) {
@@ -1027,6 +1075,33 @@ int main(int argc, char* argv[])
             debug_hud.draw_help(fb_w, fb_h, global_ps);
         }
 
+        // ── VMAF panel (V key) ────────────────────────────────────────────────
+        if (s_show_vmaf.load()) {
+            auto vmaf_results = vmaf_analyzer.results();
+            std::vector<DebugHUD::VMAFPanelEntry> vmaf_entries;
+            vmaf_entries.reserve(vmaf_results.size());
+            for (const auto& r : vmaf_results)
+                vmaf_entries.push_back({
+                    r.label, r.vmaf_mean, r.vmaf_min, r.vmaf_p5,
+                    r.per_frame, r.done, r.error
+                });
+
+            float vmaf_pos_frac = (duration > 0.0)
+                ? static_cast<float>(last_pts / duration) : 0.0f;
+
+            float vmaf_bottom_off = player_ui.visible_bar_height_logical() * global_ps;
+            if (s_show_network.load() && !manifest.tags().empty() && duration > 0.0)
+                vmaf_bottom_off += static_cast<float>(DebugHUD::kTimelinePx) * global_ps;
+            if (s_show_waveform.load() && has_audio)
+                vmaf_bottom_off += static_cast<float>(DebugHUD::kWaveformPx) * global_ps;
+            vmaf_bottom_off += static_cast<float>(ThumbnailStrip::kStripPx) + 10.0f * global_ps;
+
+            debug_hud.draw_vmaf_panel(vmaf_entries,
+                                      vmaf_analyzer.running(), vmaf_analyzer.progress(),
+                                      vmaf_pos_frac,
+                                      fb_w, fb_h, global_ps, vmaf_bottom_off);
+        }
+
         // ── ImGui: build UI and render (above all GL content) ────────────────
         {
             auto ui = player_ui.build(
@@ -1035,7 +1110,33 @@ int main(int argc, char* argv[])
                 has_audio,
                 s_show_hud.load(), s_show_inspector.load(), s_show_drift.load(),
                 s_show_tracks.load(), s_show_waveform.load(), s_show_network.load(),
-                s_show_help.load());
+                s_show_help.load(), s_show_vmaf.load(),
+                !manifest.variants().empty());
+
+            // ── VMAF results ImGui window ─────────────────────────────────────
+            if (s_show_vmaf.load()) {
+                auto vmaf_results = vmaf_analyzer.results();
+                std::vector<PlayerUI::VMAFResultEntry> vmaf_ui_entries;
+                vmaf_ui_entries.reserve(vmaf_results.size());
+                for (const auto& r : vmaf_results)
+                    vmaf_ui_entries.push_back({
+                        r.label, r.vmaf_mean, r.vmaf_min, r.vmaf_p5,
+                        r.width, r.height, r.bandwidth, r.done, r.error, r.per_frame
+                    });
+
+                float vmaf_pos_frac = (duration > 0.0)
+                    ? static_cast<float>(last_pts / duration) : 0.0f;
+
+                bool export_json = player_ui.draw_vmaf_results(
+                    vmaf_ui_entries,
+                    vmaf_analyzer.running(), vmaf_analyzer.progress(),
+                    vmaf_pos_frac);
+                if (export_json) {
+                    std::string json_path = open_path + ".vmaf.json";
+                    vmaf_analyzer.write_json(json_path);
+                    logger::info("VMAF report written to {}", json_path);
+                }
+            }
 
             player_ui.end_frame();
 
@@ -1052,6 +1153,31 @@ int main(int argc, char* argv[])
             if (ui.toggle_waveform)  s_show_waveform.store(!s_show_waveform.load());
             if (ui.toggle_network)   s_show_network.store(!s_show_network.load());
             if (ui.toggle_help)      s_show_help.store(!s_show_help.load());
+            if (ui.toggle_vmaf)      s_show_vmaf.store(!s_show_vmaf.load());
+
+            // VMAF triggers
+            if (ui.vmaf_pick_ref && !vmaf_analyzer.running()) {
+                nfdchar_t* ref_path = nullptr;
+                nfdfilteritem_t filters[] = {
+                    { "Video files", "mp4,mkv,mov,avi,m2ts,ts,m3u8" },
+                    { "All files",   "*" }
+                };
+                if (NFD_OpenDialogU8(&ref_path, filters, 2, nullptr) == NFD_OKAY) {
+                    vmaf_analyzer.start(ref_path, open_path);
+                    s_show_vmaf.store(true);
+                    NFD_FreePathU8(ref_path);
+                }
+            }
+            if (ui.vmaf_analyze_manifest && !vmaf_analyzer.running()
+                    && !manifest.variants().empty()) {
+                vmaf_analyzer.start_manifest(manifest.variants());
+                s_show_vmaf.store(true);
+            }
+            if (ui.vmaf_export_json) {
+                std::string json_path = open_path + ".vmaf.json";
+                vmaf_analyzer.write_json(json_path);
+                logger::info("VMAF report written to {}", json_path);
+            }
         }
 
         glfwSwapBuffers(window);
