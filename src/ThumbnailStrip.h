@@ -43,7 +43,10 @@ public:
 
     // Draw the strip above the scrub bar. Call only while scrubbing.
     // scrub_pos and duration are in seconds.
-    void draw(double scrub_pos, double duration, int fb_w, int fb_h);
+    // bottom_off: height in framebuffer pixels already occupied below (ImGui bar,
+    //   timeline ticks, waveform) — the strip sits immediately above this.
+    void draw(double scrub_pos, double duration, int fb_w, int fb_h,
+              float bottom_off = 0.0f);
 
     // Keyframe navigation — available as soon as the container index is read
     // (before any thumbnails are decoded). Returns -1.0 if not yet ready or
@@ -99,7 +102,8 @@ private:
 
     [[nodiscard]] bool compile_shaders();
 
-    void draw_thumb(const Thumb& t, float cx_px, bool highlight, int fb_w, int fb_h);
+    void draw_thumb(const Thumb& t, float cx_px, bool highlight,
+                    int fb_w, int fb_h, float bottom_off);
 
     void decode_loop(std::stop_token st, std::string url,
                      int video_stream_idx, AVRational time_base);

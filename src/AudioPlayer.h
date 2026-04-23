@@ -47,6 +47,11 @@ public:
     void  set_volume(float v);
     float volume()  const { return volume_.load(); }
 
+    // Hard mute: fill_buffer outputs zeros without touching the ring buffer.
+    // Unlike set_paused(), this works at the sample level so it takes effect
+    // within the current callback period regardless of CoreAudio device state.
+    void set_muted(bool m) { muted_.store(m); }
+
     static constexpr int kWaveCap    = 1200;  // ≈3.6 s at 48 kHz / kWaveStride
     static constexpr int kWaveStride = 40;    // samples per peak entry
 
@@ -78,4 +83,5 @@ private:
     float wave_peak_  = 0.0f;
 
     std::atomic<float> volume_{ 1.0f };
+    std::atomic<bool>  muted_{ false };
 };

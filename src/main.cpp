@@ -8,6 +8,7 @@
 #include "VideoRenderer.h"
 #include "ScrubBar.h"
 #include "ThumbnailStrip.h"
+#include "ScrubDecoder.h"
 #include "DebugHUD.h"
 #include "Clock.h"
 #include "Sync.h"
@@ -492,6 +493,13 @@ int main(int argc, char* argv[])
                      video_decoder.width(),
                      video_decoder.height());
 
+    // Dedicated single-frame decoder for smooth scrubbing.
+    // Opened once; receives request() calls during mouse drags.
+    ScrubDecoder scrub_decoder;
+    scrub_decoder.open(open_path.c_str(),
+                       demuxer.video_stream_index(),
+                       demuxer.video_time_base());
+
     // ── Stream inspector panel content (static, built once) ──────────────────
     std::vector<DebugHUD::InspectorLine> inspector_lines;
     {
@@ -649,10 +657,15 @@ int main(int argc, char* argv[])
     // Scrub state
     bool   was_scrubbing      = false;
     bool   pending_step_frame = false;  // true = show next arriving frame (step while paused)
-    bool   audio_was_playing = false;  // was audio running when scrub started?
-    double last_scrub_frac  = -1.0;   // latest drag position (kept for rate-limiting)
-    auto   last_scrub_seek_at = std::chrono::steady_clock::time_point{};
+    double last_scrub_frac   = -1.0;   // latest drag position
+    double last_seek_pos     = 0.0;    // pts of the most recent seek; freezes thumbnail highlight
+    double scrub_display_pts = -1.0;   // PTS of the last frame actually uploaded from ScrubDecoder
+    bool   ui_seek_dragging  = false;  // ImGui seek bar was dragging last frame (1-frame carry)
     auto   last_any_seek_at   = std::chrono::steady_clock::time_point{};
+    // Delayed unmute: after scrub release we wait for the post-seek sentinel to
+    // flush the audio pipeline before un-muting, preventing a brief burst of
+    // wrong-position audio from the decode thread filling the ring buffer.
+    auto   unmute_at = std::chrono::steady_clock::time_point::max();
 
     // No vsync — we manage timing ourselves via glfwWaitEventsTimeout
     glfwSwapInterval(0);
@@ -680,22 +693,52 @@ int main(int argc, char* argv[])
         }
 
         // ── Scrub state transitions ───────────────────────────────────────
-        bool scrubbing = s_scrubbing.load();
+        // ui_seek_dragging carries the ImGui seek bar drag state from the
+        // previous frame (1-frame delay because player_ui.build() runs late).
+        // Combining it with the GLFW scrub flag ensures thumbnail strip,
+        // ScrubDecoder, and audio mute all activate during ImGui bar drags.
+        bool scrubbing = s_scrubbing.load() || ui_seek_dragging;
 
-        // Always consume the latest drag position so it doesn't go stale.
+        // Consume the latest drag position.  scrub_moved is true only when a
+        // new value arrived AND the cursor moved at least ~0.1% of screen width
+        // (≈2px on a 2560px display) — filters trackpad micro-jitter that would
+        // otherwise cause the thumbnail highlight to flicker between adjacent
+        // keyframes while the mouse appears physically still.
+        static constexpr double kScrubMinDelta = 0.001;
+        bool scrub_moved = false;
         {
             double f = s_scrub_frac.exchange(-1.0);
-            if (f >= 0.0) last_scrub_frac = f;
+            if (f >= 0.0) {
+                if (last_scrub_frac < 0.0 || std::abs(f - last_scrub_frac) >= kScrubMinDelta) {
+                    last_scrub_frac = f;
+                    scrub_moved = true;
+                }
+            }
         }
 
         bool scrub_started = scrubbing && !was_scrubbing;
         bool scrub_ended   = !scrubbing && was_scrubbing;
 
         if (scrub_started) {
-            // Mute audio for the duration of the drag so old buffered samples
-            // don't play over positions the user has already passed.
-            audio_was_playing = has_audio && !paused;
-            if (audio_was_playing) audio_player.set_paused(true);
+            // Mute at the sample level — takes effect within the current callback
+            // period, unlike ma_device_stop which has CoreAudio-level drain latency.
+            if (has_audio) {
+                audio_player.set_muted(true);
+                audio_player.flush();
+                unmute_at = std::chrono::steady_clock::time_point::max();
+            }
+            // Drain stale frames so the video decode thread keeps running
+            // while we bypass frameq during the drag.
+            { AVFrame* s; while (frameq.try_pop(s)) av_frame_free(&s); }
+            // Reset scrub display PTS so we don't show stale pts from the
+            // previous drag before the first frame of this drag arrives.
+            scrub_display_pts = -1.0;
+        }
+
+        // Delayed unmute: lift mute once the post-seek audio pipeline has settled.
+        if (has_audio && now >= unmute_at) {
+            audio_player.set_muted(false);
+            unmute_at = std::chrono::steady_clock::time_point::max();
         }
 
         // ── Seek handling (keyboard delta + scrub bar) ────────────────────
@@ -705,11 +748,14 @@ int main(int argc, char* argv[])
         if (delta != 0.0)
             seek_target = std::max(0.0, last_pts + delta);
 
-        if (scrubbing && last_scrub_frac >= 0.0 && duration > 0.0) {
-            if (now - last_scrub_seek_at >= std::chrono::milliseconds(50)) {
-                seek_target        = last_scrub_frac * duration;
-                last_scrub_seek_at = now;
-            }
+        if (scrubbing && scrub_moved && last_scrub_frac >= 0.0 && duration > 0.0) {
+            // Route scrub requests through the dedicated ScrubDecoder instead
+            // of the main pipeline — no flush/restart, sub-frame latency.
+            // Only fire when the mouse actually moved; without this guard the
+            // decoder keeps seeking the same position every frame, causing jitter.
+            const double target = last_scrub_frac * duration;
+            scrub_decoder.request(target);
+            last_pts = target;
         }
 
         // On scrub release: always seek to the exact drop position.
@@ -734,6 +780,7 @@ int main(int argc, char* argv[])
 
         if (seek_target >= 0.0) {
             last_any_seek_at = now;
+            last_seek_pos    = seek_target;
             demuxer.request_seek(seek_target);
             AVFrame* stale;
             while (frameq.try_pop(stale)) av_frame_free(&stale);
@@ -746,12 +793,14 @@ int main(int argc, char* argv[])
             audio_clock_valid_at = now + std::chrono::milliseconds(300);
         }
 
-        // Scrub ended: flush stale audio and resume from the new position.
-        // audio_player is stopped so the flush is safe (no callback racing).
+        // Scrub ended: flush stale audio, then schedule a delayed unmute so the
+        // post-seek sentinel has time to clear the audio pipeline before we play.
         if (scrub_ended) {
             if (has_audio) {
                 audio_player.flush();
-                if (audio_was_playing && !paused) audio_player.set_paused(false);
+                // Unmute after 300 ms — enough for the seek sentinel to propagate
+                // through audioq → AudioDecoder → flush → fresh audio at seek pos.
+                unmute_at = now + std::chrono::milliseconds(300);
             }
             audio_clock_valid_at = now + std::chrono::milliseconds(400);
             next_pts_time = now;  // immediately resume normal frame advance
@@ -768,45 +817,22 @@ int main(int argc, char* argv[])
 
         // ── Frame advance ─────────────────────────────────────────────────
         if (scrubbing) {
-            // TODO: scrubbing smoothness — still feels choppy despite the
-            // drain-until-target approach and spin loop.  Root cause is likely
-            // that av_seek_frame(AVSEEK_FLAG_BACKWARD) always restarts the
-            // decode pipeline from the nearest I-frame, and the entire
-            // flush→seek→decode chain has too much latency per seek cycle.
-            // Possible approaches to investigate:
-            //   1. avformat_seek_file() with a tight [min_ts, ts, max_ts]
-            //      window to get more precise keyframe alignment.
-            //   2. A dedicated "thumbnail" thread that decodes a single frame
-            //      to a scratch buffer independently of the playback pipeline,
-            //      so normal decode state is not disturbed during scrubbing.
-            //   3. Pre-built keyframe index (libav exposes keyframe positions)
-            //      to skip seeking entirely and jump straight to the right GOP.
-            //   4. avcodec_flush_buffers() + re-send only the needed packets
-            //      instead of a full pipeline restart through the demux thread.
-            if (now >= next_pts_time) {
-                const double target_pts = last_pts;  // set by seek block
-                AVFrame* frame  = nullptr;
-                bool     found  = false;
-
-                while (frameq.try_pop(frame)) {
-                    double pts = (frame->pts != AV_NOPTS_VALUE)
-                        ? frame->pts * av_q2d(video_tb) : target_pts;
-
-                    if (!found && pts >= target_pts - 0.001) {
-                        // At or past the target (1 ms tolerance for fp rounding).
-                        renderer.upload(frame);
-                        has_frame = true;
-                        found     = true;
-                        ++frame_count;
-                    }
-                    av_frame_free(&frame);
-                }
-
-                // found → freeze until next seek fires.
-                // !found → loop again immediately (no sleep; render loop spins).
-                next_pts_time = found
-                    ? now + std::chrono::hours(24)
-                    : now;
+            // ScrubDecoder handles seek+decode on its own thread; just upload
+            // whatever it has decoded since the last render iteration.
+            AVFrame* scrub_frame = scrub_decoder.poll_frame();
+            if (scrub_frame) {
+                // Track the PTS of what's actually on screen so the thumbnail
+                // highlight matches the decoded keyframe, not the cursor position.
+                // (avformat_seek_file snaps to the keyframe *before* the target,
+                //  so bar_pts and the displayed keyframe can differ by up to one
+                //  keyframe interval — causing the highlight to flicker as the
+                //  cursor crosses the keyframe midpoint.)
+                if (scrub_frame->pts != AV_NOPTS_VALUE)
+                    scrub_display_pts = scrub_frame->pts * av_q2d(video_tb);
+                renderer.upload(scrub_frame);
+                av_frame_free(&scrub_frame);
+                has_frame = true;
+                ++frame_count;
             }
         } else if (!paused && now >= next_pts_time) {
             // Normal playback
@@ -965,13 +991,37 @@ int main(int argc, char* argv[])
             s_click_y.store(-1.0);
         }
 
-        // Upload any newly decoded thumbnails (non-blocking, main thread only).
-        thumb_strip.upload_pending();
+        // Upload newly decoded thumbnails — skip during active scrubbing so that
+        // a thumbnail arriving closer to the cursor doesn't cause the highlight
+        // to jump while the mouse is held still.
+        if (!scrubbing)
+            thumb_strip.upload_pending();
 
-        // During scrubbing the playhead tracks the cursor exactly (60 Hz),
-        // decoupled from the 12 Hz seek/decode cycle so it never jitters.
-        double bar_pts = (scrubbing && last_scrub_frac >= 0.0)
-            ? last_scrub_frac * duration : last_pts;
+        // bar_pts: position shown in the seek bar and used for the thumbnail strip.
+        //   During scrubbing   → cursor position (real-time feedback).
+        //   Post-seek settling → last_seek_pos, held until decoded PTS catches up.
+        //     (avformat_seek_file snaps to the keyframe *before* the target, so the
+        //      first decoded PTS is typically earlier than the seek target.  If we
+        //      used last_pts directly, the bar would jump backward on the first frame
+        //      after seek and then advance back — visually confusing.)
+        //   Normal playback    → last_pts (advances with decoded frames).
+        // thumb_pts: PTS of the frame actually decoded and displayed — used for the
+        //   thumbnail highlight.  This is the keyframe the decoder snapped to, which
+        //   can differ from bar_pts by up to one keyframe interval.  Using thumb_pts
+        //   keeps the highlight in sync with what the user actually sees.
+        double bar_pts;
+        if (scrubbing && last_scrub_frac >= 0.0)
+            bar_pts = last_scrub_frac * duration;
+        else if (last_pts >= last_seek_pos)
+            bar_pts = last_pts;       // normal playback: decoded PTS has passed the seek target
+        else
+            bar_pts = last_seek_pos;  // post-seek: hold at target until decoder catches up
+
+        double thumb_pts;
+        if (scrubbing && scrub_display_pts >= 0.0)
+            thumb_pts = scrub_display_pts;  // exactly what the decoder showed
+        else
+            thumb_pts = bar_pts;            // fallback: cursor pos or last seek
 
         // ── Bottom stack: compute cumulative offset for stacked UI strips ──────
         // Each strip sits above the one below, lowest → highest:
@@ -1053,7 +1103,7 @@ int main(int argc, char* argv[])
             bool show_thumbs = scrubbing ||
                 (now - last_any_seek_at < std::chrono::milliseconds(1500));
             if (show_thumbs)
-                thumb_strip.draw(bar_pts, duration, fb_w, fb_h);
+                thumb_strip.draw(thumb_pts, duration, fb_w, fb_h, bottom_off);
         }
 
         // Custom ScrubBar replaced by VLC-style ImGui control bar.
@@ -1105,7 +1155,7 @@ int main(int argc, char* argv[])
         // ── ImGui: build UI and render (above all GL content) ────────────────
         {
             auto ui = player_ui.build(
-                duration, last_pts,
+                duration, bar_pts,
                 paused, speed, has_audio ? audio_player.volume() : 1.0f,
                 has_audio,
                 s_show_hud.load(), s_show_inspector.load(), s_show_drift.load(),
@@ -1143,7 +1193,31 @@ int main(int argc, char* argv[])
             // Act on commands
             if (ui.quit)               glfwSetWindowShouldClose(window, GLFW_TRUE);
             if (ui.play_pause_clicked) s_paused.store(!paused);
-            if (ui.seek_to >= 0.0)     s_seek_delta.store(ui.seek_to - last_pts);
+            // Suppress seek-bar commits while GLFW scrubbing is active: the scrubbing
+            // path (ScrubDecoder + scrub_ended) handles everything.  Firing seeks from
+            // both paths simultaneously floods audioq with flush sentinels, which
+            // causes the audio decode thread to keep emptying the ring buffer after
+            // release, producing the "buzz on one note" artifact.
+            if (ui.seek_to >= 0.0 && !scrubbing && !scrub_ended)
+                s_seek_delta.store(ui.seek_to - last_pts);
+
+            // ── ImGui seek bar drag → scrubbing integration ───────────────────
+            // Route ImGui seek bar position into ScrubDecoder for video preview.
+            // Also keep last_scrub_frac updated so that scrub_ended (which fires
+            // next frame when ui_seek_dragging flips false) seeks to the right pos.
+            if (ui.seek_bar_dragging && ui.seek_bar_frac >= 0.0f && duration > 0.0) {
+                float f = ui.seek_bar_frac;
+                if (last_scrub_frac < 0.0 ||
+                    std::abs(f - static_cast<float>(last_scrub_frac)) >= static_cast<float>(kScrubMinDelta)) {
+                    last_scrub_frac = static_cast<double>(f);
+                    scrub_decoder.request(f * static_cast<float>(duration));
+                    last_pts = f * duration;
+                }
+            }
+            // Carry drag state forward one frame so the scrubbing flag (read at
+            // the top of the loop) sees it on the next iteration.
+            ui_seek_dragging = ui.seek_bar_dragging;
+
             if (ui.speed_set >= 0.0)   s_speed.store(ui.speed_set);
             if (ui.volume_set >= 0.0f && has_audio) audio_player.set_volume(ui.volume_set);
             if (ui.toggle_hud)       s_show_hud.store(!s_show_hud.load());

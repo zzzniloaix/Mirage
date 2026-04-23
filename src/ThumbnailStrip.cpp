@@ -1,5 +1,4 @@
 #include "ThumbnailStrip.h"
-#include "ScrubBar.h"
 #include "Logger.h"
 
 #include <algorithm>
@@ -168,16 +167,17 @@ void ThumbnailStrip::upload_pending()
     }
 }
 
-void ThumbnailStrip::draw(double scrub_pos, double duration, int fb_w, int fb_h)
+void ThumbnailStrip::draw(double scrub_pos, double duration, int fb_w, int fb_h,
+                           float bottom_off)
 {
     if (thumbs_.empty() || duration <= 0.0 || fb_w <= 0 || fb_h <= 0) return;
 
     glViewport(0, 0, fb_w, fb_h);
 
     // ── Backing panel ─────────────────────────────────────────────────────────
-    // Sits just above the scrub bar backing.
+    // Sits just above whatever UI is below (ImGui control bar, timeline, waveform).
     const float gap_px   = 2.0f;
-    const float ymin_px  = static_cast<float>(ScrubBar::kBackingPx) + gap_px;
+    const float ymin_px  = bottom_off + gap_px;
     const float ymax_px  = ymin_px + static_cast<float>(kStripPx);
 
     auto px2x = [&](float px) { return px / static_cast<float>(fb_w) * 2.0f - 1.0f; };
@@ -196,32 +196,34 @@ void ThumbnailStrip::draw(double scrub_pos, double duration, int fb_w, int fb_h)
 
     // ── Thumbnails ────────────────────────────────────────────────────────────
     // Find the thumb nearest the scrub cursor for highlighting.
-    int nearest_idx = 0;
-    double best_dist = std::abs(thumbs_[0].pts - scrub_pos);
+    // Track by pts (not index) so that inserting new thumbnails mid-decode
+    // doesn't cause the highlight to jump when indices shift.
+    double nearest_pts = thumbs_[0].pts;
+    double best_dist   = std::abs(thumbs_[0].pts - scrub_pos);
     for (int i = 1; i < static_cast<int>(thumbs_.size()); ++i) {
         double d = std::abs(thumbs_[i].pts - scrub_pos);
-        if (d < best_dist) { best_dist = d; nearest_idx = i; }
+        if (d < best_dist) { best_dist = d; nearest_pts = thumbs_[i].pts; }
     }
 
     // Draw highlighted thumb last so it renders on top.
     for (int pass = 0; pass < 2; ++pass) {
         for (int i = 0; i < static_cast<int>(thumbs_.size()); ++i) {
-            bool highlight = (i == nearest_idx);
+            bool highlight = (std::abs(thumbs_[i].pts - nearest_pts) < 1e-6);
             if (pass == 0 && highlight) continue;  // highlighted drawn in pass 1
             if (pass == 1 && !highlight) continue;
 
             float cx_px = static_cast<float>(thumbs_[i].pts / duration)
                           * static_cast<float>(fb_w);
-            draw_thumb(thumbs_[i], cx_px, highlight, fb_w, fb_h);
+            draw_thumb(thumbs_[i], cx_px, highlight, fb_w, fb_h, bottom_off);
         }
     }
 }
 
 void ThumbnailStrip::draw_thumb(const Thumb& t, float cx_px, bool highlight,
-                                 int fb_w, int fb_h)
+                                 int fb_w, int fb_h, float bottom_off)
 {
     const float gap_px  = 2.0f;
-    const float ymin_px = static_cast<float>(ScrubBar::kBackingPx) + gap_px;
+    const float ymin_px = bottom_off + gap_px;
     const float ymax_px = ymin_px + static_cast<float>(kStripPx);
 
     float half_w = static_cast<float>(thumb_w_) * 0.5f;
