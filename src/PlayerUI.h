@@ -11,6 +11,8 @@ struct PlayerUIState {
     // Playback
     bool   play_pause_clicked = false;  // user clicked the play/pause button
     double seek_to            = -1.0;   // >= 0: absolute seek target (seconds)
+    bool   seek_bar_dragging  = false;  // ImGui seek bar held this frame
+    float  seek_bar_frac      = -1.0f;  // [0,1] drag position while held
     double speed_set          = -1.0;   // >= 0: new playback speed
     float  volume_set         = -1.0f;  // >= 0: new volume [0, 1]
     bool   quit               = false;  // File > Quit selected
@@ -112,4 +114,9 @@ private:
 
     char url_buf_[2048]    = {};    // persists InputText state between launcher frames
     bool drop_hovered_     = false; // set from GLFW drop callback
+
+    // Seek bar drag state — holds the visual position across frames so the thumb
+    // doesn't snap back to cur_pts on every frame while the mouse is held.
+    float seek_bar_frac_   = 0.0f;
+    bool  seek_bar_active_ = false;
 };

@@ -332,11 +332,31 @@ PlayerUIState PlayerUI::build(
         float avail_w = ImGui::GetContentRegionAvail().x;
 
         if (duration_s > 0.0) {
-            float frac = static_cast<float>(std::clamp(cur_pts / duration_s, 0.0, 1.0));
-            if (vlc_seek_bar("##seek", &frac, avail_w, alpha)) {
-                out.seek_to = frac * duration_s;
+            // While the seek bar is being dragged, keep the thumb at the dragged
+            // position rather than snapping back to cur_pts on every frame.
+            // We only emit seek_to once, when the mouse is *released*, so the main
+            // pipeline isn't flooded with seek sentinels during the drag (which
+            // causes audio buzzing from repeated ring-buffer flushes in the audio
+            // decode thread).
+            float frac = seek_bar_active_
+                ? seek_bar_frac_
+                : static_cast<float>(std::clamp(cur_pts / duration_s, 0.0, 1.0));
+
+            bool dragging_now = vlc_seek_bar("##seek", &frac, avail_w, alpha);
+
+            if (dragging_now) {
+                seek_bar_frac_        = frac;
+                out.seek_bar_dragging = true;
+                out.seek_bar_frac     = frac;
+                notify_activity();
+                // Don't emit seek_to here — main.cpp routes via ScrubDecoder for
+                // video preview and handles the final seek on release.
+            } else if (seek_bar_active_) {
+                // Mouse just released after drag: emit the single commit seek.
+                out.seek_to = seek_bar_frac_ * static_cast<float>(duration_s);
                 notify_activity();
             }
+            seek_bar_active_ = dragging_now;
         } else {
             // Live stream — just draw a flat orange line
             ImVec2 p = ImGui::GetCursorScreenPos();

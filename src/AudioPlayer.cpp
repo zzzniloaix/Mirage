@@ -135,6 +135,15 @@ double AudioPlayer::output_latency_seconds() const
 void AudioPlayer::fill_buffer(float* out, int frame_count)
 {
     const int n = frame_count * kChannels;
+
+    // Hard mute: output silence without draining the ring buffer.
+    // This takes effect within the current callback period, unlike ma_device_stop
+    // which has CoreAudio-level latency before the last queued buffer drains.
+    if (muted_.load()) {
+        std::memset(out, 0, static_cast<size_t>(n) * sizeof(float));
+        return;
+    }
+
     std::lock_guard lock(ring_mtx_);
 
     int available = static_cast<int>(count_);
