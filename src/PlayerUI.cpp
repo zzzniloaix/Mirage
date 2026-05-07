@@ -463,7 +463,8 @@ void PlayerUI::end_frame()
 
 // ── Launch screen (VLC "Open Media" style) ────────────────────────────────────
 
-std::string PlayerUI::draw_launcher(const std::vector<std::string>& recents)
+std::string PlayerUI::draw_launcher(const std::vector<std::string>& recents,
+                                    const std::string& error_msg)
 {
     std::string result;
 
@@ -563,6 +564,21 @@ std::string PlayerUI::draw_launcher(const std::vector<std::string>& recents)
 
         ImGui::Dummy(ImVec2(kZoneW, kZoneH));
         ImGui::Spacing();
+
+        // ── Error banner (only shown after a failed open) ─────────────────────
+        if (!error_msg.empty()) {
+            ImVec2 etl = ImGui::GetCursorScreenPos();
+            float  ew  = kZoneW;
+            float  eh  = ImGui::GetTextLineHeight() + 12.0f;
+            ImDrawList* edl = ImGui::GetWindowDrawList();
+            edl->AddRectFilled(etl, ImVec2(etl.x + ew, etl.y + eh),
+                               IM_COL32(80, 20, 20, 220), 4.0f);
+            edl->AddRect(etl, ImVec2(etl.x + ew, etl.y + eh),
+                         IM_COL32(220, 80, 80, 180), 4.0f, 0, 1.0f);
+            edl->AddText(ImVec2(etl.x + 10.0f, etl.y + 6.0f),
+                         IM_COL32(255, 200, 200, 255), error_msg.c_str());
+            ImGui::Dummy(ImVec2(ew, eh + 6.0f));
+        }
 
         // ── URL / path input ──────────────────────────────────────────────────
         ImGui::PushStyleColor(ImGuiCol_Text,   ImVec4(0.50f, 0.50f, 0.50f, 1.0f));

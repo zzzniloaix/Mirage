@@ -291,3 +291,129 @@ TEST_CASE("DASH — tags sorted by PTS when periods have explicit start times", 
     CHECK_THAT(tags[0].pts, WithinAbs(60.0, 0.001));
     CHECK_THAT(tags[1].pts, WithinAbs(90.0, 0.001));
 }
+
+// ── DASH variant extraction ───────────────────────────────────────────────────
+
+TEST_CASE("DASH — Representations parsed with attributes", "[manifest][dash][variants]")
+{
+    const std::string mpd = R"(<?xml version="1.0"?>
+<MPD>
+  <Period>
+    <AdaptationSet mimeType="video/mp4" codecs="avc1.640028">
+      <Representation id="hi"  bandwidth="6000000" width="1920" height="1080">
+        <BaseURL>video_1080p.mp4</BaseURL>
+      </Representation>
+      <Representation id="lo"  bandwidth="1500000" width="1280" height="720">
+        <BaseURL>video_720p.mp4</BaseURL>
+      </Representation>
+    </AdaptationSet>
+  </Period>
+</MPD>
+)";
+    ManifestParser mp;
+    REQUIRE(mp.parse_dash_text(mpd, "https://cdn.example.com/stream.mpd"));
+
+    const auto& vs = mp.variants();
+    REQUIRE(vs.size() == 2);
+
+    CHECK(vs[0].bandwidth == 6'000'000);
+    CHECK(vs[0].width  == 1920);
+    CHECK(vs[0].height == 1080);
+    CHECK_THAT(vs[0].codecs, ContainsSubstring("avc1"));
+    CHECK_THAT(vs[0].url,    ContainsSubstring("video_1080p.mp4"));
+
+    CHECK(vs[1].bandwidth == 1'500'000);
+    CHECK(vs[1].width  == 1280);
+    CHECK(vs[1].height == 720);
+}
+
+TEST_CASE("DASH — non-video AdaptationSets ignored for variants", "[manifest][dash][variants]")
+{
+    const std::string mpd = R"(<?xml version="1.0"?>
+<MPD>
+  <Period>
+    <AdaptationSet mimeType="audio/mp4" codecs="mp4a.40.2">
+      <Representation id="audio" bandwidth="128000">
+        <BaseURL>audio.mp4</BaseURL>
+      </Representation>
+    </AdaptationSet>
+    <AdaptationSet mimeType="video/mp4">
+      <Representation id="v" bandwidth="3000000" width="1280" height="720">
+        <BaseURL>video.mp4</BaseURL>
+      </Representation>
+    </AdaptationSet>
+  </Period>
+</MPD>
+)";
+    ManifestParser mp;
+    REQUIRE(mp.parse_dash_text(mpd));
+    const auto& vs = mp.variants();
+    REQUIRE(vs.size() == 1);
+    CHECK(vs[0].bandwidth == 3'000'000);
+}
+
+TEST_CASE("DASH — BaseURL stacks hierarchically (MPD → Period → Representation)",
+          "[manifest][dash][variants]")
+{
+    const std::string mpd = R"(<?xml version="1.0"?>
+<MPD>
+  <BaseURL>https://cdn.example.com/movie/</BaseURL>
+  <Period>
+    <BaseURL>p0/</BaseURL>
+    <AdaptationSet mimeType="video/mp4">
+      <Representation id="v" bandwidth="2000000" width="1280" height="720">
+        <BaseURL>video.mp4</BaseURL>
+      </Representation>
+    </AdaptationSet>
+  </Period>
+</MPD>
+)";
+    ManifestParser mp;
+    REQUIRE(mp.parse_dash_text(mpd));
+    REQUIRE(mp.variants().size() == 1);
+    CHECK(mp.variants()[0].url == "https://cdn.example.com/movie/p0/video.mp4");
+}
+
+TEST_CASE("DASH — Representations without BaseURL still captured (URL empty)",
+          "[manifest][dash][variants]")
+{
+    const std::string mpd = R"(<?xml version="1.0"?>
+<MPD>
+  <Period>
+    <AdaptationSet mimeType="video/mp4">
+      <Representation id="v" bandwidth="3000000" width="1280" height="720">
+        <SegmentTemplate media="$RepresentationID$/seg-$Number$.m4s" startNumber="1" timescale="90000" duration="540000"/>
+      </Representation>
+    </AdaptationSet>
+  </Period>
+</MPD>
+)";
+    ManifestParser mp;
+    REQUIRE(mp.parse_dash_text(mpd));
+    REQUIRE(mp.variants().size() == 1);
+    CHECK(mp.variants()[0].bandwidth == 3'000'000);
+    CHECK(mp.variants()[0].url.empty());
+}
+
+TEST_CASE("DASH — width/height/codecs inherited from AdaptationSet when omitted on Representation",
+          "[manifest][dash][variants]")
+{
+    const std::string mpd = R"(<?xml version="1.0"?>
+<MPD>
+  <Period>
+    <AdaptationSet mimeType="video/mp4" codecs="hev1.2.4.L150.B0" width="3840" height="2160">
+      <Representation id="v" bandwidth="20000000">
+        <BaseURL>4k.mp4</BaseURL>
+      </Representation>
+    </AdaptationSet>
+  </Period>
+</MPD>
+)";
+    ManifestParser mp;
+    REQUIRE(mp.parse_dash_text(mpd));
+    REQUIRE(mp.variants().size() == 1);
+    const auto& v = mp.variants()[0];
+    CHECK(v.width  == 3840);
+    CHECK(v.height == 2160);
+    CHECK_THAT(v.codecs, ContainsSubstring("hev1"));
+}

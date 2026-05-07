@@ -114,6 +114,7 @@ add_executable(mirage
     src/PlayerUI.cpp
     src/VMAFAnalyzer.cpp
     src/ScrubDecoder.cpp
+    src/SubtitleDecoder.cpp
 )
 
 target_include_directories(mirage PRIVATE

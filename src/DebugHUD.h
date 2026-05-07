@@ -51,16 +51,20 @@ public:
         std::string label;       // display string
     };
 
-    // Result of draw_tracks(): which stream_idx was clicked this frame (-1 = none).
-    struct TrackClick { int audio = -1; int video = -1; };
+    // Result of draw_tracks(): which stream_idx was clicked this frame.
+    // -1 = no click; -2 in `subtitle` = "Off" entry clicked (disable subtitles).
+    struct TrackClick { int audio = -1; int video = -1; int subtitle = -1; };
 
-    // Draw the audio + video track selector panels (centered on screen).
+    // Draw the audio + video + subtitle track selector panels (centered on screen).
     // fb_click_x/y: framebuffer-space coordinates of a mouse press this frame,
     //               or -1 if no click occurred.
     // fb_cursor_x/y: current cursor position in framebuffer space (for hover highlight).
+    // subtitle list may be empty; if non-empty, an extra "Off" row is drawn
+    // returning subtitle = -2 when clicked.
     TrackClick draw_tracks(
-        const std::vector<TrackItem>& audio, int cur_audio_stream,
-        const std::vector<TrackItem>& video, int cur_video_stream,
+        const std::vector<TrackItem>& audio,    int cur_audio_stream,
+        const std::vector<TrackItem>& video,    int cur_video_stream,
+        const std::vector<TrackItem>& subtitle, int cur_subtitle_stream,
         int fb_w, int fb_h, float scale,
         float fb_click_x = -1.0f, float fb_click_y = -1.0f,
         float fb_cursor_x = -1.0f, float fb_cursor_y = -1.0f);
@@ -127,6 +131,15 @@ public:
 
     // Draw a centered panel listing all keyboard controls.
     void draw_help(int fb_w, int fb_h, float scale = 1.0f);
+
+    // ── Subtitles ─────────────────────────────────────────────────────────────
+
+    // Render the active subtitle text centered horizontally, anchored above the
+    // bottom UI stack. Multi-line input ('\n'-separated) draws stacked lines.
+    // text empty → no-op.
+    void draw_subtitle(const std::string& text,
+                       int fb_w, int fb_h, float scale,
+                       float bottom_offset_px);
 
     // ── VMAF panel (V key) ────────────────────────────────────────────────────
 

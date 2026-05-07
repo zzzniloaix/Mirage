@@ -18,6 +18,7 @@
 #include "ManifestParser.h"
 #include "PlayerUI.h"
 #include "VMAFAnalyzer.h"
+#include "SubtitleDecoder.h"
 
 // imgui headers (needed for WantCapture* guards in GLFW callbacks)
 #include "imgui.h"
@@ -65,11 +66,12 @@ static std::atomic<double> s_click_x{ -1.0 };    // window-space left-click (con
 static std::atomic<double> s_click_y{ -1.0 };
 static std::atomic<double> s_decode_time_ms{ 0.0 };  // updated by video decode thread
 static std::atomic<int>    s_step_frames{ 0 };  // +1 = fwd, -1 = bwd; computed in render loop
+static std::atomic<int>    s_single_steps{ 0 }; // Shift+. requests; one decoded frame per count
 
 static constexpr double kSpeedPresets[] = { 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 4.0 };
 static constexpr int    kNumPresets     = static_cast<int>(std::size(kSpeedPresets));
 
-static void on_key(GLFWwindow* window, int key, int /*scancode*/, int action, int /*mods*/)
+static void on_key(GLFWwindow* window, int key, int /*scancode*/, int action, int mods)
 {
     if (g_player_ui) g_player_ui->notify_activity();
     // Let ImGui consume keyboard events when it wants exclusive input (e.g. text fields).
@@ -90,6 +92,10 @@ static void on_key(GLFWwindow* window, int key, int /*scancode*/, int action, in
     else if (key == GLFW_KEY_N) s_show_network.store(!s_show_network.load());
     else if (key == GLFW_KEY_H) s_show_help.store(!s_show_help.load());
     else if (key == GLFW_KEY_V) s_show_vmaf.store(!s_show_vmaf.load());
+    // Shift+. → single-frame advance (frame-accurate). Plain . / , = keyframe step.
+    else if (key == GLFW_KEY_PERIOD && (mods & GLFW_MOD_SHIFT)) {
+        s_paused.store(true); s_single_steps.fetch_add(1);
+    }
     else if (key == GLFW_KEY_PERIOD) { s_paused.store(true); s_step_frames.fetch_add(1); }
     else if (key == GLFW_KEY_COMMA)  { s_paused.store(true); s_step_frames.fetch_add(-1); }
     else if (key == GLFW_KEY_RIGHT_BRACKET || key == GLFW_KEY_LEFT_BRACKET) {
@@ -352,6 +358,7 @@ int main(int argc, char* argv[])
     std::string open_path;
     bool        auto_vmaf     = false;
     std::string vmaf_ref_path;   // --vmaf ref.mp4 for single-file mode
+    int         cli_sub_idx   = -2;   // -2 = unset, -1 = explicit off, >=0 = stream idx
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -359,54 +366,69 @@ int main(int argc, char* argv[])
             auto_vmaf = true;
             if (i + 1 < argc && argv[i + 1][0] != '-')
                 vmaf_ref_path = argv[++i];
+        } else if (arg == "--sub" && i + 1 < argc) {
+            cli_sub_idx = std::atoi(argv[++i]);
         } else if (open_path.empty()) {
             open_path = arg;
         }
-    }
-
-    if (open_path.empty()) {
-        auto recents = load_recents();
-        while (!glfwWindowShouldClose(window) && open_path.empty()) {
-            // launcher screen
-            // Check drop
-            if (!g_drop_pending.empty()) {
-                open_path = g_drop_pending;
-                g_drop_pending.clear();
-                break;
-            }
-            glfwPollEvents();
-
-            int fb_w, fb_h;
-            glfwGetFramebufferSize(window, &fb_w, &fb_h);
-            glViewport(0, 0, fb_w, fb_h);
-            glClearColor(0.13f, 0.14f, 0.16f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
-
-            player_ui.begin_frame();
-            open_path = player_ui.draw_launcher(recents);
-            player_ui.end_frame();
-
-            glfwSwapBuffers(window);
-        }
-        if (open_path.empty()) {
-            // User closed the window without choosing
-            g_player_ui = nullptr;
-            player_ui.shutdown();
-            glfwDestroyWindow(window);
-            glfwTerminate();
-            return EXIT_SUCCESS;
-        }
-        save_recent(open_path);
     }
 
     // ── Network logger (must be installed before any FFmpeg call) ─────────────
     NetworkLogger net_logger;
     net_logger.install();
 
-    // ── Open container ────────────────────────────────────────────────────────
-    Demuxer demuxer;
-    if (!demuxer.open(open_path.c_str()))
-        return EXIT_FAILURE;
+    // ── Pick a source + open container.  On failure, fall back to the launcher
+    // with an error banner instead of exiting — a bad URL shouldn't kill the app.
+    Demuxer       demuxer;
+    auto          recents      = load_recents();
+    std::string   launcher_err;
+
+    while (true) {
+        if (open_path.empty()) {
+            while (!glfwWindowShouldClose(window) && open_path.empty()) {
+                if (!g_drop_pending.empty()) {
+                    open_path = g_drop_pending;
+                    g_drop_pending.clear();
+                    break;
+                }
+                glfwPollEvents();
+
+                int fb_w, fb_h;
+                glfwGetFramebufferSize(window, &fb_w, &fb_h);
+                glViewport(0, 0, fb_w, fb_h);
+                glClearColor(0.13f, 0.14f, 0.16f, 1.0f);
+                glClear(GL_COLOR_BUFFER_BIT);
+
+                player_ui.begin_frame();
+                open_path = player_ui.draw_launcher(recents, launcher_err);
+                player_ui.end_frame();
+
+                glfwSwapBuffers(window);
+            }
+            if (open_path.empty()) {
+                // User closed the window without choosing
+                g_player_ui = nullptr;
+                player_ui.shutdown();
+                glfwDestroyWindow(window);
+                glfwTerminate();
+                return EXIT_SUCCESS;
+            }
+        }
+
+        if (demuxer.open(open_path.c_str())) {
+            if (demuxer.video_stream_index() >= 0) {
+                save_recent(open_path);
+                break;                                  // success — exit retry loop
+            }
+            logger::error("No video stream — nothing to display");
+            launcher_err = "No video stream in: " + open_path;
+            demuxer.close();
+        } else {
+            launcher_err = "Failed to open: " + open_path;
+        }
+        // Retry: clear the path so the launcher loop above re-runs.
+        open_path.clear();
+    }
 
     // ── Manifest parser (HLS / DASH only — non-fatal) ─────────────────────────
     ManifestParser manifest;
@@ -435,11 +457,6 @@ int main(int argc, char* argv[])
         vmaf_was_running = vmaf_analyzer.running();
     }
 
-    if (demuxer.video_stream_index() < 0) {
-        logger::error("No video stream — nothing to display");
-        return EXIT_FAILURE;
-    }
-
     // ── Decoders ──────────────────────────────────────────────────────────────
     Decoder video_decoder;
     if (!video_decoder.open(demuxer.video_codecpar()))
@@ -462,7 +479,9 @@ int main(int argc, char* argv[])
     if (!renderer.init(video_decoder.width(), video_decoder.height(),
                        video_decoder.pixel_format(),
                        video_decoder.colorspace(),
-                       video_decoder.color_range())) {
+                       video_decoder.color_range(),
+                       video_decoder.color_transfer(),
+                       video_decoder.color_primaries())) {
         glfwDestroyWindow(window);
         glfwTerminate();
         return EXIT_FAILURE;
@@ -542,6 +561,12 @@ int main(int argc, char* argv[])
             const char* cr = av_color_range_name(video_decoder.color_range());
             inspector_lines.push_back({ std::format("  Color    {} / {}",
                 cs ? cs : "?", cr ? cr : "?") });
+            const char* trc_name = av_color_transfer_name(video_decoder.color_transfer());
+            const char* dynrange =
+                renderer.hdr_mode() == 0 ? "HDR (PQ → tonemap)"  :
+                renderer.hdr_mode() == 1 ? "HDR (HLG → tonemap)" : "SDR";
+            inspector_lines.push_back({ std::format("  Transfer {}", trc_name ? trc_name : "?") });
+            inspector_lines.push_back({ std::format("  Dynamic  {}", dynrange) });
         }
 
         // Audio section
@@ -565,6 +590,7 @@ int main(int argc, char* argv[])
     // ── Track selector items (built once; labels for each stream) ────────────
     std::vector<DebugHUD::TrackItem> audio_track_items;
     std::vector<DebugHUD::TrackItem> video_track_items;
+    std::vector<DebugHUD::TrackItem> subtitle_track_items;
     {
         int n = 1;
         for (const auto& t : demuxer.audio_tracks()) {
@@ -587,18 +613,33 @@ int main(int argc, char* argv[])
                 lbl += std::format("  {}k", t.bit_rate / 1000);
             video_track_items.push_back({ t.stream_idx, std::move(lbl) });
         }
+        n = 1;
+        for (const auto& t : demuxer.subtitle_tracks()) {
+            std::string lbl;
+            if (!t.language.empty())
+                lbl = std::format("{}. {}  {}", n++, t.language, t.codec_name);
+            else
+                lbl = std::format("{}. Track {}  {}", n++, t.stream_idx, t.codec_name);
+            if (!t.is_text) lbl += "  (bitmap)";
+            subtitle_track_items.push_back({ t.stream_idx, std::move(lbl) });
+        }
     }
 
     // ── Queues ────────────────────────────────────────────────────────────────
     Queue<AVPacket*> videoq(64);
     Queue<AVPacket*> audioq(128);
-    Queue<AVFrame*>  frameq(8);   // small — decoded frames are large
+    Queue<AVPacket*> subq(64);     // subtitle packets — small, reused after track switch
+    Queue<AVFrame*>  frameq(8);    // small — decoded frames are large
+
+    // ── Subtitle decoder (lazily opened on track switch) ──────────────────────
+    SubtitleDecoder subtitle_decoder;
 
     // ── Threads ───────────────────────────────────────────────────────────────
     std::jthread demux_thread([&](std::stop_token st) {
-        demuxer.read_loop(st, videoq, audioq);
+        demuxer.read_loop(st, videoq, audioq, &subq);
         videoq.shutdown();
         audioq.shutdown();
+        subq.shutdown();
     });
 
     std::jthread video_thread([&](std::stop_token st) {
@@ -609,6 +650,27 @@ int main(int argc, char* argv[])
     std::jthread audio_thread([&](std::stop_token st) {
         if (has_audio)
             audio_decode_loop(audio_decoder, audio_player, demuxer, audioq, st);
+    });
+
+    // Subtitle decode thread idles until a track is selected (subq receives
+    // no packets while subtitle_idx_ < 0). On a track switch the demuxer
+    // pushes a flush sentinel into subq; the thread sees the reopen flag and
+    // reinitialises the codec.
+    std::jthread subtitle_thread([&](std::stop_token st) {
+        while (!st.stop_requested()) {
+            AVPacket* pkt = nullptr;
+            if (!subq.pop(pkt)) break;
+            if (pkt == nullptr) break;                   // EOF
+            if (pkt == flush_sentinel()) {
+                subtitle_decoder.flush();
+                if (demuxer.consume_subtitle_reopen())
+                    (void)subtitle_decoder.reopen(demuxer.subtitle_codecpar(),
+                                                  demuxer.subtitle_time_base());
+                continue;
+            }
+            subtitle_decoder.decode_packet(pkt);
+            av_packet_free(&pkt);
+        }
     });
 
     // ── A/V sync state ────────────────────────────────────────────────────────
@@ -643,8 +705,23 @@ int main(int argc, char* argv[])
     const int vid_h = transposed ? disp_w : disp_h;
 
     // Currently active stream indices (updated when track switches complete).
-    int cur_audio_stream = demuxer.audio_stream_index();
-    int cur_video_stream = demuxer.video_stream_index();
+    int cur_audio_stream    = demuxer.audio_stream_index();
+    int cur_video_stream    = demuxer.video_stream_index();
+    int cur_subtitle_stream = demuxer.subtitle_stream_index();
+
+    // CLI: --sub N selects a subtitle stream index at startup. Validates
+    // against actual available subtitle tracks; ignored if invalid.
+    if (cli_sub_idx >= 0) {
+        bool valid = false;
+        for (const auto& t : demuxer.subtitle_tracks())
+            if (t.stream_idx == cli_sub_idx) { valid = true; break; }
+        if (valid) {
+            demuxer.request_subtitle_switch(cli_sub_idx);
+            cur_subtitle_stream = cli_sub_idx;
+        } else {
+            logger::warn("--sub {}: no such subtitle stream", cli_sub_idx);
+        }
+    }
 
 
     // When to show the next frame (wall clock)
@@ -884,6 +961,23 @@ int main(int argc, char* argv[])
             // else: frame not decoded yet — retry next iteration
         }
 
+        // ── Frame-accurate forward step (Shift+.) ─────────────────────────
+        // Pop the next decoded frame from frameq directly — no seek, no
+        // discard. Advances exactly one decoded frame per request.
+        while (s_single_steps.load() > 0 && paused && !scrubbing) {
+            AVFrame* frame = nullptr;
+            if (!frameq.try_pop(frame)) break;     // wait for the decoder
+            double pts = (frame->pts != AV_NOPTS_VALUE)
+                ? frame->pts * av_q2d(video_tb)
+                : last_pts + last_delay;
+            renderer.upload(frame);
+            av_frame_free(&frame);
+            has_frame = true;
+            last_pts  = pts;
+            ++frame_count;
+            s_single_steps.fetch_sub(1);
+        }
+
         // ── ImGui: begin frame (before any GL drawing) ────────────────────
         player_ui.begin_frame();
 
@@ -965,8 +1059,9 @@ int main(int argc, char* argv[])
             float  click_y = (raw_click_y >= 0.0) ? static_cast<float>(raw_click_y) * global_ps : -1.0f;
 
             auto tc = debug_hud.draw_tracks(
-                audio_track_items, cur_audio_stream,
-                video_track_items, cur_video_stream,
+                audio_track_items,    cur_audio_stream,
+                video_track_items,    cur_video_stream,
+                subtitle_track_items, cur_subtitle_stream,
                 fb_w, fb_h, global_ps,
                 click_x, click_y, cx, cy);
 
@@ -984,6 +1079,14 @@ int main(int argc, char* argv[])
                 demuxer.request_video_switch(tc.video);
                 AVFrame* stale;
                 while (frameq.try_pop(stale)) av_frame_free(&stale);
+            }
+            // Subtitle: -2 = "Off" clicked (disable), >=0 = pick stream.
+            if (tc.subtitle == -2 && cur_subtitle_stream >= 0) {
+                cur_subtitle_stream = -1;
+                demuxer.request_subtitle_switch(-1);
+            } else if (tc.subtitle >= 0 && tc.subtitle != cur_subtitle_stream) {
+                cur_subtitle_stream = tc.subtitle;
+                demuxer.request_subtitle_switch(tc.subtitle);
             }
         } else {
             // Discard any pending click while selector is hidden.
@@ -1104,6 +1207,17 @@ int main(int argc, char* argv[])
                 (now - last_any_seek_at < std::chrono::milliseconds(1500));
             if (show_thumbs)
                 thumb_strip.draw(thumb_pts, duration, fb_w, fb_h, bottom_off);
+        }
+
+        // ── Subtitles ─────────────────────────────────────────────────────────
+        // Anchor just above the ImGui control bar — independent of debug strip
+        // stacking, matching VLC/MPV behaviour. Hidden while scrubbing.
+        if (!scrubbing && demuxer.subtitle_stream_index() >= 0) {
+            std::string sub = subtitle_decoder.at(last_pts);
+            if (!sub.empty()) {
+                float sub_bottom_off = player_ui.visible_bar_height_logical() * global_ps;
+                debug_hud.draw_subtitle(sub, fb_w, fb_h, global_ps, sub_bottom_off);
+            }
         }
 
         // Custom ScrubBar replaced by VLC-style ImGui control bar.

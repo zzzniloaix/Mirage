@@ -84,6 +84,16 @@ AVColorRange Decoder::color_range() const
     return ctx_ ? ctx_->color_range : AVCOL_RANGE_UNSPECIFIED;
 }
 
+AVColorPrimaries Decoder::color_primaries() const
+{
+    return ctx_ ? ctx_->color_primaries : AVCOL_PRI_UNSPECIFIED;
+}
+
+AVColorTransferCharacteristic Decoder::color_transfer() const
+{
+    return ctx_ ? ctx_->color_trc : AVCOL_TRC_UNSPECIFIED;
+}
+
 AVRational Decoder::sample_aspect_ratio() const
 {
     if (!ctx_) return {0, 1};
