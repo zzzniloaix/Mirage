@@ -104,7 +104,10 @@ public:
     // Show the launch screen. Returns non-empty path/URL when the user has chosen
     // a file (via Browse, Enter, or recent-file click), or empty string each frame
     // while still waiting.
-    std::string draw_launcher(const std::vector<std::string>& recents);
+    // error_msg: optional red banner shown above the URL input — used to surface
+    //            "failed to open …" after a previous attempt failed.
+    std::string draw_launcher(const std::vector<std::string>& recents,
+                              const std::string& error_msg = {});
 
 private:
     bool   inited_         = false;

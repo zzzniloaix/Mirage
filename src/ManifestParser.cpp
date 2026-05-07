@@ -257,17 +257,41 @@ bool ManifestParser::parse_dash(const std::string& url)
 {
     std::string text;
     if (!fetch_text(url, text)) return false;
-    bool ok = parse_dash_text(text);
+    bool ok = parse_dash_text(text, url);
     if (ok)
-        logger::info("ManifestParser: parsed DASH MPD — {} tags from {}", tags_.size(), url);
+        logger::info("ManifestParser: parsed DASH MPD — {} tags, {} variants from {}",
+                     tags_.size(), variants_.size(), url);
     return ok;
 }
 
 // ── DASH MPD XML parser (pugixml) ─────────────────────────────────────────────
 
-bool ManifestParser::parse_dash_text(const std::string& text)
+// Read first <BaseURL> child element's text, if any. DASH spec allows multiple
+// (alternative locations); we take the first.
+static std::string dash_base_url(pugi::xml_node parent)
+{
+    auto bu = parent.child("BaseURL");
+    return bu ? std::string(bu.text().as_string()) : std::string{};
+}
+
+// Stack base URLs hierarchically: each level may be absolute (replaces) or
+// relative (resolves against the parent). Per ISO/IEC 23009-1.
+static std::string stack_base(const std::string& parent_base, const std::string& child)
+{
+    if (child.empty())                      return parent_base;
+    if (child.starts_with("http://")  ||
+        child.starts_with("https://") ||
+        child.starts_with("file://"))       return child;
+    if (parent_base.empty())                return child;
+    auto pos = parent_base.rfind('/');
+    if (pos == std::string::npos)           return child;
+    return parent_base.substr(0, pos + 1) + child;
+}
+
+bool ManifestParser::parse_dash_text(const std::string& text, const std::string& base_url)
 {
     tags_.clear();
+    variants_.clear();
 
     pugi::xml_document doc;
     pugi::xml_parse_result result = doc.load_buffer(text.data(), text.size());
@@ -279,6 +303,10 @@ bool ManifestParser::parse_dash_text(const std::string& text)
     // Walk <MPD> → <Period> elements
     pugi::xml_node mpd = doc.child("MPD");
     if (!mpd) mpd = doc.first_child();
+
+    // Hierarchical BaseURL: MPD → Period → AdaptationSet → Representation.
+    // Manifest URL forms the implicit root for relative resolution.
+    const std::string mpd_base = stack_base(base_url, dash_base_url(mpd));
 
     double period_start = 0.0;
     int    period_idx   = 0;
@@ -314,6 +342,56 @@ bool ManifestParser::parse_dash_text(const std::string& text)
                 if (!id_val.empty()) label += " id=" + id_val;
 
                 tags_.push_back({ ev_pts, 0, ManifestTagKind::Event, label, label });
+            }
+        }
+
+        // Walk AdaptationSet → Representation, collect video variants only.
+        // Direct-URL Representations (those carrying a <BaseURL> resolvable to a
+        // single playable file) get their URL filled in. SegmentTemplate-based
+        // ones have metadata but empty url — VMAF mode skips empty urls upstream.
+        const std::string period_base = stack_base(mpd_base, dash_base_url(period));
+
+        for (pugi::xml_node aset : period.children("AdaptationSet")) {
+            // Filter to video adaptation sets.
+            std::string mime    = aset.attribute("mimeType").as_string();
+            std::string content = aset.attribute("contentType").as_string();
+            const bool is_video =
+                mime.starts_with("video/") || content == "video" ||
+                (mime.empty() && content.empty());   // some MPDs put mimeType on Representation
+
+            if (!is_video) continue;
+
+            const std::string aset_base = stack_base(period_base, dash_base_url(aset));
+
+            // Inherit attributes from AdaptationSet when Representation omits them.
+            const std::string aset_codecs = aset.attribute("codecs").as_string();
+            const int         aset_w      = aset.attribute("width").as_int();
+            const int         aset_h      = aset.attribute("height").as_int();
+            const std::string aset_mime   = mime;
+
+            for (pugi::xml_node rep : aset.children("Representation")) {
+                std::string rep_mime = rep.attribute("mimeType").as_string();
+                if (rep_mime.empty()) rep_mime = aset_mime;
+                // Skip non-video reps slipped under a generic AdaptationSet.
+                if (!rep_mime.empty() && !rep_mime.starts_with("video/"))
+                    continue;
+
+                VariantStream vs;
+                vs.bandwidth = rep.attribute("bandwidth").as_llong(0);
+                vs.width     = rep.attribute("width").as_int(aset_w);
+                vs.height    = rep.attribute("height").as_int(aset_h);
+
+                std::string codecs = rep.attribute("codecs").as_string();
+                if (codecs.empty()) codecs = aset_codecs;
+                vs.codecs = std::move(codecs);
+
+                // URL: direct BaseURL inside Representation makes it playable.
+                // Otherwise leave empty (SegmentTemplate / SegmentList not supported).
+                const std::string rep_base = dash_base_url(rep);
+                if (!rep_base.empty())
+                    vs.url = stack_base(aset_base, rep_base);
+
+                variants_.push_back(std::move(vs));
             }
         }
 

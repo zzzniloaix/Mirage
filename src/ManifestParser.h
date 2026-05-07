@@ -58,7 +58,8 @@ public:
     // without needing a network or filesystem.
     [[nodiscard]] bool parse_hls_text(const std::string& text,
                                       const std::string& base_url = {});
-    [[nodiscard]] bool parse_dash_text(const std::string& text);
+    [[nodiscard]] bool parse_dash_text(const std::string& text,
+                                       const std::string& base_url = {});
 
 private:
     [[nodiscard]] bool parse_hls(const std::string& url);

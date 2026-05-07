@@ -29,6 +29,11 @@ void Demuxer::request_video_switch(int stream_idx)
     pending_video_switch_.store(stream_idx);
 }
 
+void Demuxer::request_subtitle_switch(int stream_idx)
+{
+    pending_subtitle_switch_.store(stream_idx);
+}
+
 bool Demuxer::consume_audio_reopen()
 {
     return audio_reopen_.exchange(false);
@@ -39,9 +44,15 @@ bool Demuxer::consume_video_reopen()
     return video_reopen_.exchange(false);
 }
 
+bool Demuxer::consume_subtitle_reopen()
+{
+    return subtitle_reopen_.exchange(false);
+}
+
 void Demuxer::read_loop(std::stop_token st,
                         Queue<AVPacket*>& videoq,
-                        Queue<AVPacket*>& audioq)
+                        Queue<AVPacket*>& audioq,
+                        Queue<AVPacket*>* subq)
 {
     AVPacket* pkt = av_packet_alloc();
 
@@ -69,6 +80,20 @@ void Demuxer::read_loop(std::stop_token st,
             logger::info("Video stream switched to index {}", video_idx_);
         }
 
+        int sub_sw = pending_subtitle_switch_.exchange(-2);    // -2 = no request
+        if (sub_sw != -2 && sub_sw != subtitle_idx_) {
+            if (subq) {
+                AVPacket* stale;
+                while (subq->try_pop(stale))
+                    if (stale && stale != flush_sentinel()) av_packet_free(&stale);
+                subq->push(flush_sentinel());
+            }
+            subtitle_idx_ = sub_sw;
+            if (sub_sw >= 0) subtitle_reopen_.store(true);
+            logger::info("Subtitle stream switched to index {}",
+                         subtitle_idx_ < 0 ? -1 : subtitle_idx_);
+        }
+
         // ── Handle a pending seek request ─────────────────────────────────
         double seek_secs = seek_target_.exchange(-1.0);
         if (seek_secs >= 0.0) {
@@ -81,10 +106,14 @@ void Demuxer::read_loop(std::stop_token st,
                 if (stale && stale != flush_sentinel()) av_packet_free(&stale);
             while (audioq.try_pop(stale))
                 if (stale && stale != flush_sentinel()) av_packet_free(&stale);
+            if (subq)
+                while (subq->try_pop(stale))
+                    if (stale && stale != flush_sentinel()) av_packet_free(&stale);
 
             // Tell decode threads to flush their codec buffers
             videoq.push(flush_sentinel());
-            if (audio_idx_ >= 0) audioq.push(flush_sentinel());
+            if (audio_idx_ >= 0)            audioq.push(flush_sentinel());
+            if (subq && subtitle_idx_ >= 0) subq->push(flush_sentinel());
         }
 
         int ret = av_read_frame(fmt_ctx_, pkt);
@@ -97,7 +126,8 @@ void Demuxer::read_loop(std::stop_token st,
             }
             // True EOF or unrecoverable error — signal decoders to flush and stop.
             videoq.push(nullptr);
-            if (audio_idx_ >= 0) audioq.push(nullptr);
+            if (audio_idx_ >= 0)            audioq.push(nullptr);
+            if (subq && subtitle_idx_ >= 0) subq->push(nullptr);
             break;
         }
 
@@ -108,6 +138,10 @@ void Demuxer::read_loop(std::stop_token st,
         } else if (pkt->stream_index == audio_idx_) {
             AVPacket* copy = av_packet_clone(pkt);
             if (!audioq.push(copy))
+                av_packet_free(&copy);
+        } else if (subq && pkt->stream_index == subtitle_idx_) {
+            AVPacket* copy = av_packet_clone(pkt);
+            if (!subq->push(copy))
                 av_packet_free(&copy);
         }
 
@@ -169,6 +203,9 @@ bool Demuxer::open(const std::string& url_or_path)
     if (audio_idx_ < 0)
         logger::warn("No audio stream found");
 
+    // Subtitles default off — users opt-in via the T-key track switcher.
+    subtitle_idx_ = -1;
+
     build_track_lists();
     print_stream_info();
     return true;
@@ -180,8 +217,9 @@ void Demuxer::close()
         avformat_close_input(&fmt_ctx_);
         fmt_ctx_ = nullptr;
     }
-    video_idx_ = -1;
-    audio_idx_ = -1;
+    video_idx_    = -1;
+    audio_idx_    = -1;
+    subtitle_idx_ = -1;
 }
 
 AVCodecParameters* Demuxer::video_codecpar() const
@@ -196,6 +234,12 @@ AVCodecParameters* Demuxer::audio_codecpar() const
     return fmt_ctx_->streams[audio_idx_]->codecpar;
 }
 
+AVCodecParameters* Demuxer::subtitle_codecpar() const
+{
+    if (subtitle_idx_ < 0) return nullptr;
+    return fmt_ctx_->streams[subtitle_idx_]->codecpar;
+}
+
 AVRational Demuxer::video_time_base() const
 {
     if (video_idx_ < 0) return {1, 1};
@@ -206,6 +250,12 @@ AVRational Demuxer::audio_time_base() const
 {
     if (audio_idx_ < 0) return {1, 1};
     return fmt_ctx_->streams[audio_idx_]->time_base;
+}
+
+AVRational Demuxer::subtitle_time_base() const
+{
+    if (subtitle_idx_ < 0) return {1, 1};
+    return fmt_ctx_->streams[subtitle_idx_]->time_base;
 }
 
 double Demuxer::duration() const
@@ -250,10 +300,33 @@ void Demuxer::build_track_lists()
 {
     audio_tracks_.clear();
     video_tracks_.clear();
+    subtitle_tracks_.clear();
 
     for (unsigned i = 0; i < fmt_ctx_->nb_streams; ++i) {
         AVStream* s = fmt_ctx_->streams[i];
         AVCodecParameters* par = s->codecpar;
+
+        if (par->codec_type == AVMEDIA_TYPE_SUBTITLE) {
+            SubtitleTrackInfo info;
+            info.stream_idx = static_cast<int>(i);
+            info.codec_name = avcodec_get_name(par->codec_id);
+            switch (par->codec_id) {
+                case AV_CODEC_ID_SUBRIP: case AV_CODEC_ID_TEXT:
+                case AV_CODEC_ID_ASS:    case AV_CODEC_ID_SSA:
+                case AV_CODEC_ID_WEBVTT: case AV_CODEC_ID_MOV_TEXT:
+                    info.is_text = true; break;
+                default:
+                    info.is_text = false; break;
+            }
+            auto* lang  = av_dict_get(s->metadata, "language", nullptr, 0);
+            auto* title = av_dict_get(s->metadata, "title",    nullptr, 0);
+            if (title && lang)
+                info.language = std::string(title->value) + " (" + lang->value + ")";
+            else if (title) info.language = title->value;
+            else if (lang)  info.language = lang->value;
+            subtitle_tracks_.push_back(std::move(info));
+            continue;
+        }
 
         if (par->codec_type == AVMEDIA_TYPE_AUDIO) {
             AudioTrackInfo info;
@@ -320,5 +393,10 @@ void Demuxer::print_stream_info() const
             par->sample_rate,
             par->ch_layout.nb_channels,
             av_get_sample_fmt_name(static_cast<AVSampleFormat>(par->format)));
+    }
+
+    if (!subtitle_tracks_.empty()) {
+        logger::info("Subtitles: {} track(s) (off by default — T menu to enable)",
+                     subtitle_tracks_.size());
     }
 }

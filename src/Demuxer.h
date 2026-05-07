@@ -36,6 +36,13 @@ struct VideoTrackInfo {
     int64_t     bit_rate = 0;
 };
 
+struct SubtitleTrackInfo {
+    int         stream_idx;
+    std::string language;    // from "language" / "title" metadata, may be empty
+    std::string codec_name;
+    bool        is_text = true;   // false = bitmap (PGS/DVD) — not yet rendered
+};
+
 class Demuxer {
 public:
     Demuxer() = default;
@@ -50,33 +57,41 @@ public:
     // Request a seek to `seconds` from any thread.
     void request_seek(double seconds);
 
-    // Request switching to a different audio/video stream.
+    // Request switching to a different audio/video/subtitle stream.
     // Picked up by read_loop; triggers a flush sentinel + decoder reopen flag.
+    // Subtitle switch with stream_idx == -1 disables subtitle routing.
     void request_audio_switch(int stream_idx);
     void request_video_switch(int stream_idx);
+    void request_subtitle_switch(int stream_idx);
 
     // Called by the decode threads after the flush sentinel caused by a stream switch.
     // Returns true (and clears the flag) if the decoder needs to be reopened.
     bool consume_audio_reopen();
     bool consume_video_reopen();
+    bool consume_subtitle_reopen();
 
     // Runs on a std::jthread — reads packets and routes to the right queue.
-    // Returns when EOF, read error, or stop is requested.
+    // subq may be nullptr when no subtitle stream is selected; in that case
+    // subtitle packets are dropped.
     void read_loop(std::stop_token st,
                    Queue<AVPacket*>& videoq,
-                   Queue<AVPacket*>& audioq);
+                   Queue<AVPacket*>& audioq,
+                   Queue<AVPacket*>* subq = nullptr);
 
     // Stream info — valid after open()
-    int video_stream_index() const { return video_idx_; }
-    int audio_stream_index() const { return audio_idx_; }
+    int video_stream_index()    const { return video_idx_; }
+    int audio_stream_index()    const { return audio_idx_; }
+    int subtitle_stream_index() const { return subtitle_idx_; }
 
     AVFormatContext* fmt_ctx() const { return fmt_ctx_; }
 
-    AVCodecParameters* video_codecpar() const;
-    AVCodecParameters* audio_codecpar() const;
+    AVCodecParameters* video_codecpar()    const;
+    AVCodecParameters* audio_codecpar()    const;
+    AVCodecParameters* subtitle_codecpar() const;
 
-    AVRational video_time_base() const;
-    AVRational audio_time_base() const;
+    AVRational video_time_base()    const;
+    AVRational audio_time_base()    const;
+    AVRational subtitle_time_base() const;
 
     // Total duration in seconds, or -1 if unknown (live streams).
     double duration() const;
@@ -88,22 +103,27 @@ public:
     // Stream-level SAR for the video stream ({0,1} = unspecified / square pixels).
     AVRational video_sar() const;
 
-    // All audio/video tracks in the container, populated at open().
-    const std::vector<AudioTrackInfo>& audio_tracks() const { return audio_tracks_; }
-    const std::vector<VideoTrackInfo>& video_tracks() const { return video_tracks_; }
+    // All audio/video/subtitle tracks in the container, populated at open().
+    const std::vector<AudioTrackInfo>&    audio_tracks()    const { return audio_tracks_; }
+    const std::vector<VideoTrackInfo>&    video_tracks()    const { return video_tracks_; }
+    const std::vector<SubtitleTrackInfo>& subtitle_tracks() const { return subtitle_tracks_; }
 
 private:
     AVFormatContext*    fmt_ctx_      = nullptr;
     int                 video_idx_    = -1;
     int                 audio_idx_    = -1;
+    int                 subtitle_idx_ = -1;
     std::atomic<double> seek_target_{ -1.0 };
     std::atomic<int>    pending_audio_switch_{ -1 };
     std::atomic<int>    pending_video_switch_{ -1 };
+    std::atomic<int>    pending_subtitle_switch_{ -2 };  // -2=no request, -1=disable, >=0=switch
     std::atomic<bool>   audio_reopen_{ false };
     std::atomic<bool>   video_reopen_{ false };
+    std::atomic<bool>   subtitle_reopen_{ false };
 
-    std::vector<AudioTrackInfo> audio_tracks_;
-    std::vector<VideoTrackInfo> video_tracks_;
+    std::vector<AudioTrackInfo>    audio_tracks_;
+    std::vector<VideoTrackInfo>    video_tracks_;
+    std::vector<SubtitleTrackInfo> subtitle_tracks_;
 
     bool is_network_url(const std::string& url) const;
     void build_track_lists();

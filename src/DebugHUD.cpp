@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <limits>
 
 // ── Shaders ───────────────────────────────────────────────────────────────────
 
@@ -211,8 +212,9 @@ void DebugHUD::draw_inspector(const std::vector<InspectorLine>& lines,
 }
 
 DebugHUD::TrackClick DebugHUD::draw_tracks(
-    const std::vector<TrackItem>& audio, int cur_audio_stream,
-    const std::vector<TrackItem>& video, int cur_video_stream,
+    const std::vector<TrackItem>& audio,    int cur_audio_stream,
+    const std::vector<TrackItem>& video,    int cur_video_stream,
+    const std::vector<TrackItem>& subtitle, int cur_subtitle_stream,
     int fb_w, int fb_h, float scale,
     float fb_click_x, float fb_click_y,
     float fb_cursor_x, float fb_cursor_y)
@@ -234,31 +236,48 @@ DebugHUD::TrackClick DebugHUD::draw_tracks(
         for (const auto& it : items)
             w = std::max(w, static_cast<float>(
                 stb_easy_font_width(const_cast<char*>(it.label.c_str()))) * scale);
+        // Account for the synthetic "Off" row in the subtitles panel.
+        w = std::max(w, static_cast<float>(
+            stb_easy_font_width(const_cast<char*>("Off"))) * scale);
         return w + pad * 2.0f;
     };
 
-    float aw = panel_width(audio, "AUDIO TRACKS");
-    float vw = panel_width(video, "VIDEO TRACKS");
+    const bool show_sub = !subtitle.empty();
+
+    float aw = panel_width(audio,    "AUDIO TRACKS");
+    float vw = panel_width(video,    "VIDEO TRACKS");
+    float sw = show_sub ? panel_width(subtitle, "SUBTITLES") : 0.0f;
     float gap = 20.0f * scale;
 
     float ah = header_h + static_cast<float>(audio.size()) * item_h + pad;
     float vh = header_h + static_cast<float>(video.size()) * item_h + pad;
+    // Subtitle panel reserves an extra row for the "Off" entry.
+    float sh = show_sub
+        ? header_h + static_cast<float>(subtitle.size() + 1) * item_h + pad
+        : 0.0f;
 
-    // Center both panels horizontally; align tops.
-    float total_w = aw + gap + vw;
+    // Center panels horizontally; align tops.
+    float total_w = aw + gap + vw + (show_sub ? gap + sw : 0.0f);
     float ax = (static_cast<float>(fb_w) - total_w) * 0.5f;
     float vx = ax + aw + gap;
-    float ay = (static_cast<float>(fb_h) - std::max(ah, vh)) * 0.5f;
+    float sx = vx + vw + gap;
+    float top_h = std::max({ ah, vh, sh });
+    float ay = (static_cast<float>(fb_h) - top_h) * 0.5f;
     float vy = ay;
+    float sy = ay;
 
     auto px2x = [&](float px) { return px / static_cast<float>(fb_w) * 2.0f - 1.0f; };
     auto px2y = [&](float py) { return 1.0f - py / static_cast<float>(fb_h) * 2.0f; };
 
-    // Draw one dropdown panel; returns the stream_idx of a clicked item or -1.
+    // Draw one dropdown panel; returns the stream_idx of a clicked item.
+    // off_idx_value: when non-INT_MIN, a leading "Off" row is drawn whose
+    //                clicked stream_idx is `off_idx_value` (use -2 to signal Off).
     auto draw_panel = [&](const std::vector<TrackItem>& items, int cur_stream,
                           float px, float py, float pw, float ph,
-                          const char* title) -> int
+                          const char* title, int off_idx_value) -> int
     {
+        constexpr int kNoSentinel = std::numeric_limits<int>::min();
+        const bool has_off = (off_idx_value != kNoSentinel);
         int clicked = -1;
 
         glEnable(GL_BLEND);
@@ -272,10 +291,18 @@ DebugHUD::TrackClick DebugHUD::draw_tracks(
         draw_bg(px2x(px), px2x(px + pw), px2y(py + header_h), px2y(py),
                 0.18f, 0.18f, 0.22f, 1.0f);
 
+        const int n_items = static_cast<int>(items.size());
+        const int n_rows  = has_off ? n_items + 1 : n_items;
+
         // Item backgrounds: hover + selected highlights
-        for (int i = 0; i < static_cast<int>(items.size()); ++i) {
-            float iy = py + header_h + static_cast<float>(i) * item_h;
-            bool selected = (items[i].stream_idx == cur_stream);
+        for (int row = 0; row < n_rows; ++row) {
+            float iy = py + header_h + static_cast<float>(row) * item_h;
+            int   row_idx;
+            if (has_off && row == 0)               row_idx = -1;
+            else                                   row_idx = items[row - (has_off ? 1 : 0)].stream_idx;
+
+            bool selected = (row_idx == cur_stream) ||
+                            (has_off && row == 0 && cur_stream < 0);
             bool hovered  = (fb_cursor_x >= px && fb_cursor_x < px + pw &&
                              fb_cursor_y >= iy && fb_cursor_y < iy + item_h);
 
@@ -286,10 +313,11 @@ DebugHUD::TrackClick DebugHUD::draw_tracks(
                 draw_bg(px2x(px), px2x(px + pw), px2y(iy + item_h), px2y(iy),
                         1.0f, 1.0f, 1.0f, 0.08f);
 
-            // Click detection
             if (fb_click_x >= px && fb_click_x < px + pw &&
                 fb_click_y >= iy && fb_click_y < iy + item_h)
-                clicked = items[i].stream_idx;
+            {
+                clicked = (has_off && row == 0) ? off_idx_value : row_idx;
+            }
         }
 
         glDisable(GL_BLEND);
@@ -299,22 +327,34 @@ DebugHUD::TrackClick DebugHUD::draw_tracks(
                   0.75f, 0.75f, 0.80f, scale, fb_w, fb_h);
 
         // Item text
-        for (int i = 0; i < static_cast<int>(items.size()); ++i) {
-            float iy  = py + header_h + static_cast<float>(i) * item_h + line_sp * 0.5f;
-            bool  sel = (items[i].stream_idx == cur_stream);
-            float r = sel ? 1.0f : 0.85f;
-            float g = sel ? 1.0f : 0.85f;
-            float b = sel ? 1.0f : 0.85f;
-            draw_text(items[i].label.c_str(), px + pad, iy, r, g, b, scale, fb_w, fb_h);
+        if (has_off) {
+            float iy = py + header_h + line_sp * 0.5f;
+            bool  sel = (cur_stream < 0);
+            float c = sel ? 1.0f : 0.85f;
+            draw_text("Off", px + pad, iy, c, c, c, scale, fb_w, fb_h);
+        }
+        for (int i = 0; i < n_items; ++i) {
+            int   row_i = i + (has_off ? 1 : 0);
+            float iy    = py + header_h + static_cast<float>(row_i) * item_h + line_sp * 0.5f;
+            bool  sel   = (items[i].stream_idx == cur_stream);
+            float c     = sel ? 1.0f : 0.85f;
+            draw_text(items[i].label.c_str(), px + pad, iy, c, c, c, scale, fb_w, fb_h);
         }
 
         return clicked;
     };
 
-    int ac = draw_panel(audio, cur_audio_stream, ax, ay, aw, ah, "AUDIO TRACKS");
-    int vc = draw_panel(video, cur_video_stream, vx, vy, vw, vh, "VIDEO TRACKS");
+    constexpr int kNoSentinel = std::numeric_limits<int>::min();
+
+    int ac = draw_panel(audio, cur_audio_stream, ax, ay, aw, ah, "AUDIO TRACKS", kNoSentinel);
+    int vc = draw_panel(video, cur_video_stream, vx, vy, vw, vh, "VIDEO TRACKS", kNoSentinel);
+    int sc = -1;
+    if (show_sub)
+        sc = draw_panel(subtitle, cur_subtitle_stream, sx, sy, sw, sh, "SUBTITLES", -2);
     if (ac >= 0) result.audio = ac;
     if (vc >= 0) result.video = vc;
+    // Subtitle: -2 means "Off" clicked, >=0 means a stream clicked.
+    if (sc != -1) result.subtitle = sc;
     return result;
 }
 
@@ -731,6 +771,7 @@ void DebugHUD::draw_help(int fb_w, int fb_h, float scale)
         { "Left / Right","Seek +/-10 s"                },
         { "Up / Down",   "Seek +/-60 s"                },
         { ". / ,",       "Keyframe step fwd / bwd"     },
+        { "Shift+.",     "Single-frame step forward"   },
         { "[ / ]",       "Speed preset down / up"      },
         { nullptr,       nullptr                       },
         { "D",           "Debug HUD  (PTS, A/V diff)"  },
@@ -786,6 +827,71 @@ void DebugHUD::draw_help(int fb_w, int fb_h, float scale)
         // Description column (dimmer)
         draw_text(kRows[i].desc, tx0 + key_col + col_gap, ty,
                   0.75f, 0.75f, 0.80f, scale, fb_w, fb_h);
+        ty += line_h;
+    }
+}
+
+// ── Subtitle rendering ────────────────────────────────────────────────────────
+
+void DebugHUD::draw_subtitle(const std::string& text,
+                              int fb_w, int fb_h, float scale,
+                              float bottom_offset_px)
+{
+    if (text.empty() || fb_w <= 0 || fb_h <= 0) return;
+    glViewport(0, 0, fb_w, fb_h);
+
+    // Larger than the debug HUD — scale 2× over the base debug text size for
+    // legibility on 4K content. stb_easy_font: ~6 px per char wide, ~10 px tall.
+    const float sub_scale = scale * 2.4f;
+    const float char_h    = 10.0f * sub_scale;
+    const float line_h    = char_h + 4.0f * sub_scale;
+
+    // Split into lines.
+    std::vector<std::string> lines;
+    std::size_t pos = 0;
+    while (pos <= text.size()) {
+        std::size_t nl = text.find('\n', pos);
+        if (nl == std::string::npos) {
+            lines.emplace_back(text.substr(pos));
+            break;
+        }
+        lines.emplace_back(text.substr(pos, nl - pos));
+        pos = nl + 1;
+    }
+
+    const float pad_x  = 16.0f * sub_scale;
+    const float pad_y  =  8.0f * sub_scale;
+    const float margin = 16.0f * scale;       // gap above the bottom UI stack
+
+    // Compute the widest line for the backing box.
+    float max_w = 0.0f;
+    for (const auto& ln : lines) {
+        float w = static_cast<float>(stb_easy_font_width(const_cast<char*>(ln.c_str())))
+                * sub_scale;
+        if (w > max_w) max_w = w;
+    }
+    const int   n_lines = static_cast<int>(lines.size());
+    const float panel_h = n_lines * line_h + 2.0f * pad_y;
+    const float panel_w = max_w + 2.0f * pad_x;
+
+    const float panel_x = (static_cast<float>(fb_w) - panel_w) * 0.5f;
+    const float panel_y = static_cast<float>(fb_h) - bottom_offset_px - margin - panel_h;
+
+    auto px2ndcx = [&](float px) { return px / static_cast<float>(fb_w) * 2.0f - 1.0f; };
+    auto px2ndcy = [&](float py) { return 1.0f - py / static_cast<float>(fb_h) * 2.0f; };
+
+    // Black backing for contrast — typical broadcast-style caption box.
+    draw_bg(px2ndcx(panel_x),           px2ndcx(panel_x + panel_w),
+            px2ndcy(panel_y + panel_h), px2ndcy(panel_y),
+            0.0f, 0.0f, 0.0f, 0.65f);
+
+    // Center each line within the panel.
+    float ty = panel_y + pad_y;
+    for (const auto& ln : lines) {
+        float w = static_cast<float>(stb_easy_font_width(const_cast<char*>(ln.c_str())))
+                * sub_scale;
+        float tx = panel_x + (panel_w - w) * 0.5f;
+        draw_text(ln.c_str(), tx, ty, 1.0f, 1.0f, 1.0f, sub_scale, fb_w, fb_h);
         ty += line_h;
     }
 }
