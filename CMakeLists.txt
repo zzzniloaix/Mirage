@@ -145,8 +145,10 @@ include(Catch)
 add_executable(mirage_tests
     tests/test_network_logger.cpp
     tests/test_manifest_parser.cpp
+    tests/test_subtitle_decoder.cpp
     src/NetworkLogger.cpp
     src/ManifestParser.cpp
+    src/SubtitleDecoder.cpp
 )
 
 target_include_directories(mirage_tests PRIVATE

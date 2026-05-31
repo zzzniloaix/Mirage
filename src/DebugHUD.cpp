@@ -55,12 +55,38 @@ out vec4 frag_color;
 void main() { frag_color = u_text_color; }
 )glsl";
 
+// Bitmap subtitle quad. Same NDC-rect uniform layout as kBgVert; passes uv to
+// the fragment shader for texture sampling.
+static const char* kSubVert = R"glsl(
+#version 410 core
+uniform vec4 u_rect;       // xmin, xmax, ymin, ymax in NDC
+out vec2 v_uv;
+void main() {
+    bool right = (gl_VertexID & 1) != 0;
+    bool top   = (gl_VertexID & 2) != 0;
+    float x = right ? u_rect.y : u_rect.x;
+    float y = top   ? u_rect.w : u_rect.z;
+    v_uv = vec2(right ? 1.0 : 0.0, top ? 0.0 : 1.0);  // texture origin = top-left
+    gl_Position = vec4(x, y, 0.0, 1.0);
+}
+)glsl";
+
+static const char* kSubFrag = R"glsl(
+#version 410 core
+uniform sampler2D u_tex;
+in  vec2 v_uv;
+out vec4 frag_color;
+void main() { frag_color = texture(u_tex, v_uv); }
+)glsl";
+
 // ── DebugHUD ─────────────────────────────────────────────────────────────────
 
 DebugHUD::~DebugHUD()
 {
     if (bg_program_)   glDeleteProgram(bg_program_);
     if (text_program_) glDeleteProgram(text_program_);
+    if (sub_program_)  glDeleteProgram(sub_program_);
+    if (sub_tex_)      glDeleteTextures(1, &sub_tex_);
     if (bg_vao_)       glDeleteVertexArrays(1, &bg_vao_);
     if (text_vao_)     glDeleteVertexArrays(1, &text_vao_);
     if (text_vbo_)     glDeleteBuffers(1, &text_vbo_);
@@ -771,7 +797,7 @@ void DebugHUD::draw_help(int fb_w, int fb_h, float scale)
         { "Left / Right","Seek +/-10 s"                },
         { "Up / Down",   "Seek +/-60 s"                },
         { ". / ,",       "Keyframe step fwd / bwd"     },
-        { "Shift+.",     "Single-frame step forward"   },
+        { "Shift+. / ,", "Single-frame step fwd / bwd" },
         { "[ / ]",       "Speed preset down / up"      },
         { nullptr,       nullptr                       },
         { "D",           "Debug HUD  (PTS, A/V diff)"  },
@@ -894,6 +920,59 @@ void DebugHUD::draw_subtitle(const std::string& text,
         draw_text(ln.c_str(), tx, ty, 1.0f, 1.0f, 1.0f, sub_scale, fb_w, fb_h);
         ty += line_h;
     }
+}
+
+void DebugHUD::draw_bitmap_subtitles(const std::vector<BitmapRect>& rects,
+                                      int authored_w, int authored_h,
+                                      int vx, int vy, int vw, int vh,
+                                      int fb_w, int fb_h)
+{
+    if (rects.empty() || vw <= 0 || vh <= 0 || fb_w <= 0 || fb_h <= 0) return;
+    glViewport(0, 0, fb_w, fb_h);
+
+    // If the codec didn't declare an authoring resolution, treat the rects as
+    // already in the playback viewport's pixel space.
+    const float src_w = (authored_w > 0) ? static_cast<float>(authored_w)
+                                          : static_cast<float>(vw);
+    const float src_h = (authored_h > 0) ? static_cast<float>(authored_h)
+                                          : static_cast<float>(vh);
+    const float sx    = static_cast<float>(vw) / src_w;
+    const float sy    = static_cast<float>(vh) / src_h;
+
+    // GL framebuffer y=0 is the bottom edge. Authored y is top-down.
+    auto px2x = [&](float p) { return p / static_cast<float>(fb_w) * 2.0f - 1.0f; };
+    auto px2y = [&](float p) { return p / static_cast<float>(fb_h) * 2.0f - 1.0f; };
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glUseProgram(sub_program_);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, sub_tex_);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glBindVertexArray(bg_vao_);            // empty VAO; positions come from gl_VertexID
+
+    for (const auto& r : rects) {
+        if (r.w <= 0 || r.h <= 0 || !r.rgba) continue;
+
+        // Authored top-left → framebuffer coords (origin at bottom-left).
+        const float fb_x0 = static_cast<float>(vx) + r.x * sx;
+        const float fb_x1 = fb_x0 + r.w * sx;
+        const float fb_y_top    = static_cast<float>(vy) + static_cast<float>(vh)
+                                - r.y * sy;
+        const float fb_y_bottom = fb_y_top - r.h * sy;
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, r.w, r.h, 0,
+                     GL_RGBA, GL_UNSIGNED_BYTE, r.rgba);
+        glUniform4f(u_sub_rect_,
+                    px2x(fb_x0), px2x(fb_x1),
+                    px2y(fb_y_bottom), px2y(fb_y_top));
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    }
+
+    glBindVertexArray(0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_BLEND);
 }
 
 // ── Private helpers ───────────────────────────────────────────────────────────
@@ -1211,6 +1290,26 @@ bool DebugHUD::compile_shaders()
     if (!text_program_) return false;
     u_fb_size_    = glGetUniformLocation(text_program_, "u_fb_size");
     u_text_color_ = glGetUniformLocation(text_program_, "u_text_color");
+
+    // Bitmap subtitle program (textured NDC quad)
+    GLuint sb_v = compile(GL_VERTEX_SHADER,   kSubVert);
+    GLuint sb_f = compile(GL_FRAGMENT_SHADER, kSubFrag);
+    if (!sb_v || !sb_f) { glDeleteShader(sb_v); glDeleteShader(sb_f); return false; }
+    sub_program_ = link(sb_v, sb_f);
+    if (!sub_program_) return false;
+    u_sub_rect_    = glGetUniformLocation(sub_program_, "u_rect");
+    u_sub_sampler_ = glGetUniformLocation(sub_program_, "u_tex");
+    glUseProgram(sub_program_);
+    glUniform1i(u_sub_sampler_, 0);
+
+    // Single reusable RGBA texture; resized via glTexImage2D in draw_bitmap_subtitles.
+    glGenTextures(1, &sub_tex_);
+    glBindTexture(GL_TEXTURE_2D, sub_tex_);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_2D, 0);
 
     return true;
 }
