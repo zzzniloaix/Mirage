@@ -141,6 +141,23 @@ public:
                        int fb_w, int fb_h, float scale,
                        float bottom_offset_px);
 
+    // One bitmap rectangle to overlay on the video, in the authoring coordinate
+    // space (typically the original video resolution, e.g. 1920×1080 for HD PGS).
+    struct BitmapRect {
+        int                  x = 0, y = 0;   // top-left in authored space
+        int                  w = 0, h = 0;
+        const std::uint8_t*  rgba = nullptr; // w * h * 4 bytes; not owned
+    };
+
+    // Render a list of bitmap subtitle rects scaled into the video viewport.
+    // (vx, vy, vw, vh) is the framebuffer-space rect where the video is drawn
+    // (vy = bottom-edge in GL coords). authored_w/h give the coordinate space
+    // the rects are positioned in; if 0, they're treated as already in vw×vh.
+    void draw_bitmap_subtitles(const std::vector<BitmapRect>& rects,
+                                int authored_w, int authored_h,
+                                int vx, int vy, int vw, int vh,
+                                int fb_w, int fb_h);
+
     // ── VMAF panel (V key) ────────────────────────────────────────────────────
 
     // One entry in the compact VMAF panel.
@@ -181,6 +198,12 @@ private:
     GLuint text_program_ = 0;
     GLint  u_fb_size_    = -1;  // vec2 fb_w, fb_h
     GLint  u_text_color_ = -1;  // vec4 rgba
+
+    // Bitmap subtitle quad: textured triangle-strip via gl_VertexID.
+    GLuint sub_program_   = 0;
+    GLuint sub_tex_       = 0;
+    GLint  u_sub_rect_    = -1;
+    GLint  u_sub_sampler_ = -1;
 
     [[nodiscard]] bool compile_shaders();
 

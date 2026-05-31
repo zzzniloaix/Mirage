@@ -67,6 +67,7 @@ static std::atomic<double> s_click_y{ -1.0 };
 static std::atomic<double> s_decode_time_ms{ 0.0 };  // updated by video decode thread
 static std::atomic<int>    s_step_frames{ 0 };  // +1 = fwd, -1 = bwd; computed in render loop
 static std::atomic<int>    s_single_steps{ 0 }; // Shift+. requests; one decoded frame per count
+static std::atomic<int>    s_back_steps{ 0 };   // Shift+, requests; one frame backward per count
 
 static constexpr double kSpeedPresets[] = { 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 4.0 };
 static constexpr int    kNumPresets     = static_cast<int>(std::size(kSpeedPresets));
@@ -92,9 +93,13 @@ static void on_key(GLFWwindow* window, int key, int /*scancode*/, int action, in
     else if (key == GLFW_KEY_N) s_show_network.store(!s_show_network.load());
     else if (key == GLFW_KEY_H) s_show_help.store(!s_show_help.load());
     else if (key == GLFW_KEY_V) s_show_vmaf.store(!s_show_vmaf.load());
-    // Shift+. → single-frame advance (frame-accurate). Plain . / , = keyframe step.
+    // Shift+. / Shift+, → single-frame advance / step-back (frame-accurate).
+    // Plain . / , = keyframe step.
     else if (key == GLFW_KEY_PERIOD && (mods & GLFW_MOD_SHIFT)) {
         s_paused.store(true); s_single_steps.fetch_add(1);
+    }
+    else if (key == GLFW_KEY_COMMA && (mods & GLFW_MOD_SHIFT)) {
+        s_paused.store(true); s_back_steps.fetch_add(1);
     }
     else if (key == GLFW_KEY_PERIOD) { s_paused.store(true); s_step_frames.fetch_add(1); }
     else if (key == GLFW_KEY_COMMA)  { s_paused.store(true); s_step_frames.fetch_add(-1); }
@@ -738,6 +743,15 @@ int main(int argc, char* argv[])
     double last_seek_pos     = 0.0;    // pts of the most recent seek; freezes thumbnail highlight
     double scrub_display_pts = -1.0;   // PTS of the last frame actually uploaded from ScrubDecoder
     bool   ui_seek_dragging  = false;  // ImGui seek bar was dragging last frame (1-frame carry)
+    bool   pending_back_step = false;  // true while waiting on ScrubDecoder for backward step
+
+    // Estimate one-frame duration from the video stream's average frame rate.
+    // Falls back to ~16.67ms (60fps) if the container doesn't declare it.
+    double frame_dt = 1.0 / 60.0;
+    {
+        AVRational afr = demuxer.fmt_ctx()->streams[demuxer.video_stream_index()]->avg_frame_rate;
+        if (afr.num > 0 && afr.den > 0) frame_dt = static_cast<double>(afr.den) / afr.num;
+    }
     auto   last_any_seek_at   = std::chrono::steady_clock::time_point{};
     // Delayed unmute: after scrub release we wait for the post-seek sentinel to
     // flush the audio pipeline before un-muting, preventing a brief burst of
@@ -978,6 +992,36 @@ int main(int argc, char* argv[])
             s_single_steps.fetch_sub(1);
         }
 
+        // ── Frame-accurate backward step (Shift+,) ────────────────────────
+        // Goes through ScrubDecoder: seek to keyframe before target, decode
+        // forward to (last_pts - 1.5 * frame_dt). The 1.5× margin guards
+        // against the >= comparison snapping back onto the current frame.
+        // ScrubDecoder is stateful — issue request once, poll until result.
+        if (s_back_steps.load() > 0 && paused && !scrubbing) {
+            if (!pending_back_step) {
+                double target = std::max(0.0, last_pts - frame_dt * 1.5);
+                scrub_decoder.request(target);
+                pending_back_step = true;
+            }
+            AVFrame* frame = scrub_decoder.poll_frame();
+            if (frame) {
+                double pts = (frame->pts != AV_NOPTS_VALUE)
+                    ? frame->pts * av_q2d(video_tb)
+                    : last_pts;
+                if (pts != AV_NOPTS_VALUE)
+                    scrub_display_pts = pts;     // keep thumb highlight in sync
+                renderer.upload(frame);
+                av_frame_free(&frame);
+                has_frame         = true;
+                last_pts          = pts;
+                last_seek_pos     = pts;         // freeze seek-pos for thumbnail
+                last_any_seek_at  = now;         // show thumb strip briefly
+                ++frame_count;
+                pending_back_step = false;
+                s_back_steps.fetch_sub(1);
+            }
+        }
+
         // ── ImGui: begin frame (before any GL drawing) ────────────────────
         player_ui.begin_frame();
 
@@ -1210,13 +1254,29 @@ int main(int argc, char* argv[])
         }
 
         // ── Subtitles ─────────────────────────────────────────────────────────
-        // Anchor just above the ImGui control bar — independent of debug strip
-        // stacking, matching VLC/MPV behaviour. Hidden while scrubbing.
+        // Text path: anchored just above the ImGui control bar.
+        // Bitmap path: overlay scaled into the video viewport (vx,vy,vw,vh).
+        // Both hidden while scrubbing.
         if (!scrubbing && demuxer.subtitle_stream_index() >= 0) {
-            std::string sub = subtitle_decoder.at(last_pts);
-            if (!sub.empty()) {
-                float sub_bottom_off = player_ui.visible_bar_height_logical() * global_ps;
-                debug_hud.draw_subtitle(sub, fb_w, fb_h, global_ps, sub_bottom_off);
+            if (subtitle_decoder.is_text_format()) {
+                std::string sub = subtitle_decoder.at(last_pts);
+                if (!sub.empty()) {
+                    float sub_bottom_off = player_ui.visible_bar_height_logical() * global_ps;
+                    debug_hud.draw_subtitle(sub, fb_w, fb_h, global_ps, sub_bottom_off);
+                }
+            } else {
+                auto evs = subtitle_decoder.active_bitmaps(last_pts);
+                if (!evs.empty()) {
+                    std::vector<DebugHUD::BitmapRect> brects;
+                    int authored_w = 0, authored_h = 0;
+                    for (const auto& e : evs) {
+                        if (authored_w == 0) { authored_w = e.authored_w; authored_h = e.authored_h; }
+                        for (const auto& r : e.rects)
+                            brects.push_back({ r.x, r.y, r.w, r.h, r.rgba.data() });
+                    }
+                    debug_hud.draw_bitmap_subtitles(brects, authored_w, authored_h,
+                                                   vx, vy, vw, vh, fb_w, fb_h);
+                }
             }
         }
 

@@ -11,6 +11,8 @@ extern "C" {
 // Cap on retained events; older events get evicted FIFO-style.
 // 200 events ≈ 5–10 minutes of dialogue; sufficient for scrub-back lookups.
 static constexpr std::size_t kMaxEvents = 200;
+// Bitmap events are heavier (RGBA pixel buffers) — keep fewer.
+static constexpr std::size_t kMaxBitmapEvents = 50;
 
 // ── ASS / SSA Dialogue line text extraction ───────────────────────────────────
 //
@@ -90,6 +92,13 @@ void SubtitleDecoder::close()
     flush();
 }
 
+void SubtitleDecoder::flush()
+{
+    std::lock_guard g(ev_mtx_);
+    events_.clear();
+    bitmap_events_.clear();
+}
+
 bool SubtitleDecoder::open(AVCodecParameters* par, AVRational time_base)
 {
     time_base_ = time_base;
@@ -113,7 +122,8 @@ bool SubtitleDecoder::open(AVCodecParameters* par, AVRational time_base)
         return false;
     }
 
-    // Text-based codecs we render. Anything else is bitmap or unsupported.
+    // Codec category — text vs bitmap. Both render now (bitmap rects get
+    // palette-decoded to RGBA8 and uploaded as GL textures during draw).
     switch (par->codec_id) {
         case AV_CODEC_ID_SUBRIP:
         case AV_CODEC_ID_TEXT:
@@ -129,7 +139,7 @@ bool SubtitleDecoder::open(AVCodecParameters* par, AVRational time_base)
     }
 
     logger::info("SubtitleDecoder opened: {} ({})", codec->name,
-                 is_text_ ? "text" : "bitmap — not rendered");
+                 is_text_ ? "text" : "bitmap");
     return true;
 }
 
@@ -137,12 +147,6 @@ bool SubtitleDecoder::reopen(AVCodecParameters* par, AVRational time_base)
 {
     close();
     return open(par, time_base);
-}
-
-void SubtitleDecoder::flush()
-{
-    std::lock_guard g(ev_mtx_);
-    events_.clear();
 }
 
 void SubtitleDecoder::store_event(SubtitleEvent ev)
@@ -197,8 +201,30 @@ void SubtitleDecoder::decode_packet(AVPacket* pkt)
         }
         if (!combined.empty())
             store_event({ start, end, std::move(combined) });
-    } else if (!bitmap_warned_.exchange(true)) {
-        logger::warn("SubtitleDecoder: bitmap subtitles not yet rendered");
+    } else {
+        // Bitmap path — palette-decode each rect to RGBA8.
+        BitmapSubEvent ev;
+        ev.start_pts  = start;
+        ev.end_pts    = end;
+        ev.authored_w = ctx_->width;     // 0 → render path falls back to video dims
+        ev.authored_h = ctx_->height;
+
+        for (unsigned i = 0; i < sub.num_rects; ++i) {
+            AVSubtitleRect* sr = sub.rects[i];
+            if (sr->type != SUBTITLE_BITMAP || sr->w <= 0 || sr->h <= 0) continue;
+            if (!sr->data[0] || !sr->data[1]) continue;
+
+            BitmapSubRect r;
+            r.x = sr->x; r.y = sr->y; r.w = sr->w; r.h = sr->h;
+            r.rgba.resize(static_cast<std::size_t>(r.w) * r.h * 4);
+
+            palette_to_rgba(sr->data[0], sr->linesize[0],
+                            sr->data[1], r.w, r.h, r.rgba.data());
+            ev.rects.push_back(std::move(r));
+        }
+
+        if (!ev.rects.empty())
+            store_bitmap_event(std::move(ev));
     }
 
     avsubtitle_free(&sub);
@@ -214,6 +240,52 @@ std::string SubtitleDecoder::at(double pts) const
             if (!out.empty()) out.push_back('\n');
             out += e.text;
         }
+    }
+    return out;
+}
+
+void SubtitleDecoder::palette_to_rgba(const std::uint8_t* indices, int stride,
+                                       const std::uint8_t* palette,
+                                       int w, int h,
+                                       std::uint8_t* out_rgba)
+{
+    // FFmpeg PAL8 palette: 256 entries, each 4 bytes. On little-endian the
+    // memory order is B, G, R, A. We swap to RGBA8 for direct GL upload.
+    for (int yy = 0; yy < h; ++yy) {
+        const std::uint8_t* row = indices + yy * stride;
+        std::uint8_t*       dst = out_rgba + yy * w * 4;
+        for (int xx = 0; xx < w; ++xx) {
+            const std::uint8_t* p = palette + row[xx] * 4;
+            dst[0] = p[2];   // R
+            dst[1] = p[1];   // G
+            dst[2] = p[0];   // B
+            dst[3] = p[3];   // A
+            dst += 4;
+        }
+    }
+}
+
+void SubtitleDecoder::store_bitmap_event(BitmapSubEvent ev)
+{
+    std::lock_guard g(ev_mtx_);
+    bitmap_events_.push_back(std::move(ev));
+    std::sort(bitmap_events_.begin(), bitmap_events_.end(),
+              [](const BitmapSubEvent& a, const BitmapSubEvent& b) {
+                  return a.start_pts < b.start_pts;
+              });
+    if (bitmap_events_.size() > kMaxBitmapEvents)
+        bitmap_events_.erase(bitmap_events_.begin(),
+                             bitmap_events_.begin()
+                             + (bitmap_events_.size() - kMaxBitmapEvents));
+}
+
+std::vector<BitmapSubEvent> SubtitleDecoder::active_bitmaps(double pts) const
+{
+    std::lock_guard g(ev_mtx_);
+    std::vector<BitmapSubEvent> out;
+    for (const auto& e : bitmap_events_) {
+        if (e.start_pts > pts) break;
+        if (pts < e.end_pts) out.push_back(e);
     }
     return out;
 }
