@@ -364,6 +364,7 @@ int main(int argc, char* argv[])
     bool        auto_vmaf     = false;
     std::string vmaf_ref_path;   // --vmaf ref.mp4 for single-file mode
     int         cli_sub_idx   = -2;   // -2 = unset, -1 = explicit off, >=0 = stream idx
+    bool        test_bitmap_sub = false;  // QA: inject synthetic bitmap sub event
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -373,6 +374,8 @@ int main(int argc, char* argv[])
                 vmaf_ref_path = argv[++i];
         } else if (arg == "--sub" && i + 1 < argc) {
             cli_sub_idx = std::atoi(argv[++i]);
+        } else if (arg == "--test-bitmap-sub") {
+            test_bitmap_sub = true;
         } else if (open_path.empty()) {
             open_path = arg;
         }
@@ -638,6 +641,90 @@ int main(int argc, char* argv[])
 
     // ── Subtitle decoder (lazily opened on track switch) ──────────────────────
     SubtitleDecoder subtitle_decoder;
+
+    // ── QA-only: --test-bitmap-sub seeds a synthetic event with three rects
+    // that exercise the GL render path independent of any codec/demuxer.
+    // Authored on a 1920x1080 canvas; the render path scales into the video
+    // viewport via authored_w/h.
+    if (test_bitmap_sub) {
+        auto fill = [](BitmapSubRect& r, std::uint8_t R, std::uint8_t G,
+                       std::uint8_t B, std::uint8_t A) {
+            r.rgba.assign(static_cast<std::size_t>(r.w) * r.h * 4, 0);
+            for (int y = 0; y < r.h; ++y)
+                for (int x = 0; x < r.w; ++x) {
+                    std::uint8_t* p = r.rgba.data() + (y * r.w + x) * 4;
+                    p[0] = R; p[1] = G; p[2] = B; p[3] = A;
+                }
+        };
+        auto stroke_border = [](BitmapSubRect& r, int t, std::uint8_t R,
+                                std::uint8_t G, std::uint8_t B) {
+            for (int y = 0; y < r.h; ++y)
+                for (int x = 0; x < r.w; ++x) {
+                    if (x >= t && x < r.w - t && y >= t && y < r.h - t) continue;
+                    std::uint8_t* p = r.rgba.data() + (y * r.w + x) * 4;
+                    p[0] = R; p[1] = G; p[2] = B; p[3] = 255;
+                }
+        };
+
+        BitmapSubEvent ev;
+        ev.start_pts  = 0.0;
+        ev.end_pts    = 1e9;          // visible for entire playback
+        ev.authored_w = 1920;
+        ev.authored_h = 1080;
+
+        // Rect 1: top-left R/G/B/W swatch — verifies channel ordering.
+        // Four 50px stripes side by side, opaque.
+        {
+            BitmapSubRect r;
+            r.x = 40; r.y = 40; r.w = 200; r.h = 60;
+            r.rgba.assign(static_cast<std::size_t>(r.w) * r.h * 4, 0);
+            const std::uint8_t cols[4][4] = {
+                {255,   0,   0, 255},   // red
+                {  0, 255,   0, 255},   // green
+                {  0,   0, 255, 255},   // blue
+                {255, 255, 255, 255},   // white
+            };
+            for (int y = 0; y < r.h; ++y)
+                for (int x = 0; x < r.w; ++x) {
+                    int band = std::min(3, x / 50);
+                    std::uint8_t* p = r.rgba.data() + (y * r.w + x) * 4;
+                    p[0] = cols[band][0]; p[1] = cols[band][1];
+                    p[2] = cols[band][2]; p[3] = cols[band][3];
+                }
+            ev.rects.push_back(std::move(r));
+        }
+
+        // Rect 2: center semi-transparent yellow box with opaque white border —
+        // verifies alpha blend against underlying video.
+        {
+            BitmapSubRect r;
+            r.x = 560; r.y = 480; r.w = 800; r.h = 120;
+            fill(r, 255, 220, 0, 110);          // ~43% alpha
+            stroke_border(r, 6, 255, 255, 255);
+            ev.rects.push_back(std::move(r));
+        }
+
+        // Rect 3: bottom banner — horizontal alpha gradient on cyan to verify
+        // per-pixel alpha across the rect; opaque white border.
+        {
+            BitmapSubRect r;
+            r.x = 360; r.y = 920; r.w = 1200; r.h = 120;
+            r.rgba.assign(static_cast<std::size_t>(r.w) * r.h * 4, 0);
+            for (int y = 0; y < r.h; ++y)
+                for (int x = 0; x < r.w; ++x) {
+                    std::uint8_t* p = r.rgba.data() + (y * r.w + x) * 4;
+                    p[0] = 0;
+                    p[1] = 200;
+                    p[2] = 255;
+                    p[3] = static_cast<std::uint8_t>(255 * x / (r.w - 1));
+                }
+            stroke_border(r, 6, 255, 255, 255);
+            ev.rects.push_back(std::move(r));
+        }
+
+        subtitle_decoder.inject_test_bitmap(std::move(ev));
+        logger::info("--test-bitmap-sub: injected synthetic 3-rect event");
+    }
 
     // ── Threads ───────────────────────────────────────────────────────────────
     std::jthread demux_thread([&](std::stop_token st) {
@@ -1257,7 +1344,7 @@ int main(int argc, char* argv[])
         // Text path: anchored just above the ImGui control bar.
         // Bitmap path: overlay scaled into the video viewport (vx,vy,vw,vh).
         // Both hidden while scrubbing.
-        if (!scrubbing && demuxer.subtitle_stream_index() >= 0) {
+        if (!scrubbing && (demuxer.subtitle_stream_index() >= 0 || test_bitmap_sub)) {
             if (subtitle_decoder.is_text_format()) {
                 std::string sub = subtitle_decoder.at(last_pts);
                 if (!sub.empty()) {

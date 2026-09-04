@@ -73,6 +73,10 @@ public:
                                 int w, int h,
                                 std::uint8_t* out_rgba);
 
+    // QA-only: push a pre-built bitmap event into the store without opening a
+    // codec. Marks the decoder as bitmap-mode so the render path picks it up.
+    void inject_test_bitmap(BitmapSubEvent ev);
+
 private:
     AVCodecContext* ctx_       = nullptr;
     AVRational      time_base_ = {1, 1};

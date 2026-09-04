@@ -279,6 +279,12 @@ void SubtitleDecoder::store_bitmap_event(BitmapSubEvent ev)
                              + (bitmap_events_.size() - kMaxBitmapEvents));
 }
 
+void SubtitleDecoder::inject_test_bitmap(BitmapSubEvent ev)
+{
+    is_text_ = false;
+    store_bitmap_event(std::move(ev));
+}
+
 std::vector<BitmapSubEvent> SubtitleDecoder::active_bitmaps(double pts) const
 {
     std::lock_guard g(ev_mtx_);
