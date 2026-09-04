@@ -56,8 +56,16 @@ private:
     bool  hdr_      = false;
     int   hdr_mode_ = -1;       // 0=PQ, 1=HLG, -1=SDR
 
-    struct SwsContext* sws_       = nullptr;
-    AVFrame*           converted_ = nullptr;   // RGB24 (SDR) or RGB48LE (HDR)
+    struct SwsContext* sws_        = nullptr;
+    AVFrame*           converted_  = nullptr;   // RGB24 (SDR) or RGB48LE (HDR)
+    AVPixelFormat      sws_src_fmt_ = AV_PIX_FMT_NONE;   // format sws_ was built for
+    AVColorSpace       sws_cs_      = AVCOL_SPC_UNSPECIFIED;
+    AVColorRange       sws_range_   = AVCOL_RANGE_UNSPECIFIED;
+
+    // Build sws_ (freeing any previous) for the given source pixel format.
+    // Used at init and again on the fly if frame->format changes mid-stream
+    // (e.g., first HW-decoded frame arrives as NV12 instead of yuv420p).
+    [[nodiscard]] bool   build_sws(AVPixelFormat src_fmt);
 
     [[nodiscard]] bool   compile_shaders(bool hdr_path);
     [[nodiscard]] GLuint compile_shader(GLenum type, const char* src);

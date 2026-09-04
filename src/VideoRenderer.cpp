@@ -187,28 +187,12 @@ bool VideoRenderer::init(int width, int height, AVPixelFormat src_fmt,
             : ((width >= 1280 || height >= 720) ? AVCOL_SPC_BT709 : AVCOL_SPC_BT470BG);
     }
 
+    sws_cs_    = colorspace;
+    sws_range_ = color_range;
+
+    if (!build_sws(src_fmt)) return false;
+
     const AVPixelFormat dst_fmt = hdr_ ? AV_PIX_FMT_RGB48LE : AV_PIX_FMT_RGB24;
-
-    sws_ = sws_getContext(width, height, src_fmt,
-                          width, height, dst_fmt,
-                          SWS_BILINEAR, nullptr, nullptr, nullptr);
-    if (!sws_) {
-        logger::error("VideoRenderer: sws_getContext failed");
-        return false;
-    }
-
-    const bool src_full = (color_range == AVCOL_RANGE_JPEG);
-
-    // SDR: convert to BT.709 full-range RGB (sRGB-like) on CPU.
-    // HDR: keep BT.2020 primaries; only apply YUV→RGB matrix + range expand.
-    //      Transfer (PQ/HLG) is decoded in the shader.
-    int ret = sws_setColorspaceDetails(
-        sws_,
-        sws_getCoefficients(av_cs_to_sws(colorspace)), src_full ? 1 : 0,
-        sws_getCoefficients(hdr_ ? SWS_CS_BT2020 : SWS_CS_ITU709), 1,
-        0, 1 << 16, 1 << 16);
-    if (ret < 0)
-        logger::warn("VideoRenderer: sws_setColorspaceDetails not supported for this format");
 
     // Staging frame, align=1 → tightly packed (no GL_UNPACK_ROW_LENGTH needed).
     converted_         = av_frame_alloc();
@@ -253,6 +237,7 @@ bool VideoRenderer::init(int width, int height, AVPixelFormat src_fmt,
          colorspace == AVCOL_SPC_BT2020_CL)                              ? "BT.2020" : "BT.601";
     const char* trc_name = av_color_transfer_name(trc);
 
+    const bool src_full = (color_range == AVCOL_RANGE_JPEG);
     if (hdr_) {
         logger::info("VideoRenderer: {}×{} HDR ({} → RGB48 → GLSL tonemap)  trc={}  matrix={}  {}",
             width, height, av_get_pix_fmt_name(src_fmt),
@@ -266,8 +251,48 @@ bool VideoRenderer::init(int width, int height, AVPixelFormat src_fmt,
     return true;
 }
 
+bool VideoRenderer::build_sws(AVPixelFormat src_fmt)
+{
+    if (sws_) {
+        sws_freeContext(sws_);
+        sws_ = nullptr;
+    }
+
+    const AVPixelFormat dst_fmt = hdr_ ? AV_PIX_FMT_RGB48LE : AV_PIX_FMT_RGB24;
+
+    sws_ = sws_getContext(src_w_, src_h_, src_fmt,
+                          src_w_, src_h_, dst_fmt,
+                          SWS_BILINEAR, nullptr, nullptr, nullptr);
+    if (!sws_) {
+        logger::error("VideoRenderer: sws_getContext failed for src_fmt={}",
+            av_get_pix_fmt_name(src_fmt));
+        return false;
+    }
+
+    const bool src_full = (sws_range_ == AVCOL_RANGE_JPEG);
+    int ret = sws_setColorspaceDetails(
+        sws_,
+        sws_getCoefficients(av_cs_to_sws(sws_cs_)), src_full ? 1 : 0,
+        sws_getCoefficients(hdr_ ? SWS_CS_BT2020 : SWS_CS_ITU709), 1,
+        0, 1 << 16, 1 << 16);
+    if (ret < 0)
+        logger::warn("VideoRenderer: sws_setColorspaceDetails not supported for this format");
+
+    sws_src_fmt_ = src_fmt;
+    return true;
+}
+
 void VideoRenderer::upload(AVFrame* frame)
 {
+    // Detect input format change (e.g., first HW-decoded frame arrives as NV12
+    // instead of the yuv420p we initialized with). Rebuild sws_ on the fly.
+    auto frame_fmt = static_cast<AVPixelFormat>(frame->format);
+    if (frame_fmt != sws_src_fmt_ && frame_fmt != AV_PIX_FMT_NONE) {
+        logger::info("VideoRenderer: source pixel format changed {} → {}, rebuilding sws",
+            av_get_pix_fmt_name(sws_src_fmt_), av_get_pix_fmt_name(frame_fmt));
+        if (!build_sws(frame_fmt)) return;
+    }
+
     sws_scale(sws_,
               frame->data, frame->linesize, 0, src_h_,
               converted_->data, converted_->linesize);
