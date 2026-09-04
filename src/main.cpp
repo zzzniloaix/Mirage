@@ -185,6 +185,7 @@ static void video_decode_loop(Decoder& decoder,
                                Demuxer& demuxer,
                                Queue<AVPacket*>& videoq,
                                Queue<AVFrame*>&  frameq,
+                               bool              try_hw,
                                std::stop_token   st)
 {
     AVFrame* frame = av_frame_alloc();
@@ -208,7 +209,7 @@ static void video_decode_loop(Decoder& decoder,
             while (frameq.try_pop(stale)) av_frame_free(&stale);
             // If this sentinel followed a video stream switch, reopen the decoder.
             if (demuxer.consume_video_reopen())
-                (void)decoder.open(demuxer.video_codecpar());
+                (void)decoder.open(demuxer.video_codecpar(), try_hw);
         } else {
             // Normal packet — decode and time.
             auto t0 = std::chrono::steady_clock::now();
@@ -365,6 +366,7 @@ int main(int argc, char* argv[])
     std::string vmaf_ref_path;   // --vmaf ref.mp4 for single-file mode
     int         cli_sub_idx   = -2;   // -2 = unset, -1 = explicit off, >=0 = stream idx
     bool        test_bitmap_sub = false;  // QA: inject synthetic bitmap sub event
+    bool        try_hw          = true;   // VideoToolbox HW decode on by default; --no-hw to disable
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -376,6 +378,8 @@ int main(int argc, char* argv[])
             cli_sub_idx = std::atoi(argv[++i]);
         } else if (arg == "--test-bitmap-sub") {
             test_bitmap_sub = true;
+        } else if (arg == "--no-hw") {
+            try_hw = false;
         } else if (open_path.empty()) {
             open_path = arg;
         }
@@ -467,7 +471,7 @@ int main(int argc, char* argv[])
 
     // ── Decoders ──────────────────────────────────────────────────────────────
     Decoder video_decoder;
-    if (!video_decoder.open(demuxer.video_codecpar()))
+    if (!video_decoder.open(demuxer.video_codecpar(), try_hw))
         return EXIT_FAILURE;
 
     AudioPlayer  audio_player;
@@ -529,6 +533,8 @@ int main(int argc, char* argv[])
 
     // ── Stream inspector panel content (static, built once) ──────────────────
     std::vector<DebugHUD::InspectorLine> inspector_lines;
+    std::size_t decode_line_idx = 0;   // set below; refreshed each frame so
+                                        // "VideoToolbox" appears when HW activates
     {
         using L = DebugHUD::InspectorLine;
         AVFormatContext* fc = demuxer.fmt_ctx();
@@ -564,6 +570,11 @@ int main(int argc, char* argv[])
             const char* pf = av_get_pix_fmt_name(video_decoder.pixel_format());
             inspector_lines.push_back({ std::format("  Pix fmt  {}", pf ? pf : "?") });
         }
+        // Decode path — text is refreshed each frame in the render loop so it
+        // flips from "Software" to "VideoToolbox" once the first HW frame lands.
+        decode_line_idx = inspector_lines.size();
+        inspector_lines.push_back({ std::format("  Decode   {}",
+            try_hw ? "VideoToolbox (requested)" : "Software") });
         {
             const char* cs = av_color_space_name(video_decoder.colorspace());
             const char* cr = av_color_range_name(video_decoder.color_range());
@@ -735,7 +746,7 @@ int main(int argc, char* argv[])
     });
 
     std::jthread video_thread([&](std::stop_token st) {
-        video_decode_loop(video_decoder, demuxer, videoq, frameq, st);
+        video_decode_loop(video_decoder, demuxer, videoq, frameq, try_hw, st);
         frameq.shutdown();
     });
 
@@ -1157,6 +1168,12 @@ int main(int argc, char* argv[])
 
         // ── Stream inspector (I key) ──────────────────────────────────────
         if (s_show_inspector.load()) {
+            // Refresh the Decode line so it flips to "VideoToolbox" once the
+            // first HW frame lands (hw_active_ turns on inside Decoder::pull).
+            if (decode_line_idx < inspector_lines.size()) {
+                inspector_lines[decode_line_idx].text =
+                    std::format("  Decode   {}", video_decoder.hw_type_name());
+            }
             debug_hud.draw_inspector(inspector_lines, fb_w, fb_h, global_ps);
         }
 
