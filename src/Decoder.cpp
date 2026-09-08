@@ -21,6 +21,34 @@ static AVPixelFormat get_hw_format_cb(AVCodecContext* ctx,
     return avcodec_default_get_format(ctx, pix_fmts);
 }
 
+// Find a decoder for this codec_id that advertises VideoToolbox hwaccel
+// support. Needed because avcodec_find_decoder() returns the "default"
+// decoder, which for AV1 is libdav1d (software-only, no hwaccel). Iterating
+// lets us pick the native `av1` decoder instead when HW is requested.
+//
+// Caveat: on M1/M2 (which lack AV1 hardware blocks), VideoToolbox will accept
+// the AV1 stream but silently decode it in its own software path — slower
+// than libdav1d. `--no-hw` skips this helper and restores libdav1d.
+// M3+ has real AV1 hardware and is the intended target.
+static const AVCodec* find_hw_capable_decoder(AVCodecID id)
+{
+    void* opaque = nullptr;
+    const AVCodec* codec;
+    while ((codec = av_codec_iterate(&opaque)) != nullptr) {
+        if (codec->id != id)             continue;
+        if (!av_codec_is_decoder(codec)) continue;
+        for (int i = 0; ; ++i) {
+            const AVCodecHWConfig* cfg = avcodec_get_hw_config(codec, i);
+            if (!cfg) break;
+            if ((cfg->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX) &&
+                cfg->device_type == AV_HWDEVICE_TYPE_VIDEOTOOLBOX) {
+                return codec;
+            }
+        }
+    }
+    return nullptr;
+}
+
 Decoder::~Decoder()
 {
     close();
@@ -37,7 +65,19 @@ void Decoder::close()
 
 bool Decoder::open(AVCodecParameters* par, bool try_hw)
 {
-    const AVCodec* codec = avcodec_find_decoder(par->codec_id);
+    // When HW is requested, prefer a decoder that advertises VT support
+    // (e.g., native `av1` over libdav1d). Falls through to the default
+    // decoder if no HW-capable one is registered.
+    const AVCodec* codec = nullptr;
+    if (try_hw) {
+        codec = find_hw_capable_decoder(par->codec_id);
+        if (codec)
+            logger::info("Selected HW-capable decoder: {} (default was {})",
+                codec->name,
+                avcodec_find_decoder(par->codec_id)
+                    ? avcodec_find_decoder(par->codec_id)->name : "?");
+    }
+    if (!codec) codec = avcodec_find_decoder(par->codec_id);
     if (!codec) {
         logger::error("No decoder found for codec id {}", static_cast<int>(par->codec_id));
         return false;
