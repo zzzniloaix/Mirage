@@ -163,9 +163,15 @@ bool Demuxer::open(const std::string& url_or_path)
 
     AVDictionary* opts = nullptr;
     if (is_network_url(url_or_path)) {
-        av_dict_set(&opts, "timeout",             "5000000", 0);
+        av_dict_set(&opts, "timeout",             "5000000", 0);   // 5 s socket connect/recv
+        // rw_timeout: hard cap on any single I/O operation (applies both during
+        // avformat_open_input and later reads). Prevents a bad URL from taking
+        // 5–10 s to fail because reconnect=1 was retrying with backoff up to
+        // the default reconnect_delay_max of 120 s.
+        av_dict_set(&opts, "rw_timeout",          "8000000", 0);   // 8 s
         av_dict_set(&opts, "reconnect",           "1",       0);
         av_dict_set(&opts, "reconnect_streamed",  "1",       0);
+        av_dict_set(&opts, "reconnect_delay_max", "2",       0);   // cap backoff at 2 s
         av_dict_set(&opts, "buffer_size",         "1048576", 0);
         // Allow non-standard segment extensions (e.g. .mp4a used by Disney+/some HLS streams).
         // FFmpeg 8 uses allowed_segment_extensions; extension_picky=0 disables the check entirely.
