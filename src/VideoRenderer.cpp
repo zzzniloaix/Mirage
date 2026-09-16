@@ -7,6 +7,13 @@ extern "C" {
 #include <libavutil/pixdesc.h>
 }
 
+#ifdef __APPLE__
+  #include <CoreVideo/CoreVideo.h>
+  #include <IOSurface/IOSurface.h>
+  #include <OpenGL/OpenGL.h>
+  #include <OpenGL/CGLIOSurface.h>
+#endif
+
 // ── Shared vertex shader (fullscreen triangle) ────────────────────────────────
 
 static const char* kVertSrc = R"glsl(
@@ -32,6 +39,109 @@ in  vec2 uv;
 out vec4 frag_color;
 void main() {
     frag_color = vec4(texture(tex_rgb, uv).rgb, 1.0);
+}
+)glsl";
+
+// ── HW zero-copy fragment shaders (RECT textures, NV12/P010 planes) ───────────
+//
+// Two rectangle textures: Y (single channel) + CbCr (two channels). Sampled
+// with non-normalized coords via textureSize(). YUV→RGB uses a precomputed
+// matrix + offset uniform (baked for the stream's colorspace + range +
+// bit depth), so the shader is agnostic to BT.601/709/2020 or 8/10-bit.
+//
+// SDR variant: matrix output is display-referred BT.709 sRGB-encoded linear
+// approximation (matrix already includes the standard limited-range scaling).
+// HDR variant: matrix output is still transfer-encoded RGB in BT.2020
+// primaries; PQ/HLG EOTF + tonemap + primary conversion + sRGB OETF follow.
+
+static const char* kFragSdrHw = R"glsl(
+#version 410 core
+uniform sampler2DRect tex_y;
+uniform sampler2DRect tex_uv;
+uniform mat3          u_yuv2rgb;
+uniform vec3          u_yuv_offset;
+in  vec2  uv;
+out vec4  frag_color;
+void main() {
+    vec2 y_size  = vec2(textureSize(tex_y));
+    vec2 uv_size = vec2(textureSize(tex_uv));
+    float y   = texture(tex_y,  uv * y_size ).r;
+    vec2  cbcr = texture(tex_uv, uv * uv_size).rg;
+    vec3  rgb = u_yuv2rgb * (vec3(y, cbcr) - u_yuv_offset);
+    frag_color = vec4(clamp(rgb, 0.0, 1.0), 1.0);
+}
+)glsl";
+
+static const char* kFragHdrHw = R"glsl(
+#version 410 core
+uniform sampler2DRect tex_y;
+uniform sampler2DRect tex_uv;
+uniform mat3          u_yuv2rgb;
+uniform vec3          u_yuv_offset;
+uniform int           u_hdr_mode;
+in  vec2  uv;
+out vec4  frag_color;
+
+vec3 pq_eotf(vec3 e) {
+    const float m1 = 2610.0 / 16384.0;
+    const float m2 = 2523.0 / 4096.0 * 128.0;
+    const float c1 = 3424.0 / 4096.0;
+    const float c2 = 2413.0 / 4096.0 * 32.0;
+    const float c3 = 2392.0 / 4096.0 * 32.0;
+    vec3 ep  = pow(max(e, vec3(0.0)), vec3(1.0 / m2));
+    vec3 num = max(ep - vec3(c1), vec3(0.0));
+    vec3 den = c2 - c3 * ep;
+    return 10000.0 * pow(num / den, vec3(1.0 / m1));
+}
+vec3 hlg_inv_oetf(vec3 e) {
+    const float a = 0.17883277;
+    const float b = 0.28466892;
+    const float c = 0.55991073;
+    vec3 lo = (e * e) / 3.0;
+    vec3 hi = (exp((e - vec3(c)) / a) + vec3(b)) / 12.0;
+    return mix(lo, hi, step(vec3(0.5), e));
+}
+vec3 hlg_ootf(vec3 scene, float peak_nits) {
+    float y = dot(scene, vec3(0.2627, 0.6780, 0.0593));
+    float gain = peak_nits * pow(max(y, 1e-6), 0.2);
+    return scene * gain;
+}
+vec3 hable(vec3 x) {
+    const float A = 0.15, B = 0.50, C = 0.10, D = 0.20, E = 0.02, F = 0.30;
+    return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F)) - E/F;
+}
+const float kHableWhite = 11.2;
+const mat3 kBt2020ToBt709 = mat3(
+     1.6605, -0.1246, -0.0182,
+    -0.5876,  1.1329, -0.1006,
+    -0.0728, -0.0083,  1.1187
+);
+vec3 srgb_oetf(vec3 x) {
+    vec3 lo = 12.92 * x;
+    vec3 hi = 1.055 * pow(max(x, vec3(0.0)), vec3(1.0 / 2.4)) - 0.055;
+    return mix(lo, hi, step(vec3(0.0031308), x));
+}
+
+void main() {
+    vec2 y_size  = vec2(textureSize(tex_y));
+    vec2 uv_size = vec2(textureSize(tex_uv));
+    float y    = texture(tex_y,  uv * y_size ).r;
+    vec2  cbcr = texture(tex_uv, uv * uv_size).rg;
+    // YUV→RGB in the (still transfer-encoded) BT.2020 domain.
+    vec3 e = u_yuv2rgb * (vec3(y, cbcr) - u_yuv_offset);
+
+    vec3 lin;
+    if (u_hdr_mode == 0) {
+        const float kPeakNits = 1000.0;
+        lin = pq_eotf(e) / kPeakNits;
+    } else {
+        const float kPeakNits = 1000.0;
+        vec3 scene = hlg_inv_oetf(e);
+        lin = hlg_ootf(scene, kPeakNits) / kPeakNits;
+    }
+    vec3 toned  = hable(lin) / hable(vec3(kHableWhite));
+    vec3 rgb709 = clamp(kBt2020ToBt709 * toned, vec3(0.0), vec3(1.0));
+    frag_color  = vec4(srgb_oetf(rgb709), 1.0);
 }
 )glsl";
 
@@ -160,11 +270,15 @@ static int detect_hdr_mode(AVColorTransferCharacteristic trc)
 
 VideoRenderer::~VideoRenderer()
 {
-    if (sws_)       sws_freeContext(sws_);
-    if (converted_) av_frame_free(&converted_);
-    if (tex_)       glDeleteTextures(1, &tex_);
-    if (vao_)       glDeleteVertexArrays(1, &vao_);
-    if (program_)   glDeleteProgram(program_);
+    if (sws_)          sws_freeContext(sws_);
+    if (converted_)    av_frame_free(&converted_);
+    if (hw_frame_ref_) av_frame_free(&hw_frame_ref_);
+    if (tex_)          glDeleteTextures(1, &tex_);
+    if (y_tex_)        glDeleteTextures(1, &y_tex_);
+    if (uv_tex_)       glDeleteTextures(1, &uv_tex_);
+    if (vao_)          glDeleteVertexArrays(1, &vao_);
+    if (program_)      glDeleteProgram(program_);
+    if (hw_program_)   glDeleteProgram(hw_program_);
 }
 
 bool VideoRenderer::init(int width, int height, AVPixelFormat src_fmt,
@@ -187,8 +301,9 @@ bool VideoRenderer::init(int width, int height, AVPixelFormat src_fmt,
             : ((width >= 1280 || height >= 720) ? AVCOL_SPC_BT709 : AVCOL_SPC_BT470BG);
     }
 
-    sws_cs_    = colorspace;
-    sws_range_ = color_range;
+    cs_    = colorspace;
+    range_ = color_range;
+    trc_   = trc;
 
     if (!build_sws(src_fmt)) return false;
 
@@ -251,6 +366,225 @@ bool VideoRenderer::init(int width, int height, AVPixelFormat src_fmt,
     return true;
 }
 
+// ── HW zero-copy: YUV→RGB matrix + offset from colorspace + range ─────────────
+//
+// Returns a 9-float column-major mat3 (OpenGL layout) mapping normalized YUV
+// samples (already offset-subtracted) to RGB. The offset vec3 is subtracted
+// from raw texture samples before the matrix mul: (Y - offY, Cb - 0.5, Cr - 0.5).
+// For limited range, offY is 16/255 and the matrix bakes the 255/219 and 255/224
+// scaling factors. For full range, offY is 0 and no scaling factor.
+//
+// The 8-bit vs 10-bit normalization difference (P010 samples GL-normalize to
+// 65472/65535 ≈ 0.999 of their conceptual [0,1]) is small enough (<0.1%) to
+// ignore — otherwise every 10-bit stream would need per-stream matrix scaling.
+struct YuvMat {
+    float m[9];    // column-major, matches mat3 uniform upload
+    float offset[3];
+};
+
+static YuvMat make_yuv_matrix(AVColorSpace cs, AVColorRange range)
+{
+    // BT.601, BT.709, BT.2020 luma coefficients (Kr, Kb).
+    float Kr, Kb;
+    switch (cs) {
+        case AVCOL_SPC_BT709:                 Kr = 0.2126f; Kb = 0.0722f; break;
+        case AVCOL_SPC_BT2020_NCL:
+        case AVCOL_SPC_BT2020_CL:             Kr = 0.2627f; Kb = 0.0593f; break;
+        case AVCOL_SPC_SMPTE170M:
+        case AVCOL_SPC_BT470BG:
+        default:                              Kr = 0.299f;  Kb = 0.114f;  break;
+    }
+    float Kg = 1.0f - Kr - Kb;
+
+    // Unnormalized (full-range) matrix rows:
+    //   R = Y                             + (1-Kr) * V'
+    //   G = Y - Kb*(1-Kb)/Kg * U'         - Kr*(1-Kr)/Kg * V'
+    //   B = Y + (1-Kb) * U'
+    float R_v = 1.0f - Kr;
+    float G_u = -Kb * (1.0f - Kb) / Kg;
+    float G_v = -Kr * (1.0f - Kr) / Kg;
+    float B_u = 1.0f - Kb;
+
+    float y_scale, uv_scale, y_off;
+    if (range == AVCOL_RANGE_JPEG) {
+        y_scale  = 1.0f;
+        uv_scale = 1.0f;
+        y_off    = 0.0f;
+    } else {
+        // Limited range 8-bit: Y [16,235] → 219 steps, UV [16,240] → 224 steps.
+        y_scale  = 255.0f / 219.0f;
+        uv_scale = 255.0f / 224.0f;
+        y_off    = 16.0f  / 255.0f;
+    }
+
+    YuvMat out{};
+    // Column 0 (Y coeffs): applied to (y - y_off) * y_scale
+    out.m[0] = y_scale;              // R
+    out.m[1] = y_scale;              // G
+    out.m[2] = y_scale;              // B
+    // Column 1 (Cb coeffs): applied to (u - 0.5) * uv_scale
+    out.m[3] = 0.0f * uv_scale;      // R
+    out.m[4] = G_u * uv_scale;       // G
+    out.m[5] = B_u * uv_scale;       // B
+    // Column 2 (Cr coeffs): applied to (v - 0.5) * uv_scale
+    out.m[6] = R_v * uv_scale;       // R
+    out.m[7] = G_v * uv_scale;       // G
+    out.m[8] = 0.0f * uv_scale;      // B
+
+    out.offset[0] = y_off;
+    out.offset[1] = 0.5f;
+    out.offset[2] = 0.5f;
+    return out;
+}
+
+bool VideoRenderer::init_hw_lazy(bool ten_bit)
+{
+    if (hw_shader_built_) return true;
+
+#ifdef __APPLE__
+    hw_is_10bit_ = ten_bit;
+
+    // Compile HW shader program (separate from the SW program_).
+    GLuint vert = compile_shader(GL_VERTEX_SHADER,   kVertSrc);
+    GLuint frag = compile_shader(GL_FRAGMENT_SHADER, hdr_ ? kFragHdrHw : kFragSdrHw);
+    if (!vert || !frag) return false;
+
+    hw_program_ = glCreateProgram();
+    glAttachShader(hw_program_, vert);
+    glAttachShader(hw_program_, frag);
+    glLinkProgram(hw_program_);
+    GLint ok = 0;
+    glGetProgramiv(hw_program_, GL_LINK_STATUS, &ok);
+    if (!ok) {
+        char log[512];
+        glGetProgramInfoLog(hw_program_, sizeof(log), nullptr, log);
+        logger::error("HW shader link failed: {}", log);
+        glDeleteShader(vert); glDeleteShader(frag);
+        return false;
+    }
+    glDeleteShader(vert); glDeleteShader(frag);
+
+    // Static uniforms: sampler bindings, YUV→RGB matrix + offset, HDR mode.
+    glUseProgram(hw_program_);
+    glUniform1i(glGetUniformLocation(hw_program_, "tex_y"),  0);
+    glUniform1i(glGetUniformLocation(hw_program_, "tex_uv"), 1);
+
+    YuvMat m = make_yuv_matrix(cs_, range_);
+    glUniformMatrix3fv(glGetUniformLocation(hw_program_, "u_yuv2rgb"), 1, GL_FALSE, m.m);
+    glUniform3fv(glGetUniformLocation(hw_program_, "u_yuv_offset"), 1, m.offset);
+    if (hdr_)
+        glUniform1i(glGetUniformLocation(hw_program_, "u_hdr_mode"), hdr_mode_);
+
+    // Allocate rectangle texture handles. Storage is bound per-frame by
+    // CGLTexImageIOSurface2D, so no glTexImage2D up front.
+    glGenTextures(1, &y_tex_);
+    glBindTexture(GL_TEXTURE_RECTANGLE, y_tex_);
+    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_S,     GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_T,     GL_CLAMP_TO_EDGE);
+
+    glGenTextures(1, &uv_tex_);
+    glBindTexture(GL_TEXTURE_RECTANGLE, uv_tex_);
+    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_S,     GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_T,     GL_CLAMP_TO_EDGE);
+
+    glBindTexture(GL_TEXTURE_RECTANGLE, 0);
+
+    hw_shader_built_ = true;
+    logger::info("VideoRenderer: HW zero-copy path ready ({}-bit, {} matrix, {}-range)",
+        ten_bit ? 10 : 8,
+        cs_ == AVCOL_SPC_BT709        ? "BT.709"  :
+        cs_ == AVCOL_SPC_BT2020_NCL ||
+        cs_ == AVCOL_SPC_BT2020_CL    ? "BT.2020" : "BT.601",
+        range_ == AVCOL_RANGE_JPEG ? "full" : "limited");
+    return true;
+#else
+    (void)ten_bit;
+    return false;
+#endif
+}
+
+bool VideoRenderer::upload_hw(AVFrame* frame)
+{
+#ifdef __APPLE__
+    auto pixbuf = reinterpret_cast<CVPixelBufferRef>(frame->data[3]);
+    if (!pixbuf) {
+        logger::warn("upload_hw: frame->data[3] is null — cannot access CVPixelBuffer");
+        return false;
+    }
+    IOSurfaceRef iosurf = CVPixelBufferGetIOSurface(pixbuf);
+    if (!iosurf) {
+        logger::warn("upload_hw: CVPixelBufferGetIOSurface returned null");
+        return false;
+    }
+
+    OSType pf = CVPixelBufferGetPixelFormatType(pixbuf);
+    // Two supported VT bi-planar YUV layouts:
+    //   '420v' / '420f' = NV12       (8-bit, video/full range)
+    //   'x420' / 'xf20' = P010 P016  (10-bit, video/full range)
+    const bool ten_bit =
+        (pf == kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange) ||
+        (pf == kCVPixelFormatType_420YpCbCr10BiPlanarFullRange);
+
+    if (!hw_shader_built_) {
+        if (!init_hw_lazy(ten_bit)) return false;
+    }
+
+    // Take a ref so the CVPixelBuffer (and its IOSurface backing) stays alive
+    // through draw(). Release the previous frame's ref first.
+    if (hw_frame_ref_) av_frame_unref(hw_frame_ref_);
+    else               hw_frame_ref_ = av_frame_alloc();
+    if (av_frame_ref(hw_frame_ref_, frame) < 0) {
+        logger::warn("upload_hw: av_frame_ref failed");
+        return false;
+    }
+
+    CGLContextObj cgl = CGLGetCurrentContext();
+    if (!cgl) {
+        logger::warn("upload_hw: no current CGL context");
+        return false;
+    }
+
+    const size_t w  = CVPixelBufferGetWidthOfPlane (pixbuf, 0);
+    const size_t h  = CVPixelBufferGetHeightOfPlane(pixbuf, 0);
+    const size_t wc = CVPixelBufferGetWidthOfPlane (pixbuf, 1);
+    const size_t hc = CVPixelBufferGetHeightOfPlane(pixbuf, 1);
+
+    const GLenum y_internal  = ten_bit ? GL_R16  : GL_R8;
+    const GLenum uv_internal = ten_bit ? GL_RG16 : GL_RG8;
+    const GLenum sample_type = ten_bit ? GL_UNSIGNED_SHORT : GL_UNSIGNED_BYTE;
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_RECTANGLE, y_tex_);
+    CGLError err = CGLTexImageIOSurface2D(cgl, GL_TEXTURE_RECTANGLE, y_internal,
+                                          (GLsizei)w, (GLsizei)h,
+                                          GL_RED, sample_type, iosurf, 0);
+    if (err != kCGLNoError) {
+        logger::warn("CGLTexImageIOSurface2D(Y) failed: {}", CGLErrorString(err));
+        return false;
+    }
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_RECTANGLE, uv_tex_);
+    err = CGLTexImageIOSurface2D(cgl, GL_TEXTURE_RECTANGLE, uv_internal,
+                                 (GLsizei)wc, (GLsizei)hc,
+                                 GL_RG, sample_type, iosurf, 1);
+    if (err != kCGLNoError) {
+        logger::warn("CGLTexImageIOSurface2D(CbCr) failed: {}", CGLErrorString(err));
+        return false;
+    }
+
+    hw_tex_w_ = (int)w;
+    hw_tex_h_ = (int)h;
+    return true;
+#else
+    (void)frame;
+    return false;
+#endif
+}
+
 bool VideoRenderer::build_sws(AVPixelFormat src_fmt)
 {
     if (sws_) {
@@ -269,10 +603,10 @@ bool VideoRenderer::build_sws(AVPixelFormat src_fmt)
         return false;
     }
 
-    const bool src_full = (sws_range_ == AVCOL_RANGE_JPEG);
+    const bool src_full = (range_ == AVCOL_RANGE_JPEG);
     int ret = sws_setColorspaceDetails(
         sws_,
-        sws_getCoefficients(av_cs_to_sws(sws_cs_)), src_full ? 1 : 0,
+        sws_getCoefficients(av_cs_to_sws(cs_)), src_full ? 1 : 0,
         sws_getCoefficients(hdr_ ? SWS_CS_BT2020 : SWS_CS_ITU709), 1,
         0, 1 << 16, 1 << 16);
     if (ret < 0)
@@ -284,8 +618,21 @@ bool VideoRenderer::build_sws(AVPixelFormat src_fmt)
 
 void VideoRenderer::upload(AVFrame* frame)
 {
-    // Detect input format change (e.g., first HW-decoded frame arrives as NV12
-    // instead of the yuv420p we initialized with). Rebuild sws_ on the fly.
+    // Zero-copy HW path: VT frame carries a CVPixelBuffer in data[3].
+    // ScrubDecoder still returns SW frames (yuv420p/yuv420p10le), so the same
+    // renderer must flip cleanly between the two paths.
+    if (frame->format == AV_PIX_FMT_VIDEOTOOLBOX) {
+        if (upload_hw(frame)) {
+            hw_last_uploaded_ = true;
+            return;
+        }
+        // IOSurface bind failed — fall through to SW (won't happen in practice
+        // unless the CoreVideo/CGL path is broken, but keeps the pipeline alive).
+        logger::warn("VideoRenderer: HW upload failed, falling back to SW for this frame");
+    }
+
+    // SW path. Detect input format change (e.g., scrub returns yuv420p when the
+    // main pipeline was NV12 from a previous HW-only session) and rebuild sws_.
     auto frame_fmt = static_cast<AVPixelFormat>(frame->format);
     if (frame_fmt != sws_src_fmt_ && frame_fmt != AV_PIX_FMT_NONE) {
         logger::info("VideoRenderer: source pixel format changed {} → {}, rebuilding sws",
@@ -306,13 +653,22 @@ void VideoRenderer::upload(AVFrame* frame)
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, src_w_, src_h_,
                         GL_RGB, GL_UNSIGNED_BYTE, converted_->data[0]);
     }
+    hw_last_uploaded_ = false;
 }
 
 void VideoRenderer::draw()
 {
-    glUseProgram(program_);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, tex_);
+    if (hw_last_uploaded_) {
+        glUseProgram(hw_program_);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_RECTANGLE, y_tex_);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_RECTANGLE, uv_tex_);
+    } else {
+        glUseProgram(program_);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, tex_);
+    }
     glBindVertexArray(vao_);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 }

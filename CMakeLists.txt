@@ -135,6 +135,11 @@ target_link_libraries(mirage PRIVATE
 
 if(APPLE)
     target_compile_definitions(mirage PRIVATE GL_SILENCE_DEPRECATION)
+    # VideoToolbox zero-copy path: CVPixelBuffer + IOSurface + CGLTexImageIOSurface2D.
+    target_link_libraries(mirage PRIVATE
+        "-framework CoreVideo"
+        "-framework IOSurface"
+    )
 endif()
 
 # ── Unit tests ────────────────────────────────────────────────────────────────
