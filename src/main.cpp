@@ -367,6 +367,11 @@ int main(int argc, char* argv[])
     int         cli_sub_idx   = -2;   // -2 = unset, -1 = explicit off, >=0 = stream idx
     bool        test_bitmap_sub = false;  // QA: inject synthetic bitmap sub event
     bool        try_hw          = true;   // VideoToolbox HW decode on by default; --no-hw to disable
+    // QA snapshot hook: `--snapshot <out.ppm> <frame_number>` captures the video
+    // viewport after N frames have been drawn, writes a PPM, and exits. Used
+    // to visually diff HW vs SW rendering paths without needing a human eye.
+    std::string snapshot_path;
+    int         snapshot_at_frame = 30;
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -380,6 +385,9 @@ int main(int argc, char* argv[])
             test_bitmap_sub = true;
         } else if (arg == "--no-hw") {
             try_hw = false;
+        } else if (arg == "--snapshot" && i + 2 < argc) {
+            snapshot_path     = argv[++i];
+            snapshot_at_frame = std::atoi(argv[++i]);
         } else if (open_path.empty()) {
             open_path = arg;
         }
@@ -1150,6 +1158,27 @@ int main(int argc, char* argv[])
         if (has_frame) {
             glViewport(vx, vy, vw, vh);
             renderer.draw();
+
+            // QA snapshot: grab the video-viewport region after N frames drawn,
+            // write PPM, exit. GL reads bottom-up so rows are flipped when
+            // written. glFinish() before glReadPixels ensures the draw is done.
+            if (!snapshot_path.empty() && frame_count >= snapshot_at_frame) {
+                glFinish();
+                std::vector<std::uint8_t> px(static_cast<std::size_t>(vw) * vh * 3);
+                glPixelStorei(GL_PACK_ALIGNMENT, 1);
+                glReadPixels(vx, vy, vw, vh, GL_RGB, GL_UNSIGNED_BYTE, px.data());
+                if (FILE* fp = std::fopen(snapshot_path.c_str(), "wb")) {
+                    std::fprintf(fp, "P6\n%d %d\n255\n", vw, vh);
+                    for (int y = vh - 1; y >= 0; --y)
+                        std::fwrite(px.data() + static_cast<std::size_t>(y) * vw * 3, 1, vw * 3, fp);
+                    std::fclose(fp);
+                    logger::info("--snapshot: wrote {} ({}×{}, frame {})",
+                        snapshot_path, vw, vh, frame_count);
+                } else {
+                    logger::error("--snapshot: failed to open {}", snapshot_path);
+                }
+                std::exit(0);
+            }
         }
 
         // ── Debug HUD (D key) ─────────────────────────────────────────────
