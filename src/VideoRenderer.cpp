@@ -1,5 +1,6 @@
 #include "VideoRenderer.h"
 #include "Logger.h"
+#include "YuvMatrix.h"
 
 extern "C" {
 #include <libswscale/swscale.h>
@@ -364,77 +365,6 @@ bool VideoRenderer::init(int width, int height, AVPixelFormat src_fmt,
             cs_name, src_full ? "full-range" : "limited-range");
     }
     return true;
-}
-
-// ── HW zero-copy: YUV→RGB matrix + offset from colorspace + range ─────────────
-//
-// Returns a 9-float column-major mat3 (OpenGL layout) mapping normalized YUV
-// samples (already offset-subtracted) to RGB. The offset vec3 is subtracted
-// from raw texture samples before the matrix mul: (Y - offY, Cb - 0.5, Cr - 0.5).
-// For limited range, offY is 16/255 and the matrix bakes the 255/219 and 255/224
-// scaling factors. For full range, offY is 0 and no scaling factor.
-//
-// The 8-bit vs 10-bit normalization difference (P010 samples GL-normalize to
-// 65472/65535 ≈ 0.999 of their conceptual [0,1]) is small enough (<0.1%) to
-// ignore — otherwise every 10-bit stream would need per-stream matrix scaling.
-struct YuvMat {
-    float m[9];    // column-major, matches mat3 uniform upload
-    float offset[3];
-};
-
-static YuvMat make_yuv_matrix(AVColorSpace cs, AVColorRange range)
-{
-    // BT.601, BT.709, BT.2020 luma coefficients (Kr, Kb).
-    float Kr, Kb;
-    switch (cs) {
-        case AVCOL_SPC_BT709:                 Kr = 0.2126f; Kb = 0.0722f; break;
-        case AVCOL_SPC_BT2020_NCL:
-        case AVCOL_SPC_BT2020_CL:             Kr = 0.2627f; Kb = 0.0593f; break;
-        case AVCOL_SPC_SMPTE170M:
-        case AVCOL_SPC_BT470BG:
-        default:                              Kr = 0.299f;  Kb = 0.114f;  break;
-    }
-    float Kg = 1.0f - Kr - Kb;
-
-    // Unnormalized (full-range) matrix rows:
-    //   R = Y                             + (1-Kr) * V'
-    //   G = Y - Kb*(1-Kb)/Kg * U'         - Kr*(1-Kr)/Kg * V'
-    //   B = Y + (1-Kb) * U'
-    float R_v = 1.0f - Kr;
-    float G_u = -Kb * (1.0f - Kb) / Kg;
-    float G_v = -Kr * (1.0f - Kr) / Kg;
-    float B_u = 1.0f - Kb;
-
-    float y_scale, uv_scale, y_off;
-    if (range == AVCOL_RANGE_JPEG) {
-        y_scale  = 1.0f;
-        uv_scale = 1.0f;
-        y_off    = 0.0f;
-    } else {
-        // Limited range 8-bit: Y [16,235] → 219 steps, UV [16,240] → 224 steps.
-        y_scale  = 255.0f / 219.0f;
-        uv_scale = 255.0f / 224.0f;
-        y_off    = 16.0f  / 255.0f;
-    }
-
-    YuvMat out{};
-    // Column 0 (Y coeffs): applied to (y - y_off) * y_scale
-    out.m[0] = y_scale;              // R
-    out.m[1] = y_scale;              // G
-    out.m[2] = y_scale;              // B
-    // Column 1 (Cb coeffs): applied to (u - 0.5) * uv_scale
-    out.m[3] = 0.0f * uv_scale;      // R
-    out.m[4] = G_u * uv_scale;       // G
-    out.m[5] = B_u * uv_scale;       // B
-    // Column 2 (Cr coeffs): applied to (v - 0.5) * uv_scale
-    out.m[6] = R_v * uv_scale;       // R
-    out.m[7] = G_v * uv_scale;       // G
-    out.m[8] = 0.0f * uv_scale;      // B
-
-    out.offset[0] = y_off;
-    out.offset[1] = 0.5f;
-    out.offset[2] = 0.5f;
-    return out;
 }
 
 bool VideoRenderer::init_hw_lazy(bool ten_bit)
