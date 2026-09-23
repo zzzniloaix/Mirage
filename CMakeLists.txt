@@ -168,4 +168,21 @@ target_link_libraries(mirage_tests PRIVATE
     pugixml
 )
 
+# Small standalone: pixel-diff two PNGs via stb_image, used by
+# tests/pathb_snapshot_regression.sh to catch HW-vs-SW render drift.
+add_executable(snapshot_diff tests/snapshot_diff.cpp)
+target_include_directories(snapshot_diff PRIVATE ${stb_SOURCE_DIR})
+
+# Convenience target: run the HW-vs-SW visual regression check. Requires a
+# display (mirage opens a GLFW window) — not wired into ctest for this reason.
+#   cmake --build --preset macos-debug --target pathb_regression
+add_custom_target(pathb_regression
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tests/pathb_snapshot_regression.sh
+            ${CMAKE_CURRENT_BINARY_DIR}
+    DEPENDS mirage snapshot_diff
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMENT "Running HW vs SW snapshot regression check"
+    USES_TERMINAL
+)
+
 catch_discover_tests(mirage_tests)
