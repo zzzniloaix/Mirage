@@ -24,7 +24,11 @@ struct YuvMat {
 
 inline YuvMat make_yuv_matrix(AVColorSpace cs, AVColorRange range)
 {
-    // Luma coefficients (Kr, Kb) — Kg = 1 - Kr - Kb.
+    // Luma coefficients (Kr, Kb) — Kg = 1 - Kr - Kb. BT.2020 constant-luminance
+    // (CL) technically applies the matrix in a different domain than NCL
+    // (post-EOTF vs pre-EOTF), so treating CL as NCL is slightly wrong for
+    // CL-tagged content. Accepted trade-off: CL content is vanishingly rare in
+    // the wild — nearly all HDR/BT.2020 is NCL.
     float Kr, Kb;
     switch (cs) {
         case AVCOL_SPC_BT709:                 Kr = 0.2126f; Kb = 0.0722f; break;

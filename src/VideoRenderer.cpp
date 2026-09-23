@@ -304,7 +304,6 @@ bool VideoRenderer::init(int width, int height, AVPixelFormat src_fmt,
 
     cs_    = colorspace;
     range_ = color_range;
-    trc_   = trc;
 
     if (!build_sws(src_fmt)) return false;
 
@@ -372,8 +371,6 @@ bool VideoRenderer::init_hw_lazy(bool ten_bit)
     if (hw_shader_built_) return true;
 
 #ifdef __APPLE__
-    hw_is_10bit_ = ten_bit;
-
     // Compile HW shader program (separate from the SW program_).
     GLuint vert = compile_shader(GL_VERTEX_SHADER,   kVertSrc);
     GLuint frag = compile_shader(GL_FRAGMENT_SHADER, hdr_ ? kFragHdrHw : kFragSdrHw);
@@ -445,13 +442,17 @@ bool VideoRenderer::upload_hw(AVFrame* frame)
         logger::warn("upload_hw: frame->data[3] is null — cannot access CVPixelBuffer");
         return false;
     }
+    OSType pf = CVPixelBufferGetPixelFormatType(pixbuf);
     IOSurfaceRef iosurf = CVPixelBufferGetIOSurface(pixbuf);
     if (!iosurf) {
-        logger::warn("upload_hw: CVPixelBufferGetIOSurface returned null");
+        // Can happen if VT internally software-decoded (e.g. AV1 on M1/M2 without
+        // AV1 HW block) — the CVPixelBuffer is CPU-backed, no IOSurface exists.
+        // Fall back to SW upload path.
+        const char* fourcc = reinterpret_cast<const char*>(&pf);
+        logger::warn("upload_hw: no IOSurface (pixel format '{}{}{}{}') — VT may have SW-decoded; falling back",
+            fourcc[3], fourcc[2], fourcc[1], fourcc[0]);
         return false;
     }
-
-    OSType pf = CVPixelBufferGetPixelFormatType(pixbuf);
     // Two supported VT bi-planar YUV layouts:
     //   '420v' / '420f' = NV12       (8-bit, video/full range)
     //   'x420' / 'xf20' = P010 P016  (10-bit, video/full range)
@@ -505,9 +506,6 @@ bool VideoRenderer::upload_hw(AVFrame* frame)
         logger::warn("CGLTexImageIOSurface2D(CbCr) failed: {}", CGLErrorString(err));
         return false;
     }
-
-    hw_tex_w_ = (int)w;
-    hw_tex_h_ = (int)h;
     return true;
 #else
     (void)frame;
@@ -551,18 +549,21 @@ void VideoRenderer::upload(AVFrame* frame)
     // Zero-copy HW path: VT frame carries a CVPixelBuffer in data[3].
     // ScrubDecoder still returns SW frames (yuv420p/yuv420p10le), so the same
     // renderer must flip cleanly between the two paths.
+    if (frame->format == AV_PIX_FMT_VIDEOTOOLBOX && upload_hw(frame)) {
+        return;
+    }
     if (frame->format == AV_PIX_FMT_VIDEOTOOLBOX) {
-        if (upload_hw(frame)) {
-            hw_last_uploaded_ = true;
-            return;
-        }
         // IOSurface bind failed — fall through to SW (won't happen in practice
         // unless the CoreVideo/CGL path is broken, but keeps the pipeline alive).
         logger::warn("VideoRenderer: HW upload failed, falling back to SW for this frame");
     }
 
-    // SW path. Detect input format change (e.g., scrub returns yuv420p when the
-    // main pipeline was NV12 from a previous HW-only session) and rebuild sws_.
+    // SW path — release any stale HW ref so draw() dispatches to the SW program
+    // and the previous frame's CVPixelBuffer isn't held longer than necessary.
+    if (hw_frame_ref_) av_frame_free(&hw_frame_ref_);
+
+    // Detect input format change (e.g., scrub returns yuv420p when the main
+    // pipeline was NV12 from a previous HW-only session) and rebuild sws_.
     auto frame_fmt = static_cast<AVPixelFormat>(frame->format);
     if (frame_fmt != sws_src_fmt_ && frame_fmt != AV_PIX_FMT_NONE) {
         logger::info("VideoRenderer: source pixel format changed {} → {}, rebuilding sws",
@@ -583,12 +584,11 @@ void VideoRenderer::upload(AVFrame* frame)
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, src_w_, src_h_,
                         GL_RGB, GL_UNSIGNED_BYTE, converted_->data[0]);
     }
-    hw_last_uploaded_ = false;
 }
 
 void VideoRenderer::draw()
 {
-    if (hw_last_uploaded_) {
+    if (hw_frame_ref_) {
         glUseProgram(hw_program_);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_RECTANGLE, y_tex_);

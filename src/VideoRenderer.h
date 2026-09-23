@@ -55,16 +55,14 @@ private:
     GLuint program_ = 0;    // SW path (SDR passthrough or HDR tonemap on RGB texture)
     GLuint tex_     = 0;    // SW path single RGB texture
 
-    // HW zero-copy path (macOS VideoToolbox → IOSurface).
+    // HW zero-copy path (macOS VideoToolbox → IOSurface). hw_frame_ref_ doubles
+    // as the "HW mode active" signal for draw() — non-null iff the last upload
+    // was a VT frame whose CVPixelBuffer must stay alive through draw().
     GLuint    hw_program_        = 0;
     GLuint    y_tex_             = 0;    // GL_TEXTURE_RECTANGLE, R8 or R16 (luma)
     GLuint    uv_tex_            = 0;    // GL_TEXTURE_RECTANGLE, RG8 or RG16 (chroma)
-    AVFrame*  hw_frame_ref_      = nullptr;  // holds the CVPixelBuffer alive across draw()
-    int       hw_tex_w_          = 0;
-    int       hw_tex_h_          = 0;
+    AVFrame*  hw_frame_ref_      = nullptr;
     bool      hw_shader_built_   = false;
-    bool      hw_is_10bit_       = false;
-    bool      hw_last_uploaded_  = false;    // draw() dispatches SW vs HW based on this
 
     int src_w_ = 0;
     int src_h_ = 0;
@@ -73,9 +71,8 @@ private:
     int   hdr_mode_ = -1;       // 0=PQ, 1=HLG, -1=SDR
 
     // Cached stream color params — used to build the HW-path YUV→RGB uniforms.
-    AVColorSpace                  cs_        = AVCOL_SPC_UNSPECIFIED;
-    AVColorRange                  range_     = AVCOL_RANGE_UNSPECIFIED;
-    AVColorTransferCharacteristic trc_       = AVCOL_TRC_UNSPECIFIED;
+    AVColorSpace cs_    = AVCOL_SPC_UNSPECIFIED;
+    AVColorRange range_ = AVCOL_RANGE_UNSPECIFIED;
 
     struct SwsContext* sws_        = nullptr;
     AVFrame*           converted_  = nullptr;   // RGB24 (SDR) or RGB48LE (HDR)
