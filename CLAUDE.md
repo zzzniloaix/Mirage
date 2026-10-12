@@ -14,7 +14,7 @@ Dependencies are managed via **homebrew** (macOS) and fetched at configure time 
 
 ```bash
 # First-time setup (homebrew deps)
-brew install ffmpeg glfw ninja pkg-config
+brew install ffmpeg glfw ninja pkg-config libvmaf
 
 # Configure
 cmake --preset macos-debug
@@ -63,14 +63,14 @@ Queues use `std::mutex` + `std::condition_variable`. `std::counting_semaphore` c
 ### Key tech choices
 | Concern | Choice |
 |---|---|
-| Decode + streaming | FFmpeg 7 (`libavformat`, `libavcodec`, `libswresample`) |
+| Decode + streaming | FFmpeg 8 (`libavformat`, `libavcodec`, `libswresample`) |
 | Windowing | GLFW 3.4 |
 | OpenGL loader | GLAD2 (generated at build time for GL 4.1 Core) |
 | YUV→RGB | GLSL shader, BT.601/BT.709 matrix selected from `AVCodecContext::colorspace` |
 | Audio | miniaudio (single-header, CoreAudio on macOS) |
 | Manifest parsing | FFmpeg built-in DASH/HLS + pugixml for MPD XML |
 
-### FFmpeg 7 API notes (differs from older tutorials)
+### FFmpeg 8 API notes (differs from older tutorials)
 - Use `stream->codecpar` + `avcodec_parameters_to_context()` (not `stream->codec`)
 - Use `av_find_best_stream()` for stream selection
 - Use `av_packet_alloc()` / `av_packet_free()` (no stack-allocated `AVPacket`)
