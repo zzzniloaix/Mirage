@@ -21,13 +21,13 @@ static constexpr int    kNumPresets     = static_cast<int>(std::size(kSpeedPrese
 static constexpr double kHideDelaySec = 4.0;
 static constexpr double kFadeSec      = 0.4;
 
-// VLC palette
-static constexpr ImVec4 kOrange    { 1.00f, 0.53f, 0.00f, 1.00f };  // #FF8800
-static constexpr ImVec4 kOrangeHov { 1.00f, 0.63f, 0.15f, 1.00f };
-static constexpr ImVec4 kOrangeAct { 0.85f, 0.43f, 0.00f, 1.00f };
-static constexpr ImU32  kOrangeU32 = IM_COL32(255, 136,   0, 255);
-static constexpr ImU32  kTrackU32  = IM_COL32( 55,  55,  55, 255);
-static constexpr ImU32  kBgU32     = IM_COL32( 30,  30,  30, 255);
+// Modern cool palette — sky-400 accent on OLED-friendly charcoal
+static constexpr ImVec4 kAccent    { 0.220f, 0.741f, 0.973f, 1.00f };  // #38BDF8 Tailwind sky-400
+static constexpr ImVec4 kAccentHov { 0.490f, 0.828f, 0.988f, 1.00f };  // #7DD3FC sky-300
+static constexpr ImVec4 kAccentAct { 0.055f, 0.647f, 0.914f, 1.00f };  // #0EA5E9 sky-500
+static constexpr ImU32  kAccentU32 = IM_COL32( 56, 189, 248, 255);
+static constexpr ImU32  kTrackU32  = IM_COL32( 48,  52,  60, 255);
+static constexpr ImU32  kBgU32     = IM_COL32( 18,  18,  22, 255);
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -63,21 +63,23 @@ static bool vlc_seek_bar(const char* id, float* frac, float width, float alpha)
     float y0      = cy - kTrackH * 0.5f;
     float y1      = cy + kTrackH * 0.5f;
     float fill_x  = tl.x + (*frac) * width;
-    float thumb_r = (hovered || active) ? kThumbR : kThumbR - 1.5f;
-    ImU32 oa = IM_COL32(255, 136, 0, static_cast<int>(alpha * 255));
+    // Modern YouTube-style scrub: thumb only visible on hover/drag; track filled with accent.
+    float thumb_r = (hovered || active) ? kThumbR : 0.0f;
+    ImU32 accent = IM_COL32(56, 189, 248, static_cast<int>(alpha * 255));
 
     ImDrawList* dl = ImGui::GetWindowDrawList();
-    // Track
+    // Track (rounded)
     dl->AddRectFilled(ImVec2(tl.x, y0), ImVec2(tl.x + width, y1),
-        IM_COL32(55, 55, 55, static_cast<int>(alpha * 200)), 2.0f);
+        IM_COL32(48, 52, 60, static_cast<int>(alpha * 220)), kTrackH * 0.5f);
     // Filled (played) portion
     if (fill_x > tl.x)
-        dl->AddRectFilled(ImVec2(tl.x, y0), ImVec2(fill_x, y1), oa, 2.0f);
-    // Thumb — white circle with orange border
-    dl->AddCircleFilled(ImVec2(fill_x, cy), thumb_r,
-        IM_COL32(240, 240, 240, static_cast<int>(alpha * 255)));
-    if (hovered || active)
-        dl->AddCircle(ImVec2(fill_x, cy), thumb_r + 1.0f, oa);
+        dl->AddRectFilled(ImVec2(tl.x, y0), ImVec2(fill_x, y1), accent, kTrackH * 0.5f);
+    // Thumb — accent-colored circle, only when interacting
+    if (thumb_r > 0.0f) {
+        dl->AddCircleFilled(ImVec2(fill_x, cy), thumb_r, accent);
+        dl->AddCircleFilled(ImVec2(fill_x, cy), thumb_r - 2.5f,
+            IM_COL32(240, 245, 250, static_cast<int>(alpha * 255)));
+    }
 
     return changed;
 }
@@ -103,27 +105,28 @@ static bool vlc_vol_bar(const char* id, float* vol, float width, float alpha)
     float y0     = cy - kH * 0.5f;
     float y1     = cy + kH * 0.5f;
     float fill_x = tl.x + (*vol) * width;
-    ImU32 oa = IM_COL32(255, 136, 0, static_cast<int>(alpha * 200));
+    ImU32 accent = IM_COL32(56, 189, 248, static_cast<int>(alpha * 220));
 
     ImDrawList* dl = ImGui::GetWindowDrawList();
     dl->AddRectFilled(ImVec2(tl.x, y0), ImVec2(tl.x + width, y1),
-        IM_COL32(55, 55, 55, static_cast<int>(alpha * 180)), 1.5f);
+        IM_COL32(48, 52, 60, static_cast<int>(alpha * 180)), kH * 0.5f);
     if (fill_x > tl.x)
-        dl->AddRectFilled(ImVec2(tl.x, y0), ImVec2(fill_x, y1), oa, 1.5f);
+        dl->AddRectFilled(ImVec2(tl.x, y0), ImVec2(fill_x, y1), accent, kH * 0.5f);
 
-    // small thumb
-    dl->AddCircleFilled(ImVec2(fill_x, cy), 5.0f,
-        IM_COL32(220, 220, 220, static_cast<int>(alpha * 240)));
+    // small thumb — accent core, light rim
+    dl->AddCircleFilled(ImVec2(fill_x, cy), 4.5f, accent);
+    dl->AddCircleFilled(ImVec2(fill_x, cy), 2.5f,
+        IM_COL32(240, 245, 250, static_cast<int>(alpha * 240)));
 
     return changed;
 }
 
-// Flat transport button — transparent bg, orange glow on hover/active.
+// Flat transport button — transparent bg, accent glow on hover/active.
 static bool flat_button(const char* label, float w = 0.0f, float h = 0.0f)
 {
     ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0, 0, 0, 0));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.f, .53f, 0.f, .18f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(1.f, .53f, 0.f, .35f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(kAccent.x, kAccent.y, kAccent.z, .20f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(kAccent.x, kAccent.y, kAccent.z, .38f));
     bool r = ImGui::Button(label, ImVec2(w, h));
     ImGui::PopStyleColor(3);
     return r;
@@ -141,51 +144,79 @@ bool PlayerUI::init(GLFWwindow* window)
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
-    // ── VLC-style dark theme ─────────────────────────────────────────────────
+    // ── Modern dark theme — OLED charcoal + cool sky accent ──────────────────
     ImGui::StyleColorsDark();
     ImGuiStyle& s = ImGui::GetStyle();
-    s.WindowRounding    = 4.0f;
-    s.FrameRounding     = 3.0f;
-    s.ScrollbarRounding = 3.0f;
-    s.GrabRounding      = 3.0f;
-    s.PopupRounding     = 4.0f;
-    s.WindowBorderSize  = 0.0f;
+    s.WindowRounding    = 8.0f;
+    s.ChildRounding     = 6.0f;
+    s.FrameRounding     = 6.0f;
+    s.ScrollbarRounding = 8.0f;
+    s.GrabRounding      = 6.0f;
+    s.PopupRounding     = 8.0f;
+    s.TabRounding       = 6.0f;
+    s.WindowBorderSize  = 1.0f;
     s.FrameBorderSize   = 0.0f;
-    s.ItemSpacing       = ImVec2(8.0f, 5.0f);
-    s.WindowPadding     = ImVec2(12.0f, 10.0f);
+    s.PopupBorderSize   = 1.0f;
+    s.ItemSpacing       = ImVec2(10.0f, 7.0f);
+    s.ItemInnerSpacing  = ImVec2(8.0f, 6.0f);
+    s.FramePadding      = ImVec2(10.0f, 6.0f);
+    s.WindowPadding     = ImVec2(14.0f, 12.0f);
+    s.ScrollbarSize     = 12.0f;
+    s.GrabMinSize       = 10.0f;
 
-    // Charcoal background (#1e1e1e family)
-    s.Colors[ImGuiCol_WindowBg]      = ImVec4(0.12f, 0.12f, 0.12f, 0.97f);
-    s.Colors[ImGuiCol_ChildBg]       = ImVec4(0.10f, 0.10f, 0.10f, 1.00f);
-    s.Colors[ImGuiCol_PopupBg]       = ImVec4(0.10f, 0.10f, 0.10f, 0.97f);
-    s.Colors[ImGuiCol_MenuBarBg]     = ImVec4(0.08f, 0.08f, 0.08f, 1.00f);
-    s.Colors[ImGuiCol_Border]        = ImVec4(0.06f, 0.06f, 0.06f, 1.00f);
+    // Backgrounds — OLED-friendly deep charcoal (#121216 family)
+    s.Colors[ImGuiCol_WindowBg]      = ImVec4(0.070f, 0.070f, 0.080f, 0.98f);
+    s.Colors[ImGuiCol_ChildBg]       = ImVec4(0.055f, 0.055f, 0.065f, 1.00f);
+    s.Colors[ImGuiCol_PopupBg]       = ImVec4(0.090f, 0.090f, 0.105f, 0.98f);
+    s.Colors[ImGuiCol_MenuBarBg]     = ImVec4(0.045f, 0.045f, 0.055f, 1.00f);
+    s.Colors[ImGuiCol_Border]        = ImVec4(0.150f, 0.155f, 0.175f, 1.00f);
+    s.Colors[ImGuiCol_BorderShadow]  = ImVec4(0.000f, 0.000f, 0.000f, 0.00f);
 
     // Text
-    s.Colors[ImGuiCol_Text]          = ImVec4(0.90f, 0.90f, 0.90f, 1.00f);
-    s.Colors[ImGuiCol_TextDisabled]  = ImVec4(0.40f, 0.40f, 0.40f, 1.00f);
+    s.Colors[ImGuiCol_Text]          = ImVec4(0.92f, 0.93f, 0.95f, 1.00f);
+    s.Colors[ImGuiCol_TextDisabled]  = ImVec4(0.42f, 0.44f, 0.48f, 1.00f);
 
-    // VLC orange accent
-    s.Colors[ImGuiCol_ButtonHovered] = kOrangeHov;
-    s.Colors[ImGuiCol_ButtonActive]  = kOrangeAct;
-    s.Colors[ImGuiCol_Button]        = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
-    s.Colors[ImGuiCol_Header]        = ImVec4(1.f, .53f, 0.f, 0.25f);
-    s.Colors[ImGuiCol_HeaderHovered] = ImVec4(1.f, .53f, 0.f, 0.45f);
-    s.Colors[ImGuiCol_HeaderActive]  = ImVec4(1.f, .53f, 0.f, 0.75f);
-    s.Colors[ImGuiCol_CheckMark]     = kOrange;
-    s.Colors[ImGuiCol_SliderGrab]    = kOrange;
-    s.Colors[ImGuiCol_SliderGrabActive] = kOrangeHov;
-    s.Colors[ImGuiCol_FrameBg]       = ImVec4(0.18f, 0.18f, 0.18f, 1.00f);
-    s.Colors[ImGuiCol_FrameBgHovered]= ImVec4(0.24f, 0.24f, 0.24f, 1.00f);
-    s.Colors[ImGuiCol_TitleBg]       = ImVec4(0.08f, 0.08f, 0.08f, 1.00f);
-    s.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.10f, 0.10f, 0.10f, 1.00f);
-    s.Colors[ImGuiCol_ScrollbarBg]   = ImVec4(0.08f, 0.08f, 0.08f, 1.00f);
-    s.Colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.28f, 0.28f, 0.28f, 1.00f);
-    s.Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.38f, 0.38f, 0.38f, 1.00f);
-    s.Colors[ImGuiCol_SeparatorHovered] = ImVec4(1.f, .53f, 0.f, 0.60f);
-    s.Colors[ImGuiCol_Tab]           = ImVec4(0.12f, 0.12f, 0.12f, 1.00f);
-    s.Colors[ImGuiCol_TabHovered]    = ImVec4(1.f, .53f, 0.f, 0.75f);
-    s.Colors[ImGuiCol_TabActive]     = ImVec4(0.85f, .43f, 0.f, 1.00f);
+    // Interactive elements — accent sky-blue
+    s.Colors[ImGuiCol_Button]        = ImVec4(0.145f, 0.155f, 0.175f, 1.00f);
+    s.Colors[ImGuiCol_ButtonHovered] = ImVec4(kAccent.x, kAccent.y, kAccent.z, 0.22f);
+    s.Colors[ImGuiCol_ButtonActive]  = ImVec4(kAccent.x, kAccent.y, kAccent.z, 0.42f);
+    s.Colors[ImGuiCol_Header]        = ImVec4(kAccent.x, kAccent.y, kAccent.z, 0.18f);
+    s.Colors[ImGuiCol_HeaderHovered] = ImVec4(kAccent.x, kAccent.y, kAccent.z, 0.32f);
+    s.Colors[ImGuiCol_HeaderActive]  = ImVec4(kAccent.x, kAccent.y, kAccent.z, 0.55f);
+    s.Colors[ImGuiCol_CheckMark]     = kAccent;
+    s.Colors[ImGuiCol_SliderGrab]    = kAccent;
+    s.Colors[ImGuiCol_SliderGrabActive] = kAccentHov;
+
+    // Frames (inputs, combo bg)
+    s.Colors[ImGuiCol_FrameBg]       = ImVec4(0.110f, 0.115f, 0.135f, 1.00f);
+    s.Colors[ImGuiCol_FrameBgHovered]= ImVec4(0.150f, 0.160f, 0.185f, 1.00f);
+    s.Colors[ImGuiCol_FrameBgActive] = ImVec4(0.180f, 0.195f, 0.225f, 1.00f);
+
+    // Title bars (used by VMAF window etc.)
+    s.Colors[ImGuiCol_TitleBg]       = ImVec4(0.045f, 0.045f, 0.055f, 1.00f);
+    s.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.065f, 0.070f, 0.085f, 1.00f);
+    s.Colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.045f, 0.045f, 0.055f, 0.80f);
+
+    // Scrollbars
+    s.Colors[ImGuiCol_ScrollbarBg]   = ImVec4(0.045f, 0.045f, 0.055f, 1.00f);
+    s.Colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.230f, 0.240f, 0.270f, 1.00f);
+    s.Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.320f, 0.335f, 0.370f, 1.00f);
+    s.Colors[ImGuiCol_ScrollbarGrabActive]  = ImVec4(kAccent.x, kAccent.y, kAccent.z, 0.70f);
+
+    // Separators and tabs
+    s.Colors[ImGuiCol_Separator]        = ImVec4(0.150f, 0.155f, 0.175f, 1.00f);
+    s.Colors[ImGuiCol_SeparatorHovered] = ImVec4(kAccent.x, kAccent.y, kAccent.z, 0.60f);
+    s.Colors[ImGuiCol_SeparatorActive]  = kAccent;
+    s.Colors[ImGuiCol_Tab]              = ImVec4(0.080f, 0.085f, 0.100f, 1.00f);
+    s.Colors[ImGuiCol_TabHovered]       = ImVec4(kAccent.x, kAccent.y, kAccent.z, 0.55f);
+    s.Colors[ImGuiCol_TabActive]        = ImVec4(kAccent.x, kAccent.y, kAccent.z, 0.80f);
+
+    // Table rows (used by VMAF)
+    s.Colors[ImGuiCol_TableHeaderBg]    = ImVec4(0.100f, 0.105f, 0.125f, 1.00f);
+    s.Colors[ImGuiCol_TableBorderStrong]= ImVec4(0.180f, 0.185f, 0.210f, 1.00f);
+    s.Colors[ImGuiCol_TableBorderLight] = ImVec4(0.120f, 0.125f, 0.145f, 1.00f);
+    s.Colors[ImGuiCol_TableRowBg]       = ImVec4(0.000f, 0.000f, 0.000f, 0.00f);
+    s.Colors[ImGuiCol_TableRowBgAlt]    = ImVec4(1.000f, 1.000f, 1.000f, 0.025f);
 
     if (!ImGui_ImplGlfw_InitForOpenGL(window, /*install_callbacks=*/true)) return false;
     if (!ImGui_ImplOpenGL3_Init("#version 410 core")) return false;
@@ -315,11 +346,12 @@ PlayerUIState PlayerUI::build(
     ImGui::SetNextWindowSize(ImVec2(win_w, kVlcBarH), ImGuiCond_Always);
     ImGui::SetNextWindowBgAlpha(0.88f * alpha);
 
-    // Slight orange top-border line (VLC's separator between video and controls)
-    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.f, .53f, 0.f, 0.30f * alpha));
+    // Subtle accent top-border line between video and controls
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(kAccent.x, kAccent.y, kAccent.z, 0.22f * alpha));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,    ImVec2(12.0f, 8.0f));
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,      ImVec2(6.0f,  4.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,    ImVec2(14.0f, 10.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,      ImVec2(8.0f,  5.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding,   0.0f);  // control bar stays flush to viewport edges
 
     ImGuiWindowFlags flags =
         ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
@@ -358,10 +390,10 @@ PlayerUIState PlayerUI::build(
             }
             seek_bar_active_ = dragging_now;
         } else {
-            // Live stream — just draw a flat orange line
+            // Live stream — flat accent bar in place of the scrubber
             ImVec2 p = ImGui::GetCursorScreenPos();
             ImGui::GetWindowDrawList()->AddRectFilled(
-                p, ImVec2(p.x + avail_w, p.y + 4.0f), kOrangeU32);
+                p, ImVec2(p.x + avail_w, p.y + 4.0f), kAccentU32, 2.0f);
             ImGui::Dummy(ImVec2(avail_w, 16.0f));
         }
 
@@ -375,9 +407,9 @@ PlayerUIState PlayerUI::build(
         if (flat_button("<<", 32.0f))  out.seek_to = std::max(0.0, cur_pts - 10.0);
         ImGui::SameLine();
 
-        // Play / Pause — slightly larger, orange text
+        // Play / Pause — slightly larger; accent-colored when paused
         ImGui::PushStyleColor(ImGuiCol_Text, paused
-            ? ImVec4(kOrange.x, kOrange.y, kOrange.z, alpha)
+            ? ImVec4(kAccent.x, kAccent.y, kAccent.z, alpha)
             : ImVec4(0.95f, 0.95f, 0.95f, alpha));
         if (flat_button(paused ? "  >  " : " || ", 42.0f))
             out.play_pause_clicked = true;
@@ -449,7 +481,7 @@ PlayerUIState PlayerUI::build(
         ImGui::PopStyleColor();  // text alpha
     }
     ImGui::End();
-    ImGui::PopStyleVar(3);
+    ImGui::PopStyleVar(4);
     ImGui::PopStyleColor();  // border
 
     return out;
@@ -494,12 +526,13 @@ std::string PlayerUI::draw_launcher(const std::vector<std::string>& recents,
     ImGui::SetNextWindowSize(ImVec2(kCardW, kCardH), ImGuiCond_Always);
     ImGui::SetNextWindowBgAlpha(1.0f);
 
-    // Card uses a slightly lighter charcoal
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.16f, 0.16f, 0.16f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_Border,   ImVec4(0.22f, 0.22f, 0.22f, 1.0f));
+    // Card — raised panel on a deeper charcoal base
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.095f, 0.100f, 0.115f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Border,   ImVec4(0.180f, 0.185f, 0.210f, 1.0f));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(28.0f, 24.0f));
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,   ImVec2(8.0f,   7.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(32.0f, 28.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,   ImVec2(10.0f,  8.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.0f);
 
     ImGuiWindowFlags card_flags =
         ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
@@ -508,49 +541,51 @@ std::string PlayerUI::draw_launcher(const std::vector<std::string>& recents,
 
     if (ImGui::Begin("##launcher", nullptr, card_flags)) {
 
-        // ── Header: orange title ──────────────────────────────────────────────
-        ImGui::PushStyleColor(ImGuiCol_Text, kOrange);
-        ImGui::SetWindowFontScale(1.9f);
+        // ── Header: accent title ──────────────────────────────────────────────
+        ImGui::PushStyleColor(ImGuiCol_Text, kAccent);
+        ImGui::SetWindowFontScale(2.1f);
         float tw = ImGui::CalcTextSize("MIRAGE").x;
         ImGui::SetCursorPosX((kCardW - tw) * 0.5f);
         ImGui::TextUnformatted("MIRAGE");
         ImGui::SetWindowFontScale(1.0f);
         ImGui::PopStyleColor();
 
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.48f, 0.48f, 0.48f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f, 0.57f, 0.62f, 1.0f));
         const char* sub = "Video Engineering Player";
         float sw = ImGui::CalcTextSize(sub).x;
         ImGui::SetCursorPosX((kCardW - sw) * 0.5f);
         ImGui::TextUnformatted(sub);
         ImGui::PopStyleColor();
 
-        ImGui::Spacing();
+        ImGui::Dummy(ImVec2(0, 10.0f));
 
-        // Orange separator line (VLC style)
+        // Subtle divider — soft neutral line, not a loud brand bar
         {
             ImVec2 p = ImGui::GetCursorScreenPos();
+            float div_w = kCardW - 120.0f;
             ImGui::GetWindowDrawList()->AddLine(
-                p, ImVec2(p.x + kCardW - 56.0f, p.y),
-                kOrangeU32, 1.5f);
+                ImVec2(p.x + (kCardW - 64.0f - div_w) * 0.5f, p.y),
+                ImVec2(p.x + (kCardW - 64.0f - div_w) * 0.5f + div_w, p.y),
+                IM_COL32(60, 65, 78, 180), 1.0f);
         }
-        ImGui::Dummy(ImVec2(0, 6.0f));
+        ImGui::Dummy(ImVec2(0, 10.0f));
 
         // ── Open Media header ─────────────────────────────────────────────────
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.60f, 0.60f, 0.60f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.58f, 0.62f, 0.70f, 1.0f));
         ImGui::TextUnformatted("OPEN MEDIA");
         ImGui::PopStyleColor();
         ImGui::Spacing();
 
-        // ── Drop zone ─────────────────────────────────────────────────────────
+        // ── Drop zone — soft panel with dashed-feel accent border ─────────────
         constexpr float kZoneH = 96.0f;
-        constexpr float kZoneW = kCardW - 56.0f;
+        constexpr float kZoneW = kCardW - 64.0f;
 
         ImVec2 ztl = ImGui::GetCursorScreenPos();
         ImVec2 zbr = ImVec2(ztl.x + kZoneW, ztl.y + kZoneH);
         ImDrawList* dl = ImGui::GetWindowDrawList();
 
-        dl->AddRectFilled(ztl, zbr, IM_COL32(20, 20, 20, 255), 4.0f);
-        dl->AddRect(ztl, zbr, IM_COL32(255, 136, 0, 90), 4.0f, 0, 1.2f);
+        dl->AddRectFilled(ztl, zbr, IM_COL32(15, 17, 22, 255), 8.0f);
+        dl->AddRect(ztl, zbr, IM_COL32(56, 189, 248, 70), 8.0f, 0, 1.0f);
 
         float zmx = ztl.x + kZoneW * 0.5f;
         float zmy = ztl.y + kZoneH * 0.5f;
@@ -558,9 +593,9 @@ std::string PlayerUI::draw_launcher(const std::vector<std::string>& recents,
         const char* l1 = "Drop a video file or stream URL here";
         const char* l2 = "Drag & drop  or  type below";
         dl->AddText(ImVec2(zmx - ImGui::CalcTextSize(l1).x * 0.5f, zmy - lh),
-            IM_COL32(200, 200, 200, 210), l1);
+            IM_COL32(210, 215, 225, 215), l1);
         dl->AddText(ImVec2(zmx - ImGui::CalcTextSize(l2).x * 0.5f, zmy + 3.0f),
-            IM_COL32(120, 120, 120, 180), l2);
+            IM_COL32(130, 138, 150, 180), l2);
 
         ImGui::Dummy(ImVec2(kZoneW, kZoneH));
         ImGui::Spacing();
@@ -569,41 +604,41 @@ std::string PlayerUI::draw_launcher(const std::vector<std::string>& recents,
         if (!error_msg.empty()) {
             ImVec2 etl = ImGui::GetCursorScreenPos();
             float  ew  = kZoneW;
-            float  eh  = ImGui::GetTextLineHeight() + 12.0f;
+            float  eh  = ImGui::GetTextLineHeight() + 14.0f;
             ImDrawList* edl = ImGui::GetWindowDrawList();
             edl->AddRectFilled(etl, ImVec2(etl.x + ew, etl.y + eh),
-                               IM_COL32(80, 20, 20, 220), 4.0f);
+                               IM_COL32(60, 20, 25, 220), 6.0f);
             edl->AddRect(etl, ImVec2(etl.x + ew, etl.y + eh),
-                         IM_COL32(220, 80, 80, 180), 4.0f, 0, 1.0f);
-            edl->AddText(ImVec2(etl.x + 10.0f, etl.y + 6.0f),
-                         IM_COL32(255, 200, 200, 255), error_msg.c_str());
+                         IM_COL32(239, 68, 68, 160), 6.0f, 0, 1.0f);
+            edl->AddText(ImVec2(etl.x + 12.0f, etl.y + 7.0f),
+                         IM_COL32(252, 210, 210, 255), error_msg.c_str());
             ImGui::Dummy(ImVec2(ew, eh + 6.0f));
         }
 
         // ── URL / path input ──────────────────────────────────────────────────
-        ImGui::PushStyleColor(ImGuiCol_Text,   ImVec4(0.50f, 0.50f, 0.50f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_Text,   ImVec4(0.55f, 0.58f, 0.65f, 1.0f));
         ImGui::TextUnformatted("File path or network URL (HLS / DASH)");
         ImGui::PopStyleColor();
 
-        float input_w = kZoneW - 86.0f - 82.0f;
+        float input_w = kZoneW - 90.0f - 86.0f;
         ImGui::SetNextItemWidth(input_w);
         bool enter_pressed = ImGui::InputText("##url", url_buf_, sizeof(url_buf_),
             ImGuiInputTextFlags_EnterReturnsTrue);
         if (enter_pressed && url_buf_[0] != '\0')
             result = url_buf_;
 
-        ImGui::SameLine(0.0f, 6.0f);
+        ImGui::SameLine(0.0f, 8.0f);
 
-        // Orange primary "Open" button
-        ImGui::PushStyleColor(ImGuiCol_Button,        kOrange);
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, kOrangeHov);
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  kOrangeAct);
-        ImGui::PushStyleColor(ImGuiCol_Text,          ImVec4(0.05f, 0.05f, 0.05f, 1.0f));
-        if (ImGui::Button("Open", ImVec2(80.0f, 0.0f)) && url_buf_[0] != '\0')
+        // Accent primary "Open" button — white text on sky-blue
+        ImGui::PushStyleColor(ImGuiCol_Button,        kAccent);
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, kAccentHov);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  kAccentAct);
+        ImGui::PushStyleColor(ImGuiCol_Text,          ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+        if (ImGui::Button("Open", ImVec2(84.0f, 0.0f)) && url_buf_[0] != '\0')
             result = url_buf_;
         ImGui::PopStyleColor(4);
 
-        ImGui::SameLine(0.0f, 6.0f);
+        ImGui::SameLine(0.0f, 8.0f);
         if (ImGui::Button("Browse...", ImVec2(-1.0f, 0.0f))) {
             nfdu8char_t* out_path = nullptr;
             nfdu8filteritem_t filters[] = {
@@ -618,16 +653,16 @@ std::string PlayerUI::draw_launcher(const std::vector<std::string>& recents,
 
         // ── Recent files ──────────────────────────────────────────────────────
         if (!recents.empty()) {
-            ImGui::Spacing();
-            // Orange micro-separator
+            ImGui::Dummy(ImVec2(0.0f, 6.0f));
+            // Soft neutral micro-separator
             {
                 ImVec2 p = ImGui::GetCursorScreenPos();
                 dl->AddLine(p, ImVec2(p.x + kZoneW, p.y),
-                    IM_COL32(255, 136, 0, 50), 1.0f);
+                    IM_COL32(60, 65, 78, 120), 1.0f);
             }
-            ImGui::Dummy(ImVec2(0.0f, 3.0f));
+            ImGui::Dummy(ImVec2(0.0f, 4.0f));
 
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.45f, 0.45f, 0.45f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.58f, 0.62f, 0.70f, 1.0f));
             ImGui::TextUnformatted("RECENT");
             ImGui::PopStyleColor();
 
@@ -637,9 +672,9 @@ std::string PlayerUI::draw_launcher(const std::vector<std::string>& recents,
                 const char* disp = r.c_str();
                 if (r.size() > 58) disp = r.c_str() + (r.size() - 58);
 
-                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.72f, 0.72f, 0.72f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.78f, 0.80f, 0.84f, 1.0f));
                 ImGui::PushStyleColor(ImGuiCol_HeaderHovered,
-                    ImVec4(1.f, .53f, 0.f, 0.15f));
+                    ImVec4(kAccent.x, kAccent.y, kAccent.z, 0.18f));
                 if (ImGui::Selectable(disp)) result = r;
                 ImGui::PopStyleColor(2);
                 if (ImGui::IsItemHovered())
@@ -649,7 +684,7 @@ std::string PlayerUI::draw_launcher(const std::vector<std::string>& recents,
         }
     }
     ImGui::End();
-    ImGui::PopStyleVar(3);
+    ImGui::PopStyleVar(4);
     ImGui::PopStyleColor(2);
 
     return result;
