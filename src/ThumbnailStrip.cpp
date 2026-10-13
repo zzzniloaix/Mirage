@@ -7,6 +7,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
+#include <string_view>
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -119,7 +121,7 @@ bool ThumbnailStrip::init(const std::string& url,
                            double duration)
 {
     duration_        = duration;
-    sample_stride_s_ = thumbs::sample_stride(duration, kMaxThumbs);
+    sample_stride_s_.store(thumbs::sample_stride(duration, kMaxThumbs));
 
     if (!compile_shaders()) { done_.store(true); return false; }
 
@@ -194,7 +196,7 @@ ThumbnailStrip::nearest_at_or_before(double t, double max_gap) const
 
 double ThumbnailStrip::preview_max_gap() const
 {
-    return std::max(10.0, 3.0 * sample_stride_s_);
+    return std::max(10.0, 3.0 * sample_stride_s_.load());
 }
 
 std::vector<double> ThumbnailStrip::keyframes_copy() const
@@ -316,51 +318,120 @@ void ThumbnailStrip::decode_loop(std::stop_token st, std::string url,
             logger::error("ThumbnailStrip: failed to open '{}'", url);
         return;
     }
-    if (avformat_find_stream_info(fmt_ctx, nullptr) < 0
-        || video_stream_idx < 0
-        || video_stream_idx >= static_cast<int>(fmt_ctx->nb_streams)) {
+    if (video_stream_idx < 0 || video_stream_idx >= static_cast<int>(fmt_ctx->nb_streams)) {
         avformat_close_input(&fmt_ctx);
         return;
     }
 
-    AVStream* stream = fmt_ctx->streams[video_stream_idx];
+    // HLS has no index, so thumbnails come from seek sampling, and every
+    // sample downloads a segment. Take them from the cheapest variant of the
+    // same codec instead of the (typically top-bitrate) playing one: same
+    // timeline, a fraction of the bytes. Stream indices match the playback
+    // Demuxer's (same URL, same demuxer).
+    int src_idx = video_stream_idx;
+    if (std::string_view(fmt_ctx->iformat->name) == "hls") {
+        std::vector<thumbs::VideoCandidate> cands;
+        for (unsigned i = 0; i < fmt_ctx->nb_streams; ++i) {
+            const AVStream* s = fmt_ctx->streams[i];
+            if (s->codecpar->codec_type != AVMEDIA_TYPE_VIDEO) continue;
+            int64_t br = s->codecpar->bit_rate;
+            if (const AVDictionaryEntry* e = av_dict_get(s->metadata, "variant_bitrate", nullptr, 0))
+                br = std::strtoll(e->value, nullptr, 10);
+            cands.push_back({ static_cast<int>(i), static_cast<int>(s->codecpar->codec_id),
+                              s->codecpar->height, br });
+        }
+        src_idx = thumbs::pick_thumb_stream(cands, video_stream_idx, kDecodeH);
+    }
+
+    // Only that one video stream is needed. Discard the rest before probing
+    // so HLS doesn't fetch every variant's segments.
+    for (unsigned i = 0; i < fmt_ctx->nb_streams; ++i)
+        fmt_ctx->streams[i]->discard = static_cast<int>(i) == src_idx ? AVDISCARD_DEFAULT
+                                                                        : AVDISCARD_ALL;
+    if (avformat_find_stream_info(fmt_ctx, nullptr) < 0) {
+        avformat_close_input(&fmt_ctx);
+        return;
+    }
+
+    AVStream* stream = fmt_ctx->streams[src_idx];
+    // Another variant has its own time_base (e.g. 1/30000 vs 1/60000).
+    const double tb  = av_q2d(src_idx == video_stream_idx ? time_base : stream->time_base);
+    // Keyframe stepping seeks the playing stream, so only publish keyframes
+    // that are the playing stream's own (variants may place them differently).
+    const bool publish_kf = src_idx == video_stream_idx;
+    if (src_idx != video_stream_idx)
+        logger::info("ThumbnailStrip: sampling HLS variant stream {} ({}p) instead of {}",
+                     src_idx, stream->codecpar->height, video_stream_idx);
 
     // Collect keyframe timestamps from the container index.
     // AVStream::index_entries was made opaque in FFmpeg 5; use the accessor API.
     std::vector<int64_t> keyframe_ts;
-    int n_entries = avformat_index_get_entries_count(stream);
-    for (int i = 0; i < n_entries; ++i) {
-        const AVIndexEntry* e = avformat_index_get_entry(stream, i);
-        if (e && (e->flags & AVINDEX_KEYFRAME))
-            keyframe_ts.push_back(e->timestamp);
+    auto read_index = [&] {
+        keyframe_ts.clear();
+        const int n_entries = avformat_index_get_entries_count(stream);
+        for (int i = 0; i < n_entries; ++i) {
+            const AVIndexEntry* e = avformat_index_get_entry(stream, i);
+            if (e && (e->flags & AVINDEX_KEYFRAME))
+                keyframe_ts.push_back(e->timestamp);
+        }
+    };
+    read_index();
+
+    // Matroska reads its Cues lazily, on the first seek: right after
+    // find_stream_info the index holds only the first keyframe. One seek to
+    // the start loads the full index (no packets are read).
+    const int64_t start_ts = (stream->start_time != AV_NOPTS_VALUE) ? stream->start_time : 0;
+    if (thumbs::index_too_sparse(keyframe_ts.size(), duration_)) {
+        avformat_seek_file(fmt_ctx, src_idx, INT64_MIN, start_ts, start_ts, 0);
+        read_index();
     }
 
-    if (keyframe_ts.empty()) {
-        logger::warn("ThumbnailStrip: no keyframe index for stream {}", video_stream_idx);
-        avformat_close_input(&fmt_ctx);
-        return;
+    // Still no usable index (HLS, MPEG-TS, ...): seek to evenly spaced times
+    // instead and use whatever keyframe each seek lands on. Network inputs
+    // fetch a whole segment per sample, so they get fewer, wider samples.
+    const bool seek_sampling = thumbs::index_too_sparse(keyframe_ts.size(), duration_);
+    std::vector<int64_t>     targets;      // seek targets, stream time_base
+    std::vector<std::size_t> sampled_ki;   // index mode: keyframe_ts index per target
+    if (seek_sampling) {
+        const bool net = ffopen::is_network_url(url);
+        const std::vector<double> times = net
+            ? thumbs::sample_times(duration_, kMaxNetSamples, kNetSampleSpacing)
+            : thumbs::sample_times(duration_, kMaxThumbs, 1.0);
+        if (times.empty()) {
+            logger::warn("ThumbnailStrip: no keyframe index for stream {} and unknown duration",
+                         src_idx);
+            avformat_close_input(&fmt_ctx);
+            return;
+        }
+        // Times are on the seek bar's scale (raw stream PTS over [0, duration],
+        // what request_seek() and the hover lookup use), but not before the
+        // first frame (HLS from TS/fMP4 often starts at ~10 s).
+        for (double t : times)
+            targets.push_back(std::max(start_ts, static_cast<int64_t>(std::llround(t / tb))));
+        sample_stride_s_.store(duration_ / static_cast<double>(times.size()));
+        logger::info("ThumbnailStrip: {} keyframes in index for stream {} — seek-sampling {} points (stride {:.2f} s)",
+                     keyframe_ts.size(), src_idx, times.size(), sample_stride_s_.load());
+    } else {
+        // Publish all keyframe PTS immediately — before any decode — so main
+        // thread can use next/prev_keyframe_pts() as soon as the user presses a key.
+        std::vector<double> kf_secs;
+        kf_secs.reserve(keyframe_ts.size());
+        for (int64_t ts : keyframe_ts)
+            kf_secs.push_back(static_cast<double>(ts) * tb);
+        {
+            std::lock_guard lock(kf_pts_mtx_);
+            if (publish_kf) kf_pts_ = kf_secs;
+        }
+        // Thumbnails only for a sampled subset (keyframe nav keeps the full list).
+        sampled_ki = thumbs::sample_keyframes(kf_secs, sample_stride_s_.load(), kMaxThumbs);
+        for (std::size_t ki : sampled_ki)
+            targets.push_back(keyframe_ts[ki]);
+        logger::info("ThumbnailStrip: {} keyframes found, decoding {} thumbnails (stride {:.2f} s, {} px tall)",
+                     keyframe_ts.size(), targets.size(), sample_stride_s_.load(), kDecodeH);
     }
-
-    // Publish all keyframe PTS immediately — before any decode — so main thread
-    // can use next/prev_keyframe_pts() as soon as the user presses a key.
-    std::vector<double> kf_secs;
-    kf_secs.reserve(keyframe_ts.size());
-    for (int64_t ts : keyframe_ts)
-        kf_secs.push_back(static_cast<double>(ts) * av_q2d(time_base));
-    {
-        std::lock_guard lock(kf_pts_mtx_);
-        kf_pts_ = kf_secs;
-    }
-
-    // Thumbnails only for a sampled subset (keyframe nav keeps the full list),
-    // decoded coarse-to-fine so previews cover the whole timeline early.
-    const std::vector<std::size_t> sampled =
-        thumbs::sample_keyframes(kf_secs, sample_stride_s_, kMaxThumbs);
-    const std::vector<std::size_t> order = thumbs::coarse_to_fine(sampled.size(), kCoarseStep);
-    sampled_count_.store(static_cast<int>(sampled.size()));
-
-    logger::info("ThumbnailStrip: {} keyframes found, decoding {} thumbnails (stride {:.2f} s, {} px tall)",
-                 keyframe_ts.size(), sampled.size(), sample_stride_s_, kDecodeH);
+    // Decoded coarse-to-fine so previews cover the whole timeline early.
+    const std::vector<std::size_t> order = thumbs::coarse_to_fine(targets.size(), kCoarseStep);
+    sampled_count_.store(static_cast<int>(targets.size()));
 
     // Open decoder.
     const AVCodec* codec = avcodec_find_decoder(stream->codecpar->codec_id);
@@ -379,14 +450,14 @@ void ThumbnailStrip::decode_loop(std::stop_token st, std::string url,
     SwsContext* sws = nullptr;
     size_t    n_decoded = 0;
     bool      kf_offset_applied = false;
+    std::vector<int64_t> seen_pts;   // seek-sampling: keyframes already thumbnailed (sorted)
 
     for (std::size_t oi = 0; oi < order.size(); ++oi) {
-        const std::size_t ki        = sampled[order[oi]];
-        const int64_t     target_ts = keyframe_ts[ki];
+        const int64_t target_ts = targets[order[oi]];
         if (st.stop_requested()) break;
 
-        // Seek to this keyframe.
-        avformat_seek_file(fmt_ctx, video_stream_idx,
+        // Seek to (the keyframe at or before) this target.
+        avformat_seek_file(fmt_ctx, src_idx,
                            INT64_MIN, target_ts, target_ts, 0);
         avcodec_flush_buffers(codec_ctx);
 
@@ -396,7 +467,7 @@ void ThumbnailStrip::decode_loop(std::stop_token st, std::string url,
             int ret = av_read_frame(fmt_ctx, pkt);
             if (ret < 0) break;
 
-            if (pkt->stream_index == video_stream_idx) {
+            if (pkt->stream_index == src_idx) {
                 avcodec_send_packet(codec_ctx, pkt);
                 if (avcodec_receive_frame(codec_ctx, frame) == 0) {
                     got = true;
@@ -407,15 +478,35 @@ void ThumbnailStrip::decode_loop(std::stop_token st, std::string url,
 
         if (!got) continue;
 
-        // Index timestamps are DTS in some containers (mp4/mov). With B-frames
-        // a keyframe's PTS is later than its DTS, and seeking BACKWARD to the
-        // DTS lands on the previous keyframe — so keyframe-step loops. Replace
-        // the published entry with the decoded keyframe's real PTS; the first
-        // decode also shifts every other entry by the same offset (decode order
-        // is coarse-to-fine, and keyframes skipped by sampling are never
-        // decoded, so they keep the offset-corrected value).
-        if ((frame->flags & AV_FRAME_FLAG_KEY) && frame->pts != AV_NOPTS_VALUE) {
-            const double real = static_cast<double>(frame->pts) * av_q2d(time_base);
+        const int64_t frame_ts = (frame->pts != AV_NOPTS_VALUE) ? frame->pts
+                                                                : frame->best_effort_timestamp;
+        const bool is_key = (frame->flags & AV_FRAME_FLAG_KEY) && frame_ts != AV_NOPTS_VALUE;
+
+        if (seek_sampling) {
+            // Neighbouring targets inside one GOP land on the same keyframe.
+            if (frame_ts != AV_NOPTS_VALUE) {
+                auto it = std::lower_bound(seen_pts.begin(), seen_pts.end(), frame_ts);
+                if (it != seen_pts.end() && *it == frame_ts) { av_frame_unref(frame); continue; }
+                seen_pts.insert(it, frame_ts);
+            }
+            // The first frame after a keyframe seek is that keyframe: publish
+            // its real PTS for keyframe stepping (kept sorted for next/prev).
+            if (is_key && publish_kf) {
+                const double real = static_cast<double>(frame_ts) * tb;
+                std::lock_guard lock(kf_pts_mtx_);
+                kf_pts_.insert(std::upper_bound(kf_pts_.begin(), kf_pts_.end(), real), real);
+            }
+        } else if (is_key && publish_kf) {
+            // Index timestamps are DTS in some containers (mp4/mov). With
+            // B-frames a keyframe's PTS is later than its DTS, and seeking
+            // BACKWARD to the DTS lands on the previous keyframe — so
+            // keyframe-step loops. Replace the published entry with the
+            // decoded keyframe's real PTS; the first decode also shifts every
+            // other entry by the same offset (decode order is coarse-to-fine,
+            // and keyframes skipped by sampling are never decoded, so they
+            // keep the offset-corrected value).
+            const std::size_t ki = sampled_ki[order[oi]];
+            const double real = static_cast<double>(frame_ts) * tb;
             std::lock_guard lock(kf_pts_mtx_);
             if (!kf_offset_applied) {
                 const double offset = real - kf_pts_[ki];
@@ -446,9 +537,7 @@ void ThumbnailStrip::decode_loop(std::stop_token st, std::string url,
 
         // Scale to thumbnail size.
         Decoded d;
-        d.pts = (frame->pts != AV_NOPTS_VALUE)
-            ? static_cast<double>(frame->pts) * av_q2d(time_base)
-            : static_cast<double>(target_ts)  * av_q2d(time_base);
+        d.pts = static_cast<double>(frame_ts != AV_NOPTS_VALUE ? frame_ts : target_ts) * tb;
         d.w   = out_w;
         d.h   = out_h;
         d.rgb.resize(static_cast<size_t>(out_w) * static_cast<size_t>(out_h) * 3);
@@ -465,7 +554,7 @@ void ThumbnailStrip::decode_loop(std::stop_token st, std::string url,
             pending_.push(std::move(d));
         }
         ++n_decoded;
-        if (oi + 1 == std::min<std::size_t>(order.size(), (sampled.size() + kCoarseStep - 1) / kCoarseStep))
+        if (oi + 1 == std::min<std::size_t>(order.size(), (targets.size() + kCoarseStep - 1) / kCoarseStep))
             logger::info("ThumbnailStrip: coarse pass done ({} thumbnails)", n_decoded);
     }
 

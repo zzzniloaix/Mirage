@@ -122,6 +122,10 @@ private:
     AVFormatContext*    fmt_ctx_      = nullptr;
     int                 video_idx_    = -1;
     int                 audio_idx_    = -1;
+    bool                is_network_   = false;   // set by open(); enables read retries
+    // Set when read_loop's stop is requested; FFmpeg's interrupt callback then
+    // aborts any blocking network I/O so the demux thread joins promptly.
+    std::atomic<bool>   abort_io_{ false };
     // Written by read_loop (track switch), read by the main and subtitle threads.
     std::atomic<int>    subtitle_idx_{ -1 };
     std::atomic<double> seek_target_{ -1.0 };
@@ -139,5 +143,6 @@ private:
 
     bool is_network_url(const std::string& url) const;
     void build_track_lists();
+    void apply_stream_discard();
     void print_stream_info() const;
 };

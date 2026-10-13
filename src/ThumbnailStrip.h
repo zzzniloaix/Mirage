@@ -21,8 +21,10 @@ extern "C" {
 // "Keyframe filmstrip" (K) drawn above the seek bar while scrubbing.
 //
 // Background thread opens the file independently and publishes every keyframe
-// PTS from the container index (keyframe navigation uses the full list). It
-// then decodes a thumbnail for a sampled subset (at most kMaxThumbs, spaced
+// PTS from the container index (keyframe navigation uses the full list),
+// forcing a lazy index (Matroska Cues) to load first. Without a usable index
+// (HLS, MPEG-TS) it instead seeks to evenly spaced times and publishes the PTS
+// of each keyframe it lands on. It then decodes a thumbnail for a sampled subset (at most kMaxThumbs, spaced
 // >= duration/kMaxThumbs apart) in coarse-to-fine order — every kCoarseStep-th
 // sample first so the whole timeline gets previews quickly, then the rest —
 // downscales each to kDecodeH pixels tall (RGB24, display aspect), and pushes
@@ -39,7 +41,8 @@ public:
     ThumbnailStrip& operator=(const ThumbnailStrip&) = delete;
 
     // Start async decode.  Must be called after the OpenGL context is current.
-    // Returns false if the container has no keyframe index (live streams, etc.)
+    // Returns false only if GL setup fails; a source without any usable index
+    // or duration (live) just yields no thumbnails.
     // Thumbnail width follows the source's display aspect (sample aspect
     // ratio applied, rotation not), read from the decoded frames.
     [[nodiscard]] bool init(const std::string& url,
@@ -77,7 +80,7 @@ public:
     double preview_max_gap() const;
 
     // Seconds between sampled keyframes (0 = every keyframe is decoded).
-    double sample_stride() const { return sample_stride_s_; }
+    double sample_stride() const { return sample_stride_s_.load(); }
 
     // Copy of all keyframe PTS (locks kf_pts_mtx_). Empty until the index is read.
     std::vector<double> keyframes_copy() const;
@@ -99,6 +102,10 @@ public:
     static constexpr int kMaxThumbs = 400;
     // Coarse pass decodes every kCoarseStep-th sampled keyframe first.
     static constexpr int kCoarseStep = 8;
+    // Seek-sampling fallback (no usable index) on network inputs: every sample
+    // fetches a segment of the playing variant, so keep them few and wide.
+    static constexpr int    kMaxNetSamples    = 48;
+    static constexpr double kNetSampleSpacing = 10.0;   // seconds
     static constexpr int kUploadPerFrame = 8;
 
 private:
@@ -132,7 +139,9 @@ private:
     std::jthread decode_thread_;
 
     double duration_        = 0.0;
-    double sample_stride_s_ = 0.0;   // set in init(), read-only afterwards
+    // Set in init(); widened by the decode thread when it falls back to seek
+    // sampling (no usable index), hence atomic.
+    std::atomic<double> sample_stride_s_{ 0.0 };
 
     // GL — background quad (dark backing)
     GLuint bg_vao_     = 0;

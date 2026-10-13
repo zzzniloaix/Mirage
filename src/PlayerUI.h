@@ -32,6 +32,7 @@ struct PlayerUIState {
     bool   sub_open_file      = false;  // "Open subtitle file..." chosen
     bool   sub_style_changed  = false;
     bool   quit               = false;  // Media > Quit selected
+    std::string open_source;            // non-empty: open this file / URL in place of the current media
 
     // Debug panel toggles — true means "flip this flag"
     bool toggle_hud       = false;
@@ -73,6 +74,7 @@ struct PlayerUIInputs {
     int                                audio_idx    = -1;
     const std::vector<SubChoice>*      sub_choices  = nullptr;
     int                                sub_active   = -1;     // index into sub_choices, -1 off
+    const std::vector<std::string>*    recents      = nullptr; // Open dialog's recent list
 
     ThumbnailStrip*            thumbs = nullptr;   // main thread only
     const std::vector<double>* kf_pts = nullptr;   // copy held by main
@@ -158,9 +160,15 @@ public:
     // OSD toast at top-centre; a new toast replaces the current one.
     void toast(std::string text);
 
-    // QA: open a popover ("cc", "settings", "overlays", "menu") or the help
-    // card ("help") on the next build().
+    // QA: open a popover ("cc", "settings", "overlays", "menu"), the help
+    // card ("help") or the Open dialog ("open") on the next build().
     void open_menu(const std::string& which) { pending_menu_ = which; }
+
+    // "Open media" card shown over playback (Media > Open…, O key): URL / path
+    // field, Browse… and recents. A choice comes back as PlayerUIState::open_source.
+    void show_open_dialog()  { open_card_ = true; open_card_focus_ = true; }
+    void close_open_dialog() { open_card_ = false; }
+    bool open_dialog_visible() const { return open_card_; }
 
     // Current eased subtitle lift (logical px) — applied by main to bitmap
     // subtitles in the lower part of the frame so they track the text cue.
@@ -191,6 +199,9 @@ private:
     bool   showing_mini_     = false; // mini-progress line drawn (controls hidden)
 
     char url_buf_[2048]      = {};    // persists InputText state between launcher frames
+                                      // (shared with the Open dialog)
+    bool open_card_          = false; // Open dialog visible
+    bool open_card_focus_    = false; // focus its URL field on the next build()
 
     ui::SeekBarState seek_;
     int    tc_mode_          = 0;     // timecode display mode (click cycles)
@@ -218,6 +229,11 @@ private:
     void build_cc_popup(const PlayerUIInputs& in, PlayerUIState& out);
     void build_overlays_popup(const PlayerUIInputs& in, PlayerUIState& out);
     void build_help_card(PlayerUIState& out, float win_w, float win_h);
+    void build_open_card(const PlayerUIInputs& in, PlayerUIState& out, float win_w, float win_h);
+    // URL / path field + Open + Browse… + recents, shared by the launcher and
+    // the Open dialog. Returns the chosen source, or empty. recents_h 0 = fill.
+    std::string build_open_rows(const std::vector<std::string>& recents, float row_w,
+                                float recents_h, bool focus_input);
     void build_sub_rows(const PlayerUIInputs& in, PlayerUIState& out);
     void build_sub_style_rows(PlayerUIState& out);
     void draw_hover_card(const PlayerUIInputs& in, const ui::SeekBarOut& sb, float win_w);

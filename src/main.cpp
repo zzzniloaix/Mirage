@@ -24,6 +24,7 @@
 #include "SidecarSubtitles.h"
 #include "FfOpen.h"
 #include "UiFormat.h"
+#include "MediaSession.h"
 
 // imgui headers (needed for WantCapture* guards in GLFW callbacks)
 #include "imgui.h"
@@ -55,7 +56,8 @@ extern "C" {
 // File-scope pointer so GLFW callbacks can call notify_activity().
 static PlayerUI* g_player_ui = nullptr;
 
-// Set by GLFW drop callback (main thread only).
+// Set by GLFW drop callback (main thread only). Read by the launcher and,
+// during playback, by run_session (opens the file in place of the current one).
 static std::string g_drop_pending;
 
 static std::atomic<double> s_seek_delta{ 0.0 };
@@ -75,7 +77,6 @@ static std::atomic<double> s_cursor_x{ -1.0 };   // window-space cursor, always 
 static std::atomic<double> s_cursor_y{ -1.0 };
 static std::atomic<double> s_click_x{ -1.0 };    // window-space left-click (consumed once)
 static std::atomic<double> s_click_y{ -1.0 };
-static std::atomic<double> s_decode_time_ms{ 0.0 };  // updated by video decode thread
 static std::atomic<int>    s_step_frames{ 0 };  // +1 = fwd, -1 = bwd; computed in render loop
 static std::atomic<int>    s_single_steps{ 0 }; // Shift+. requests; one decoded frame per count
 static std::atomic<int>    s_back_steps{ 0 };   // Shift+, requests; one frame backward per count
@@ -86,6 +87,7 @@ static std::atomic<int>    s_mute_toggle{ 0 };         // M requests
 static std::atomic<int>    s_sub_toggle{ 0 };          // C requests (on/off)
 static std::atomic<int>    s_sub_cycle{ 0 };           // Shift+C requests (next track)
 static std::atomic<int>    s_audio_cycle{ 0 };         // A requests (next audio track)
+static std::atomic<int>    s_open_dialog{ 0 };         // O requests (Open dialog)
 
 // Video frames more than this far (wall seconds, i.e. media / speed) behind the
 // audio clock are dropped rather than shown. Above Sync's 100 ms correction
@@ -211,10 +213,11 @@ static void on_key(GLFWwindow* window, int key, int /*scancode*/, int action, in
     if (ImGui::GetIO().WantCaptureKeyboard) return;
     if (action != GLFW_PRESS) return;
     // Esc: a seek-bar drag in progress is cancelled by ImGui (it owns the
-    // keyboard while the bar is held, so we never get here); otherwise leave
-    // fullscreen first, and only then quit.
+    // keyboard while the bar is held, so we never get here); otherwise close
+    // the Open dialog, then leave fullscreen, and only then quit.
     if (key == GLFW_KEY_ESCAPE) {
-        if (s_fullscreen.load()) s_fullscreen_toggle.fetch_add(1);
+        if (g_player_ui && g_player_ui->open_dialog_visible()) g_player_ui->close_open_dialog();
+        else if (s_fullscreen.load()) s_fullscreen_toggle.fetch_add(1);
         else                     glfwSetWindowShouldClose(window, GLFW_TRUE);
     }
     else if (key == GLFW_KEY_Q) glfwSetWindowShouldClose(window, GLFW_TRUE);
@@ -238,6 +241,7 @@ static void on_key(GLFWwindow* window, int key, int /*scancode*/, int action, in
     else if (key == GLFW_KEY_C) s_sub_toggle.fetch_add(1);
     else if (key == GLFW_KEY_A) s_audio_cycle.fetch_add(1);
     else if (key == GLFW_KEY_V) s_show_vmaf.store(!s_show_vmaf.load());
+    else if (key == GLFW_KEY_O) s_open_dialog.fetch_add(1);
     // Shift+. / Shift+, → single-frame advance / step-back (frame-accurate).
     // Plain . / , = keyframe step.
     else if (key == GLFW_KEY_PERIOD && (mods & GLFW_MOD_SHIFT)) {
@@ -314,90 +318,6 @@ static void compute_video_rect(int win_w, int win_h, int vid_w, int vid_h,
         w = static_cast<int>(win_h * vid_ar);
         x = (win_w - w) / 2;
         y = 0;
-    }
-}
-
-// Video decode thread: pops packets from videoq, decodes, pushes frames to frameq.
-static void video_decode_loop(Decoder& decoder,
-                               Demuxer& demuxer,
-                               Queue<AVPacket*>& videoq,
-                               Queue<AVFrame*>&  frameq,
-                               bool              try_hw,
-                               std::stop_token   st)
-{
-    AVFrame* frame = av_frame_alloc();
-
-    while (!st.stop_requested()) {
-        AVPacket* pkt = nullptr;
-        if (!videoq.pop(pkt)) break;  // shut down or EOF sentinel
-
-        if (pkt == nullptr) {
-            // EOF — flush decoder and drain remaining buffered frames.
-            decoder.push(nullptr);
-            while (decoder.pull(frame)) {
-                AVFrame* out = av_frame_clone(frame);
-                if (!frameq.push(out)) { av_frame_free(&out); break; }
-                av_frame_unref(frame);
-            }
-        } else if (pkt == flush_sentinel()) {
-            // Seek or stream-switch sentinel — flush codec and drop stale frames.
-            decoder.flush();
-            AVFrame* stale;
-            while (frameq.try_pop(stale)) av_frame_free(&stale);
-            // If this sentinel followed a video stream switch, reopen the decoder.
-            if (demuxer.consume_video_reopen())
-                (void)decoder.open(demuxer.video_codecpar(), try_hw);
-        } else {
-            // Normal packet — decode and time.
-            auto t0 = std::chrono::steady_clock::now();
-            decoder.push(pkt);
-            av_packet_free(&pkt);
-
-            int pulled = 0;
-            while (decoder.pull(frame)) {
-                ++pulled;
-                AVFrame* out = av_frame_clone(frame);
-                if (!frameq.push(out)) {
-                    av_frame_free(&out);
-                    break;
-                }
-                av_frame_unref(frame);
-            }
-
-            if (pulled > 0) {
-                auto t1 = std::chrono::steady_clock::now();
-                s_decode_time_ms.store(
-                    std::chrono::duration<double, std::milli>(t1 - t0).count()
-                    / static_cast<double>(pulled));
-            }
-        }
-    }
-
-    av_frame_free(&frame);
-}
-
-// Audio decode thread: pops packets from audioq, decodes into AudioPlayer ring buffer.
-static void audio_decode_loop(AudioDecoder&     audio_decoder,
-                               AudioPlayer&      audio_player,
-                               Demuxer&          demuxer,
-                               Queue<AVPacket*>& audioq,
-                               std::stop_token   st)
-{
-    while (!st.stop_requested()) {
-        AVPacket* pkt = nullptr;
-        if (!audioq.pop(pkt)) break;
-        if (pkt == nullptr) break;  // EOF sentinel
-        if (pkt == flush_sentinel()) {
-            audio_decoder.flush();
-            audio_player.flush();
-            // If this sentinel followed an audio stream switch, reopen the decoder.
-            if (demuxer.consume_audio_reopen())
-                (void)audio_decoder.reopen(demuxer.audio_codecpar(), audio_player,
-                                           demuxer.audio_time_base());
-            continue;
-        }
-        audio_decoder.decode(pkt, audio_player);
-        av_packet_free(&pkt);
     }
 }
 
@@ -546,6 +466,91 @@ static std::string fps_text(double fps)
     return s;
 }
 
+// ── App-level state shared by every media session ────────────────────────────
+
+// Command-line options. QA flags marked "first" stage the first media only;
+// captures (--snapshot / --ui-snapshot / --av-report) wait until every
+// --qa-open-after switch has happened, so they describe the last source.
+struct CliOptions {
+    bool        auto_vmaf     = false;    // first
+    std::string vmaf_ref_path;   // --vmaf ref.mp4 for single-file mode
+    int         cli_sub_idx   = -2;   // first: -2 = unset, -1 = explicit off, >=0 = stream idx
+    std::string cli_sub_file;         // first: --sub-file <path>
+    bool        no_auto_subs  = false; // --no-auto-subs: pref Off for this run
+    bool        test_bitmap_sub = false;  // QA: inject synthetic bitmap sub event
+    bool        try_hw          = true;   // VideoToolbox HW decode on by default; --no-hw to disable
+    // QA snapshot hook: `--snapshot <out.ppm> <frame_number>` captures the video
+    // viewport after N frames have been drawn, writes a PPM, and exits. Used
+    // to visually diff HW vs SW rendering paths without needing a human eye.
+    std::string snapshot_path;
+    int         snapshot_at_frame = 30;
+    // QA A/V hooks: `--speed <x>` (first), `--speed-seq <x@t,...>`, `--av-report <out.json> <secs>`.
+    double                 cli_speed = 1.0;
+    std::vector<SpeedStep> speed_seq;
+    std::string            av_report_path;
+    double                 av_report_secs = 10.0;
+    // QA UI hooks: `--ui-snapshot <out.png> <frame>` captures the whole window
+    // (video + chrome) after the UI has settled; modifiers stage what to show.
+    std::string ui_snap_path;
+    int         ui_snap_frame = 30;
+    float       ui_hover_frac = -1.0f;      // --ui-hover <frac>
+    std::string ui_menu;                    // first: --ui-menu cc|settings|overlays|help|menu|open
+    double      ui_sub_at     = -1.0;       // --ui-sub-at <seconds>
+    std::string ui_osd;                     // --ui-osd "<text>"
+    std::string ui_overlays;                // first: --ui-overlays DIGW...
+    bool        ui_hide_controls = false;   // --ui-hide-controls: capture with chrome hidden
+    // QA source switching: `--qa-open-after <secs> <path>` (repeatable) opens
+    // <path> once the current media has played <secs> wall seconds — the same
+    // path a drop / the Open dialog takes.
+    std::vector<std::pair<double, std::string>> qa_open;
+};
+
+struct App {
+    GLFWwindow*    window = nullptr;
+    PlayerUI&      player_ui;
+    DebugHUD&      debug_hud;
+    NetworkLogger& net_logger;
+    CliOptions&    cli;
+    // QA ui-snapshot runs ignore (and never write) prefs.txt for determinism.
+    bool           prefs_enabled = true;
+    Prefs          prefs;
+    SubPref        sub_pref;                  // user subtitle preference (C, menus)
+    std::vector<std::string> recents;
+    float          volume          = 1.0f;    // carried from one media to the next
+    float          pre_mute_volume = 1.0f;
+    int            fs_x = 0, fs_y = 0, fs_w = 0, fs_h = 0;   // windowed geometry
+    int            sessions_played = 0;
+    std::size_t    qa_open_next    = 0;       // next --qa-open-after event
+};
+
+// Opens `path` as a new MediaSession and records it in the recent list. On
+// failure returns nullptr with a user-facing message in `err`.
+static std::unique_ptr<MediaSession> open_session(App& app, const std::string& path, std::string& err)
+{
+    auto ms = std::make_unique<MediaSession>();
+    MediaSessionOptions opt;
+    opt.try_hw          = app.cli.try_hw;
+    opt.test_bitmap_sub = app.cli.test_bitmap_sub;
+    if (!ms->open(path, opt, err)) return nullptr;
+    // Local paths are stored absolute so a recent entry works from any cwd.
+    std::error_code ec;
+    std::string entry = path;
+    if (!ffopen::is_network_url(path)) {
+        auto abs = std::filesystem::absolute(path, ec);
+        if (!ec) entry = abs.lexically_normal().string();
+    }
+    save_recent(entry);
+    app.recents = load_recents();
+    if (ms->has_audio) ms->audio_player.set_volume(app.volume);
+    return ms;
+}
+
+// Plays one media source until the window should close (returns nullptr) or
+// another source has been opened successfully (returns it; the caller then
+// destroys `ms` and plays the new session). All render-loop state below is
+// per media and starts fresh with each call.
+static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms);
+
 // ── main ──────────────────────────────────────────────────────────────────────
 
 int main(int argc, char* argv[])
@@ -617,88 +622,79 @@ int main(int argc, char* argv[])
         glViewport(0, 0, w, h);
     }
 
+    ScrubBar scrub_bar;
+    if (!scrub_bar.init()) {
+        glfwDestroyWindow(window);
+        glfwTerminate();
+        return EXIT_FAILURE;
+    }
+
+    DebugHUD debug_hud;
+    if (!debug_hud.init()) {
+        glfwDestroyWindow(window);
+        glfwTerminate();
+        return EXIT_FAILURE;
+    }
+
     // ── Choose file: command-line arg or launcher screen ──────────────────────
     std::string open_path;
-    bool        auto_vmaf     = false;
-    std::string vmaf_ref_path;   // --vmaf ref.mp4 for single-file mode
-    int         cli_sub_idx   = -2;   // -2 = unset, -1 = explicit off, >=0 = stream idx
-    std::string cli_sub_file;         // --sub-file <path>
-    bool        no_auto_subs  = false; // --no-auto-subs: pref Off for this run
-    bool        test_bitmap_sub = false;  // QA: inject synthetic bitmap sub event
-    bool        try_hw          = true;   // VideoToolbox HW decode on by default; --no-hw to disable
-    // QA snapshot hook: `--snapshot <out.ppm> <frame_number>` captures the video
-    // viewport after N frames have been drawn, writes a PPM, and exits. Used
-    // to visually diff HW vs SW rendering paths without needing a human eye.
-    std::string snapshot_path;
-    int         snapshot_at_frame = 30;
-    // QA A/V hooks: `--speed <x>`, `--speed-seq <x@t,...>`, `--av-report <out.json> <secs>`.
-    double                 cli_speed = 1.0;
-    std::vector<SpeedStep> speed_seq;
-    std::string            av_report_path;
-    double                 av_report_secs = 10.0;
-    // QA UI hooks: `--ui-snapshot <out.png> <frame>` captures the whole window
-    // (video + chrome) after the UI has settled; modifiers stage what to show.
-    std::string ui_snap_path;
-    int         ui_snap_frame = 30;
-    float       ui_hover_frac = -1.0f;      // --ui-hover <frac>
-    std::string ui_menu;                    // --ui-menu cc|settings|overlays|help|menu
-    double      ui_sub_at     = -1.0;       // --ui-sub-at <seconds>
-    std::string ui_osd;                     // --ui-osd "<text>"
-    std::string ui_overlays;                // --ui-overlays DIGW...
-    bool        ui_hide_controls = false;   // --ui-hide-controls: capture with chrome hidden
+    CliOptions  cli;
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
         if (arg == "--vmaf") {
-            auto_vmaf = true;
+            cli.auto_vmaf = true;
             if (i + 1 < argc && argv[i + 1][0] != '-')
-                vmaf_ref_path = argv[++i];
+                cli.vmaf_ref_path = argv[++i];
         } else if (arg == "--sub" && i + 1 < argc) {
             const std::string v = argv[++i];
-            cli_sub_idx = (v == "off") ? -1 : std::max(-1, std::atoi(v.c_str()));
+            cli.cli_sub_idx = (v == "off") ? -1 : std::max(-1, std::atoi(v.c_str()));
         } else if (arg == "--sub-file" && i + 1 < argc) {
-            cli_sub_file = argv[++i];
+            cli.cli_sub_file = argv[++i];
         } else if (arg == "--no-auto-subs") {
-            no_auto_subs = true;
+            cli.no_auto_subs = true;
         } else if (arg == "--window" && i + 1 < argc) {
             ++i;   // handled before window creation
         } else if (arg == "--ui-snapshot" && i + 2 < argc) {
-            ui_snap_path  = argv[++i];
-            ui_snap_frame = std::atoi(argv[++i]);
+            cli.ui_snap_path  = argv[++i];
+            cli.ui_snap_frame = std::atoi(argv[++i]);
         } else if (arg == "--ui-hover" && i + 1 < argc) {
-            ui_hover_frac = std::clamp(static_cast<float>(std::atof(argv[++i])), 0.0f, 1.0f);
+            cli.ui_hover_frac = std::clamp(static_cast<float>(std::atof(argv[++i])), 0.0f, 1.0f);
         } else if (arg == "--ui-menu" && i + 1 < argc) {
-            ui_menu = argv[++i];
+            cli.ui_menu = argv[++i];
         } else if (arg == "--ui-sub-at" && i + 1 < argc) {
-            ui_sub_at = std::max(0.0, std::atof(argv[++i]));
+            cli.ui_sub_at = std::max(0.0, std::atof(argv[++i]));
         } else if (arg == "--ui-osd" && i + 1 < argc) {
-            ui_osd = argv[++i];
+            cli.ui_osd = argv[++i];
         } else if (arg == "--ui-hide-controls") {
-            ui_hide_controls = true;
+            cli.ui_hide_controls = true;
         } else if (arg == "--ui-overlays" && i + 1 < argc) {
-            ui_overlays = argv[++i];
+            cli.ui_overlays = argv[++i];
         } else if (arg == "--test-bitmap-sub") {
-            test_bitmap_sub = true;
+            cli.test_bitmap_sub = true;
         } else if (arg == "--no-hw") {
-            try_hw = false;
+            cli.try_hw = false;
         } else if (arg == "--snapshot" && i + 2 < argc) {
-            snapshot_path     = argv[++i];
-            snapshot_at_frame = std::atoi(argv[++i]);
+            cli.snapshot_path     = argv[++i];
+            cli.snapshot_at_frame = std::atoi(argv[++i]);
         } else if (arg == "--speed" && i + 1 < argc) {
-            cli_speed = std::atof(argv[++i]);
-            if (!is_speed_preset(cli_speed)) {
+            cli.cli_speed = std::atof(argv[++i]);
+            if (!is_speed_preset(cli.cli_speed)) {
                 logger::error("--speed {}: not a preset speed", argv[i]);
                 return EXIT_FAILURE;
             }
         } else if (arg == "--speed-seq" && i + 1 < argc) {
-            if (!parse_speed_seq(argv[++i], speed_seq)) {
+            if (!parse_speed_seq(argv[++i], cli.speed_seq)) {
                 logger::error("--speed-seq '{}': expected speed@secs[,speed@secs...] with preset speeds",
                               argv[i]);
                 return EXIT_FAILURE;
             }
         } else if (arg == "--av-report" && i + 2 < argc) {
-            av_report_path = argv[++i];
-            av_report_secs = std::atof(argv[++i]);
+            cli.av_report_path = argv[++i];
+            cli.av_report_secs = std::atof(argv[++i]);
+        } else if (arg == "--qa-open-after" && i + 2 < argc) {
+            const double secs = std::max(0.0, std::atof(argv[++i]));
+            cli.qa_open.emplace_back(secs, argv[++i]);
         } else if (open_path.empty()) {
             open_path = arg;
         }
@@ -708,13 +704,24 @@ int main(int argc, char* argv[])
     NetworkLogger net_logger;
     net_logger.install();
 
-    // ── Pick a source + open container.  On failure, fall back to the launcher
+    App app{ .window = window, .player_ui = player_ui, .debug_hud = debug_hud,
+             .net_logger = net_logger, .cli = cli };
+    app.fs_w = init_win_w;
+    app.fs_h = init_win_h;
+    app.recents = load_recents();
+    // QA ui-snapshot runs ignore (and never write) prefs.txt for determinism.
+    app.prefs_enabled = cli.ui_snap_path.empty();
+    app.prefs    = app.prefs_enabled ? load_prefs() : Prefs{};
+    player_ui.set_sub_style(app.prefs.sub_style);
+    app.sub_pref = app.prefs.sub;
+    if (cli.no_auto_subs) app.sub_pref.mode = SubPref::Off;
+
+    // ── Pick a source + open it.  On failure, fall back to the launcher
     // with an error banner instead of exiting — a bad URL shouldn't kill the app.
-    Demuxer       demuxer;
-    auto          recents      = load_recents();
+    std::unique_ptr<MediaSession> session;
     std::string   launcher_err;
 
-    while (true) {
+    while (!session) {
         if (open_path.empty()) {
             while (!glfwWindowShouldClose(window) && open_path.empty()) {
                 if (!g_drop_pending.empty()) {
@@ -731,13 +738,14 @@ int main(int argc, char* argv[])
                 glClear(GL_COLOR_BUFFER_BIT);
 
                 player_ui.begin_frame();
-                open_path = player_ui.draw_launcher(recents, launcher_err);
+                open_path = player_ui.draw_launcher(app.recents, launcher_err);
                 player_ui.end_frame();
 
                 glfwSwapBuffers(window);
             }
             if (open_path.empty()) {
                 // User closed the window without choosing
+                net_logger.uninstall();
                 g_player_ui = nullptr;
                 player_ui.shutdown();
                 glfwDestroyWindow(window);
@@ -746,353 +754,127 @@ int main(int argc, char* argv[])
             }
         }
 
-        if (demuxer.open(open_path.c_str())) {
-            if (demuxer.video_stream_index() >= 0) {
-                save_recent(open_path);
-                break;                                  // success — exit retry loop
-            }
-            logger::error("No video stream — nothing to display");
-            launcher_err = "No video stream in: " + open_path;
-            demuxer.close();
-        } else {
-            launcher_err = "Failed to open: " + open_path;
-        }
+        session = open_session(app, open_path, launcher_err);
         // Retry: clear the path so the launcher loop above re-runs.
         open_path.clear();
     }
 
-    // ── Manifest parser (HLS / DASH only — non-fatal) ─────────────────────────
-    ManifestParser manifest;
-    if (ManifestParser::is_manifest(open_path.c_str())) {
-        if (!manifest.parse(open_path.c_str()))
-            logger::warn("ManifestParser: failed to parse {}", open_path);
-    }
-
-    // ── VMAF analyzer ─────────────────────────────────────────────────────────
-    VMAFAnalyzer vmaf_analyzer;
-    bool vmaf_was_running = false;  // for detecting completion (auto-export)
-
-    if (auto_vmaf) {
+    // ── VMAF analyzer: --vmaf auto-starts on the first media ──────────────────
+    if (cli.auto_vmaf) {
         s_show_vmaf.store(true);
-        if (!manifest.variants().empty()) {
+        VMAFAnalyzer& vmaf_analyzer = session->vmaf_analyzer;
+        if (!session->manifest.variants().empty()) {
             logger::info("VMAFAnalyzer: auto-starting manifest variant analysis");
-            vmaf_analyzer.start_manifest(manifest.variants());
-        } else if (!vmaf_ref_path.empty()) {
+            vmaf_analyzer.start_manifest(session->manifest.variants());
+        } else if (!cli.vmaf_ref_path.empty()) {
             logger::info("VMAFAnalyzer: auto-starting single-file analysis vs {}",
-                         vmaf_ref_path);
-            vmaf_analyzer.start(vmaf_ref_path, open_path);
+                         cli.vmaf_ref_path);
+            vmaf_analyzer.start(cli.vmaf_ref_path, session->path);
         } else {
             logger::warn("VMAFAnalyzer: --vmaf used but no ref file or manifest variants "
                          "— open VMAF panel (V) and use Analyze menu");
         }
-        vmaf_was_running = vmaf_analyzer.running();
     }
 
-    // ── Decoders ──────────────────────────────────────────────────────────────
-    Decoder video_decoder;
-    if (!video_decoder.open(demuxer.video_codecpar(), try_hw))
-        return EXIT_FAILURE;
+    // ── Play; a successful Open / drop hands back the next session ────────────
+    // Assigning the new session destroys the old one: its threads stop and
+    // join, then its FFmpeg / GL / audio resources are freed (GL context current).
+    while (session)
+        session = run_session(app, *session);
 
-    AudioPlayer  audio_player;
-    AudioDecoder audio_decoder;
-    const bool   has_audio = demuxer.audio_stream_index() >= 0;
+    // ── Shutdown ──────────────────────────────────────────────────────────────
+    net_logger.uninstall();
+    g_player_ui = nullptr;
+    player_ui.shutdown();
+    glfwDestroyWindow(window);
+    glfwTerminate();
+    return EXIT_SUCCESS;
+}
 
-    if (has_audio) {
-        if (!audio_player.init(48000))           return EXIT_FAILURE;
-        if (!audio_decoder.open(demuxer.audio_codecpar(), audio_player,
-                                demuxer.audio_time_base()))
-            return EXIT_FAILURE;
-    }
+// ── Playback of one media source ─────────────────────────────────────────────
 
-    const AVRational video_tb = demuxer.video_time_base();
+// Plays one media source until the window should close (returns nullptr) or
+// another source has been opened successfully (returns it; the caller then
+// destroys `ms` and plays the new session). All render-loop state below is
+// per media and starts fresh with each call.
+static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
+{
+    const bool first_session = app.sessions_played++ == 0;
 
-    VideoRenderer renderer;
-    if (!renderer.init(video_decoder.width(), video_decoder.height(),
-                       video_decoder.pixel_format(),
-                       video_decoder.colorspace(),
-                       video_decoder.color_range(),
-                       video_decoder.color_transfer(),
-                       video_decoder.color_primaries())) {
-        glfwDestroyWindow(window);
-        glfwTerminate();
-        return EXIT_FAILURE;
-    }
+    // A new source starts playing from its beginning: drop transport requests
+    // aimed at the previous one. Overlay toggles, speed and fullscreen carry over.
+    s_paused.store(false);
+    s_seek_delta.store(0.0);
+    s_scrubbing.store(false);
+    s_scrub_frac.store(-1.0);
+    s_click_x.store(-1.0);
+    s_click_y.store(-1.0);
+    s_step_frames.store(0);
+    s_single_steps.store(0);
+    s_back_steps.store(0);
+    s_sub_toggle.store(0);
+    s_sub_cycle.store(0);
+    s_audio_cycle.store(0);
+    s_open_dialog.store(0);
 
-    ScrubBar scrub_bar;
-    if (!scrub_bar.init()) {
-        glfwDestroyWindow(window);
-        glfwTerminate();
-        return EXIT_FAILURE;
-    }
+    // App-level objects and per-media components, under the names the loop
+    // below has always used.
+    GLFWwindow*      window           = app.window;
+    PlayerUI&        player_ui        = app.player_ui;
+    DebugHUD&        debug_hud        = app.debug_hud;
+    NetworkLogger&   net_logger       = app.net_logger;
+    const std::string& open_path      = ms.path;
+    Demuxer&         demuxer          = ms.demuxer;
+    ManifestParser&  manifest         = ms.manifest;
+    VMAFAnalyzer&    vmaf_analyzer    = ms.vmaf_analyzer;
+    Decoder&         video_decoder    = ms.video_decoder;
+    AudioPlayer&     audio_player     = ms.audio_player;
+    AudioDecoder&    audio_decoder    = ms.audio_decoder;
+    VideoRenderer&   renderer         = ms.renderer;
+    ThumbnailStrip&  thumb_strip      = ms.thumb_strip;
+    ScrubDecoder&    scrub_decoder    = ms.scrub_decoder;
+    SubtitleDecoder& subtitle_decoder = ms.subtitle_decoder;
+    Queue<AVFrame*>& frameq           = ms.frameq;
+    const bool       has_audio        = ms.has_audio;
+    const bool       local_media      = ms.local_media;
+    const double     duration         = ms.duration;
+    const AVRational video_tb         = ms.video_tb;
+    const int        coded_w = ms.coded_w, coded_h = ms.coded_h;
+    const int        vid_w   = ms.vid_w,   vid_h   = ms.vid_h;
+    const double     frame_dt         = ms.frame_dt;
+    const double     video_start_s    = ms.video_start_s;
+    auto&            inspector_lines  = ms.inspector_lines;
+    const std::size_t decode_line_idx = ms.decode_line_idx;
+    const auto&      audio_track_items    = ms.audio_track_items;
+    const auto&      video_track_items    = ms.video_track_items;
+    const auto&      subtitle_track_items = ms.subtitle_track_items;
 
-    DebugHUD debug_hud;
-    if (!debug_hud.init()) {
-        glfwDestroyWindow(window);
-        glfwTerminate();
-        return EXIT_FAILURE;
-    }
+    const CliOptions&  cli              = app.cli;
+    const bool         auto_vmaf        = cli.auto_vmaf;
+    const bool         test_bitmap_sub  = cli.test_bitmap_sub;
+    const std::string& snapshot_path    = cli.snapshot_path;
+    const int          snapshot_at_frame = cli.snapshot_at_frame;
+    const double       cli_speed        = cli.cli_speed;
+    const auto&        speed_seq        = cli.speed_seq;
+    std::string&       av_report_path   = app.cli.av_report_path;   // cleared once written
+    const double       av_report_secs   = cli.av_report_secs;
+    const std::string& ui_snap_path     = cli.ui_snap_path;
+    const int          ui_snap_frame    = cli.ui_snap_frame;
+    const float        ui_hover_frac    = cli.ui_hover_frac;
+    const double       ui_sub_at        = cli.ui_sub_at;
+    const std::string& ui_osd           = cli.ui_osd;
+    const bool         ui_hide_controls = cli.ui_hide_controls;
+    const std::string  ui_menu      = first_session ? cli.ui_menu      : std::string();
+    const std::string  ui_overlays  = first_session ? cli.ui_overlays  : std::string();
+    const int          cli_sub_idx  = first_session ? cli.cli_sub_idx  : -2;
+    const std::string  cli_sub_file = first_session ? cli.cli_sub_file : std::string();
+    float& pre_mute_volume = app.pre_mute_volume;
+    int& fs_x = app.fs_x;
+    int& fs_y = app.fs_y;
+    int& fs_w = app.fs_w;
+    int& fs_h = app.fs_h;
 
-    const double duration = demuxer.duration();  // seconds, or -1 for live
-
-    ThumbnailStrip thumb_strip;
-    // Non-fatal: live streams or formats without a keyframe index won't have thumbnails.
-    (void)thumb_strip.init(open_path.c_str(),
-                     demuxer.video_stream_index(),
-                     demuxer.video_time_base(),
-                     duration);
-
-    // Dedicated single-frame decoder for smooth scrubbing.
-    // Opened once; receives request() calls during mouse drags.
-    ScrubDecoder scrub_decoder;
-    scrub_decoder.open(open_path.c_str(),
-                       demuxer.video_stream_index(),
-                       demuxer.video_time_base());
-
-    // ── Stream inspector panel content (static, built once) ──────────────────
-    std::vector<DebugHUD::InspectorLine> inspector_lines;
-    std::size_t decode_line_idx = 0;   // set below; refreshed each frame so
-                                        // "VideoToolbox" appears when HW activates
-    {
-        using L = DebugHUD::InspectorLine;
-        AVFormatContext* fc = demuxer.fmt_ctx();
-
-        // Container section
-        inspector_lines.push_back({ "CONTAINER", true });
-        inspector_lines.push_back({ std::format("  Format   {}",
-            (fc->iformat && fc->iformat->name) ? fc->iformat->name : "?") });
-        double dur = demuxer.duration();
-        if (dur > 0.0) {
-            int d_s = static_cast<int>(dur);
-            inspector_lines.push_back({ std::format("  Duration {:02d}:{:02d}:{:02d}",
-                d_s / 3600, (d_s % 3600) / 60, d_s % 60) });
-        } else {
-            inspector_lines.push_back({ "  Duration live" });
-        }
-
-        // Video section
-        inspector_lines.push_back({ " ", false });  // blank spacer
-        inspector_lines.push_back({ "VIDEO", true });
-        AVCodecParameters* vpar = demuxer.video_codecpar();
-        inspector_lines.push_back({ std::format("  Codec    {}",
-            avcodec_get_name(vpar->codec_id)) });
-        inspector_lines.push_back({ std::format("  Size     {}x{}",
-            video_decoder.width(), video_decoder.height()) });
-        {
-            AVStream* vs = fc->streams[demuxer.video_stream_index()];
-            double fps = (vs->avg_frame_rate.den > 0)
-                ? av_q2d(vs->avg_frame_rate) : 0.0;
-            inspector_lines.push_back({ std::format("  FPS      {:.4g}", fps) });
-        }
-        {
-            const char* pf = av_get_pix_fmt_name(video_decoder.pixel_format());
-            inspector_lines.push_back({ std::format("  Pix fmt  {}", pf ? pf : "?") });
-        }
-        // Decode path — text is refreshed each frame in the render loop so it
-        // flips from "Software" to "VideoToolbox" once the first HW frame lands.
-        decode_line_idx = inspector_lines.size();
-        inspector_lines.push_back({ std::format("  Decode   {}",
-            try_hw ? "VideoToolbox (requested)" : "Software") });
-        {
-            const char* cs = av_color_space_name(video_decoder.colorspace());
-            const char* cr = av_color_range_name(video_decoder.color_range());
-            inspector_lines.push_back({ std::format("  Color    {} / {}",
-                cs ? cs : "?", cr ? cr : "?") });
-            const char* trc_name = av_color_transfer_name(video_decoder.color_transfer());
-            const char* dynrange =
-                renderer.hdr_mode() == 0 ? "HDR (PQ → tonemap)"  :
-                renderer.hdr_mode() == 1 ? "HDR (HLG → tonemap)" : "SDR";
-            inspector_lines.push_back({ std::format("  Transfer {}", trc_name ? trc_name : "?") });
-            inspector_lines.push_back({ std::format("  Dynamic  {}", dynrange) });
-        }
-
-        // Audio section
-        if (has_audio) {
-            inspector_lines.push_back({ " ", false });  // blank spacer
-            inspector_lines.push_back({ "AUDIO", true });
-            AVCodecParameters* apar = demuxer.audio_codecpar();
-            inspector_lines.push_back({ std::format("  Codec    {}",
-                avcodec_get_name(apar->codec_id)) });
-            inspector_lines.push_back({ std::format("  Rate     {} Hz",
-                apar->sample_rate) });
-            inspector_lines.push_back({ std::format("  Channels {}",
-                apar->ch_layout.nb_channels) });
-            const char* sf = av_get_sample_fmt_name(
-                static_cast<AVSampleFormat>(apar->format));
-            inspector_lines.push_back({ std::format("  Format   {}", sf ? sf : "?") });
-        }
-        (void)L{};  // suppress unused typedef warning
-    }
-
-    // ── Track selector items (built once; labels for each stream) ────────────
-    std::vector<DebugHUD::TrackItem> audio_track_items;
-    std::vector<DebugHUD::TrackItem> video_track_items;
-    std::vector<DebugHUD::TrackItem> subtitle_track_items;
-    {
-        int n = 1;
-        for (const auto& t : demuxer.audio_tracks()) {
-            std::string lbl;
-            if (!t.language.empty())
-                lbl = std::format("{}. {}  {}  {}Hz  {}ch",
-                    n++, t.language, t.codec_name, t.sample_rate, t.channels);
-            else
-                lbl = std::format("{}. Track {}  {}  {}Hz  {}ch",
-                    n++, t.stream_idx, t.codec_name, t.sample_rate, t.channels);
-            if (t.bit_rate > 0)
-                lbl += std::format("  {}k", t.bit_rate / 1000);
-            audio_track_items.push_back({ t.stream_idx, std::move(lbl) });
-        }
-        n = 1;
-        for (const auto& t : demuxer.video_tracks()) {
-            std::string lbl = std::format("{}. {}  {}x{}  {:.4g}fps",
-                n++, t.codec_name, t.width, t.height, t.fps);
-            if (t.bit_rate > 0)
-                lbl += std::format("  {}k", t.bit_rate / 1000);
-            video_track_items.push_back({ t.stream_idx, std::move(lbl) });
-        }
-        n = 1;
-        for (const auto& t : demuxer.subtitle_tracks()) {
-            std::string lbl;
-            if (!t.language.empty())
-                lbl = std::format("{}. {}  {}", n++, t.language, t.codec_name);
-            else
-                lbl = std::format("{}. Track {}  {}", n++, t.stream_idx, t.codec_name);
-            if (!t.is_text) lbl += "  (bitmap)";
-            subtitle_track_items.push_back({ t.stream_idx, std::move(lbl) });
-        }
-    }
-
-    // ── Queues ────────────────────────────────────────────────────────────────
-    Queue<AVPacket*> videoq(64);
-    Queue<AVPacket*> audioq(128);
-    Queue<AVPacket*> subq(64);     // subtitle packets — small, reused after track switch
-    Queue<AVFrame*>  frameq(8);    // small — decoded frames are large
-
-    // ── Subtitle decoder (lazily opened on track switch) ──────────────────────
-    SubtitleDecoder subtitle_decoder;
-
-    // ── QA-only: --test-bitmap-sub seeds a synthetic event with three rects
-    // that exercise the GL render path independent of any codec/demuxer.
-    // Authored on a 1920x1080 canvas; the render path scales into the video
-    // viewport via authored_w/h.
-    if (test_bitmap_sub) {
-        auto fill = [](BitmapSubRect& r, std::uint8_t R, std::uint8_t G,
-                       std::uint8_t B, std::uint8_t A) {
-            r.rgba.assign(static_cast<std::size_t>(r.w) * r.h * 4, 0);
-            for (int y = 0; y < r.h; ++y)
-                for (int x = 0; x < r.w; ++x) {
-                    std::uint8_t* p = r.rgba.data() + (y * r.w + x) * 4;
-                    p[0] = R; p[1] = G; p[2] = B; p[3] = A;
-                }
-        };
-        auto stroke_border = [](BitmapSubRect& r, int t, std::uint8_t R,
-                                std::uint8_t G, std::uint8_t B) {
-            for (int y = 0; y < r.h; ++y)
-                for (int x = 0; x < r.w; ++x) {
-                    if (x >= t && x < r.w - t && y >= t && y < r.h - t) continue;
-                    std::uint8_t* p = r.rgba.data() + (y * r.w + x) * 4;
-                    p[0] = R; p[1] = G; p[2] = B; p[3] = 255;
-                }
-        };
-
-        BitmapSubEvent ev;
-        ev.start_pts  = 0.0;
-        ev.end_pts    = 1e9;          // visible for entire playback
-        ev.authored_w = 1920;
-        ev.authored_h = 1080;
-
-        // Rect 1: top-left R/G/B/W swatch — verifies channel ordering.
-        // Four 50px stripes side by side, opaque.
-        {
-            BitmapSubRect r;
-            r.x = 40; r.y = 40; r.w = 200; r.h = 60;
-            r.rgba.assign(static_cast<std::size_t>(r.w) * r.h * 4, 0);
-            const std::uint8_t cols[4][4] = {
-                {255,   0,   0, 255},   // red
-                {  0, 255,   0, 255},   // green
-                {  0,   0, 255, 255},   // blue
-                {255, 255, 255, 255},   // white
-            };
-            for (int y = 0; y < r.h; ++y)
-                for (int x = 0; x < r.w; ++x) {
-                    int band = std::min(3, x / 50);
-                    std::uint8_t* p = r.rgba.data() + (y * r.w + x) * 4;
-                    p[0] = cols[band][0]; p[1] = cols[band][1];
-                    p[2] = cols[band][2]; p[3] = cols[band][3];
-                }
-            ev.rects.push_back(std::move(r));
-        }
-
-        // Rect 2: center semi-transparent yellow box with opaque white border —
-        // verifies alpha blend against underlying video.
-        {
-            BitmapSubRect r;
-            r.x = 560; r.y = 480; r.w = 800; r.h = 120;
-            fill(r, 255, 220, 0, 110);          // ~43% alpha
-            stroke_border(r, 6, 255, 255, 255);
-            ev.rects.push_back(std::move(r));
-        }
-
-        // Rect 3: bottom banner — horizontal alpha gradient on cyan to verify
-        // per-pixel alpha across the rect; opaque white border.
-        {
-            BitmapSubRect r;
-            r.x = 360; r.y = 920; r.w = 1200; r.h = 120;
-            r.rgba.assign(static_cast<std::size_t>(r.w) * r.h * 4, 0);
-            for (int y = 0; y < r.h; ++y)
-                for (int x = 0; x < r.w; ++x) {
-                    std::uint8_t* p = r.rgba.data() + (y * r.w + x) * 4;
-                    p[0] = 0;
-                    p[1] = 200;
-                    p[2] = 255;
-                    p[3] = static_cast<std::uint8_t>(255 * x / (r.w - 1));
-                }
-            stroke_border(r, 6, 255, 255, 255);
-            ev.rects.push_back(std::move(r));
-        }
-
-        subtitle_decoder.inject_test_bitmap(std::move(ev));
-        logger::info("--test-bitmap-sub: injected synthetic 3-rect event");
-    }
-
-    // ── Threads ───────────────────────────────────────────────────────────────
-    std::jthread demux_thread([&](std::stop_token st) {
-        demuxer.read_loop(st, videoq, audioq, &subq);
-        videoq.shutdown();
-        audioq.shutdown();
-        subq.shutdown();
-    });
-
-    std::jthread video_thread([&](std::stop_token st) {
-        video_decode_loop(video_decoder, demuxer, videoq, frameq, try_hw, st);
-        frameq.shutdown();
-    });
-
-    std::jthread audio_thread([&](std::stop_token st) {
-        if (has_audio)
-            audio_decode_loop(audio_decoder, audio_player, demuxer, audioq, st);
-    });
-
-    // Subtitle decode thread idles until a track is selected (subq receives
-    // no packets while subtitle_idx_ < 0). On a track switch the demuxer
-    // pushes a flush sentinel into subq; the thread sees the reopen flag and
-    // reinitialises the codec.
-    std::jthread subtitle_thread([&](std::stop_token st) {
-        while (!st.stop_requested()) {
-            AVPacket* pkt = nullptr;
-            if (!subq.pop(pkt)) break;
-            if (pkt == nullptr) break;                   // EOF
-            if (pkt == flush_sentinel()) {
-                subtitle_decoder.flush();
-                if (demuxer.consume_subtitle_reopen())
-                    (void)subtitle_decoder.reopen(demuxer.subtitle_codecpar(),
-                                                  demuxer.subtitle_time_base());
-                continue;
-            }
-            subtitle_decoder.decode_packet(pkt);
-            av_packet_free(&pkt);
-        }
-    });
-
+    bool vmaf_was_running = vmaf_analyzer.running();  // for detecting completion (auto-export)
     // ── A/V sync state ────────────────────────────────────────────────────────
     MasterClock master_clock;
     double  last_pts    = 0.0;
@@ -1105,28 +887,6 @@ int main(int argc, char* argv[])
     double  cur_speed   = 1.0;
     int64_t frame_count = 0;
 
-    const int coded_w = video_decoder.width();
-    const int coded_h = video_decoder.height();
-
-    // Compute display dimensions applying SAR and rotation metadata.
-    // Priority: stream-level SAR > codec-level SAR > 1:1 (square pixels).
-    AVRational sar = demuxer.video_sar();
-    if (sar.num <= 0 || sar.den <= 0) sar = video_decoder.sample_aspect_ratio();
-    if (sar.num <= 0 || sar.den <= 0) sar = {1, 1};
-
-    // Apply SAR to get the "natural" display width (height is unchanged).
-    int disp_w = static_cast<int>(coded_w * static_cast<double>(sar.num) / sar.den + 0.5);
-    int disp_h = coded_h;
-    if (disp_w <= 0) disp_w = coded_w;  // clamp in case of bad metadata
-
-    // Swap display dimensions if the stream carries a 90° or 270° rotation tag.
-    // (Common for videos recorded on phones stored landscape with a rotation flag.)
-    const double rotation = demuxer.video_rotation();
-    const bool transposed = (rotation > 45.0 && rotation < 135.0)   // 90°
-                         || (rotation > 225.0 && rotation < 315.0); // 270°
-    const int vid_w = transposed ? disp_h : disp_w;
-    const int vid_h = transposed ? disp_w : disp_h;
-
     // Currently active stream indices (updated when track switches complete).
     int cur_audio_stream    = demuxer.audio_stream_index();
     int cur_video_stream    = demuxer.video_stream_index();
@@ -1135,12 +895,10 @@ int main(int argc, char* argv[])
     // ── Subtitle selection: "show when available" (SubtitleSelect) ──────────
     // Choices = embedded tracks + same-stem sidecar files (local media only)
     // + --sub-file. choose_initial() picks one unless the user said Off.
-    // QA ui-snapshot runs ignore (and never write) prefs.txt for determinism.
-    const bool prefs_enabled = ui_snap_path.empty();
-    Prefs prefs = prefs_enabled ? load_prefs() : Prefs{};
-    player_ui.set_sub_style(prefs.sub_style);
-    SubPref sub_pref = prefs.sub;
-    if (no_auto_subs) sub_pref.mode = SubPref::Off;
+    // Prefs and the subtitle preference are app-level (loaded once in main).
+    const bool prefs_enabled = app.prefs_enabled;
+    Prefs&     prefs         = app.prefs;
+    SubPref&   sub_pref      = app.sub_pref;
     auto persist_prefs = [&] {
         if (!prefs_enabled) return;
         prefs.sub       = sub_pref;
@@ -1148,19 +906,11 @@ int main(int argc, char* argv[])
         save_prefs(prefs);
     };
 
-    const bool        local_media = !ffopen::is_network_url(open_path);
     const std::string media_stem  = local_media ? std::filesystem::path(open_path).stem().string() : std::string();
     std::vector<SubChoice> sub_choices = build_choices(
         demuxer.subtitle_tracks(),
         local_media ? find_sidecars(open_path) : std::vector<std::string>{},
         media_stem);
-
-    // Sidecar cue times are file-relative; the player clock is stream PTS.
-    double video_start_s = 0.0;
-    {
-        const AVStream* vs = demuxer.fmt_ctx()->streams[demuxer.video_stream_index()];
-        if (vs->start_time != AV_NOPTS_VALUE) video_start_s = vs->start_time * av_q2d(vs->time_base);
-    }
 
     // Loaded sidecar stores, kept so switching back is instant.
     std::map<std::string, std::unique_ptr<SidecarSubtitles>> sidecar_stores;
@@ -1330,14 +1080,7 @@ int main(int argc, char* argv[])
     bool   ui_seek_dragging  = false;  // ImGui seek bar was dragging last frame (1-frame carry)
     bool   pending_back_step = false;  // true while waiting on ScrubDecoder for backward step
 
-    // Estimate one-frame duration from the video stream's average frame rate.
-    // Falls back to ~16.67ms (60fps) if the container doesn't declare it.
-    double frame_dt = 1.0 / 60.0;
-    {
-        AVRational afr = demuxer.fmt_ctx()->streams[demuxer.video_stream_index()]->avg_frame_rate;
-        if (afr.num > 0 && afr.den > 0) frame_dt = static_cast<double>(afr.den) / afr.num;
-    }
-    last_frame_dur = frame_dt;
+    last_frame_dur = frame_dt;   // one frame from avg_frame_rate (MediaSession)
 
     // Seconds for a decoded frame: its PTS, else libavcodec's best-effort guess
     // (MPEG-TS without PTS on every frame), else one frame after the last one.
@@ -1347,7 +1090,7 @@ int main(int argc, char* argv[])
     };
 
     // ── QA: --speed / --speed-seq / --av-report state ─────────────────────────
-    if (cli_speed != 1.0) s_speed.store(cli_speed);
+    if (first_session && cli_speed != 1.0) s_speed.store(cli_speed);
     std::size_t            speed_seq_next = 0;
     bool                   qa_started     = false;  // first frame presented
     auto                   qa_t0          = startup_time;
@@ -1368,8 +1111,6 @@ int main(int argc, char* argv[])
     bool                kf_pts_final = false;    // re-copied once the thumb thread finished
     int64_t             total_dropped = 0;       // late frames dropped (top-bar chip)
     double              pre_scrub_pts = 0.0;     // restored when a drag is cancelled (Esc)
-    float               pre_mute_volume = 1.0f;
-    int                 fs_x = 0, fs_y = 0, fs_w = init_win_w, fs_h = init_win_h;  // windowed geometry
     PlayerUIInputs::Info ui_info;
     ui_info.title      = media_title(open_path);
     ui_info.title_full = open_path;
@@ -1420,6 +1161,19 @@ int main(int argc, char* argv[])
             glfwSetWindowMonitor(window, nullptr, fs_x, fs_y, fs_w, fs_h, 0);
             s_fullscreen.store(false);
         }
+    };
+
+    // ── Open another source (drop, Open dialog / O, --qa-open-after) ───────
+    // The request is opened one frame later so the "Opening …" toast is on
+    // screen during the (blocking) open. This session stays alive until the
+    // new one is ready, so a failed open just keeps playing it.
+    std::string open_req;
+    int         open_req_frames = 0;
+    auto request_open = [&](const std::string& p) {
+        if (p.empty()) return;
+        open_req        = p;
+        open_req_frames = 0;
+        player_ui.toast("Opening " + media_title(p) + " \u2026");
     };
 
     // No vsync — we manage timing ourselves via glfwWaitEventsTimeout
@@ -1490,6 +1244,22 @@ int main(int argc, char* argv[])
                 player_ui.toast(at.empty() ? "No audio" : "Only one audio track");
             }
         }
+
+        // ── Source switching requests ─────────────────────────────────────
+        if (!g_drop_pending.empty()) {
+            request_open(g_drop_pending);   // file dropped onto the window
+            g_drop_pending.clear();
+        }
+        if (s_open_dialog.exchange(0) > 0) player_ui.show_open_dialog();
+        // QA: --qa-open-after, timed from this media's start.
+        if (open_req.empty() && app.qa_open_next < cli.qa_open.size()
+            && now - startup_time >= std::chrono::duration<double>(cli.qa_open[app.qa_open_next].first)) {
+            const auto& ev = cli.qa_open[app.qa_open_next++];
+            logger::info("--qa-open-after: t={:.1f} opening {}", ev.first, ev.second);
+            request_open(ev.second);
+        }
+        // Captures wait for the last scripted switch (see CliOptions).
+        const bool qa_open_done = app.qa_open_next >= cli.qa_open.size();
 
         // ── Scrub state transitions ───────────────────────────────────────
         // ui_seek_dragging carries the ImGui seek bar drag state from the
@@ -1875,7 +1645,7 @@ int main(int argc, char* argv[])
             // QA snapshot: grab the video-viewport region after N frames drawn,
             // write PNG, exit. glFinish() ensures the draw is done; the negative
             // stride passed to stbi_write_png flips GL's bottom-up rows.
-            if (!snapshot_path.empty() && frame_count >= snapshot_at_frame) {
+            if (!snapshot_path.empty() && frame_count >= snapshot_at_frame && qa_open_done) {
                 glFinish();
                 std::vector<std::uint8_t> px(static_cast<std::size_t>(vw) * vh * 3);
                 glPixelStorei(GL_PACK_ALIGNMENT, 1);
@@ -1917,7 +1687,7 @@ int main(int argc, char* argv[])
                 : std::numeric_limits<double>::quiet_NaN();
 
             debug_hud.draw(
-                { last_pts, frame_count, av_diff, has_audio, s_decode_time_ms.load() },
+                { last_pts, frame_count, av_diff, has_audio, ms.decode_time_ms.load() },
                 fb_w, fb_h, global_ps);
         }
 
@@ -2224,6 +1994,7 @@ int main(int argc, char* argv[])
             in.audio_idx        = cur_audio_stream;
             in.sub_choices      = &sub_choices;
             in.sub_active       = sub_active;
+            in.recents          = &app.recents;
             in.thumbs           = &thumb_strip;
             in.kf_pts           = &kf_pts_ui;
             in.video_aspect     = video_aspect;
@@ -2268,7 +2039,7 @@ int main(int argc, char* argv[])
             player_ui.end_frame();
 
             // ── QA: --ui-snapshot — capture the whole window (video + chrome) ──
-            if (ui_snap_mode && has_frame && ui_sub_at_landed) {
+            if (ui_snap_mode && has_frame && ui_sub_at_landed && qa_open_done) {
                 ++ui_frames;
                 const double hover_t = (ui_hover_frac >= 0.0f && duration > 0.0)
                     ? ui_hover_frac * duration : -1.0;
@@ -2310,6 +2081,7 @@ int main(int argc, char* argv[])
 
             // Act on commands
             if (ui.quit)               glfwSetWindowShouldClose(window, GLFW_TRUE);
+            if (!ui.open_source.empty()) request_open(ui.open_source);
             if (ui.play_pause_clicked) s_paused.store(!paused);
             // Suppress seek-bar commits while scrubbing is active: the scrubbing
             // path (ScrubDecoder + scrub_ended) handles everything.  Firing seeks from
@@ -2426,10 +2198,30 @@ int main(int argc, char* argv[])
                     show_hint ? "   --  H for controls" : "").c_str());
         }
 
+        // ── Open the requested source in place of this one ───────────────
+        if (!open_req.empty() && ++open_req_frames >= 2) {
+            if (has_audio) audio_player.set_paused(true);   // silent while the open blocks
+            std::string err;
+            auto next = open_session(app, open_req, err);
+            open_req.clear();
+            if (next) {
+                if (has_audio) app.volume = audio_player.volume();
+                return next;
+            }
+            logger::warn("Open failed, continuing with {}: {}", open_path, err);
+            player_ui.toast(err);
+            if (has_audio) audio_player.set_paused(paused);
+            // The loop stood still during the open: re-anchor frame timing and
+            // give the audio clock its usual settle time.
+            const auto t = std::chrono::steady_clock::now();
+            next_pts_time        = t;
+            audio_clock_valid_at = t + std::chrono::milliseconds(300);
+        }
+
         // ── QA: --av-report — write JSON after N wall seconds of playback ──
         // Falls back to a startup deadline so a file that never presents a
         // frame still yields a (mostly empty) report instead of hanging.
-        if (!av_report_path.empty()) {
+        if (!av_report_path.empty() && qa_open_done) {
             const double t     = qa_started ? std::chrono::duration<double>(now - qa_t0).count() : 0.0;
             const bool   stuck = now - startup_time > std::chrono::duration<double>(av_report_secs + 15.0);
             if ((qa_started && t >= av_report_secs) || stuck) {
@@ -2486,22 +2278,5 @@ int main(int argc, char* argv[])
         }
     }
 
-    // ── Shutdown ──────────────────────────────────────────────────────────────
-    videoq.shutdown();
-    audioq.shutdown();
-    frameq.shutdown();
-    audio_player.interrupt();   // wake an audio thread blocked on a full ring
-
-    demux_thread.request_stop();
-    video_thread.request_stop();
-    audio_thread.request_stop();
-    // jthreads auto-join on destruction
-
-    audio_player.stop();
-    net_logger.uninstall();
-    g_player_ui = nullptr;
-    player_ui.shutdown();
-    glfwDestroyWindow(window);
-    glfwTerminate();
-    return EXIT_SUCCESS;
+    return nullptr;   // window closed
 }
