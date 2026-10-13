@@ -1,5 +1,6 @@
 #include "ScrubDecoder.h"
 #include "Logger.h"
+#include "FfOpen.h"
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -48,12 +49,17 @@ AVFrame* ScrubDecoder::poll_frame()
 void ScrubDecoder::decode_loop(std::stop_token st, std::string url,
                                 int video_stream_idx, AVRational time_base)
 {
+    // Network inputs time out, and a stop request aborts blocking I/O so
+    // close() can join promptly even while the URL is unreachable.
     AVFormatContext* fmt_ctx = nullptr;
-    if (avformat_open_input(&fmt_ctx, url.c_str(), nullptr, nullptr) < 0) {
-        logger::error("ScrubDecoder: failed to open '{}'", url);
+    if (ffopen::open_input(&fmt_ctx, url, st) < 0) {
+        if (!st.stop_requested())
+            logger::error("ScrubDecoder: failed to open '{}'", url);
         return;
     }
-    if (avformat_find_stream_info(fmt_ctx, nullptr) < 0) {
+    if (avformat_find_stream_info(fmt_ctx, nullptr) < 0
+        || video_stream_idx < 0
+        || video_stream_idx >= static_cast<int>(fmt_ctx->nb_streams)) {
         avformat_close_input(&fmt_ctx);
         return;
     }

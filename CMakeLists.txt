@@ -115,6 +115,15 @@ add_executable(mirage
     src/VMAFAnalyzer.cpp
     src/ScrubDecoder.cpp
     src/SubtitleDecoder.cpp
+    src/SubtitleSelect.cpp
+    src/SubtitleOverlay.cpp
+    src/SidecarSubtitles.cpp
+    src/UiFonts.cpp
+    src/UiFormat.cpp
+    src/UiIcons.cpp
+    src/UiWidgets.cpp
+    src/ThumbPlan.cpp
+    src/FfOpen.cpp
 )
 
 target_include_directories(mirage PRIVATE
@@ -154,11 +163,19 @@ add_executable(mirage_tests
     tests/test_yuv_matrix.cpp
     tests/test_sync.cpp
     tests/test_audio_player.cpp
+    tests/test_ui_format.cpp
+    tests/test_thumb_plan.cpp
+    tests/test_subtitle_select.cpp
     src/NetworkLogger.cpp
     src/ManifestParser.cpp
     src/SubtitleDecoder.cpp
     src/Sync.cpp
     src/AudioPlayer.cpp
+    src/UiFormat.cpp
+    src/SubtitleSelect.cpp
+    src/SidecarSubtitles.cpp
+    src/ThumbPlan.cpp
+    src/FfOpen.cpp
 )
 
 target_include_directories(mirage_tests PRIVATE

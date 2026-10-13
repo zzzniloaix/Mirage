@@ -53,8 +53,17 @@ public:
     // Decode one packet (caller frees it). pkt may be nullptr (drain).
     void decode_packet(AVPacket* pkt);
 
-    // Drop all stored events (call after seek / track switch).
+    // Drop all stored events (call after seek / track switch). In persistent
+    // mode only the codec state is flushed; the event store is kept.
     void flush();
+
+    // Persistent mode (sidecar files): every event of the file is kept — no
+    // 200/50 caps — and flush() leaves the store alone. Set before decoding.
+    void set_persistent(bool on) { persistent_ = on; }
+    [[nodiscard]] bool persistent() const { return persistent_; }
+
+    // Number of stored text events (tests / logging).
+    [[nodiscard]] std::size_t event_count() const;
 
     // Return the text active at `pts`, or empty if none. Joined by '\n' if
     // multiple events overlap (rare — usually one).
@@ -65,6 +74,11 @@ public:
     [[nodiscard]] std::vector<BitmapSubEvent> active_bitmaps(double pts) const;
 
     [[nodiscard]] bool is_text_format() const { return is_text_; }
+
+    // Plain text of an ASS event as produced by libavcodec text decoders
+    // ("ReadOrder,Layer,Style,...,Text") or a "Dialogue:" script line:
+    // override blocks stripped, \N → '\n'. Exposed for unit testing.
+    static std::string ass_to_text(const char* ass);
 
     // Convert a paletted (FFmpeg AV_PIX_FMT_PAL8 layout) bitmap to RGBA8.
     // palette: 256 BGRA8 entries (1024 bytes). Exposed for unit testing.
@@ -81,12 +95,14 @@ private:
     AVCodecContext* ctx_       = nullptr;
     AVRational      time_base_ = {1, 1};
     bool            is_text_   = false;
+    bool            persistent_ = false;
 
     mutable std::mutex                ev_mtx_;
     std::vector<SubtitleEvent>        events_;
     std::vector<BitmapSubEvent>       bitmap_events_;
 
-    // Append non-overlapping event range; trims older events past a cap.
+    // Insert keeping events sorted by start_pts; trims older events past a
+    // cap unless persistent.
     void store_event(SubtitleEvent ev);
     void store_bitmap_event(BitmapSubEvent ev);
 };

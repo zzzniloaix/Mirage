@@ -1,6 +1,7 @@
 #include "Demuxer.h"
 #include "Logger.h"
 
+#include <algorithm>
 #include <cstring>
 #include <thread>
 #include <chrono>
@@ -88,10 +89,11 @@ void Demuxer::read_loop(std::stop_token st,
                     if (stale && stale != flush_sentinel()) av_packet_free(&stale);
                 subq->push(flush_sentinel());
             }
-            subtitle_idx_ = sub_sw;
+            // Reopen flag before publishing the index: the subtitle thread
+            // reads codecpar via subtitle_idx_ once it sees the sentinel.
             if (sub_sw >= 0) subtitle_reopen_.store(true);
-            logger::info("Subtitle stream switched to index {}",
-                         subtitle_idx_ < 0 ? -1 : subtitle_idx_);
+            subtitle_idx_.store(sub_sw);
+            logger::info("Subtitle stream switched to index {}", sub_sw < 0 ? -1 : sub_sw);
         }
 
         // ── Handle a pending seek request ─────────────────────────────────
@@ -99,6 +101,7 @@ void Demuxer::read_loop(std::stop_token st,
         if (seek_secs >= 0.0) {
             int64_t ts = static_cast<int64_t>(seek_secs * AV_TIME_BASE);
             av_seek_frame(fmt_ctx_, -1, ts, AVSEEK_FLAG_BACKWARD);
+            read_ahead_pts_.store(-1.0, std::memory_order_relaxed);
 
             // Drain and free all stale packets still sitting in the queues
             AVPacket* stale;
@@ -132,6 +135,13 @@ void Demuxer::read_loop(std::stop_token st,
         }
 
         if (pkt->stream_index == video_idx_) {
+            const int64_t ts = (pkt->pts != AV_NOPTS_VALUE) ? pkt->pts : pkt->dts;
+            if (ts != AV_NOPTS_VALUE) {
+                const double end = static_cast<double>(ts + std::max<int64_t>(pkt->duration, 0))
+                                 * av_q2d(fmt_ctx_->streams[video_idx_]->time_base);
+                if (end > read_ahead_pts_.load(std::memory_order_relaxed))
+                    read_ahead_pts_.store(end, std::memory_order_relaxed);
+            }
             AVPacket* copy = av_packet_clone(pkt);
             if (!videoq.push(copy))
                 av_packet_free(&copy);
@@ -209,7 +219,8 @@ bool Demuxer::open(const std::string& url_or_path)
     if (audio_idx_ < 0)
         logger::warn("No audio stream found");
 
-    // Subtitles default off — users opt-in via the T-key track switcher.
+    // No subtitle stream routed until main applies its selection policy
+    // (SubtitleSelect::choose_initial) via request_subtitle_switch.
     subtitle_idx_ = -1;
 
     build_track_lists();
@@ -242,8 +253,9 @@ AVCodecParameters* Demuxer::audio_codecpar() const
 
 AVCodecParameters* Demuxer::subtitle_codecpar() const
 {
-    if (subtitle_idx_ < 0) return nullptr;
-    return fmt_ctx_->streams[subtitle_idx_]->codecpar;
+    const int idx = subtitle_idx_.load();
+    if (idx < 0) return nullptr;
+    return fmt_ctx_->streams[idx]->codecpar;
 }
 
 AVRational Demuxer::video_time_base() const
@@ -260,8 +272,9 @@ AVRational Demuxer::audio_time_base() const
 
 AVRational Demuxer::subtitle_time_base() const
 {
-    if (subtitle_idx_ < 0) return {1, 1};
-    return fmt_ctx_->streams[subtitle_idx_]->time_base;
+    const int idx = subtitle_idx_.load();
+    if (idx < 0) return {1, 1};
+    return fmt_ctx_->streams[idx]->time_base;
 }
 
 double Demuxer::duration() const
@@ -326,6 +339,11 @@ void Demuxer::build_track_lists()
             }
             auto* lang  = av_dict_get(s->metadata, "language", nullptr, 0);
             auto* title = av_dict_get(s->metadata, "title",    nullptr, 0);
+            if (lang && std::strcmp(lang->value, "und") != 0) info.lang = lang->value;
+            if (title) info.title = title->value;
+            info.is_default = (s->disposition & AV_DISPOSITION_DEFAULT) != 0;
+            info.is_forced  = (s->disposition & AV_DISPOSITION_FORCED) != 0;
+            info.is_hi      = (s->disposition & AV_DISPOSITION_HEARING_IMPAIRED) != 0;
             if (title && lang)
                 info.language = std::string(title->value) + " (" + lang->value + ")";
             else if (title) info.language = title->value;
@@ -402,7 +420,7 @@ void Demuxer::print_stream_info() const
     }
 
     if (!subtitle_tracks_.empty()) {
-        logger::info("Subtitles: {} track(s) (off by default — T menu to enable)",
+        logger::info("Subtitles: {} embedded track(s)",
                      subtitle_tracks_.size());
     }
 }

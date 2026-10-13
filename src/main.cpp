@@ -20,6 +20,10 @@
 #include "VMAFAnalyzer.h"
 #include "SubtitleDecoder.h"
 #include "SpeedPresets.h"
+#include "SubtitleSelect.h"
+#include "SidecarSubtitles.h"
+#include "FfOpen.h"
+#include "UiFormat.h"
 
 // imgui headers (needed for WantCapture* guards in GLFW callbacks)
 #include "imgui.h"
@@ -31,7 +35,10 @@
 #include <limits>
 #include <fstream>
 #include <filesystem>
+#include <map>
+#include <memory>
 #include <algorithm>
+#include <cctype>
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
@@ -72,6 +79,13 @@ static std::atomic<double> s_decode_time_ms{ 0.0 };  // updated by video decode 
 static std::atomic<int>    s_step_frames{ 0 };  // +1 = fwd, -1 = bwd; computed in render loop
 static std::atomic<int>    s_single_steps{ 0 }; // Shift+. requests; one decoded frame per count
 static std::atomic<int>    s_back_steps{ 0 };   // Shift+, requests; one frame backward per count
+static std::atomic<bool>   s_show_filmstrip{ false };  // K: keyframe filmstrip (off by default)
+static std::atomic<bool>   s_fullscreen{ false };      // mirrors glfwGetWindowMonitor() != nullptr
+static std::atomic<int>    s_fullscreen_toggle{ 0 };   // F / Esc-in-fullscreen requests
+static std::atomic<int>    s_mute_toggle{ 0 };         // M requests
+static std::atomic<int>    s_sub_toggle{ 0 };          // C requests (on/off)
+static std::atomic<int>    s_sub_cycle{ 0 };           // Shift+C requests (next track)
+static std::atomic<int>    s_audio_cycle{ 0 };         // A requests (next audio track)
 
 // Video frames more than this far (wall seconds, i.e. media / speed) behind the
 // audio clock are dropped rather than shown. Above Sync's 100 ms correction
@@ -196,8 +210,14 @@ static void on_key(GLFWwindow* window, int key, int /*scancode*/, int action, in
     // Let ImGui consume keyboard events when it wants exclusive input (e.g. text fields).
     if (ImGui::GetIO().WantCaptureKeyboard) return;
     if (action != GLFW_PRESS) return;
-    if (key == GLFW_KEY_ESCAPE || key == GLFW_KEY_Q)
-        glfwSetWindowShouldClose(window, GLFW_TRUE);
+    // Esc: a seek-bar drag in progress is cancelled by ImGui (it owns the
+    // keyboard while the bar is held, so we never get here); otherwise leave
+    // fullscreen first, and only then quit.
+    if (key == GLFW_KEY_ESCAPE) {
+        if (s_fullscreen.load()) s_fullscreen_toggle.fetch_add(1);
+        else                     glfwSetWindowShouldClose(window, GLFW_TRUE);
+    }
+    else if (key == GLFW_KEY_Q) glfwSetWindowShouldClose(window, GLFW_TRUE);
     else if (key == GLFW_KEY_SPACE) s_paused.store(!s_paused.load());
     else if (key == GLFW_KEY_RIGHT) s_seek_delta.store(+10.0);
     else if (key == GLFW_KEY_LEFT)  s_seek_delta.store(-10.0);
@@ -210,6 +230,13 @@ static void on_key(GLFWwindow* window, int key, int /*scancode*/, int action, in
     else if (key == GLFW_KEY_W) s_show_waveform.store(!s_show_waveform.load());
     else if (key == GLFW_KEY_N) s_show_network.store(!s_show_network.load());
     else if (key == GLFW_KEY_H) s_show_help.store(!s_show_help.load());
+    else if (key == GLFW_KEY_SLASH && (mods & GLFW_MOD_SHIFT)) s_show_help.store(!s_show_help.load());
+    else if (key == GLFW_KEY_K) s_show_filmstrip.store(!s_show_filmstrip.load());
+    else if (key == GLFW_KEY_F) s_fullscreen_toggle.fetch_add(1);
+    else if (key == GLFW_KEY_M) s_mute_toggle.fetch_add(1);
+    else if (key == GLFW_KEY_C && (mods & GLFW_MOD_SHIFT)) s_sub_cycle.fetch_add(1);
+    else if (key == GLFW_KEY_C) s_sub_toggle.fetch_add(1);
+    else if (key == GLFW_KEY_A) s_audio_cycle.fetch_add(1);
     else if (key == GLFW_KEY_V) s_show_vmaf.store(!s_show_vmaf.load());
     // Shift+. / Shift+, → single-frame advance / step-back (frame-accurate).
     // Plain . / , = keyframe step.
@@ -238,10 +265,9 @@ static void on_framebuffer_resize(GLFWwindow* /*window*/, int /*width*/, int /*h
     // Viewport is recomputed each frame in the render loop.
 }
 
-// Scrub bar interaction — uses window (not framebuffer) coordinates for hit-testing.
-// The bar occupies the bottom kBarWinPx logical pixels of the window.
-static const int kBarWinPx = ScrubBar::kHitPx;  // window-pixel hit zone for scrub bar
-
+// Mouse clicks on the video area (ImGui owns the chrome). All seeking goes
+// through the ImGui seek bar; s_scrubbing is kept for the scrub pipeline but
+// is only ever driven by ui_seek_dragging now.
 static void on_mouse_button(GLFWwindow* window, int button, int action, int /*mods*/)
 {
     if (g_player_ui) g_player_ui->notify_activity();
@@ -250,18 +276,11 @@ static void on_mouse_button(GLFWwindow* window, int button, int action, int /*mo
     if (button != GLFW_MOUSE_BUTTON_LEFT) return;
 
     if (action == GLFW_PRESS) {
-        int win_w, win_h;
-        glfwGetWindowSize(window, &win_w, &win_h);
         double mx, my;
         glfwGetCursorPos(window, &mx, &my);
-        if (my >= win_h - kBarWinPx && win_w > 0) {
-            s_scrubbing.store(true);
-            s_scrub_frac.store(std::clamp(mx / win_w, 0.0, 1.0));
-        } else {
-            // General click — track selector hit testing handled in render loop.
-            s_click_x.store(mx);
-            s_click_y.store(my);
-        }
+        // General click — track selector hit testing handled in render loop.
+        s_click_x.store(mx);
+        s_click_y.store(my);
     } else if (action == GLFW_RELEASE) {
         s_scrubbing.store(false);
     }
@@ -417,10 +436,130 @@ static void save_recent(const std::string& entry)
     for (const auto& r : v) f << r << "\n";
 }
 
+// ── Preferences (~/.config/mirage/prefs.txt, key=value lines) ────────────────
+
+struct Prefs {
+    SubPref  sub;
+    SubStyle sub_style;
+};
+
+static std::string prefs_file_path()
+{
+    const char* home = std::getenv("HOME");
+    if (!home) return "";
+    return std::string(home) + "/.config/mirage/prefs.txt";
+}
+
+static Prefs load_prefs()
+{
+    Prefs pr;
+    auto p = prefs_file_path();
+    if (p.empty()) return pr;
+    std::ifstream f(p);
+    std::string line;
+    while (std::getline(f, line)) {
+        const auto eq = line.find('=');
+        if (eq == std::string::npos) continue;
+        const std::string k = line.substr(0, eq), v = line.substr(eq + 1);
+        if (k == "sub_mode") {
+            pr.sub.mode = v == "off" ? SubPref::Off : v == "lang" ? SubPref::Lang : SubPref::Auto;
+        } else if (k == "sub_lang") {
+            pr.sub.lang = v;
+        } else if (k == "sub_size") {
+            pr.sub_style.size_pct = std::clamp(std::atoi(v.c_str()), 50, 200);
+        } else if (k == "sub_edge") {
+            pr.sub_style.edge = v == "outline" ? SubStyle::Outline : v == "shadow" ? SubStyle::DropShadow
+                              : v == "none" ? SubStyle::None : SubStyle::Box;
+        } else if (k == "sub_box") {
+            pr.sub_style.box_opacity = std::clamp(std::atoi(v.c_str()), 0, 100);
+        }
+    }
+    if (pr.sub.mode == SubPref::Lang && pr.sub.lang.empty()) pr.sub.mode = SubPref::Auto;
+    return pr;
+}
+
+static void save_prefs(const Prefs& pr)
+{
+    auto p = prefs_file_path();
+    if (p.empty()) return;
+    std::error_code ec;
+    std::filesystem::create_directories(std::filesystem::path(p).parent_path(), ec);
+    std::ofstream f(p);
+    static constexpr const char* kEdge[] = { "box", "outline", "shadow", "none" };
+    f << "sub_mode=" << (pr.sub.mode == SubPref::Off ? "off" : pr.sub.mode == SubPref::Lang ? "lang" : "auto") << "\n"
+      << "sub_lang=" << pr.sub.lang << "\n"
+      << "sub_size=" << pr.sub_style.size_pct << "\n"
+      << "sub_edge=" << kEdge[std::clamp(static_cast<int>(pr.sub_style.edge), 0, 3)] << "\n"
+      << "sub_box=" << pr.sub_style.box_opacity << "\n";
+}
+
+// ── UI helpers ────────────────────────────────────────────────────────────────
+
+// Monitor containing the window centre (falls back to the primary monitor).
+static GLFWmonitor* monitor_for_window(GLFWwindow* w)
+{
+    int wx, wy, ww, wh;
+    glfwGetWindowPos(w, &wx, &wy);
+    glfwGetWindowSize(w, &ww, &wh);
+    const int cx = wx + ww / 2, cy = wy + wh / 2;
+    int n = 0;
+    GLFWmonitor** mons = glfwGetMonitors(&n);
+    for (int i = 0; i < n; ++i) {
+        int mx, my;
+        glfwGetMonitorPos(mons[i], &mx, &my);
+        const GLFWvidmode* m = glfwGetVideoMode(mons[i]);
+        if (m && cx >= mx && cx < mx + m->width && cy >= my && cy < my + m->height) return mons[i];
+    }
+    return glfwGetPrimaryMonitor();
+}
+
+// Top-bar title: basename for files, host + last path segment for URLs.
+static std::string media_title(const std::string& path)
+{
+    const auto scheme = path.find("://");
+    if (scheme == std::string::npos)
+        return std::filesystem::path(path).filename().string();
+    std::string rest = path.substr(scheme + 3);
+    if (auto q = rest.find_first_of("?#"); q != std::string::npos) rest.resize(q);
+    const auto slash = rest.find('/');
+    const std::string host = rest.substr(0, slash);
+    const auto last = rest.rfind('/');
+    if (slash == std::string::npos || last + 1 >= rest.size()) return host;
+    return host + " \u2026/" + rest.substr(last + 1);
+}
+
+// "HH:MM:SS.mmm" for OSD toasts.
+static std::string toast_clock(double t)
+{
+    if (!(t > 0.0)) t = 0.0;
+    const long long ms = std::llround(t * 1000.0);
+    return std::format("{:02d}:{:02d}:{:02d}.{:03d}",
+                       ms / 3600000, (ms / 60000) % 60, (ms / 1000) % 60, ms % 1000);
+}
+
+// "23.976", "30", "29.97"
+static std::string fps_text(double fps)
+{
+    std::string s = std::format("{:.3f}", fps);
+    while (!s.empty() && s.back() == '0') s.pop_back();
+    if (!s.empty() && s.back() == '.') s.pop_back();
+    return s;
+}
+
 // ── main ──────────────────────────────────────────────────────────────────────
 
 int main(int argc, char* argv[])
 {
+    // --window WxH must be known before the window exists.
+    int init_win_w = 1280, init_win_h = 720;
+    for (int i = 1; i + 1 < argc; ++i)
+        if (std::string(argv[i]) == "--window") {
+            int w = 0, h = 0;
+            if (std::sscanf(argv[i + 1], "%dx%d", &w, &h) == 2 && w >= 200 && h >= 150) {
+                init_win_w = w; init_win_h = h;
+            }
+        }
+
     // ── GLFW + OpenGL ─────────────────────────────────────────────────────────
     if (!glfwInit()) {
         logger::error("Failed to initialise GLFW");
@@ -432,7 +571,7 @@ int main(int argc, char* argv[])
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
 
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "Mirage", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(init_win_w, init_win_h, "Mirage", nullptr, nullptr);
     if (!window) {
         logger::error("Failed to create GLFW window");
         glfwTerminate();
@@ -483,6 +622,8 @@ int main(int argc, char* argv[])
     bool        auto_vmaf     = false;
     std::string vmaf_ref_path;   // --vmaf ref.mp4 for single-file mode
     int         cli_sub_idx   = -2;   // -2 = unset, -1 = explicit off, >=0 = stream idx
+    std::string cli_sub_file;         // --sub-file <path>
+    bool        no_auto_subs  = false; // --no-auto-subs: pref Off for this run
     bool        test_bitmap_sub = false;  // QA: inject synthetic bitmap sub event
     bool        try_hw          = true;   // VideoToolbox HW decode on by default; --no-hw to disable
     // QA snapshot hook: `--snapshot <out.ppm> <frame_number>` captures the video
@@ -495,6 +636,16 @@ int main(int argc, char* argv[])
     std::vector<SpeedStep> speed_seq;
     std::string            av_report_path;
     double                 av_report_secs = 10.0;
+    // QA UI hooks: `--ui-snapshot <out.png> <frame>` captures the whole window
+    // (video + chrome) after the UI has settled; modifiers stage what to show.
+    std::string ui_snap_path;
+    int         ui_snap_frame = 30;
+    float       ui_hover_frac = -1.0f;      // --ui-hover <frac>
+    std::string ui_menu;                    // --ui-menu cc|settings|overlays|help|menu
+    double      ui_sub_at     = -1.0;       // --ui-sub-at <seconds>
+    std::string ui_osd;                     // --ui-osd "<text>"
+    std::string ui_overlays;                // --ui-overlays DIGW...
+    bool        ui_hide_controls = false;   // --ui-hide-controls: capture with chrome hidden
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -503,7 +654,29 @@ int main(int argc, char* argv[])
             if (i + 1 < argc && argv[i + 1][0] != '-')
                 vmaf_ref_path = argv[++i];
         } else if (arg == "--sub" && i + 1 < argc) {
-            cli_sub_idx = std::atoi(argv[++i]);
+            const std::string v = argv[++i];
+            cli_sub_idx = (v == "off") ? -1 : std::max(-1, std::atoi(v.c_str()));
+        } else if (arg == "--sub-file" && i + 1 < argc) {
+            cli_sub_file = argv[++i];
+        } else if (arg == "--no-auto-subs") {
+            no_auto_subs = true;
+        } else if (arg == "--window" && i + 1 < argc) {
+            ++i;   // handled before window creation
+        } else if (arg == "--ui-snapshot" && i + 2 < argc) {
+            ui_snap_path  = argv[++i];
+            ui_snap_frame = std::atoi(argv[++i]);
+        } else if (arg == "--ui-hover" && i + 1 < argc) {
+            ui_hover_frac = std::clamp(static_cast<float>(std::atof(argv[++i])), 0.0f, 1.0f);
+        } else if (arg == "--ui-menu" && i + 1 < argc) {
+            ui_menu = argv[++i];
+        } else if (arg == "--ui-sub-at" && i + 1 < argc) {
+            ui_sub_at = std::max(0.0, std::atof(argv[++i]));
+        } else if (arg == "--ui-osd" && i + 1 < argc) {
+            ui_osd = argv[++i];
+        } else if (arg == "--ui-hide-controls") {
+            ui_hide_controls = true;
+        } else if (arg == "--ui-overlays" && i + 1 < argc) {
+            ui_overlays = argv[++i];
         } else if (arg == "--test-bitmap-sub") {
             test_bitmap_sub = true;
         } else if (arg == "--no-hw") {
@@ -666,9 +839,7 @@ int main(int argc, char* argv[])
     (void)thumb_strip.init(open_path.c_str(),
                      demuxer.video_stream_index(),
                      demuxer.video_time_base(),
-                     duration,
-                     video_decoder.width(),
-                     video_decoder.height());
+                     duration);
 
     // Dedicated single-frame decoder for smooth scrubbing.
     // Opened once; receives request() calls during mouse drags.
@@ -961,19 +1132,173 @@ int main(int argc, char* argv[])
     int cur_video_stream    = demuxer.video_stream_index();
     int cur_subtitle_stream = demuxer.subtitle_stream_index();
 
-    // CLI: --sub N selects a subtitle stream index at startup. Validates
-    // against actual available subtitle tracks; ignored if invalid.
+    // ── Subtitle selection: "show when available" (SubtitleSelect) ──────────
+    // Choices = embedded tracks + same-stem sidecar files (local media only)
+    // + --sub-file. choose_initial() picks one unless the user said Off.
+    // QA ui-snapshot runs ignore (and never write) prefs.txt for determinism.
+    const bool prefs_enabled = ui_snap_path.empty();
+    Prefs prefs = prefs_enabled ? load_prefs() : Prefs{};
+    player_ui.set_sub_style(prefs.sub_style);
+    SubPref sub_pref = prefs.sub;
+    if (no_auto_subs) sub_pref.mode = SubPref::Off;
+    auto persist_prefs = [&] {
+        if (!prefs_enabled) return;
+        prefs.sub       = sub_pref;
+        prefs.sub_style = player_ui.sub_style();
+        save_prefs(prefs);
+    };
+
+    const bool        local_media = !ffopen::is_network_url(open_path);
+    const std::string media_stem  = local_media ? std::filesystem::path(open_path).stem().string() : std::string();
+    std::vector<SubChoice> sub_choices = build_choices(
+        demuxer.subtitle_tracks(),
+        local_media ? find_sidecars(open_path) : std::vector<std::string>{},
+        media_stem);
+
+    // Sidecar cue times are file-relative; the player clock is stream PTS.
+    double video_start_s = 0.0;
+    {
+        const AVStream* vs = demuxer.fmt_ctx()->streams[demuxer.video_stream_index()];
+        if (vs->start_time != AV_NOPTS_VALUE) video_start_s = vs->start_time * av_q2d(vs->time_base);
+    }
+
+    // Loaded sidecar stores, kept so switching back is instant.
+    std::map<std::string, std::unique_ptr<SidecarSubtitles>> sidecar_stores;
+    SidecarSubtitles* active_sidecar = nullptr;
+    int sub_active      = -1;   // index into sub_choices, -1 = off
+    int last_sub_choice = -1;   // last non-Off choice (for C)
+
+    auto same_file = [](const std::string& a, const std::string& b) {
+        std::error_code ec;
+        return a == b || std::filesystem::equivalent(a, b, ec);
+    };
+    // Sidecar choice index for `path`, appending it if not discovered.
+    auto add_sidecar_choice = [&](const std::string& path) -> int {
+        for (std::size_t i = 0; i < sub_choices.size(); ++i)
+            if (sub_choices[i].kind == SubChoice::Sidecar && same_file(sub_choices[i].path, path))
+                return static_cast<int>(i);
+        sub_choices.push_back(sidecar_choice(path, media_stem));
+        return static_cast<int>(sub_choices.size()) - 1;
+    };
+
+    SubCli sub_cli;
+    sub_cli.off        = cli_sub_idx == -1;
+    sub_cli.stream_idx = cli_sub_idx >= 0 ? cli_sub_idx : -1;
     if (cli_sub_idx >= 0) {
         bool valid = false;
         for (const auto& t : demuxer.subtitle_tracks())
             if (t.stream_idx == cli_sub_idx) { valid = true; break; }
-        if (valid) {
-            demuxer.request_subtitle_switch(cli_sub_idx);
-            cur_subtitle_stream = cli_sub_idx;
+        if (!valid) logger::warn("--sub {}: no such subtitle stream", cli_sub_idx);
+    }
+    if (!cli_sub_file.empty()) {
+        std::error_code ec;
+        if (std::filesystem::is_regular_file(cli_sub_file, ec)) {
+            sub_cli.file = sub_choices[static_cast<std::size_t>(add_sidecar_choice(cli_sub_file))].path;
         } else {
-            logger::warn("--sub {}: no such subtitle stream", cli_sub_idx);
+            logger::warn("--sub-file {}: not found", cli_sub_file);
+            player_ui.toast("Subtitle file failed: "
+                            + std::filesystem::path(cli_sub_file).filename().string());
         }
     }
+
+    // Single entry point for every subtitle selection change (CC menu,
+    // settings, C / Shift+C, T panel, startup policy, sidecar failure).
+    // idx: -1 = Off, >= 0 = index into sub_choices. User changes update and
+    // persist SubPref; Auto shows the "C to turn off" hint; Silent no toast.
+    enum class SubBy { User, Auto, Silent };
+    auto apply_sub_choice = [&](int idx, SubBy by) {
+        if (idx >= static_cast<int>(sub_choices.size())) idx = -1;
+        if (idx < 0) {
+            if (cur_subtitle_stream >= 0) demuxer.request_subtitle_switch(-1);
+            cur_subtitle_stream = -1;
+            active_sidecar      = nullptr;
+            sub_active          = -1;
+            if (by == SubBy::User) { sub_pref = { SubPref::Off, {} }; persist_prefs(); }
+            if (by != SubBy::Silent) player_ui.toast("Subtitles: off");
+            return;
+        }
+        const SubChoice& c = sub_choices[static_cast<std::size_t>(idx)];
+        std::string what;
+        if (c.kind == SubChoice::Embedded) {
+            if (c.stream_idx != cur_subtitle_stream) {
+                demuxer.request_subtitle_switch(c.stream_idx);
+                cur_subtitle_stream = c.stream_idx;
+            }
+            active_sidecar = nullptr;
+            what = c.label();
+        } else {
+            if (cur_subtitle_stream >= 0) demuxer.request_subtitle_switch(-1);
+            cur_subtitle_stream = -1;
+            auto& store = sidecar_stores[c.path];
+            if (!store) {
+                store = std::make_unique<SidecarSubtitles>();
+                store->load(c.path, video_start_s);
+            }
+            active_sidecar = store.get();
+            what = "sidecar \u00B7 " + std::filesystem::path(c.path).filename().string();
+        }
+        sub_active      = idx;
+        last_sub_choice = idx;
+        if (by == SubBy::User) {
+            sub_pref = c.lang.empty() ? SubPref{} : SubPref{ SubPref::Lang, c.lang };
+            persist_prefs();
+        }
+        if (by == SubBy::Auto)
+            player_ui.toast("Subtitles: " + what + " \u2014 C to turn off");
+        else if (by == SubBy::User)
+            player_ui.toast("Subtitles: " + what);
+    };
+
+    // A sidecar that fails to load is dropped from the list and the policy
+    // continues with the remaining choices (rule 1 fallback).
+    auto check_sidecar_failure = [&] {
+        if (!active_sidecar || !active_sidecar->failed()) return;
+        const std::string bad = active_sidecar->path();
+        logger::warn("Subtitle file failed: {}", bad);
+        player_ui.toast("Subtitle file failed: " + std::filesystem::path(bad).filename().string());
+        active_sidecar = nullptr;
+        for (std::size_t i = 0; i < sub_choices.size(); ++i) {
+            if (sub_choices[i].kind != SubChoice::Sidecar || sub_choices[i].path != bad) continue;
+            const int ei = static_cast<int>(i);
+            sub_choices.erase(sub_choices.begin() + ei);
+            if (last_sub_choice == ei) last_sub_choice = -1;
+            else if (last_sub_choice > ei) --last_sub_choice;
+            break;
+        }
+        sidecar_stores.erase(bad);
+        if (sub_cli.file == bad) sub_cli.file.clear();
+        sub_active = -1;
+        SubRule rule{};
+        const int next = choose_initial(sub_choices, sub_cli, sub_pref, &rule);
+        apply_sub_choice(next, next >= 0 && sub_rule_is_auto(rule) ? SubBy::Auto : SubBy::Silent);
+    };
+
+    {
+        SubRule rule{};
+        const int first = choose_initial(sub_choices, sub_cli, sub_pref, &rule);
+        static constexpr const char* kRuleName[] = {
+            "none", "--sub-file", "--sub", "--sub off", "pref off", "pref lang",
+            "forced", "default", "sidecar", "first text", "first bitmap", "none available" };
+        logger::info("Subtitles: {} choice(s); initial {} ({})", sub_choices.size(),
+                     first >= 0 ? sub_choices[static_cast<std::size_t>(first)].label() : std::string("off"),
+                     kRuleName[static_cast<int>(rule)]);
+        if (first >= 0)
+            apply_sub_choice(first, sub_rule_is_auto(rule) ? SubBy::Auto : SubBy::Silent);
+    }
+
+    // Audio track switch (settings, A key, T panel).
+    auto switch_audio = [&](int stream_idx, bool paused_now, std::chrono::steady_clock::time_point& valid_at) {
+        if (stream_idx < 0 || stream_idx == cur_audio_stream || !has_audio) return;
+        cur_audio_stream = stream_idx;
+        audio_player.set_paused(true);
+        demuxer.request_audio_switch(stream_idx);
+        valid_at = std::chrono::steady_clock::now() + std::chrono::milliseconds(400);
+        if (!paused_now) audio_player.set_paused(false);
+        for (const auto& t : demuxer.audio_tracks())
+            if (t.stream_idx == stream_idx)
+                player_ui.toast(std::format("Audio: {}{}{} \u00B7 {} {}ch", t.stream_idx,
+                    t.language.empty() ? "" : " \u00B7 ", t.language, t.codec_name, t.channels));
+    };
 
 
     // When to show the next frame (wall clock)
@@ -1037,6 +1362,66 @@ int main(int argc, char* argv[])
     // wrong-position audio from the decode thread filling the ring buffer.
     auto   unmute_at = std::chrono::steady_clock::time_point::max();
 
+    // ── UI state ──────────────────────────────────────────────────────────────
+    const bool          ui_snap_mode = !ui_snap_path.empty();
+    std::vector<double> kf_pts_ui;               // main-thread copy for seek-bar ticks
+    bool                kf_pts_final = false;    // re-copied once the thumb thread finished
+    int64_t             total_dropped = 0;       // late frames dropped (top-bar chip)
+    double              pre_scrub_pts = 0.0;     // restored when a drag is cancelled (Esc)
+    float               pre_mute_volume = 1.0f;
+    int                 fs_x = 0, fs_y = 0, fs_w = init_win_w, fs_h = init_win_h;  // windowed geometry
+    PlayerUIInputs::Info ui_info;
+    ui_info.title      = media_title(open_path);
+    ui_info.title_full = open_path;
+    auto last_info_upd = std::chrono::steady_clock::time_point{};
+    const double stream_fps = (frame_dt > 0.0) ? 1.0 / frame_dt : 0.0;
+    const float  video_aspect = (vid_h > 0) ? static_cast<float>(vid_w) / static_cast<float>(vid_h) : 16.0f / 9.0f;
+
+    // --ui-overlays DIGW...: switch engineer panels on for the screenshot.
+    for (char c : ui_overlays) {
+        switch (std::toupper(static_cast<unsigned char>(c))) {
+            case 'D': s_show_hud.store(true);       break;
+            case 'I': s_show_inspector.store(true); break;
+            case 'G': s_show_drift.store(true);     break;
+            case 'T': s_show_tracks.store(true);    break;
+            case 'W': s_show_waveform.store(true);  break;
+            case 'N': s_show_network.store(true);   break;
+            case 'V': s_show_vmaf.store(true);      break;
+            case 'K': s_show_filmstrip.store(true); break;
+            default: break;
+        }
+    }
+    if (!ui_menu.empty()) player_ui.open_menu(ui_menu);
+    // --ui-sub-at: seek there, play until the target is reached, then pause.
+    bool ui_sub_at_landed = ui_sub_at < 0.0;
+    if (ui_sub_at >= 0.0) s_seek_delta.store(ui_sub_at > 0.0 ? ui_sub_at : 1e-6);
+    int ui_frames = 0, ui_total_frames = 0;
+
+    // Previous overlay flags → "HUD on" / "Inspector off" toasts.
+    struct OverlayFlag { std::atomic<bool>* flag; const char* name; bool prev; };
+    OverlayFlag overlay_flags[] = {
+        { &s_show_hud,       "HUD",       false }, { &s_show_inspector, "Inspector", false },
+        { &s_show_drift,     "A/V drift", false }, { &s_show_tracks,    "Tracks",    false },
+        { &s_show_waveform,  "Waveform",  false }, { &s_show_network,   "Network",   false },
+        { &s_show_vmaf,      "VMAF",      false }, { &s_show_filmstrip, "Filmstrip", false },
+    };
+    for (auto& f : overlay_flags) f.prev = f.flag->load();
+
+    auto toggle_fullscreen = [&] {
+        if (!glfwGetWindowMonitor(window)) {
+            glfwGetWindowPos(window, &fs_x, &fs_y);
+            glfwGetWindowSize(window, &fs_w, &fs_h);
+            GLFWmonitor* mon = monitor_for_window(window);
+            const GLFWvidmode* m = glfwGetVideoMode(mon);
+            if (!m) return;
+            glfwSetWindowMonitor(window, mon, 0, 0, m->width, m->height, m->refreshRate);
+            s_fullscreen.store(true);
+        } else {
+            glfwSetWindowMonitor(window, nullptr, fs_x, fs_y, fs_w, fs_h, 0);
+            s_fullscreen.store(false);
+        }
+    };
+
     // No vsync — we manage timing ourselves via glfwWaitEventsTimeout
     glfwSwapInterval(0);
 
@@ -1068,6 +1453,42 @@ int main(int argc, char* argv[])
             }
             seeked_while_paused = false;
             if (has_audio) audio_player.set_paused(paused);
+        }
+
+        // ── Key commands that need main-thread state ──────────────────────
+        if (s_fullscreen_toggle.exchange(0) > 0) toggle_fullscreen();
+        if (s_mute_toggle.exchange(0) > 0 && has_audio) {
+            const float v = audio_player.volume();
+            if (v > 0.0f) { pre_mute_volume = v; audio_player.set_volume(0.0f); player_ui.toast("Muted"); }
+            else {
+                const float nv = pre_mute_volume > 0.0f ? pre_mute_volume : 1.0f;
+                audio_player.set_volume(nv);
+                player_ui.toast(std::format("Volume {}%", static_cast<int>(std::lround(nv * 100.0f))));
+            }
+        }
+        check_sidecar_failure();
+        if (s_sub_toggle.exchange(0) > 0) {
+            // C: Off <-> last non-Off choice (or the Auto policy's pick).
+            if (sub_active >= 0) apply_sub_choice(-1, SubBy::User);
+            else if (last_sub_choice >= 0) apply_sub_choice(last_sub_choice, SubBy::User);
+            else if (const int i = choose_initial(sub_choices, {}, {}); i >= 0) apply_sub_choice(i, SubBy::User);
+            else player_ui.toast("No subtitles");
+        }
+        if (s_sub_cycle.exchange(0) > 0) {
+            // Shift+C: Off -> 0 -> 1 -> ... -> Off.
+            if (sub_choices.empty()) player_ui.toast("No subtitles");
+            else apply_sub_choice(sub_active + 1 >= static_cast<int>(sub_choices.size()) ? -1 : sub_active + 1,
+                                  SubBy::User);
+        }
+        if (s_audio_cycle.exchange(0) > 0) {
+            const auto& at = demuxer.audio_tracks();
+            if (at.size() > 1) {
+                std::size_t i = 0;
+                while (i < at.size() && at[i].stream_idx != cur_audio_stream) ++i;
+                switch_audio(at[(i + 1) % at.size()].stream_idx, paused, audio_clock_valid_at);
+            } else {
+                player_ui.toast(at.empty() ? "No audio" : "Only one audio track");
+            }
         }
 
         // ── Scrub state transitions ───────────────────────────────────────
@@ -1123,8 +1544,12 @@ int main(int argc, char* argv[])
         double seek_target = -1.0;
 
         double delta = s_seek_delta.exchange(0.0);
-        if (delta != 0.0)
+        if (delta != 0.0) {
             seek_target = std::max(0.0, last_pts + delta);
+            if (!ui_snap_mode)
+                player_ui.toast(std::format("{}{:g}s \u00B7 {}", delta < 0.0 ? "\u2212" : "+",
+                                            std::round(std::abs(delta)), toast_clock(seek_target)));
+        }
 
         if (scrubbing && scrub_moved && last_scrub_frac >= 0.0 && duration > 0.0) {
             // Route scrub requests through the dedicated ScrubDecoder instead
@@ -1149,8 +1574,10 @@ int main(int argc, char* argv[])
                 double kf = (step > 0)
                     ? thumb_strip.next_keyframe_pts(last_pts)
                     : thumb_strip.prev_keyframe_pts(last_pts);
-                if (kf >= 0.0)
+                if (kf >= 0.0) {
                     seek_target = kf;
+                    player_ui.toast("KF \u25C6 " + toast_clock(kf));
+                }
                 pending_step_frame = true;
                 last_any_seek_at   = now;
             }
@@ -1207,6 +1634,7 @@ int main(int argc, char* argv[])
         double speed = s_speed.load();
         if (speed != cur_speed) {
             cur_speed = speed;
+            player_ui.toast(std::format("Speed {:g}\u00D7", speed));
             if (has_audio) audio_decoder.set_speed(speed);
         }
 
@@ -1251,7 +1679,7 @@ int main(int argc, char* argv[])
                 // Diffs past 10 s are seek artifacts (see compute_video_delay).
                 // Threshold is wall time (scaled to media by speed), and never
                 // under two frames so slow-motion doesn't drop on ordinary jitter.
-                int64_t dropped_now = 0;
+                int64_t dropped_now = 0;   // added to total_dropped below
                 if (audio_settled) {
                     const double drop_behind = std::max(kLateFrameDrop * speed, 2.0 * last_frame_dur);
                     AVFrame* next = nullptr;
@@ -1266,8 +1694,15 @@ int main(int argc, char* argv[])
                     }
                 }
 
+                total_dropped += dropped_now;
                 master_clock.set_audio(master);
                 master_clock.set_video(pts);
+
+                // --ui-sub-at: pause once playback reaches the requested time.
+                if (!ui_sub_at_landed && pts >= ui_sub_at - 0.5 * frame_dt) {
+                    ui_sub_at_landed = true;
+                    s_paused.store(true);
+                }
 
                 // Wall-time scheduling value — not carried over to the next frame.
                 double delay = compute_video_delay(pts, last_pts, last_frame_dur, master, speed);
@@ -1379,6 +1814,7 @@ int main(int argc, char* argv[])
             last_pts       = pts;
             ++frame_count;
             s_single_steps.fetch_sub(1);
+            player_ui.toast(std::format("Frame {} \u00B7 {}", std::llround(pts * stream_fps), toast_clock(pts)));
         }
 
         // ── Frame-accurate backward step (Shift+,) ────────────────────────
@@ -1408,6 +1844,7 @@ int main(int argc, char* argv[])
                 ++frame_count;
                 pending_back_step = false;
                 s_back_steps.fetch_sub(1);
+                player_ui.toast(std::format("Frame {} \u00B7 {}", std::llround(pts * stream_fps), toast_clock(pts)));
             }
         }
 
@@ -1423,16 +1860,9 @@ int main(int argc, char* argv[])
         float global_ps = (win_w_for_scale > 0)
             ? static_cast<float>(fb_w) / static_cast<float>(win_w_for_scale) : 1.0f;
 
-        // Reserve menu bar space at the top (menu bar height is in logical pixels).
-        int menu_bar_fb = static_cast<int>(player_ui.menu_bar_height() * global_ps);
-        // Video occupies the fb area below the menu bar.
-        int video_fb_h = fb_h - menu_bar_fb;
-
+        // The video always fills the whole window; all chrome is overlay.
         int vx, vy, vw, vh;
-        compute_video_rect(fb_w, video_fb_h, vid_w, vid_h, vx, vy, vw, vh);
-        // In GL framebuffer coords (y=0 at bottom), the video area starts at y=0
-        // and ends at y=video_fb_h. No extra y offset is needed because the menu
-        // bar occupies the top of the screen (high y in GL space isn't the video area).
+        compute_video_rect(fb_w, fb_h, vid_w, vid_h, vx, vy, vw, vh);
 
         glViewport(0, 0, fb_w, fb_h);
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -1461,6 +1891,20 @@ int main(int argc, char* argv[])
                 std::exit(0);
             }
         }
+
+        // ── Bottom stack layout (fb px) ───────────────────────────────────
+        // One base for every bottom-docked engineer strip/panel: the eased
+        // control-stack height (or the mini-progress line when hidden).
+        const float bottom_stack_base_fb = player_ui.visible_bar_height_logical() * global_ps;
+        const bool  show_timeline  = s_show_network.load() && !manifest.tags().empty() && duration > 0.0;
+        const bool  show_wave      = s_show_waveform.load() && has_audio;
+        const bool  show_filmstrip = s_show_filmstrip.load() && duration > 0.0
+            && (scrubbing || now - last_any_seek_at < std::chrono::milliseconds(1500));
+        float strips_fb = 0.0f;   // engineer strips stacked on top of the controls
+        if (show_timeline)  strips_fb += static_cast<float>(DebugHUD::kTimelinePx) * global_ps;
+        if (show_wave)      strips_fb += static_cast<float>(DebugHUD::kWaveformPx) * global_ps;
+        if (show_filmstrip) strips_fb += static_cast<float>(ThumbnailStrip::kStripPx) + 10.0f * global_ps;
+        debug_hud.set_insets(PlayerUI::top_inset_logical() * global_ps, bottom_stack_base_fb);
 
         // ── Debug HUD (D key) ─────────────────────────────────────────────
         if (s_show_hud.load()) {
@@ -1496,16 +1940,9 @@ int main(int argc, char* argv[])
                 : std::numeric_limits<double>::quiet_NaN();
             debug_hud.push_drift(av_diff);
         }
-        if (s_show_drift.load()) {
-            // Bottom offset: scrub bar + optional timeline + optional waveform + thumb area
-            float bottom_off = player_ui.visible_bar_height_logical() * global_ps;
-            if (s_show_network.load() && !manifest.tags().empty() && duration > 0.0)
-                bottom_off += static_cast<float>(DebugHUD::kTimelinePx) * global_ps;
-            if (s_show_waveform.load() && has_audio)
-                bottom_off += static_cast<float>(DebugHUD::kWaveformPx) * global_ps;
-            bottom_off += static_cast<float>(ThumbnailStrip::kStripPx) + 10.0f * global_ps;
-            debug_hud.draw_drift_graph(fb_w, fb_h, global_ps, bottom_off);
-        }
+        if (s_show_drift.load())
+            debug_hud.draw_drift_graph(fb_w, fb_h, global_ps,
+                                       bottom_stack_base_fb + strips_fb + 8.0f * global_ps);
 
         // ── Track selector (T key) ────────────────────────────────────────
         if (s_show_tracks.load()) {
@@ -1524,15 +1961,8 @@ int main(int argc, char* argv[])
                 fb_w, fb_h, global_ps,
                 click_x, click_y, cx, cy);
 
-            if (tc.audio >= 0 && tc.audio != cur_audio_stream) {
-                cur_audio_stream = tc.audio;
-                if (has_audio) {
-                    audio_player.set_paused(true);
-                    demuxer.request_audio_switch(tc.audio);
-                    audio_clock_valid_at = now + std::chrono::milliseconds(400);
-                    if (!paused) audio_player.set_paused(false);
-                }
-            }
+            if (tc.audio >= 0 && tc.audio != cur_audio_stream)
+                switch_audio(tc.audio, paused, audio_clock_valid_at);
             if (tc.video >= 0 && tc.video != cur_video_stream) {
                 cur_video_stream = tc.video;
                 demuxer.request_video_switch(tc.video);
@@ -1540,12 +1970,13 @@ int main(int argc, char* argv[])
                 while (frameq.try_pop(stale)) av_frame_free(&stale);
             }
             // Subtitle: -2 = "Off" clicked (disable), >=0 = pick stream.
-            if (tc.subtitle == -2 && cur_subtitle_stream >= 0) {
-                cur_subtitle_stream = -1;
-                demuxer.request_subtitle_switch(-1);
+            // Routed through apply_sub_choice so every selection path agrees.
+            if (tc.subtitle == -2 && sub_active >= 0) {
+                apply_sub_choice(-1, SubBy::User);
             } else if (tc.subtitle >= 0 && tc.subtitle != cur_subtitle_stream) {
-                cur_subtitle_stream = tc.subtitle;
-                demuxer.request_subtitle_switch(tc.subtitle);
+                for (std::size_t i = 0; i < sub_choices.size(); ++i)
+                    if (sub_choices[i].kind == SubChoice::Embedded && sub_choices[i].stream_idx == tc.subtitle)
+                        apply_sub_choice(static_cast<int>(i), SubBy::User);
             }
         } else {
             // Discard any pending click while selector is hidden.
@@ -1558,6 +1989,13 @@ int main(int argc, char* argv[])
         // to jump while the mouse is held still.
         if (!scrubbing)
             thumb_strip.upload_pending();
+
+        // Keyframe list for the seek-bar ticks: copied once it exists, and once
+        // more after the thumbnail thread finishes (it corrects DTS→PTS offsets).
+        if (kf_pts_ui.empty() || (!kf_pts_final && thumb_strip.ready())) {
+            if (thumb_strip.ready()) kf_pts_final = true;
+            kf_pts_ui = thumb_strip.keyframes_copy();
+        }
 
         // bar_pts: position shown in the seek bar and used for the thumbnail strip.
         //   During scrubbing   → cursor position (real-time feedback).
@@ -1585,17 +2023,15 @@ int main(int argc, char* argv[])
         else
             thumb_pts = bar_pts;            // fallback: cursor pos or last seek
 
-        // ── Bottom stack: compute cumulative offset for stacked UI strips ──────
-        // Each strip sits above the one below, lowest → highest:
-        //   scrub bar → timeline ticks → waveform → thumbnail strip
+        // ── Bottom stack: engineer strips above the controls ──────────────
+        // Lowest → highest: timeline ticks → waveform → keyframe filmstrip.
         {
             const float ps = global_ps;
-
-            float bottom_off = player_ui.visible_bar_height_logical() * global_ps;
+            float bottom_off = bottom_stack_base_fb;
 
             // ── Timeline ticks (N key, only when manifest has tags) ───────────
             const auto& mtags = manifest.tags();
-            if (s_show_network.load() && !mtags.empty() && duration > 0.0) {
+            if (show_timeline) {
                 // Build TagEntry list from ManifestTag list
                 std::vector<DebugHUD::TagEntry> tag_entries;
                 for (const auto& t : mtags) {
@@ -1654,7 +2090,7 @@ int main(int argc, char* argv[])
             }
 
             // ── Waveform strip (W key) ────────────────────────────────────────
-            if (s_show_waveform.load() && has_audio) {
+            if (show_wave) {
                 static float wave_buf[AudioPlayer::kWaveCap];
                 audio_player.copy_waveform(wave_buf, AudioPlayer::kWaveCap);
                 debug_hud.draw_waveform(wave_buf, AudioPlayer::kWaveCap,
@@ -1662,24 +2098,23 @@ int main(int argc, char* argv[])
                 bottom_off += static_cast<float>(DebugHUD::kWaveformPx) * ps;
             }
 
-            // ── Thumbnails ────────────────────────────────────────────────────
-            bool show_thumbs = scrubbing ||
-                (now - last_any_seek_at < std::chrono::milliseconds(1500));
-            if (show_thumbs)
-                thumb_strip.draw(thumb_pts, duration, fb_w, fb_h, bottom_off);
+            // ── Keyframe filmstrip (K key; while dragging / just after a seek) ─
+            if (show_filmstrip)
+                thumb_strip.draw(thumb_pts, duration, fb_w, fb_h, bottom_off + 4.0f * ps);
         }
 
         // ── Subtitles ─────────────────────────────────────────────────────────
-        // Text path: anchored just above the ImGui control bar.
-        // Bitmap path: overlay scaled into the video viewport (vx,vy,vw,vh).
-        // Both hidden while scrubbing.
-        if (!scrubbing && (demuxer.subtitle_stream_index() >= 0 || test_bitmap_sub)) {
+        // Text path: drawn by PlayerUI (SubtitleOverlay) above the scrims and
+        // lifted clear of the controls. Bitmap path: overlay scaled into the
+        // video viewport (vx,vy,vw,vh). Both hidden while scrubbing.
+        std::string sub_text;
+        if (active_sidecar) {
+            // Sidecar store holds the whole file: keep cues while scrubbing,
+            // following the frame the scrub decoder actually showed.
+            sub_text = active_sidecar->at((scrubbing && scrub_display_pts >= 0.0) ? scrub_display_pts : last_pts);
+        } else if (!scrubbing && (demuxer.subtitle_stream_index() >= 0 || test_bitmap_sub)) {
             if (subtitle_decoder.is_text_format()) {
-                std::string sub = subtitle_decoder.at(last_pts);
-                if (!sub.empty()) {
-                    float sub_bottom_off = player_ui.visible_bar_height_logical() * global_ps;
-                    debug_hud.draw_subtitle(sub, fb_w, fb_h, global_ps, sub_bottom_off);
-                }
+                sub_text = subtitle_decoder.at(last_pts);
             } else {
                 auto evs = subtitle_decoder.active_bitmaps(last_pts);
                 if (!evs.empty()) {
@@ -1691,13 +2126,11 @@ int main(int argc, char* argv[])
                             brects.push_back({ r.x, r.y, r.w, r.h, r.rgba.data() });
                     }
                     debug_hud.draw_bitmap_subtitles(brects, authored_w, authored_h,
-                                                   vx, vy, vw, vh, fb_w, fb_h);
+                                                   vx, vy, vw, vh, fb_w, fb_h,
+                                                   player_ui.subtitle_lift_logical() * global_ps);
                 }
             }
         }
-
-        // Custom ScrubBar replaced by VLC-style ImGui control bar.
-        // scrub_bar.draw(bar_pts, duration, fb_w, fb_h);
 
         // ── Network log panel (N key) ─────────────────────────────────────────
         if (s_show_network.load()) {
@@ -1710,10 +2143,8 @@ int main(int argc, char* argv[])
             debug_hud.draw_network_log(net_entries, fb_w, fb_h, global_ps);
         }
 
-        // ── Help overlay (H key) — drawn last so it's on top of everything ──
-        if (s_show_help.load()) {
-            debug_hud.draw_help(fb_w, fb_h, global_ps);
-        }
+        // Help (H / ?) is an ImGui shortcut card built by PlayerUI;
+        // DebugHUD::draw_help is kept but no longer called.
 
         // ── VMAF panel (V key) ────────────────────────────────────────────────
         if (s_show_vmaf.load()) {
@@ -1729,29 +2160,85 @@ int main(int argc, char* argv[])
             float vmaf_pos_frac = (duration > 0.0)
                 ? static_cast<float>(last_pts / duration) : 0.0f;
 
-            float vmaf_bottom_off = player_ui.visible_bar_height_logical() * global_ps;
-            if (s_show_network.load() && !manifest.tags().empty() && duration > 0.0)
-                vmaf_bottom_off += static_cast<float>(DebugHUD::kTimelinePx) * global_ps;
-            if (s_show_waveform.load() && has_audio)
-                vmaf_bottom_off += static_cast<float>(DebugHUD::kWaveformPx) * global_ps;
-            vmaf_bottom_off += static_cast<float>(ThumbnailStrip::kStripPx) + 10.0f * global_ps;
-
             debug_hud.draw_vmaf_panel(vmaf_entries,
                                       vmaf_analyzer.running(), vmaf_analyzer.progress(),
                                       vmaf_pos_frac,
-                                      fb_w, fb_h, global_ps, vmaf_bottom_off);
+                                      fb_w, fb_h, global_ps,
+                                      bottom_stack_base_fb + strips_fb + 8.0f * global_ps);
         }
+
+        // ── Top-bar info chips (refreshed ~1 Hz) ─────────────────────────────
+        if (now - last_info_upd >= std::chrono::seconds(1)) {
+            last_info_upd = now;
+            const AVCodecParameters* vpar = demuxer.video_codecpar();
+            std::string codec = avcodec_get_name(vpar->codec_id);
+            std::transform(codec.begin(), codec.end(), codec.begin(),
+                           [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+            if (const char* prof = avcodec_profile_name(vpar->codec_id, vpar->profile))
+                codec += std::string(" ") + prof;
+            ui_info.codec  = codec;
+            ui_info.res    = std::format("{}×{}", coded_w, coded_h);
+            ui_info.fps    = stream_fps > 0.0 ? fps_text(stream_fps) : "";
+            ui_info.hdr    = renderer.hdr_mode() == 0 || renderer.hdr_mode() == 1;
+            ui_info.range  = renderer.hdr_mode() == 0 ? "HDR10" : renderer.hdr_mode() == 1 ? "HLG" : "SDR";
+        }
+        // Cheap and state-dependent (HW becomes active after the first decoded
+        // frame): keep these current every frame.
+        ui_info.decode  = video_decoder.is_hw_active() ? "HW VT" : "SW";
+        ui_info.dropped = static_cast<int>(total_dropped);
+
+        // Overlay toggles (keys or UI) → OSD toast.
+        for (auto& f : overlay_flags) {
+            const bool v = f.flag->load();
+            if (v != f.prev) {
+                f.prev = v;
+                player_ui.toast(std::format("{} {}", f.name, v ? "on" : "off"));
+            }
+        }
+        if (!ui_osd.empty()) player_ui.toast(ui_osd);   // QA: keep the toast fresh
 
         // ── ImGui: build UI and render (above all GL content) ────────────────
         {
-            auto ui = player_ui.build(
-                duration, bar_pts,
-                paused, speed, has_audio ? audio_player.volume() : 1.0f,
-                has_audio,
-                s_show_hud.load(), s_show_inspector.load(), s_show_drift.load(),
-                s_show_tracks.load(), s_show_waveform.load(), s_show_network.load(),
-                s_show_help.load(), s_show_vmaf.load(),
-                !manifest.variants().empty());
+            PlayerUIInputs in;
+            in.duration         = duration;
+            in.cur_pts          = bar_pts;
+            in.buffered_end_pts = demuxer.read_ahead_pts();
+            in.fps              = stream_fps;
+            in.paused           = paused;
+            in.speed            = speed;
+            in.volume           = has_audio ? audio_player.volume() : 0.0f;
+            in.has_audio        = has_audio;
+            in.show_hud         = s_show_hud.load();
+            in.show_inspector   = s_show_inspector.load();
+            in.show_drift       = s_show_drift.load();
+            in.show_tracks      = s_show_tracks.load();
+            in.show_waveform    = s_show_waveform.load();
+            in.show_network     = s_show_network.load();
+            in.show_help        = s_show_help.load();
+            in.show_vmaf        = s_show_vmaf.load();
+            in.show_filmstrip   = s_show_filmstrip.load();
+            in.has_manifest_variants = !manifest.variants().empty();
+            in.fullscreen       = s_fullscreen.load();
+            in.info             = ui_info;
+            in.audio_tracks     = &demuxer.audio_tracks();
+            in.audio_idx        = cur_audio_stream;
+            in.sub_choices      = &sub_choices;
+            in.sub_active       = sub_active;
+            in.thumbs           = &thumb_strip;
+            in.kf_pts           = &kf_pts_ui;
+            in.video_aspect     = video_aspect;
+            in.video_rect       = ImVec4(static_cast<float>(vx) / global_ps,
+                                         static_cast<float>(fb_h - vy - vh) / global_ps,
+                                         static_cast<float>(vw) / global_ps,
+                                         static_cast<float>(vh) / global_ps);
+            in.extra_bottom_logical = strips_fb / global_ps;
+            in.filmstrip_visible    = show_filmstrip;
+            in.subtitle_text    = std::move(sub_text);
+            in.force_visible    = ui_snap_mode;
+            in.force_hidden     = ui_snap_mode && ui_hide_controls;
+            in.debug_hover_frac = ui_hover_frac;
+
+            auto ui = player_ui.build(in);
 
             // ── VMAF results ImGui window ─────────────────────────────────────
             if (s_show_vmaf.load()) {
@@ -1780,10 +2267,51 @@ int main(int argc, char* argv[])
 
             player_ui.end_frame();
 
+            // ── QA: --ui-snapshot — capture the whole window (video + chrome) ──
+            if (ui_snap_mode && has_frame && ui_sub_at_landed) {
+                ++ui_frames;
+                const double hover_t = (ui_hover_frac >= 0.0f && duration > 0.0)
+                    ? ui_hover_frac * duration : -1.0;
+                std::optional<ThumbnailStrip::ThumbRef> hover_thumb;
+                if (hover_t >= 0.0)
+                    hover_thumb = thumb_strip.nearest_at_or_before(hover_t, thumb_strip.preview_max_gap());
+                const bool thumbs_ok = hover_t < 0.0 || hover_thumb || thumb_strip.all_uploaded();
+                const bool subs_ok   = sub_active < 0 || !in.subtitle_text.empty()
+                                    || !sub_choices[static_cast<std::size_t>(sub_active)].is_text;
+                const bool timeout   = ++ui_total_frames >= 600;
+                if (ui_frames >= ui_snap_frame && ((thumbs_ok && subs_ok) || timeout)) {
+                    if (timeout && !(thumbs_ok && subs_ok))
+                        logger::warn("ui-snapshot: timeout waiting for {}",
+                                     !thumbs_ok ? "thumbnail" : "subtitle cue");
+                    glFinish();
+                    std::vector<std::uint8_t> px(static_cast<std::size_t>(fb_w) * fb_h * 4);
+                    glReadBuffer(GL_BACK);
+                    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+                    glReadPixels(0, 0, fb_w, fb_h, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
+                    for (auto i = 3u; i < px.size(); i += 4) px[i] = 255;   // opaque PNG
+                    stbi_flip_vertically_on_write(1);
+                    const int ok = stbi_write_png(ui_snap_path.c_str(), fb_w, fb_h, 4, px.data(), fb_w * 4);
+                    std::size_t cut = std::min<std::size_t>(40, in.subtitle_text.size());
+                    while (cut > 0 && cut < in.subtitle_text.size()
+                           && (static_cast<unsigned char>(in.subtitle_text[cut]) & 0xC0) == 0x80) --cut;
+                    std::string sub40 = in.subtitle_text.substr(0, cut);   // whole UTF-8 chars
+                    std::replace(sub40.begin(), sub40.end(), '\n', ' ');
+                    if (ok)
+                        logger::info("ui-snapshot: wrote {} ({}×{}, frame {}, hover={}, thumb_pts={}, sub=\"{}\")",
+                            ui_snap_path, fb_w, fb_h, ui_frames,
+                            ui_hover_frac >= 0.0f ? std::format("{:.3f}", ui_hover_frac) : std::string("none"),
+                            hover_thumb ? std::format("{:.3f}", hover_thumb->pts) : std::string("none"),
+                            sub40);
+                    else
+                        logger::error("ui-snapshot: stbi_write_png failed for {}", ui_snap_path);
+                    std::exit(ok ? 0 : 1);
+                }
+            }
+
             // Act on commands
             if (ui.quit)               glfwSetWindowShouldClose(window, GLFW_TRUE);
             if (ui.play_pause_clicked) s_paused.store(!paused);
-            // Suppress seek-bar commits while GLFW scrubbing is active: the scrubbing
+            // Suppress seek-bar commits while scrubbing is active: the scrubbing
             // path (ScrubDecoder + scrub_ended) handles everything.  Firing seeks from
             // both paths simultaneously floods audioq with flush sentinels, which
             // causes the audio decode thread to keep emptying the ring buffer after
@@ -1791,10 +2319,19 @@ int main(int argc, char* argv[])
             if (ui.seek_to >= 0.0 && !scrubbing && !scrub_ended)
                 s_seek_delta.store(ui.seek_to - last_pts);
 
+            // Esc during a drag: forget the drag position so scrub_ended (next
+            // frame) commits no seek, and put the clock back where it was. The
+            // main pipeline never left that position (frames were bypassed).
+            if (ui.seek_cancelled) {
+                last_scrub_frac = -1.0;
+                last_pts        = pre_scrub_pts;
+            }
+
             // ── ImGui seek bar drag → scrubbing integration ───────────────────
             // Route ImGui seek bar position into ScrubDecoder for video preview.
             // Also keep last_scrub_frac updated so that scrub_ended (which fires
             // next frame when ui_seek_dragging flips false) seeks to the right pos.
+            if (ui.seek_bar_dragging && !ui_seek_dragging) pre_scrub_pts = last_pts;
             if (ui.seek_bar_dragging && ui.seek_bar_frac >= 0.0f && duration > 0.0) {
                 float f = ui.seek_bar_frac;
                 if (last_scrub_frac < 0.0 ||
@@ -1809,7 +2346,33 @@ int main(int argc, char* argv[])
             ui_seek_dragging = ui.seek_bar_dragging;
 
             if (ui.speed_set >= 0.0)   s_speed.store(ui.speed_set);
-            if (ui.volume_set >= 0.0f && has_audio) audio_player.set_volume(ui.volume_set);
+            if (ui.volume_set >= 0.0f && has_audio) {
+                audio_player.set_volume(ui.volume_set);
+                player_ui.toast(ui.volume_set <= 0.0f ? std::string("Muted")
+                    : std::format("Volume {}%", static_cast<int>(std::lround(ui.volume_set * 100.0f))));
+            }
+            if (ui.mute_toggle)       s_mute_toggle.fetch_add(1);
+            if (ui.toggle_fullscreen) s_fullscreen_toggle.fetch_add(1);
+            if (ui.step_key != 0)   { s_paused.store(true); s_step_frames.fetch_add(ui.step_key); }
+            if (ui.step_frame > 0)  { s_paused.store(true); s_single_steps.fetch_add(1); }
+            if (ui.step_frame < 0)  { s_paused.store(true); s_back_steps.fetch_add(1); }
+            if (ui.audio_track_set >= 0) switch_audio(ui.audio_track_set, paused, audio_clock_valid_at);
+            if (ui.sub_choice_set != -2) apply_sub_choice(ui.sub_choice_set, SubBy::User);
+            if (ui.sub_style_changed)    persist_prefs();
+            if (ui.sub_open_file) {
+                nfdchar_t* sub_path = nullptr;
+                nfdfilteritem_t filters[] = { { "Subtitles", "srt,vtt,ass,ssa" } };
+                const nfdchar_t* dir = nullptr;
+                std::string dir_s;
+                if (local_media) {
+                    dir_s = std::filesystem::path(open_path).parent_path().string();
+                    if (!dir_s.empty()) dir = dir_s.c_str();
+                }
+                if (NFD_OpenDialogU8(&sub_path, filters, 1, dir) == NFD_OKAY) {
+                    apply_sub_choice(add_sidecar_choice(sub_path), SubBy::User);
+                    NFD_FreePathU8(sub_path);
+                }
+            }
             if (ui.toggle_hud)       s_show_hud.store(!s_show_hud.load());
             if (ui.toggle_inspector) s_show_inspector.store(!s_show_inspector.load());
             if (ui.toggle_drift)     s_show_drift.store(!s_show_drift.load());
@@ -1818,6 +2381,7 @@ int main(int argc, char* argv[])
             if (ui.toggle_network)   s_show_network.store(!s_show_network.load());
             if (ui.toggle_help)      s_show_help.store(!s_show_help.load());
             if (ui.toggle_vmaf)      s_show_vmaf.store(!s_show_vmaf.load());
+            if (ui.toggle_filmstrip) s_show_filmstrip.store(!s_show_filmstrip.load());
 
             // VMAF triggers
             if (ui.vmaf_pick_ref && !vmaf_analyzer.running()) {

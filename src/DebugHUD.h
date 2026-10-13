@@ -31,6 +31,15 @@ public:
 
     [[nodiscard]] bool init();
 
+    // Framebuffer-px insets reserved by the player chrome. Top-docked panels
+    // (HUD, inspector, network log) start below top_px_fb; bottom_px_fb is
+    // informational (bottom-stacked panels take an explicit offset).
+    void set_insets(float top_px_fb, float bottom_px_fb)
+    {
+        top_inset_px_ = top_px_fb;
+        bottom_inset_px_ = bottom_px_fb;
+    }
+
     // Draw the live debug overlay (top-left).
     // scale = framebuffer_pixels / window_pixels (2.0 on retina displays).
     void draw(const DebugInfo& info, int fb_w, int fb_h, float scale = 1.0f);
@@ -153,10 +162,13 @@ public:
     // (vx, vy, vw, vh) is the framebuffer-space rect where the video is drawn
     // (vy = bottom-edge in GL coords). authored_w/h give the coordinate space
     // the rects are positioned in; if 0, they're treated as already in vw×vh.
+    // lift_fb raises rects whose authored bottom lies in the lower 40% of the
+    // canvas (dialogue) so they clear the player controls; top-positioned
+    // rects (signs, captions placed high) stay where they were authored.
     void draw_bitmap_subtitles(const std::vector<BitmapRect>& rects,
                                 int authored_w, int authored_h,
                                 int vx, int vy, int vw, int vh,
-                                int fb_w, int fb_h);
+                                int fb_w, int fb_h, float lift_fb = 0.0f);
 
     // ── VMAF panel (V key) ────────────────────────────────────────────────────
 
@@ -181,6 +193,9 @@ public:
                          float bottom_offset_px = 0.0f);
 
 private:
+    float top_inset_px_    = 0.0f;
+    [[maybe_unused]] float bottom_inset_px_ = 0.0f;
+
     // ── A/V drift ring buffer ─────────────────────────────────────────────────
     static constexpr int kDriftCap = 600;  // ≈10s at 60fps
     float drift_buf_[kDriftCap]{};
