@@ -3,6 +3,8 @@
 #include "Decoder.h"
 #include "AudioPlayer.h"
 
+#include <atomic>
+
 extern "C" {
 #include <libswresample/swresample.h>
 #include <libavutil/channel_layout.h>
@@ -37,9 +39,11 @@ public:
     [[nodiscard]] bool reopen(AVCodecParameters* par, AudioPlayer& player,
                                AVRational time_base);
 
-    // Rebuild the atempo filter graph for the given playback speed.
+    // Request a new playback speed. Safe to call from any thread: the audio
+    // decode thread applies it (drains the old atempo graph, rebuilds) at the
+    // start of its next decode() or flush().
     // speed in [0.25, 4.0] — uses two chained atempo stages if needed.
-    void set_speed(double speed);
+    void set_speed(double speed) { requested_speed_.store(speed); }
 
 private:
     Decoder     decoder_;
@@ -56,7 +60,9 @@ private:
     AVFilterGraph*   filter_graph_ = nullptr;
     AVFilterContext* filt_src_     = nullptr;  // abuffer
     AVFilterContext* filt_sink_    = nullptr;  // abuffersink
-    double           speed_        = 1.0;
+    double           speed_        = 1.0;   // speed the current graph was built for
+    double           tempo_        = 1.0;   // actual atempo product (speed_ after clamping)
+    std::atomic<double> requested_speed_{ 1.0 };
 
     // Running media-time position for output frames (seconds).
     // Reset by flush(); re-seeded from the first decoded frame's PTS.
@@ -70,4 +76,11 @@ private:
 
     // Push a resampled AVFrame into the filter graph and drain output to player.
     void push_to_filter(AVFrame* frame, AudioPlayer& player);
+
+    // Pull every frame currently available from the sink and push it to player.
+    void pull_filter_output(AudioPlayer& player);
+
+    // Audio thread only: if set_speed() requested a new speed, flush the old
+    // graph's buffered tail to player at the old tempo, then rebuild.
+    void apply_pending_speed(AudioPlayer& player);
 };

@@ -4,6 +4,7 @@
 
 #include <cstring>
 #include <algorithm>
+#include <cmath>
 
 static void audio_callback(ma_device* device, void* out, const void*, ma_uint32 frame_count)
 {
@@ -16,10 +17,17 @@ AudioPlayer::~AudioPlayer()
     stop();
 }
 
-bool AudioPlayer::init(int sample_rate)
+void AudioPlayer::init_ring(int sample_rate)
 {
     sample_rate_ = sample_rate;
-    ring_.resize(kRingCapacity, 0.0f);
+    ring_.assign(kRingCapacity, 0.0f);
+    max_buffered_ = std::min(kRingCapacity,
+        static_cast<size_t>(kMaxBufferedSec * sample_rate) * kChannels);
+}
+
+bool AudioPlayer::init(int sample_rate)
+{
+    init_ring(sample_rate);
 
     ma_device_config cfg = ma_device_config_init(ma_device_type_playback);
     cfg.playback.format   = ma_format_f32;
@@ -48,8 +56,18 @@ bool AudioPlayer::init(int sample_rate)
     return true;
 }
 
+void AudioPlayer::interrupt()
+{
+    {
+        std::lock_guard lock(ring_mtx_);
+        interrupted_ = true;
+    }
+    space_cv_.notify_all();
+}
+
 void AudioPlayer::stop()
 {
+    interrupt();   // a push() waiting on a stopped device would never wake
     if (running_) {
         ma_device_stop(&device_);
         ma_device_uninit(&device_);
@@ -66,33 +84,77 @@ void AudioPlayer::set_paused(bool p)
 
 void AudioPlayer::flush()
 {
-    std::lock_guard lock(ring_mtx_);
+    std::unique_lock lock(ring_mtx_);
+    ++flush_gen_;
+    primed_       = false;
     write_pos_    = 0;
     read_pos_     = 0;
     count_        = 0;
     ring_end_pts_ = 0.0;
+    seg_head_     = 0;
+    seg_count_    = 0;
     clock_.store(0.0);
     // Reset waveform so stale peaks don't show after seek
     wave_head_  = 0;
     wave_count_ = 0;
     wave_accum_ = 0;
     wave_peak_  = 0.0f;
+    lock.unlock();
+    space_cv_.notify_all();
 }
 
-void AudioPlayer::push(const float* samples, int frame_count, double pts)
+void AudioPlayer::push(const float* samples, int frame_count, double pts, double media_dur)
 {
-    const int n = frame_count * kChannels;
-    std::lock_guard lock(ring_mtx_);
+    if (frame_count <= 0) return;
+    std::unique_lock lock(ring_mtx_);
+    const uint64_t gen = flush_gen_;
 
-    for (int i = 0; i < n; i++) {
-        if (count_ >= kRingCapacity) break;
-        ring_[write_pos_] = samples[i];
-        write_pos_ = (write_pos_ + 1) % kRingCapacity;
-        count_++;
+    // Tempo of this batch: media seconds per output second.
+    const double tempo = media_dur * sample_rate_ / frame_count;
+
+    // Write in chunks as space frees up. ring_end_pts_ only advances by what
+    // actually reached the ring, so clock() never runs ahead of audible audio.
+    int done = 0;   // frames written so far
+    while (done < frame_count) {
+        const size_t free_frames = (count_ < max_buffered_) ? (max_buffered_ - count_) / kChannels : 0;
+        if (free_frames == 0) {
+            if (interrupted_ || muted_.load()) break;
+            // Bounded slices so a missed notify (e.g. set_muted) can't hang us.
+            space_cv_.wait_for(lock, std::chrono::milliseconds(50));
+            if (flush_gen_ != gen) break;   // seek: the rest of this batch is stale
+            continue;
+        }
+
+        const int    chunk = static_cast<int>(std::min<size_t>(free_frames, frame_count - done));
+        const float* src   = samples + static_cast<size_t>(done) * kChannels;
+        for (int i = 0; i < chunk * kChannels; ++i) {
+            ring_[write_pos_] = src[i];
+            write_pos_ = (write_pos_ + 1) % kRingCapacity;
+        }
+        count_ += static_cast<size_t>(chunk) * kChannels;
+
+        // Record the tempo of what was written. Extend the tail segment when the
+        // tempo is unchanged (the common case); if the segment ring is full, fold
+        // into the tail — only a burst of >64 speed changes in 2 s could hit that.
+        TempoSeg* tail = seg_count_ > 0
+            ? &segs_[(seg_head_ + seg_count_ - 1) % kMaxSegs] : nullptr;
+        if (tail && (std::abs(tail->tempo - tempo) < 1e-6 || seg_count_ == kMaxSegs)) {
+            tail->frames += static_cast<size_t>(chunk);
+        } else {
+            segs_[(seg_head_ + seg_count_) % kMaxSegs] = { static_cast<size_t>(chunk), tempo };
+            ++seg_count_;
+        }
+
+        done += chunk;
+        // PTS of the hypothetical "next sample" after everything in the buffer
+        ring_end_pts_ = pts + media_dur * done / frame_count;
+        primed_ = true;
     }
 
-    // PTS of the hypothetical "next sample" after everything in the buffer
-    ring_end_pts_ = pts + static_cast<double>(frame_count) / sample_rate_;
+    if (done < frame_count)
+        dropped_frames_.fetch_add(frame_count - done);
+    if (done == 0 || flush_gen_ != gen) return;   // nothing new / flushed: no stale peaks
+    frame_count = done;
 
     // ── Waveform downsampling (left channel peak, every kWaveStride samples) ──
     for (int i = 0; i < frame_count; ++i) {
@@ -144,7 +206,7 @@ void AudioPlayer::fill_buffer(float* out, int frame_count)
         return;
     }
 
-    std::lock_guard lock(ring_mtx_);
+    std::unique_lock lock(ring_mtx_);
 
     int available = static_cast<int>(count_);
     int to_read   = std::min(n, available);
@@ -156,8 +218,26 @@ void AudioPlayer::fill_buffer(float* out, int frame_count)
     }
     count_ -= to_read;
 
-    if (silence > 0)
+    // Consume the frames just read from the head tempo segments.
+    size_t frames_read = static_cast<size_t>(to_read / kChannels);
+    while (frames_read > 0 && seg_count_ > 0) {
+        TempoSeg& head = segs_[seg_head_];
+        size_t take = std::min(frames_read, head.frames);
+        head.frames -= take;
+        frames_read -= take;
+        if (head.frames == 0) {
+            seg_head_ = (seg_head_ + 1) % kMaxSegs;
+            --seg_count_;
+        }
+    }
+
+    if (silence > 0) {
         std::memset(out + to_read, 0, silence * sizeof(float));
+        if (primed_) {
+            underruns_.fetch_add(1);
+            silent_frames_.fetch_add(silence / kChannels);
+        }
+    }
 
     // Apply volume gain
     float vol = volume_.load();
@@ -165,6 +245,15 @@ void AudioPlayer::fill_buffer(float* out, int frame_count)
         for (int i = 0; i < to_read; ++i) out[i] *= vol;
     }
 
-    // Audio clock = PTS at end of buffer minus time still buffered
-    clock_.store(ring_end_pts_ - static_cast<double>(count_ / kChannels) / sample_rate_);
+    // Audio clock = PTS at end of buffer minus media time still buffered.
+    // Each buffered frame covers `tempo` media frames (tempo = playback speed).
+    double buffered_media = 0.0;
+    for (int i = 0; i < seg_count_; ++i) {
+        const TempoSeg& seg = segs_[(seg_head_ + i) % kMaxSegs];
+        buffered_media += static_cast<double>(seg.frames) * seg.tempo;
+    }
+    clock_.store(ring_end_pts_ - buffered_media / sample_rate_);
+
+    lock.unlock();
+    if (to_read > 0) space_cv_.notify_one();
 }
