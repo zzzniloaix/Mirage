@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+
 extern "C" {
 #include <libavcodec/avcodec.h>
 }
@@ -42,5 +44,5 @@ private:
     AVCodecContext* ctx_            = nullptr;
     AVBufferRef*    hw_device_ctx_  = nullptr;
     bool            hw_requested_   = false;
-    bool            hw_active_      = false;     // set true after first HW frame
+    std::atomic<bool> hw_active_    { false };   // set true after first HW frame (decode thread; read on main)
 };

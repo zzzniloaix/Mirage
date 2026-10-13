@@ -1,5 +1,9 @@
 #include "ThumbnailStrip.h"
 #include "Logger.h"
+#include "UiFormat.h"
+#include "UiTheme.h"
+#include "ThumbPlan.h"
+#include "FfOpen.h"
 
 #include <algorithm>
 #include <cmath>
@@ -112,16 +116,12 @@ ThumbnailStrip::~ThumbnailStrip()
 bool ThumbnailStrip::init(const std::string& url,
                            int video_stream_idx,
                            AVRational time_base,
-                           double duration,
-                           int vid_w, int vid_h)
+                           double duration)
 {
-    duration_ = duration;
+    duration_        = duration;
+    sample_stride_s_ = thumbs::sample_stride(duration, kMaxThumbs);
 
-    // Thumbnail height matches the strip; width is aspect-correct.
-    thumb_h_ = kStripPx;
-    thumb_w_ = (vid_h > 0) ? (thumb_h_ * vid_w / vid_h) : thumb_h_;
-
-    if (!compile_shaders()) return false;
+    if (!compile_shaders()) { done_.store(true); return false; }
 
     glGenVertexArrays(1, &bg_vao_);
     glGenVertexArrays(1, &thumb_vao_);
@@ -136,17 +136,23 @@ bool ThumbnailStrip::init(const std::string& url,
 
 void ThumbnailStrip::upload_pending()
 {
-    // Drain the queue and upload each decoded thumbnail as a GL texture.
-    std::queue<Decoded> batch;
+    // Take up to kUploadPerFrame decoded thumbnails; the rest wait a frame.
+    std::vector<Decoded> batch;
     {
         std::lock_guard lock(pending_mtx_);
-        std::swap(batch, pending_);
+        while (!pending_.empty() && static_cast<int>(batch.size()) < kUploadPerFrame) {
+            batch.push_back(std::move(pending_.front()));
+            pending_.pop();
+        }
     }
+    if (batch.empty()) return;
 
-    while (!batch.empty()) {
-        Decoded d = std::move(batch.front());
-        batch.pop();
+    // RGB24 rows are 3*w bytes — not 4-aligned for most widths.
+    GLint prev_align = 4;
+    glGetIntegerv(GL_UNPACK_ALIGNMENT, &prev_align);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
+    for (Decoded& d : batch) {
         GLuint tex = 0;
         glGenTextures(1, &tex);
         glBindTexture(GL_TEXTURE_2D, tex);
@@ -163,8 +169,38 @@ void ThumbnailStrip::upload_pending()
                                    [](const Thumb& a, const Thumb& b) {
                                        return a.pts < b.pts;
                                    });
+        thumb_pts_.insert(thumb_pts_.begin() + (it - thumbs_.begin()), t.pts);
         thumbs_.insert(it, t);
     }
+
+    glPixelStorei(GL_UNPACK_ALIGNMENT, prev_align);
+}
+
+bool ThumbnailStrip::all_uploaded() const
+{
+    if (!done_.load()) return false;
+    std::lock_guard lock(pending_mtx_);
+    return pending_.empty();
+}
+
+std::optional<ThumbnailStrip::ThumbRef>
+ThumbnailStrip::nearest_at_or_before(double t, double max_gap) const
+{
+    const int i = ui::index_at_or_before(thumb_pts_, t, max_gap);
+    if (i < 0) return std::nullopt;
+    const Thumb& th = thumbs_[static_cast<std::size_t>(i)];
+    return ThumbRef{ th.tex, th.w, th.h, th.pts };
+}
+
+double ThumbnailStrip::preview_max_gap() const
+{
+    return std::max(10.0, 3.0 * sample_stride_s_);
+}
+
+std::vector<double> ThumbnailStrip::keyframes_copy() const
+{
+    std::lock_guard lock(kf_pts_mtx_);
+    return kf_pts_;
 }
 
 void ThumbnailStrip::draw(double scrub_pos, double duration, int fb_w, int fb_h,
@@ -205,7 +241,7 @@ void ThumbnailStrip::draw(double scrub_pos, double duration, int fb_w, int fb_h,
         if (d < best_dist) { best_dist = d; nearest_pts = thumbs_[i].pts; }
     }
 
-    // Draw highlighted thumb last so it renders on top.
+    // Draw highlighted thumb last so it renders on top (with an accent frame).
     for (int pass = 0; pass < 2; ++pass) {
         for (int i = 0; i < static_cast<int>(thumbs_.size()); ++i) {
             bool highlight = (std::abs(thumbs_[i].pts - nearest_pts) < 1e-6);
@@ -226,9 +262,30 @@ void ThumbnailStrip::draw_thumb(const Thumb& t, float cx_px, bool highlight,
     const float ymin_px = bottom_off + gap_px;
     const float ymax_px = ymin_px + static_cast<float>(kStripPx);
 
-    float half_w = static_cast<float>(thumb_w_) * 0.5f;
+    // Decoded at kDecodeH; drawn scaled to the strip height, aspect kept.
+    const float draw_w = (t.h > 0) ? static_cast<float>(t.w) * static_cast<float>(kStripPx)
+                                     / static_cast<float>(t.h)
+                                   : static_cast<float>(kStripPx);
+    const float half_w = draw_w * 0.5f;
     auto px2x = [&](float px) { return px / static_cast<float>(fb_w) * 2.0f - 1.0f; };
     auto px2y = [&](float py) { return py / static_cast<float>(fb_h) * 2.0f - 1.0f; };
+
+    if (highlight) {
+        // 2 px accent frame behind the current keyframe's thumbnail.
+        constexpr float b = 2.0f;
+        constexpr ImU32 a = ui::theme::kAccent;
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glUseProgram(bg_program_);
+        glUniform4f(u_bg_rect_, px2x(cx_px - half_w - b), px2x(cx_px + half_w + b),
+                                px2y(ymin_px - b),        px2y(ymax_px + b));
+        glUniform4f(u_bg_color_, static_cast<float>((a >> IM_COL32_R_SHIFT) & 0xFF) / 255.0f,
+                                 static_cast<float>((a >> IM_COL32_G_SHIFT) & 0xFF) / 255.0f,
+                                 static_cast<float>((a >> IM_COL32_B_SHIFT) & 0xFF) / 255.0f, 1.0f);
+        glBindVertexArray(bg_vao_);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        glDisable(GL_BLEND);
+    }
 
     glUseProgram(thumb_program_);
     glUniform4f(u_th_rect_,
@@ -247,13 +304,21 @@ void ThumbnailStrip::draw_thumb(const Thumb& t, float cx_px, bool highlight,
 void ThumbnailStrip::decode_loop(std::stop_token st, std::string url,
                                   int video_stream_idx, AVRational time_base)
 {
-    // Open our own AVFormatContext — completely independent of the playback pipeline.
+    // Flag completion on every exit path so ready() never stays false forever.
+    struct DoneFlag { std::atomic<bool>& f; ~DoneFlag() { f.store(true); } } done_flag{ done_ };
+
+    // Open our own AVFormatContext — completely independent of the playback
+    // pipeline. Network inputs time out, and stop_requested() aborts any
+    // blocking I/O so the destructor's join never hangs on a dead URL.
     AVFormatContext* fmt_ctx = nullptr;
-    if (avformat_open_input(&fmt_ctx, url.c_str(), nullptr, nullptr) < 0) {
-        logger::error("ThumbnailStrip: failed to open '{}'", url);
+    if (ffopen::open_input(&fmt_ctx, url, st) < 0) {
+        if (!st.stop_requested())
+            logger::error("ThumbnailStrip: failed to open '{}'", url);
         return;
     }
-    if (avformat_find_stream_info(fmt_ctx, nullptr) < 0) {
+    if (avformat_find_stream_info(fmt_ctx, nullptr) < 0
+        || video_stream_idx < 0
+        || video_stream_idx >= static_cast<int>(fmt_ctx->nb_streams)) {
         avformat_close_input(&fmt_ctx);
         return;
     }
@@ -278,15 +343,24 @@ void ThumbnailStrip::decode_loop(std::stop_token st, std::string url,
 
     // Publish all keyframe PTS immediately — before any decode — so main thread
     // can use next/prev_keyframe_pts() as soon as the user presses a key.
+    std::vector<double> kf_secs;
+    kf_secs.reserve(keyframe_ts.size());
+    for (int64_t ts : keyframe_ts)
+        kf_secs.push_back(static_cast<double>(ts) * av_q2d(time_base));
     {
         std::lock_guard lock(kf_pts_mtx_);
-        kf_pts_.reserve(keyframe_ts.size());
-        for (int64_t ts : keyframe_ts)
-            kf_pts_.push_back(static_cast<double>(ts) * av_q2d(time_base));
+        kf_pts_ = kf_secs;
     }
 
-    logger::info("ThumbnailStrip: {} keyframes found, decoding thumbnails {}×{}",
-                 keyframe_ts.size(), thumb_w_, thumb_h_);
+    // Thumbnails only for a sampled subset (keyframe nav keeps the full list),
+    // decoded coarse-to-fine so previews cover the whole timeline early.
+    const std::vector<std::size_t> sampled =
+        thumbs::sample_keyframes(kf_secs, sample_stride_s_, kMaxThumbs);
+    const std::vector<std::size_t> order = thumbs::coarse_to_fine(sampled.size(), kCoarseStep);
+    sampled_count_.store(static_cast<int>(sampled.size()));
+
+    logger::info("ThumbnailStrip: {} keyframes found, decoding {} thumbnails (stride {:.2f} s, {} px tall)",
+                 keyframe_ts.size(), sampled.size(), sample_stride_s_, kDecodeH);
 
     // Open decoder.
     const AVCodec* codec = avcodec_find_decoder(stream->codecpar->codec_id);
@@ -306,8 +380,9 @@ void ThumbnailStrip::decode_loop(std::stop_token st, std::string url,
     size_t    n_decoded = 0;
     bool      kf_offset_applied = false;
 
-    for (size_t ki = 0; ki < keyframe_ts.size(); ++ki) {
-        const int64_t target_ts = keyframe_ts[ki];
+    for (std::size_t oi = 0; oi < order.size(); ++oi) {
+        const std::size_t ki        = sampled[order[oi]];
+        const int64_t     target_ts = keyframe_ts[ki];
         if (st.stop_requested()) break;
 
         // Seek to this keyframe.
@@ -336,39 +411,50 @@ void ThumbnailStrip::decode_loop(std::stop_token st, std::string url,
         // a keyframe's PTS is later than its DTS, and seeking BACKWARD to the
         // DTS lands on the previous keyframe — so keyframe-step loops. Replace
         // the published entry with the decoded keyframe's real PTS; the first
-        // decode also shifts every not-yet-decoded entry by the same offset.
+        // decode also shifts every other entry by the same offset (decode order
+        // is coarse-to-fine, and keyframes skipped by sampling are never
+        // decoded, so they keep the offset-corrected value).
         if ((frame->flags & AV_FRAME_FLAG_KEY) && frame->pts != AV_NOPTS_VALUE) {
             const double real = static_cast<double>(frame->pts) * av_q2d(time_base);
             std::lock_guard lock(kf_pts_mtx_);
             if (!kf_offset_applied) {
                 const double offset = real - kf_pts_[ki];
                 if (offset != 0.0)
-                    for (size_t j = ki + 1; j < kf_pts_.size(); ++j) kf_pts_[j] += offset;
+                    for (size_t j = 0; j < kf_pts_.size(); ++j)
+                        if (j != ki) kf_pts_[j] += offset;
                 kf_offset_applied = true;
             }
             kf_pts_[ki] = real;
         }
 
-        // Lazy-init sws context on first frame (gets actual pixel format).
-        if (!sws) {
-            sws = sws_getContext(frame->width, frame->height,
-                                 static_cast<AVPixelFormat>(frame->format),
-                                 thumb_w_, thumb_h_, AV_PIX_FMT_RGB24,
-                                 SWS_BILINEAR, nullptr, nullptr, nullptr);
-            if (!sws) continue;
-        }
+        // Output size: kDecodeH tall (capped at the source height), width from
+        // the display aspect (sample aspect ratio applied), both even.
+        const AVRational sar = av_guess_sample_aspect_ratio(fmt_ctx, stream, frame);
+        const double par = (sar.num > 0 && sar.den > 0) ? av_q2d(sar) : 1.0;
+        const double dar = (frame->height > 0)
+            ? static_cast<double>(frame->width) * par / static_cast<double>(frame->height)
+            : 16.0 / 9.0;
+        const int out_h = std::max(2, std::min(kDecodeH, frame->height) & ~1);
+        const int out_w = std::max(2, static_cast<int>(std::lround(out_h * dar)) & ~1);
+
+        // Cached: rebuilt only if the source size/format changes mid-stream.
+        sws = sws_getCachedContext(sws, frame->width, frame->height,
+                                   static_cast<AVPixelFormat>(frame->format),
+                                   out_w, out_h, AV_PIX_FMT_RGB24,
+                                   SWS_BILINEAR, nullptr, nullptr, nullptr);
+        if (!sws) { av_frame_unref(frame); continue; }
 
         // Scale to thumbnail size.
         Decoded d;
         d.pts = (frame->pts != AV_NOPTS_VALUE)
             ? static_cast<double>(frame->pts) * av_q2d(time_base)
             : static_cast<double>(target_ts)  * av_q2d(time_base);
-        d.w   = thumb_w_;
-        d.h   = thumb_h_;
-        d.rgb.resize(static_cast<size_t>(thumb_w_ * thumb_h_ * 3));
+        d.w   = out_w;
+        d.h   = out_h;
+        d.rgb.resize(static_cast<size_t>(out_w) * static_cast<size_t>(out_h) * 3);
 
         uint8_t* dst_data[1]    = { d.rgb.data() };
-        int      dst_stride[1]  = { thumb_w_ * 3 };
+        int      dst_stride[1]  = { out_w * 3 };
         sws_scale(sws, frame->data, frame->linesize, 0, frame->height,
                   dst_data, dst_stride);
 
@@ -379,6 +465,8 @@ void ThumbnailStrip::decode_loop(std::stop_token st, std::string url,
             pending_.push(std::move(d));
         }
         ++n_decoded;
+        if (oi + 1 == std::min<std::size_t>(order.size(), (sampled.size() + kCoarseStep - 1) / kCoarseStep))
+            logger::info("ThumbnailStrip: coarse pass done ({} thumbnails)", n_decoded);
     }
 
     sws_freeContext(sws);

@@ -1,9 +1,14 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "SubtitleDecoder.h"
+#include "SidecarSubtitles.h"
 
 #include <array>
+#include <cmath>
 #include <cstdint>
+#include <cstring>
+#include <filesystem>
+#include <string>
 #include <vector>
 
 // ── palette_to_rgba — PAL8 (BGRA) → RGBA8 conversion ──────────────────────────
@@ -101,4 +106,102 @@ TEST_CASE("palette_to_rgba — BGRA palette swapped to RGBA correctly",
     CHECK(out[1] == 0x22);   // G
     CHECK(out[2] == 0x11);   // B
     CHECK(out[3] == 0x44);   // A
+}
+
+// ── Persistent (sidecar) mode ─────────────────────────────────────────────────
+
+namespace {
+
+// SubRip decoder fed hand-built packets in a 1/1000 time base.
+struct SrtFeeder {
+    SubtitleDecoder dec;
+    explicit SrtFeeder(bool persistent)
+    {
+        AVCodecParameters* par = avcodec_parameters_alloc();
+        par->codec_type = AVMEDIA_TYPE_SUBTITLE;
+        par->codec_id   = AV_CODEC_ID_SUBRIP;
+        dec.set_persistent(persistent);
+        REQUIRE(dec.open(par, AVRational{ 1, 1000 }));
+        avcodec_parameters_free(&par);
+    }
+    void cue(int64_t start_ms, int64_t dur_ms, const std::string& text)
+    {
+        AVPacket* pkt = av_packet_alloc();
+        REQUIRE(av_new_packet(pkt, static_cast<int>(text.size())) == 0);
+        std::memcpy(pkt->data, text.data(), text.size());
+        pkt->pts = pkt->dts = start_ms;
+        pkt->duration = dur_ms;
+        dec.decode_packet(pkt);
+        av_packet_free(&pkt);
+    }
+};
+
+} // namespace
+
+TEST_CASE("SubtitleDecoder — persistent mode keeps > 200 events and survives flush",
+          "[subtitle][persistent]")
+{
+    SrtFeeder f(true);
+    for (int i = 0; i < 300; ++i)
+        f.cue(i * 1000, 500, "cue " + std::to_string(i));
+    CHECK(f.dec.event_count() == 300);
+    f.dec.flush();
+    CHECK(f.dec.event_count() == 300);
+    CHECK(f.dec.at(0.2) == "cue 0");
+    CHECK(f.dec.at(250.25) == "cue 250");
+    CHECK(f.dec.at(250.75).empty());     // gap between cues (duration from pkt)
+
+    SrtFeeder capped(false);
+    for (int i = 0; i < 300; ++i)
+        capped.cue(i * 1000, 500, "cue " + std::to_string(i));
+    CHECK(capped.dec.event_count() == 200);
+    capped.dec.flush();
+    CHECK(capped.dec.event_count() == 0);
+}
+
+TEST_CASE("SubtitleDecoder — at() joins overlapping cues in start order",
+          "[subtitle][persistent]")
+{
+    SrtFeeder f(true);
+    f.cue(5000, 1000, "late");             // out-of-order arrival
+    f.cue(0, 10000, "long");
+    f.cue(4000, 3000, "middle");
+    CHECK(f.dec.at(1.0) == "long");
+    CHECK(f.dec.at(4.5) == "long\nmiddle");
+    CHECK(f.dec.at(5.5) == "long\nmiddle\nlate");
+    CHECK(f.dec.at(8.0) == "long");
+    CHECK(f.dec.at(10.0).empty());
+}
+
+TEST_CASE("SidecarSubtitles — decodes data/sub_test/test.srt", "[subtitle][sidecar]")
+{
+    const auto path = std::filesystem::path(__FILE__).parent_path().parent_path()
+                    / "data" / "sub_test" / "test.srt";
+    SubtitleDecoder dec;
+    dec.set_persistent(true);
+    REQUIRE(SidecarSubtitles::decode_file(path.string(), dec));
+    CHECK(dec.event_count() == 3);
+    CHECK(dec.at(0.5).empty());
+    CHECK(dec.at(1.0) == "Hello from bitmap subtitle line 1");
+    CHECK(dec.at(3.99) == "Hello from bitmap subtitle line 1");
+    CHECK(dec.at(4.5).empty());                      // cue 1 ends at 4.000
+    CHECK(dec.at(6.0) == "Second cue with italics\nand a line break");
+    CHECK(dec.at(10.0) == "Third caption \u2014 bottom of screen");
+    CHECK(dec.at(12.5).empty());
+
+    SubtitleDecoder bad;
+    bad.set_persistent(true);
+    CHECK_FALSE(SidecarSubtitles::decode_file("/nonexistent/x.srt", bad));
+}
+
+TEST_CASE("ass_to_text — libavcodec packet events and Dialogue lines", "[subtitle][ass]")
+{
+    CHECK(SubtitleDecoder::ass_to_text("0,0,Default,,0,0,0,,Hello, world") == "Hello, world");
+    CHECK(SubtitleDecoder::ass_to_text("1,0,Default,,0,0,0,,with {\\i1}italics{\\i0}\\Nline two")
+          == "with italics\nline two");
+    CHECK(SubtitleDecoder::ass_to_text("2,0,Default,,0,0,0,,12, numbers first") == "12, numbers first");
+    CHECK(SubtitleDecoder::ass_to_text(
+              "Dialogue: 0,0:00:01.00,0:00:02.00,Default,,0,0,0,,a\\hb") == "a b");
+    CHECK(SubtitleDecoder::ass_to_text("garbage").empty());
+    CHECK(SubtitleDecoder::ass_to_text(nullptr).empty());
 }

@@ -14,45 +14,28 @@ static constexpr std::size_t kMaxEvents = 200;
 // Bitmap events are heavier (RGBA pixel buffers) — keep fewer.
 static constexpr std::size_t kMaxBitmapEvents = 50;
 
-// ── ASS / SSA Dialogue line text extraction ───────────────────────────────────
+// ── ASS / SSA event text extraction ───────────────────────────────────────────
 //
-// ASS Dialogue format (one line):
-//   Dialogue: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text
-// FFmpeg's older ass format prepends a ReadOrder int field (10 commas before
-// text instead of 9). We tolerate either by skipping commas until we hit text.
-// Override blocks (e.g. {\b1}) and ASS line breaks (\N or \n) are handled.
-static std::string extract_ass_text(const char* ass)
+// libavcodec (FFmpeg ≥ 3) hands text subtitles to us as ASS *packet* events:
+//   ReadOrder,Layer,Style,Name,MarginL,MarginR,MarginV,Effect,Text      (8 commas)
+// Full script lines carry a "Dialogue:" prefix and timing fields instead:
+//   Dialogue: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text (9)
+// Text itself may contain commas, so we skip exactly the field count.
+// Override blocks (e.g. {\i1}), \N / \n line breaks and \h hard spaces are handled.
+std::string SubtitleDecoder::ass_to_text(const char* ass)
 {
     if (!ass) return {};
 
-    // Detect "Dialogue:" prefix and skip it.
     const char* p = ass;
-    if (std::strncmp(p, "Dialogue:", 9) == 0) p += 9;
+    int fields = 8;
+    if (std::strncmp(p, "Dialogue:", 9) == 0) { p += 9; fields = 9; }
 
-    // FFmpeg-converted ASS lines have 9 fields before text on the modern format
-    // (no ReadOrder); legacy ffsubdec may emit 10. Skip commas until we've
-    // consumed at least 8 — the 9th is Effect (often empty) and the 10th is text.
-    // To handle both, we scan for the last comma after the typical prefix length:
-    // assume text is everything after the 9th comma, but if the field count is
-    // unusual we still get reasonable output.
     int commas = 0;
-    while (*p && commas < 9) {
+    while (*p && commas < fields) {
         if (*p == ',') ++commas;
         ++p;
     }
-    // For some ASS variants (with ReadOrder), text starts after the 10th comma.
-    // Heuristic: if the substring up to the next \N looks like a number followed
-    // by a comma, it's the legacy format; advance past the next comma.
-    if (*p) {
-        const char* q = p;
-        bool digits = false;
-        while (*q && *q != ',' && *q != '\n') {
-            if (*q < '0' || *q > '9') { digits = false; break; }
-            digits = true;
-            ++q;
-        }
-        if (digits && *q == ',') p = q + 1;
-    }
+    if (commas < fields) return {};   // malformed
 
     std::string out;
     out.reserve(64);
@@ -89,14 +72,26 @@ void SubtitleDecoder::close()
 {
     if (ctx_) avcodec_free_context(&ctx_);
     is_text_ = false;
-    flush();
+    std::lock_guard g(ev_mtx_);
+    events_.clear();
+    bitmap_events_.clear();
 }
 
 void SubtitleDecoder::flush()
 {
+    if (persistent_) {
+        if (ctx_) avcodec_flush_buffers(ctx_);
+        return;
+    }
     std::lock_guard g(ev_mtx_);
     events_.clear();
     bitmap_events_.clear();
+}
+
+std::size_t SubtitleDecoder::event_count() const
+{
+    std::lock_guard g(ev_mtx_);
+    return events_.size();
 }
 
 bool SubtitleDecoder::open(AVCodecParameters* par, AVRational time_base)
@@ -116,6 +111,9 @@ bool SubtitleDecoder::open(AVCodecParameters* par, AVRational time_base)
         logger::error("SubtitleDecoder: avcodec_parameters_to_context failed");
         return false;
     }
+    // Lets libavcodec derive end_display_time from pkt->duration (SRT/WebVTT
+    // packets carry the cue length there, not in the payload).
+    ctx_->pkt_timebase = time_base;
 
     if (avcodec_open2(ctx_, codec, nullptr) < 0) {
         logger::error("SubtitleDecoder: avcodec_open2 failed for {}", codec->name);
@@ -152,13 +150,11 @@ bool SubtitleDecoder::reopen(AVCodecParameters* par, AVRational time_base)
 void SubtitleDecoder::store_event(SubtitleEvent ev)
 {
     std::lock_guard g(ev_mtx_);
-    events_.push_back(std::move(ev));
-    // Keep events sorted by start_pts so at() can binary-search if needed.
-    std::sort(events_.begin(), events_.end(),
-              [](const SubtitleEvent& a, const SubtitleEvent& b) {
-                  return a.start_pts < b.start_pts;
-              });
-    if (events_.size() > kMaxEvents)
+    // Sorted insert (stable for equal starts) so at() can binary-search.
+    auto pos = std::upper_bound(events_.begin(), events_.end(), ev.start_pts,
+                                [](double t, const SubtitleEvent& e) { return t < e.start_pts; });
+    events_.insert(pos, std::move(ev));
+    if (!persistent_ && events_.size() > kMaxEvents)
         events_.erase(events_.begin(), events_.begin() + (events_.size() - kMaxEvents));
 }
 
@@ -193,7 +189,7 @@ void SubtitleDecoder::decode_packet(AVPacket* pkt)
         for (unsigned i = 0; i < sub.num_rects; ++i) {
             AVSubtitleRect* r = sub.rects[i];
             std::string line;
-            if (r->ass)        line = extract_ass_text(r->ass);
+            if (r->ass)        line = ass_to_text(r->ass);
             else if (r->text)  line = r->text;
             if (line.empty()) continue;
             if (!combined.empty()) combined.push_back('\n');
@@ -232,13 +228,22 @@ void SubtitleDecoder::decode_packet(AVPacket* pkt)
 
 std::string SubtitleDecoder::at(double pts) const
 {
+    // How far back (in events) to look for a cue that started earlier and is
+    // still on screen. Overlaps deeper than this are not real-world subtitles.
+    static constexpr std::ptrdiff_t kMaxOverlapScan = 64;
+
     std::lock_guard g(ev_mtx_);
+    // First event starting after pts; everything active is before it.
+    const auto hi = std::upper_bound(events_.begin(), events_.end(), pts,
+                                     [](double t, const SubtitleEvent& e) { return t < e.start_pts; });
+    auto lo = hi;
+    for (std::ptrdiff_t n = 0; lo != events_.begin() && n < kMaxOverlapScan; ++n) --lo;
+
     std::string out;
-    for (const auto& e : events_) {
-        if (e.start_pts > pts) break;             // sorted by start_pts
-        if (pts < e.end_pts) {
+    for (auto it = lo; it != hi; ++it) {
+        if (pts < it->end_pts) {
             if (!out.empty()) out.push_back('\n');
-            out += e.text;
+            out += it->text;
         }
     }
     return out;
@@ -268,12 +273,10 @@ void SubtitleDecoder::palette_to_rgba(const std::uint8_t* indices, int stride,
 void SubtitleDecoder::store_bitmap_event(BitmapSubEvent ev)
 {
     std::lock_guard g(ev_mtx_);
-    bitmap_events_.push_back(std::move(ev));
-    std::sort(bitmap_events_.begin(), bitmap_events_.end(),
-              [](const BitmapSubEvent& a, const BitmapSubEvent& b) {
-                  return a.start_pts < b.start_pts;
-              });
-    if (bitmap_events_.size() > kMaxBitmapEvents)
+    auto pos = std::upper_bound(bitmap_events_.begin(), bitmap_events_.end(), ev.start_pts,
+                                [](double t, const BitmapSubEvent& e) { return t < e.start_pts; });
+    bitmap_events_.insert(pos, std::move(ev));
+    if (!persistent_ && bitmap_events_.size() > kMaxBitmapEvents)
         bitmap_events_.erase(bitmap_events_.begin(),
                              bitmap_events_.begin()
                              + (bitmap_events_.size() - kMaxBitmapEvents));

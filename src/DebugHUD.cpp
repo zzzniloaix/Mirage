@@ -144,10 +144,11 @@ void DebugHUD::draw(const DebugInfo& info, int fb_w, int fb_h, float scale)
     const float char_h  = 13.0f * scale;
     const float line_sp = 4.0f  * scale;   // extra spacing between lines
     const float pad     = 8.0f  * scale;   // panel padding
-    const float margin  = 10.0f * scale;   // distance from window edge
+    const float margin  = 16.0f * scale;   // distance from window edge
+    const float top     = top_inset_px_ + 8.0f * scale;   // below the top bar
 
     float text_x = margin + pad;
-    float text_y = margin + pad;
+    float text_y = top + pad;
     float line_h = char_h + line_sp;
 
     // Measure widest line for panel sizing.
@@ -167,7 +168,7 @@ void DebugHUD::draw(const DebugInfo& info, int fb_w, int fb_h, float scale)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     // ymin (bottom of panel in NDC) < ymax (top of panel in NDC)
     draw_bg(px2x(margin),              px2x(margin + panel_w),
-            px2y(margin + panel_h),    px2y(margin),
+            px2y(top + panel_h),       px2y(top),
             0.0f, 0.0f, 0.0f, 0.72f);
     glDisable(GL_BLEND);
 
@@ -198,7 +199,8 @@ void DebugHUD::draw_inspector(const std::vector<InspectorLine>& lines,
     const float char_h  = 13.0f * scale;
     const float line_sp = 4.0f  * scale;
     const float pad     = 8.0f  * scale;
-    const float margin  = 10.0f * scale;
+    const float margin  = 16.0f * scale;
+    const float top     = top_inset_px_ + 8.0f * scale;   // below the top bar
     const float line_h  = char_h + line_sp;
 
     // Measure widest line to determine panel width.
@@ -213,7 +215,7 @@ void DebugHUD::draw_inspector(const std::vector<InspectorLine>& lines,
     // Anchor top-right.
     float panel_x = static_cast<float>(fb_w) - margin - panel_w;
     float text_x  = panel_x + pad;
-    float text_y  = margin + pad;
+    float text_y  = top + pad;
 
     // ── Background ────────────────────────────────────────────────────────────
     auto px2x = [&](float px) { return px / static_cast<float>(fb_w) * 2.0f - 1.0f; };
@@ -222,7 +224,7 @@ void DebugHUD::draw_inspector(const std::vector<InspectorLine>& lines,
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     draw_bg(px2x(panel_x),              px2x(panel_x + panel_w),
-            px2y(margin + panel_h),     px2y(margin),
+            px2y(top + panel_h),        px2y(top),
             0.0f, 0.0f, 0.0f, 0.72f);
     glDisable(GL_BLEND);
 
@@ -616,7 +618,7 @@ void DebugHUD::draw_network_log(const std::vector<NetLogEntry>& entries,
 
     const float panel_w = 62.0f * char_w + 2.0f * pad;
     const float panel_x = static_cast<float>(fb_w) - panel_w;
-    const float panel_y = 0.0f;
+    const float panel_y = top_inset_px_;
     const float panel_h = (n_show + 1) * line_h + 2.0f * pad;
 
     auto px2ndcx = [&](float px) { return px / static_cast<float>(fb_w) * 2.0f - 1.0f; };
@@ -712,7 +714,7 @@ void DebugHUD::draw_manifest_tags(const std::vector<TagEntry>& tags,
         float tx = panel_x + pad;
         // Arrow marker for current
         if (is_cur)
-            tx += draw_text("▶ ", tx, ty, 0.30f, 1.0f, 0.30f, scale, fb_w, fb_h);
+            tx += draw_text("> ", tx, ty, 0.30f, 1.0f, 0.30f, scale, fb_w, fb_h);
         else
             tx += draw_text("  ", tx, ty, 0.0f, 0.0f, 0.0f, scale, fb_w, fb_h);
 
@@ -925,7 +927,7 @@ void DebugHUD::draw_subtitle(const std::string& text,
 void DebugHUD::draw_bitmap_subtitles(const std::vector<BitmapRect>& rects,
                                       int authored_w, int authored_h,
                                       int vx, int vy, int vw, int vh,
-                                      int fb_w, int fb_h)
+                                      int fb_w, int fb_h, float lift_fb)
 {
     if (rects.empty() || vw <= 0 || vh <= 0 || fb_w <= 0 || fb_h <= 0) return;
     glViewport(0, 0, fb_w, fb_h);
@@ -949,6 +951,8 @@ void DebugHUD::draw_bitmap_subtitles(const std::vector<BitmapRect>& rects,
     glUseProgram(sub_program_);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, sub_tex_);
+    GLint prev_unpack = 4;
+    glGetIntegerv(GL_UNPACK_ALIGNMENT, &prev_unpack);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glBindVertexArray(bg_vao_);            // empty VAO; positions come from gl_VertexID
 
@@ -958,8 +962,9 @@ void DebugHUD::draw_bitmap_subtitles(const std::vector<BitmapRect>& rects,
         // Authored top-left → framebuffer coords (origin at bottom-left).
         const float fb_x0 = static_cast<float>(vx) + r.x * sx;
         const float fb_x1 = fb_x0 + r.w * sx;
+        const bool  lower       = static_cast<float>(r.y + r.h) >= 0.6f * src_h;
         const float fb_y_top    = static_cast<float>(vy) + static_cast<float>(vh)
-                                - r.y * sy;
+                                - r.y * sy + (lower ? lift_fb : 0.0f);
         const float fb_y_bottom = fb_y_top - r.h * sy;
 
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, r.w, r.h, 0,
@@ -972,6 +977,7 @@ void DebugHUD::draw_bitmap_subtitles(const std::vector<BitmapRect>& rects,
 
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, prev_unpack);
     glDisable(GL_BLEND);
 }
 
@@ -996,6 +1002,13 @@ float DebugHUD::draw_text(const char* text, float px, float py,
     // Render at origin then scale+translate to target position.
     struct StbVert { float x, y, z; uint8_t col[4]; };
     static char vbuf[16384];
+
+    // stb_easy_font indexes its glyph tables with (c - 32) for any byte, so
+    // UTF-8 (em-dash, CJK, "▶") reads out of bounds. Map non-ASCII to '?'.
+    std::string ascii(text);
+    for (char& ch : ascii)
+        if (static_cast<unsigned char>(ch) >= 0x80) ch = '?';
+    text = ascii.c_str();
 
     int num_quads = stb_easy_font_print(0.0f, 0.0f, const_cast<char*>(text),
                                          nullptr, vbuf, sizeof(vbuf));

@@ -37,10 +37,15 @@ struct VideoTrackInfo {
 };
 
 struct SubtitleTrackInfo {
-    int         stream_idx;
-    std::string language;    // from "language" / "title" metadata, may be empty
+    int         stream_idx = -1;
+    std::string language;    // display string from "title" / "language" metadata, may be empty
     std::string codec_name;
-    bool        is_text = true;   // false = bitmap (PGS/DVD) — not yet rendered
+    bool        is_text = true;   // false = bitmap (PGS/DVD/DVB)
+    std::string lang;        // ISO "language" tag only (e.g. "eng"), may be empty
+    std::string title;       // "title" metadata, may be empty
+    bool        is_default = false;   // AV_DISPOSITION_DEFAULT
+    bool        is_forced  = false;   // AV_DISPOSITION_FORCED
+    bool        is_hi      = false;   // AV_DISPOSITION_HEARING_IMPAIRED
 };
 
 class Demuxer {
@@ -81,7 +86,7 @@ public:
     // Stream info — valid after open()
     int video_stream_index()    const { return video_idx_; }
     int audio_stream_index()    const { return audio_idx_; }
-    int subtitle_stream_index() const { return subtitle_idx_; }
+    int subtitle_stream_index() const { return subtitle_idx_.load(); }
 
     AVFormatContext* fmt_ctx() const { return fmt_ctx_; }
 
@@ -92,6 +97,11 @@ public:
     AVRational video_time_base()    const;
     AVRational audio_time_base()    const;
     AVRational subtitle_time_base() const;
+
+    // Highest end time (seconds, stream timeline) of video packets pushed to
+    // videoq since the last seek, or -1 when unknown. Drives the seek bar's
+    // buffered range. Written by read_loop, safe to read from any thread.
+    double read_ahead_pts() const { return read_ahead_pts_.load(std::memory_order_relaxed); }
 
     // Total duration in seconds, or -1 if unknown (live streams).
     double duration() const;
@@ -112,8 +122,10 @@ private:
     AVFormatContext*    fmt_ctx_      = nullptr;
     int                 video_idx_    = -1;
     int                 audio_idx_    = -1;
-    int                 subtitle_idx_ = -1;
+    // Written by read_loop (track switch), read by the main and subtitle threads.
+    std::atomic<int>    subtitle_idx_{ -1 };
     std::atomic<double> seek_target_{ -1.0 };
+    std::atomic<double> read_ahead_pts_{ -1.0 };
     std::atomic<int>    pending_audio_switch_{ -1 };
     std::atomic<int>    pending_video_switch_{ -1 };
     std::atomic<int>    pending_subtitle_switch_{ -2 };  // -2=no request, -1=disable, >=0=switch
