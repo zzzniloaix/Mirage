@@ -64,6 +64,8 @@ void Decoder::close()
 
 bool Decoder::open(AVCodecParameters* par, bool try_hw)
 {
+    close();  // reopen after a track switch must not leak the old context / HW device
+
     // When HW is requested, prefer a decoder that advertises VT support
     // (e.g., native `av1` over libdav1d). Falls through to the default
     // decoder if no HW-capable one is registered.
