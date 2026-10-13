@@ -75,6 +75,7 @@ void AudioDecoder::free_filter_graph()
 bool AudioDecoder::build_filter_graph(double speed)
 {
     free_filter_graph();
+    tempo_ = 1.0;
 
     // speed == 1.0 → passthrough, no graph needed
     if (speed == 1.0)
@@ -166,13 +167,26 @@ bool AudioDecoder::build_filter_graph(double speed)
         return false;
     }
 
+    tempo_ = s1 * s2;
+    if (std::abs(tempo_ - speed) > 1e-6)
+        logger::warn("AudioDecoder: speed {:.2g}x exceeds atempo range — audio clamped to {:.2g}x",
+                     speed, tempo_);
     logger::info("AudioDecoder: atempo filter graph built ({})", filter_str);
     return true;
 }
 
-void AudioDecoder::set_speed(double speed)
+void AudioDecoder::apply_pending_speed(AudioPlayer& player)
 {
+    double speed = requested_speed_.load();
     if (speed == speed_) return;
+
+    // Flush the old graph so the audio atempo was still holding is played
+    // (at the old tempo) instead of silently dropped.
+    if (filter_graph_ && filt_src_) {
+        (void)av_buffersrc_add_frame(filt_src_, nullptr);
+        pull_filter_output(player);
+    }
+
     speed_ = speed;
     if (!build_filter_graph(speed))
         logger::warn("AudioDecoder: failed to build filter graph for speed {:.2g}x — disabling atempo", speed);
@@ -193,7 +207,10 @@ void AudioDecoder::flush()
         while (av_buffersink_get_frame(filt_sink_, tmp) >= 0)
             av_frame_unref(tmp);
         av_frame_free(&tmp);
-        // Rebuild graph to restore clean state
+    }
+    // Rebuild graph to restore clean state, picking up any pending speed change.
+    if (filter_graph_ || requested_speed_.load() != speed_) {
+        speed_ = requested_speed_.load();
         (void)build_filter_graph(speed_);
     }
 }
@@ -205,7 +222,8 @@ bool AudioDecoder::reopen(AVCodecParameters* par, AudioPlayer& player, AVRationa
     decoder_.close();
     out_media_pts_ = 0.0;
     pts_inited_    = false;
-    speed_         = 1.0;
+    speed_         = 1.0;   // no graph now; next decode() rebuilds for requested_speed_
+    tempo_         = 1.0;
     return open(par, player, time_base);
 }
 
@@ -222,7 +240,8 @@ void AudioDecoder::push_to_filter(AVFrame* frame, AudioPlayer& player)
             : out_media_pts_;
         out_media_pts_ = pts + static_cast<double>(frame->nb_samples) / out_rate_;
         player.push(reinterpret_cast<const float*>(frame->data[0]),
-                    frame->nb_samples, pts);
+                    frame->nb_samples, pts,
+                    static_cast<double>(frame->nb_samples) / out_rate_);
         return;
     }
 
@@ -233,15 +252,21 @@ void AudioDecoder::push_to_filter(AVFrame* frame, AudioPlayer& player)
         return;
     }
 
-    // Pull all available output frames from abuffersink
+    pull_filter_output(player);
+}
+
+void AudioDecoder::pull_filter_output(AudioPlayer& player)
+{
     AVFrame* out = av_frame_alloc();
-    while ((ret = av_buffersink_get_frame(filt_sink_, out)) >= 0) {
+    while (av_buffersink_get_frame(filt_sink_, out) >= 0) {
         // atempo output frame pts is in the abuffersink's time_base (1/sample_rate).
         // We track our own advancing media PTS so the clock is meaningful.
-        double pts = out_media_pts_;
-        out_media_pts_ += static_cast<double>(out->nb_samples) * speed_ / out_rate_;
+        // Each output sample covers tempo_ media samples.
+        double pts       = out_media_pts_;
+        double media_dur = static_cast<double>(out->nb_samples) * tempo_ / out_rate_;
+        out_media_pts_ += media_dur;
         player.push(reinterpret_cast<const float*>(out->data[0]),
-                    out->nb_samples, pts);
+                    out->nb_samples, pts, media_dur);
         av_frame_unref(out);
     }
     av_frame_free(&out);
@@ -249,6 +274,7 @@ void AudioDecoder::push_to_filter(AVFrame* frame, AudioPlayer& player)
 
 void AudioDecoder::decode(AVPacket* pkt, AudioPlayer& player)
 {
+    apply_pending_speed(player);
     decoder_.push(pkt);
 
     while (decoder_.pull(frame_)) {

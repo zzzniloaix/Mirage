@@ -1,14 +1,24 @@
 #pragma once
 
-// Compute how long to wait before displaying the next video frame.
-// Returns a delay in seconds (0.0 = show immediately, >0 = wait).
+// Compute how long (wall-clock seconds) to wait before displaying the next video frame.
+// Returns 0.0 = show immediately, >0 = wait.
 //
 // Based on the FFplay sync algorithm:
 //   - If video is behind audio by more than the sync threshold → return 0 (catch up)
-//   - If video is ahead of audio by more than the sync threshold → double the delay (slow down)
+//   - If video is ahead of audio by more than the sync threshold → add the lead to the delay
+//     (hold the frame until audio catches up)
 //   - Otherwise → return the natural frame duration
-double compute_video_delay(double frame_pts,   // PTS of the frame we're about to show
-                            double last_pts,    // PTS of the frame we just showed
-                            double last_delay,  // delay we used for the last frame
-                            double master_clock // current audio clock value
+//
+// PTS / clock inputs are media time; the result and the sync threshold are wall
+// time (media / speed). At 4x a 60 fps frame lasts ~4 ms of wall time, so a
+// media-time threshold would be crossed by ordinary clock jitter every frame.
+double compute_video_delay(double frame_pts,      // PTS of the frame we're about to show
+                            double last_pts,       // PTS of the frame we just showed
+                            double last_frame_dur, // last known frame duration (media sec)
+                            double master_clock,   // current audio clock value
+                            double speed = 1.0     // playback speed (media sec per wall sec)
 );
+
+// Media duration of the frame at frame_pts: its PTS delta from last_pts, or
+// fallback when the delta is missing/bogus (<= 0 or > 1 s — seek, discontinuity).
+double frame_duration(double frame_pts, double last_pts, double fallback);

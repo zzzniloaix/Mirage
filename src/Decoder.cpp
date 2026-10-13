@@ -68,7 +68,7 @@ bool Decoder::open(AVCodecParameters* par, bool try_hw)
     // (e.g., native `av1` over libdav1d). Falls through to the default
     // decoder if no HW-capable one is registered.
     const AVCodec* codec = nullptr;
-    if (try_hw) {
+    if (try_hw && par->codec_type == AVMEDIA_TYPE_VIDEO) {
         codec = find_hw_capable_decoder(par->codec_id);
         if (codec)
             logger::info("Selected HW-capable decoder: {} (default was {})",
@@ -76,7 +76,11 @@ bool Decoder::open(AVCodecParameters* par, bool try_hw)
                 avcodec_find_decoder(par->codec_id)
                     ? avcodec_find_decoder(par->codec_id)->name : "?");
     }
-    if (!codec) codec = avcodec_find_decoder(par->codec_id);
+    // No VT-capable decoder → this is a pure software decode regardless of try_hw.
+    if (!codec) {
+        try_hw = false;
+        codec  = avcodec_find_decoder(par->codec_id);
+    }
     if (!codec) {
         logger::error("No decoder found for codec id {}", static_cast<int>(par->codec_id));
         return false;
@@ -112,6 +116,17 @@ bool Decoder::open(AVCodecParameters* par, bool try_hw)
         }
     }
 
+    // Software video decode: let libavcodec pick a thread count (one per core)
+    // and use frame + slice threading. Single-threaded SW decode can't keep up
+    // with 4K, or with 1080p60 at 2–4x speed. The VideoToolbox path is left
+    // alone — the hwaccel does the work and frame threads would only add
+    // per-frame latency (and copies) on top of it. Checked after the device
+    // setup so a failed VT device also gets threads.
+    if (!hw_requested_ && par->codec_type == AVMEDIA_TYPE_VIDEO) {
+        ctx_->thread_count = 0;
+        ctx_->thread_type  = FF_THREAD_FRAME | FF_THREAD_SLICE;
+    }
+
     ret = avcodec_open2(ctx_, codec, nullptr);
     if (ret < 0) {
         char errbuf[256];
@@ -122,7 +137,12 @@ bool Decoder::open(AVCodecParameters* par, bool try_hw)
 
     logger::info("Decoder opened: {} ({}×{}){}",
         codec->name, ctx_->width, ctx_->height,
-        hw_requested_ ? "  [HW: VideoToolbox requested]" : "");
+        hw_requested_ ? "  [HW: VideoToolbox requested]"
+        : (par->codec_type == AVMEDIA_TYPE_VIDEO
+               // libdav1d etc. keep thread_count 0 (= auto, own pool) after open
+               ? (ctx_->thread_count > 0 ? std::format("  [SW: {} threads]", ctx_->thread_count)
+                                          : std::string("  [SW: auto threads]"))
+               : std::string{}));
     return true;
 }
 

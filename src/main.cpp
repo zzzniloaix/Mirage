@@ -19,6 +19,7 @@
 #include "PlayerUI.h"
 #include "VMAFAnalyzer.h"
 #include "SubtitleDecoder.h"
+#include "SpeedPresets.h"
 
 // imgui headers (needed for WantCapture* guards in GLFW callbacks)
 #include "imgui.h"
@@ -72,8 +73,119 @@ static std::atomic<int>    s_step_frames{ 0 };  // +1 = fwd, -1 = bwd; computed 
 static std::atomic<int>    s_single_steps{ 0 }; // Shift+. requests; one decoded frame per count
 static std::atomic<int>    s_back_steps{ 0 };   // Shift+, requests; one frame backward per count
 
-static constexpr double kSpeedPresets[] = { 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 4.0 };
-static constexpr int    kNumPresets     = static_cast<int>(std::size(kSpeedPresets));
+// Video frames more than this far (wall seconds, i.e. media / speed) behind the
+// audio clock are dropped rather than shown. Above Sync's 100 ms correction
+// window so normal drift is still handled by compute_video_delay().
+static constexpr double kLateFrameDrop = 0.15;
+
+// ── QA: --speed-seq / --av-report ─────────────────────────────────────────────
+// Scripted speed changes and an A/V-sync report, in the style of --snapshot:
+// run for N wall seconds, write JSON, exit. Lets speed/sync regressions be
+// measured without a human watching the HUD.
+
+// One scripted event at at_sec seconds since playback start. Besides speed
+// changes, "pause@t" / "play@t" / "seek:<secs>@t" exercise the audio flush and
+// blocked-push paths that rapid speed switching interacts with.
+struct SpeedStep {
+    enum Kind { Speed, Pause, Play, Seek } kind = Speed;
+    double at_sec;
+    double speed;   // Speed: new speed; Seek: target seconds
+};
+
+// Parse "1@0,4@2,pause@3,seek:30@4,play@5". Every speed must be a preset.
+// Returns false on error.
+static bool parse_speed_seq(const std::string& spec, std::vector<SpeedStep>& out)
+{
+    std::size_t pos = 0;
+    while (pos < spec.size()) {
+        std::size_t comma = spec.find(',', pos);
+        std::string item  = spec.substr(pos, comma == std::string::npos ? std::string::npos : comma - pos);
+        std::size_t at    = item.find('@');
+        if (at == std::string::npos) return false;
+        const std::string what = item.substr(0, at);
+        SpeedStep step{};
+        char* end = nullptr;
+        if (what == "pause" || what == "play") {
+            step.kind = (what == "pause") ? SpeedStep::Pause : SpeedStep::Play;
+        } else if (what.starts_with("seek:")) {
+            step.kind  = SpeedStep::Seek;
+            step.speed = std::strtod(what.c_str() + 5, &end);
+            if (*end != '\0' || step.speed < 0.0) return false;
+        } else {
+            step.speed = std::strtod(what.c_str(), &end);
+            if (*end != '\0' || !is_speed_preset(step.speed)) return false;
+        }
+        step.at_sec = std::strtod(item.c_str() + at + 1, &end);
+        if (*end != '\0' || step.at_sec < 0.0) return false;
+        out.push_back(step);
+        if (comma == std::string::npos) break;
+        pos = comma + 1;
+    }
+    std::stable_sort(out.begin(), out.end(),
+                     [](const SpeedStep& a, const SpeedStep& b) { return a.at_sec < b.at_sec; });
+    return !out.empty();
+}
+
+// Accumulates playback stats over one stretch of constant requested speed.
+struct AvSegment {
+    double speed      = 1.0;
+    double t_start    = -1.0;   // wall seconds since playback start (first presented frame)
+    double t_end      = 0.0;
+    double v_start    = 0.0, v_end = 0.0;   // presented video PTS (media sec)
+    double a_start    = 0.0, a_end = 0.0;   // audio clock (media sec)
+    bool   has_a      = false;
+    int64_t presented = 0;
+    int64_t dropped   = 0;
+    std::vector<double> av_media;           // video pts − audible audio pts (media sec)
+    std::vector<double> av_wall_ms;         // same, / speed at sample time, in ms
+    std::vector<double> av_wall_ms_settled; // av_wall_ms minus the first kAvSettle s
+    int64_t underruns_settled = -1;         // underrun / silent-fill counts since settle
+    int64_t silent_settled    = -1;
+    int64_t u_mark = 0, s_mark = 0;
+    double  t_set = -1.0, v_set = 0.0, a_set = 0.0;   // first settled sample
+
+    void on_frame(double t, double vpts, bool audio_ok, double aclk)
+    {
+        if (t_start < 0.0) { t_start = t; v_start = vpts; }
+        if (audio_ok && !has_a) { a_start = aclk; has_a = true; }
+        t_end = t; v_end = vpts;
+        if (audio_ok) a_end = aclk;
+        ++presented;
+    }
+};
+
+// {"mean":..,"p95_abs":..,"max_abs":..,"n":..} of v.
+static std::string av_stats_json(const std::vector<double>& v)
+{
+    if (v.empty()) return R"({"n":0})";
+    double sum = 0.0, mx = 0.0;
+    std::vector<double> a;
+    a.reserve(v.size());
+    for (double d : v) { sum += d; a.push_back(std::abs(d)); mx = std::max(mx, std::abs(d)); }
+    std::sort(a.begin(), a.end());
+    double p95 = a[std::min(a.size() - 1, static_cast<std::size_t>(0.95 * a.size()))];
+    return std::format(R"({{"mean":{:.6f},"p95_abs":{:.6f},"max_abs":{:.6f},"n":{}}})",
+                       sum / v.size(), p95, mx, v.size());
+}
+
+static std::string av_segment_json(const AvSegment& s)
+{
+    const double wall   = std::max(0.0, s.t_end - s.t_start);
+    const double vmedia = s.v_end - s.v_start;
+    const double amedia = s.has_a ? s.a_end - s.a_start : 0.0;
+    return std::format(
+        R"({{"speed":{},"t_start":{:.3f},"wall_s":{:.3f},"video_media_s":{:.3f},"audio_media_s":{:.3f},)"
+        R"("video_rate":{:.4f},"audio_rate":{:.4f},"frames_presented":{},"frames_dropped_late":{},)"
+        R"("av_diff_media_s":{},"av_diff_wall_ms":{},"av_diff_wall_ms_settled":{},)"
+        R"("underruns_settled":{},"silent_frames_settled":{},"video_rate_settled":{:.4f},"audio_rate_settled":{:.4f}}})",
+        s.speed, std::max(0.0, s.t_start), wall, vmedia, amedia,
+        wall > 0.0 ? vmedia / wall : 0.0, wall > 0.0 ? amedia / wall : 0.0,
+        s.presented, s.dropped,
+        av_stats_json(s.av_media), av_stats_json(s.av_wall_ms), av_stats_json(s.av_wall_ms_settled),
+        s.underruns_settled, s.silent_settled,
+        (s.t_set >= 0.0 && s.t_end > s.t_set) ? (s.v_end - s.v_set) / (s.t_end - s.t_set) : 0.0,
+        (s.t_set >= 0.0 && s.t_end > s.t_set) ? (s.a_end - s.a_set) / (s.t_end - s.t_set) : 0.0);
+}
 
 static void on_key(GLFWwindow* window, int key, int /*scancode*/, int action, int mods)
 {
@@ -375,6 +487,11 @@ int main(int argc, char* argv[])
     // to visually diff HW vs SW rendering paths without needing a human eye.
     std::string snapshot_path;
     int         snapshot_at_frame = 30;
+    // QA A/V hooks: `--speed <x>`, `--speed-seq <x@t,...>`, `--av-report <out.json> <secs>`.
+    double                 cli_speed = 1.0;
+    std::vector<SpeedStep> speed_seq;
+    std::string            av_report_path;
+    double                 av_report_secs = 10.0;
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -391,6 +508,21 @@ int main(int argc, char* argv[])
         } else if (arg == "--snapshot" && i + 2 < argc) {
             snapshot_path     = argv[++i];
             snapshot_at_frame = std::atoi(argv[++i]);
+        } else if (arg == "--speed" && i + 1 < argc) {
+            cli_speed = std::atof(argv[++i]);
+            if (!is_speed_preset(cli_speed)) {
+                logger::error("--speed {}: not a preset speed", argv[i]);
+                return EXIT_FAILURE;
+            }
+        } else if (arg == "--speed-seq" && i + 1 < argc) {
+            if (!parse_speed_seq(argv[++i], speed_seq)) {
+                logger::error("--speed-seq '{}': expected speed@secs[,speed@secs...] with preset speeds",
+                              argv[i]);
+                return EXIT_FAILURE;
+            }
+        } else if (arg == "--av-report" && i + 2 < argc) {
+            av_report_path = argv[++i];
+            av_report_secs = std::atof(argv[++i]);
         } else if (open_path.empty()) {
             open_path = arg;
         }
@@ -790,7 +922,10 @@ int main(int argc, char* argv[])
     // ── A/V sync state ────────────────────────────────────────────────────────
     MasterClock master_clock;
     double  last_pts    = 0.0;
-    double  last_delay  = 1.0 / 30.0;  // initial guess (30fps)
+    // Media-time duration of the last shown frame (PTS delta). Used to synthesize
+    // PTS for frames without one and as the delay fallback on PTS gaps. Never a
+    // wall-time value: scheduling divides by speed separately.
+    double  last_frame_dur = 1.0 / 30.0;   // refined from avg_frame_rate below
     bool    has_frame   = false;
     bool    was_paused  = false;
     double  cur_speed   = 1.0;
@@ -844,6 +979,19 @@ int main(int argc, char* argv[])
     auto last_title_upd = startup_time;
     // After a seek, ignore the audio clock until it has settled at the new position.
     auto audio_clock_valid_at = std::chrono::steady_clock::now();
+    // A seek while paused can't flush audio until playback resumes: the audio
+    // thread sits in push() on the full ring of pre-seek audio (the device is
+    // stopped) and only reaches the seek's flush sentinel once it drains.
+    bool seeked_while_paused = false;
+    // While paused the device is stopped, so the audio thread blocks in push()
+    // on a full ring, audioq fills, and the demuxer blocks on audioq — it then
+    // never services a seek, and frame steps starve. Paused navigation makes
+    // the buffered audio stale anyway: flush it (safe, the device is stopped)
+    // so the audio thread drains audioq and the demuxer can move again.
+    auto release_paused_audio = [&] {
+        if (has_audio) audio_player.flush();
+        seeked_while_paused = true;
+    };
 
     // Scrub state
     bool   was_scrubbing      = false;
@@ -861,6 +1009,25 @@ int main(int argc, char* argv[])
         AVRational afr = demuxer.fmt_ctx()->streams[demuxer.video_stream_index()]->avg_frame_rate;
         if (afr.num > 0 && afr.den > 0) frame_dt = static_cast<double>(afr.den) / afr.num;
     }
+    last_frame_dur = frame_dt;
+
+    // Seconds for a decoded frame: its PTS, else libavcodec's best-effort guess
+    // (MPEG-TS without PTS on every frame), else one frame after the last one.
+    auto frame_pts_sec = [&](const AVFrame* f) {
+        int64_t ts = (f->pts != AV_NOPTS_VALUE) ? f->pts : f->best_effort_timestamp;
+        return (ts != AV_NOPTS_VALUE) ? ts * av_q2d(video_tb) : last_pts + last_frame_dur;
+    };
+
+    // ── QA: --speed / --speed-seq / --av-report state ─────────────────────────
+    if (cli_speed != 1.0) s_speed.store(cli_speed);
+    std::size_t            speed_seq_next = 0;
+    bool                   qa_started     = false;  // first frame presented
+    auto                   qa_t0          = startup_time;
+    std::vector<AvSegment> av_segs;
+    AvSegment              av_total;
+    int64_t qa_underruns0 = 0, qa_silent0 = 0, qa_dropped_audio0 = 0;
+    static constexpr double kAvWarmup = 0.5;   // wall s excluded from overall A/V stats
+    static constexpr double kAvSettle = 1.0;   // wall s after each speed change excluded from *_settled
     auto   last_any_seek_at   = std::chrono::steady_clock::time_point{};
     // Delayed unmute: after scrub release we wait for the post-seek sentinel to
     // flush the audio pipeline before un-muting, preventing a brief burst of
@@ -889,6 +1056,14 @@ int main(int argc, char* argv[])
         // ── Pause state change ────────────────────────────────────────────
         if (paused != was_paused) {
             was_paused = paused;
+            // Resuming after a paused seek/step: drop the stale pre-seek audio
+            // still in the ring (device is stopped, so flushing here is safe)
+            // and restart the settle grace period until the seek's flush lands.
+            if (!paused && seeked_while_paused) {
+                if (has_audio) audio_player.flush();
+                audio_clock_valid_at = now + std::chrono::milliseconds(300);
+            }
+            seeked_while_paused = false;
             if (has_audio) audio_player.set_paused(paused);
         }
 
@@ -982,13 +1157,13 @@ int main(int argc, char* argv[])
             last_any_seek_at = now;
             last_seek_pos    = seek_target;
             demuxer.request_seek(seek_target);
+            if (paused) release_paused_audio();
             AVFrame* stale;
             while (frameq.try_pop(stale)) av_frame_free(&stale);
             // Keep has_frame = true so the last decoded frame stays on screen
             // while the pipeline seeks. This avoids blank-screen flicker
             // (VLC-style: show last frame until a new one arrives).
             last_pts      = seek_target;
-            last_delay    = 1.0 / 30.0;
             next_pts_time = now;
             audio_clock_valid_at = now + std::chrono::milliseconds(300);
         }
@@ -1007,6 +1182,21 @@ int main(int argc, char* argv[])
         }
 
         was_scrubbing = scrubbing;
+
+        // ── QA: scripted speed changes (--speed-seq), timed from playback start ──
+        if (qa_started) {
+            const double t = std::chrono::duration<double>(now - qa_t0).count();
+            while (speed_seq_next < speed_seq.size() && speed_seq[speed_seq_next].at_sec <= t) {
+                const SpeedStep& ev = speed_seq[speed_seq_next++];
+                switch (ev.kind) {
+                    case SpeedStep::Speed: s_speed.store(ev.speed);                    break;
+                    case SpeedStep::Pause: s_paused.store(true);                       break;
+                    case SpeedStep::Play:  s_paused.store(false);                      break;
+                    case SpeedStep::Seek:  s_seek_delta.store(ev.speed - last_pts);    break;
+                }
+                logger::info("--speed-seq: t={:.2f} event {} {}", t, static_cast<int>(ev.kind), ev.speed);
+            }
+        }
 
         // ── Speed change ──────────────────────────────────────────────────
         double speed = s_speed.load();
@@ -1038,25 +1228,105 @@ int main(int argc, char* argv[])
             // Normal playback
             AVFrame* frame = nullptr;
             if (frameq.try_pop(frame)) {
-                double pts = (frame->pts != AV_NOPTS_VALUE)
-                    ? frame->pts * av_q2d(video_tb)
-                    : last_pts + last_delay;
+                double pts = frame_pts_sec(frame);
 
                 // Audio clock is master once it has settled after a seek.
                 // During the grace period use video PTS to avoid the sync
                 // algorithm stalling on the clock-at-zero transient.
+                // Sync against what is audible: the device plays output_latency
+                // (wall) behind the ring clock, i.e. latency × speed of media.
                 bool audio_settled = has_audio && now >= audio_clock_valid_at;
-                double master = audio_settled ? audio_player.clock() : pts;
+                double master = audio_settled
+                    ? audio_player.clock() - audio_player.output_latency_seconds() * speed
+                    : pts;
+
+                // Drop late frames. At high speed (e.g. 4x of 60fps = 240 fps)
+                // the loop can't present every frame, so skip straight to the
+                // newest one that isn't already behind the audio clock.
+                // Diffs past 10 s are seek artifacts (see compute_video_delay).
+                // Threshold is wall time (scaled to media by speed), and never
+                // under two frames so slow-motion doesn't drop on ordinary jitter.
+                int64_t dropped_now = 0;
+                if (audio_settled) {
+                    const double drop_behind = std::max(kLateFrameDrop * speed, 2.0 * last_frame_dur);
+                    AVFrame* next = nullptr;
+                    while (pts < master - drop_behind && master - pts < 10.0
+                           && frameq.try_pop(next)) {
+                        last_frame_dur = frame_duration(pts, last_pts, last_frame_dur);
+                        last_pts = pts;
+                        av_frame_free(&frame);
+                        frame = next;
+                        pts = frame_pts_sec(frame);
+                        ++dropped_now;
+                    }
+                }
+
                 master_clock.set_audio(master);
                 master_clock.set_video(pts);
 
-                double delay = compute_video_delay(pts, last_pts, last_delay, master);
-                delay = std::clamp(delay / speed, 0.001, 0.5);
+                // Wall-time scheduling value — not carried over to the next frame.
+                double delay = compute_video_delay(pts, last_pts, last_frame_dur, master, speed);
+                delay = std::clamp(delay, 0.001, 0.5);
 
-                next_pts_time = now + std::chrono::duration_cast<std::chrono::steady_clock::duration>(
-                                          std::chrono::duration<double>(delay));
-                last_delay = delay;
-                last_pts   = pts;
+                // Schedule from the previous deadline, not from `now`, so per-frame
+                // loop overhead doesn't accumulate. Re-anchor if we've fallen
+                // far behind (seek, stall, window drag).
+                auto delay_dur = std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+                                     std::chrono::duration<double>(delay));
+                next_pts_time += delay_dur;
+                if (next_pts_time < now - std::chrono::milliseconds(100))
+                    next_pts_time = now + delay_dur;
+                last_frame_dur = frame_duration(pts, last_pts, last_frame_dur);
+                last_pts       = pts;
+
+                // QA: per-frame A/V sample = presented video PTS − audible audio PTS.
+                if (!av_report_path.empty()) {
+                    if (!qa_started) {
+                        qa_started        = true;
+                        qa_t0             = now;
+                        qa_underruns0     = has_audio ? audio_player.underrun_count() : 0;
+                        qa_silent0        = has_audio ? audio_player.silent_frames()  : 0;
+                        qa_dropped_audio0 = has_audio ? audio_player.dropped_frames() : 0;
+                    }
+                    const double t = std::chrono::duration<double>(now - qa_t0).count();
+                    if (av_segs.empty() || av_segs.back().speed != speed) {
+                        av_segs.emplace_back();
+                        av_segs.back().speed = speed;
+                    }
+                    const double aclk = audio_settled ? master : 0.0;
+                    for (AvSegment* seg : { &av_segs.back(), &av_total }) {
+                        seg->on_frame(t, pts, audio_settled, aclk);
+                        seg->dropped += dropped_now;
+                    }
+                    // Overall speed is only meaningful when it never changed.
+                    av_total.speed = (av_segs.size() == 1) ? speed : 0.0;
+                    if (audio_settled) {
+                        // Wall ms = media / speed: the offset the viewer perceives.
+                        const double d  = pts - aclk;
+                        const double ms = d / speed * 1000.0;
+                        av_segs.back().av_media.push_back(d);
+                        av_segs.back().av_wall_ms.push_back(ms);
+                        AvSegment& sg = av_segs.back();
+                        if (t - sg.t_start >= kAvSettle) {
+                            sg.av_wall_ms_settled.push_back(ms);
+                            if (sg.underruns_settled < 0) {
+                                sg.u_mark = audio_player.underrun_count();
+                                sg.s_mark = audio_player.silent_frames();
+                                sg.underruns_settled = sg.silent_settled = 0;
+                                sg.t_set = t; sg.v_set = pts; sg.a_set = aclk;
+                            }
+                            sg.underruns_settled = audio_player.underrun_count() - sg.u_mark;
+                            sg.silent_settled    = audio_player.silent_frames()  - sg.s_mark;
+                        }
+                        if (t >= kAvWarmup) {
+                            av_total.av_media.push_back(d);
+                            av_total.av_wall_ms.push_back(ms);
+                        }
+                    }
+                } else if (!qa_started) {
+                    qa_started = true;   // --speed-seq without --av-report
+                    qa_t0      = now;
+                }
 
                 renderer.upload(frame);
                 av_frame_free(&frame);
@@ -1089,14 +1359,18 @@ int main(int argc, char* argv[])
         // discard. Advances exactly one decoded frame per request.
         while (s_single_steps.load() > 0 && paused && !scrubbing) {
             AVFrame* frame = nullptr;
-            if (!frameq.try_pop(frame)) break;     // wait for the decoder
-            double pts = (frame->pts != AV_NOPTS_VALUE)
-                ? frame->pts * av_q2d(video_tb)
-                : last_pts + last_delay;
+            if (!frameq.try_pop(frame)) {          // wait for the decoder
+                // Stepping consumes video only; once audioq fills the demuxer
+                // stalls and so would the steps. Unblock the audio side.
+                release_paused_audio();
+                break;
+            }
+            double pts = frame_pts_sec(frame);
             renderer.upload(frame);
             av_frame_free(&frame);
-            has_frame = true;
-            last_pts  = pts;
+            has_frame      = true;
+            last_frame_dur = frame_duration(pts, last_pts, last_frame_dur);
+            last_pts       = pts;
             ++frame_count;
             s_single_steps.fetch_sub(1);
         }
@@ -1187,8 +1461,9 @@ int main(int argc, char* argv[])
             // av_diff: meaningful only during active playback.
             // paused  → NaN displayed as "--"
             // no audio → NaN displayed as "N/A" (handled in DebugHUD via separate flag)
+            // Device latency is wall time; at speed× it covers speed× as much media.
             double av_diff = (has_audio && !paused)
-                ? (last_pts - audio_player.clock() + audio_player.output_latency_seconds()) * 1000.0
+                ? (last_pts - audio_player.clock() + audio_player.output_latency_seconds() * speed) * 1000.0
                 : std::numeric_limits<double>::quiet_NaN();
 
             debug_hud.draw(
@@ -1211,7 +1486,7 @@ int main(int argc, char* argv[])
         {
             // Push every frame so the time axis advances correctly even during pause.
             double av_diff = (has_audio && !paused)
-                ? (last_pts - audio_player.clock() + audio_player.output_latency_seconds()) * 1000.0
+                ? (last_pts - audio_player.clock() + audio_player.output_latency_seconds() * speed) * 1000.0
                 : std::numeric_limits<double>::quiet_NaN();
             debug_hud.push_drift(av_diff);
         }
@@ -1364,6 +1639,7 @@ int main(int argc, char* argv[])
                     last_pts  = tick_seek;
                     next_pts_time = now;
                     audio_clock_valid_at = now + std::chrono::milliseconds(300);
+                    if (paused) release_paused_audio();
                 }
                 bottom_off += static_cast<float>(DebugHUD::kTimelinePx) * ps;
 
@@ -1580,6 +1856,45 @@ int main(int argc, char* argv[])
                     show_hint ? "   --  H for controls" : "").c_str());
         }
 
+        // ── QA: --av-report — write JSON after N wall seconds of playback ──
+        // Falls back to a startup deadline so a file that never presents a
+        // frame still yields a (mostly empty) report instead of hanging.
+        if (!av_report_path.empty()) {
+            const double t     = qa_started ? std::chrono::duration<double>(now - qa_t0).count() : 0.0;
+            const bool   stuck = now - startup_time > std::chrono::duration<double>(av_report_secs + 15.0);
+            if ((qa_started && t >= av_report_secs) || stuck) {
+                std::string segs;
+                for (const auto& sg : av_segs)
+                    segs += (segs.empty() ? "" : ",\n    ") + av_segment_json(sg);
+                std::string req;
+                static constexpr const char* kKind[] = { "speed", "pause", "play", "seek" };
+                for (const auto& st : speed_seq)
+                    req += std::format("{}{{\"{}\":{},\"at_s\":{}}}", req.empty() ? "" : ",",
+                                       kKind[st.kind], st.speed, st.at_sec);
+                std::string fname = std::filesystem::path(open_path).filename().string();
+                std::erase_if(fname, [](char c) { return c == '"' || c == '\\'; });  // keep JSON valid
+                std::ofstream f(av_report_path);
+                f << std::format(
+                    "{{\n  \"file\": \"{}\",\n  \"initial_speed\": {},\n  \"speed_seq\": [{}],\n"
+                    "  \"started\": {},\n  \"wall_s\": {:.3f},\n  \"hw_decode\": {},\n"
+                    "  \"has_audio\": {},\n  \"audio_output_latency_s\": {:.4f},\n"
+                    "  \"audio_underruns\": {},\n  \"audio_silent_frames\": {},\n"
+                    "  \"audio_dropped_frames\": {},\n"
+                    "  \"overall\": {},\n  \"segments\": [\n    {}\n  ]\n}}\n",
+                    fname, cli_speed, req,
+                    qa_started, t, video_decoder.is_hw_active(), has_audio,
+                    has_audio ? audio_player.output_latency_seconds() : 0.0,
+                    has_audio ? audio_player.underrun_count() - qa_underruns0     : 0,
+                    has_audio ? audio_player.silent_frames()  - qa_silent0        : 0,
+                    has_audio ? audio_player.dropped_frames() - qa_dropped_audio0 : 0,
+                    av_segment_json(av_total), segs);
+                logger::info("--av-report: wrote {} ({:.1f} s, {} frames)",
+                             av_report_path, t, av_total.presented);
+                av_report_path.clear();
+                glfwSetWindowShouldClose(window, GLFW_TRUE);   // normal shutdown path
+            }
+        }
+
         // ── Sleep ─────────────────────────────────────────────────────────
         if (pending_step_frame) {
             // Spin until the decode thread delivers the stepped frame.
@@ -1605,6 +1920,7 @@ int main(int argc, char* argv[])
     videoq.shutdown();
     audioq.shutdown();
     frameq.shutdown();
+    audio_player.interrupt();   // wake an audio thread blocked on a full ring
 
     demux_thread.request_stop();
     video_thread.request_stop();

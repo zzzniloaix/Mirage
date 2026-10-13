@@ -1,4 +1,5 @@
 #include "PlayerUI.h"
+#include "SpeedPresets.h"
 
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
@@ -13,9 +14,6 @@
 #include <algorithm>
 #include <format>
 
-// Speed presets — must match main.cpp
-static constexpr double kSpeedPresets[] = { 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 4.0 };
-static constexpr int    kNumPresets     = static_cast<int>(std::size(kSpeedPresets));
 
 // Auto-hide timing
 static constexpr double kHideDelaySec = 4.0;

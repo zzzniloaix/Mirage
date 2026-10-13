@@ -152,14 +152,19 @@ add_executable(mirage_tests
     tests/test_manifest_parser.cpp
     tests/test_subtitle_decoder.cpp
     tests/test_yuv_matrix.cpp
+    tests/test_sync.cpp
+    tests/test_audio_player.cpp
     src/NetworkLogger.cpp
     src/ManifestParser.cpp
     src/SubtitleDecoder.cpp
+    src/Sync.cpp
+    src/AudioPlayer.cpp
 )
 
 target_include_directories(mirage_tests PRIVATE
     src
     ${pugixml_SOURCE_DIR}/src
+    ${miniaudio_SOURCE_DIR}
 )
 
 target_link_libraries(mirage_tests PRIVATE
