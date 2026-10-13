@@ -1,5 +1,6 @@
 #include "Demuxer.h"
 #include "Logger.h"
+#include "DemuxRetry.h"
 
 #include <algorithm>
 #include <cstring>
@@ -13,6 +14,26 @@ extern "C" {
 #include <libavutil/samplefmt.h>
 #include <libavutil/display.h>
 #include <libavcodec/packet.h>
+}
+
+// AVIOInterruptCB: non-zero aborts the blocking FFmpeg call in progress.
+// av_get_*_fmt_name() return nullptr for *_NONE (e.g. a stream whose
+// parameters avformat_find_stream_info could not determine); passing that
+// to std::format as const char* dereferences null.
+static const char* pix_fmt_name(AVPixelFormat f)
+{
+    const char* n = av_get_pix_fmt_name(f);
+    return n ? n : "none";
+}
+static const char* sample_fmt_name(AVSampleFormat f)
+{
+    const char* n = av_get_sample_fmt_name(f);
+    return n ? n : "none";
+}
+
+static int demux_interrupt_cb(void* opaque)
+{
+    return static_cast<const std::atomic<bool>*>(opaque)->load() ? 1 : 0;
 }
 
 void Demuxer::request_seek(double seconds)
@@ -56,6 +77,26 @@ void Demuxer::read_loop(std::stop_token st,
                         Queue<AVPacket*>* subq)
 {
     AVPacket* pkt = av_packet_alloc();
+    // Consecutive transient network read errors without forward progress.
+    // Reset only when a new packet is delivered (or on a seek), never by the
+    // duplicates re-read and dropped after a resync, so a failure that
+    // recurs at the same position still exhausts the retry budget.
+    int read_failures = 0;
+    // End time (seconds) of the furthest packet delivered on any routed
+    // stream. Used to tell a short read before the media's end (dropped
+    // connection) from a real EOF; unlike read_ahead_pts_ it covers audio
+    // too, so a video track shorter than the container is not mistaken
+    // for a truncated download.
+    double media_end = -1.0;
+    // Byte-stream (non-HLS) network recovery: dts of the last packet routed
+    // per stream; after a failed read the demuxer is re-seeked to it and
+    // packets at or before resync_dts[stream] are dropped as duplicates.
+    std::vector<int64_t> last_dts(fmt_ctx_->nb_streams, AV_NOPTS_VALUE);
+    std::vector<int64_t> resync_dts(fmt_ctx_->nb_streams, AV_NOPTS_VALUE);
+    bool resync_pending = false;
+    // A stop request aborts an av_read_frame() stuck on the network (the
+    // HTTP layer can otherwise block for rw_timeout plus reconnects).
+    std::stop_callback abort_on_stop(st, [this] { abort_io_.store(true); });
 
     while (!st.stop_requested()) {
         // ── Handle pending stream switches ────────────────────────────────
@@ -96,12 +137,20 @@ void Demuxer::read_loop(std::stop_token st,
             logger::info("Subtitle stream switched to index {}", sub_sw < 0 ? -1 : sub_sw);
         }
 
+        if (audio_sw >= 0 || video_sw >= 0 || sub_sw != -2)
+            apply_stream_discard();
+
         // ── Handle a pending seek request ─────────────────────────────────
         double seek_secs = seek_target_.exchange(-1.0);
         if (seek_secs >= 0.0) {
             int64_t ts = static_cast<int64_t>(seek_secs * AV_TIME_BASE);
             av_seek_frame(fmt_ctx_, -1, ts, AVSEEK_FLAG_BACKWARD);
             read_ahead_pts_.store(-1.0, std::memory_order_relaxed);
+            read_failures  = 0;   // a new position gets a fresh retry budget
+            media_end      = -1.0;
+            resync_pending = false;
+            std::fill(last_dts.begin(),   last_dts.end(),   AV_NOPTS_VALUE);
+            std::fill(resync_dts.begin(), resync_dts.end(), AV_NOPTS_VALUE);
 
             // Drain and free all stale packets still sitting in the queues
             AVPacket* stale;
@@ -119,13 +168,85 @@ void Demuxer::read_loop(std::stop_token st,
             if (subq && subtitle_idx_ >= 0) subq->push(flush_sentinel());
         }
 
+        // ── Resume a byte stream after a failed read ──────────────────────
+        // Once the HTTP layer has given up on a connection it just reports
+        // EOF; a demuxer seek makes it reconnect at the new offset. Seek back
+        // to the last routed packet (keyframe at or before it) and drop what
+        // was already delivered, so the decoders see a seamless stream.
+        if (resync_pending) {
+            resync_pending = false;
+            AVIOContext* pb = fmt_ctx_->pb;
+            pb->eof_reached = 0;
+            pb->error       = 0;
+            const int ref = (video_idx_ >= 0 && last_dts[video_idx_] != AV_NOPTS_VALUE)
+                                ? video_idx_ : audio_idx_;
+            if (ref >= 0 && last_dts[ref] != AV_NOPTS_VALUE) {
+                resync_dts = last_dts;
+                av_seek_frame(fmt_ctx_, ref, last_dts[ref], AVSEEK_FLAG_BACKWARD);
+            }
+        }
+
         int ret = av_read_frame(fmt_ctx_, pkt);
+        if (ret < 0 && st.stop_requested()) break;   // aborted by the stop callback
         if (ret < 0) {
-            if (ret == AVERROR(EAGAIN)) {
+            AVIOContext* pb = fmt_ctx_->pb;   // nullptr for HLS (AVFMT_NOFILE)
+            const bool avio_eof = pb && avio_feof(pb);
+            // A byte-layer error, or bytes that stopped short of the known
+            // size before the media's end (a dead HTTP connection reads as
+            // plain EOF), means the connection failed — not end of file.
+            const bool avio_error = pb && pb->error < 0;
+            bool avio_short = false;
+            if (pb && is_network_ && !avio_error) {
+                const int64_t size = avio_size(pb);
+                const double  dur  = duration();
+                // Packet timestamps include the container's start offset.
+                const double  start = fmt_ctx_->start_time != AV_NOPTS_VALUE
+                                    ? static_cast<double>(fmt_ctx_->start_time) / AV_TIME_BASE
+                                    : 0.0;
+                avio_short = size > 0 && avio_tell(pb) < size
+                          && (dur <= 0.0 || media_end < start + dur - 1.0);
+            }
+            const demux::ReadError kind = demux::classify_read_error(
+                ret, is_network_, avio_eof, avio_error, avio_short, read_failures);
+
+            if (kind == demux::ReadError::Wait) {
                 // Network stream not ready yet (e.g. waiting for next HLS segment).
                 // Yield briefly and retry — do NOT treat this as EOF.
                 std::this_thread::sleep_for(std::chrono::milliseconds(5));
                 continue;
+            }
+            if (kind == demux::ReadError::Retry) {
+                // Transient network failure (dropped TLS/HTTP connection, a
+                // truncated HLS segment). HLS moves on to the next segment by
+                // itself; a plain byte stream is re-seeked (resync_pending).
+                ++read_failures;
+                const auto delay = demux::retry_backoff(read_failures);
+                char errbuf[AV_ERROR_MAX_STRING_SIZE];
+                av_strerror((pb && pb->error < 0) ? pb->error : ret, errbuf, sizeof(errbuf));
+                logger::warn("Demuxer: read error '{}' — retry {}/{} in {} ms",
+                             errbuf, read_failures,
+                             avio_short ? demux::kMaxShortReadRetries : demux::kMaxReadRetries,
+                             delay.count());
+                if (pb) resync_pending = true;
+                // Sleep in slices so quit, seek and track switches stay responsive.
+                const auto until = std::chrono::steady_clock::now() + delay;
+                while (std::chrono::steady_clock::now() < until && !st.stop_requested()
+                       && seek_target_.load() < 0.0
+                       && pending_audio_switch_.load() < 0
+                       && pending_video_switch_.load() < 0
+                       && pending_subtitle_switch_.load() == -2)
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                continue;
+            }
+            if (is_network_ && read_failures > 0) {
+                char errbuf[AV_ERROR_MAX_STRING_SIZE];
+                av_strerror((pb && pb->error < 0) ? pb->error : ret, errbuf, sizeof(errbuf));
+                logger::error("Demuxer: giving up after {} failed reads: {}",
+                              read_failures, errbuf);
+            } else if (ret != AVERROR_EOF) {
+                char errbuf[AV_ERROR_MAX_STRING_SIZE];
+                av_strerror(ret, errbuf, sizeof(errbuf));
+                logger::info("Demuxer: read ended: {}", errbuf);
             }
             // True EOF or unrecoverable error — signal decoders to flush and stop.
             videoq.push(nullptr);
@@ -133,6 +254,30 @@ void Demuxer::read_loop(std::stop_token st,
             if (subq && subtitle_idx_ >= 0) subq->push(nullptr);
             break;
         }
+
+        // After a resync seek: drop packets the decoders already have.
+        // Re-reading them is not progress, so it leaves read_failures alone.
+        if (const int si = pkt->stream_index;
+            si < static_cast<int>(resync_dts.size()) && resync_dts[si] != AV_NOPTS_VALUE) {
+            if (pkt->dts != AV_NOPTS_VALUE && pkt->dts <= resync_dts[si]) {
+                av_packet_unref(pkt);
+                continue;
+            }
+            resync_dts[si] = AV_NOPTS_VALUE;   // caught up on this stream
+        }
+        read_failures = 0;   // a new packet: forward progress, fresh budget
+
+        if (const int si = pkt->stream_index;
+            si == video_idx_ || si == audio_idx_ || (subq && si == subtitle_idx_)) {
+            const int64_t ts = (pkt->pts != AV_NOPTS_VALUE) ? pkt->pts : pkt->dts;
+            if (ts != AV_NOPTS_VALUE) {
+                const double end = static_cast<double>(ts + std::max<int64_t>(pkt->duration, 0))
+                                 * av_q2d(fmt_ctx_->streams[si]->time_base);
+                media_end = std::max(media_end, end);
+            }
+        }
+        if (pkt->stream_index < static_cast<int>(last_dts.size()) && pkt->dts != AV_NOPTS_VALUE)
+            last_dts[pkt->stream_index] = pkt->dts;
 
         if (pkt->stream_index == video_idx_) {
             const int64_t ts = (pkt->pts != AV_NOPTS_VALUE) ? pkt->pts : pkt->dts;
@@ -168,11 +313,13 @@ Demuxer::~Demuxer()
 
 bool Demuxer::open(const std::string& url_or_path)
 {
-    if (is_network_url(url_or_path))
+    abort_io_.store(false);
+    is_network_ = is_network_url(url_or_path);
+    if (is_network_)
         avformat_network_init();
 
     AVDictionary* opts = nullptr;
-    if (is_network_url(url_or_path)) {
+    if (is_network_) {
         av_dict_set(&opts, "timeout",             "5000000", 0);   // 5 s socket connect/recv
         // rw_timeout: hard cap on any single I/O operation (applies both during
         // avformat_open_input and later reads). Prevents a bad URL from taking
@@ -189,6 +336,12 @@ bool Demuxer::open(const std::string& url_or_path)
         av_dict_set(&opts, "extension_picky",            "0",   0);
     }
 
+    fmt_ctx_ = avformat_alloc_context();
+    if (fmt_ctx_) {
+        fmt_ctx_->interrupt_callback.callback = demux_interrupt_cb;
+        fmt_ctx_->interrupt_callback.opaque   = &abort_io_;
+    }
+    // On failure avformat_open_input frees the context and nulls fmt_ctx_.
     int ret = avformat_open_input(&fmt_ctx_, url_or_path.c_str(), nullptr, &opts);
     av_dict_free(&opts);
 
@@ -223,9 +376,26 @@ bool Demuxer::open(const std::string& url_or_path)
     // (SubtitleSelect::choose_initial) via request_subtitle_switch.
     subtitle_idx_ = -1;
 
+    apply_stream_discard();
     build_track_lists();
     print_stream_info();
     return true;
+}
+
+// Discard every stream we are not routing. HLS/DASH expose each variant as
+// its own stream, and the demuxer downloads segments for every non-discarded
+// one in parallel — without this a 24-variant master playlist fetches all
+// renditions at once and starves the selected one. The HLS demuxer re-checks
+// discard flags on each read, so updating them after a track switch is enough.
+void Demuxer::apply_stream_discard()
+{
+    if (!fmt_ctx_) return;
+    const int sub = subtitle_idx_.load();
+    for (unsigned i = 0; i < fmt_ctx_->nb_streams; ++i) {
+        const int idx = static_cast<int>(i);
+        const bool keep = idx == video_idx_ || idx == audio_idx_ || idx == sub;
+        fmt_ctx_->streams[i]->discard = keep ? AVDISCARD_DEFAULT : AVDISCARD_ALL;
+    }
 }
 
 void Demuxer::close()
@@ -405,7 +575,7 @@ void Demuxer::print_stream_info() const
             desc ? desc->name : "unknown",
             par->width, par->height,
             av_q2d(fps),
-            av_get_pix_fmt_name(static_cast<AVPixelFormat>(par->format)));
+            pix_fmt_name(static_cast<AVPixelFormat>(par->format)));
     }
 
     if (audio_idx_ >= 0) {
@@ -416,7 +586,7 @@ void Demuxer::print_stream_info() const
             desc ? desc->name : "unknown",
             par->sample_rate,
             par->ch_layout.nb_channels,
-            av_get_sample_fmt_name(static_cast<AVSampleFormat>(par->format)));
+            sample_fmt_name(static_cast<AVSampleFormat>(par->format)));
     }
 
     if (!subtitle_tracks_.empty()) {

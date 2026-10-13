@@ -339,12 +339,12 @@ PlayerUIState PlayerUI::build(const PlayerUIInputs& in)
     const bool any_popup = ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId);
     const bool want_visible = in.force_visible || !pending_menu_.empty()
         || (now - last_activity_ < th::kHideDelay) || in.paused || any_popup
-        || seek_.active || vol_dragging_ || (cursor_in_chrome && now - last_activity_ < 30.0);
+        || seek_.active || vol_dragging_ || open_card_ || (cursor_in_chrome && now - last_activity_ < 30.0);
     ui_alpha_  = in.force_hidden ? 0.0f
                : in.force_visible ? 1.0f : th::ease(ui_alpha_, want_visible ? 1.0f : 0.0f, dt, th::kFade);
     stack_vis_ = ui_alpha_;
 
-    if (ui_alpha_ < 0.01f && mouse_ok && !in.force_visible && !in.show_help)
+    if (ui_alpha_ < 0.01f && mouse_ok && !in.force_visible && !in.show_help && !open_card_)
         ImGui::SetMouseCursor(ImGuiMouseCursor_None);
 
     // Double-click on the video toggles fullscreen.
@@ -392,6 +392,10 @@ PlayerUIState PlayerUI::build(const PlayerUIInputs& in)
         build_help_card(out, win_w, win_h);
     }
     if (pending_menu_ == "help") pending_menu_.clear();
+
+    // Open dialog (Media > Open…, O key, QA "open").
+    if (pending_menu_ == "open") { show_open_dialog(); pending_menu_.clear(); }
+    if (open_card_) build_open_card(in, out, win_w, win_h);
 
     // ── Foreground: centre flash + toast ──────────────────────────────────────
     ImDrawList* fg = ImGui::GetForegroundDrawList();
@@ -504,6 +508,8 @@ void PlayerUI::build_menu_popup(const PlayerUIInputs& in, PlayerUIState& out)
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 8.0f));
     ImGui::Dummy(ImVec2(th::kMenuMinW - 12.0f, 0.0f));
     if (ImGui::BeginMenu("Media")) {
+        if (ImGui::MenuItem("Open\u2026", "O")) show_open_dialog();
+        ImGui::Separator();
         if (ImGui::MenuItem("Quit", "Q / Esc")) out.quit = true;
         ImGui::EndMenu();
     }
@@ -952,6 +958,7 @@ void PlayerUI::build_help_card(PlayerUIState& out, float win_w, float win_h)
         { "⇧C",      "Next subtitle track" },
         { "A",            "Next audio track" },
         { "F",            "Fullscreen (or double-click)" },
+        { "O",            "Open file / URL (or drop a file)" },
     };
     static constexpr K kRight[] = {
         { "K",            "Keyframe filmstrip" },
@@ -1015,6 +1022,60 @@ void PlayerUI::build_help_card(PlayerUIState& out, float win_w, float win_h)
         const float y1 = column(kLeft,  nl, p.x, p.y);
         const float y2 = column(kRight, nr, p.x + col_w + 16.0f, p.y);
         ImGui::Dummy(ImVec2(col_w * 2.0f + 16.0f, std::max(y1, y2) - p.y));
+    }
+    ImGui::End();
+    ImGui::PopStyleColor();
+    ImGui::PopStyleVar(3);
+}
+
+// ── Open dialog (Media > Open…, O) ────────────────────────────────────────────
+
+void PlayerUI::build_open_card(const PlayerUIInputs& in, PlayerUIState& out, float win_w, float win_h)
+{
+    static const std::vector<std::string> kNoRecents;
+    const auto& recents = in.recents ? *in.recents : kNoRecents;
+
+    const float card_w = std::min(560.0f, win_w - 32.0f);
+    ImGui::SetNextWindowPos(ImVec2(win_w * 0.5f, win_h * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(card_w, 0.0f), ImGuiCond_Always);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(20.0f, 16.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, th::kRadiusPanel);
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 8.0f));
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, th::vec4(th::kPanel));
+    if (ImGui::Begin("##opencard", nullptr,
+                     ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
+                     ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoNav)) {
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        ImGui::PushFont(ui_fonts().title);
+        ImGui::TextUnformatted("Open media");
+        ImGui::PopFont();
+        // Close button (top-right)
+        {
+            const ImVec2 wp = ImGui::GetWindowPos();
+            const float  ww = ImGui::GetWindowWidth();
+            const ImVec2 save = ImGui::GetCursorScreenPos();
+            ImGui::SetCursorScreenPos(ImVec2(wp.x + ww - 12.0f - th::kBtn, wp.y + 10.0f));
+            auto cb = ui::icon_button("##openclose", "Close (Esc)");
+            const float r = 5.0f;
+            dl->AddLine(ImVec2(cb.c.x - r, cb.c.y - r), ImVec2(cb.c.x + r, cb.c.y + r), cb.col, 2.0f);
+            dl->AddLine(ImVec2(cb.c.x + r, cb.c.y - r), ImVec2(cb.c.x - r, cb.c.y + r), cb.col, 2.0f);
+            if (cb.clicked) open_card_ = false;
+            ImGui::SetCursorScreenPos(save);
+        }
+        ImGui::Dummy(ImVec2(0, 2.0f));
+
+        const float row_w = ImGui::GetContentRegionAvail().x;
+        const float rh    = ImGui::GetTextLineHeightWithSpacing();
+        const float recents_h = static_cast<float>(std::min<std::size_t>(recents.size(), 8)) * rh + 4.0f;
+        const std::string chosen = build_open_rows(recents, row_w, recents_h, open_card_focus_);
+        open_card_focus_ = false;
+        if (!chosen.empty()) {
+            out.open_source = chosen;
+            open_card_      = false;
+        }
+        // Esc while the URL field is active never reaches the GLFW key
+        // handler (ImGui owns the keyboard), so close here too.
+        if (ImGui::IsKeyPressed(ImGuiKey_Escape, false)) open_card_ = false;
     }
     ImGui::End();
     ImGui::PopStyleColor();
@@ -1190,64 +1251,76 @@ std::string PlayerUI::draw_launcher(const std::vector<std::string>& recents,
             ImGui::Dummy(ImVec2(ew, eh + 6.0f));
         }
 
-        // ── URL / path input ──────────────────────────────────────────────────
-        ImGui::PushStyleColor(ImGuiCol_Text, th::vec4(th::kTextDim));
-        ImGui::TextUnformatted("File path or network URL (HLS / DASH)");
-        ImGui::PopStyleColor();
-
-        const float input_w = kZoneW - 90.0f - 96.0f;
-        ImGui::SetNextItemWidth(input_w);
-        if (ImGui::InputText("##url", url_buf_, sizeof(url_buf_), ImGuiInputTextFlags_EnterReturnsTrue)
-            && url_buf_[0] != '\0')
-            result = url_buf_;
-
-        ImGui::SameLine(0.0f, 8.0f);
-        // Primary action: accent fill, dark text.
-        ImGui::PushStyleColor(ImGuiCol_Button,        th::vec4(th::kAccent));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, th::vec4(th::kAccentHover));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  th::vec4(th::rgba(14, 165, 233, 1.0f)));
-        ImGui::PushStyleColor(ImGuiCol_Text,          th::vec4(th::rgba(8, 20, 30, 1.0f)));
-        if (ImGui::Button("Open", ImVec2(84.0f, 0.0f)) && url_buf_[0] != '\0')
-            result = url_buf_;
-        ImGui::PopStyleColor(4);
-
-        ImGui::SameLine(0.0f, 8.0f);
-        if (ImGui::Button("Browse…", ImVec2(-1.0f, 0.0f))) {
-            nfdu8char_t* out_path = nullptr;
-            nfdu8filteritem_t filters[] = {
-                { "Video / Manifest", "mp4,mkv,mov,avi,ts,m2ts,m3u8,mpd,webm,flv" },
-                { "All files", "*" }
-            };
-            if (NFD_OpenDialogU8(&out_path, filters, 2, nullptr) == NFD_OKAY && out_path) {
-                result = out_path;
-                NFD_FreePathU8(out_path);
-            }
-        }
-
-        // ── Recent files ──────────────────────────────────────────────────────
-        if (!recents.empty()) {
-            ImGui::Dummy(ImVec2(0.0f, 6.0f));
-            ImGui::PushFont(ui_fonts().ui_small);
-            ImGui::PushStyleColor(ImGuiCol_Text, th::vec4(th::kTextDim));
-            ImGui::TextUnformatted("RECENT");
-            ImGui::PopStyleColor();
-            ImGui::PopFont();
-
-            ImGui::BeginChild("##recents", ImVec2(0.0f, 0.0f), false, ImGuiWindowFlags_NoScrollbar);
-            for (const auto& r : recents) {
-                const std::string disp = ellipsize(r, ImGui::GetFont(), ImGui::GetFontSize(), kZoneW - 16.0f);
-                ImGui::PushID(r.c_str());
-                if (ImGui::Selectable(disp.c_str())) result = r;
-                ImGui::PopID();
-                if (ImGui::IsItemHovered()) ui::tooltip(r.c_str());
-            }
-            ImGui::EndChild();
-        }
+        result = build_open_rows(recents, kZoneW, 0.0f, false);
     }
     ImGui::End();
     ImGui::PopStyleVar(4);
     ImGui::PopStyleColor(2);
 
+    return result;
+}
+
+// URL / path field, Open, Browse… and the recent list. Used by the launcher
+// card and by the Open dialog shown over playback.
+std::string PlayerUI::build_open_rows(const std::vector<std::string>& recents, float row_w,
+                                      float recents_h, bool focus_input)
+{
+    std::string result;
+
+    // ── URL / path input ──────────────────────────────────────────────────
+    ImGui::PushStyleColor(ImGuiCol_Text, th::vec4(th::kTextDim));
+    ImGui::TextUnformatted("File path or network URL (HLS / DASH)");
+    ImGui::PopStyleColor();
+
+    const float input_w = row_w - 90.0f - 96.0f;
+    ImGui::SetNextItemWidth(input_w);
+    if (focus_input) ImGui::SetKeyboardFocusHere();
+    if (ImGui::InputText("##url", url_buf_, sizeof(url_buf_), ImGuiInputTextFlags_EnterReturnsTrue)
+        && url_buf_[0] != '\0')
+        result = url_buf_;
+
+    ImGui::SameLine(0.0f, 8.0f);
+    // Primary action: accent fill, dark text.
+    ImGui::PushStyleColor(ImGuiCol_Button,        th::vec4(th::kAccent));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, th::vec4(th::kAccentHover));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive,  th::vec4(th::rgba(14, 165, 233, 1.0f)));
+    ImGui::PushStyleColor(ImGuiCol_Text,          th::vec4(th::rgba(8, 20, 30, 1.0f)));
+    if (ImGui::Button("Open", ImVec2(84.0f, 0.0f)) && url_buf_[0] != '\0')
+        result = url_buf_;
+    ImGui::PopStyleColor(4);
+
+    ImGui::SameLine(0.0f, 8.0f);
+    if (ImGui::Button("Browse…", ImVec2(-1.0f, 0.0f))) {
+        nfdu8char_t* out_path = nullptr;
+        nfdu8filteritem_t filters[] = {
+            { "Video / Manifest", "mp4,mkv,mov,avi,ts,m2ts,m3u8,mpd,webm,flv" },
+            { "All files", "*" }
+        };
+        if (NFD_OpenDialogU8(&out_path, filters, 2, nullptr) == NFD_OKAY && out_path) {
+            result = out_path;
+            NFD_FreePathU8(out_path);
+        }
+    }
+
+    // ── Recent files ──────────────────────────────────────────────────────
+    if (!recents.empty()) {
+        ImGui::Dummy(ImVec2(0.0f, 6.0f));
+        ImGui::PushFont(ui_fonts().ui_small);
+        ImGui::PushStyleColor(ImGuiCol_Text, th::vec4(th::kTextDim));
+        ImGui::TextUnformatted("RECENT");
+        ImGui::PopStyleColor();
+        ImGui::PopFont();
+
+        ImGui::BeginChild("##recents", ImVec2(0.0f, recents_h), false, ImGuiWindowFlags_NoScrollbar);
+        for (const auto& r : recents) {
+            const std::string disp = ellipsize(r, ImGui::GetFont(), ImGui::GetFontSize(), row_w - 16.0f);
+            ImGui::PushID(r.c_str());
+            if (ImGui::Selectable(disp.c_str())) result = r;
+            ImGui::PopID();
+            if (ImGui::IsItemHovered()) ui::tooltip(r.c_str());
+        }
+        ImGui::EndChild();
+    }
     return result;
 }
 

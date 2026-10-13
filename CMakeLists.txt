@@ -100,6 +100,7 @@ endif()
 
 add_executable(mirage
     src/main.cpp
+    src/MediaSession.cpp
     src/Demuxer.cpp
     src/Decoder.cpp
     src/AudioDecoder.cpp
@@ -124,6 +125,7 @@ add_executable(mirage
     src/UiWidgets.cpp
     src/ThumbPlan.cpp
     src/FfOpen.cpp
+    src/DemuxRetry.cpp
 )
 
 target_include_directories(mirage PRIVATE
@@ -166,6 +168,7 @@ add_executable(mirage_tests
     tests/test_ui_format.cpp
     tests/test_thumb_plan.cpp
     tests/test_subtitle_select.cpp
+    tests/test_demux_retry.cpp
     src/NetworkLogger.cpp
     src/ManifestParser.cpp
     src/SubtitleDecoder.cpp
@@ -176,6 +179,7 @@ add_executable(mirage_tests
     src/SidecarSubtitles.cpp
     src/ThumbPlan.cpp
     src/FfOpen.cpp
+    src/DemuxRetry.cpp
 )
 
 target_include_directories(mirage_tests PRIVATE

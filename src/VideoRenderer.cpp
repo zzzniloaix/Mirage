@@ -17,6 +17,14 @@ extern "C" {
 
 // ── Shared vertex shader (fullscreen triangle) ────────────────────────────────
 
+// av_get_pix_fmt_name() returns nullptr for AV_PIX_FMT_NONE; std::format
+// would dereference it.
+static const char* pix_fmt_name(AVPixelFormat f)
+{
+    const char* n = av_get_pix_fmt_name(f);
+    return n ? n : "none";
+}
+
 static const char* kVertSrc = R"glsl(
 #version 410 core
 out vec2 uv;
@@ -355,12 +363,12 @@ bool VideoRenderer::init(int width, int height, AVPixelFormat src_fmt,
     const bool src_full = (color_range == AVCOL_RANGE_JPEG);
     if (hdr_) {
         logger::info("VideoRenderer: {}×{} HDR ({} → RGB48 → GLSL tonemap)  trc={}  matrix={}  {}",
-            width, height, av_get_pix_fmt_name(src_fmt),
+            width, height, pix_fmt_name(src_fmt),
             trc_name ? trc_name : "?", cs_name,
             src_full ? "full-range" : "limited-range");
     } else {
         logger::info("VideoRenderer: {}×{} SDR ({} → RGB24 sRGB)  matrix={}  {}",
-            width, height, av_get_pix_fmt_name(src_fmt),
+            width, height, pix_fmt_name(src_fmt),
             cs_name, src_full ? "full-range" : "limited-range");
     }
     return true;
@@ -520,6 +528,15 @@ bool VideoRenderer::build_sws(AVPixelFormat src_fmt)
         sws_ = nullptr;
     }
 
+    // The decoder may not know its output format yet (a stream whose
+    // parameters avformat_find_stream_info could not determine reports
+    // AV_PIX_FMT_NONE, and swscale asserts on it). Defer: upload() builds
+    // the context from the first decoded frame's format.
+    if (src_fmt == AV_PIX_FMT_NONE) {
+        sws_src_fmt_ = AV_PIX_FMT_NONE;
+        return true;
+    }
+
     const AVPixelFormat dst_fmt = hdr_ ? AV_PIX_FMT_RGB48LE : AV_PIX_FMT_RGB24;
 
     sws_ = sws_getContext(src_w_, src_h_, src_fmt,
@@ -527,7 +544,7 @@ bool VideoRenderer::build_sws(AVPixelFormat src_fmt)
                           SWS_BILINEAR, nullptr, nullptr, nullptr);
     if (!sws_) {
         logger::error("VideoRenderer: sws_getContext failed for src_fmt={}",
-            av_get_pix_fmt_name(src_fmt));
+            pix_fmt_name(src_fmt));
         return false;
     }
 
@@ -567,9 +584,10 @@ void VideoRenderer::upload(AVFrame* frame)
     auto frame_fmt = static_cast<AVPixelFormat>(frame->format);
     if (frame_fmt != sws_src_fmt_ && frame_fmt != AV_PIX_FMT_NONE) {
         logger::info("VideoRenderer: source pixel format changed {} → {}, rebuilding sws",
-            av_get_pix_fmt_name(sws_src_fmt_), av_get_pix_fmt_name(frame_fmt));
+            pix_fmt_name(sws_src_fmt_), pix_fmt_name(frame_fmt));
         if (!build_sws(frame_fmt)) return;
     }
+    if (!sws_) return;   // no usable source format yet
 
     sws_scale(sws_,
               frame->data, frame->linesize, 0, src_h_,

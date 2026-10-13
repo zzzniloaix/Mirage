@@ -55,8 +55,14 @@ public:
     }
 
     // Wake all blocked push/pop calls so threads can exit.
+    // The flag is set under the mutex: a waiter that has just evaluated its
+    // predicate but not yet blocked would otherwise miss the notify and
+    // sleep forever (the join on teardown would then hang).
     void shutdown() {
-        shutdown_ = true;
+        {
+            std::lock_guard lock(mu_);
+            shutdown_ = true;
+        }
         not_empty_.notify_all();
         not_full_.notify_all();
     }

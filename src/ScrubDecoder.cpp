@@ -57,6 +57,12 @@ void ScrubDecoder::decode_loop(std::stop_token st, std::string url,
             logger::error("ScrubDecoder: failed to open '{}'", url);
         return;
     }
+    // Only the video stream is needed. Discard the rest before probing so
+    // HLS doesn't fetch every variant's segments (stream indices match the
+    // playback Demuxer's: same URL, same demuxer).
+    for (unsigned i = 0; i < fmt_ctx->nb_streams; ++i)
+        if (static_cast<int>(i) != video_stream_idx)
+            fmt_ctx->streams[i]->discard = AVDISCARD_ALL;
     if (avformat_find_stream_info(fmt_ctx, nullptr) < 0
         || video_stream_idx < 0
         || video_stream_idx >= static_cast<int>(fmt_ctx->nb_streams)) {
@@ -79,7 +85,12 @@ void ScrubDecoder::decode_loop(std::stop_token st, std::string url,
     AVFrame*  frame = av_frame_alloc();
 
     // Wake the wait() below whenever stop is requested.
-    std::stop_callback stop_wake(st, [this] { req_cv_.notify_all(); });
+    // Lock-then-notify so a wait() that has just checked its predicate
+    // can't miss the wake-up (close() would then join forever).
+    std::stop_callback stop_wake(st, [this] {
+        { std::lock_guard lk(req_mtx_); }
+        req_cv_.notify_all();
+    });
 
     logger::info("ScrubDecoder: ready");
 
