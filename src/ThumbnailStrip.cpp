@@ -303,8 +303,11 @@ void ThumbnailStrip::decode_loop(std::stop_token st, std::string url,
     AVPacket* pkt   = av_packet_alloc();
     AVFrame*  frame = av_frame_alloc();
     SwsContext* sws = nullptr;
+    size_t    n_decoded = 0;
+    bool      kf_offset_applied = false;
 
-    for (int64_t target_ts : keyframe_ts) {
+    for (size_t ki = 0; ki < keyframe_ts.size(); ++ki) {
+        const int64_t target_ts = keyframe_ts[ki];
         if (st.stop_requested()) break;
 
         // Seek to this keyframe.
@@ -328,6 +331,23 @@ void ThumbnailStrip::decode_loop(std::stop_token st, std::string url,
         }
 
         if (!got) continue;
+
+        // Index timestamps are DTS in some containers (mp4/mov). With B-frames
+        // a keyframe's PTS is later than its DTS, and seeking BACKWARD to the
+        // DTS lands on the previous keyframe — so keyframe-step loops. Replace
+        // the published entry with the decoded keyframe's real PTS; the first
+        // decode also shifts every not-yet-decoded entry by the same offset.
+        if ((frame->flags & AV_FRAME_FLAG_KEY) && frame->pts != AV_NOPTS_VALUE) {
+            const double real = static_cast<double>(frame->pts) * av_q2d(time_base);
+            std::lock_guard lock(kf_pts_mtx_);
+            if (!kf_offset_applied) {
+                const double offset = real - kf_pts_[ki];
+                if (offset != 0.0)
+                    for (size_t j = ki + 1; j < kf_pts_.size(); ++j) kf_pts_[j] += offset;
+                kf_offset_applied = true;
+            }
+            kf_pts_[ki] = real;
+        }
 
         // Lazy-init sws context on first frame (gets actual pixel format).
         if (!sws) {
@@ -358,6 +378,7 @@ void ThumbnailStrip::decode_loop(std::stop_token st, std::string url,
             std::lock_guard lock(pending_mtx_);
             pending_.push(std::move(d));
         }
+        ++n_decoded;
     }
 
     sws_freeContext(sws);
@@ -366,7 +387,8 @@ void ThumbnailStrip::decode_loop(std::stop_token st, std::string url,
     avcodec_free_context(&codec_ctx);
     avformat_close_input(&fmt_ctx);
 
-    logger::info("ThumbnailStrip: decode complete ({} thumbnails)", thumbs_.size());
+    // thumbs_ belongs to the main thread (upload_pending); count locally.
+    logger::info("ThumbnailStrip: decode complete ({} thumbnails)", n_decoded);
 }
 
 // ── Keyframe navigation ───────────────────────────────────────────────────────

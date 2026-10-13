@@ -85,9 +85,10 @@ static constexpr double kLateFrameDrop = 0.15;
 
 // One scripted event at at_sec seconds since playback start. Besides speed
 // changes, "pause@t" / "play@t" / "seek:<secs>@t" exercise the audio flush and
-// blocked-push paths that rapid speed switching interacts with.
+// blocked-push paths that rapid speed switching interacts with; "kf+@t" /
+// "kf-@t" are keyframe steps (the . / , keys).
 struct SpeedStep {
-    enum Kind { Speed, Pause, Play, Seek } kind = Speed;
+    enum Kind { Speed, Pause, Play, Seek, KfNext, KfPrev } kind = Speed;
     double at_sec;
     double speed;   // Speed: new speed; Seek: target seconds
 };
@@ -107,6 +108,8 @@ static bool parse_speed_seq(const std::string& spec, std::vector<SpeedStep>& out
         char* end = nullptr;
         if (what == "pause" || what == "play") {
             step.kind = (what == "pause") ? SpeedStep::Pause : SpeedStep::Play;
+        } else if (what == "kf+" || what == "kf-") {
+            step.kind = (what == "kf+") ? SpeedStep::KfNext : SpeedStep::KfPrev;
         } else if (what.starts_with("seek:")) {
             step.kind  = SpeedStep::Seek;
             step.speed = std::strtod(what.c_str() + 5, &end);
@@ -1193,6 +1196,8 @@ int main(int argc, char* argv[])
                     case SpeedStep::Pause: s_paused.store(true);                       break;
                     case SpeedStep::Play:  s_paused.store(false);                      break;
                     case SpeedStep::Seek:  s_seek_delta.store(ev.speed - last_pts);    break;
+                    case SpeedStep::KfNext: s_paused.store(true); s_step_frames.fetch_add(1);  break;
+                    case SpeedStep::KfPrev: s_paused.store(true); s_step_frames.fetch_add(-1); break;
                 }
                 logger::info("--speed-seq: t={:.2f} event {} {}", t, static_cast<int>(ev.kind), ev.speed);
             }
@@ -1350,6 +1355,7 @@ int main(int argc, char* argv[])
                 last_pts           = pts;
                 ++frame_count;
                 pending_step_frame = false;
+                if (qa_started) logger::info("--speed-seq: step landed at pts {:.3f}", pts);
             }
             // else: frame not decoded yet — retry next iteration
         }
@@ -1867,7 +1873,7 @@ int main(int argc, char* argv[])
                 for (const auto& sg : av_segs)
                     segs += (segs.empty() ? "" : ",\n    ") + av_segment_json(sg);
                 std::string req;
-                static constexpr const char* kKind[] = { "speed", "pause", "play", "seek" };
+                static constexpr const char* kKind[] = { "speed", "pause", "play", "seek", "kf+", "kf-" };
                 for (const auto& st : speed_seq)
                     req += std::format("{}{{\"{}\":{},\"at_s\":{}}}", req.empty() ? "" : ",",
                                        kKind[st.kind], st.speed, st.at_sec);
