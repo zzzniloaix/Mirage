@@ -1,5 +1,6 @@
 #include "ManifestParser.h"
 #include "Logger.h"
+#include "NetworkLogger.h"
 
 #include <algorithm>
 #include <cctype>
@@ -90,7 +91,10 @@ int ManifestParser::disc_seq_at(double pts) const
 bool ManifestParser::fetch_text(const std::string& url, std::string& out)
 {
     AVIOContext* ctx = nullptr;
-    if (avio_open(&ctx, url.c_str(), AVIO_FLAG_READ) < 0) {
+    NetworkLogger::track_open_begin(NetInitiator::Manifest, url.c_str());
+    const int ret = avio_open(&ctx, url.c_str(), AVIO_FLAG_READ);
+    NetworkLogger::track_open_end(ret, ctx);
+    if (ret < 0) {
         logger::warn("ManifestParser: cannot open {}", url);
         return false;
     }
@@ -102,6 +106,7 @@ bool ManifestParser::fetch_text(const std::string& url, std::string& out)
     while ((n = avio_read(ctx, buf, sizeof(buf))) > 0)
         result.append(reinterpret_cast<char*>(buf), static_cast<size_t>(n));
 
+    NetworkLogger::track_close(ctx);
     avio_close(ctx);
     out = std::move(result);
     return true;
@@ -142,9 +147,15 @@ bool ManifestParser::parse_hls(const std::string& url)
 // e.g. given "BANDWIDTH=2000000,RESOLUTION=1280x720" and name "BANDWIDTH", returns "2000000".
 static std::string hls_attr(const std::string& attrs, const char* name)
 {
+    // The key must start an attribute: "BANDWIDTH=" must not match inside
+    // "AVERAGE-BANDWIDTH=".
     std::string key = std::string(name) + "=";
-    auto pos = attrs.find(key);
-    if (pos == std::string::npos) return {};
+    std::size_t pos = 0;
+    for (;; ++pos) {
+        pos = attrs.find(key, pos);
+        if (pos == std::string::npos) return {};
+        if (pos == 0 || attrs[pos - 1] == ',') break;
+    }
     pos += key.size();
     if (pos >= attrs.size()) return {};
     // Quoted value
@@ -161,6 +172,7 @@ bool ManifestParser::parse_hls_text(const std::string& text, const std::string& 
 {
     tags_.clear();
     variants_.clear();
+    renditions_.clear();
 
     double running_pts = 0.0;
     int    disc_seq    = 0;
@@ -198,10 +210,35 @@ bool ManifestParser::parse_hls_text(const std::string& text, const std::string& 
             }
 
             vs.codecs = hls_attr(stream_inf_attrs, "CODECS");
+            if (auto avg = hls_attr(stream_inf_attrs, "AVERAGE-BANDWIDTH"); !avg.empty())
+                vs.avg_bandwidth = std::strtoll(avg.c_str(), nullptr, 10);
+            if (auto fr = hls_attr(stream_inf_attrs, "FRAME-RATE"); !fr.empty())
+                vs.frame_rate = std::strtod(fr.c_str(), nullptr);
+            vs.audio_group    = hls_attr(stream_inf_attrs, "AUDIO");
+            vs.subtitle_group = hls_attr(stream_inf_attrs, "SUBTITLES");
             variants_.push_back(std::move(vs));
             continue;
         }
         in_stream_inf = false;
+
+        // ── Alternative renditions / master-only metadata (not timeline events) ─
+        if (line.starts_with("#EXT-X-MEDIA:")) {
+            const std::string a = line.substr(13);
+            MediaRendition mr;
+            mr.type       = hls_attr(a, "TYPE");
+            mr.group_id   = hls_attr(a, "GROUP-ID");
+            mr.name       = hls_attr(a, "NAME");
+            mr.language   = hls_attr(a, "LANGUAGE");
+            mr.channels   = hls_attr(a, "CHANNELS");
+            mr.is_default = hls_attr(a, "DEFAULT") == "YES";
+            if (auto uri = hls_attr(a, "URI"); !uri.empty())
+                mr.url = base_url.empty() ? uri : resolve_url(base_url, uri);
+            renditions_.push_back(std::move(mr));
+            continue;
+        }
+        if (line.starts_with("#EXT-X-I-FRAME-STREAM-INF:") ||
+            line == "#EXT-X-INDEPENDENT-SEGMENTS")
+            continue;
 
         if (line == "#EXT-X-DISCONTINUITY") {
             tags_.push_back({ running_pts, disc_seq,
@@ -384,6 +421,15 @@ bool ManifestParser::parse_dash_text(const std::string& text, const std::string&
                 std::string codecs = rep.attribute("codecs").as_string();
                 if (codecs.empty()) codecs = aset_codecs;
                 vs.codecs = std::move(codecs);
+
+                std::string fr = rep.attribute("frameRate").as_string();
+                if (fr.empty()) fr = aset.attribute("frameRate").as_string();
+                if (!fr.empty()) {
+                    const double num = std::strtod(fr.c_str(), nullptr);
+                    const auto slash = fr.find('/');
+                    const double den = slash == std::string::npos ? 1.0 : std::strtod(fr.c_str() + slash + 1, nullptr);
+                    if (den > 0.0) vs.frame_rate = num / den;
+                }
 
                 // URL: direct BaseURL inside Representation makes it playable.
                 // Otherwise leave empty (SegmentTemplate / SegmentList not supported).

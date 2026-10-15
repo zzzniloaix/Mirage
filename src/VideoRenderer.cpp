@@ -579,9 +579,30 @@ void VideoRenderer::upload(AVFrame* frame)
     // and the previous frame's CVPixelBuffer isn't held longer than necessary.
     if (hw_frame_ref_) av_frame_free(&hw_frame_ref_);
 
-    // Detect input format change (e.g., scrub returns yuv420p when the main
-    // pipeline was NV12 from a previous HW-only session) and rebuild sws_.
+    // Frame size changed (a video track switch to another resolution, or a
+    // scrub frame from a different variant): resize the staging frame and
+    // texture, and rebuild sws_ for the new geometry.
     auto frame_fmt = static_cast<AVPixelFormat>(frame->format);
+    if (frame->width > 0 && frame->height > 0 && (frame->width != src_w_ || frame->height != src_h_)) {
+        logger::info("VideoRenderer: frame size changed {}×{} → {}×{}", src_w_, src_h_, frame->width, frame->height);
+        src_w_ = frame->width;
+        src_h_ = frame->height;
+        av_frame_free(&converted_);
+        converted_         = av_frame_alloc();
+        converted_->format = hdr_ ? AV_PIX_FMT_RGB48LE : AV_PIX_FMT_RGB24;
+        converted_->width  = src_w_;
+        converted_->height = src_h_;
+        if (av_frame_get_buffer(converted_, 1) < 0) {
+            logger::error("VideoRenderer: av_frame_get_buffer failed");
+            av_frame_free(&converted_);
+            return;
+        }
+        glBindTexture(GL_TEXTURE_2D, tex_);
+        if (hdr_) glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16, src_w_, src_h_, 0, GL_RGB, GL_UNSIGNED_SHORT, nullptr);
+        else      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8,  src_w_, src_h_, 0, GL_RGB, GL_UNSIGNED_BYTE,  nullptr);
+        sws_src_fmt_ = AV_PIX_FMT_NONE;   // force the rebuild below
+    }
+    if (!converted_) return;
     if (frame_fmt != sws_src_fmt_ && frame_fmt != AV_PIX_FMT_NONE) {
         logger::info("VideoRenderer: source pixel format changed {} → {}, rebuilding sws",
             pix_fmt_name(sws_src_fmt_), pix_fmt_name(frame_fmt));

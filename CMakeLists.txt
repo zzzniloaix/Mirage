@@ -111,6 +111,10 @@ add_executable(mirage
     src/ThumbnailStrip.cpp
     src/Sync.cpp
     src/NetworkLogger.cpp
+    src/NetDescribe.cpp
+    src/NetInspector.cpp
+    src/TrackPanel.cpp
+    src/TrackGroups.cpp
     src/ManifestParser.cpp
     src/PlayerUI.cpp
     src/VMAFAnalyzer.cpp
@@ -169,7 +173,11 @@ add_executable(mirage_tests
     tests/test_thumb_plan.cpp
     tests/test_subtitle_select.cpp
     tests/test_demux_retry.cpp
+    tests/test_demuxer_switch.cpp
+    tests/test_track_groups.cpp
+    src/Demuxer.cpp
     src/NetworkLogger.cpp
+    src/NetDescribe.cpp
     src/ManifestParser.cpp
     src/SubtitleDecoder.cpp
     src/Sync.cpp
@@ -180,6 +188,7 @@ add_executable(mirage_tests
     src/ThumbPlan.cpp
     src/FfOpen.cpp
     src/DemuxRetry.cpp
+    src/TrackGroups.cpp
 )
 
 target_include_directories(mirage_tests PRIVATE

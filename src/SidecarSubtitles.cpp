@@ -43,7 +43,7 @@ bool SidecarSubtitles::decode_file(const std::string& path, SubtitleDecoder& dec
                                    const std::stop_token& st)
 {
     AVFormatContext* fmt = nullptr;
-    if (ffopen::open_input(&fmt, path, st) < 0 || !fmt) {
+    if (ffopen::open_input(&fmt, path, st, NetInitiator::Subtitles) < 0 || !fmt) {
         logger::warn("Sidecar subtitles: cannot open {}", path);
         return false;
     }

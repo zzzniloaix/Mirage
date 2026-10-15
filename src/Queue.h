@@ -75,6 +75,15 @@ public:
         not_full_.notify_all();
     }
 
+    // Change the bound (before use, or live: a larger bound wakes blocked pushers).
+    void set_capacity(size_t capacity) {
+        {
+            std::lock_guard lock(mu_);
+            capacity_ = capacity;
+        }
+        not_full_.notify_all();
+    }
+
     int  size()        const { std::lock_guard l(mu_); return static_cast<int>(q_.size()); }
     bool is_shutdown() const { return shutdown_; }
 
@@ -84,5 +93,5 @@ private:
     std::condition_variable not_empty_;
     std::condition_variable not_full_;
     std::atomic<bool>       shutdown_{ false };
-    const size_t            capacity_;
+    size_t capacity_;
 };

@@ -1,8 +1,11 @@
 #include "Demuxer.h"
 #include "Logger.h"
 #include "DemuxRetry.h"
+#include "NetworkLogger.h"
 
 #include <algorithm>
+#include <cmath>
+#include <limits>
 #include <cstring>
 #include <thread>
 #include <chrono>
@@ -41,19 +44,35 @@ void Demuxer::request_seek(double seconds)
     seek_target_.store(seconds);
 }
 
-void Demuxer::request_audio_switch(int stream_idx)
+void Demuxer::request_audio_switch(int stream_idx, double pos, bool exact, double keep_until)
 {
+    switch_pos_.store(pos);
+    audio_keep_until_.store(keep_until);
+    audio_switch_exact_.store(exact);
     pending_audio_switch_.store(stream_idx);
+    ++switch_req_;   // after the request: read_loop loads the serial first
 }
 
-void Demuxer::request_video_switch(int stream_idx)
+void Demuxer::request_video_switch(int stream_idx, double pos, bool exact, double keep_until)
 {
+    switch_pos_.store(pos);
+    video_keep_until_.store(keep_until);
+    video_switch_exact_.store(exact);
     pending_video_switch_.store(stream_idx);
+    ++switch_req_;
 }
 
-void Demuxer::request_subtitle_switch(int stream_idx)
+void Demuxer::request_subtitle_switch(int stream_idx, double pos)
 {
+    switch_pos_.store(pos);
     pending_subtitle_switch_.store(stream_idx);
+    ++switch_req_;
+}
+
+std::string Demuxer::last_error() const
+{
+    std::lock_guard lk(err_mtx_);
+    return last_error_;
 }
 
 bool Demuxer::consume_audio_reopen()
@@ -94,58 +113,188 @@ void Demuxer::read_loop(std::stop_token st,
     std::vector<int64_t> last_dts(fmt_ctx_->nb_streams, AV_NOPTS_VALUE);
     std::vector<int64_t> resync_dts(fmt_ctx_->nb_streams, AV_NOPTS_VALUE);
     bool resync_pending = false;
+    // Highest switch request serial handled; published to switch_done_ once a
+    // packet has been read after it.
+    std::uint64_t switch_handled = 0;
+    // End time (seconds) of the furthest audio packet queued since the last
+    // seek — where a seamless audio switch continues. -1 = none.
+    double audio_ahead = -1.0;
+    // Fetch latency of the last audio/video switch: stream awaited (-1 none).
+    int fetch_stream = -1;
+    std::chrono::steady_clock::time_point fetch_since{};
     // A stop request aborts an av_read_frame() stuck on the network (the
     // HTTP layer can otherwise block for rw_timeout plus reconnects).
     std::stop_callback abort_on_stop(st, [this] { abort_io_.store(true); });
 
     while (!st.stop_requested()) {
         // ── Handle pending stream switches ────────────────────────────────
-        int audio_sw = pending_audio_switch_.exchange(-1);
-        if (audio_sw >= 0 && audio_sw != audio_idx_) {
-            AVPacket* stale;
-            while (audioq.try_pop(stale))
-                if (stale && stale != flush_sentinel()) av_packet_free(&stale);
-            audio_idx_ = audio_sw;
-            audioq.push(flush_sentinel());
-            audio_reopen_.store(true);
-            logger::info("Audio stream switched to index {}", audio_idx_);
-        }
+        // Read the request serial first: a request arriving after this point
+        // keeps its own (higher) serial and is handled next iteration.
+        const std::uint64_t req_serial = switch_req_.load();
+        const int  audio_sw  = pending_audio_switch_.exchange(-1);
+        const int  video_sw  = pending_video_switch_.exchange(-1);
+        const int  sub_sw    = pending_subtitle_switch_.exchange(-2);    // -2 = no request
+        const bool new_audio = audio_sw >= 0 && audio_sw != audio_idx_;
+        const bool new_video = video_sw >= 0 && video_sw != video_idx_;
+        const bool new_sub   = sub_sw != -2 && sub_sw != subtitle_idx_;
+        double exact_seek = -1.0;   // paused video switch: full seek to this position
+        if (new_audio || new_video || new_sub) {
+            const double pos = switch_pos_.load();
+            // Where the container is repositioned (seconds), and per stream
+            // what the decoders already have.
+            double repo = std::numeric_limits<double>::infinity();
+            double audio_from = -1.0;   // new audio track: drop packets before this
 
-        int video_sw = pending_video_switch_.exchange(-1);
-        if (video_sw >= 0 && video_sw != video_idx_) {
-            AVPacket* stale;
-            while (videoq.try_pop(stale))
-                if (stale && stale != flush_sentinel()) av_packet_free(&stale);
-            video_idx_ = video_sw;
-            videoq.push(flush_sentinel());
-            video_reopen_.store(true);
-            logger::info("Video stream switched to index {}", video_idx_);
-        }
+            // Seamless switches keep the old track's queued packets that start
+            // before `until` (seconds) and drop the rest; returns where the
+            // kept ones end (-1 if none). Sentinels keep their place.
+            auto trim_queue = [&](Queue<AVPacket*>& q, int old_stream, double until) {
+                std::vector<AVPacket*> items;
+                AVPacket* p = nullptr;
+                while (q.try_pop(p)) items.push_back(p);
+                const AVRational tb = fmt_ctx_->streams[old_stream]->time_base;
+                double end = -1.0;
+                for (AVPacket* it : items) {
+                    if (it == nullptr || it == flush_sentinel()) { q.push(it); continue; }
+                    const int64_t ts = it->dts != AV_NOPTS_VALUE ? it->dts : it->pts;
+                    if (until >= 0.0 && ts != AV_NOPTS_VALUE && ts * av_q2d(tb) >= until) {
+                        av_packet_free(&it);
+                        continue;
+                    }
+                    if (const int64_t pt = it->pts != AV_NOPTS_VALUE ? it->pts : ts; pt != AV_NOPTS_VALUE)
+                        end = std::max(end, (pt + std::max<int64_t>(it->duration, 0)) * av_q2d(tb));
+                    q.push(it);
+                }
+                return end;
+            };
 
-        int sub_sw = pending_subtitle_switch_.exchange(-2);    // -2 = no request
-        if (sub_sw != -2 && sub_sw != subtitle_idx_) {
-            if (subq) {
-                AVPacket* stale;
-                while (subq->try_pop(stale))
-                    if (stale && stale != flush_sentinel()) av_packet_free(&stale);
-                subq->push(flush_sentinel());
+            if (new_video) {
+                const bool exact = video_switch_exact_.load() && pos >= 0.0;
+                // Seamless: the new track takes over where the kept packets of
+                // the old one end. Exact (paused): drop them, resume at pos.
+                double resume = -1.0;
+                if (!exact) {
+                    resume = trim_queue(videoq, video_idx_, video_keep_until_.load());
+                    if (resume < 0.0) resume = std::max(pos, video_keep_until_.load());
+                    if (resume >= 0.0) read_ahead_pts_.store(resume, std::memory_order_relaxed);
+                } else {
+                    resume = pos;
+                }
+                if (exact) {
+                    AVPacket* stale;
+                    while (videoq.try_pop(stale))
+                        if (stale && stale != flush_sentinel()) av_packet_free(&stale);
+                    exact_seek = pos;
+                }
+                video_idx_ = video_sw;
+                video_resume_s_.store(resume);
+                video_seamless_.store(!exact);
+                video_reopen_.store(true);
+                videoq.push(flush_sentinel());
+                if (resume >= 0.0) repo = std::min(repo, resume);
+                trace_video_pkt_ = trace_video_key_ = true;
+                logger::info("Video stream switched to index {} ({}, resume at {:.3f}) (t={:.3f})",
+                             video_sw, exact ? "exact" : "seamless", resume, logger::uptime());
             }
-            // Reopen flag before publishing the index: the subtitle thread
-            // reads codecpar via subtitle_idx_ once it sees the sentinel.
-            if (sub_sw >= 0) subtitle_reopen_.store(true);
-            subtitle_idx_.store(sub_sw);
-            logger::info("Subtitle stream switched to index {}", sub_sw < 0 ? -1 : sub_sw);
-        }
 
-        if (audio_sw >= 0 || video_sw >= 0 || sub_sw != -2)
+            if (new_audio) {
+                // Like video: playing — the queued audio of the old track still
+                // plays and the new one continues where it ends; paused —
+                // drop it and start the new track at the audible position.
+                const bool exact = audio_switch_exact_.load() || audio_ahead < 0.0;
+                if (exact) {
+                    AVPacket* stale;
+                    while (audioq.try_pop(stale))
+                        if (stale && stale != flush_sentinel()) av_packet_free(&stale);
+                    audio_from = pos;
+                } else {
+                    audio_from = trim_queue(audioq, audio_idx_, audio_keep_until_.load());
+                    if (audio_from < 0.0) audio_from = std::max(pos, audio_keep_until_.load());
+                }
+                audio_ahead = -1.0;
+                audio_idx_ = audio_sw;
+                audio_seamless_.store(!exact);
+                audio_reopen_.store(true);
+                audioq.push(flush_sentinel());
+                if (audio_from >= 0.0) repo = std::min(repo, audio_from);
+                logger::info("Audio stream switched to index {} ({}, from {:.3f}) (t={:.3f})",
+                             audio_sw, exact ? "exact" : "seamless", audio_from, logger::uptime());
+            }
+
+            if (new_sub) {
+                if (subq) {
+                    AVPacket* stale;
+                    while (subq->try_pop(stale))
+                        if (stale && stale != flush_sentinel()) av_packet_free(&stale);
+                    subq->push(flush_sentinel());
+                }
+                // Reopen flag before publishing the index: the subtitle thread
+                // reads codecpar via subtitle_idx_ once it sees the sentinel.
+                if (sub_sw >= 0) subtitle_reopen_.store(true);
+                subtitle_idx_.store(sub_sw);
+                // Local media: reposition so cues at the current position are
+                // read again (cheap). HLS subtitle playlists start fresh by
+                // themselves; repositioning would re-fetch a video segment.
+                if (sub_sw >= 0 && pos >= 0.0 && !is_network_) repo = std::min(repo, pos);
+                logger::info("Subtitle stream switched to index {}", sub_sw < 0 ? -1 : sub_sw);
+            }
+
             apply_stream_discard();
+
+            // Reposition so newly enabled streams start at the current
+            // position. Required for HLS, not just faster: a playlist that is
+            // re-enabled mid-stream resumes its segment demuxer with stale
+            // state (fMP4 byte-range playlists then never deliver a packet and
+            // the whole read stalls); FFmpeg's HLS seek resets every playlist.
+            // A paused (exact) video switch takes the full seek path below.
+            if (exact_seek < 0.0 && std::isfinite(repo) && video_idx_ >= 0) {
+                // Streams that keep playing: drop what they already delivered.
+                for (const int si : { video_idx_.load(), audio_idx_.load(), subtitle_idx_.load() }) {
+                    if (si < 0 || si >= static_cast<int>(last_dts.size())) continue;
+                    const bool is_new = (si == video_idx_ && new_video) || (si == audio_idx_ && new_audio)
+                                     || (si == subtitle_idx_ && new_sub);
+                    if (!is_new) resync_dts[si] = last_dts[si];
+                }
+                // New audio: drop what precedes the audible position.
+                if (new_audio && audio_from >= 0.0) {
+                    const AVStream* as = fmt_ctx_->streams[audio_idx_];
+                    resync_dts[audio_idx_] = static_cast<int64_t>(audio_from / av_q2d(as->time_base)) - 1;
+                }
+                const AVStream* vs = fmt_ctx_->streams[video_idx_];
+                const int64_t ts = static_cast<int64_t>(repo / av_q2d(vs->time_base));
+                const int r = av_seek_frame(fmt_ctx_, video_idx_, ts, AVSEEK_FLAG_BACKWARD);
+                if (r < 0) {
+                    char errbuf[AV_ERROR_MAX_STRING_SIZE];
+                    av_strerror(r, errbuf, sizeof(errbuf));
+                    logger::warn("Demuxer: reposition to {:.3f} after track switch failed: {}", repo, errbuf);
+                }
+                resync_pending = false;
+                logger::info("switch-trace: repositioned to {:.3f} (t={:.3f})", repo, logger::uptime());
+            }
+            if (new_video || new_audio) {
+                fetch_stream = new_video ? video_idx_.load() : audio_idx_.load();
+                fetch_since  = std::chrono::steady_clock::now();
+            }
+            switch_handled = req_serial;
+        } else if (switch_handled < req_serial) {
+            // Requests that changed nothing (already the current track).
+            switch_done_.store(req_serial);
+            switch_handled = req_serial;
+        }
 
         // ── Handle a pending seek request ─────────────────────────────────
         double seek_secs = seek_target_.exchange(-1.0);
+        if (exact_seek >= 0.0) seek_secs = exact_seek;
         if (seek_secs >= 0.0) {
+            // A seek supersedes any seamless take-over point; a paused video
+            // switch resumes the new track exactly at the seek target.
+            video_resume_s_.store(exact_seek >= 0.0 ? exact_seek : -1.0);
+            video_seamless_.store(false);
             int64_t ts = static_cast<int64_t>(seek_secs * AV_TIME_BASE);
             av_seek_frame(fmt_ctx_, -1, ts, AVSEEK_FLAG_BACKWARD);
             read_ahead_pts_.store(-1.0, std::memory_order_relaxed);
+            audio_ahead = -1.0;
+            audio_seamless_.store(false);
             read_failures  = 0;   // a new position gets a fresh retry budget
             media_end      = -1.0;
             resync_pending = false;
@@ -248,11 +397,36 @@ void Demuxer::read_loop(std::stop_token st,
                 av_strerror(ret, errbuf, sizeof(errbuf));
                 logger::info("Demuxer: read ended: {}", errbuf);
             }
-            // True EOF or unrecoverable error — signal decoders to flush and stop.
+            if (ret != AVERROR_EOF || (is_network_ && read_failures > 0)) {
+                char errbuf[AV_ERROR_MAX_STRING_SIZE];
+                av_strerror((pb && pb->error < 0) ? pb->error : ret, errbuf, sizeof(errbuf));
+                std::lock_guard lk(err_mtx_);
+                last_error_ = errbuf;
+            }
+            const bool fatal = ret != AVERROR_EOF || (is_network_ && read_failures > 0);
+            if (fatal) exited_.store(true);
+            ended_.store(true);
+            switch_done_.store(switch_req_.load());   // nothing more will arrive
+            // End of media or unrecoverable error — decoders drain what they hold.
             videoq.push(nullptr);
             if (audio_idx_ >= 0)            audioq.push(nullptr);
             if (subq && subtitle_idx_ >= 0) subq->push(nullptr);
-            break;
+            if (fatal) break;
+
+            // End of media: idle (the decode threads stay up) until a seek or
+            // a track switch arrives — the queues run the demuxer up to
+            // seconds ahead of playback, so the user can still seek back or
+            // switch tracks while the tail plays out.
+            logger::info("Demuxer: end of media — waiting for a seek or track switch (t={:.3f})", logger::uptime());
+            while (!st.stop_requested() && seek_target_.load() < 0.0
+                   && switch_req_.load() == switch_handled
+                   && pending_audio_switch_.load() < 0 && pending_video_switch_.load() < 0
+                   && pending_subtitle_switch_.load() == -2)
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            if (st.stop_requested()) break;
+            if (pb) { pb->eof_reached = 0; pb->error = 0; }
+            ended_.store(false);
+            continue;
         }
 
         // After a resync seek: drop packets the decoders already have.
@@ -266,6 +440,8 @@ void Demuxer::read_loop(std::stop_token st,
             resync_dts[si] = AV_NOPTS_VALUE;   // caught up on this stream
         }
         read_failures = 0;   // a new packet: forward progress, fresh budget
+        if (switch_done_.load(std::memory_order_relaxed) < switch_handled)
+            switch_done_.store(switch_handled);
 
         if (const int si = pkt->stream_index;
             si == video_idx_ || si == audio_idx_ || (subq && si == subtitle_idx_)) {
@@ -278,7 +454,23 @@ void Demuxer::read_loop(std::stop_token st,
         }
         if (pkt->stream_index < static_cast<int>(last_dts.size()) && pkt->dts != AV_NOPTS_VALUE)
             last_dts[pkt->stream_index] = pkt->dts;
+        if (fetch_stream >= 0 && pkt->stream_index == fetch_stream) {
+            switch_fetch_s_.store(std::chrono::duration<double>(std::chrono::steady_clock::now() - fetch_since).count());
+            fetch_stream = -1;
+        }
 
+        if (pkt->stream_index == video_idx_ && (trace_video_pkt_ || trace_video_key_)) {
+            const bool key = (pkt->flags & AV_PKT_FLAG_KEY) != 0;
+            const double s = (pkt->pts != AV_NOPTS_VALUE ? pkt->pts : pkt->dts)
+                           * av_q2d(fmt_ctx_->streams[video_idx_]->time_base);
+            if (trace_video_pkt_)
+                logger::info("switch-trace: first video packet pts={:.3f}{} (t={:.3f})",
+                             s, key ? " key" : "", logger::uptime());
+            if (trace_video_key_ && key)
+                logger::info("switch-trace: first video keyframe pts={:.3f} (t={:.3f})", s, logger::uptime());
+            trace_video_pkt_ = false;
+            if (key) trace_video_key_ = false;
+        }
         if (pkt->stream_index == video_idx_) {
             const int64_t ts = (pkt->pts != AV_NOPTS_VALUE) ? pkt->pts : pkt->dts;
             if (ts != AV_NOPTS_VALUE) {
@@ -291,6 +483,10 @@ void Demuxer::read_loop(std::stop_token st,
             if (!videoq.push(copy))
                 av_packet_free(&copy);
         } else if (pkt->stream_index == audio_idx_) {
+            if (const int64_t ts = (pkt->pts != AV_NOPTS_VALUE) ? pkt->pts : pkt->dts; ts != AV_NOPTS_VALUE)
+                audio_ahead = std::max(audio_ahead,
+                    static_cast<double>(ts + std::max<int64_t>(pkt->duration, 0))
+                        * av_q2d(fmt_ctx_->streams[audio_idx_]->time_base));
             AVPacket* copy = av_packet_clone(pkt);
             if (!audioq.push(copy))
                 av_packet_free(&copy);
@@ -313,7 +509,8 @@ Demuxer::~Demuxer()
 
 bool Demuxer::open(const std::string& url_or_path)
 {
-    abort_io_.store(false);
+    // abort_io_ is not reset here: abort_io() may be called (from another
+    // thread) before open() starts, and a Demuxer is opened only once.
     is_network_ = is_network_url(url_or_path);
     if (is_network_)
         avformat_network_init();
@@ -340,6 +537,7 @@ bool Demuxer::open(const std::string& url_or_path)
     if (fmt_ctx_) {
         fmt_ctx_->interrupt_callback.callback = demux_interrupt_cb;
         fmt_ctx_->interrupt_callback.opaque   = &abort_io_;
+        NetworkLogger::hook_format_context(fmt_ctx_, NetInitiator::Playback);
     }
     // On failure avformat_open_input frees the context and nulls fmt_ctx_.
     int ret = avformat_open_input(&fmt_ctx_, url_or_path.c_str(), nullptr, &opts);

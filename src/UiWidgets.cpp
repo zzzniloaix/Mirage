@@ -232,16 +232,52 @@ void center_flash(ImDrawList* dl, ImVec2 c, float t01, bool playing)
     else         icons::pause(dl, c, 32.0f * scale, col);
 }
 
-void osd_toast(ImDrawList* dl, float win_w, const std::string& text, ImFont* mono, float alpha)
+void osd_toast(ImDrawList* dl, float win_w, const std::string& text, ImFont* mono, float alpha, float y)
 {
     if (alpha <= 0.0f || text.empty()) return;
     const float fs = 13.0f;
     const ImVec2 ts = mono->CalcTextSizeA(fs, FLT_MAX, 0.0f, text.c_str());
     const float w = ts.x + 28.0f, h = ts.y + 16.0f;
-    const ImVec2 min(std::round((win_w - w) * 0.5f), 56.0f);
+    const ImVec2 min(std::round((win_w - w) * 0.5f), y);
     const ImVec2 max(min.x + w, min.y + h);
     glass_pill(dl, min, max, alpha);
     dl->AddText(mono, fs, ImVec2(min.x + 14.0f, min.y + 8.0f), th::alpha(th::kText, alpha), text.c_str());
+}
+
+void spinner(ImDrawList* dl, ImVec2 c, float r, float t, float alpha)
+{
+    if (alpha <= 0.0f) return;
+    constexpr float kPi = 3.14159265f;
+    dl->AddCircle(c, r, th::alpha(th::kTrackRest, alpha), 32, 2.5f);
+    // Rotating arc whose length breathes between ~25% and ~75% of the circle.
+    const float a0  = t * 2.0f * kPi * 1.1f;
+    const float len = kPi * (1.0f + 0.5f * std::sin(t * 2.6f));
+    dl->PathArcTo(c, r, a0, a0 + len, 24);
+    dl->PathStroke(th::alpha(th::kAccent, alpha), ImDrawFlags_None, 2.5f);
+}
+
+void busy_pill(ImDrawList* dl, ImVec2 centre, bool top, const std::string& title,
+               const std::string& detail, float t, ImFont* ui_font, ImFont* mono, float alpha)
+{
+    if (alpha <= 0.0f || title.empty()) return;
+    const float fs = 14.0f, fs_d = 12.0f;
+    const float spin_r = 8.0f, pad_x = 14.0f, gap = 10.0f, h = 36.0f;
+    const ImVec2 ts = ui_font->CalcTextSizeA(fs, FLT_MAX, 0.0f, title.c_str());
+    const ImVec2 ds = detail.empty() ? ImVec2(0, 0) : mono->CalcTextSizeA(fs_d, FLT_MAX, 0.0f, detail.c_str());
+    const float w = pad_x + spin_r * 2.0f + gap + ts.x + (detail.empty() ? 0.0f : gap + ds.x) + pad_x + 2.0f;
+    const ImVec2 min(std::round(centre.x - w * 0.5f), std::round(top ? centre.y : centre.y - h * 0.5f));
+    const ImVec2 max(min.x + w, min.y + h);
+    dl->AddRectFilled(ImVec2(min.x, min.y + 2.0f), ImVec2(max.x, max.y + 2.0f),
+                      th::alpha(th::kShadow, alpha), h * 0.5f);
+    glass_pill(dl, min, max, alpha);
+    const float cy = min.y + h * 0.5f;
+    spinner(dl, ImVec2(min.x + pad_x + spin_r, cy), spin_r, t, alpha);
+    float x = min.x + pad_x + spin_r * 2.0f + gap;
+    dl->AddText(ui_font, fs, ImVec2(x, std::round(cy - ts.y * 0.5f)), th::alpha(th::kText, alpha), title.c_str());
+    if (!detail.empty()) {
+        x += ts.x + gap;
+        dl->AddText(mono, fs_d, ImVec2(x, std::round(cy - ds.y * 0.5f)), th::alpha(th::kTextDim, alpha), detail.c_str());
+    }
 }
 
 } // namespace ui

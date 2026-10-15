@@ -318,7 +318,7 @@ PlayerUIState PlayerUI::build(const PlayerUIInputs& in)
 {
     PlayerUIState out{};
     ImGuiIO& io = ImGui::GetIO();
-    const float  win_w = io.DisplaySize.x;
+    const float  win_w = std::max(1.0f, io.DisplaySize.x - in.right_inset_logical);
     const float  win_h = io.DisplaySize.y;
     const float  dt    = std::clamp(io.DeltaTime, 0.0f, 0.1f);
     const double now   = glfwGetTime();
@@ -404,12 +404,24 @@ PlayerUIState PlayerUI::build(const PlayerUIInputs& in)
         if (t < 1.0f) ui::center_flash(fg, ImVec2(win_w * 0.5f, win_h * 0.5f), t, flash_playing_);
         else flash_t0_ = -1.0;
     }
+    // Loading indicator: fades in quickly, out a little slower; never blocks input.
+    if (in.busy.show) busy_last_ = in.busy;
+    busy_alpha_ = th::ease(busy_alpha_, in.busy.show ? 1.0f : 0.0f, dt, in.busy.show ? 0.12f : 0.25f);
+    if (busy_alpha_ > 0.01f) {
+        const ImVec2 c = busy_last_.top
+            ? ImVec2(win_w * 0.5f, 56.0f)     // the toast row; a toast moves below it
+            : ImVec2(in.video_rect.z > 0.0f ? in.video_rect.x + in.video_rect.z * 0.5f : win_w * 0.5f,
+                     in.video_rect.w > 0.0f ? in.video_rect.y + in.video_rect.w * 0.5f : win_h * 0.5f);
+        ui::busy_pill(fg, c, busy_last_.top, busy_last_.title, busy_last_.detail,
+                      static_cast<float>(now), ui_fonts().ui, ui_fonts().mono, busy_alpha_);
+    }
     if (toast_t0_ >= 0.0) {
         const float age = static_cast<float>(now - toast_t0_);
         float a = 1.0f;
         if (age > th::kToastHold) a = 1.0f - (age - th::kToastHold) / th::kToastFade;
         if (a <= 0.0f) toast_t0_ = -1.0;
-        else ui::osd_toast(fg, win_w, toast_text_, ui_fonts().mono, a);
+        else ui::osd_toast(fg, win_w, toast_text_, ui_fonts().mono, a,
+                           busy_alpha_ > 0.01f && busy_last_.top ? 100.0f : 56.0f);
     }
     return out;
 }
@@ -541,7 +553,7 @@ void PlayerUI::build_menu_popup(const PlayerUIInputs& in, PlayerUIState& out)
         v = in.show_hud;       if (ImGui::MenuItem("Debug HUD",          "D", &v)) out.toggle_hud       = true;
         v = in.show_inspector; if (ImGui::MenuItem("Stream Inspector",   "I", &v)) out.toggle_inspector = true;
         v = in.show_waveform;  if (ImGui::MenuItem("Waveform",           "W", &v)) out.toggle_waveform  = true;
-        v = in.show_network;   if (ImGui::MenuItem("Network Log",        "N", &v)) out.toggle_network   = true;
+        v = in.show_network;   if (ImGui::MenuItem("Network Inspector",  "N", &v)) out.toggle_network   = true;
         v = in.show_drift;     if (ImGui::MenuItem("A/V Drift Graph",    "G", &v)) out.toggle_drift     = true;
         v = in.show_tracks;    if (ImGui::MenuItem("Track Switcher",     "T", &v)) out.toggle_tracks    = true;
         v = in.show_vmaf;      if (ImGui::MenuItem("VMAF Panel",         "V", &v)) out.toggle_vmaf      = true;
@@ -967,7 +979,7 @@ void PlayerUI::build_help_card(PlayerUIState& out, float win_w, float win_h)
         { "G",            "A/V drift graph" },
         { "T",            "Track switcher" },
         { "W",            "Audio waveform" },
-        { "N",            "Network log + tags" },
+        { "N",            "Network inspector" },
         { "V",            "VMAF panel" },
         { "H  ?",         "This help" },
         { "Esc",          "Exit fullscreen / cancel drag / quit" },
@@ -1164,6 +1176,63 @@ void PlayerUI::end_frame()
 }
 
 // ── Launch screen ─────────────────────────────────────────────────────────────
+
+bool PlayerUI::draw_loading_screen(const std::string& what, const std::string& detail)
+{
+    ImGuiIO& io = ImGui::GetIO();
+    const float win_w = io.DisplaySize.x;
+    const float win_h = io.DisplaySize.y;
+    constexpr float kCardW = 440.0f;
+    constexpr float kCardH = 212.0f;
+    ImGui::SetNextWindowPos(ImVec2(std::round((win_w - kCardW) * 0.5f), std::round((win_h - kCardH) * 0.5f)),
+                            ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(kCardW, kCardH), ImGuiCond_Always);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, th::vec4(th::rgba(24, 25, 30, 1.0f)));
+    ImGui::PushStyleColor(ImGuiCol_Border,   th::vec4(th::kPanelBorder));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(28.0f, 24.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, th::kRadiusPanel);
+    constexpr ImGuiWindowFlags flags =
+        ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
+        ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
+    bool cancel = false;
+    if (ImGui::Begin("##loading", nullptr, flags)) {
+        ImDrawList* dl  = ImGui::GetWindowDrawList();
+        const ImVec2 wp = ImGui::GetWindowPos();
+        const float  mx = wp.x + kCardW * 0.5f;
+        ui::spinner(dl, ImVec2(mx, wp.y + 48.0f), 16.0f, static_cast<float>(glfwGetTime()), 1.0f);
+
+        auto centred = [&](ImFont* f, float fs, float y, ImU32 col, const std::string& text) {
+            std::string t = text;
+            // Keep the end of long paths / URLs (the file name) visible.
+            std::size_t cut = 0;
+            while (cut + 1 < text.size() && f->CalcTextSizeA(fs, FLT_MAX, 0.0f, t.c_str()).x > kCardW - 56.0f) {
+                ++cut;
+                while (cut < text.size() && (static_cast<unsigned char>(text[cut]) & 0xC0) == 0x80) ++cut;
+                t = "…" + text.substr(cut);
+            }
+            const float w = f->CalcTextSizeA(fs, FLT_MAX, 0.0f, t.c_str()).x;
+            dl->AddText(f, fs, ImVec2(std::round(mx - w * 0.5f), wp.y + y), col, t.c_str());
+        };
+        centred(ui_fonts().ui,   16.0f, 82.0f,  th::kText,    "Opening");
+        centred(ui_fonts().ui,   14.0f, 106.0f, th::kTextDim, what);
+        centred(ui_fonts().mono, 12.0f, 128.0f, th::kTextFaint, detail);
+
+        const ImVec2 bsz(96.0f, 30.0f);
+        ImGui::SetCursorPos(ImVec2((kCardW - bsz.x) * 0.5f, kCardH - bsz.y - 20.0f));
+        ImGui::PushStyleColor(ImGuiCol_Button,        th::vec4(th::kHoverBg));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, th::vec4(th::kPressBg));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  th::vec4(th::kPressBg));
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, th::kRadiusSmall);
+        cancel = ImGui::Button("Cancel", bsz) || ImGui::IsKeyPressed(ImGuiKey_Escape, false);
+        ImGui::PopStyleVar();
+        ImGui::PopStyleColor(3);
+    }
+    ImGui::End();
+    ImGui::PopStyleVar(3);
+    ImGui::PopStyleColor(2);
+    return cancel;
+}
 
 std::string PlayerUI::draw_launcher(const std::vector<std::string>& recents,
                                     const std::string& error_msg)

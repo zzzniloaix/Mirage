@@ -31,6 +31,21 @@ struct VariantStream {
     int         width     = 0;
     int         height    = 0;
     std::string codecs;
+    int64_t     avg_bandwidth = 0;   // HLS AVERAGE-BANDWIDTH, 0 = absent
+    double      frame_rate    = 0.0; // HLS FRAME-RATE / DASH frameRate, 0 = absent
+    std::string audio_group;         // HLS AUDIO="..." group id
+    std::string subtitle_group;      // HLS SUBTITLES="..." group id
+};
+
+// One HLS EXT-X-MEDIA alternative rendition (audio / subtitles / CC).
+struct MediaRendition {
+    std::string type;        // "AUDIO" | "SUBTITLES" | "CLOSED-CAPTIONS" | "VIDEO"
+    std::string group_id;
+    std::string name;
+    std::string language;
+    std::string channels;    // AUDIO only, e.g. "2", "6"
+    std::string url;         // fully-resolved playlist URL; empty for in-band (CC)
+    bool        is_default = false;
 };
 
 // Fetches and parses HLS (.m3u8) or DASH (.mpd) manifests.
@@ -50,6 +65,7 @@ public:
 
     const std::vector<ManifestTag>&    tags()     const { return tags_; }
     const std::vector<VariantStream>&  variants() const { return variants_; }
+    const std::vector<MediaRendition>& renditions() const { return renditions_; }
 
     // Returns the discontinuity sequence number active at the given pts.
     int disc_seq_at(double pts) const;
@@ -74,4 +90,5 @@ private:
 
     std::vector<ManifestTag>   tags_;
     std::vector<VariantStream> variants_;
+    std::vector<MediaRendition> renditions_;
 };

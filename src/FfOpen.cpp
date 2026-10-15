@@ -20,13 +20,15 @@ static int interrupt_cb(void* opaque)
     return static_cast<const std::stop_token*>(opaque)->stop_requested() ? 1 : 0;
 }
 
-int open_input(AVFormatContext** out, const std::string& url, const std::stop_token& st)
+int open_input(AVFormatContext** out, const std::string& url, const std::stop_token& st,
+               NetInitiator who)
 {
     *out = nullptr;
     AVFormatContext* ctx = avformat_alloc_context();
     if (!ctx) return AVERROR(ENOMEM);
     ctx->interrupt_callback.callback = interrupt_cb;
     ctx->interrupt_callback.opaque   = const_cast<std::stop_token*>(&st);
+    NetworkLogger::hook_format_context(ctx, who);
 
     AVDictionary* opts = nullptr;
     if (is_network_url(url)) {

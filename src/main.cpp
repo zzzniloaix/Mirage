@@ -15,6 +15,8 @@
 #include "Queue.h"
 #include "Logger.h"
 #include "NetworkLogger.h"
+#include "NetInspector.h"
+#include "TrackPanel.h"
 #include "ManifestParser.h"
 #include "PlayerUI.h"
 #include "VMAFAnalyzer.h"
@@ -498,11 +500,19 @@ struct CliOptions {
     double      ui_sub_at     = -1.0;       // --ui-sub-at <seconds>
     std::string ui_osd;                     // --ui-osd "<text>"
     std::string ui_overlays;                // first: --ui-overlays DIGW...
+    std::string ui_net;                     // --ui-net tab=manifest,select=segment,... (implies N)
     bool        ui_hide_controls = false;   // --ui-hide-controls: capture with chrome hidden
+    // --ui-snap-busy <text>: capture once a loading indicator whose title
+    // contains <text> ("Opening", "Switching", "Buffering", ...) has shown 0.6 s.
+    std::string ui_snap_busy;
     // QA source switching: `--qa-open-after <secs> <path>` (repeatable) opens
     // <path> once the current media has played <secs> wall seconds — the same
     // path a drop / the Open dialog takes.
     std::vector<std::pair<double, std::string>> qa_open;
+    // QA track switching: `--qa-switch "v720@4,a2@10,s1@14,soff@16"` switches
+    // tracks at wall seconds since the first presented frame. v<height> /
+    // v#<stream>, a<n> / a#<stream> (n = 1-based panel order), s<n> / soff.
+    std::vector<std::pair<double, std::string>> qa_switch;
 };
 
 struct App {
@@ -521,17 +531,109 @@ struct App {
     int            fs_x = 0, fs_y = 0, fs_w = 0, fs_h = 0;   // windowed geometry
     int            sessions_played = 0;
     std::size_t    qa_open_next    = 0;       // next --qa-open-after event
+    NetInspector   net_inspector;             // N: network sidebar (width kept across media)
+
+    // A source being opened on a worker thread (MediaSession::open_media) while
+    // the window keeps rendering — the launcher's loading screen, or the
+    // current media still playing. Cancelled opens finish in `abandoned` and
+    // are destroyed on the main thread once their worker is done.
+    struct PendingOpen {
+        std::string                   path;
+        std::unique_ptr<MediaSession> ms;
+        std::atomic<bool>             done{ false };
+        bool                          ok = false;
+        std::string                   err;
+        std::chrono::steady_clock::time_point since;
+        std::size_t                   net_reqs0 = 0;   // network log size at the start (progress)
+        std::jthread                  worker;     // last: joined first on destruction
+    };
+    std::unique_ptr<PendingOpen>              opening;
+    std::vector<std::unique_ptr<PendingOpen>> abandoned;
 };
 
-// Opens `path` as a new MediaSession and records it in the recent list. On
-// failure returns nullptr with a user-facing message in `err`.
-static std::unique_ptr<MediaSession> open_session(App& app, const std::string& path, std::string& err)
+static MediaSessionOptions session_options(const App& app)
 {
-    auto ms = std::make_unique<MediaSession>();
     MediaSessionOptions opt;
     opt.try_hw          = app.cli.try_hw;
     opt.test_bitmap_sub = app.cli.test_bitmap_sub;
-    if (!ms->open(path, opt, err)) return nullptr;
+    return opt;
+}
+
+// Destroy cancelled opens whose worker has finished (main thread: a session
+// owns GL objects). With wait = true, block until every one is gone.
+static void reap_abandoned(App& app, bool wait = false)
+{
+    std::erase_if(app.abandoned, [wait](const std::unique_ptr<App::PendingOpen>& p) {
+        if (!wait && !p->done.load()) return false;
+        if (p->worker.joinable()) p->worker.join();
+        return true;
+    });
+}
+
+// Give up on the open in progress (if any) without waiting for it.
+static void cancel_open(App& app)
+{
+    if (!app.opening) return;
+    logger::info("Open cancelled: {}", app.opening->path);
+    app.opening->ms->cancel_open();
+    app.abandoned.push_back(std::move(app.opening));
+}
+
+// Start opening `path` on a worker thread; replaces an open in progress.
+static void begin_open(App& app, const std::string& path)
+{
+    cancel_open(app);
+    auto p   = std::make_unique<App::PendingOpen>();
+    p->path  = path;
+    p->ms    = std::make_unique<MediaSession>();
+    p->since = std::chrono::steady_clock::now();
+    p->net_reqs0 = app.net_logger.size();
+    App::PendingOpen* raw = p.get();
+    const MediaSessionOptions opt = session_options(app);
+    p->worker = std::jthread([raw, opt] {
+        raw->ok = raw->ms->open_media(raw->path, opt, raw->err);
+        raw->done.store(true);
+        glfwPostEmptyEvent();   // wake a render loop waiting for events
+    });
+    app.opening = std::move(p);
+}
+
+static std::unique_ptr<MediaSession> finish_session(App& app, std::unique_ptr<MediaSession> ms);
+
+// "Fetching playlists · 23 requests · 4.1 s" — progress text for an open.
+static std::string open_progress(const App& app)
+{
+    const App::PendingOpen& p = *app.opening;
+    const double t = std::chrono::duration<double>(std::chrono::steady_clock::now() - p.since).count();
+    if (!ffopen::is_network_url(p.path)) return t >= 1.0 ? std::format("{:.1f} s", t) : std::string();
+    const std::size_t n  = app.net_logger.size();
+    const std::size_t rq = n > p.net_reqs0 ? n - p.net_reqs0 : 0;
+    if (rq == 0) return t >= 1.0 ? std::format("Connecting \u00B7 {:.1f} s", t) : std::string("Connecting");
+    return std::format("{} request{} \u00B7 {:.1f} s", rq, rq == 1 ? "" : "s", t);
+}
+
+// Main thread, once per frame: if the worker finished, finish the open (GL
+// half) and return the session. On failure returns nullptr with the reason
+// in `err`; while still opening returns nullptr with `err` empty.
+static std::unique_ptr<MediaSession> poll_open(App& app, std::string& err)
+{
+    reap_abandoned(app);
+    if (!app.opening || !app.opening->done.load()) return nullptr;
+    std::unique_ptr<App::PendingOpen> p = std::move(app.opening);
+    p->worker.join();
+    logger::info("Opened {} in {:.0f} ms", p->path,
+                 std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - p->since).count());
+    if (!p->ok || !p->ms->start(session_options(app), p->err)) {
+        err = p->err.empty() ? "Failed to open: " + p->path : p->err;
+        return nullptr;
+    }
+    return finish_session(app, std::move(p->ms));
+}
+
+// A session was opened: remember it in the recent list, carry the volume.
+static std::unique_ptr<MediaSession> finish_session(App& app, std::unique_ptr<MediaSession> ms)
+{
+    const std::string& path = ms->path;
     // Local paths are stored absolute so a recent entry works from any cwd.
     std::error_code ec;
     std::string entry = path;
@@ -555,6 +657,8 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms);
 
 int main(int argc, char* argv[])
 {
+    (void)logger::uptime();   // start the trace clock
+
     // --window WxH must be known before the window exists.
     int init_win_w = 1280, init_win_h = 720;
     for (int i = 1; i + 1 < argc; ++i)
@@ -668,8 +772,12 @@ int main(int argc, char* argv[])
             cli.ui_osd = argv[++i];
         } else if (arg == "--ui-hide-controls") {
             cli.ui_hide_controls = true;
+        } else if (arg == "--ui-snap-busy" && i + 1 < argc) {
+            cli.ui_snap_busy = argv[++i];
         } else if (arg == "--ui-overlays" && i + 1 < argc) {
             cli.ui_overlays = argv[++i];
+        } else if (arg == "--ui-net" && i + 1 < argc) {
+            cli.ui_net = argv[++i];
         } else if (arg == "--test-bitmap-sub") {
             cli.test_bitmap_sub = true;
         } else if (arg == "--no-hw") {
@@ -692,6 +800,23 @@ int main(int argc, char* argv[])
         } else if (arg == "--av-report" && i + 2 < argc) {
             cli.av_report_path = argv[++i];
             cli.av_report_secs = std::atof(argv[++i]);
+        } else if (arg == "--qa-switch" && i + 1 < argc) {
+            const std::string spec = argv[++i];
+            std::size_t pos = 0;
+            while (pos <= spec.size()) {
+                const std::size_t comma = spec.find(',', pos);
+                const std::string item  = spec.substr(pos, comma == std::string::npos ? std::string::npos : comma - pos);
+                const std::size_t at    = item.find('@');
+                if (at == std::string::npos || at == 0) {
+                    logger::error("--qa-switch '{}': expected what@secs[,...]", spec);
+                    return EXIT_FAILURE;
+                }
+                cli.qa_switch.emplace_back(std::atof(item.c_str() + at + 1), item.substr(0, at));
+                if (comma == std::string::npos) break;
+                pos = comma + 1;
+            }
+            std::stable_sort(cli.qa_switch.begin(), cli.qa_switch.end(),
+                             [](const auto& a, const auto& b) { return a.first < b.first; });
         } else if (arg == "--qa-open-after" && i + 2 < argc) {
             const double secs = std::max(0.0, std::atof(argv[++i]));
             cli.qa_open.emplace_back(secs, argv[++i]);
@@ -754,9 +879,60 @@ int main(int argc, char* argv[])
             }
         }
 
-        session = open_session(app, open_path, launcher_err);
-        // Retry: clear the path so the launcher loop above re-runs.
+        // Open on a worker thread behind a loading card (an HLS master
+        // playlist can take many seconds); a failure returns to the launcher
+        // with the error, Cancel / Esc returns to it without one.
+        launcher_err.clear();
+        begin_open(app, open_path);
         open_path.clear();
+        while (app.opening && !glfwWindowShouldClose(window)) {
+            session = poll_open(app, launcher_err);
+            if (session || !app.opening) break;
+            if (!g_drop_pending.empty()) {          // a drop replaces the open
+                begin_open(app, g_drop_pending);
+                g_drop_pending.clear();
+            }
+            glfwWaitEventsTimeout(1.0 / 60.0);
+
+            int fb_w, fb_h;
+            glfwGetFramebufferSize(window, &fb_w, &fb_h);
+            glViewport(0, 0, fb_w, fb_h);
+            glClearColor(0.13f, 0.14f, 0.16f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+            player_ui.begin_frame();
+            const double t = std::chrono::duration<double>(
+                std::chrono::steady_clock::now() - app.opening->since).count();
+            if (player_ui.draw_loading_screen(media_title(app.opening->path), open_progress(app)))
+                cancel_open(app);
+            player_ui.end_frame();
+            // QA: --ui-snap-busy --ui-snapshot also captures the loading card
+            // (once it has been up 1.5 s) when the first open is slow.
+            if (std::string("Opening").find(cli.ui_snap_busy) == 0 && !cli.ui_snap_busy.empty()
+                && !cli.ui_snap_path.empty() && t >= 1.5 && cli.qa_open.empty()) {
+                glFinish();
+                std::vector<std::uint8_t> px(static_cast<std::size_t>(fb_w) * fb_h * 4);
+                glReadBuffer(GL_BACK);
+                glPixelStorei(GL_PACK_ALIGNMENT, 1);
+                glReadPixels(0, 0, fb_w, fb_h, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
+                for (auto i = 3u; i < px.size(); i += 4) px[i] = 255;
+                stbi_flip_vertically_on_write(1);
+                const int ok = stbi_write_png(cli.ui_snap_path.c_str(), fb_w, fb_h, 4, px.data(), fb_w * 4);
+                logger::info("ui-snapshot: wrote {} (loading card)", cli.ui_snap_path);
+                std::exit(ok ? 0 : 1);
+            }
+            glfwSwapBuffers(window);
+        }
+        if (glfwWindowShouldClose(window)) {
+            session.reset();
+            cancel_open(app);
+            reap_abandoned(app, true);
+            net_logger.uninstall();
+            g_player_ui = nullptr;
+            player_ui.shutdown();
+            glfwDestroyWindow(window);
+            glfwTerminate();
+            return EXIT_SUCCESS;
+        }
     }
 
     // ── VMAF analyzer: --vmaf auto-starts on the first media ──────────────────
@@ -781,6 +957,8 @@ int main(int argc, char* argv[])
     // join, then its FFmpeg / GL / audio resources are freed (GL context current).
     while (session)
         session = run_session(app, *session);
+    cancel_open(app);
+    reap_abandoned(app, true);
 
     // ── Shutdown ──────────────────────────────────────────────────────────────
     net_logger.uninstall();
@@ -845,9 +1023,6 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
     const double     video_start_s    = ms.video_start_s;
     auto&            inspector_lines  = ms.inspector_lines;
     const std::size_t decode_line_idx = ms.decode_line_idx;
-    const auto&      audio_track_items    = ms.audio_track_items;
-    const auto&      video_track_items    = ms.video_track_items;
-    const auto&      subtitle_track_items = ms.subtitle_track_items;
 
     const CliOptions&  cli              = app.cli;
     const bool         auto_vmaf        = cli.auto_vmaf;
@@ -955,6 +1130,9 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
     // settings, C / Shift+C, T panel, startup policy, sidecar failure).
     // idx: -1 = Off, >= 0 = index into sub_choices. User changes update and
     // persist SubPref; Auto shows the "C to turn off" hint; Silent no toast.
+    // Embedded subtitle switch awaiting data: {stream, demuxer switch serial};
+    // picked up by the loading-indicator state below.
+    std::pair<int, uint64_t> sub_switch_req{ -1, 0 };
     enum class SubBy { User, Auto, Silent };
     auto apply_sub_choice = [&](int idx, SubBy by) {
         if (idx >= static_cast<int>(sub_choices.size())) idx = -1;
@@ -971,8 +1149,9 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         std::string what;
         if (c.kind == SubChoice::Embedded) {
             if (c.stream_idx != cur_subtitle_stream) {
-                demuxer.request_subtitle_switch(c.stream_idx);
+                demuxer.request_subtitle_switch(c.stream_idx, last_pts);
                 cur_subtitle_stream = c.stream_idx;
+                sub_switch_req = { c.stream_idx, demuxer.switch_requested() };
             }
             active_sidecar = nullptr;
             what = c.label();
@@ -1036,21 +1215,6 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             apply_sub_choice(first, sub_rule_is_auto(rule) ? SubBy::Auto : SubBy::Silent);
     }
 
-    // Audio track switch (settings, A key, T panel).
-    auto switch_audio = [&](int stream_idx, bool paused_now, std::chrono::steady_clock::time_point& valid_at) {
-        if (stream_idx < 0 || stream_idx == cur_audio_stream || !has_audio) return;
-        cur_audio_stream = stream_idx;
-        audio_player.set_paused(true);
-        demuxer.request_audio_switch(stream_idx);
-        valid_at = std::chrono::steady_clock::now() + std::chrono::milliseconds(400);
-        if (!paused_now) audio_player.set_paused(false);
-        for (const auto& t : demuxer.audio_tracks())
-            if (t.stream_idx == stream_idx)
-                player_ui.toast(std::format("Audio: {}{}{} \u00B7 {} {}ch", t.stream_idx,
-                    t.language.empty() ? "" : " \u00B7 ", t.language, t.codec_name, t.channels));
-    };
-
-
     // When to show the next frame (wall clock)
     const auto startup_time = std::chrono::steady_clock::now();
     auto next_pts_time  = startup_time;
@@ -1071,6 +1235,112 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         seeked_while_paused = true;
     };
 
+    // ── Track switches + "waiting for data" state (loading indicator) ───────
+    // A switch is pending from the request until its first output is live:
+    // video — a frame of the new stream is on screen; audio — the decoder was
+    // reopened for the new stream and audio is queued for the device;
+    // subtitles — the demuxer read past the request (segment fetched).
+    using SClock = std::chrono::steady_clock;
+    struct PendingSwitch {
+        bool        active = false;
+        int         target = -1;     // stream index
+        int         epoch  = 0;      // video: decoder generation at the request
+        uint64_t    serial = 0;      // subtitles: demuxer switch serial
+        SClock::time_point since{};
+        std::string what;            // "1280×720 · 60 fps"
+    };
+    PendingSwitch vsw, asw, ssw;
+    SClock::time_point busy_shown_since{};   // QA --ui-snap-busy
+    std::string        busy_logged;          // indicator title last logged
+    bool          asw_exact = false;   // audio switch made while paused (clock restarts)
+    // Seek: from the request until the first frame decoded after it shows.
+    bool              seek_wait  = false;
+    int               seek_epoch = 0;
+    SClock::time_point seek_since{};
+    SClock::time_point last_present = SClock::now();   // last frame put on screen (normal playback)
+    bool              paused_switch_frame = false;    // paused video switch: show its first frame
+    int               shown_epoch = 0;                // generation of the frame on screen
+    bool              ended_reported = false;         // demuxer stop reported once
+    SClock::time_point demux_resumed_at{};            // demuxer woke from the end of media
+    // Network source: wall seconds a seamless switch keeps the old track
+    // playing while the new one is fetched. Starts at about one segment
+    // fetch and follows the measured fetch time (Demuxer::last_switch_fetch_s)
+    // so the picture neither freezes (too short) nor lags the click (too long).
+    double            net_switch_lead = 2.5;
+    auto learn_switch_lead = [&] {
+        const double f = demuxer.last_switch_fetch_s();
+        if (local_media || f < 0.0) return;
+        net_switch_lead = std::clamp(0.5 * net_switch_lead + 0.5 * (f * 1.3 + 0.4), 1.2, 5.0);
+        logger::info("switch-trace: fetch took {:.0f} ms — next seamless lead {:.2f} s", f * 1000.0, net_switch_lead);
+    };
+
+    auto video_label = [&](int stream_idx) {
+        for (const auto& t : demuxer.video_tracks())
+            if (t.stream_idx == stream_idx)
+                return t.fps > 0.0 ? std::format("{}×{} · {} fps", t.width, t.height, fps_text(t.fps))
+                                   : std::format("{}×{}", t.width, t.height);
+        return std::format("stream {}", stream_idx);
+    };
+    auto audio_label = [&](int stream_idx) {
+        for (const auto& t : demuxer.audio_tracks())
+            if (t.stream_idx == stream_idx)
+                return std::format("{}{}{} {}ch", t.language, t.language.empty() ? "" : " · ",
+                                   t.codec_name, t.channels);
+        return std::format("stream {}", stream_idx);
+    };
+
+    // Audio track switch (settings, A key, T panel). The new track starts at
+    // what is audible now; video keeps its own clock until the new audio plays.
+    auto switch_audio = [&](int stream_idx, bool paused_now, SClock::time_point& valid_at) {
+        if (stream_idx < 0 || stream_idx == cur_audio_stream || !has_audio) return;
+        cur_audio_stream = stream_idx;
+        const double audible = audio_player.clock() - audio_player.output_latency_seconds() * s_speed.load();
+        const double pos = audible > 0.0 ? audible : last_pts;
+        logger::info("switch-trace: request audio -> stream {} at {:.3f} (t={:.3f})",
+                     stream_idx, pos, logger::uptime());
+        // Seamless take-over point: past what the device already holds (the
+        // ring keeps up to ~0.5 s wall) plus the time the new track needs to
+        // arrive — a network fetch, or next to nothing for a local file.
+        const double spd  = s_speed.load();
+        const double keep = pos + (0.6 + (local_media ? 0.1 : net_switch_lead)) * spd;
+        demuxer.request_audio_switch(stream_idx, pos, paused_now, keep);
+        // Paused: the device is stopped, so flushing is safe and unblocks an
+        // audio thread waiting on a full ring (it must reach the sentinel).
+        // The new track then starts at the audible position; video keeps its
+        // own clock until the device plays again. Playing: seamless, the
+        // audio clock stays continuous.
+        if (paused_now) {
+            audio_player.flush();
+            valid_at = SClock::now() + std::chrono::milliseconds(400);
+        }
+        asw_exact = paused_now;
+        asw = { true, stream_idx, 0, 0, SClock::now(), audio_label(stream_idx) };
+        player_ui.toast("Audio: " + asw.what);
+    };
+
+    // Video track switch (T panel, --qa-switch). Playing: seamless — what is
+    // queued from the old track still plays, the new one takes over after it.
+    // Paused: the new track's frame at the paused position replaces the picture.
+    auto switch_video = [&](int stream_idx, bool paused_now) {
+        if (stream_idx < 0 || stream_idx == cur_video_stream) return;
+        cur_video_stream = stream_idx;
+        logger::info("switch-trace: request video -> stream {} at pts {:.3f}{} (t={:.3f})",
+                     stream_idx, last_pts, paused_now ? " (paused)" : "", logger::uptime());
+        // Seamless take-over point: a little past the frame on screen for a
+        // local file; for a network source about one segment fetch ahead, so
+        // the old track keeps playing while the new one downloads.
+        const double keep = last_pts + (local_media ? 0.25 : net_switch_lead) * s_speed.load();
+        demuxer.request_video_switch(stream_idx, last_pts, paused_now, keep);
+        vsw = { true, stream_idx, ms.video_epoch.load(), 0, SClock::now(), video_label(stream_idx) };
+        if (paused_now) {
+            AVFrame* stale;
+            while (frameq.try_pop(stale)) av_frame_free(&stale);
+            if (has_audio) release_paused_audio();   // demuxer may be blocked on a full audioq
+            paused_switch_frame = true;
+        }
+    };
+
+
     // Scrub state
     bool   was_scrubbing      = false;
     bool   pending_step_frame = false;  // true = show next arriving frame (step while paused)
@@ -1084,14 +1354,52 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
 
     // Seconds for a decoded frame: its PTS, else libavcodec's best-effort guess
     // (MPEG-TS without PTS on every frame), else one frame after the last one.
+    // Main-pipeline frames carry their stream's time base (variants of one
+    // HLS stream differ, e.g. 1/60000 vs 1/30000); scrub frames use video_tb.
     auto frame_pts_sec = [&](const AVFrame* f) {
         int64_t ts = (f->pts != AV_NOPTS_VALUE) ? f->pts : f->best_effort_timestamp;
-        return (ts != AV_NOPTS_VALUE) ? ts * av_q2d(video_tb) : last_pts + last_frame_dur;
+        const AVRational tb = f->time_base.num > 0 ? f->time_base : video_tb;
+        return (ts != AV_NOPTS_VALUE) ? ts * av_q2d(tb) : last_pts + last_frame_dur;
+    };
+
+    // Current video geometry / rate (change with a video track switch).
+    int    shown_w = coded_w, shown_h = coded_h;
+    double stream_fps = (frame_dt > 0.0) ? 1.0 / frame_dt : 0.0;
+    SClock::time_point last_info_upd{};
+
+    // A main-pipeline frame is going on screen: settle the waits it ends.
+    auto on_present = [&](const AVFrame* f, double pts, SClock::time_point t) {
+        last_present = t;
+        const int ep = MediaSession::tag_epoch(f), st = MediaSession::tag_stream(f);
+        if (ep != shown_epoch) shown_epoch = ep;
+        if (vsw.active && st == vsw.target && ep > vsw.epoch) {
+            vsw.active = false;
+            logger::info("switch-trace: first new frame presented pts={:.3f} {}x{} — video switch took {:.0f} ms (t={:.3f})",
+                         pts, f->width, f->height,
+                         std::chrono::duration<double, std::milli>(t - vsw.since).count(), logger::uptime());
+            shown_w = f->width;
+            shown_h = f->height;
+            for (const auto& vt : demuxer.video_tracks())
+                if (vt.stream_idx == st && vt.fps > 0.0) stream_fps = vt.fps;
+            last_info_upd = {};   // refresh the top-bar chips now
+            learn_switch_lead();
+        }
+        if (seek_wait && ep > seek_epoch) {
+            seek_wait = false;
+            logger::info("switch-trace: first frame after seek pts={:.3f} — took {:.0f} ms",
+                         pts, std::chrono::duration<double, std::milli>(t - seek_since).count());
+        }
+    };
+    auto begin_seek_wait = [&](SClock::time_point t) {
+        seek_wait  = true;
+        seek_epoch = ms.video_epoch.load();
+        seek_since = t;
     };
 
     // ── QA: --speed / --speed-seq / --av-report state ─────────────────────────
     if (first_session && cli_speed != 1.0) s_speed.store(cli_speed);
     std::size_t            speed_seq_next = 0;
+    std::size_t            qa_switch_next = 0;
     bool                   qa_started     = false;  // first frame presented
     auto                   qa_t0          = startup_time;
     std::vector<AvSegment> av_segs;
@@ -1112,10 +1420,9 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
     int64_t             total_dropped = 0;       // late frames dropped (top-bar chip)
     double              pre_scrub_pts = 0.0;     // restored when a drag is cancelled (Esc)
     PlayerUIInputs::Info ui_info;
+    int playing_variant = -1;                    // HLS variant being played (network sidebar)
     ui_info.title      = media_title(open_path);
     ui_info.title_full = open_path;
-    auto last_info_upd = std::chrono::steady_clock::time_point{};
-    const double stream_fps = (frame_dt > 0.0) ? 1.0 / frame_dt : 0.0;
     const float  video_aspect = (vid_h > 0) ? static_cast<float>(vid_w) / static_cast<float>(vid_h) : 16.0f / 9.0f;
 
     // --ui-overlays DIGW...: switch engineer panels on for the screenshot.
@@ -1133,6 +1440,11 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         }
     }
     if (!ui_menu.empty()) player_ui.open_menu(ui_menu);
+    app.net_inspector.reset();
+    if (!cli.ui_net.empty()) {      // QA: every session, so --qa-open-after captures it too
+        s_show_network.store(true);
+        app.net_inspector.qa_apply(cli.ui_net);
+    }
     // --ui-sub-at: seek there, play until the target is reached, then pause.
     bool ui_sub_at_landed = ui_sub_at < 0.0;
     if (ui_sub_at >= 0.0) s_seek_delta.store(ui_sub_at > 0.0 ? ui_sub_at : 1e-6);
@@ -1164,16 +1476,12 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
     };
 
     // ── Open another source (drop, Open dialog / O, --qa-open-after) ───────
-    // The request is opened one frame later so the "Opening …" toast is on
-    // screen during the (blocking) open. This session stays alive until the
-    // new one is ready, so a failed open just keeps playing it.
-    std::string open_req;
-    int         open_req_frames = 0;
+    // Opened on a worker thread (App::opening) while this session keeps
+    // playing; it is replaced once the new one is ready, so a failed open
+    // just keeps playing this one.
     auto request_open = [&](const std::string& p) {
         if (p.empty()) return;
-        open_req        = p;
-        open_req_frames = 0;
-        player_ui.toast("Opening " + media_title(p) + " \u2026");
+        begin_open(app, p);
     };
 
     // No vsync — we manage timing ourselves via glfwWaitEventsTimeout
@@ -1207,6 +1515,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             }
             seeked_while_paused = false;
             if (has_audio) audio_player.set_paused(paused);
+            last_present = now;   // not a stall: nothing was due while paused
         }
 
         // ── Key commands that need main-thread state ──────────────────────
@@ -1252,14 +1561,14 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         }
         if (s_open_dialog.exchange(0) > 0) player_ui.show_open_dialog();
         // QA: --qa-open-after, timed from this media's start.
-        if (open_req.empty() && app.qa_open_next < cli.qa_open.size()
+        if (!app.opening && app.qa_open_next < cli.qa_open.size()
             && now - startup_time >= std::chrono::duration<double>(cli.qa_open[app.qa_open_next].first)) {
             const auto& ev = cli.qa_open[app.qa_open_next++];
             logger::info("--qa-open-after: t={:.1f} opening {}", ev.first, ev.second);
             request_open(ev.second);
         }
         // Captures wait for the last scripted switch (see CliOptions).
-        const bool qa_open_done = app.qa_open_next >= cli.qa_open.size();
+        const bool qa_open_done = app.qa_open_next >= cli.qa_open.size() && !app.opening;
 
         // ── Scrub state transitions ───────────────────────────────────────
         // ui_seek_dragging carries the ImGui seek bar drag state from the
@@ -1357,6 +1666,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             last_any_seek_at = now;
             last_seek_pos    = seek_target;
             demuxer.request_seek(seek_target);
+            begin_seek_wait(now);
             if (paused) release_paused_audio();
             AVFrame* stale;
             while (frameq.try_pop(stale)) av_frame_free(&stale);
@@ -1397,6 +1707,37 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                     case SpeedStep::KfPrev: s_paused.store(true); s_step_frames.fetch_add(-1); break;
                 }
                 logger::info("--speed-seq: t={:.2f} event {} {}", t, static_cast<int>(ev.kind), ev.speed);
+            }
+        }
+
+        // ── QA: scripted track switches (--qa-switch), timed from playback start ──
+        if (qa_started && qa_open_done) {
+            const double t = std::chrono::duration<double>(now - qa_t0).count();
+            while (qa_switch_next < cli.qa_switch.size() && cli.qa_switch[qa_switch_next].first <= t) {
+                const std::string what = cli.qa_switch[qa_switch_next++].second;
+                logger::info("--qa-switch: t={:.2f} {}", t, what);
+                const bool by_idx = what.size() > 1 && what[1] == '#';
+                const int  num    = std::atoi(what.c_str() + (by_idx ? 2 : 1));
+                if (what[0] == 'v') {
+                    for (const auto& vt : demuxer.video_tracks())
+                        if (by_idx ? vt.stream_idx == num : vt.height == num) { switch_video(vt.stream_idx, paused); break; }
+                } else if (what[0] == 'a') {
+                    const auto& at = demuxer.audio_tracks();
+                    for (std::size_t k = 0; k < at.size(); ++k)
+                        if (by_idx ? at[k].stream_idx == num : static_cast<int>(k) + 1 == num) {
+                            switch_audio(at[k].stream_idx, paused, audio_clock_valid_at);
+                            break;
+                        }
+                } else if (what == "soff") {
+                    apply_sub_choice(-1, SubBy::User);
+                } else if (what[0] == 's') {
+                    int n = 0;
+                    for (std::size_t k = 0; k < sub_choices.size(); ++k)
+                        if (sub_choices[k].kind == SubChoice::Embedded && ++n == num) {
+                            apply_sub_choice(static_cast<int>(k), SubBy::User);
+                            break;
+                        }
+                }
             }
         }
 
@@ -1538,6 +1879,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                     qa_t0      = now;
                 }
 
+                on_present(frame, pts, now);
                 renderer.upload(frame);
                 av_frame_free(&frame);
                 has_frame = true;
@@ -1551,9 +1893,8 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         if (pending_step_frame && !scrubbing) {
             AVFrame* frame = nullptr;
             if (frameq.try_pop(frame)) {
-                double pts = (frame->pts != AV_NOPTS_VALUE)
-                    ? frame->pts * av_q2d(video_tb)
-                    : last_pts;
+                double pts = (frame->pts != AV_NOPTS_VALUE) ? frame_pts_sec(frame) : last_pts;
+                on_present(frame, pts, now);
                 renderer.upload(frame);
                 av_frame_free(&frame);
                 has_frame          = true;
@@ -1563,6 +1904,30 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 if (qa_started) logger::info("--speed-seq: step landed at pts {:.3f}", pts);
             }
             // else: frame not decoded yet — retry next iteration
+        }
+
+        // ── Paused video switch: show the new track's frame at this position ──
+        if (paused_switch_frame) {
+            if (!paused || scrubbing || !vsw.active) {
+                paused_switch_frame = false;   // playback / scrub took over
+            } else {
+                AVFrame* frame = nullptr;
+                while (frameq.try_pop(frame)) {
+                    if (MediaSession::tag_stream(frame) == vsw.target
+                        && MediaSession::tag_epoch(frame) > vsw.epoch) {
+                        const double pts = frame_pts_sec(frame);
+                        on_present(frame, pts, now);
+                        renderer.upload(frame);
+                        av_frame_free(&frame);
+                        has_frame = true;
+                        last_pts  = pts;
+                        ++frame_count;
+                        paused_switch_frame = false;
+                        break;
+                    }
+                    av_frame_free(&frame);   // old track, decoded before the switch
+                }
+            }
         }
 
         // ── Frame-accurate forward step (Shift+.) ─────────────────────────
@@ -1577,6 +1942,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 break;
             }
             double pts = frame_pts_sec(frame);
+            on_present(frame, pts, now);
             renderer.upload(frame);
             av_frame_free(&frame);
             has_frame      = true;
@@ -1618,6 +1984,115 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             }
         }
 
+        // ── Waiting for data: settle switches, pick the loading indicator ──
+        PlayerUIInputs::Busy busy;
+        {
+            if (sub_switch_req.first >= 0) {
+                ssw = { true, sub_switch_req.first, 0, sub_switch_req.second, now, "" };
+                sub_switch_req.first = -1;
+            }
+            // Audio: done once the decoder runs the new track and the device
+            // has audio queued; until then video runs on its own clock.
+            if (asw.active) {
+                if (asw.target != cur_audio_stream) {
+                    asw.active = false;
+                } else if (ms.decoded_audio_stream.load() == asw.target && audio_player.primed()) {
+                    asw.active = false;
+                    if (asw_exact) audio_clock_valid_at = now + std::chrono::milliseconds(150);
+                    logger::info("switch-trace: new audio queued — audio switch took {:.0f} ms (t={:.3f})",
+                                 std::chrono::duration<double, std::milli>(now - asw.since).count(), logger::uptime());
+                    learn_switch_lead();
+                } else if (asw_exact) {
+                    audio_clock_valid_at = std::max(audio_clock_valid_at, now + std::chrono::milliseconds(200));
+                }
+            }
+            if (ssw.active && (ssw.target != cur_subtitle_stream || demuxer.switch_settled() >= ssw.serial)) {
+                ssw.active = false;
+                logger::info("switch-trace: subtitle data arrived — subtitle switch took {:.0f} ms",
+                             std::chrono::duration<double, std::milli>(now - ssw.since).count());
+            }
+            if (vsw.active && vsw.target != cur_video_stream) vsw.active = false;
+            // A seek while paused shows no frame until playback resumes; it is
+            // done waiting once the decoder has a frame from after it.
+            if (seek_wait && paused && ms.video_epoch.load() > seek_epoch && frameq.size() > 0)
+                seek_wait = false;
+
+            // Nothing more will arrive: report why once and stop waiting.
+            // The demuxer idles at the end of the media and still serves a
+            // later seek or switch (exhausted() turns false while one is
+            // pending); after a read error it is gone, so a request made then
+            // is cancelled at once instead of spinning until the timeout.
+            // Waits end only once what was already read has played out.
+            if (!demuxer.exhausted()) {
+                if (ended_reported) demux_resumed_at = now;   // a seek / switch after the end
+                ended_reported = false;
+            } else {
+                const bool waiting = vsw.active || asw.active || ssw.active || seek_wait;
+                const bool drained = ms.videoq.size() == 0 && ms.audioq.size() == 0 && frameq.size() == 0;
+                if ((!ended_reported || waiting) && (drained || !demuxer.last_error().empty())) {
+                    const std::string err = demuxer.last_error();
+                    if (!err.empty() && (!ended_reported || waiting)) player_ui.toast("Playback stopped — " + err);
+                    else if (vsw.active || asw.active) player_ui.toast("End of media reached before the switch finished");
+                    if (waiting) logger::info("switch-trace: wait ended at end of media (t={:.3f})", logger::uptime());
+                    ended_reported = true;
+                    vsw.active = asw.active = ssw.active = false;
+                    seek_wait = false;
+                    paused_switch_frame = false;
+                }
+            }
+
+            // Give up waiting visibly after a while; playback keeps trying.
+            static constexpr auto kSwitchTimeout = std::chrono::seconds(20);
+            for (PendingSwitch* p : { &vsw, &asw, &ssw }) {
+                if (!p->active || now - p->since < kSwitchTimeout) continue;
+                p->active = false;
+                player_ui.toast(p == &ssw ? std::string("Subtitles: no data after 20 s")
+                                          : "Switch to " + p->what + ": no data after 20 s");
+                logger::warn("switch: no data 20 s after switching to {}", p->what);
+            }
+            if (seek_wait && now - seek_since > kSwitchTimeout) seek_wait = false;
+
+            auto secs = [&](SClock::time_point t) { return std::chrono::duration<double>(now - t).count(); };
+            auto elapsed = [&](double t) { return t >= 1.0 ? std::format("{:.1f} s", t) : std::string(); };
+            // Show-delay so fast operations (local files) never flash it.
+            static constexpr double kShowAfter = 0.25;
+            // (Not right after a seek / switch woke the demuxer at the end:
+            // the last frame was presented long ago, but nothing is late.)
+            const bool stalled = !paused && !scrubbing && has_frame && !demuxer.ended()
+                && secs(demux_resumed_at) >= kShowAfter
+                && frameq.size() == 0
+                && secs(last_present) > std::max(0.5, 2.5 * last_frame_dur / std::max(cur_speed, 0.25));
+            if (app.opening) {
+                const double t = secs(app.opening->since);
+                busy = { true, true, "Opening " + media_title(app.opening->path), open_progress(app), static_cast<float>(t) };
+            } else if (!has_frame && !demuxer.ended()) {
+                const double t = secs(startup_time);
+                if (t >= kShowAfter) busy = { true, false, "Loading", ui_info.title, static_cast<float>(t) };
+            } else if (vsw.active && secs(vsw.since) >= 0.15) {   // the T row shows it at once
+                const double t = secs(vsw.since);
+                busy = { true, true, "Switching to " + vsw.what, elapsed(t), static_cast<float>(t) };
+            } else if (asw.active && secs(asw.since) >= kShowAfter) {
+                const double t = secs(asw.since);
+                busy = { true, true, "Switching audio to " + asw.what, elapsed(t), static_cast<float>(t) };
+            } else if (seek_wait && secs(seek_since) >= kShowAfter) {
+                const double t = secs(seek_since);
+                busy = { true, false, "Buffering", elapsed(t), static_cast<float>(t) };
+            } else if (stalled && secs(last_present) >= kShowAfter) {
+                const double t = secs(last_present);
+                busy = { true, false, "Buffering", elapsed(t), static_cast<float>(t) };
+            } else if (ssw.active && secs(ssw.since) >= kShowAfter) {
+                const double t = secs(ssw.since);
+                busy = { true, true, "Loading subtitles", elapsed(t), static_cast<float>(t) };
+            }
+        }
+
+        // Log indicator transitions (QA: shows it never sticks).
+        if ((busy.show ? busy.title : std::string()) != busy_logged) {
+            if (busy.show) logger::info("loading-indicator: \"{}\" (t={:.3f})", busy.title, logger::uptime());
+            else           logger::info("loading-indicator: hidden (t={:.3f})", logger::uptime());
+            busy_logged = busy.show ? busy.title : std::string();
+        }
+
         // ── ImGui: begin frame (before any GL drawing) ────────────────────
         player_ui.begin_frame();
 
@@ -1630,9 +2105,13 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         float global_ps = (win_w_for_scale > 0)
             ? static_cast<float>(fb_w) / static_cast<float>(win_w_for_scale) : 1.0f;
 
-        // The video always fills the whole window; all chrome is overlay.
+        // The video fills the window left of the network sidebar (N); all
+        // other chrome is overlay. fb_av_w is the width panels may use.
+        const float net_side_logical = s_show_network.load()
+            ? app.net_inspector.dock_width(static_cast<float>(win_w_for_scale)) : 0.0f;
+        const int   fb_av_w = std::max(1, fb_w - static_cast<int>(std::lround(net_side_logical * global_ps)));
         int vx, vy, vw, vh;
-        compute_video_rect(fb_w, fb_h, vid_w, vid_h, vx, vy, vw, vh);
+        compute_video_rect(fb_av_w, fb_h, vid_w, vid_h, vx, vy, vw, vh);
 
         glViewport(0, 0, fb_w, fb_h);
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -1688,7 +2167,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
 
             debug_hud.draw(
                 { last_pts, frame_count, av_diff, has_audio, ms.decode_time_ms.load() },
-                fb_w, fb_h, global_ps);
+                fb_av_w, fb_h, global_ps);
         }
 
         // ── Stream inspector (I key) ──────────────────────────────────────
@@ -1699,7 +2178,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 inspector_lines[decode_line_idx].text =
                     std::format("  Decode   {}", video_decoder.hw_type_name());
             }
-            debug_hud.draw_inspector(inspector_lines, fb_w, fb_h, global_ps);
+            debug_hud.draw_inspector(inspector_lines, fb_av_w, fb_h, global_ps);
         }
 
         // ── A/V drift graph (G key) ───────────────────────────────────────
@@ -1711,48 +2190,13 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             debug_hud.push_drift(av_diff);
         }
         if (s_show_drift.load())
-            debug_hud.draw_drift_graph(fb_w, fb_h, global_ps,
+            debug_hud.draw_drift_graph(fb_av_w, fb_h, global_ps,
                                        bottom_stack_base_fb + strips_fb + 8.0f * global_ps);
 
-        // ── Track selector (T key) ────────────────────────────────────────
-        if (s_show_tracks.load()) {
-            // Convert window-space cursor/click → framebuffer space.
-            float cx = static_cast<float>(s_cursor_x.load()) * global_ps;
-            float cy = static_cast<float>(s_cursor_y.load()) * global_ps;
-            double raw_click_x = s_click_x.exchange(-1.0);
-            double raw_click_y = s_click_y.exchange(-1.0);
-            float  click_x = (raw_click_x >= 0.0) ? static_cast<float>(raw_click_x) * global_ps : -1.0f;
-            float  click_y = (raw_click_y >= 0.0) ? static_cast<float>(raw_click_y) * global_ps : -1.0f;
-
-            auto tc = debug_hud.draw_tracks(
-                audio_track_items,    cur_audio_stream,
-                video_track_items,    cur_video_stream,
-                subtitle_track_items, cur_subtitle_stream,
-                fb_w, fb_h, global_ps,
-                click_x, click_y, cx, cy);
-
-            if (tc.audio >= 0 && tc.audio != cur_audio_stream)
-                switch_audio(tc.audio, paused, audio_clock_valid_at);
-            if (tc.video >= 0 && tc.video != cur_video_stream) {
-                cur_video_stream = tc.video;
-                demuxer.request_video_switch(tc.video);
-                AVFrame* stale;
-                while (frameq.try_pop(stale)) av_frame_free(&stale);
-            }
-            // Subtitle: -2 = "Off" clicked (disable), >=0 = pick stream.
-            // Routed through apply_sub_choice so every selection path agrees.
-            if (tc.subtitle == -2 && sub_active >= 0) {
-                apply_sub_choice(-1, SubBy::User);
-            } else if (tc.subtitle >= 0 && tc.subtitle != cur_subtitle_stream) {
-                for (std::size_t i = 0; i < sub_choices.size(); ++i)
-                    if (sub_choices[i].kind == SubChoice::Embedded && sub_choices[i].stream_idx == tc.subtitle)
-                        apply_sub_choice(static_cast<int>(i), SubBy::User);
-            }
-        } else {
-            // Discard any pending click while selector is hidden.
-            s_click_x.store(-1.0);
-            s_click_y.store(-1.0);
-        }
+        // Track selector (T) is an ImGui card drawn after player_ui.build();
+        // the legacy GL click coordinates are unused, so drop them.
+        s_click_x.store(-1.0);
+        s_click_y.store(-1.0);
 
         // Upload newly decoded thumbnails — skip during active scrubbing so that
         // a thumbnail arriving closer to the cursor doesn't cause the highlight
@@ -1836,7 +2280,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 float  clk_y     = (raw_clk_y >= 0.0) ? static_cast<float>(raw_clk_y) * ps : -1.0f;
 
                 double tick_seek = debug_hud.draw_timeline_ticks(
-                    tag_entries, duration, fb_w, fb_h, ps,
+                    tag_entries, duration, fb_av_w, fb_h, ps,
                     bottom_off, clk_x, clk_y);
 
                 if (tick_seek >= 0.0) {
@@ -1846,6 +2290,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                     s_seek_delta.store(0.0);
                     last_any_seek_at = now;
                     demuxer.request_seek(tick_seek);
+                    begin_seek_wait(now);
                     AVFrame* stale;
                     while (frameq.try_pop(stale)) av_frame_free(&stale);
                     last_pts  = tick_seek;
@@ -1855,8 +2300,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 }
                 bottom_off += static_cast<float>(DebugHUD::kTimelinePx) * ps;
 
-                // Tag inspector panel
-                debug_hud.draw_manifest_tags(tag_entries, last_pts, fb_w, fb_h, ps);
+                // The tag list itself lives in the network sidebar's Manifest tab.
             }
 
             // ── Waveform strip (W key) ────────────────────────────────────────
@@ -1864,13 +2308,13 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 static float wave_buf[AudioPlayer::kWaveCap];
                 audio_player.copy_waveform(wave_buf, AudioPlayer::kWaveCap);
                 debug_hud.draw_waveform(wave_buf, AudioPlayer::kWaveCap,
-                                        fb_w, fb_h, ps, bottom_off);
+                                        fb_av_w, fb_h, ps, bottom_off);
                 bottom_off += static_cast<float>(DebugHUD::kWaveformPx) * ps;
             }
 
             // ── Keyframe filmstrip (K key; while dragging / just after a seek) ─
             if (show_filmstrip)
-                thumb_strip.draw(thumb_pts, duration, fb_w, fb_h, bottom_off + 4.0f * ps);
+                thumb_strip.draw(thumb_pts, duration, fb_av_w, fb_h, bottom_off + 4.0f * ps);
         }
 
         // ── Subtitles ─────────────────────────────────────────────────────────
@@ -1896,21 +2340,10 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                             brects.push_back({ r.x, r.y, r.w, r.h, r.rgba.data() });
                     }
                     debug_hud.draw_bitmap_subtitles(brects, authored_w, authored_h,
-                                                   vx, vy, vw, vh, fb_w, fb_h,
+                                                   vx, vy, vw, vh, fb_av_w, fb_h,
                                                    player_ui.subtitle_lift_logical() * global_ps);
                 }
             }
-        }
-
-        // ── Network log panel (N key) ─────────────────────────────────────────
-        if (s_show_network.load()) {
-            // Convert NetworkLogger::Entry → DebugHUD::NetLogEntry
-            auto raw = net_logger.get_recent(20);
-            std::vector<DebugHUD::NetLogEntry> net_entries;
-            net_entries.reserve(raw.size());
-            for (const auto& e : raw)
-                net_entries.push_back({ e.time, e.type, e.url, e.r, e.g, e.b });
-            debug_hud.draw_network_log(net_entries, fb_w, fb_h, global_ps);
         }
 
         // Help (H / ?) is an ImGui shortcut card built by PlayerUI;
@@ -1933,7 +2366,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             debug_hud.draw_vmaf_panel(vmaf_entries,
                                       vmaf_analyzer.running(), vmaf_analyzer.progress(),
                                       vmaf_pos_frac,
-                                      fb_w, fb_h, global_ps,
+                                      fb_av_w, fb_h, global_ps,
                                       bottom_stack_base_fb + strips_fb + 8.0f * global_ps);
         }
 
@@ -1947,10 +2380,27 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             if (const char* prof = avcodec_profile_name(vpar->codec_id, vpar->profile))
                 codec += std::string(" ") + prof;
             ui_info.codec  = codec;
-            ui_info.res    = std::format("{}×{}", coded_w, coded_h);
+            ui_info.res    = std::format("{}×{}", shown_w, shown_h);
             ui_info.fps    = stream_fps > 0.0 ? fps_text(stream_fps) : "";
             ui_info.hdr    = renderer.hdr_mode() == 0 || renderer.hdr_mode() == 1;
             ui_info.range  = renderer.hdr_mode() == 0 ? "HDR10" : renderer.hdr_mode() == 1 ? "HLG" : "SDR";
+
+            // HLS exposes each variant as an AVProgram (in master-playlist
+            // order); the one carrying both routed streams is playing.
+            playing_variant = -1;
+            if (const AVFormatContext* fc = demuxer.fmt_ctx(); fc && !manifest.variants().empty()) {
+                const int v_idx = demuxer.video_stream_index(), a_idx = demuxer.audio_stream_index();
+                for (unsigned p = 0; p < fc->nb_programs && playing_variant < 0; ++p) {
+                    const AVProgram* prog = fc->programs[p];
+                    bool has_v = v_idx < 0, has_a = a_idx < 0;
+                    for (unsigned k = 0; k < prog->nb_stream_indexes; ++k) {
+                        has_v = has_v || static_cast<int>(prog->stream_index[k]) == v_idx;
+                        has_a = has_a || static_cast<int>(prog->stream_index[k]) == a_idx;
+                    }
+                    if (has_v && has_a && fc->nb_programs == manifest.variants().size())
+                        playing_variant = static_cast<int>(p);
+                }
+            }
         }
         // Cheap and state-dependent (HW becomes active after the first decoded
         // frame): keep these current every frame.
@@ -2003,13 +2453,69 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                                          static_cast<float>(vw) / global_ps,
                                          static_cast<float>(vh) / global_ps);
             in.extra_bottom_logical = strips_fb / global_ps;
+            in.right_inset_logical  = net_side_logical;
             in.filmstrip_visible    = show_filmstrip;
             in.subtitle_text    = std::move(sub_text);
+            in.busy             = busy;
             in.force_visible    = ui_snap_mode;
             in.force_hidden     = ui_snap_mode && ui_hide_controls;
             in.debug_hover_frac = ui_hover_frac;
 
             auto ui = player_ui.build(in);
+
+            // ── Network inspector sidebar (N) ─────────────────────────────────
+            // Byte progress / completion of in-flight requests, every frame
+            // (even with the sidebar closed, so idle detection stays right).
+            net_logger.poll();
+            if (s_show_network.load()) {
+                NetInspector::Inputs ni;
+                ni.log             = &net_logger;
+                ni.manifest        = &manifest;
+                ni.media_url       = open_path;
+                ni.local_media     = local_media;
+                ni.playing_variant = playing_variant;
+                ni.cur_pts         = last_pts;
+                ni.duration        = duration;
+                const ImVec2 disp  = ImGui::GetIO().DisplaySize;
+                const auto net_out = app.net_inspector.draw(ni, disp.x, disp.y);
+                if (net_out.close) s_show_network.store(false);
+                if (net_out.seek_to >= 0.0 && !scrubbing) s_seek_delta.store(net_out.seek_to - last_pts);
+            }
+
+            // ── Track selector card (T) ──────────────────────────────────────
+            if (s_show_tracks.load()) {
+                TrackPanelInputs ti;
+                ti.video            = &demuxer.video_tracks();
+                ti.audio            = &demuxer.audio_tracks();
+                ti.subtitle         = &demuxer.subtitle_tracks();
+                ti.cur_video        = cur_video_stream;
+                ti.cur_audio        = cur_audio_stream;
+                ti.cur_subtitle     = cur_subtitle_stream;
+                ti.pending_video    = vsw.active ? vsw.target : -1;
+                ti.pending_audio    = asw.active ? asw.target : -1;
+                ti.pending_subtitle = ssw.active ? ssw.target : -1;
+                ti.t                = glfwGetTime();
+                const ImVec2 disp   = ImGui::GetIO().DisplaySize;
+                ti.win_w            = disp.x;
+                ti.win_h            = disp.y;
+                ti.right_inset      = net_side_logical;
+                const auto tc = draw_track_panel(ti);
+
+                if (tc.close) s_show_tracks.store(false);
+                if (tc.audio >= 0 && tc.audio != cur_audio_stream)
+                    switch_audio(tc.audio, paused, audio_clock_valid_at);
+                if (tc.video >= 0 && tc.video != cur_video_stream)
+                    switch_video(tc.video, paused);
+                // Subtitle: -2 = "Off" clicked (disable), >=0 = pick stream.
+                // Routed through apply_sub_choice so every selection path agrees.
+                if (tc.subtitle == -2 && sub_active >= 0) {
+                    apply_sub_choice(-1, SubBy::User);
+                } else if (tc.subtitle >= 0 && tc.subtitle != cur_subtitle_stream) {
+                    for (std::size_t i = 0; i < sub_choices.size(); ++i)
+                        if (sub_choices[i].kind == SubChoice::Embedded && sub_choices[i].stream_idx == tc.subtitle)
+                            apply_sub_choice(static_cast<int>(i), SubBy::User);
+                }
+            }
 
             // ── VMAF results ImGui window ─────────────────────────────────────
             if (s_show_vmaf.load()) {
@@ -2039,7 +2545,15 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             player_ui.end_frame();
 
             // ── QA: --ui-snapshot — capture the whole window (video + chrome) ──
-            if (ui_snap_mode && has_frame && ui_sub_at_landed && qa_open_done) {
+            const bool busy_match = !cli.ui_snap_busy.empty() && busy.show
+                                 && busy.title.find(cli.ui_snap_busy) != std::string::npos;
+            if (busy_match) { if (busy_shown_since == SClock::time_point{}) busy_shown_since = now; }
+            else busy_shown_since = {};
+            const bool snap_busy = !cli.ui_snap_busy.empty();
+            const bool busy_ok = !snap_busy
+                || (busy_match && now - busy_shown_since >= std::chrono::milliseconds(600));
+            if (ui_snap_mode && (has_frame || snap_busy) && ui_sub_at_landed
+                && (qa_open_done || snap_busy) && busy_ok) {
                 ++ui_frames;
                 const double hover_t = (ui_hover_frac >= 0.0f && duration > 0.0)
                     ? ui_hover_frac * duration : -1.0;
@@ -2050,7 +2564,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 const bool subs_ok   = sub_active < 0 || !in.subtitle_text.empty()
                                     || !sub_choices[static_cast<std::size_t>(sub_active)].is_text;
                 const bool timeout   = ++ui_total_frames >= 600;
-                if (ui_frames >= ui_snap_frame && ((thumbs_ok && subs_ok) || timeout)) {
+                if (ui_frames >= ui_snap_frame && ((thumbs_ok && subs_ok) || timeout || snap_busy)) {
                     if (timeout && !(thumbs_ok && subs_ok))
                         logger::warn("ui-snapshot: timeout waiting for {}",
                                      !thumbs_ok ? "thumbnail" : "subtitle cue");
@@ -2199,23 +2713,16 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         }
 
         // ── Open the requested source in place of this one ───────────────
-        if (!open_req.empty() && ++open_req_frames >= 2) {
-            if (has_audio) audio_player.set_paused(true);   // silent while the open blocks
+        {
             std::string err;
-            auto next = open_session(app, open_req, err);
-            open_req.clear();
-            if (next) {
+            if (auto next = poll_open(app, err)) {
                 if (has_audio) app.volume = audio_player.volume();
                 return next;
             }
-            logger::warn("Open failed, continuing with {}: {}", open_path, err);
-            player_ui.toast(err);
-            if (has_audio) audio_player.set_paused(paused);
-            // The loop stood still during the open: re-anchor frame timing and
-            // give the audio clock its usual settle time.
-            const auto t = std::chrono::steady_clock::now();
-            next_pts_time        = t;
-            audio_clock_valid_at = t + std::chrono::milliseconds(300);
+            if (!err.empty()) {
+                logger::warn("Open failed, continuing with {}: {}", open_path, err);
+                player_ui.toast(err);
+            }
         }
 
         // ── QA: --av-report — write JSON after N wall seconds of playback ──
@@ -2262,7 +2769,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             // Spin until the decode thread delivers the stepped frame.
             glfwWaitEventsTimeout(0.005);
         } else if (paused) {
-            glfwWaitEventsTimeout(0.05);
+            glfwWaitEventsTimeout(busy.show ? 1.0 / 60.0 : 0.05);   // keep the spinner smooth
         } else if (scrubbing) {
             // Spin with no sleep while scrubbing so frameq is drained and
             // new frames are uploaded as fast as the decode thread produces them.

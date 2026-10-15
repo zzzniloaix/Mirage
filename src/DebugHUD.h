@@ -54,30 +54,6 @@ public:
     void draw_inspector(const std::vector<InspectorLine>& lines,
                         int fb_w, int fb_h, float scale = 1.0f);
 
-    // One entry in the track selector dropdown.
-    struct TrackItem {
-        int         stream_idx;  // Demuxer stream index
-        std::string label;       // display string
-    };
-
-    // Result of draw_tracks(): which stream_idx was clicked this frame.
-    // -1 = no click; -2 in `subtitle` = "Off" entry clicked (disable subtitles).
-    struct TrackClick { int audio = -1; int video = -1; int subtitle = -1; };
-
-    // Draw the audio + video + subtitle track selector panels (centered on screen).
-    // fb_click_x/y: framebuffer-space coordinates of a mouse press this frame,
-    //               or -1 if no click occurred.
-    // fb_cursor_x/y: current cursor position in framebuffer space (for hover highlight).
-    // subtitle list may be empty; if non-empty, an extra "Off" row is drawn
-    // returning subtitle = -2 when clicked.
-    TrackClick draw_tracks(
-        const std::vector<TrackItem>& audio,    int cur_audio_stream,
-        const std::vector<TrackItem>& video,    int cur_video_stream,
-        const std::vector<TrackItem>& subtitle, int cur_subtitle_stream,
-        int fb_w, int fb_h, float scale,
-        float fb_click_x = -1.0f, float fb_click_y = -1.0f,
-        float fb_cursor_x = -1.0f, float fb_cursor_y = -1.0f);
-
     // Push one A/V drift sample. Call every frame (NaN = paused/no audio).
     // The ring buffer holds the last kDriftCap samples; older entries are overwritten.
     void push_drift(double av_diff_ms);

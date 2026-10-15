@@ -20,9 +20,42 @@ static void video_decode_loop(Decoder& decoder,
                                Queue<AVFrame*>&  frameq,
                                bool              try_hw,
                                std::atomic<double>& decode_time_ms,
+                               std::atomic<int>& video_epoch,
                                std::stop_token   st)
 {
     AVFrame* frame = av_frame_alloc();
+    // Frames carry the decoder generation in AVFrame::opaque so the render
+    // thread can tell the first frame of a newly switched track, and their
+    // stream time base in AVFrame::time_base (variants differ: 1/60000 vs 1/30000).
+    int        epoch      = video_epoch.load();
+    AVRational tb         = demuxer.video_time_base();
+    bool       trace_next = false;   // log the first frame after a reopen
+    // After a track switch the new track is decoded from the keyframe at or
+    // before its take-over point; frames before that point are not shown.
+    double     drop_before = -1.0;
+    // True if `f` is before the take-over point (and must not be queued).
+    auto skip = [&](const AVFrame* f) {
+        if (drop_before < 0.0) return false;
+        const int64_t ts = (f->pts != AV_NOPTS_VALUE) ? f->pts : f->best_effort_timestamp;
+        if (ts == AV_NOPTS_VALUE) { drop_before = -1.0; return false; }
+        // Half a frame of tolerance: the take-over point is the end of the
+        // last old frame, which may round to just past the next frame's pts.
+        const double dur = f->duration > 0 ? f->duration * av_q2d(tb) : 0.0;
+        if (ts * av_q2d(tb) + 0.5 * dur < drop_before) return true;
+        drop_before = -1.0;
+        return false;
+    };
+    int stream = demuxer.video_stream_index();
+    auto tag = [&](AVFrame* out) {
+        out->opaque    = reinterpret_cast<void*>(MediaSession::frame_tag(epoch, stream));
+        out->time_base = tb;
+        if (trace_next) {
+            trace_next = false;
+            logger::info("switch-trace: first decoded frame pts={:.3f} {}x{} (t={:.3f})",
+                         out->pts != AV_NOPTS_VALUE ? out->pts * av_q2d(tb) : -1.0,
+                         out->width, out->height, logger::uptime());
+        }
+    };
 
     while (!st.stop_requested()) {
         AVPacket* pkt = nullptr;
@@ -32,18 +65,43 @@ static void video_decode_loop(Decoder& decoder,
             // EOF — flush decoder and drain remaining buffered frames.
             decoder.push(nullptr);
             while (decoder.pull(frame)) {
+                if (skip(frame)) { av_frame_unref(frame); continue; }
                 AVFrame* out = av_frame_clone(frame);
+                tag(out);
                 if (!frameq.push(out)) { av_frame_free(&out); break; }
                 av_frame_unref(frame);
             }
         } else if (pkt == flush_sentinel()) {
-            // Seek or stream-switch sentinel — flush codec and drop stale frames.
-            decoder.flush();
-            AVFrame* stale;
-            while (frameq.try_pop(stale)) av_frame_free(&stale);
+            // Seek or stream-switch sentinel. A seamless track switch keeps
+            // what the old decoder still holds (B-frame delay) for display;
+            // otherwise flush the codec and drop stale frames.
+            const bool reopen = demuxer.consume_video_reopen();
+            if (reopen && demuxer.consume_video_seamless()) {
+                decoder.push(nullptr);
+                while (decoder.pull(frame)) {
+                    AVFrame* out = av_frame_clone(frame);
+                    tag(out);
+                    av_frame_unref(frame);
+                    if (!frameq.push(out)) { av_frame_free(&out); break; }
+                }
+            } else {
+                decoder.flush();
+                AVFrame* stale;
+                while (frameq.try_pop(stale)) av_frame_free(&stale);
+            }
+            // Every sentinel starts a new generation: frames decoded after it
+            // belong to the seek / switch that caused it.
+            epoch = ++video_epoch;
             // If this sentinel followed a video stream switch, reopen the decoder.
-            if (demuxer.consume_video_reopen())
+            if (reopen) {
                 (void)decoder.open(demuxer.video_codecpar(), try_hw);
+                tb     = demuxer.video_time_base();
+                stream = demuxer.video_stream_index();
+                drop_before = demuxer.consume_video_resume();
+                trace_next = true;
+                logger::info("switch-trace: video decoder reopened, new frames from {:.3f} (t={:.3f})",
+                             drop_before, logger::uptime());
+            }
         } else {
             // Normal packet — decode and time.
             auto t0 = std::chrono::steady_clock::now();
@@ -53,7 +111,9 @@ static void video_decode_loop(Decoder& decoder,
             int pulled = 0;
             while (decoder.pull(frame)) {
                 ++pulled;
+                if (skip(frame)) { av_frame_unref(frame); continue; }
                 AVFrame* out = av_frame_clone(frame);
+                tag(out);
                 if (!frameq.push(out)) {
                     av_frame_free(&out);
                     break;
@@ -78,23 +138,38 @@ static void audio_decode_loop(AudioDecoder&     audio_decoder,
                                AudioPlayer&      audio_player,
                                Demuxer&          demuxer,
                                Queue<AVPacket*>& audioq,
+                               std::atomic<int>& audio_stream,
                                std::stop_token   st)
 {
+    int reopened_stream = -1;   // set by a switch until its first packet is decoded
     while (!st.stop_requested()) {
         AVPacket* pkt = nullptr;
         if (!audioq.pop(pkt)) break;
-        if (pkt == nullptr) break;  // EOF sentinel
+        if (pkt == nullptr) continue;  // end of media: the demuxer may still serve a seek / switch
         if (pkt == flush_sentinel()) {
-            audio_decoder.flush();
-            audio_player.flush();
+            // A seamless track switch keeps the audio already queued for the
+            // device; a seek (or a paused switch) discards it.
+            const bool reopen = demuxer.consume_audio_reopen();
+            if (!(reopen && demuxer.consume_audio_seamless())) {
+                audio_decoder.flush();
+                audio_player.flush();
+            }
             // If this sentinel followed an audio stream switch, reopen the decoder.
-            if (demuxer.consume_audio_reopen())
+            if (reopen) {
                 (void)audio_decoder.reopen(demuxer.audio_codecpar(), audio_player,
                                            demuxer.audio_time_base());
+                reopened_stream = demuxer.audio_stream_index();
+                logger::info("switch-trace: audio decoder reopened (t={:.3f})", logger::uptime());
+            }
             continue;
         }
         audio_decoder.decode(pkt, audio_player);
         av_packet_free(&pkt);
+        // First packet of a switched track decoded: its audio is queued.
+        if (reopened_stream >= 0) {
+            audio_stream.store(reopened_stream);
+            reopened_stream = -1;
+        }
     }
 }
 
@@ -187,13 +262,30 @@ static void inject_test_bitmap_sub(SubtitleDecoder& subtitle_decoder)
 
 bool MediaSession::open(const std::string& open_path, const MediaSessionOptions& opt, std::string& err)
 {
+    return open_media(open_path, opt, err) && start(opt, err);
+}
+
+void MediaSession::cancel_open()
+{
+    cancelled_.store(true);
+    demuxer.abort_io();
+}
+
+bool MediaSession::open_media(const std::string& open_path, const MediaSessionOptions& opt, std::string& err)
+{
     path    = open_path;
     try_hw_ = opt.try_hw;
+    auto cancelled = [&] {
+        if (!cancelled_.load()) return false;
+        err = "Open cancelled";
+        return true;
+    };
 
     if (!demuxer.open(open_path)) {
-        err = "Failed to open: " + open_path;
+        err = cancelled() ? std::string("Open cancelled") : "Failed to open: " + open_path;
         return false;
     }
+    if (cancelled()) return false;
     if (demuxer.video_stream_index() < 0) {
         logger::error("No video stream — nothing to display");
         err = "No video stream in: " + open_path;
@@ -205,6 +297,8 @@ bool MediaSession::open(const std::string& open_path, const MediaSessionOptions&
         if (!manifest.parse(open_path.c_str()))
             logger::warn("ManifestParser: failed to parse {}", open_path);
     }
+
+    if (cancelled()) return false;
 
     // ── Decoders ──────────────────────────────────────────────────────────────
     if (!video_decoder.open(demuxer.video_codecpar(), try_hw_)) {
@@ -226,7 +320,13 @@ bool MediaSession::open(const std::string& open_path, const MediaSessionOptions&
     }
 
     video_tb = demuxer.video_time_base();
+    duration = demuxer.duration();  // seconds, or -1 for live
+    return !cancelled();
+}
 
+bool MediaSession::start(const MediaSessionOptions& opt, std::string& err)
+{
+    const std::string& open_path = path;
     if (!renderer.init(video_decoder.width(), video_decoder.height(),
                        video_decoder.pixel_format(),
                        video_decoder.colorspace(),
@@ -236,8 +336,6 @@ bool MediaSession::open(const std::string& open_path, const MediaSessionOptions&
         err = "Video renderer init failed for: " + open_path;
         return false;
     }
-
-    duration = demuxer.duration();  // seconds, or -1 for live
 
     // Non-fatal: live streams or formats without a keyframe index won't have thumbnails.
     (void)thumb_strip.init(open_path.c_str(),
@@ -255,6 +353,7 @@ bool MediaSession::open(const std::string& open_path, const MediaSessionOptions&
 
     if (opt.test_bitmap_sub) inject_test_bitmap_sub(subtitle_decoder);
 
+    decoded_audio_stream.store(demuxer.audio_stream_index());
     start_threads();
     return true;
 }
@@ -332,41 +431,6 @@ void MediaSession::build_info()
         }
     }
 
-    // ── Track selector items (built once; labels for each stream) ────────────
-    {
-        int n = 1;
-        for (const auto& t : demuxer.audio_tracks()) {
-            std::string lbl;
-            if (!t.language.empty())
-                lbl = std::format("{}. {}  {}  {}Hz  {}ch",
-                    n++, t.language, t.codec_name, t.sample_rate, t.channels);
-            else
-                lbl = std::format("{}. Track {}  {}  {}Hz  {}ch",
-                    n++, t.stream_idx, t.codec_name, t.sample_rate, t.channels);
-            if (t.bit_rate > 0)
-                lbl += std::format("  {}k", t.bit_rate / 1000);
-            audio_track_items.push_back({ t.stream_idx, std::move(lbl) });
-        }
-        n = 1;
-        for (const auto& t : demuxer.video_tracks()) {
-            std::string lbl = std::format("{}. {}  {}x{}  {:.4g}fps",
-                n++, t.codec_name, t.width, t.height, t.fps);
-            if (t.bit_rate > 0)
-                lbl += std::format("  {}k", t.bit_rate / 1000);
-            video_track_items.push_back({ t.stream_idx, std::move(lbl) });
-        }
-        n = 1;
-        for (const auto& t : demuxer.subtitle_tracks()) {
-            std::string lbl;
-            if (!t.language.empty())
-                lbl = std::format("{}. {}  {}", n++, t.language, t.codec_name);
-            else
-                lbl = std::format("{}. Track {}  {}", n++, t.stream_idx, t.codec_name);
-            if (!t.is_text) lbl += "  (bitmap)";
-            subtitle_track_items.push_back({ t.stream_idx, std::move(lbl) });
-        }
-    }
-
     coded_w = video_decoder.width();
     coded_h = video_decoder.height();
 
@@ -390,6 +454,14 @@ void MediaSession::build_info()
     vid_h = transposed ? disp_w : disp_h;
 
     local_media = !ffopen::is_network_url(path);
+    // Network media: buffer several seconds of packets ahead (64 video
+    // packets is only ~1 s at 60 fps). A seamless track switch keeps playing
+    // the old track from this buffer while the new variant's segment
+    // downloads, and a repositioning fetch does not drain audio.
+    if (!local_media) {
+        videoq.set_capacity(kNetVideoPackets);
+        audioq.set_capacity(kNetAudioPackets);
+    }
 
     // Sidecar cue times are file-relative; the player clock is stream PTS.
     {
@@ -417,13 +489,13 @@ void MediaSession::start_threads()
     });
 
     video_thread_ = std::jthread([this](std::stop_token st) {
-        video_decode_loop(video_decoder, demuxer, videoq, frameq, try_hw_, decode_time_ms, st);
+        video_decode_loop(video_decoder, demuxer, videoq, frameq, try_hw_, decode_time_ms, video_epoch, st);
         frameq.shutdown();
     });
 
     audio_thread_ = std::jthread([this](std::stop_token st) {
         if (has_audio)
-            audio_decode_loop(audio_decoder, audio_player, demuxer, audioq, st);
+            audio_decode_loop(audio_decoder, audio_player, demuxer, audioq, decoded_audio_stream, st);
     });
 
     // Subtitle decode thread idles until a track is selected (subq receives
@@ -434,7 +506,7 @@ void MediaSession::start_threads()
         while (!st.stop_requested()) {
             AVPacket* pkt = nullptr;
             if (!subq.pop(pkt)) break;
-            if (pkt == nullptr) break;                   // EOF
+            if (pkt == nullptr) continue;                // end of media (a seek may follow)
             if (pkt == flush_sentinel()) {
                 subtitle_decoder.flush();
                 if (demuxer.consume_subtitle_reopen())

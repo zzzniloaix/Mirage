@@ -47,6 +47,10 @@ public:
     // Called from miniaudio callback thread.
     void fill_buffer(float* out, int frame_count);
 
+    // Audio has been pushed since the last flush() (the device has something
+    // to play). Thread-safe.
+    bool primed() const { std::lock_guard lk(ring_mtx_); return primed_; }
+
     int    sample_rate() const { return sample_rate_; }
     double clock()       const { return clock_.load(); }
 

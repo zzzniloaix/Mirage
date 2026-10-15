@@ -313,7 +313,7 @@ void ThumbnailStrip::decode_loop(std::stop_token st, std::string url,
     // pipeline. Network inputs time out, and stop_requested() aborts any
     // blocking I/O so the destructor's join never hangs on a dead URL.
     AVFormatContext* fmt_ctx = nullptr;
-    if (ffopen::open_input(&fmt_ctx, url, st) < 0) {
+    if (ffopen::open_input(&fmt_ctx, url, st, NetInitiator::Thumbnails) < 0) {
         if (!st.stop_requested())
             logger::error("ThumbnailStrip: failed to open '{}'", url);
         return;

@@ -52,7 +52,7 @@ void ScrubDecoder::decode_loop(std::stop_token st, std::string url,
     // Network inputs time out, and a stop request aborts blocking I/O so
     // close() can join promptly even while the URL is unreachable.
     AVFormatContext* fmt_ctx = nullptr;
-    if (ffopen::open_input(&fmt_ctx, url, st) < 0) {
+    if (ffopen::open_input(&fmt_ctx, url, st, NetInitiator::Scrub) < 0) {
         if (!st.stop_requested())
             logger::error("ScrubDecoder: failed to open '{}'", url);
         return;

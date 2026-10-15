@@ -5,6 +5,8 @@
 // call on the context aborts once `st` is stop-requested, so the owning
 // std::jthread can join promptly on quit even while a URL is unreachable.
 
+#include "NetworkLogger.h"   // NetInitiator
+
 #include <stop_token>
 #include <string>
 
@@ -17,6 +19,8 @@ bool is_network_url(const std::string& url);
 
 // Opens `url` into *out (nullptr on failure) and returns the FFmpeg status.
 // `st` must outlive the context: it is the interrupt callback's opaque.
-int open_input(AVFormatContext** out, const std::string& url, const std::stop_token& st);
+// `who` tags the context's traffic in the network inspector.
+int open_input(AVFormatContext** out, const std::string& url, const std::stop_token& st,
+               NetInitiator who = NetInitiator::Other);
 
 } // namespace ffopen

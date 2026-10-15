@@ -84,10 +84,23 @@ struct PlayerUIInputs {
     // Logical px of engineer strips stacked above the controls (timeline,
     // waveform, filmstrip) — the hover card and subtitles sit above them.
     float  extra_bottom_logical = 0.0f;
+    // Logical px docked on the right (network inspector sidebar): the chrome
+    // lays itself out in the remaining width.
+    float  right_inset_logical  = 0.0f;
     bool   filmstrip_visible    = false;            // strip drawn this frame
 
     // Subtitle text to draw this frame (text tracks; empty = none).
     std::string subtitle_text;
+
+    // Waiting for data (loading, buffering, track switch): a spinner pill —
+    // top-centre while video keeps playing (top), else centred on the video.
+    struct Busy {
+        bool        show = false;
+        bool        top  = false;
+        std::string title;       // "Switching to 1280×720 · 60 fps"
+        std::string detail;      // dim suffix, e.g. elapsed "3.2 s"
+        float       elapsed = 0.0f;
+    } busy;
 
     // QA
     bool   force_visible    = false;
@@ -187,6 +200,11 @@ public:
     std::string draw_launcher(const std::vector<std::string>& recents,
                               const std::string& error_msg = {});
 
+    // Loading card shown instead of the launcher while a source opens on a
+    // worker thread: spinner, `what` (the media title), `detail` (dim, e.g.
+    // the elapsed time) and Cancel. Returns true when Cancel / Esc was pressed.
+    bool draw_loading_screen(const std::string& what, const std::string& detail);
+
 private:
     enum class SettingsPage { Root, Speed, Audio, Subtitles, Style };
 
@@ -211,6 +229,10 @@ private:
     bool   cc_style_page_    = false; // CC popover showing the style sub-page
     SubStyle sub_style_;
     std::string pending_menu_;
+
+    // Loading indicator (eased in/out; the last text is kept while fading out)
+    PlayerUIInputs::Busy busy_last_;
+    float       busy_alpha_  = 0.0f;
 
     // Toast / centre flash
     std::string toast_text_;

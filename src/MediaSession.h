@@ -51,6 +51,19 @@ public:
     // user-facing message in `err`; the session must then just be destroyed.
     [[nodiscard]] bool open(const std::string& path, const MediaSessionOptions& opt, std::string& err);
 
+    // open() in two halves, so a slow (network) open can run off the render
+    // thread while the current media keeps playing:
+    //  * open_media — any thread: container, manifest, decoders, audio
+    //    device. Blocking (an HLS master playlist can take many seconds).
+    //  * start — main thread, GL context current: renderer, thumbnails,
+    //    scrub decoder, panel info, and the playback threads.
+    // On failure either returns false with a user-facing message in `err`.
+    [[nodiscard]] bool open_media(const std::string& path, const MediaSessionOptions& opt, std::string& err);
+    [[nodiscard]] bool start(const MediaSessionOptions& opt, std::string& err);
+    // Any thread: make an in-progress open_media() give up as soon as it can
+    // (aborts blocking network I/O). The session must then be destroyed.
+    void cancel_open();
+
     // ── Components (main thread, except where the threads own them) ─────────
     std::string      path;
     Demuxer          demuxer;
@@ -64,6 +77,8 @@ public:
     ScrubDecoder     scrub_decoder;   // dedicated single-frame decoder for scrubbing
     SubtitleDecoder  subtitle_decoder;
 
+    static constexpr std::size_t kNetVideoPackets = 600;   // ~10 s at 60 fps
+    static constexpr std::size_t kNetAudioPackets = 640;   // ~13 s of AAC
     Queue<AVPacket*> videoq{ 64 };
     Queue<AVPacket*> audioq{ 128 };
     Queue<AVPacket*> subq{ 64 };      // subtitle packets — small, reused after track switch
@@ -83,15 +98,24 @@ public:
     // refreshed each frame so "VideoToolbox" appears when HW activates.
     std::vector<DebugHUD::InspectorLine> inspector_lines;
     std::size_t                          decode_line_idx = 0;
-    // Track selector items (labels for each stream).
-    std::vector<DebugHUD::TrackItem> audio_track_items;
-    std::vector<DebugHUD::TrackItem> video_track_items;
-    std::vector<DebugHUD::TrackItem> subtitle_track_items;
 
     std::atomic<double> decode_time_ms{ 0.0 };   // updated by the video decode thread
+    // Bumped by the video decode thread at every flush sentinel (seek or
+    // track switch). Each decoded frame carries the generation and the stream
+    // it was decoded from in AVFrame::opaque (frame_tag) and its stream time
+    // base in AVFrame::time_base, so the render thread can tell when the
+    // first frame after a seek / switch is on screen.
+    std::atomic<int>    video_epoch{ 0 };
+    // Audio stream the audio decoder is currently set up for (audio thread).
+    std::atomic<int>    decoded_audio_stream{ -1 };
+
+    static intptr_t frame_tag(int epoch, int stream) { return (static_cast<intptr_t>(epoch) << 12) | (stream & 0xFFF); }
+    static int tag_epoch(const AVFrame* f)  { return static_cast<int>(reinterpret_cast<intptr_t>(f->opaque) >> 12); }
+    static int tag_stream(const AVFrame* f) { return static_cast<int>(reinterpret_cast<intptr_t>(f->opaque) & 0xFFF); }
 
 private:
     bool try_hw_ = true;
+    std::atomic<bool> cancelled_{ false };
 
     std::jthread demux_thread_;
     std::jthread video_thread_;

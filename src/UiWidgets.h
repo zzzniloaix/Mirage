@@ -81,6 +81,17 @@ float timecode_width(const std::string& text, ImFont* mono);
 void center_flash(ImDrawList* dl, ImVec2 centre, float t01, bool playing);
 
 // Toast pill at top-centre (y = 56). alpha 0..1.
-void osd_toast(ImDrawList* dl, float win_w, const std::string& text, ImFont* mono, float alpha);
+void osd_toast(ImDrawList* dl, float win_w, const std::string& text, ImFont* mono, float alpha,
+               float y = 56.0f);
+
+// Indeterminate spinner: a faint ring with a rotating accent arc. t = seconds
+// (drives the rotation), radius in logical px.
+void spinner(ImDrawList* dl, ImVec2 centre, float radius, float t, float alpha);
+
+// "Waiting for data" pill: spinner + title (+ dim detail, e.g. elapsed time),
+// centred horizontally on centre.x with its top at centre.y when `top` is
+// set, else centred on `centre`. alpha 0..1.
+void busy_pill(ImDrawList* dl, ImVec2 centre, bool top, const std::string& title,
+               const std::string& detail, float t, ImFont* ui_font, ImFont* mono, float alpha);
 
 } // namespace ui
