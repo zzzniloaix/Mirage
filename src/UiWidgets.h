@@ -42,6 +42,9 @@ struct SeekBarIn {
     double cur          = 0.0;
     double buffered_end = -1.0;   // < 0: unknown
     const std::vector<double>* kf_pts = nullptr;
+    // Keyframes known only as HLS segment starts (the segment not read yet,
+    // so the keyframes inside it unknown): drawn fainter than kf_pts.
+    const std::vector<double>* kf_seg_pts = nullptr;
     float  debug_hover_frac = -1.0f;   // QA: >= 0 forces the hover state
     float  alpha        = 1.0f;
 };

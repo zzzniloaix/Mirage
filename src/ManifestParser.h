@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <string>
 #include <vector>
 
@@ -58,10 +59,23 @@ public:
 
     // Returns true if the URL looks like an HLS or DASH manifest.
     static bool is_manifest(const std::string& url);
+    // A manifest URL that parse() reads as DASH (.mpd).
+    static bool is_dash(const std::string& url);
 
     // Fetch and parse the manifest at the given URL or local path.
-    // Returns true on success.
-    [[nodiscard]] bool parse(const std::string& url);
+    // Returns true on success. Relative URIs resolve against the URL the
+    // manifest was finally served from (after HTTP redirects), as FFmpeg's
+    // demuxers do. A network fetch times out, and gives up as soon as
+    // `*abort` (if given) becomes true — it may run beside an open that
+    // gets cancelled.
+    [[nodiscard]] bool parse(const std::string& url, const std::atomic<bool>* abort = nullptr);
+
+    // What parse() fetched: the manifest text, the URL it was served from
+    // (after redirects), and whether that HTTP response set cookies (FFmpeg
+    // sends them with every later request of a context that fetched it).
+    const std::string& text()        const { return text_; }
+    const std::string& final_url()   const { return final_url_; }
+    bool               set_cookies() const { return set_cookies_; }
 
     const std::vector<ManifestTag>&    tags()     const { return tags_; }
     const std::vector<VariantStream>&  variants() const { return variants_; }
@@ -69,6 +83,12 @@ public:
 
     // Returns the discontinuity sequence number active at the given pts.
     int disc_seq_at(double pts) const;
+
+    // Fetch the text at `url` (HTTP(S) or a local path) the way parse()
+    // does: with timeouts, giving up once `*abort` turns true, failing on a
+    // body cut short. Logged as a manifest request.
+    [[nodiscard]] static bool fetch(const std::string& url, std::string& out,
+                                    const std::atomic<bool>* abort = nullptr);
 
     // Parse from already-fetched text — public so unit tests can drive them directly
     // without needing a network or filesystem.
@@ -78,16 +98,22 @@ public:
                                        const std::string& base_url = {});
 
 private:
-    [[nodiscard]] bool parse_hls(const std::string& url);
-    [[nodiscard]] bool parse_dash(const std::string& url);
+    [[nodiscard]] bool parse_hls(const std::string& url, const std::atomic<bool>* abort);
+    [[nodiscard]] bool parse_dash(const std::string& url, const std::atomic<bool>* abort);
 
-    // Fetch raw text content via FFmpeg avio. Returns true on success.
-    static bool fetch_text(const std::string& url, std::string& out);
+    // Fetch raw text content via FFmpeg avio. Returns true on success;
+    // `final_url` is where it came from (the redirect target, if any),
+    // `cookies` whether the response set any.
+    static bool fetch_text(const std::string& url, std::string& out, std::string& final_url,
+                           bool& cookies, const std::atomic<bool>* abort);
 
     // Resolve a possibly-relative variant URL against a base manifest URL.
     static std::string resolve_url(const std::string& base_url,
                                    const std::string& variant_url);
 
+    std::string                text_;
+    std::string                final_url_;
+    bool                       set_cookies_ = false;
     std::vector<ManifestTag>   tags_;
     std::vector<VariantStream> variants_;
     std::vector<MediaRendition> renditions_;

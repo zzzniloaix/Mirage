@@ -290,6 +290,39 @@ TEST_CASE("NetworkLogger events — local file open is one row with its size", "
     CHECK(net_request_name(reqs[0].url) == "movie.mkv");
 }
 
+TEST_CASE("NetworkLogger poll — an open local file shows what was read, not its size", "[network_logger][events]")
+{
+    // The sidebar's Size column and its "read from disk" total: a file the
+    // player has read 5 s of is not "16.7 MB".
+    NetworkLogger log;
+    int pb = 0, pb2 = 0;
+    std::int64_t counter = 0, counter2 = 0;
+    log.ev_open_begin(NetInitiator::Playback, "/Users/me/movie.mkv");
+    log.ev_open_end(0, &pb, nullptr, &counter, 16'700'000, "", "");
+    auto reqs = all_requests(log);
+    REQUIRE(reqs.size() == 1);
+    CHECK(reqs[0].effective_bytes() == 0);   // nothing read yet
+    counter = 300'000;
+    log.poll();
+    counter = 900'000;
+    log.poll();
+    reqs = all_requests(log);
+    CHECK(reqs[0].bytes == 900'000);
+    CHECK(reqs[0].done());
+    CHECK(log.progress().bytes == 900'000);
+    // A ranged read (an HLS byte-range segment in a local file) counts its range only.
+    log.ev_open_begin(NetInitiator::Playback, "/Users/me/media.mp4", 1000, 1999);
+    log.ev_open_end(0, &pb2, nullptr, &counter2, 50'000, "", "");
+    counter2 = 32'768;   // the buffer reads past the range
+    log.poll();
+    log.ev_close(&pb);
+    log.ev_close(&pb2);
+    reqs = all_requests(log);
+    REQUIRE(reqs.size() == 2);
+    CHECK(reqs[0].bytes == 900'000);
+    CHECK(reqs[1].bytes == 1000);
+}
+
 TEST_CASE("NetworkLogger poll — body completion, partial (idle) rows and resume", "[network_logger][events]")
 {
     NetworkLogger log;
@@ -451,6 +484,114 @@ TEST_CASE("net_describe — HLS kinds and renditions from the master playlist", 
     CHECK(d.kind == NetKind::Key);
 }
 
+TEST_CASE("NetCatalog::learn — segments of every rendition in one directory find their rendition",
+          "[network_logger][describe]")
+{
+    // Unified Streaming's live layout: every playlist next to the master,
+    // the segments of all renditions in "hls/", init segments not named so.
+    const std::string base = "https://demo.example.com/live.isml/.m3u8?hls_fmp4";
+    ManifestParser mp;
+    REQUIRE(mp.parse_hls_text(
+        "#EXTM3U\n"
+        "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"aud\",LANGUAGE=\"en\",NAME=\"English\",DEFAULT=YES,CHANNELS=\"1\","
+        "URI=\"live-audio_eng=64000.m3u8?hls_fmp4\"\n"
+        "#EXT-X-STREAM-INF:BANDWIDTH=658000,CODECS=\"mp4a.40.2,avc1.42C01F\",RESOLUTION=1280x720,AUDIO=\"aud\"\n"
+        "live-video=500000.m3u8?hls_fmp4\n"
+        "#EXT-X-STREAM-INF:BANDWIDTH=75000,CODECS=\"mp4a.40.2\",AUDIO=\"aud\"\n"
+        "live-audio_eng=64000-only.m3u8\n", base));
+    NetCatalog cat = NetCatalog::build(base, mp.variants(), mp.renditions());
+    auto desc = [&](const std::string& url, std::int64_t rs = -1) {
+        NetRequest r;
+        r.url = url;
+        r.protocol = "https";
+        r.range_start = rs;
+        return net_describe(r, cat);
+    };
+    const std::string dir = "https://demo.example.com/live.isml/";
+
+    // An audio-only EXT-X-STREAM-INF is audio.
+    CHECK(desc(dir + "live-audio_eng=64000-only.m3u8").media == NetMedia::Audio);
+    // Before any playlist came in: the shared directory says nothing.
+    CHECK(desc(dir + "hls/live-video=500000-933428799.m4s").rendition.empty());
+
+    const std::string video =
+        "#EXTM3U\n#EXT-X-VERSION:6\n#EXT-X-MEDIA-SEQUENCE:933428799\n#EXT-X-TARGETDURATION:2\n"
+        "#EXT-X-MAP:URI=\"hls/live-video=500000.m4s\"\n"
+        "#EXT-X-PROGRAM-DATE-TIME:2026-10-16T20:41:32.160000Z\n"
+        "#EXTINF:1.92, no desc\nhls/live-video=500000-933428799.m4s\n"
+        "#EXTINF:1.92, no desc\nhls/live-video=500000-933428800.m4s\n";
+    const std::string audio =
+        "#EXTM3U\n#EXT-X-VERSION:6\n#EXT-X-MEDIA-SEQUENCE:933428799\n#EXT-X-TARGETDURATION:2\n"
+        "#EXT-X-MAP:URI=\"hls/live-audio_eng=64000.m4s\"\n"
+        "#EXTINF:1.92, no desc\nhls/live-audio_eng=64000-933428799.m4s\n";
+    CHECK_FALSE(cat.learn(dir + "elsewhere.m3u8", video));     // not one of the master's playlists
+    const std::uint64_t before = cat.learned;
+    CHECK(cat.learn(dir + "live-video=500000.m3u8?hls_fmp4", video));
+    CHECK(cat.learn(dir + "live-audio_eng=64000.m3u8?hls_fmp4", audio));
+    CHECK(cat.learned > before);
+    CHECK_FALSE(cat.learn(dir + "live-video=500000.m3u8?hls_fmp4", video));   // nothing new
+
+    NetDesc d = desc(dir + "hls/live-video=500000-933428800.m4s?token=1");
+    CHECK(d.kind == NetKind::Segment);
+    CHECK(d.media == NetMedia::Video);
+    CHECK(d.rendition == "live-video=500000 720p");
+    d = desc(dir + "hls/live-video=500000.m4s");
+    CHECK(d.kind == NetKind::Init);
+    CHECK(d.rendition == "live-video=500000 720p");
+    d = desc(dir + "hls/live-audio_eng=64000-933428799.m4s");
+    CHECK(d.kind == NetKind::Segment);
+    CHECK(d.media == NetMedia::Audio);
+    CHECK(desc(dir + "hls/live-audio_eng=64000.m4s").kind == NetKind::Init);
+}
+
+TEST_CASE("NetCatalog::learn — an init segment that is a byte range of the media file", "[network_logger][describe]")
+{
+    const std::string base = "https://cdn.example.com/bipbop/master.m3u8";
+    ManifestParser mp;
+    REQUIRE(mp.parse_hls_text("#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=8001098,RESOLUTION=1920x1080\n"
+                              "v9/prog_index.m3u8\n", base));
+    NetCatalog cat = NetCatalog::build(base, mp.variants(), mp.renditions());
+    REQUIRE(cat.learn("https://cdn.example.com/bipbop/v9/prog_index.m3u8",
+                      "#EXTM3U\n#EXT-X-TARGETDURATION:6\n#EXT-X-PLAYLIST-TYPE:VOD\n"
+                      "#EXT-X-MAP:URI=\"main.mp4\",BYTERANGE=\"720@0\"\n"
+                      "#EXTINF:6.0,\n#EXT-X-BYTERANGE:5874288@720\nmain.mp4\n"
+                      "#EXTINF:6.0,\n#EXT-X-BYTERANGE:5871752\nmain.mp4\n#EXT-X-ENDLIST\n"));
+    auto kind = [&](std::int64_t rs) {
+        NetRequest r;
+        r.url = "https://cdn.example.com/bipbop/v9/main.mp4";
+        r.protocol = "https";
+        r.range_start = rs;
+        return net_describe(r, cat).kind;
+    };
+    CHECK(kind(0) == NetKind::Init);
+    CHECK(kind(720) == NetKind::Segment);
+    CHECK(kind(5875008) == NetKind::Segment);
+}
+
+TEST_CASE("NetCatalog::learn — local HLS: the files a playlist lists are its segments", "[network_logger][describe]")
+{
+    const std::string base = "/Users/me/pkg/master.m3u8";
+    ManifestParser mp;
+    REQUIRE(mp.parse_hls_text("#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=300000,RESOLUTION=320x240\nstream_0.m3u8\n", base));
+    NetCatalog cat = NetCatalog::build(base, mp.variants(), mp.renditions());
+    auto desc = [&](const std::string& url, std::int64_t rs) {
+        NetRequest r;
+        r.url = url;
+        r.protocol = "file";
+        r.range_start = rs;
+        return net_describe(r, cat);
+    };
+    CHECK(desc("/Users/me/movie.mkv", -1).kind == NetKind::File);   // a local file being played
+    REQUIRE(cat.learn("/Users/me/pkg/stream_0.m3u8",
+                      "#EXTM3U\n#EXT-X-TARGETDURATION:2\n#EXT-X-MAP:URI=\"stream_0.m4s\",BYTERANGE=\"827@0\"\n"
+                      "#EXTINF:2.0,\n#EXT-X-BYTERANGE:68489@827\nstream_0.m4s\n#EXT-X-ENDLIST\n"));
+    CHECK(desc("/Users/me/pkg/stream_0.m4s", 0).kind == NetKind::Init);
+    const NetDesc d = desc("/Users/me/pkg/stream_0.m4s", 827);
+    CHECK(d.kind == NetKind::Segment);
+    CHECK(d.rendition == "pkg 240p");          // the only playlist: named by its directory
+    CHECK(desc("/Users/me/movie.mkv", -1).kind == NetKind::File);
+}
+
 TEST_CASE("net_request_name / formatting helpers", "[network_logger][describe]")
 {
     CHECK(net_request_name("https://h.example/a/b/seg-1.m4s?tok=1") == "seg-1.m4s");
@@ -461,4 +602,357 @@ TEST_CASE("net_request_name / formatting helpers", "[network_logger][describe]")
     CHECK(net_format_bytes(5874288) == "5.87 MB");
     CHECK(net_format_duration_us(84'000) == "84 ms");
     CHECK(net_format_duration_us(6'020'000) == "6.02 s");
+}
+
+// ── Response bodies (AVIOContext tap) ────────────────────────────────────────
+
+extern "C" {
+#include <libavformat/avio.h>
+#include <libavutil/error.h>
+#include <libavutil/mem.h>
+}
+
+#include <cstring>
+#include <functional>
+
+namespace {
+
+// A keep-alive HTTP handle stand-in: an AVIOContext serving one response
+// after another from memory, in uneven chunks, the way http.c's handle
+// serves the requests HLS issues on it. `on_read` runs inside a read (from
+// inside FFmpeg's buffer refill) — where http.c logs a reconnect.
+struct FakeHandle {
+    std::vector<std::string> responses;
+    std::size_t cur = 0, pos = 0;
+    int chunk = 7000;
+    std::function<void(std::size_t pos)> on_read;
+    AVIOContext* pb = nullptr;
+
+    explicit FakeHandle(std::vector<std::string> r) : responses(std::move(r))
+    {
+        auto* buf = static_cast<unsigned char*>(av_malloc(32768));
+        pb = avio_alloc_context(buf, 32768, 0, this, &FakeHandle::read, nullptr, nullptr);
+    }
+    ~FakeHandle()
+    {
+        if (pb) av_freep(&pb->buffer);
+        avio_context_free(&pb);
+    }
+    static int read(void* opaque, std::uint8_t* buf, int size)
+    {
+        auto* f = static_cast<FakeHandle*>(opaque);
+        if (f->cur >= f->responses.size()) return AVERROR_EOF;
+        const std::string& r = f->responses[f->cur];
+        if (f->on_read) f->on_read(f->pos);
+        if (f->pos >= r.size()) return AVERROR_EOF;
+        const int n = std::min({ size, f->chunk, static_cast<int>(r.size() - f->pos) });
+        std::memcpy(buf, r.data() + f->pos, static_cast<std::size_t>(n));
+        f->pos += static_cast<std::size_t>(n);
+        return n;
+    }
+    // Read the current response to its end, the way the hls demuxer does.
+    std::string drain()
+    {
+        std::string got;
+        std::uint8_t tmp[3000];
+        int n;
+        while ((n = avio_read(pb, tmp, sizeof(tmp))) > 0) got.append(reinterpret_cast<char*>(tmp), static_cast<std::size_t>(n));
+        return got;
+    }
+    // hls.c open_url_keepalive(): the next request on the same handle.
+    void next() { ++cur; pos = 0; pb->eof_reached = 0; }
+};
+
+std::string pattern(std::size_t n, unsigned seed)
+{
+    std::string s(n, '\0');
+    for (std::size_t i = 0; i < n; ++i) s[i] = static_cast<char>((i * 131u + seed * 7u + (i >> 9)) & 0xff);
+    return s;
+}
+
+std::string playlist_text(int segments)
+{
+    std::string s = "#EXTM3U\n#EXT-X-VERSION:7\n#EXT-X-TARGETDURATION:6\n#EXT-X-MAP:URI=\"main.mp4\",BYTERANGE=\"720@0\"\n";
+    for (int i = 0; i < segments; ++i)
+        s += std::format("#EXTINF:6.00000,\n#EXT-X-BYTERANGE:{}@{}\nmain.mp4\n", 50000 + i, 721 + i * 50000);
+    return s + "#EXT-X-ENDLIST\n";
+}
+
+std::string request_line(const char* path, const char* extra = "")
+{
+    return std::format("request: GET {} HTTP/1.1\r\nHost: cdn.example.com\r\n{}\r\n", path, extra);
+}
+
+} // namespace
+
+TEST_CASE("NetworkLogger bodies — keep-alive requests on one tapped handle each keep their own body",
+          "[network_logger][body]")
+{
+    NetworkLogger log;
+    log.install();
+    const std::string pl  = playlist_text(900);           // ~50 kB: several refills
+    const std::string seg = pattern(100000, 1);           // a media segment
+    const std::string pl2 = playlist_text(3);
+    FakeHandle h({ pl, seg, pl2 });
+    int ctx = 0;
+
+    log.ev_open_begin(NetInitiator::Playback, "https://cdn.example.com/v9/prog_index.m3u8");
+    log.ev_log(&ctx, request_line("/v9/prog_index.m3u8").c_str());
+    log.ev_log(&ctx, "header='HTTP/1.1 200 OK'");
+    log.ev_open_end(0, h.pb, &ctx, &h.pb->bytes_read, -1, "", "");
+    log.tap_body(h.pb);
+    CHECK(h.drain() == pl);
+
+    h.next();
+    log.ev_log(&ctx, request_line("/v9/main.mp4", "Range: bytes=721-100720\r\n").c_str());
+    log.ev_log(&ctx, "header='HTTP/1.1 206 Partial Content'");
+    log.ev_log(&ctx, "header='Content-Length: 100000'");
+    CHECK(h.drain() == seg);
+
+    h.next();
+    log.ev_log(&ctx, request_line("/a1/prog_index.m3u8").c_str());
+    log.ev_log(&ctx, "header='HTTP/1.1 200 OK'");
+    log.ev_log(&ctx, "header='Content-Type: application/vnd.apple.mpegurl'");
+    CHECK(h.drain() == pl2);
+    log.ev_close(h.pb);
+
+    auto reqs = all_requests(log);
+    REQUIRE(reqs.size() == 3);
+    std::string body;
+    REQUIRE(log.copy_body(reqs[0].id, body));
+    CHECK(body == pl);                                     // a playlist: whole
+    CHECK(reqs[0].body_bytes == static_cast<std::int64_t>(pl.size()));
+    CHECK_FALSE(reqs[0].body_truncated);
+    REQUIRE(log.copy_body(reqs[1].id, body));
+    CHECK(body == seg.substr(0, NetworkLogger::kHeadBytes));   // a segment: its head
+    CHECK(reqs[1].body_truncated);
+    REQUIRE(log.copy_body(reqs[2].id, body));
+    CHECK(body == pl2);
+    CHECK(reqs[2].url == "https://cdn.example.com/a1/prog_index.m3u8");
+}
+
+TEST_CASE("NetworkLogger bodies — a request switch logged inside a refill credits nothing twice",
+          "[network_logger][body]")
+{
+    // http.c reconnecting mid-body logs a new "request:" from inside
+    // FFmpeg's buffer refill: the data before it belongs to the first row,
+    // the rest to the continuation, no byte lost or repeated.
+    NetworkLogger log;
+    log.install();
+    const std::string pl = playlist_text(1500);            // ~85 kB
+    FakeHandle h({ pl });
+    int ctx = 0;
+    bool reconnected = false;
+    h.on_read = [&](std::size_t pos) {
+        if (!reconnected && pos >= 40000) {
+            reconnected = true;
+            log.ev_log(&ctx, "Will reconnect at 40000 in 0 second(s), error=Connection reset by peer.\n");
+            log.ev_log(&ctx, request_line("/v9/prog_index.m3u8", "Range: bytes=40000-\r\n").c_str());
+            log.ev_log(&ctx, "header='HTTP/1.1 206 Partial Content'");
+        }
+    };
+
+    log.ev_open_begin(NetInitiator::Playback, "https://cdn.example.com/v9/prog_index.m3u8");
+    log.ev_log(&ctx, request_line("/v9/prog_index.m3u8").c_str());
+    log.ev_log(&ctx, "header='HTTP/1.1 200 OK'");
+    log.ev_open_end(0, h.pb, &ctx, &h.pb->bytes_read, -1, "", "");
+    log.tap_body(h.pb);
+    CHECK(h.drain() == pl);
+    log.ev_close(h.pb);
+    REQUIRE(reconnected);
+
+    auto reqs = all_requests(log);
+    REQUIRE(reqs.size() == 2);
+    std::string a, b;
+    REQUIRE(log.copy_body(reqs[0].id, a));
+    REQUIRE(log.copy_body(reqs[1].id, b));
+    CHECK(a.size() >= 40000);
+    CHECK(a + b == pl);
+}
+
+TEST_CASE("NetworkLogger bodies — keys are never kept; untapped handles keep nothing", "[network_logger][body]")
+{
+    NetworkLogger log;
+    log.install();
+    const std::string key(16, '\x5a');
+    FakeHandle h({ key, key });
+    int ctx = 0;
+
+    log.ev_open_begin(NetInitiator::Playback, "https://cdn.example.com/keys/k1.key");
+    log.ev_log(&ctx, request_line("/keys/k1.key").c_str());
+    log.ev_log(&ctx, "header='HTTP/1.1 200 OK'");
+    log.ev_open_end(0, h.pb, &ctx, &h.pb->bytes_read, -1, "", "");
+    log.tap_body(h.pb);
+    CHECK(h.drain() == key);
+
+    // A key from a license path without Content-Length or extension: dropped
+    // once its size is known (16 bytes).
+    h.next();
+    log.ev_log(&ctx, request_line("/drm/fetch?id=3").c_str());
+    log.ev_log(&ctx, "header='HTTP/1.1 200 OK'");
+    CHECK(h.drain() == key);
+    log.ev_close(h.pb);
+
+    auto reqs = all_requests(log);
+    REQUIRE(reqs.size() == 2);
+    std::string body;
+    CHECK_FALSE(log.copy_body(reqs[0].id, body));
+    CHECK_FALSE(log.copy_body(reqs[1].id, body));
+    CHECK(reqs[1].body_bytes == 0);
+
+    // Not tapped (e.g. avformat_open_input's own probed input): nothing kept.
+    FakeHandle h2({ playlist_text(2) });
+    int ctx2 = 0;
+    log.ev_open_begin(NetInitiator::Playback, "https://cdn.example.com/master.m3u8");
+    log.ev_log(&ctx2, request_line("/master.m3u8").c_str());
+    log.ev_open_end(0, h2.pb, &ctx2, &h2.pb->bytes_read, -1, "", "");
+    h2.drain();
+    log.ev_close(h2.pb);
+    reqs = all_requests(log);
+    REQUIRE(reqs.size() == 3);
+    CHECK_FALSE(log.copy_body(reqs[2].id, body));
+}
+
+// ── NetProbe ─────────────────────────────────────────────────────────────────
+
+#include "NetProbe.h"
+
+#include <chrono>
+#include <filesystem>
+#include <fstream>
+#include <thread>
+
+namespace {
+
+bool wait_idle(const NetProbe& p, double secs = 10.0)
+{
+    const auto until = std::chrono::steady_clock::now() + std::chrono::duration<double>(secs);
+    while (p.pending() > 0 && std::chrono::steady_clock::now() < until)
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    return p.pending() == 0;
+}
+
+std::vector<NetRequest> inspector_requests(const NetworkLogger& log)
+{
+    std::vector<NetRequest> out;
+    for (auto& r : all_requests(log))
+        if (r.initiator == NetInitiator::Inspector) out.push_back(std::move(r));
+    return out;
+}
+
+} // namespace
+
+TEST_CASE("NetProbe — fetches as inspector requests whose bodies the logger keeps", "[network_logger][probe]")
+{
+    namespace fs = std::filesystem;
+    const fs::path dir = fs::temp_directory_path() / "mirage_test_net_probe";
+    fs::remove_all(dir);
+    fs::create_directories(dir);
+    const std::string seg = pattern(200000, 3);
+    const std::string pl  = playlist_text(3);
+    std::ofstream(dir / "seg.m4s", std::ios::binary) << seg;
+    std::ofstream(dir / "index.m3u8", std::ios::binary) << pl;
+    const std::string seg_path = (dir / "seg.m4s").string();
+
+    NetworkLogger log;
+    log.install();
+    {
+        NetProbe probe;
+        const NetProbe::Job head{ seg_path, 0, 5000 };
+        const NetProbe::Job list{ (dir / "index.m3u8").string(), -1, -1 };
+        probe.request({ head, head, list });            // the same job twice is fetched once
+        REQUIRE(wait_idle(probe));
+        auto reqs = inspector_requests(log);
+        REQUIRE(reqs.size() == 2);
+        std::string body;
+        for (const auto& r : reqs) {
+            REQUIRE(log.copy_body(r.id, body));
+            if (r.url == seg_path) {
+                CHECK(body == seg.substr(0, 5000));   // what was asked for, no more
+                CHECK(r.range_start == 0);
+                CHECK(r.range_end == 4999);
+            }
+            else                   CHECK(body == pl);                    // a playlist: whole
+        }
+        CHECK(probe.fetched(head));
+
+        probe.request({ head });                         // fetched already: nothing new
+        REQUIRE(wait_idle(probe));
+        CHECK(inspector_requests(log).size() == 2);
+
+        // A byte range inside the file (an EXT-X-BYTERANGE segment): those bytes, that range.
+        probe.request({ { seg_path, 70000, 5000 } });
+        REQUIRE(wait_idle(probe));
+        reqs = inspector_requests(log);
+        REQUIRE(reqs.size() == 3);
+        REQUIRE(log.copy_body(reqs[2].id, body));
+        CHECK(body == seg.substr(70000, 5000));
+        CHECK(reqs[2].range_start == 70000);
+        CHECK(reqs[2].range_end == 74999);
+
+        probe.cancel();                                  // new media: forgotten
+        CHECK_FALSE(probe.fetched(head));
+        probe.request({ head, { (dir / "missing.m4s").string(), 0, 100 } });
+        REQUIRE(wait_idle(probe));
+        reqs = inspector_requests(log);
+        REQUIRE(reqs.size() == 5);
+        CHECK(std::count_if(reqs.begin(), reqs.end(), [](const NetRequest& r) { return r.failed; }) == 1);
+    }
+    log.uninstall();
+    fs::remove_all(dir);
+}
+
+TEST_CASE("NetworkLogger bodies — a local file read from a seek keeps its offset as the range",
+          "[network_logger][body]")
+{
+    // hls.c opens a local EXT-X-BYTERANGE segment and seeks to its offset
+    // (no Range header to log): the row's range is where the body begins.
+    namespace fs = std::filesystem;
+    const fs::path dir = fs::temp_directory_path() / "mirage_test_local_range";
+    fs::remove_all(dir);
+    fs::create_directories(dir);
+    const std::string data = pattern(300000, 5);
+    const std::string path = (dir / "main.mp4").string();
+    std::ofstream(path, std::ios::binary) << data;
+
+    NetworkLogger log;
+    log.install();
+    auto read_from = [&](std::int64_t offset, int bytes, std::int64_t range_end = -1) {
+        NetworkLogger::track_open_begin(NetInitiator::Playback, path.c_str(), range_end >= 0 ? offset : -1, range_end);
+        AVIOContext* pb = nullptr;
+        const int ret = avio_open2(&pb, path.c_str(), AVIO_FLAG_READ, nullptr, nullptr);
+        NetworkLogger::track_open_end(ret, pb);
+        REQUIRE(ret >= 0);
+        if (offset > 0) REQUIRE(avio_seek(pb, offset, SEEK_SET) == offset);
+        std::string got(static_cast<std::size_t>(bytes), '\0');
+        REQUIRE(avio_read(pb, reinterpret_cast<unsigned char*>(got.data()), bytes) == bytes);
+        NetworkLogger::track_close(pb);
+        avio_closep(&pb);
+    };
+    read_from(0, 720);           // the init segment at the start
+    read_from(150000, 40000);    // a media segment further in
+    // With the range hls.c asks for: a short seek reads forward from the
+    // start within one buffer, and the buffer runs past the range's end.
+    read_from(827, 5000, 827 + 5000 - 1);
+    log.uninstall();
+
+    const auto reqs = all_requests(log);
+    REQUIRE(reqs.size() == 3);
+    {
+        std::string b;
+        REQUIRE(log.copy_body(reqs[2].id, b));
+        CHECK(b == data.substr(827, 5000));
+        CHECK(reqs[2].range_start == 827);
+        CHECK(reqs[2].range_end == 5826);
+        CHECK(reqs[2].bytes == 5000);
+    }
+    std::string body;
+    CHECK(reqs[0].range_start == -1);                 // from the start: no range
+    REQUIRE(log.copy_body(reqs[0].id, body));
+    CHECK(body == data.substr(0, body.size()));
+    CHECK(reqs[1].range_start == 150000);
+    REQUIRE(log.copy_body(reqs[1].id, body));
+    CHECK(body.size() == NetworkLogger::kHeadBytes);
+    CHECK(body == data.substr(150000, body.size()));
+    fs::remove_all(dir);
 }

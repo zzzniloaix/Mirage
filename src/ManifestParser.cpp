@@ -1,4 +1,5 @@
 #include "ManifestParser.h"
+#include "HlsMaster.h"
 #include "Logger.h"
 #include "NetworkLogger.h"
 
@@ -10,7 +11,10 @@
 
 extern "C" {
 #include <libavformat/avio.h>
+#include <libavutil/dict.h>
 #include <libavutil/error.h>
+#include <libavutil/mem.h>
+#include <libavutil/opt.h>
 }
 
 // pugixml (added via FetchContent)
@@ -66,14 +70,23 @@ bool ManifestParser::is_manifest(const std::string& url)
         || low.find(".mpd?")  != std::string::npos;
 }
 
-bool ManifestParser::parse(const std::string& url)
+bool ManifestParser::is_dash(const std::string& url)
+{
+    const std::string low = str_lower(url);
+    return str_ends_with(low, ".mpd") || low.find(".mpd?") != std::string::npos;
+}
+
+bool ManifestParser::parse(const std::string& url, const std::atomic<bool>* abort)
 {
     tags_.clear();
     variants_.clear();
-    std::string low = str_lower(url);
-    if (str_ends_with(low, ".mpd") || low.find(".mpd?") != std::string::npos)
-        return parse_dash(url);
-    return parse_hls(url);
+    renditions_.clear();
+    text_.clear();
+    final_url_.clear();
+    set_cookies_ = false;
+    if (is_dash(url))
+        return parse_dash(url, abort);
+    return parse_hls(url, abort);
 }
 
 int ManifestParser::disc_seq_at(double pts) const
@@ -88,15 +101,36 @@ int ManifestParser::disc_seq_at(double pts) const
 
 // ── FFmpeg avio fetch ─────────────────────────────────────────────────────────
 
-bool ManifestParser::fetch_text(const std::string& url, std::string& out)
+static int fetch_interrupt_cb(void* opaque)
 {
+    return static_cast<const std::atomic<bool>*>(opaque)->load() ? 1 : 0;
+}
+
+bool ManifestParser::fetch_text(const std::string& url, std::string& out, std::string& final_url,
+                                bool& cookies, const std::atomic<bool>* abort)
+{
+    final_url = url;
+    cookies   = false;
     AVIOContext* ctx = nullptr;
+    const AVIOInterruptCB cb{ fetch_interrupt_cb, const_cast<std::atomic<bool>*>(abort) };
+    AVDictionary* opts = nullptr;
+    if (url.starts_with("http://") || url.starts_with("https://")) {
+        av_dict_set(&opts, "timeout",    "5000000", 0);   // 5 s socket connect/recv
+        av_dict_set(&opts, "rw_timeout", "8000000", 0);   // 8 s cap on any single I/O
+    }
     NetworkLogger::track_open_begin(NetInitiator::Manifest, url.c_str());
-    const int ret = avio_open(&ctx, url.c_str(), AVIO_FLAG_READ);
+    const int ret = avio_open2(&ctx, url.c_str(), AVIO_FLAG_READ, abort ? &cb : nullptr, &opts);
+    av_dict_free(&opts);
     NetworkLogger::track_open_end(ret, ctx);
     if (ret < 0) {
-        logger::warn("ManifestParser: cannot open {}", url);
+        if (!(abort && abort->load()))
+            logger::warn("ManifestParser: cannot open {}", url);
         return false;
+    }
+    // HTTP: the URL the body came from after redirects.
+    if (uint8_t* loc = nullptr; av_opt_get(ctx, "location", AV_OPT_SEARCH_CHILDREN, &loc) >= 0 && loc) {
+        if (*loc) final_url = reinterpret_cast<const char*>(loc);
+        av_free(loc);
     }
 
     std::string result;
@@ -105,11 +139,33 @@ bool ManifestParser::fetch_text(const std::string& url, std::string& out)
     int n;
     while ((n = avio_read(ctx, buf, sizeof(buf))) > 0)
         result.append(reinterpret_cast<char*>(buf), static_cast<size_t>(n));
+    const bool aborted = abort && abort->load();
+    // A body cut short (timeout, dropped connection) is a failed fetch, not a
+    // shorter manifest: playback would otherwise see some variants only.
+    const int read_err = ctx->error < 0 ? ctx->error : (n < 0 && n != AVERROR_EOF ? n : 0);
+    if (read_err < 0 && !aborted) {
+        char errbuf[AV_ERROR_MAX_STRING_SIZE];
+        av_strerror(read_err, errbuf, sizeof(errbuf));
+        logger::warn("ManifestParser: reading {} failed after {} bytes: {}", url, result.size(), errbuf);
+    }
+    // HTTP: Set-Cookie values received (http.c keeps them in "cookies").
+    if (uint8_t* c = nullptr; av_opt_get(ctx, "cookies", AV_OPT_SEARCH_CHILDREN, &c) >= 0 && c) {
+        cookies = *c != '\0';
+        av_free(c);
+    }
 
     NetworkLogger::track_close(ctx);
     avio_close(ctx);
+    if (aborted || read_err < 0) return false;
     out = std::move(result);
     return true;
+}
+
+bool ManifestParser::fetch(const std::string& url, std::string& out, const std::atomic<bool>* abort)
+{
+    std::string final_url;
+    bool        cookies = false;
+    return fetch_text(url, out, final_url, cookies, abort);
 }
 
 // ── URL resolution ────────────────────────────────────────────────────────────
@@ -117,6 +173,10 @@ bool ManifestParser::fetch_text(const std::string& url, std::string& out)
 std::string ManifestParser::resolve_url(const std::string& base_url,
                                         const std::string& variant_url)
 {
+    // HTTP(S): RFC 3986 forms FFmpeg resolves too ("/root/relative" included).
+    if (std::string abs = hls::absolute_uri(base_url, variant_url); !abs.empty())
+        return abs;
+
     // Already absolute
     if (variant_url.starts_with("http://") || variant_url.starts_with("https://") ||
         variant_url.starts_with("file://")  || variant_url.starts_with('/'))
@@ -130,11 +190,10 @@ std::string ManifestParser::resolve_url(const std::string& base_url,
 
 // ── HLS fetch wrapper ─────────────────────────────────────────────────────────
 
-bool ManifestParser::parse_hls(const std::string& url)
+bool ManifestParser::parse_hls(const std::string& url, const std::atomic<bool>* abort)
 {
-    std::string text;
-    if (!fetch_text(url, text)) return false;
-    bool ok = parse_hls_text(text, url);
+    if (!fetch_text(url, text_, final_url_, set_cookies_, abort)) return false;
+    bool ok = parse_hls_text(text_, final_url_);
     if (ok)
         logger::info("ManifestParser: parsed HLS — {} tags, {} variants from {}",
                      tags_.size(), variants_.size(), url);
@@ -290,11 +349,10 @@ bool ManifestParser::parse_hls_text(const std::string& text, const std::string& 
 
 // ── DASH fetch wrapper ────────────────────────────────────────────────────────
 
-bool ManifestParser::parse_dash(const std::string& url)
+bool ManifestParser::parse_dash(const std::string& url, const std::atomic<bool>* abort)
 {
-    std::string text;
-    if (!fetch_text(url, text)) return false;
-    bool ok = parse_dash_text(text, url);
+    if (!fetch_text(url, text_, final_url_, set_cookies_, abort)) return false;
+    bool ok = parse_dash_text(text_, final_url_);
     if (ok)
         logger::info("ManifestParser: parsed DASH MPD — {} tags, {} variants from {}",
                      tags_.size(), variants_.size(), url);

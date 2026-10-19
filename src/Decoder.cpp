@@ -174,6 +174,12 @@ void Decoder::flush()
     avcodec_flush_buffers(ctx_);
 }
 
+void Decoder::skip_unreferenced(bool on)
+{
+    if (!ctx_ || (ctx_->codec_id != AV_CODEC_ID_H264 && ctx_->codec_id != AV_CODEC_ID_HEVC)) return;
+    ctx_->skip_frame = on ? AVDISCARD_NONREF : AVDISCARD_DEFAULT;
+}
+
 int Decoder::width()  const { return ctx_ ? ctx_->width  : 0; }
 int Decoder::height() const { return ctx_ ? ctx_->height : 0; }
 

@@ -157,7 +157,8 @@ void DebugHUD::draw(const DebugInfo& info, int fb_w, int fb_h, float scale)
         max_text_w = std::max(max_text_w,
             static_cast<float>(stb_easy_font_width(const_cast<char*>(ln))) * scale);
 
-    float panel_w = max_text_w + pad * 2.0f;
+    // Room on the right for the close button the UI draws in the corner.
+    float panel_w = max_text_w + pad * 2.0f + 18.0f * scale;
     float panel_h = line_h * 4.0f + pad * 2.0f - line_sp;
 
     // ── Background ────────────────────────────────────────────────────────────
@@ -170,6 +171,7 @@ void DebugHUD::draw(const DebugInfo& info, int fb_w, int fb_h, float scale)
     draw_bg(px2x(margin),              px2x(margin + panel_w),
             px2y(top + panel_h),       px2y(top),
             0.0f, 0.0f, 0.0f, 0.72f);
+    mark(Panel::Hud, margin, top, panel_w, panel_h);
     glDisable(GL_BLEND);
 
     // ── Text ──────────────────────────────────────────────────────────────────
@@ -226,6 +228,7 @@ void DebugHUD::draw_inspector(const std::vector<InspectorLine>& lines,
     draw_bg(px2x(panel_x),              px2x(panel_x + panel_w),
             px2y(top + panel_h),        px2y(top),
             0.0f, 0.0f, 0.0f, 0.72f);
+    mark(Panel::Inspector, panel_x, top, panel_w, panel_h);
     glDisable(GL_BLEND);
 
     // ── Text ──────────────────────────────────────────────────────────────────
@@ -272,6 +275,7 @@ void DebugHUD::draw_drift_graph(int fb_w, int fb_h, float scale, float bottom_of
     draw_bg(px2x(panel_x), px2x(panel_x + panel_w),
             px2y(panel_y + panel_h), px2y(panel_y),
             0.0f, 0.0f, 0.0f, 0.72f);
+    mark(Panel::Drift, panel_x, panel_y, panel_w, panel_h);
 
     // Graph area: two header rows at top, left gutter for Y labels.
     float line_h   = char_h + line_sp;
@@ -418,6 +422,7 @@ void DebugHUD::draw_waveform(const float* peaks, int n,
     draw_bg(px2ndcx(0), px2ndcx(static_cast<float>(fb_w)),
             px2ndcy(y1), px2ndcy(y0),
             0.04f, 0.04f, 0.06f, 0.80f);
+    mark(Panel::Waveform, 0.0f, y0, static_cast<float>(fb_w), strip_h);
 
     // Centre guide line (dim)
     {
@@ -939,6 +944,7 @@ void DebugHUD::draw_vmaf_panel(const std::vector<VMAFPanelEntry>& entries,
     draw_bg(px2x(panel_x), px2x(panel_x + panel_w),
             px2y(panel_y + panel_h), px2y(panel_y),
             0.0f, 0.0f, 0.0f, 0.72f);
+    mark(Panel::Vmaf, panel_x, panel_y, panel_w, panel_h);
 
     glDisable(GL_BLEND);
 

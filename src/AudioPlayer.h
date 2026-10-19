@@ -36,13 +36,21 @@ public:
     // frame_count / sample_rate when atempo has time-stretched the audio.
     // Blocks while the ring is full so no audio is dropped (the clock would
     // jump ahead of what is audible). Gives up — dropping the remainder — on
-    // flush(), interrupt(), or while muted (a muted ring doesn't drain).
+    // flush(), interrupt(), drop_blocked_push(), or while muted (a muted ring
+    // doesn't drain).
     // Waits indefinitely while paused: the device restarts on resume.
     void push(const float* samples, int frame_count, double pts, double media_dur);
 
     // Shutdown: wake any blocked push() and stop it from ever waiting again
     // (it drops instead). Call before joining the audio decode thread.
     void interrupt();
+
+    // Any thread: until the next flush(), a push() that has to wait for room
+    // drops the rest of its batch instead — also one waiting now. For the
+    // demuxer, when it has dropped the queued audio and queues a flush
+    // sentinel: the audio thread may be blocked handing stale audio to a
+    // stopped device (paused) and must get to the sentinel, whose flush ends this.
+    void drop_blocked_push();
 
     // Called from miniaudio callback thread.
     void fill_buffer(float* out, int frame_count);
@@ -80,6 +88,18 @@ public:
     int64_t silent_frames()    const { return silent_frames_.load(); }
     int64_t dropped_frames()   const { return dropped_frames_.load(); }
 
+    // Pipeline state for the startup watchdog. Thread-safe, except
+    // device_running(): not synchronised with init() / stop() — read it only
+    // after init() returned on (or was joined into) the reading thread.
+    bool    device_running()   const { return running_; }   // init() opened and started the device
+    int64_t callback_count()   const { return callbacks_.load(std::memory_order_relaxed); }
+    bool    push_waiting()     const { return push_waiting_.load(std::memory_order_relaxed); }  // push() blocked on a full ring
+    double  buffered_seconds() const
+    {
+        std::lock_guard lk(ring_mtx_);
+        return static_cast<double>(count_ / kChannels) / sample_rate_;
+    }
+
     static constexpr int kWaveCap    = 1200;  // ≈3.6 s at 48 kHz / kWaveStride
     static constexpr int kWaveStride = 40;    // samples per peak entry
     static constexpr int kChannels   = 2;     // interleaved float stereo
@@ -111,10 +131,15 @@ private:
     std::condition_variable space_cv_;          // signalled when ring space frees up
     uint64_t           flush_gen_    = 0;       // bumped by flush() (under ring_mtx_)
     bool               interrupted_  = false;   // set by interrupt() (under ring_mtx_)
+    bool               skip_wait_    = false;   // drop_blocked_push() until flush() (under ring_mtx_)
+    bool               clock_from_push_ = true; // flushed: the next push sets the clock (under ring_mtx_)
     bool               primed_       = false;   // audio pushed since last flush
 
     // Audio clock: PTS of the sample currently at the speaker output.
-    // Updated in fill_buffer() — readable from any thread via clock().
+    // Updated in fill_buffer() — readable from any thread via clock() — and,
+    // after a flush, by the first push(): until the device has asked for
+    // audio again (a stopped device restarts with some delay) the next
+    // sample to play is that push's first, not 0.
     std::atomic<double> clock_{ 0.0 };
     double              ring_end_pts_{ 0.0 }; // PTS right after last pushed sample
 
@@ -140,4 +165,6 @@ private:
     std::atomic<int64_t> underruns_{ 0 };
     std::atomic<int64_t> silent_frames_{ 0 };
     std::atomic<int64_t> dropped_frames_{ 0 };
+    std::atomic<int64_t> callbacks_{ 0 };
+    std::atomic<bool>    push_waiting_{ false };
 };

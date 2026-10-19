@@ -1,218 +1,12 @@
 #include "NetInspector.h"
 
 #include "ManifestParser.h"
+#include "NetInspectorUi.h"
 #include "NetworkLogger.h"
-#include "UiFonts.h"
-#include "UiTheme.h"
-#include "UiWidgets.h"
 
-#include "imgui.h"
+#include <set>
 
-#include <algorithm>
-#include <cfloat>
-#include <cmath>
-#include <ctime>
-#include <format>
-
-namespace th = ui::theme;
-
-namespace {
-
-// ── Palette (DevTools-inspired, tuned to the player theme) ───────────────────
-constexpr ImU32 kSideBg      = th::rgba( 15,  16,  20, 0.985f);
-constexpr ImU32 kSideBar     = th::rgba(255, 255, 255, 0.035f);   // toolbar / header strips
-constexpr ImU32 kColVideo    = th::kAccent;
-constexpr ImU32 kColAudio    = th::rgba(167, 139, 250, 1.00f);    // violet-400
-constexpr ImU32 kColSubs     = th::kWarn;
-constexpr ImU32 kColManifest = th::rgba( 52, 211, 153, 1.00f);    // emerald-400
-constexpr ImU32 kColOther    = th::rgba(148, 163, 184, 1.00f);    // slate-400
-constexpr ImU32 kWfConnect   = th::rgba(251, 146,  60, 1.00f);    // orange — DNS/TCP/TLS + queue
-constexpr ImU32 kWfWait      = th::rgba( 52, 211, 153, 1.00f);    // green — waiting (TTFB)
-constexpr ImU32 kWfDownload  = th::rgba( 56, 189, 248, 1.00f);    // blue — content download
-constexpr ImU32 kSelRow      = th::rgba( 56, 189, 248, 0.22f);
-constexpr ImU32 kPlayRow     = th::rgba( 56, 189, 248, 0.14f);
-
-constexpr float kHeaderH  = 40.0f;
-constexpr float kToolbarH = 36.0f;
-constexpr float kChipsH   = 32.0f;
-constexpr float kFooterH  = 26.0f;
-constexpr float kSplitH   = 6.0f;
-constexpr float kPad      = 10.0f;
-constexpr float kMinW     = 300.0f;
-
-enum Col { ColName, ColStatus, ColType, ColInit, ColSize, ColTime, ColWaterfall, ColCount };
-
-ImU32 C(ImU32 c, float mul = 1.0f) { return ImGui::GetColorU32(c, mul); }
-
-ImU32 media_color(const NetDesc& d)
-{
-    if (d.kind == NetKind::Manifest || d.kind == NetKind::Playlist) return kColManifest;
-    switch (d.media) {
-        case NetMedia::Video: return kColVideo;
-        case NetMedia::Audio: return kColAudio;
-        case NetMedia::Subs:  return kColSubs;
-        case NetMedia::None:  break;
-    }
-    return kColOther;
-}
-
-const char* media_name(NetMedia m)
-{
-    switch (m) {
-        case NetMedia::Video: return "video";
-        case NetMedia::Audio: return "audio";
-        case NetMedia::Subs:  return "subtitles";
-        case NetMedia::None:  break;
-    }
-    return "";
-}
-
-bool is_error(const NetRequest& r) { return r.failed || r.status >= 400; }
-
-bool is_helper(const NetRequest& r)
-{
-    return r.initiator == NetInitiator::Thumbnails || r.initiator == NetInitiator::Scrub;
-}
-
-std::string lower(std::string s)
-{
-    for (auto& c : s) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-    return s;
-}
-
-std::string clock_text(std::int64_t t_us)
-{
-    const std::int64_t ms = NetworkLogger::wall_ms(t_us);
-    const std::time_t  t  = static_cast<std::time_t>(ms / 1000);
-    std::tm tm{};
-    localtime_r(&t, &tm);
-    return std::format("{:02}:{:02}:{:02}.{:03}", tm.tm_hour, tm.tm_min, tm.tm_sec, static_cast<int>(ms % 1000));
-}
-
-std::string partial_note(const NetRequest& r)
-{
-    const std::string of = r.content_length > 0 ? std::format(" of {}", net_format_bytes(r.content_length)) : "";
-    return std::format("Partial: {}{} read. The player stopped reading this response before its end "
-                       "(a variant probed at startup or no longer selected, or a full playback buffer). "
-                       "Time runs to the last byte; the row continues if reading resumes.",
-                       net_format_bytes(std::max<std::int64_t>(r.bytes, 0)), of);
-}
-
-std::string status_text(const NetRequest& r)
-{
-    if (r.status > 0) return std::to_string(r.status);
-    if (r.failed)     return "failed";
-    if (r.protocol == "file") return "—";
-    return r.done() ? "—" : "…";
-}
-
-// Pill-shaped toggle chip; returns true when clicked.
-bool chip_button(const char* id, const char* label, bool active, ImU32 dot = 0)
-{
-    ImFont* f = ui_fonts().ui_small;
-    const float fs  = 12.0f;
-    const ImVec2 ts = f->CalcTextSizeA(fs, FLT_MAX, 0.0f, label);
-    const float dot_w = dot ? 12.0f : 0.0f;
-    const ImVec2 sz(std::round(ts.x + 20.0f + dot_w), 22.0f);
-    const ImVec2 p = ImGui::GetCursorScreenPos();
-    const bool clicked = ImGui::InvisibleButton(id, sz);
-    const bool hov = ImGui::IsItemHovered();
-    ImDrawList* dl = ImGui::GetWindowDrawList();
-    const ImVec2 q(p.x + sz.x, p.y + sz.y);
-    dl->AddRectFilled(p, q, C(active ? th::alpha(th::kAccent, 0.20f) : hov ? th::kHoverBg : th::rgba(255, 255, 255, 0.05f)),
-                      sz.y * 0.5f);
-    if (active) dl->AddRect(p, q, C(th::alpha(th::kAccent, 0.55f)), sz.y * 0.5f, 0, 1.0f);
-    float x = p.x + 10.0f;
-    if (dot) {
-        dl->AddCircleFilled(ImVec2(x + 3.5f, p.y + sz.y * 0.5f), 3.5f, C(dot), 12);
-        x += dot_w;
-    }
-    dl->AddText(f, fs, ImVec2(x, std::round(p.y + (sz.y - ts.y) * 0.5f)),
-                C(active ? th::kAccentHover : hov ? th::kText : th::kTextDim), label);
-    return clicked;
-}
-
-// Small square glyph button (× close, clear, record); returns true when clicked.
-bool glyph_button(const char* id, const char* tip, float sz, bool active = false)
-{
-    const ImVec2 p = ImGui::GetCursorScreenPos();
-    const bool clicked = ImGui::InvisibleButton(id, ImVec2(sz, sz));
-    const bool hov = ImGui::IsItemHovered();
-    if (hov || active)
-        ImGui::GetWindowDrawList()->AddRectFilled(p, ImVec2(p.x + sz, p.y + sz),
-            C(ImGui::IsItemActive() ? th::kPressBg : hov ? th::kHoverBg : th::rgba(255, 255, 255, 0.06f)),
-            th::kRadiusSmall);
-    if (hov && tip) ui::tooltip(tip);
-    return clicked;
-}
-
-void draw_x(ImDrawList* dl, ImVec2 c, float r, ImU32 col)
-{
-    dl->AddLine(ImVec2(c.x - r, c.y - r), ImVec2(c.x + r, c.y + r), col, 1.6f);
-    dl->AddLine(ImVec2(c.x - r, c.y + r), ImVec2(c.x + r, c.y - r), col, 1.6f);
-}
-
-// Uppercase section caption.
-void section_caption(const char* text)
-{
-    ImGui::Dummy(ImVec2(0.0f, 4.0f));
-    const ImVec2 p = ImGui::GetCursorScreenPos();
-    ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x, 20.0f));
-    ImGui::GetWindowDrawList()->AddText(ui_fonts().ui_small, 11.5f, ImVec2(p.x, p.y + 4.0f), C(th::kTextDim), text);
-}
-
-// Key / value row inside a 2-column table.
-void kv_row(const char* key, const std::string& value, ImU32 col = 0)
-{
-    ImGui::TableNextRow();
-    ImGui::TableSetColumnIndex(0);
-    ImGui::PushStyleColor(ImGuiCol_Text, th::vec4(th::kTextDim));
-    ImGui::TextUnformatted(key);
-    ImGui::PopStyleColor();
-    ImGui::TableSetColumnIndex(1);
-    if (col) ImGui::PushStyleColor(ImGuiCol_Text, th::vec4(col));
-    ImGui::TextWrapped("%s", value.c_str());
-    if (col) ImGui::PopStyleColor();
-    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
-        ImGui::SetClipboardText(value.c_str());
-}
-
-bool begin_kv_table(const char* id, float key_w)
-{
-    if (!ImGui::BeginTable(id, 2, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_NoSavedSettings)) return false;
-    ImGui::TableSetupColumn("k", ImGuiTableColumnFlags_WidthFixed, key_w);
-    ImGui::TableSetupColumn("v", ImGuiTableColumnFlags_WidthStretch);
-    return true;
-}
-
-// Right-aligned text in the current table cell.
-void text_right(const std::string& s, ImU32 col)
-{
-    const float w = ImGui::CalcTextSize(s.c_str()).x;
-    const float avail = ImGui::GetContentRegionAvail().x;
-    if (avail > w) ImGui::SetCursorPosX(ImGui::GetCursorPosX() + avail - w);
-    ImGui::PushStyleColor(ImGuiCol_Text, th::vec4(col));
-    ImGui::TextUnformatted(s.c_str());
-    ImGui::PopStyleColor();
-}
-
-void draw_empty_state(const char* title, const char* body, float w, float h)
-{
-    ImDrawList* dl = ImGui::GetWindowDrawList();
-    const ImVec2 p = ImGui::GetCursorScreenPos();
-    ImFont* f  = ui_fonts().ui;
-    ImFont* fs = ui_fonts().ui_small;
-    const float cy = p.y + std::max(40.0f, h * 0.35f);
-    const ImVec2 t1 = f->CalcTextSizeA(14.0f, FLT_MAX, 0.0f, title);
-    dl->AddText(f, 14.0f, ImVec2(std::round(p.x + (w - t1.x) * 0.5f), cy), C(th::kText), title);
-    const float wrap = std::min(w - 40.0f, 320.0f);
-    const ImVec2 t2 = fs->CalcTextSizeA(12.0f, FLT_MAX, wrap, body);
-    dl->AddText(fs, 12.0f, ImVec2(std::round(p.x + (w - wrap) * 0.5f + (wrap - t2.x) * 0.5f), cy + 24.0f),
-                C(th::kTextDim), body, nullptr, wrap);
-    ImGui::Dummy(ImVec2(w, h));
-}
-
-} // namespace
+using namespace netui;
 
 // ── Public ───────────────────────────────────────────────────────────────────
 
@@ -230,6 +24,18 @@ void NetInspector::reset()
     cat_key_.clear();
     cat_ = {};
     view_dirty_ = true;
+    body_ = {};
+    probe_.cancel();
+    align_ = {};
+    tl_cache_.clear();
+    init_cache_.clear();
+    start_cache_.clear();
+    view_t0_ = 0.0;
+    view_t1_ = -1.0;
+    view_fit_ = true;
+    sel_rend_ = -1;
+    sel_seq_ = -1;
+    open_finding_ = -1;
 }
 
 void NetInspector::qa_apply(const std::string& spec)
@@ -240,9 +46,13 @@ void NetInspector::qa_apply(const std::string& spec)
         const std::string item = spec.substr(pos, comma == std::string::npos ? std::string::npos : comma - pos);
         const auto eq = item.find('=');
         const std::string k = item.substr(0, eq), v = eq == std::string::npos ? "" : item.substr(eq + 1);
-        if (k == "tab")      tab_ = (v == "manifest") ? Tab::Manifest : Tab::Network;
-        if (k == "select")   qa_select_segment_ = true;
-        if (k == "detail")   detail_tab_ = (v == "timing") ? 1 : 0;
+        if (k == "tab")      tab_ = v == "manifest" ? Tab::Manifest : v == "alignment" ? Tab::Alignment : Tab::Network;
+        if (k == "select")   (v == "playlist" ? qa_select_playlist_ : qa_select_segment_) = true;
+        if (k == "detail")   detail_tab_ = v == "timing" ? 2 : v == "response" ? 1 : 0;
+        if (k == "mode")     resp_mode_ = v == "segments" ? 1 : 0;
+        if (k == "scope")    scope_ = v == "all" ? Scope::All : Scope::InUse;
+        if (k == "probe")    qa_probe_ = v != "0";
+        if (k == "finding")  qa_finding_ = std::atoi(v.c_str());
         if (k == "filter")   { std::snprintf(filter_, sizeof(filter_), "%s", v.c_str()); filter_lc_ = lower(v); }
         if (k == "width")    width_ = std::strtof(v.c_str(), nullptr);
         if (k == "chip") {
@@ -257,9 +67,27 @@ void NetInspector::qa_apply(const std::string& spec)
 
 // ── Data sync ────────────────────────────────────────────────────────────────
 
+// A finished playlist response the logger kept: what the catalog learns
+// its segments' rendition from.
+static bool learnable(const NetRequest& r, const NetDesc& d)
+{
+    return d.kind == NetKind::Playlist && r.done() && !r.failed && r.body_bytes > 0 && !r.body_truncated;
+}
+
+bool NetInspector::learn_from(const Row& row)
+{
+    if (!sync_log_ || !learnable(row.r, row.d) || !learned_ids_.insert(row.r.id).second) return false;
+    std::string text;
+    return sync_log_->copy_body(row.r.id, text) && cat_.learn(row.r.url, text);
+}
+
 void NetInspector::sync(const Inputs& in)
 {
-    // Manifest catalog (rebuilt when the parsed manifest changes).
+    NetworkLogger* log = in.log;
+    sync_log_ = log;
+
+    // Manifest catalog (rebuilt when the parsed manifest changes), with what
+    // the newest response of each playlist lists.
     if (in.manifest) {
         const std::string key = std::format("{}|{}|{}", in.media_url, in.manifest->variants().size(),
                                             in.manifest->renditions().size());
@@ -267,12 +95,18 @@ void NetInspector::sync(const Inputs& in)
             cat_key_ = key;
             cat_ = NetCatalog::build(ManifestParser::is_manifest(in.media_url) ? in.media_url : std::string(),
                                      in.manifest->variants(), in.manifest->renditions());
+            learned_ids_.clear();
+            std::set<const NetRendition*> taught;
+            for (auto it = rows_.rbegin(); it != rows_.rend(); ++it) {
+                it->d = net_describe(it->r, cat_);
+                if (const NetRendition* nr = cat_.match(it->r.url); nr && !taught.contains(nr) && learn_from(*it))
+                    taught.insert(nr);
+            }
             for (auto& row : rows_) row.d = net_describe(row.r, cat_);
             view_dirty_ = true;
         }
     }
 
-    NetworkLogger* log = in.log;
     if (!log) return;
     if (log->generation() != gen_) {
         gen_ = log->generation();
@@ -295,6 +129,9 @@ void NetInspector::sync(const Inputs& in)
                                    [](const Row& r, std::uint64_t id) { return r.r.id < id; });
         rows_.erase(rows_.begin(), it);
     }
+    // In id order: a playlist's response is learned before the segment
+    // requests it led to are described.
+    bool learned = false;
     for (auto& r : changed) {
         auto it = std::lower_bound(rows_.begin(), rows_.end(), r.id,
                                    [](const Row& row, std::uint64_t id) { return row.r.id < id; });
@@ -306,9 +143,17 @@ void NetInspector::sync(const Inputs& in)
             row.name = net_request_name(r.url);
             row.r    = std::move(r);
             row.d    = net_describe(row.r, cat_);
-            rows_.insert(it, std::move(row));
+            it = rows_.insert(it, std::move(row));
         }
+        learned |= learn_from(*it);
     }
+    // Requests described before a playlist listing them came in.
+    if (learned)
+        for (auto& row : rows_)
+            if (row.d.rendition.empty() && row.d.kind != NetKind::Manifest && row.d.kind != NetKind::Playlist)
+                row.d = net_describe(row.r, cat_);
+    if (!rows_.empty())
+        std::erase_if(learned_ids_, [&](std::uint64_t id) { return id < rows_.front().r.id; });
     if (!rows_.empty() && (base_t_ < 0 || rows_.front().r.t_start < base_t_)) base_t_ = rows_.front().r.t_start;
     view_dirty_ = true;
 }
@@ -377,6 +222,65 @@ const NetInspector::Row* NetInspector::find_row(std::uint64_t id) const
     return (it != rows_.end() && it->r.id == id) ? &*it : nullptr;
 }
 
+void NetInspector::playlist_link(const std::string& label, const std::string& url, int id)
+{
+    // The newest request of that playlist, to open in Network → Response.
+    const Row* row = nullptr;
+    const std::string want = url.substr(0, url.find_first_of("?#"));
+    for (auto it = rows_.rbegin(); it != rows_.rend() && !url.empty(); ++it)
+        if (it->d.kind == NetKind::Playlist && it->r.url.substr(0, it->r.url.find_first_of("?#")) == want
+            && (it->r.body_bytes > 0 || !row)) {
+            row = &*it;
+            if (it->r.body_bytes > 0) break;
+        }
+    if (!row) {
+        ImGui::TextUnformatted(label.c_str());
+        if (ImGui::IsItemHovered() && !url.empty()) ui::tooltip((url + "\nNot requested yet").c_str());
+        return;
+    }
+    ImGui::PushID(id + 7000);
+    ImGui::PushStyleColor(ImGuiCol_Text, th::vec4(th::kAccentHover));
+    if (ImGui::Selectable(label.c_str(), false, ImGuiSelectableFlags_None,
+                          ImVec2(ImGui::CalcTextSize(label.c_str()).x, 0.0f))) {
+        selected_ = row->r.id;
+        tab_ = Tab::Network;
+        detail_tab_ = 1;
+    }
+    ImGui::PopStyleColor();
+    if (ImGui::IsItemHovered()) ui::tooltip((url + "\nClick to show the playlist as received").c_str());
+    ImGui::PopID();
+}
+
+const NetInspector::Row* NetInspector::find_body_row(const std::string& url, std::int64_t range_start) const
+{
+    for (auto it = rows_.rbegin(); it != rows_.rend(); ++it) {
+        const NetRequest& r = it->r;
+        if (r.body_bytes <= 0 || r.failed || r.url != url) continue;
+        // A whole resource matches a request without Range, or from byte 0.
+        const bool range_ok = range_start < 0 ? r.range_start <= 0 : r.range_start == range_start;
+        if (range_ok && (r.done() || r.body_truncated)) return &*it;
+    }
+    return nullptr;
+}
+
+const hls::InitInfo* NetInspector::init_for(const Row& row)
+{
+    const NetRendition* rend = cat_.match(row.r.url);
+    for (auto it = rows_.rbegin(); it != rows_.rend(); ++it) {
+        if (it->d.kind != NetKind::Init || it->r.body_bytes <= 0 || !(it->r.done() || it->r.body_truncated)) continue;
+        if (rend ? cat_.match(it->r.url) != rend : it->r.url != row.r.url) continue;
+        auto c = init_cache_.find(it->r.id);
+        if (c == init_cache_.end()) {
+            std::string data;
+            if (!sync_log_ || !sync_log_->copy_body(it->r.id, data)) continue;
+            c = init_cache_.emplace(it->r.id, hls::parse_init_segment(reinterpret_cast<const std::uint8_t*>(data.data()),
+                                                                      data.size())).first;
+        }
+        if (c->second.ok) return &c->second;
+    }
+    return nullptr;
+}
+
 // ── Draw ─────────────────────────────────────────────────────────────────────
 
 NetInspector::Out NetInspector::draw(const Inputs& in, float win_w, float win_h)
@@ -411,7 +315,14 @@ NetInspector::Out NetInspector::draw(const Inputs& in, float win_w, float win_h)
         ImGui::InvisibleButton("##net_resize", ImVec2(6.0f, win_h));
         const bool hov = ImGui::IsItemHovered(), act = ImGui::IsItemActive();
         if (hov || act) ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-        if (act) width_ = std::clamp(w - ImGui::GetIO().MouseDelta.x, kMinW, std::max(kMinW, win_w * 0.65f));
+        if (act && ImGui::GetIO().MouseDelta.x != 0.0f)   // a click alone keeps an automatic width
+            width_ = std::clamp(w - ImGui::GetIO().MouseDelta.x, kMinW, std::max(kMinW, win_w * 0.65f));
+        if (ImGui::IsItemDeactivated()) out.width_set = true;   // drag ended: keep it
+        if (hov && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+            width_ = -1.0f;          // back to the automatic width
+            out.width_set = true;
+        }
+        if (hov && !act) ui::tooltip("Drag to resize \u00B7 double-click: automatic width");
         dl->AddLine(ImVec2(x + 0.5f, 0.0f), ImVec2(x + 0.5f, win_h),
                     C(act ? th::kAccent : hov ? th::alpha(th::kAccent, 0.6f) : th::kPanelBorder), act || hov ? 2.0f : 1.0f);
     }
@@ -424,8 +335,8 @@ NetInspector::Out NetInspector::draw(const Inputs& in, float win_w, float win_h)
         dl->AddLine(ImVec2(x, kHeaderH - 0.5f), ImVec2(x + w, kHeaderH - 0.5f), C(th::kPanelBorder));
         ImFont* f = ui_fonts().ui;
         float tx = x + kPad + 2.0f;
-        const char* labels[] = { "Network", "Manifest" };
-        for (int i = 0; i < 2; ++i) {
+        const char* labels[] = { "Network", "Manifest", "Alignment" };
+        for (int i = 0; i < 3; ++i) {
             const ImVec2 ts = f->CalcTextSizeA(14.0f, FLT_MAX, 0.0f, labels[i]);
             ImGui::SetCursorScreenPos(ImVec2(tx - 8.0f, 0.0f));
             ImGui::PushID(i);
@@ -439,6 +350,20 @@ NetInspector::Out NetInspector::draw(const Inputs& in, float win_w, float win_h)
             if (active)
                 dl->AddRectFilled(ImVec2(tx - 2.0f, kHeaderH - 2.5f), ImVec2(tx + ts.x + 2.0f, kHeaderH - 0.5f),
                                   C(th::kAccent), 1.0f);
+            // Alignment: a red / amber count badge when something is off.
+            if (i == 2 && (align_.rep.errors > 0 || align_.rep.warnings > 0)) {
+                const int cnt = align_.rep.errors > 0 ? align_.rep.errors : align_.rep.warnings;
+                const std::string b = std::to_string(cnt);
+                ImFont* fs = ui_fonts().ui_small;
+                const ImVec2 bs = fs->CalcTextSizeA(11.0f, FLT_MAX, 0.0f, b.c_str());
+                const float bw = std::max(16.0f, bs.x + 8.0f);
+                const ImVec2 b0(tx + ts.x + 4.0f, std::round(kHeaderH * 0.5f - 8.0f));
+                dl->AddRectFilled(b0, ImVec2(b0.x + bw, b0.y + 16.0f),
+                                  C(align_.rep.errors > 0 ? th::kError : th::kWarn), 8.0f);
+                dl->AddText(fs, 11.0f, ImVec2(std::round(b0.x + (bw - bs.x) * 0.5f), b0.y + 1.0f),
+                            C(th::rgba(10, 10, 12, 1.0f)), b.c_str());
+                tx += bw + 4.0f;
+            }
             tx += ts.x + 22.0f;
         }
         // Keyboard hint + close
@@ -451,9 +376,13 @@ NetInspector::Out NetInspector::draw(const Inputs& in, float win_w, float win_h)
 
     const float body_y = kHeaderH;
     const float body_h = win_h - body_y;
+    // The alignment model also feeds the tab's badge: kept current while
+    // the sidebar is open (throttled inside).
+    update_alignment(in);
     ImGui::SetCursorScreenPos(ImVec2(x, body_y));
-    if (tab_ == Tab::Network) draw_network(in, w, body_h);
-    else                      draw_manifest(in, out, w, body_h);
+    if (tab_ == Tab::Network)       draw_network(in, w, body_h);
+    else if (tab_ == Tab::Manifest) draw_manifest(in, out, w, body_h);
+    else                            draw_alignment(in, out, w, body_h);
 
     // Keep the player's shortcuts alive. PlayerUI enables keyboard nav, and a
     // click on a row, chip or button leaves this window (or one of its child
@@ -577,6 +506,15 @@ void NetInspector::draw_network(const Inputs& in, float w, float h)
                 break;
             }
         if (selected_) qa_select_segment_ = false;
+    }
+    if (qa_select_playlist_) {
+        for (auto it = rows_.rbegin(); it != rows_.rend(); ++it)
+            if (it->d.kind == NetKind::Playlist && it->r.body_bytes > 0 && it->r.done()
+                && it->r.initiator == NetInitiator::Playback) {
+                selected_ = it->r.id;
+                break;
+            }
+        if (selected_) qa_select_playlist_ = false;
     }
     if (selected_ && !find_row(selected_)) selected_ = 0;
 
@@ -848,13 +786,13 @@ void NetInspector::draw_details(float w, float h)
     ImDrawList* dl = ImGui::GetWindowDrawList();
     const ImVec2 p = ImGui::GetCursorScreenPos();
 
-    // Sub-header: name · Headers | Timing · ×
+    // Sub-header: name · Headers | Response | Timing · ×
     constexpr float kSubH = 30.0f;
     dl->AddLine(ImVec2(p.x, p.y + kSubH - 0.5f), ImVec2(p.x + w, p.y + kSubH - 0.5f), C(th::kPanelBorder));
     float tx = p.x + kPad;
-    const char* tabs[] = { "Headers", "Timing" };
+    const char* tabs[] = { "Headers", "Response", "Timing" };
     ImFont* f = ui_fonts().ui_small;
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < 3; ++i) {
         const ImVec2 ts = f->CalcTextSizeA(12.0f, FLT_MAX, 0.0f, tabs[i]);
         ImGui::SetCursorScreenPos(ImVec2(tx - 6.0f, p.y));
         ImGui::PushID(100 + i);
@@ -885,6 +823,10 @@ void NetInspector::draw_details(float w, float h)
     draw_x(dl, ImVec2(p.x + w - 18.0f, p.y + 15.0f), 4.0f, C(ImGui::IsItemHovered() ? th::kText : th::kTextDim));
 
     ImGui::SetCursorScreenPos(ImVec2(p.x, p.y + kSubH));
+    if (detail_tab_ == 1) {   // Response: its own scrolling (long playlists, hex)
+        draw_response(*row, w, h - kSubH);
+        return;
+    }
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(kPad + 2.0f, 6.0f));
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.0f, 4.0f));
     ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(4.0f, 2.0f));
@@ -1016,7 +958,7 @@ void NetInspector::draw_details(float w, float h)
             ImGui::PopTextWrapPos();
         }
         const std::int64_t b = r.effective_bytes();
-        if (r.done() && b > 0 && tf >= 0 && te > tf) {
+        if (r.done() && b > 0 && tf >= 0 && te > tf && r.protocol != "file") {   // a file is read on after its open
             ImGui::Dummy(ImVec2(0.0f, 6.0f));
             if (begin_kv_table("##tput", key_w)) {
                 kv_row("Throughput", std::format("{:.2f} Mb/s  (body bytes ÷ download time)",
@@ -1036,11 +978,19 @@ void NetInspector::draw_footer(float w)
     dl->AddRectFilled(p, ImVec2(p.x + w, p.y + kFooterH), C(kSideBar));
     dl->AddLine(ImVec2(p.x, p.y + 0.5f), ImVec2(p.x + w, p.y + 0.5f), C(th::kPanelBorder));
 
-    std::int64_t bytes = 0, recent = 0;
+    // Network bytes are transferred; a local file's are read from disk
+    // (and are no download rate).
+    std::int64_t bytes = 0, recent = 0, read = 0;
+    bool any_net = false;
     const std::int64_t now = NetworkLogger::now_us();
     constexpr std::int64_t kWin = 10'000'000;   // throughput window: 10 s
     for (const auto& row : rows_) {
         const std::int64_t b = row.r.effective_bytes();
+        if (row.r.protocol == "file") {
+            if (b > 0) read += b;
+            continue;
+        }
+        any_net = true;
         if (b > 0) {
             bytes += b;
             if (row.r.done() && now - row.r.t_end <= kWin) recent += b;
@@ -1049,13 +999,14 @@ void NetInspector::draw_footer(float w)
     std::string s = view_.size() != rows_.size()
         ? std::format("{} / {} requests", view_.size(), rows_.size())
         : std::format("{} request{}", rows_.size(), rows_.size() == 1 ? "" : "s");
-    s += std::format("  ·  {} transferred", net_format_bytes(bytes));
+    if (any_net || read == 0) s += std::format("  ·  {} transferred", net_format_bytes(bytes));
+    if (read > 0)             s += std::format("  ·  {} read from disk", net_format_bytes(read));
     const std::string rate = std::format("↓ {:.2f} Mb/s", static_cast<double>(recent) * 8.0 / (kWin / 1e6) / 1e6);
     ImFont* f = ui_fonts().ui_small;
     const float ty = std::round(p.y + (kFooterH - 14.0f) * 0.5f);
     dl->AddText(f, 12.0f, ImVec2(p.x + kPad, ty), C(th::kTextDim), s.c_str());
     const float rw = f->CalcTextSizeA(12.0f, FLT_MAX, 0.0f, rate.c_str()).x;
-    if (p.x + kPad + f->CalcTextSizeA(12.0f, FLT_MAX, 0.0f, s.c_str()).x + 16.0f < p.x + w - kPad - rw) {
+    if (any_net && p.x + kPad + f->CalcTextSizeA(12.0f, FLT_MAX, 0.0f, s.c_str()).x + 16.0f < p.x + w - kPad - rw) {
         dl->AddText(f, 12.0f, ImVec2(p.x + w - kPad - rw, ty), C(th::kTextDim), rate.c_str());
         ImGui::SetCursorScreenPos(ImVec2(p.x + w - kPad - rw, p.y));
         ImGui::InvisibleButton("##rate", ImVec2(rw, kFooterH));
@@ -1096,6 +1047,18 @@ void NetInspector::draw_manifest(const Inputs& in, Out& out, float w, float h)
         ImGui::SameLine();
         if (ImGui::Button("Copy", ImVec2(bw, 0.0f))) ImGui::SetClipboardText(in.media_url.c_str());
         ImGui::PopStyleVar();
+        // The master as it was received.
+        for (auto it = rows_.rbegin(); it != rows_.rend(); ++it) {
+            if (it->d.kind != NetKind::Manifest || it->r.body_bytes <= 0) continue;
+            ImGui::Dummy(ImVec2(0.0f, 2.0f));
+            if (ImGui::SmallButton("Show the master playlist as received")) {
+                selected_ = it->r.id;
+                tab_ = Tab::Network;
+                detail_tab_ = 1;
+                resp_mode_ = 0;
+            }
+            break;
+        }
     }
 
     constexpr ImGuiTableFlags kTbl = ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV
@@ -1147,8 +1110,7 @@ void NetInspector::draw_manifest(const Inputs& in, Out& out, float w, float h)
                 const NetRendition* rend = cat_.match(v.url);
                 const std::string pl = v.url.empty() ? std::string("—")
                                      : rend ? rend->label.substr(0, rend->label.find(' ')) : net_request_name(v.url);
-                ImGui::TextUnformatted(pl.c_str());
-                if (ImGui::IsItemHovered() && !v.url.empty()) ui::tooltip(v.url.c_str());
+                playlist_link(pl, v.url, i);
                 ImGui::PopStyleColor();
             }
             ImGui::EndTable();
@@ -1190,9 +1152,8 @@ void NetInspector::draw_manifest(const Inputs& in, Out& out, float w, float h)
                 } else {
                     const NetRendition* rend = cat_.match(mr.url);
                     const std::string pl = net_request_name(mr.url);
-                    ImGui::TextUnformatted(rend ? rend->label.substr(0, rend->label.find(' ')).append("/").append(pl).c_str()
-                                                : pl.c_str());
-                    if (ImGui::IsItemHovered()) ui::tooltip(mr.url.c_str());
+                    playlist_link(rend ? rend->label.substr(0, rend->label.find(' ')).append("/").append(pl) : pl, mr.url,
+                                  1000 + static_cast<int>(&mr - rends.data()));
                 }
             }
             ImGui::EndTable();

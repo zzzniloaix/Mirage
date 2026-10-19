@@ -65,6 +65,15 @@ void AudioPlayer::interrupt()
     space_cv_.notify_all();
 }
 
+void AudioPlayer::drop_blocked_push()
+{
+    {
+        std::lock_guard lock(ring_mtx_);
+        skip_wait_ = true;
+    }
+    space_cv_.notify_all();
+}
+
 void AudioPlayer::stop()
 {
     interrupt();   // a push() waiting on a stopped device would never wake
@@ -86,6 +95,8 @@ void AudioPlayer::flush()
 {
     std::unique_lock lock(ring_mtx_);
     ++flush_gen_;
+    skip_wait_    = false;
+    clock_from_push_ = true;
     primed_       = false;
     write_pos_    = 0;
     read_pos_     = 0;
@@ -118,10 +129,12 @@ void AudioPlayer::push(const float* samples, int frame_count, double pts, double
     while (done < frame_count) {
         const size_t free_frames = (count_ < max_buffered_) ? (max_buffered_ - count_) / kChannels : 0;
         if (free_frames == 0) {
-            if (interrupted_ || muted_.load()) break;
+            if (interrupted_ || skip_wait_ || muted_.load()) break;
             // Bounded slices so a missed notify (e.g. set_muted) can't hang us.
+            push_waiting_.store(true, std::memory_order_relaxed);
             space_cv_.wait_for(lock, std::chrono::milliseconds(50));
-            if (flush_gen_ != gen) break;   // seek: the rest of this batch is stale
+            push_waiting_.store(false, std::memory_order_relaxed);
+            if (flush_gen_ != gen || skip_wait_) break;   // seek: the rest of this batch is stale
             continue;
         }
 
@@ -145,6 +158,10 @@ void AudioPlayer::push(const float* samples, int frame_count, double pts, double
             ++seg_count_;
         }
 
+        if (clock_from_push_) {          // first audio since a flush: what plays next
+            clock_.store(pts + media_dur * done / frame_count);
+            clock_from_push_ = false;
+        }
         done += chunk;
         // PTS of the hypothetical "next sample" after everything in the buffer
         ring_end_pts_ = pts + media_dur * done / frame_count;
@@ -197,6 +214,7 @@ double AudioPlayer::output_latency_seconds() const
 void AudioPlayer::fill_buffer(float* out, int frame_count)
 {
     const int n = frame_count * kChannels;
+    callbacks_.fetch_add(1, std::memory_order_relaxed);
 
     // Hard mute: output silence without draining the ring buffer.
     // This takes effect within the current callback period, unlike ma_device_stop

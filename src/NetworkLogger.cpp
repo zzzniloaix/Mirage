@@ -1,11 +1,14 @@
 #include "NetworkLogger.h"
 
 #include <algorithm>
+#include <limits>
 #include <cctype>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <format>
+#include <initializer_list>
 #include <string_view>
 
 extern "C" {
@@ -27,6 +30,7 @@ const char* net_initiator_name(NetInitiator who)
         case NetInitiator::Scrub:      return "scrub";
         case NetInitiator::Subtitles:  return "subtitles";
         case NetInitiator::Manifest:   return "manifest";
+        case NetInitiator::Inspector:  return "inspector";
         case NetInitiator::Other:      break;
     }
     return "other";
@@ -76,6 +80,55 @@ std::string_view url_path(std::string_view url)
     return slash == std::string_view::npos ? std::string_view("/") : url.substr(slash);
 }
 
+std::string lower_ascii(std::string_view s)
+{
+    std::string out(s);
+    for (auto& c : out) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    return out;
+}
+
+// Which response bodies are kept, and how much (NetworkLogger.h):
+// text (playlists, MPDs, subtitles) whole, decryption keys never, anything
+// else its head. Judged on the URL and Content-Type.
+bool body_is_text(const NetRequest& r)
+{
+    const std::string u = lower_ascii(std::string_view(r.url).substr(0, r.url.find_first_of("?#")));
+    for (const char* ext : { ".m3u8", ".m3u", ".mpd", ".vtt", ".webvtt", ".srt", ".ttml", ".dfxp", ".xml" })
+        if (u.ends_with(ext)) return true;
+    const std::string m = lower_ascii(r.mime);
+    return m.find("mpegurl") != std::string::npos || m.find("dash+xml") != std::string::npos
+        || m.starts_with("text/") || m.find("ttml") != std::string::npos || m.ends_with("/xml");
+}
+
+bool body_is_key(const NetRequest& r)
+{
+    const std::string u = lower_ascii(std::string_view(r.url).substr(0, r.url.find_first_of("?#")));
+    if (u.ends_with(".key") || u.starts_with("skd:")) return true;
+    // A path segment "key" / "keys" / "license…" (key servers, DRM licences).
+    std::string_view path(u);
+    if (const auto p = path.find("://"); p != std::string_view::npos) {
+        const auto slash = path.find('/', p + 3);
+        path = slash == std::string_view::npos ? std::string_view() : path.substr(slash);
+    }
+    while (!path.empty()) {
+        path.remove_prefix(1);
+        const auto next = path.find('/');
+        const std::string_view seg = path.substr(0, next);
+        if (seg == "key" || seg == "keys" || seg.starts_with("license") || seg.starts_with("getkey")) return true;
+        if (next == std::string_view::npos) break;
+        path.remove_prefix(next);
+    }
+    // AES-128 keys are 16 bytes: no other response we keep is that small.
+    return r.content_length >= 0 && r.content_length <= 64;
+}
+
+std::size_t body_limit(const NetRequest& r)
+{
+    if (body_is_text(r)) return NetworkLogger::kMaxTextBody;
+    if (body_is_key(r))  return 0;
+    return NetworkLogger::head_bytes(r.url, r.mime);
+}
+
 // "bytes=100-199" → {100, 199}; "bytes=100-" → {100, -1}.
 void parse_range(std::string_view v, std::int64_t& a, std::int64_t& b)
 {
@@ -100,6 +153,8 @@ struct TlsOpen {
     std::uint64_t last_req       = 0;       // newest request created during this open
     const void*   req_ctx        = nullptr; // URLContext that logged it
     std::string   last_opening;             // from the latest "Opening '…'" line
+    std::int64_t  range_start    = -1;      // non-HTTP: the byte range read (track_open_begin)
+    std::int64_t  range_end      = -1;
 };
 thread_local TlsOpen t_open;
 
@@ -191,8 +246,9 @@ std::atomic<IoClose2Fn> g_orig_close2{ nullptr };
 
 constexpr NetInitiator kInitiators[] = {
     NetInitiator::Playback, NetInitiator::Thumbnails, NetInitiator::Scrub,
-    NetInitiator::Subtitles, NetInitiator::Manifest, NetInitiator::Other,
+    NetInitiator::Subtitles, NetInitiator::Manifest, NetInitiator::Inspector, NetInitiator::Other,
 };
+static_assert(static_cast<int>(NetInitiator::Other) + 1 == std::size(kInitiators));
 
 std::string av_err_text(int err)
 {
@@ -201,7 +257,23 @@ std::string av_err_text(int err)
     return buf;
 }
 
-void finish_open(NetworkLogger* L, int ret, AVIOContext* pb)
+// AVIOContext::update_checksum hook that taps a handle's reads (tap_body):
+// FFmpeg calls it with each stretch of the buffer it is about to refill
+// over. The cookie is the handle itself.
+static_assert(sizeof(unsigned long) >= sizeof(void*), "the tap's cookie holds a pointer");
+unsigned long body_tap(unsigned long cookie, const uint8_t* buf, unsigned int size)
+{
+    if (NetworkLogger* L = NetworkLogger::instance(); L && buf && size)
+        L->ev_body(reinterpret_cast<const void*>(static_cast<std::uintptr_t>(cookie)), buf, size);
+    return cookie;
+}
+
+unsigned long tap_cookie(const AVIOContext* pb)
+{
+    return static_cast<unsigned long>(reinterpret_cast<std::uintptr_t>(pb));
+}
+
+void finish_open(NetworkLogger* L, int ret, AVIOContext* pb, bool tap)
 {
     std::string err, mime;
     std::int64_t size = -1;
@@ -221,20 +293,35 @@ void finish_open(NetworkLogger* L, int ret, AVIOContext* pb)
         size = avio_size(pb);
     }
     L->ev_open_end(ret, pb, log_ctx, counter, size, mime, err);
+    if (ret >= 0 && pb && tap) L->tap_body(pb);
 }
 
 int hooked_io_open(AVFormatContext* s, AVIOContext** pb, const char* url, int flags, AVDictionary** opts)
 {
     IoOpenFn orig = g_orig_open.load();
     NetworkLogger* L = NetworkLogger::instance();
-    if (!L || (flags & AVIO_FLAG_WRITE) || !url)
+    // data: URLs (an HLS master handed to the demuxer in memory) are not traffic.
+    if (!L || (flags & AVIO_FLAG_WRITE) || !url || std::strncmp(url, "data:", 5) == 0)
         return orig(s, pb, url, flags, opts);
 
     const NetInitiator who = s->opaque ? *static_cast<const NetInitiator*>(s->opaque)
                                        : NetInitiator::Other;
-    L->ev_open_begin(who, url);
+    // The byte range hls.c asks for (EXT-X-BYTERANGE / EXT-X-MAP), also for a
+    // local file, which has no Range header to log it by.
+    std::int64_t r0 = -1, r1 = -1;
+    if (opts && *opts) {
+        if (const AVDictionaryEntry* e = av_dict_get(*opts, "offset", nullptr, 0)) r0 = std::strtoll(e->value, nullptr, 10);
+        if (const AVDictionaryEntry* e = av_dict_get(*opts, "end_offset", nullptr, 0))
+            if (const std::int64_t v = std::strtoll(e->value, nullptr, 10); v > 0) r1 = v - 1;
+        if (r0 < 0 && r1 >= 0) r0 = 0;
+    }
+    L->ev_open_begin(who, url, r0, r1);
     const int ret = orig(s, pb, url, flags, opts);
-    finish_open(L, ret, ret >= 0 ? *pb : nullptr);
+    // Bodies are tapped on what the hls demuxer opens (playlists, segments,
+    // init sections): nothing probes those handles. avformat_open_input's own
+    // input (iformat still unknown) is probed, which swaps its buffer.
+    const bool tap = s->iformat && s->iformat->name && std::strcmp(s->iformat->name, "hls") == 0;
+    finish_open(L, ret, ret >= 0 ? *pb : nullptr, tap);
     return ret;
 }
 
@@ -264,14 +351,15 @@ void NetworkLogger::hook_format_context(AVFormatContext* ctx, NetInitiator who)
     ctx->opaque = const_cast<NetInitiator*>(&kInitiators[static_cast<int>(who)]);
 }
 
-void NetworkLogger::track_open_begin(NetInitiator who, const char* url)
+void NetworkLogger::track_open_begin(NetInitiator who, const char* url, std::int64_t range_start,
+                                     std::int64_t range_end)
 {
-    if (NetworkLogger* L = instance(); L && url) L->ev_open_begin(who, url);
+    if (NetworkLogger* L = instance(); L && url) L->ev_open_begin(who, url, range_start, range_end);
 }
 
 void NetworkLogger::track_open_end(int ret, AVIOContext* pb)
 {
-    if (NetworkLogger* L = instance()) finish_open(L, ret, ret >= 0 ? pb : nullptr);
+    if (NetworkLogger* L = instance()) finish_open(L, ret, ret >= 0 ? pb : nullptr, true);
 }
 
 void NetworkLogger::track_close(AVIOContext* pb)
@@ -298,13 +386,20 @@ NetRequest& NetworkLogger::push_locked(NetRequest r)
 {
     r.id = next_id_++;
     reqs_.push_back(std::move(r));
-    while (reqs_.size() > kMaxRequests) reqs_.pop_front();
+    while (reqs_.size() > kMaxRequests) {
+        if (auto it = bodies_.find(reqs_.front().id); it != bodies_.end()) {
+            body_total_ -= it->second.data.size();
+            bodies_.erase(it);
+        }
+        reqs_.pop_front();
+    }
     touch_locked(reqs_.back());
     return reqs_.back();
 }
 
 void NetworkLogger::finish_locked(NetRequest& r, std::int64_t now, std::int64_t bytes)
 {
+    if (bytes > r.bytes) progress_.bytes += bytes - std::max<std::int64_t>(r.bytes, 0);
     if (bytes >= 0) r.bytes = bytes;
     // Ended (next request on the handle, or closed) before its body was
     // read: e.g. a variant probed at startup, or a segment the player left.
@@ -316,7 +411,14 @@ void NetworkLogger::finish_locked(NetRequest& r, std::int64_t now, std::int64_t 
         r.t_end = last >= 0 ? last : now;
     }
     if (r.t_end < 0) r.t_end = now;
+    if (!r.failed && !r.partial) ++progress_.completed;
     touch_locked(r);
+}
+
+NetworkLogger::Progress NetworkLogger::progress() const
+{
+    std::lock_guard lk(mtx_);
+    return progress_;
 }
 
 NetworkLogger::Conn* NetworkLogger::conn_by_log_ctx_locked(const void* log_ctx)
@@ -329,7 +431,8 @@ NetworkLogger::Conn* NetworkLogger::conn_by_log_ctx_locked(const void* log_ctx)
 
 // ── Events ───────────────────────────────────────────────────────────────────
 
-void NetworkLogger::ev_open_begin(NetInitiator who, const std::string& url)
+void NetworkLogger::ev_open_begin(NetInitiator who, const std::string& url, std::int64_t range_start,
+                                  std::int64_t range_end)
 {
     std::uint32_t cid;
     {
@@ -343,6 +446,8 @@ void NetworkLogger::ev_open_begin(NetInitiator who, const std::string& url)
     t_open.url     = url;
     t_open.t0      = now_us();
     t_open.conn_id = cid;
+    t_open.range_start = range_start;
+    t_open.range_end   = range_end;
 }
 
 void NetworkLogger::ev_open_end(int ret, const void* pb, const void* log_ctx,
@@ -402,9 +507,12 @@ void NetworkLogger::ev_open_end(int ret, const void* pb, const void* log_ctx,
         // A local file has no request/response: the row is the open, done
         // once the handle is ready (the file is then read through playback).
         n.t_end          = now;
+        n.bytes          = 0;   // read so far (poll, ev_close) — not the file's size
         n.content_length = size_hint;
         n.mime           = mime_hint;
         n.conn_id        = t_open.conn_id;
+        n.range_start    = t_open.range_start;
+        n.range_end      = t_open.range_end;
         c.cur_req = push_locked(std::move(n)).id;
         if (c.log_ctx) ctx_req_[c.log_ctx] = c.cur_req;
     }
@@ -418,10 +526,16 @@ void NetworkLogger::ev_close(const void* pb)
     std::lock_guard lk(mtx_);
     auto it = conns_.find(pb);
     if (it == conns_.end()) return;
+    flush_body_locked(it->second);
     const Conn& c = it->second;
-    // A local-file row is done at open; its close still reports what was read.
-    if (NetRequest* r = find_locked(c.cur_req); r && (!r->done() || r->protocol == "file"))
-        finish_locked(*r, now, c.counter ? *c.counter - c.snap : -1);
+    // A local-file row is done at open; its close still reports what was read
+    // (of its range: the buffer reads past it).
+    if (NetRequest* r = find_locked(c.cur_req); r && (!r->done() || r->protocol == "file")) {
+        std::int64_t got = c.counter ? *c.counter - c.snap : -1;
+        if (r->protocol == "file" && r->range_start >= 0 && r->range_end >= r->range_start && got >= 0)
+            got = std::min(got, r->range_end - r->range_start + 1);
+        finish_locked(*r, now, got);
+    }
     if (c.log_ctx) ctx_req_.erase(c.log_ctx);
     conns_.erase(it);
 }
@@ -481,6 +595,8 @@ void NetworkLogger::ev_log(const void* log_ctx, const char* line)
 void NetworkLogger::on_request_line_locked(const void* log_ctx, const std::string& text, std::int64_t now)
 {
     Conn* conn = conn_by_log_ctx_locked(log_ctx);
+    // What the previous request left in the handle's buffer is its body.
+    if (conn) flush_body_locked(*conn);
 
     // A new request on a handle ends the previous one (keep-alive, redirect, seek).
     std::string prev_scheme;
@@ -620,6 +736,7 @@ void NetworkLogger::on_ctx_closed_locked(const void* log_ctx, std::int64_t now)
     // io_close2 (avformat_open_input's failure path). Drop the handle here so
     // poll() never reads the byte counter of a freed context.
     if (auto it = conns_.find(log_ctx); it != conns_.end()) {
+        flush_body_locked(it->second);
         const Conn& c = it->second;
         if (NetRequest* r = find_locked(c.cur_req); r && !r->done())
             finish_locked(*r, now, c.counter ? *c.counter - c.snap : -1);
@@ -637,6 +754,173 @@ void NetworkLogger::on_ctx_closed_locked(const void* log_ctx, std::int64_t now)
         it = (it->second.log_ctx == log_ctx) ? conns_.erase(it) : std::next(it);
 }
 
+// ── Response bodies ──────────────────────────────────────────────────────────
+//
+// The tap rides on AVIOContext's update_checksum hook (public API, meant
+// for demuxers that checksum what they read). fill_buffer() calls it with
+// [checksum_ptr, buf_end) — the data about to be overwritten — before each
+// refill that wraps to the start of the buffer, then resets checksum_ptr;
+// ffio_ensure_seekback() passes [checksum_ptr, buf_ptr) before moving the
+// rest. Every byte is passed at least once before it is overwritten, some
+// twice (avio_feof() refills again after EOF, and a keep-alive handle's
+// first refill for its next request passes the previous tail again), and
+// the last stretch never. So bytes are credited by their position in the
+// handle's stream — io->bytes_read minus what follows them in the buffer —
+// and `reported` is how far that got: repeats are skipped, and what is
+// still uncredited when the handle moves to its next request, or closes,
+// is the tail of the buffer (flush_body_locked). A request switch logged
+// from inside a refill (http.c reconnecting mid-body) then credits nothing
+// twice. FFmpeg's checksum_ptr is left alone after tap_body.
+
+void NetworkLogger::tap_body(AVIOContext* pb)
+{
+    if (!pb || pb->write_flag || pb->update_checksum) return;
+    std::lock_guard lk(mtx_);
+    auto it = conns_.find(pb);
+    if (it == conns_.end()) return;
+    Conn& c = it->second;
+    c.io       = pb;
+    c.reported = pb->bytes_read;             // anything already buffered is not this tap's
+    pb->checksum        = tap_cookie(pb);
+    pb->checksum_ptr    = pb->buf_end;       // never set before a checksum is installed
+    pb->update_checksum = body_tap;
+}
+
+void NetworkLogger::ev_body(const void* pb, const std::uint8_t* data, std::size_t n)
+{
+    if (!data || n == 0) return;
+    std::lock_guard lk(mtx_);
+    auto it = conns_.find(pb);
+    if (it == conns_.end()) return;
+    Conn& c = it->second;
+    if (c.io) {
+        if (data < c.io->buffer || data + n > c.io->buf_end) return;   // not from this buffer
+        // Stream position of the stretch's end: everything read so far but
+        // what follows it in the buffer. Skip what was already credited.
+        const std::int64_t end   = c.io->bytes_read - (c.io->buf_end - (data + n));
+        const std::int64_t start = end - static_cast<std::int64_t>(n);
+        if (end <= c.reported) return;
+        if (start < c.reported) {
+            data += c.reported - start;
+            n = static_cast<std::size_t>(end - c.reported);
+        }
+        c.reported = end;
+        clip_file_body_locked(c, data, n);
+    }
+    append_body_locked(c.cur_req, data, n);
+}
+
+void NetworkLogger::clip_file_body_locked(const Conn& c, const std::uint8_t*& data, std::size_t& n)
+{
+    // A local file is read through its handle's buffer, not a ranged
+    // response: a short seek reads on from where the handle was, the buffer
+    // runs past the end. Keep the bytes of the range the open asked for
+    // (track_open_begin, hls.c's "offset" / "end_offset"); with none, the
+    // file position of the first byte kept becomes the range start.
+    // AVIOContext::pos is the file position of buf_end.
+    NetRequest* r = find_locked(c.cur_req);
+    if (!r || r->protocol != "file" || n == 0) return;
+    const std::int64_t at = c.io->pos - (c.io->buf_end - data);
+    if (r->range_start < 0) {
+        if (r->body_bytes <= 0 && at > 0) r->range_start = at;
+        return;
+    }
+    const std::int64_t lo = std::max(at, r->range_start);
+    const std::int64_t hi = std::min(at + static_cast<std::int64_t>(n),
+                                     r->range_end >= 0 ? r->range_end + 1 : std::numeric_limits<std::int64_t>::max());
+    if (hi <= lo) {
+        n = 0;
+        return;
+    }
+    data += lo - at;
+    n = static_cast<std::size_t>(hi - lo);
+}
+
+void NetworkLogger::flush_body_locked(Conn& c)
+{
+    AVIOContext* io = c.io;
+    if (!io) return;
+    if (io->update_checksum != body_tap || io->checksum != tap_cookie(io)) {
+        c.io = nullptr;                   // a demuxer took the hook over
+        return;
+    }
+    // The uncredited tail is the end of the buffer (a seek may have dropped
+    // some of it: what was never in the buffer since is lost, not invented).
+    const std::int64_t n = std::min<std::int64_t>(io->bytes_read - c.reported, io->buf_end - io->buffer);
+    if (n > 0) {
+        const std::uint8_t* data = io->buf_end - n;
+        std::size_t len = static_cast<std::size_t>(n);
+        clip_file_body_locked(c, data, len);
+        append_body_locked(c.cur_req, data, len);
+    }
+    c.reported = io->bytes_read;
+    // The request is over: a tiny non-text body is a key whose size was not announced.
+    if (auto it = bodies_.find(c.cur_req); it != bodies_.end() && it->second.data.size() <= 64) {
+        if (NetRequest* r = find_locked(c.cur_req); r && !body_is_text(*r)) {
+            body_total_ -= it->second.data.size();
+            bodies_.erase(it);
+            r->body_bytes = 0;
+            touch_locked(*r);
+        }
+    }
+}
+
+void NetworkLogger::append_body_locked(std::uint64_t id, const std::uint8_t* data, std::size_t n)
+{
+    NetRequest* r = find_locked(id);
+    if (!r || n == 0 || r->body_truncated) return;   // full already: the rest is not kept
+    const std::size_t limit = body_limit(*r);
+    if (limit == 0) return;
+    const std::size_t have = static_cast<std::size_t>(std::max<std::int64_t>(r->body_bytes, 0));
+    const std::size_t take = have < limit ? std::min(limit - have, n) : 0;
+    if (take > 0) {
+        Body& b = bodies_[id];
+        b.data.append(reinterpret_cast<const char*>(data), take);
+        body_total_ += take;
+        r->body_bytes = static_cast<std::int64_t>(b.data.size());
+    }
+    if (take < n) r->body_truncated = true;
+    if (take > 0 || r->body_truncated) touch_locked(*r);
+    if (body_total_ > kBodyBudget) drop_bodies_locked();
+}
+
+void NetworkLogger::drop_bodies_locked()
+{
+    // Oldest first: segment heads before text (a VOD fetches its playlists
+    // once, at the start), down to three quarters of the budget.
+    const std::size_t target = kBodyBudget / 4 * 3;
+    for (int pass = 0; pass < 2 && body_total_ > target; ++pass) {
+        for (NetRequest& r : reqs_) {
+            if (body_total_ <= target) break;
+            auto it = bodies_.find(r.id);
+            if (it == bodies_.end() || (pass == 0 && body_is_text(r))) continue;
+            body_total_ -= it->second.data.size();
+            bodies_.erase(it);
+            r.body_bytes   = 0;
+            r.body_dropped = true;
+            touch_locked(r);
+        }
+    }
+}
+
+std::size_t NetworkLogger::head_bytes(const std::string& url, const std::string& mime)
+{
+    const std::string u = lower_ascii(std::string_view(url).substr(0, url.find_first_of("?#")));
+    const std::string m = lower_ascii(mime);
+    const bool ts = u.ends_with(".ts") || u.ends_with(".tsv") || u.ends_with(".tsa") || u.ends_with(".m2ts")
+                 || m.find("mp2t") != std::string::npos;
+    return ts ? kTsHeadBytes : kHeadBytes;
+}
+
+bool NetworkLogger::copy_body(std::uint64_t id, std::string& out) const
+{
+    std::lock_guard lk(mtx_);
+    auto it = bodies_.find(id);
+    if (it == bodies_.end()) return false;
+    out = it->second.data;
+    return true;
+}
+
 // ── Consumer API ─────────────────────────────────────────────────────────────
 
 void NetworkLogger::poll(std::int64_t now)
@@ -650,11 +934,27 @@ void NetworkLogger::poll(std::int64_t now)
     for (auto& [pb, c] : conns_) {
         if (!c.counter) continue;
         NetRequest* r = find_locked(c.cur_req);
-        if (!r || r->failed || (r->done() && !r->partial)) continue;
-        const std::int64_t got = __atomic_load_n(c.counter, __ATOMIC_RELAXED) - c.snap;
+        if (!r || r->failed) continue;
+        // A local file's row is done at open, but it is read through while
+        // open: what was read so far (of its range), not the file's size.
+        const bool file = r->protocol == "file";
+        if (r->done() && !r->partial && !file) continue;
+        std::int64_t got = __atomic_load_n(c.counter, __ATOMIC_RELAXED) - c.snap;
         if (got < 0) continue;
+        if (file && r->range_start >= 0 && r->range_end >= r->range_start)
+            got = std::min(got, r->range_end - r->range_start + 1);
+        if (file) {
+            if (got != r->bytes) {
+                if (got > r->bytes) progress_.bytes += got - std::max<std::int64_t>(r->bytes, 0);
+                r->bytes       = got;
+                r->t_last_byte = now;
+                touch_locked(*r);
+            }
+            continue;
+        }
         if (got != r->bytes) {
             if (got > 0 || r->bytes > 0) r->t_last_byte = now;
+            if (got > r->bytes) progress_.bytes += got - std::max<std::int64_t>(r->bytes, 0);
             r->bytes = got;
             if (r->partial) { r->partial = false; r->t_end = -1; }   // reading resumed
             touch_locked(*r);
@@ -692,9 +992,78 @@ void NetworkLogger::clear()
 {
     std::lock_guard lk(mtx_);
     reqs_.clear();
+    bodies_.clear();
+    body_total_ = 0;
     entries_.clear();
     generation_.fetch_add(1, std::memory_order_acq_rel);
     seq_.fetch_add(1, std::memory_order_acq_rel);
+}
+
+// ── QA report ────────────────────────────────────────────────────────────────
+
+namespace {
+
+std::string json_escape(std::string_view s)
+{
+    std::string out;
+    out.reserve(s.size());
+    for (const char c : s) {
+        if (c == '"' || c == '\\') { out += '\\'; out += c; }
+        else if (static_cast<unsigned char>(c) < 0x20) out += std::format("\\u{:04x}", static_cast<int>(c));
+        else out += c;
+    }
+    return out;
+}
+
+bool is_playlist_url(const std::string& url)
+{
+    std::string u = url.substr(0, url.find_first_of("?#"));
+    for (auto& c : u) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    return u.ends_with(".m3u8") || u.ends_with(".m3u") || u.ends_with(".mpd");
+}
+
+} // namespace
+
+std::string net_report_json(const std::vector<NetRequest>& reqs, std::int64_t t0_us, std::int64_t t1_us)
+{
+    struct Totals { int requests = 0, failed = 0, playlists = 0, media = 0; std::int64_t bytes = 0; };
+    constexpr int kWho = static_cast<int>(NetInitiator::Other) + 1;
+    Totals by[kWho] = {};
+    Totals all;
+    std::string rows;
+    auto ms = [&](std::int64_t t) { return t < 0 ? -1.0 : static_cast<double>(t - t0_us) / 1000.0; };
+    for (const NetRequest& r : reqs) {
+        if (r.t_start < t0_us || r.t_start >= t1_us) continue;
+        const std::int64_t b = std::max<std::int64_t>(r.effective_bytes(), 0);
+        const bool pl = is_playlist_url(r.url);
+        for (Totals* t : { &by[static_cast<int>(r.initiator)], &all }) {
+            ++t->requests;
+            t->failed += r.failed ? 1 : 0;
+            (pl ? t->playlists : t->media) += 1;
+            t->bytes += b;
+        }
+        rows += std::format(
+            "{}    {{\"t_ms\":{:.1f},\"end_ms\":{:.1f},\"initiator\":\"{}\",\"status\":{},\"bytes\":{},"
+            "\"range\":\"{}\",\"partial\":{},\"failed\":{},\"url\":\"{}\"}}",
+            rows.empty() ? "" : ",\n", ms(r.t_start), ms(r.t_end), net_initiator_name(r.initiator),
+            r.status, b,
+            r.range_start >= 0 ? std::format("{}-{}", r.range_start, r.range_end >= 0 ? std::to_string(r.range_end) : "")
+                               : std::string(),
+            r.partial, r.failed, json_escape(r.url));
+    }
+    auto totals_json = [](const Totals& t) {
+        return std::format(R"({{"requests":{},"failed":{},"playlists":{},"media":{},"bytes":{}}})",
+                           t.requests, t.failed, t.playlists, t.media, t.bytes);
+    };
+    std::string per;
+    for (int w = 0; w < kWho; ++w) {
+        if (by[w].requests == 0) continue;
+        per += std::format("{}    \"{}\": {}", per.empty() ? "" : ",\n",
+                           net_initiator_name(static_cast<NetInitiator>(w)), totals_json(by[w]));
+    }
+    return std::format("{{\n  \"window_s\": {:.3f},\n  \"total\": {},\n  \"by_initiator\": {{\n{}\n  }},\n"
+                       "  \"requests\": [\n{}\n  ]\n}}\n",
+                       static_cast<double>(t1_us - t0_us) / 1e6, totals_json(all), per, rows);
 }
 
 // ── Legacy log-line API ──────────────────────────────────────────────────────

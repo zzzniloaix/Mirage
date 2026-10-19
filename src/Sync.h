@@ -7,7 +7,8 @@
 //   - If video is behind audio by more than the sync threshold → return 0 (catch up)
 //   - If video is ahead of audio by more than the sync threshold → add the lead to the delay
 //     (hold the frame until audio catches up)
-//   - Otherwise → return the natural frame duration
+//   - Otherwise → return the natural frame duration, less a tenth of the
+//     drift, so an offset inside the window doesn't stay for good
 //
 // PTS / clock inputs are media time; the result and the sync threshold are wall
 // time (media / speed). At 4x a 60 fps frame lasts ~4 ms of wall time, so a

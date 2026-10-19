@@ -55,15 +55,15 @@ TEST_CASE("compute_video_delay: threshold is wall time, so 4x tolerates 4x the m
 
     // 60 ms media behind audio. At 1x that's 60 ms wall (> 40 ms threshold) →
     // show immediately. At 4x it's 15 ms wall — ordinary clock jitter, so the
-    // natural (wall) frame duration must be kept rather than correcting.
+    // natural (wall) frame duration is kept, less a tenth of the drift.
     CHECK(compute_video_delay(pts, last, kFrame60, pts + 0.060, 1.0) == 0.0);
     CHECK_THAT(compute_video_delay(pts, last, kFrame60, pts + 0.060, 4.0),
-               WithinAbs(kFrame60 / 4.0, 1e-12));
+               WithinAbs(kFrame60 / 4.0 - 0.1 * 0.015, 1e-12));
 
     // Same for ahead.
     CHECK(compute_video_delay(pts, last, kFrame60, pts - 0.060, 1.0) > kFrame60);
     CHECK_THAT(compute_video_delay(pts, last, kFrame60, pts - 0.060, 4.0),
-               WithinAbs(kFrame60 / 4.0, 1e-12));
+               WithinAbs(kFrame60 / 4.0 + 0.1 * 0.015, 1e-12));
 
     // 200 ms media behind at 4x = 50 ms wall: past the 40 ms floor → catch up.
     CHECK(compute_video_delay(pts, last, kFrame60, pts + 0.200, 4.0) == 0.0);
@@ -75,9 +75,9 @@ TEST_CASE("compute_video_delay: threshold clamps to [40ms, 100ms] wall", "[sync]
     // = 25 ms media. 30 ms media behind (120 ms wall) must correct.
     const double f24 = 1.0 / 24.0;
     CHECK(compute_video_delay(10.0, 10.0 - f24, f24, 10.030, 0.25) == 0.0);
-    // 20 ms media behind (80 ms wall) is inside the window.
+    // 20 ms media behind (80 ms wall) is inside the window: a tenth of it off.
     CHECK_THAT(compute_video_delay(10.0, 10.0 - f24, f24, 10.020, 0.25),
-               WithinAbs(f24 / 0.25, 1e-12));
+               WithinAbs(f24 / 0.25 - 0.1 * 0.080, 1e-12));
 }
 
 TEST_CASE("compute_video_delay: video ahead holds the frame until audio catches up", "[sync]")
@@ -115,4 +115,17 @@ TEST_CASE("speed presets: sorted, include 1x, max 4x (two atempo stages)", "[syn
     CHECK(kSpeedPresets[0] >= 0.25);
     CHECK_FALSE(is_speed_preset(3.0));
     CHECK_FALSE(is_speed_preset(8.0));
+}
+
+TEST_CASE("compute_video_delay: an offset inside the window shrinks frame by frame", "[sync]")
+{
+    // Video 28 ms behind the audio clock (HLS after its start): no hard
+    // correction, but each frame shows a tenth of the offset early.
+    double offset = -0.028, pts = 30.0;
+    for (int i = 0; i < 40; ++i) {
+        const double delay = compute_video_delay(pts + kFrame60, pts, kFrame60, pts + kFrame60 - offset, 1.0);
+        offset += kFrame60 - delay;   // shown earlier than its duration: catches up by the difference
+        pts += kFrame60;
+    }
+    CHECK(std::abs(offset) < 0.001);
 }

@@ -6,6 +6,11 @@
 // Sync thresholds (wall-clock seconds)
 static constexpr double kSyncThresholdMin = 0.04;   // 40ms — don't correct tiny diffs
 static constexpr double kSyncThresholdMax = 0.10;   // 100ms — cap the correction window
+// Inside the window, a tenth of the drift is taken off each frame. Without it
+// the offset the video had when the audio clock took over (start, seek) stayed
+// for good — HLS played 19–28 ms behind the audio — since nothing inside the
+// window was corrected. A tenth of the clock's few ms of jitter is invisible.
+static constexpr double kDriftGain = 0.1;
 
 double frame_duration(double frame_pts, double last_pts, double fallback)
 {
@@ -38,8 +43,10 @@ double compute_video_delay(double frame_pts, double last_pts,
             // frame is a few ms, so doubling barely slows video while audio
             // still plays out buffer rendered at the previous speed.)
             delay = delay + diff_wall;
+        } else {
+            // Within threshold: the natural delay, drawn gently toward sync.
+            delay = std::max(0.0, delay + kDriftGain * diff_wall);
         }
-        // Within threshold: keep natural delay (no correction needed)
     }
 
     return delay;

@@ -26,14 +26,18 @@
 #include "SidecarSubtitles.h"
 #include "FfOpen.h"
 #include "UiFormat.h"
+#include "UiTheme.h"
+#include "UiWidgets.h"
 #include "MediaSession.h"
 
 // imgui headers (needed for WantCapture* guards in GLFW callbacks)
 #include "imgui.h"
+#include "imgui_internal.h"   // ImGui::FindWindowByName: what covers a panel's close button
 #include <nfd.h>
 
 #include <thread>
 #include <chrono>
+#include <condition_variable>
 #include <cstdlib>
 #include <limits>
 #include <fstream>
@@ -41,6 +45,9 @@
 #include <map>
 #include <memory>
 #include <algorithm>
+#include <array>
+#include <deque>
+#include <string_view>
 #include <cctype>
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -53,6 +60,8 @@ extern "C" {
 #include <libavutil/pixfmt.h>
 #include <libavutil/samplefmt.h>
 #include <libavutil/channel_layout.h>
+#include <libavutil/hwcontext.h>
+#include <libavutil/imgutils.h>
 }
 
 // File-scope pointer so GLFW callbacks can call notify_activity().
@@ -63,6 +72,8 @@ static PlayerUI* g_player_ui = nullptr;
 static std::string g_drop_pending;
 
 static std::atomic<double> s_seek_delta{ 0.0 };
+static std::atomic<double> s_seek_to{ -1.0 };   // absolute seek (seek bar, sidebar, tags, QA); < 0 = none
+static std::atomic<int>    s_escape{ 0 };       // Esc presses for run_session: close the last panel opened
 static std::atomic<bool>   s_paused{ false };
 static std::atomic<double> s_speed{ 1.0 };
 static std::atomic<bool>   s_scrubbing{ false };
@@ -104,11 +115,15 @@ static constexpr double kLateFrameDrop = 0.15;
 // One scripted event at at_sec seconds since playback start. Besides speed
 // changes, "pause@t" / "play@t" / "seek:<secs>@t" exercise the audio flush and
 // blocked-push paths that rapid speed switching interacts with; "kf+@t" /
-// "kf-@t" are keyframe steps (the . / , keys).
+// "kf-@t" are keyframe steps (the . / , keys), "back@t" / "fwd@t" frame steps
+// (Shift+, / Shift+.). "scrub:<secs>@t" holds a seek-bar drag at <secs> (the
+// scrub preview), "release@t" lets go of it (seeks there), and "snap@t"
+// writes a window capture to the --ui-snapshot path. "esc@t" presses Esc;
+// "panel:<key>@t" toggles a panel as its key does (D I G T W N H V).
 struct SpeedStep {
-    enum Kind { Speed, Pause, Play, Seek, KfNext, KfPrev } kind = Speed;
+    enum Kind { Speed, Pause, Play, Seek, KfNext, KfPrev, Scrub, Release, Back, Fwd, Snap, Esc, Panel } kind = Speed;
     double at_sec;
-    double speed;   // Speed: new speed; Seek: target seconds
+    double speed;   // Speed: new speed; Seek / Scrub: target seconds; Panel: its key (letter)
 };
 
 // Parse "1@0,4@2,pause@3,seek:30@4,play@5". Every speed must be a preset.
@@ -128,9 +143,21 @@ static bool parse_speed_seq(const std::string& spec, std::vector<SpeedStep>& out
             step.kind = (what == "pause") ? SpeedStep::Pause : SpeedStep::Play;
         } else if (what == "kf+" || what == "kf-") {
             step.kind = (what == "kf+") ? SpeedStep::KfNext : SpeedStep::KfPrev;
-        } else if (what.starts_with("seek:")) {
-            step.kind  = SpeedStep::Seek;
-            step.speed = std::strtod(what.c_str() + 5, &end);
+        } else if (what == "back" || what == "fwd") {
+            step.kind = (what == "back") ? SpeedStep::Back : SpeedStep::Fwd;
+        } else if (what == "release" || what == "snap") {
+            step.kind = (what == "release") ? SpeedStep::Release : SpeedStep::Snap;
+        } else if (what == "esc") {
+            step.kind = SpeedStep::Esc;
+        } else if (what.starts_with("panel:") && what.size() == 7
+                   && std::string_view("DIGTWNHV").find(static_cast<char>(std::toupper(
+                          static_cast<unsigned char>(what[6])))) != std::string_view::npos) {
+            step.kind  = SpeedStep::Panel;
+            step.speed = std::toupper(static_cast<unsigned char>(what[6]));
+        } else if (what.starts_with("seek:") || what.starts_with("scrub:")) {
+            const bool seek = what.starts_with("seek:");
+            step.kind  = seek ? SpeedStep::Seek : SpeedStep::Scrub;
+            step.speed = std::strtod(what.c_str() + (seek ? 5 : 6), &end);
             if (*end != '\0' || step.speed < 0.0) return false;
         } else {
             step.speed = std::strtod(what.c_str(), &end);
@@ -214,16 +241,25 @@ static void on_key(GLFWwindow* window, int key, int /*scancode*/, int action, in
     // Let ImGui consume keyboard events when it wants exclusive input (e.g. text fields).
     if (ImGui::GetIO().WantCaptureKeyboard) return;
     if (action != GLFW_PRESS) return;
-    // Esc: a seek-bar drag in progress is cancelled by ImGui (it owns the
-    // keyboard while the bar is held, so we never get here); otherwise close
-    // the Open dialog, then leave fullscreen, and only then quit.
+    // Esc never quits (Q does): it closes the Open dialog, else the panel
+    // opened last, then the one before, else leaves fullscreen (run_session,
+    // s_escape). A seek-bar drag in progress is cancelled by ImGui (it owns
+    // the keyboard while the bar is held, so we never get here); so is an
+    // open menu. Quit and pause keys are logged: a stray press (typing meant
+    // for another window) otherwise reads as a crash or a hang in the log.
     if (key == GLFW_KEY_ESCAPE) {
         if (g_player_ui && g_player_ui->open_dialog_visible()) g_player_ui->close_open_dialog();
-        else if (s_fullscreen.load()) s_fullscreen_toggle.fetch_add(1);
-        else                     glfwSetWindowShouldClose(window, GLFW_TRUE);
+        else s_escape.fetch_add(1);
     }
-    else if (key == GLFW_KEY_Q) glfwSetWindowShouldClose(window, GLFW_TRUE);
-    else if (key == GLFW_KEY_SPACE) s_paused.store(!s_paused.load());
+    else if (key == GLFW_KEY_Q) {
+        logger::info("key: Q — closing the window (t={:.3f})", logger::uptime());
+        glfwSetWindowShouldClose(window, GLFW_TRUE);
+    }
+    else if (key == GLFW_KEY_SPACE) {
+        const bool pause = !s_paused.load();
+        s_paused.store(pause);
+        logger::info("key: Space — {} (t={:.3f})", pause ? "pause" : "play", logger::uptime());
+    }
     else if (key == GLFW_KEY_RIGHT) s_seek_delta.store(+10.0);
     else if (key == GLFW_KEY_LEFT)  s_seek_delta.store(-10.0);
     else if (key == GLFW_KEY_UP)    s_seek_delta.store(+60.0);
@@ -363,6 +399,7 @@ static void save_recent(const std::string& entry)
 struct Prefs {
     SubPref  sub;
     SubStyle sub_style;
+    float    net_width = -1.0f;   // network sidebar width the user dragged to; < 0 automatic
 };
 
 static std::string prefs_file_path()
@@ -394,6 +431,8 @@ static Prefs load_prefs()
                               : v == "none" ? SubStyle::None : SubStyle::Box;
         } else if (k == "sub_box") {
             pr.sub_style.box_opacity = std::clamp(std::atoi(v.c_str()), 0, 100);
+        } else if (k == "net_width") {
+            pr.net_width = std::strtof(v.c_str(), nullptr);
         }
     }
     if (pr.sub.mode == SubPref::Lang && pr.sub.lang.empty()) pr.sub.mode = SubPref::Auto;
@@ -412,7 +451,8 @@ static void save_prefs(const Prefs& pr)
       << "sub_lang=" << pr.sub.lang << "\n"
       << "sub_size=" << pr.sub_style.size_pct << "\n"
       << "sub_edge=" << kEdge[std::clamp(static_cast<int>(pr.sub_style.edge), 0, 3)] << "\n"
-      << "sub_box=" << pr.sub_style.box_opacity << "\n";
+      << "sub_box=" << pr.sub_style.box_opacity << "\n"
+      << "net_width=" << pr.net_width << "\n";
 }
 
 // ── UI helpers ────────────────────────────────────────────────────────────────
@@ -481,6 +521,7 @@ struct CliOptions {
     bool        no_auto_subs  = false; // --no-auto-subs: pref Off for this run
     bool        test_bitmap_sub = false;  // QA: inject synthetic bitmap sub event
     bool        try_hw          = true;   // VideoToolbox HW decode on by default; --no-hw to disable
+    bool        hls_dedupe      = true;   // --hls-as-is: open HLS masters exactly as served
     // QA snapshot hook: `--snapshot <out.ppm> <frame_number>` captures the video
     // viewport after N frames have been drawn, writes a PPM, and exits. Used
     // to visually diff HW vs SW rendering paths without needing a human eye.
@@ -513,6 +554,16 @@ struct CliOptions {
     // tracks at wall seconds since the first presented frame. v<height> /
     // v#<stream>, a<n> / a#<stream> (n = 1-based panel order), s<n> / soff.
     std::vector<std::pair<double, std::string>> qa_switch;
+    // QA network summary: `--net-report <out.json> <secs>` writes the requests
+    // made in the first <secs> wall seconds after the first open began, by
+    // initiator (written once; the player keeps running).
+    std::string net_report_path;
+    double      net_report_secs = 20.0;
+    // QA alignment check: `--align-report <out.txt> <secs>` writes the
+    // network inspector's alignment report <secs> after launch (the sidebar
+    // must be open: --ui-net tab=alignment[,scope=all,probe=1]).
+    std::string align_report_path;
+    double      align_report_secs = 20.0;
 };
 
 struct App {
@@ -545,10 +596,14 @@ struct App {
         std::string                   err;
         std::chrono::steady_clock::time_point since;
         std::size_t                   net_reqs0 = 0;   // network log size at the start (progress)
+        // Network progress last seen move, and when (stall watchdog, poll_open).
+        NetworkLogger::Progress       net_mark;
+        std::chrono::steady_clock::time_point net_mark_at;
         std::jthread                  worker;     // last: joined first on destruction
     };
     std::unique_ptr<PendingOpen>              opening;
     std::vector<std::unique_ptr<PendingOpen>> abandoned;
+    std::jthread                              net_report;   // --net-report timer
 };
 
 static MediaSessionOptions session_options(const App& app)
@@ -556,6 +611,7 @@ static MediaSessionOptions session_options(const App& app)
     MediaSessionOptions opt;
     opt.try_hw          = app.cli.try_hw;
     opt.test_bitmap_sub = app.cli.test_bitmap_sub;
+    opt.hls_dedupe      = app.cli.hls_dedupe;
     return opt;
 }
 
@@ -579,15 +635,46 @@ static void cancel_open(App& app)
     app.abandoned.push_back(std::move(app.opening));
 }
 
+// --net-report: from the first open on, wait <secs> (or until quit) and write
+// the requests made since, by initiator.
+static void start_net_report(App& app)
+{
+    if (app.cli.net_report_path.empty() || app.net_report.joinable()) return;
+    app.net_report = std::jthread([&log = app.net_logger, path = app.cli.net_report_path,
+                                   secs = app.cli.net_report_secs,
+                                   t0 = NetworkLogger::now_us()](std::stop_token st) {
+        std::mutex m;
+        std::condition_variable_any cv;
+        {
+            std::unique_lock lk(m);
+            cv.wait_for(lk, st, std::chrono::duration<double>(secs), [] { return false; });
+        }
+        const bool complete = !st.stop_requested();
+        const std::int64_t t1 = complete ? t0 + static_cast<std::int64_t>(secs * 1e6) : NetworkLogger::now_us();
+        log.poll();   // byte counts of requests still in flight
+        std::vector<NetRequest> reqs;
+        std::uint64_t oldest = 0;
+        log.copy_changed_since(0, reqs, oldest);
+        std::ofstream f(path);
+        f << net_report_json(reqs, t0, t1);
+        logger::info("--net-report: wrote {} ({:.1f} s{})", path, static_cast<double>(t1 - t0) / 1e6,
+                     complete ? "" : ", cut short by quit");
+    });
+}
+
 // Start opening `path` on a worker thread; replaces an open in progress.
 static void begin_open(App& app, const std::string& path)
 {
     cancel_open(app);
+    start_net_report(app);
+    logger::info("Opening {} (t={:.3f})", path, logger::uptime());
     auto p   = std::make_unique<App::PendingOpen>();
     p->path  = path;
     p->ms    = std::make_unique<MediaSession>();
     p->since = std::chrono::steady_clock::now();
     p->net_reqs0 = app.net_logger.size();
+    p->net_mark    = app.net_logger.progress();
+    p->net_mark_at = p->since;
     App::PendingOpen* raw = p.get();
     const MediaSessionOptions opt = session_options(app);
     p->worker = std::jthread([raw, opt] {
@@ -612,17 +699,65 @@ static std::string open_progress(const App& app)
     return std::format("{} request{} \u00B7 {:.1f} s", rq, rq == 1 ? "" : "s", t);
 }
 
+// The embedded subtitle stream run_session starts the session with (-1: off
+// or a sidecar file), from the same SubtitleSelect inputs — so playback can
+// read it from the first packet (MediaSession::preselect_subtitle). Should
+// the two ever disagree, run_session's choice still applies, as a switch.
+static int initial_embedded_subtitle(const App& app, const MediaSession& ms)
+{
+    const bool  local = !ffopen::is_network_url(ms.path);
+    const std::string stem = local ? std::filesystem::path(ms.path).stem().string() : std::string();
+    const std::vector<SubChoice> choices = build_choices(
+        ms.demuxer.subtitle_tracks(), local ? find_sidecars(ms.path) : std::vector<std::string>{}, stem);
+    SubCli sub_cli;
+    if (app.sessions_played == 0) {   // the command line applies to the first media only
+        std::error_code ec;
+        if (!app.cli.cli_sub_file.empty() && std::filesystem::is_regular_file(app.cli.cli_sub_file, ec))
+            return -1;   // --sub-file comes first
+        sub_cli.off        = app.cli.cli_sub_idx == -1;
+        sub_cli.stream_idx = app.cli.cli_sub_idx >= 0 ? app.cli.cli_sub_idx : -1;
+    }
+    const int pick = choose_initial(choices, sub_cli, app.sub_pref);
+    return pick >= 0 && choices[static_cast<std::size_t>(pick)].kind == SubChoice::Embedded
+         ? choices[static_cast<std::size_t>(pick)].stream_idx : -1;
+}
+
 // Main thread, once per frame: if the worker finished, finish the open (GL
 // half) and return the session. On failure returns nullptr with the reason
 // in `err`; while still opening returns nullptr with `err` empty.
 static std::unique_ptr<MediaSession> poll_open(App& app, std::string& err)
 {
     reap_abandoned(app);
+    // A network open that has stopped getting anywhere is given up on: no
+    // request finished and under kStallBytes arrived for kOpenStall. A server
+    // that stalls mid-response otherwise kept it going for minutes — FFmpeg
+    // reconnects and waits for the rest, round after round, then the next
+    // playlist stalls the same way. A slow open that moves goes on.
+    static constexpr auto         kOpenStall = std::chrono::seconds(20);
+    static constexpr std::int64_t kStallBytes = 64 * 1024;
+    if (app.opening && !app.opening->done.load() && ffopen::is_network_url(app.opening->path)) {
+        App::PendingOpen& p = *app.opening;
+        app.net_logger.poll();   // byte counts of requests in flight
+        const NetworkLogger::Progress now_p = app.net_logger.progress();
+        const auto now = std::chrono::steady_clock::now();
+        if (now_p.completed != p.net_mark.completed || now_p.bytes - p.net_mark.bytes >= kStallBytes) {
+            p.net_mark    = now_p;
+            p.net_mark_at = now;
+        } else if (now - p.net_mark_at >= kOpenStall) {
+            err = std::format("No data from the server for {} s \u2014 gave up opening {}",
+                              std::chrono::duration_cast<std::chrono::seconds>(kOpenStall).count(), p.path);
+            logger::warn("Open stalled: {} (t={:.3f})", err, logger::uptime());
+            cancel_open(app);
+            return nullptr;
+        }
+    }
     if (!app.opening || !app.opening->done.load()) return nullptr;
     std::unique_ptr<App::PendingOpen> p = std::move(app.opening);
     p->worker.join();
-    logger::info("Opened {} in {:.0f} ms", p->path,
-                 std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - p->since).count());
+    logger::info("Opened {} in {:.0f} ms (t={:.3f})", p->path,
+                 std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - p->since).count(),
+                 logger::uptime());
+    if (p->ok) p->ms->preselect_subtitle(initial_embedded_subtitle(app, *p->ms));
     if (!p->ok || !p->ms->start(session_options(app), p->err)) {
         err = p->err.empty() ? "Failed to open: " + p->path : p->err;
         return nullptr;
@@ -659,15 +794,22 @@ int main(int argc, char* argv[])
 {
     (void)logger::uptime();   // start the trace clock
 
-    // --window WxH must be known before the window exists.
-    int init_win_w = 1280, init_win_h = 720;
-    for (int i = 1; i + 1 < argc; ++i)
-        if (std::string(argv[i]) == "--window") {
+    // --window WxH and --qa-no-focus must be known before the window exists.
+    int  init_win_w = 1280, init_win_h = 720;
+    bool qa_no_focus = false;
+    for (int i = 1; i < argc; ++i) {
+        const std::string a = argv[i];
+        if (a == "--window" && i + 1 < argc) {
             int w = 0, h = 0;
             if (std::sscanf(argv[i + 1], "%dx%d", &w, &h) == 2 && w >= 200 && h >= 150) {
                 init_win_w = w; init_win_h = h;
             }
         }
+        // QA: open the window without taking keyboard focus, so typing in
+        // another app can't reach a scripted run (Space pauses it before its
+        // first frame, Q / Esc quit it).
+        if (a == "--qa-no-focus") qa_no_focus = true;
+    }
 
     // ── GLFW + OpenGL ─────────────────────────────────────────────────────────
     if (!glfwInit()) {
@@ -679,6 +821,10 @@ int main(int argc, char* argv[])
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+    if (qa_no_focus) {
+        glfwWindowHint(GLFW_FOCUSED, GLFW_FALSE);
+        glfwWindowHint(GLFW_FOCUS_ON_SHOW, GLFW_FALSE);
+    }
 
     GLFWwindow* window = glfwCreateWindow(init_win_w, init_win_h, "Mirage", nullptr, nullptr);
     if (!window) {
@@ -759,6 +905,8 @@ int main(int argc, char* argv[])
             cli.no_auto_subs = true;
         } else if (arg == "--window" && i + 1 < argc) {
             ++i;   // handled before window creation
+        } else if (arg == "--qa-no-focus") {
+            // handled before window creation
         } else if (arg == "--ui-snapshot" && i + 2 < argc) {
             cli.ui_snap_path  = argv[++i];
             cli.ui_snap_frame = std::atoi(argv[++i]);
@@ -782,6 +930,8 @@ int main(int argc, char* argv[])
             cli.test_bitmap_sub = true;
         } else if (arg == "--no-hw") {
             cli.try_hw = false;
+        } else if (arg == "--hls-as-is") {
+            cli.hls_dedupe = false;
         } else if (arg == "--snapshot" && i + 2 < argc) {
             cli.snapshot_path     = argv[++i];
             cli.snapshot_at_frame = std::atoi(argv[++i]);
@@ -817,6 +967,12 @@ int main(int argc, char* argv[])
             }
             std::stable_sort(cli.qa_switch.begin(), cli.qa_switch.end(),
                              [](const auto& a, const auto& b) { return a.first < b.first; });
+        } else if (arg == "--net-report" && i + 2 < argc) {
+            cli.net_report_path = argv[++i];
+            cli.net_report_secs = std::max(0.0, std::atof(argv[++i]));
+        } else if (arg == "--align-report" && i + 2 < argc) {
+            cli.align_report_path = argv[++i];
+            cli.align_report_secs = std::max(0.0, std::atof(argv[++i]));
         } else if (arg == "--qa-open-after" && i + 2 < argc) {
             const double secs = std::max(0.0, std::atof(argv[++i]));
             cli.qa_open.emplace_back(secs, argv[++i]);
@@ -829,6 +985,19 @@ int main(int argc, char* argv[])
     NetworkLogger net_logger;
     net_logger.install();
 
+    // Quitting: the window and GLFW are left to the process exit. Destroying
+    // a window whose GL context has bound VideoToolbox IOSurfaces keeps the
+    // process's VTDecoderXPCService running after it exits, one more per run
+    // (glFinish, detaching the context or waiting first don't help) — some
+    // hundred of them exhaust the system's IOSurface clients, and then no app
+    // can start. The exit releases it all without that.
+    auto quit = [&] {
+        net_logger.uninstall();
+        g_player_ui = nullptr;
+        player_ui.shutdown();
+        return EXIT_SUCCESS;
+    };
+
     App app{ .window = window, .player_ui = player_ui, .debug_hud = debug_hud,
              .net_logger = net_logger, .cli = cli };
     app.fs_w = init_win_w;
@@ -838,6 +1007,7 @@ int main(int argc, char* argv[])
     app.prefs_enabled = cli.ui_snap_path.empty();
     app.prefs    = app.prefs_enabled ? load_prefs() : Prefs{};
     player_ui.set_sub_style(app.prefs.sub_style);
+    app.net_inspector.set_user_width(app.prefs.net_width);
     app.sub_pref = app.prefs.sub;
     if (cli.no_auto_subs) app.sub_pref.mode = SubPref::Off;
 
@@ -868,15 +1038,7 @@ int main(int argc, char* argv[])
 
                 glfwSwapBuffers(window);
             }
-            if (open_path.empty()) {
-                // User closed the window without choosing
-                net_logger.uninstall();
-                g_player_ui = nullptr;
-                player_ui.shutdown();
-                glfwDestroyWindow(window);
-                glfwTerminate();
-                return EXIT_SUCCESS;
-            }
+            if (open_path.empty()) return quit();   // the window closed without a choice
         }
 
         // Open on a worker thread behind a loading card (an HLS master
@@ -926,12 +1088,7 @@ int main(int argc, char* argv[])
             session.reset();
             cancel_open(app);
             reap_abandoned(app, true);
-            net_logger.uninstall();
-            g_player_ui = nullptr;
-            player_ui.shutdown();
-            glfwDestroyWindow(window);
-            glfwTerminate();
-            return EXIT_SUCCESS;
+            return quit();
         }
     }
 
@@ -960,13 +1117,7 @@ int main(int argc, char* argv[])
     cancel_open(app);
     reap_abandoned(app, true);
 
-    // ── Shutdown ──────────────────────────────────────────────────────────────
-    net_logger.uninstall();
-    g_player_ui = nullptr;
-    player_ui.shutdown();
-    glfwDestroyWindow(window);
-    glfwTerminate();
-    return EXIT_SUCCESS;
+    return quit();
 }
 
 // ── Playback of one media source ─────────────────────────────────────────────
@@ -983,6 +1134,8 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
     // aimed at the previous one. Overlay toggles, speed and fullscreen carry over.
     s_paused.store(false);
     s_seek_delta.store(0.0);
+    s_seek_to.store(-1.0);
+    s_escape.store(0);
     s_scrubbing.store(false);
     s_scrub_frac.store(-1.0);
     s_click_x.store(-1.0);
@@ -1078,6 +1231,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         if (!prefs_enabled) return;
         prefs.sub       = sub_pref;
         prefs.sub_style = player_ui.sub_style();
+        prefs.net_width = app.net_inspector.user_width();
         save_prefs(prefs);
     };
 
@@ -1219,12 +1373,46 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
     const auto startup_time = std::chrono::steady_clock::now();
     auto next_pts_time  = startup_time;
     auto last_title_upd = startup_time;
+    // Startup watchdog: no frame on screen 10 s after the session started
+    // (the open itself is done by then) logs every stage's state, once.
+    // Timed from MediaSession::start(): a session opened during playback
+    // starts decoding before the old one is torn down and this loop begins.
+    const auto opened_at = ms.started_at;
+    auto since_open = [&](SteadyClock::time_point t) { return std::chrono::duration<double>(t - opened_at).count(); };
+    StartupWatchdog startup_watchdog;
+    startup_watchdog.start(0.0);   // seconds since opened_at
+    bool first_frame_logged = false;
     // After a seek, ignore the audio clock until it has settled at the new position.
     auto audio_clock_valid_at = std::chrono::steady_clock::now();
-    // A seek while paused can't flush audio until playback resumes: the audio
-    // thread sits in push() on the full ring of pre-seek audio (the device is
-    // stopped) and only reaches the seek's flush sentinel once it drains.
-    bool seeked_while_paused = false;
+    // Panels Esc closes, the one opened last first, however it was opened
+    // (key, menu, QA flag). Panels open at the start count in this order, so
+    // the help card goes first. (Not K: its filmstrip only shows while
+    // scrubbing, so closing it would look like nothing happened.)
+    struct EscPanel {
+        std::atomic<bool>* flag;
+        const char*        name;
+        bool               was_open  = false;
+        std::uint64_t      opened_at = 0;
+    };
+    std::array<EscPanel, 8> esc_panels{ { { &s_show_hud, "HUD" },          { &s_show_inspector, "stream inspector" },
+                                          { &s_show_drift, "A/V drift graph" }, { &s_show_waveform, "waveform" },
+                                          { &s_show_vmaf, "VMAF" },         { &s_show_network, "network inspector" },
+                                          { &s_show_tracks, "tracks" },     { &s_show_help, "help" } } };
+    std::uint64_t esc_seq = 0;
+
+    // Navigating while paused without a seek (frame steps, a track switch)
+    // moves the video only: the audio in the ring is stale then, and is
+    // flushed when playback resumes. A seek re-reads the audio too.
+    bool paused_audio_stale = false;
+    bool paused_seeked      = false;   // a seek was made while paused
+    // A seek made while playing holds the device until its first frame is on
+    // screen (hold_audio_for_seek); since when the pipeline looked stuck on it.
+    bool seek_audio_held = false;
+    std::chrono::steady_clock::time_point hold_starved_since{};
+    // Paused before the first frame (Space during startup): the device stopped
+    // before it played anything, so on resume its clock is still the pre-roll
+    // 0 until the first callback — video follows its own clock until then.
+    bool paused_at_start = false;
     // While paused the device is stopped, so the audio thread blocks in push()
     // on a full ring, audioq fills, and the demuxer blocks on audioq — it then
     // never services a seek, and frame steps starve. Paused navigation makes
@@ -1232,7 +1420,25 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
     // so the audio thread drains audioq and the demuxer can move again.
     auto release_paused_audio = [&] {
         if (has_audio) audio_player.flush();
-        seeked_while_paused = true;
+        paused_audio_stale = true;
+    };
+    // Before a seek request. The seek re-reads the audio from its target:
+    // the device waits — while paused until playback resumes, else until the
+    // seek's first frame is on screen, since from a keyframe or HLS segment
+    // start the decoder can take a second to reach the target and audio
+    // playing meanwhile would run ahead of it. The ring is flushed (the
+    // device is stopped, so that is safe here), and the audio thread drops
+    // what it still pops from before the seek (audio_drop_until_seek).
+    auto hold_audio_for_seek = [&](bool paused) {
+        if (!has_audio) return;
+        if (!paused && !seek_audio_held) {
+            audio_player.set_paused(true);
+            seek_audio_held    = true;
+            hold_starved_since = {};
+        }
+        audio_player.flush();
+        paused_audio_stale = false;
+        paused_seeked      = paused;
     };
 
     // ── Track switches + "waiting for data" state (loading indicator) ───────
@@ -1255,8 +1461,19 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
     bool          asw_exact = false;   // audio switch made while paused (clock restarts)
     // Seek: from the request until the first frame decoded after it shows.
     bool              seek_wait  = false;
-    int               seek_epoch = 0;
+    std::uint64_t     seek_wait_serial = 0;   // the seek waited for (Demuxer::request_seek)
     SClock::time_point seek_since{};
+    // The latest seek requested: frames from before it are stale and never
+    // shown — the decode thread can still push some after the drain at the
+    // request, until the seek's flush reaches it.
+    std::uint64_t     latest_seek = 0;
+    auto pop_current = [&](AVFrame*& f) {
+        while (frameq.try_pop(f)) {
+            if (MediaSession::tag_after_seek(f, latest_seek)) return true;
+            av_frame_free(&f);
+        }
+        return false;
+    };
     SClock::time_point last_present = SClock::now();   // last frame put on screen (normal playback)
     bool              paused_switch_frame = false;    // paused video switch: show its first frame
     int               shown_epoch = 0;                // generation of the frame on screen
@@ -1294,8 +1511,10 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
     auto switch_audio = [&](int stream_idx, bool paused_now, SClock::time_point& valid_at) {
         if (stream_idx < 0 || stream_idx == cur_audio_stream || !has_audio) return;
         cur_audio_stream = stream_idx;
+        // Paused: from the frame on screen, where playback resumes (frame
+        // steps may have moved it away from the audio in the ring).
         const double audible = audio_player.clock() - audio_player.output_latency_seconds() * s_speed.load();
-        const double pos = audible > 0.0 ? audible : last_pts;
+        const double pos = paused_now ? last_pts : (audible > 0.0 ? audible : last_pts);
         logger::info("switch-trace: request audio -> stream {} at {:.3f} (t={:.3f})",
                      stream_idx, pos, logger::uptime());
         // Seamless take-over point: past what the device already holds (the
@@ -1304,13 +1523,14 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         const double spd  = s_speed.load();
         const double keep = pos + (0.6 + (local_media ? 0.1 : net_switch_lead)) * spd;
         demuxer.request_audio_switch(stream_idx, pos, paused_now, keep);
-        // Paused: the device is stopped, so flushing is safe and unblocks an
-        // audio thread waiting on a full ring (it must reach the sentinel).
-        // The new track then starts at the audible position; video keeps its
-        // own clock until the device plays again. Playing: seamless, the
+        // Paused: the demuxer drops the queued audio, wakes the audio thread
+        // waiting on the stopped device (Demuxer::set_on_audio_flush) and
+        // reads the new track from pos into the ring, which the device then
+        // plays on resume as after a paused seek. Playing: seamless, the
         // audio clock stays continuous.
         if (paused_now) {
-            audio_player.flush();
+            paused_audio_stale = false;
+            paused_seeked      = true;
             valid_at = SClock::now() + std::chrono::milliseconds(400);
         }
         asw_exact = paused_now;
@@ -1331,11 +1551,17 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         // the old track keeps playing while the new one downloads.
         const double keep = last_pts + (local_media ? 0.25 : net_switch_lead) * s_speed.load();
         demuxer.request_video_switch(stream_idx, last_pts, paused_now, keep);
+        ms.prepare_video_stream(stream_idx);   // its keyframe list (HLS: the variant playlist)
         vsw = { true, stream_idx, ms.video_epoch.load(), 0, SClock::now(), video_label(stream_idx) };
         if (paused_now) {
             AVFrame* stale;
             while (frameq.try_pop(stale)) av_frame_free(&stale);
-            if (has_audio) release_paused_audio();   // demuxer may be blocked on a full audioq
+            // A paused switch is a full seek to the frame on screen: the
+            // audio is read again from there too, as for a paused seek.
+            if (has_audio) {
+                paused_audio_stale = false;
+                paused_seeked      = true;
+            }
             paused_switch_frame = true;
         }
     };
@@ -1343,19 +1569,55 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
 
     // Scrub state
     bool   was_scrubbing      = false;
-    bool   pending_step_frame = false;  // true = show next arriving frame (step while paused)
+    bool   pending_step_frame = false;  // true = show next arriving frame (step / seek while paused)
+    bool   step_is_seek       = false;  // ...for a seek, not a keyframe step (QA trace)
+    std::uint64_t step_serial = 0;      // keyframe step / seek: the frame shown comes from this seek (0: the next one)
     double last_scrub_frac   = -1.0;   // latest drag position
     double last_seek_pos     = 0.0;    // pts of the most recent seek; freezes thumbnail highlight
     double scrub_display_pts = -1.0;   // PTS of the last frame actually uploaded from ScrubDecoder
     bool   ui_seek_dragging  = false;  // ImGui seek bar was dragging last frame (1-frame carry)
     bool   pending_back_step = false;  // true while waiting on ScrubDecoder for backward step
+    double back_step_target  = -1.0;   // its ScrubDecoder request (seconds; QA trace)
+    SClock::time_point back_step_since{};
+    // QA (--speed-seq scrub:/release/snap): a scripted seek-bar drag, and
+    // window captures taken at scripted times.
+    bool   qa_scrubbing      = false;
+    double qa_scrub_target   = -1.0;
+    SClock::time_point qa_scrub_since{};
+    bool   qa_snap_pending   = false;
+    int    qa_snaps_done     = 0;
+    const int qa_snaps_total = static_cast<int>(std::count_if(cli.speed_seq.begin(), cli.speed_seq.end(),
+        [](const SpeedStep& s) { return s.kind == SpeedStep::Snap; }));
+    int    scrub_shown_w = 0, scrub_shown_h = 0;   // the scrub frame on screen (QA trace)
+    // Serial of this drag's first ScrubDecoder request (drag_first: none yet):
+    // frames answering older requests (a drag before, a frame-back step) are
+    // not shown. The frame-back step waits for its own request's frame.
+    std::uint64_t drag_serial0 = 0;
+    bool          drag_first   = true;
+    std::uint64_t back_step_serial = 0;
+    // A keyframe step waiting for the scrub decoder to read the stream
+    // around the frame on screen (see Keyframe stepping below). Frame steps
+    // wait for it too, so they apply in order.
+    struct KfWait {
+        bool          active = false;
+        int           dir    = 0;      // +1 '.', -1 ','
+        int           stream = -1;
+        double        from   = 0.0;    // pts stepped from
+        std::uint64_t serial = 0;      // ScrubDecoder::probe
+        SClock::time_point since{};
+    } kf_wait;
+    static constexpr double kKfProbeTimeout = 10.0;   // s, then step among the keyframes known
+    auto scrub_request = [&](double t) {
+        const std::uint64_t serial = scrub_decoder.request(t);
+        if (drag_first) { drag_serial0 = serial; drag_first = false; }
+    };
 
     last_frame_dur = frame_dt;   // one frame from avg_frame_rate (MediaSession)
 
     // Seconds for a decoded frame: its PTS, else libavcodec's best-effort guess
     // (MPEG-TS without PTS on every frame), else one frame after the last one.
-    // Main-pipeline frames carry their stream's time base (variants of one
-    // HLS stream differ, e.g. 1/60000 vs 1/30000); scrub frames use video_tb.
+    // Frames carry their stream's time base (variants of one HLS stream
+    // differ, e.g. 1/60000 vs 1/30000) — the main pipeline's and ScrubDecoder's.
     auto frame_pts_sec = [&](const AVFrame* f) {
         int64_t ts = (f->pts != AV_NOPTS_VALUE) ? f->pts : f->best_effort_timestamp;
         const AVRational tb = f->time_base.num > 0 ? f->time_base : video_tb;
@@ -1366,10 +1628,61 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
     int    shown_w = coded_w, shown_h = coded_h;
     double stream_fps = (frame_dt > 0.0) ? 1.0 / frame_dt : 0.0;
     SClock::time_point last_info_upd{};
+    // Video stream of the frame on screen, and one frame of it (0 = the
+    // stream declares no frame rate): what keyframe steps, frame-back steps
+    // and scrubbing work on.
+    int    shown_stream   = cur_video_stream;
+    double shown_frame_dt = 0.0;
+    for (const auto& vt : demuxer.video_tracks())
+        if (vt.stream_idx == shown_stream && vt.fps > 0.0) shown_frame_dt = 1.0 / vt.fps;
+
+    // Live (nothing to seek in — the scrub decoder can't read back): the
+    // frames last put on screen, oldest first, for frame-back steps. Up to
+    // kLiveHistFrames within kLiveHistBytes; they hold their decoder buffers.
+    struct FrameHistory {
+        std::deque<AVFrame*> frames;
+        std::size_t          bytes = 0;
+        FrameHistory() = default;
+        FrameHistory(const FrameHistory&) = delete;
+        FrameHistory& operator=(const FrameHistory&) = delete;
+        ~FrameHistory() { for (AVFrame*& f : frames) av_frame_free(&f); }
+    } live_hist;
+    static constexpr std::size_t kLiveHistFrames = 30;
+    static constexpr std::size_t kLiveHistBytes  = 96u << 20;
+    int live_back = 0;   // frame-back steps into live_hist: the frame this many before its newest is on screen
+    auto frame_bytes = [](const AVFrame* f) {
+        AVPixelFormat fmt = static_cast<AVPixelFormat>(f->format);
+        if (f->hw_frames_ctx) fmt = reinterpret_cast<const AVHWFramesContext*>(f->hw_frames_ctx->data)->sw_format;
+        const int n = av_image_get_buffer_size(fmt, f->width, f->height, 1);
+        return static_cast<std::size_t>(n > 0 ? n : f->width * f->height * 2);
+    };
+    auto keep_live = [&](const AVFrame* f) {
+        if (duration > 0.0) return;   // seekable: frame-back decodes it again
+        AVFrame* c = av_frame_clone(f);
+        if (!c) return;
+        live_hist.frames.push_back(c);
+        live_hist.bytes += frame_bytes(c);
+        while (live_hist.frames.size() > 1
+               && (live_hist.frames.size() > kLiveHistFrames || live_hist.bytes > kLiveHistBytes)) {
+            live_hist.bytes -= std::min(live_hist.bytes, frame_bytes(live_hist.frames.front()));
+            av_frame_free(&live_hist.frames.front());
+            live_hist.frames.pop_front();
+        }
+    };
 
     // A main-pipeline frame is going on screen: settle the waits it ends.
     auto on_present = [&](const AVFrame* f, double pts, SClock::time_point t) {
         last_present = t;
+        keep_live(f);
+        live_back = 0;
+        if (!first_frame_logged) {
+            first_frame_logged = true;
+            startup_watchdog.on_frame();
+            logger::info("first-frame: pts={:.3f} {}x{} {}, {:.0f} ms after open{} (t={:.3f})",
+                         pts, f->width, f->height,
+                         f->format == AV_PIX_FMT_VIDEOTOOLBOX ? "VideoToolbox" : "software",
+                         since_open(t) * 1000.0, s_paused.load() ? ", paused" : "", logger::uptime());
+        }
         const int ep = MediaSession::tag_epoch(f), st = MediaSession::tag_stream(f);
         if (ep != shown_epoch) shown_epoch = ep;
         if (vsw.active && st == vsw.target && ep > vsw.epoch) {
@@ -1384,22 +1697,36 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             last_info_upd = {};   // refresh the top-bar chips now
             learn_switch_lead();
         }
-        if (seek_wait && ep > seek_epoch) {
+        // The first frame of a switched-to video stream is on screen: the
+        // scrub decoder and keyframe steps follow it from here.
+        if (st != shown_stream) {
+            shown_stream   = st;
+            shown_frame_dt = 0.0;
+            ms.follow_video_stream(st);
+            for (const auto& vt : demuxer.video_tracks())
+                if (vt.stream_idx == st && vt.fps > 0.0) shown_frame_dt = 1.0 / vt.fps;
+            logger::info("switch-trace: scrubbing and keyframe steps follow stream {} ({}x{}, {:.3f} s frames) (t={:.3f})",
+                         st, f->width, f->height, shown_frame_dt, logger::uptime());
+        }
+        if (seek_wait && MediaSession::tag_after_seek(f, seek_wait_serial)) {
             seek_wait = false;
             logger::info("switch-trace: first frame after seek pts={:.3f} — took {:.0f} ms",
                          pts, std::chrono::duration<double, std::milli>(t - seek_since).count());
         }
     };
-    auto begin_seek_wait = [&](SClock::time_point t) {
-        seek_wait  = true;
-        seek_epoch = ms.video_epoch.load();
-        seek_since = t;
+    auto begin_seek_wait = [&](SClock::time_point t, std::uint64_t serial) {
+        seek_wait        = true;
+        seek_wait_serial = serial;
+        seek_since       = t;
     };
 
     // ── QA: --speed / --speed-seq / --av-report state ─────────────────────────
     if (first_session && cli_speed != 1.0) s_speed.store(cli_speed);
     std::size_t            speed_seq_next = 0;
     std::size_t            qa_switch_next = 0;
+    // Scripted runs (--speed-seq / --qa-switch) log the subtitle text on screen.
+    const bool             qa_trace_subs  = !speed_seq.empty() || !cli.qa_switch.empty();
+    std::string            qa_sub_shown;            // subtitle text last logged (subtitle-trace)
     bool                   qa_started     = false;  // first frame presented
     auto                   qa_t0          = startup_time;
     std::vector<AvSegment> av_segs;
@@ -1416,7 +1743,11 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
     // ── UI state ──────────────────────────────────────────────────────────────
     const bool          ui_snap_mode = !ui_snap_path.empty();
     std::vector<double> kf_pts_ui;               // main-thread copy for seek-bar ticks
+    std::vector<double> kf_seg_ui;               // ... HLS segment starts not read yet (faint ticks)
     bool                kf_pts_final = false;    // re-copied once the thumb thread finished
+    bool                kf_ui_from_index = false;   // kf_pts_ui is KeyframeIndex's list of kf_ui_stream
+    std::uint64_t       kf_ui_version    = 0;       //   at this version
+    int                 kf_ui_stream     = -1;
     int64_t             total_dropped = 0;       // late frames dropped (top-bar chip)
     double              pre_scrub_pts = 0.0;     // restored when a drag is cancelled (Esc)
     PlayerUIInputs::Info ui_info;
@@ -1506,20 +1837,65 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         // ── Pause state change ────────────────────────────────────────────
         if (paused != was_paused) {
             was_paused = paused;
-            // Resuming after a paused seek/step: drop the stale pre-seek audio
-            // still in the ring (device is stopped, so flushing here is safe)
-            // and restart the settle grace period until the seek's flush lands.
-            if (!paused && seeked_while_paused) {
+            logger::info("playback {}{} (t={:.3f})", paused ? "paused" : "resumed",
+                         has_frame ? "" : " before the first frame", logger::uptime());
+            // Resuming after paused frame steps / a paused switch: drop the
+            // stale audio in the ring (device is stopped, so flushing here is
+            // safe) and restart the settle grace period. After a paused seek
+            // the ring already holds the audio from its target on.
+            if (!paused && paused_audio_stale) {
                 if (has_audio) audio_player.flush();
                 audio_clock_valid_at = now + std::chrono::milliseconds(300);
+            } else if (!paused && paused_seeked) {
+                // The flushed device's clock runs again from its first callback.
+                audio_clock_valid_at = std::max(audio_clock_valid_at, now + std::chrono::milliseconds(150));
             }
-            seeked_while_paused = false;
-            if (has_audio) audio_player.set_paused(paused);
+            paused_audio_stale = false;
+            paused_seeked      = false;
+            if (paused && !has_frame) paused_at_start = true;
+            if (!paused && paused_at_start) {
+                paused_at_start = false;
+                audio_clock_valid_at = std::max(audio_clock_valid_at, now + std::chrono::milliseconds(150));
+            }
+            if (has_audio) {
+                // Resumed while a seek is still on its way: the audio starts
+                // with the seek's first frame, as for a seek made playing.
+                if (!paused && seek_wait) { seek_audio_held = true; hold_starved_since = {}; }
+                if (!seek_audio_held) audio_player.set_paused(paused);
+            }
+            // Paused while a seek is still on its way: show its frame, as
+            // for a seek made paused.
+            if (paused && seek_wait && !pending_step_frame) {
+                pending_step_frame = true;
+                step_is_seek       = true;
+                step_serial        = seek_wait_serial;
+            }
             last_present = now;   // not a stall: nothing was due while paused
         }
 
         // ── Key commands that need main-thread state ──────────────────────
         if (s_fullscreen_toggle.exchange(0) > 0) toggle_fullscreen();
+        for (EscPanel& p : esc_panels) {
+            const bool on = p.flag->load() && (p.flag != &s_show_waveform || has_audio);
+            if (on && !p.was_open) p.opened_at = ++esc_seq;
+            p.was_open = on;
+        }
+        for (int n = s_escape.exchange(0); n > 0; --n) {
+            EscPanel* last = nullptr;
+            for (EscPanel& p : esc_panels)
+                if (p.was_open && (!last || p.opened_at > last->opened_at)) last = &p;
+            if (last) {
+                last->flag->store(false);
+                last->was_open = false;
+                logger::info("key: Esc — closing the {} (t={:.3f})", last->name, logger::uptime());
+            } else if (s_fullscreen.load()) {
+                toggle_fullscreen();
+                logger::info("key: Esc — leaving fullscreen (t={:.3f})", logger::uptime());
+            } else {
+                player_ui.toast("Press Q to quit");
+                logger::info("key: Esc — nothing open (t={:.3f})", logger::uptime());
+            }
+        }
         if (s_mute_toggle.exchange(0) > 0 && has_audio) {
             const float v = audio_player.volume();
             if (v > 0.0f) { pre_mute_volume = v; audio_player.set_volume(0.0f); player_ui.toast("Muted"); }
@@ -1575,7 +1951,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         // previous frame (1-frame delay because player_ui.build() runs late).
         // Combining it with the GLFW scrub flag ensures thumbnail strip,
         // ScrubDecoder, and audio mute all activate during ImGui bar drags.
-        bool scrubbing = s_scrubbing.load() || ui_seek_dragging;
+        bool scrubbing = s_scrubbing.load() || ui_seek_dragging || qa_scrubbing;
 
         // Consume the latest drag position.  scrub_moved is true only when a
         // new value arrived AND the cursor moved at least ~0.1% of screen width
@@ -1623,6 +1999,8 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         double seek_target = -1.0;
 
         double delta = s_seek_delta.exchange(0.0);
+        // An absolute request is exact whatever last_pts did since it was made.
+        if (const double to = s_seek_to.exchange(-1.0); to >= 0.0) delta = to - last_pts;
         if (delta != 0.0) {
             seek_target = std::max(0.0, last_pts + delta);
             if (!ui_snap_mode)
@@ -1636,7 +2014,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             // Only fire when the mouse actually moved; without this guard the
             // decoder keeps seeking the same position every frame, causing jitter.
             const double target = last_scrub_frac * duration;
-            scrub_decoder.request(target);
+            scrub_request(target);
             last_pts = target;
         }
 
@@ -1647,27 +2025,117 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         }
 
         // ── Keyframe stepping (.  /  ,) ───────────────────────────────────
+        // Keyframes of the stream on screen: the container index
+        // (ThumbnailStrip) for the stream that played at open of a non-HLS
+        // source, else those read / predicted for it (KeyframeIndex). The
+        // seek lands on the keyframe itself — inside an HLS segment that
+        // takes a forward seek to its dts (seek_at, seek_key_after).
+        // KeyframeIndex knows every keyframe only where the stream was read
+        // through (of an HLS segment not read yet, only its start): a step
+        // whose neighbour is not certain waits (kf_wait) while the scrub
+        // decoder reads that stretch (ScrubDecoder::probe), then goes to the
+        // neighbour found there.
+        double seek_at        = -1.0;
+        bool   seek_key_after = false;
+        bool   kf_seek        = false;   // seek_target is a keyframe step's
         {
-            int step = s_step_frames.exchange(0);
+            // A waiting step gives way to anything the user did meanwhile.
+            if (kf_wait.active && (seek_target >= 0.0 || scrubbing || !paused || shown_stream != kf_wait.stream)) {
+                scrub_decoder.cancel_probe();
+                kf_wait.active = false;
+                if (qa_started)
+                    logger::info("keyframe step {}: from {:.3f} cancelled while reading keyframes",
+                                 kf_wait.dir > 0 ? "+" : "-", kf_wait.from);
+            }
+            int         step = 0;
+            // From the frame on screen — or from where a seek asked for in
+            // this same frame goes: the step then replaces that seek.
+            double      from = seek_target >= 0.0 ? seek_target : last_pts;
+            std::string how;   // QA trace: how the neighbour was found
+            std::optional<KeyframeIndex::Keyframe> kf;
+            if (kf_wait.active) {
+                const ScrubDecoder::ProbeState ps = scrub_decoder.probe_state(kf_wait.serial);
+                const double waited = std::chrono::duration<double>(now - kf_wait.since).count();
+                if (ps != ScrubDecoder::ProbeState::Pending || waited > kKfProbeTimeout) {
+                    if (ps == ScrubDecoder::ProbeState::Pending) scrub_decoder.cancel_probe();
+                    kf_wait.active = false;
+                    step = kf_wait.dir;
+                    from = kf_wait.from;
+                    const KeyframeIndex::Step q = ms.keyframes.step(kf_wait.stream, from, step > 0);
+                    kf  = q.kf;
+                    how = std::format(", after reading the stream for {:.0f} ms{}", waited * 1000.0,
+                                      q.certain ? ""
+                                      : ps == ScrubDecoder::ProbeState::Done   ? " — still not all keyframes between"
+                                      : ps == ScrubDecoder::ProbeState::Failed ? " — the read failed: keyframes between unknown"
+                                                                               : " — timed out: keyframes between unknown");
+                }
+            } else if (!pending_back_step && (step = s_step_frames.exchange(0)) != 0) {   // a frame-back step lands first
+                if (ms.container_keyframes(shown_stream)) {
+                    const double p = (step > 0) ? thumb_strip.next_keyframe_pts(from)
+                                                : thumb_strip.prev_keyframe_pts(from);
+                    if (p >= 0.0) kf = KeyframeIndex::Keyframe{ p, p, false, false };
+                } else if (duration > 0.0) {   // live (HLS without ENDLIST) can't seek
+                    const KeyframeIndex::Step q = ms.keyframes.step(shown_stream, from, step > 0);
+                    if (q.certain || scrub_decoder.stream() != shown_stream) {
+                        kf = q.kf;
+                        if (!q.certain) how = ", keyframes between unknown: the scrub decoder is on another stream";
+                    } else {
+                        kf_wait = { true, step > 0 ? 1 : -1, shown_stream, from,
+                                    scrub_decoder.probe(shown_stream, q.probe), now };
+                        if (qa_started)
+                            logger::info("keyframe step {}: from {:.3f} on stream {} — keyframes {} it not all read; "
+                                         "reading the stream from {} {:.3f} first",
+                                         step > 0 ? "+" : "-", from, shown_stream, step > 0 ? "after" : "before",
+                                         q.probe.at_or_after ? "the keyframe at/after dts" : "a backward seek to",
+                                         q.probe.seek_s);
+                        player_ui.toast("KF \u25C6 \u2026");
+                        step = 0;   // taken once the stream is read
+                    }
+                }
+            }
             if (step != 0) {
-                double kf = (step > 0)
-                    ? thumb_strip.next_keyframe_pts(last_pts)
-                    : thumb_strip.prev_keyframe_pts(last_pts);
-                if (kf >= 0.0) {
-                    seek_target = kf;
-                    player_ui.toast("KF \u25C6 " + toast_clock(kf));
+                if (kf) {
+                    seek_target    = kf->pts;
+                    seek_at        = kf->seek_s;
+                    seek_key_after = kf->at_or_after;
+                    kf_seek        = true;
+                    player_ui.toast("KF \u25C6 " + toast_clock(kf->pts));
+                    if (qa_started)
+                        logger::info("keyframe step {}: {:.3f} -> {:.3f} on stream {} ({}{}; seek {} {:.3f})",
+                                     step > 0 ? "+" : "-", from, kf->pts, shown_stream,
+                                     ms.container_keyframes(shown_stream) ? "container index"
+                                         : kf->predicted ? "playlist segment start" : "keyframe read",
+                                     how, kf->at_or_after ? "to the keyframe at/after dts" : "back from", kf->seek_s);
+                } else if (qa_started) {
+                    logger::info("keyframe step {}: no keyframe {} {:.3f} on stream {}{}", step > 0 ? "+" : "-",
+                                 step > 0 ? "after" : "before", from, shown_stream, how);
                 }
                 pending_step_frame = true;
+                step_is_seek       = false;
                 last_any_seek_at   = now;
+                step_serial        = 0;   // no keyframe: the next frame; else its seek's (below)
             }
         }
 
         if (seek_target >= 0.0) {
             last_any_seek_at = now;
             last_seek_pos    = seek_target;
-            demuxer.request_seek(seek_target);
-            begin_seek_wait(now);
-            if (paused) release_paused_audio();
+            // Playback resumes at the target itself, not at the keyframe (HLS:
+            // the segment start) the seek lands on (show_from).
+            hold_audio_for_seek(paused);
+            const std::uint64_t serial =
+                demuxer.request_seek(seek_at >= 0.0 ? seek_at : seek_target, seek_key_after, seek_target);
+            if (has_audio) ms.audio_drop_until_seek.store(serial);
+            latest_seek = serial;
+            begin_seek_wait(now, serial);
+            if (kf_seek) {
+                step_serial = serial;   // the keyframe step shows this seek's frame
+            } else if (paused) {
+                // Paused: show the frame at the target, as a keyframe step does.
+                pending_step_frame = true;
+                step_is_seek       = true;
+                step_serial        = serial;
+            }
             AVFrame* stale;
             while (frameq.try_pop(stale)) av_frame_free(&stale);
             // Keep has_frame = true so the last decoded frame stays on screen
@@ -1678,10 +2146,19 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             audio_clock_valid_at = now + std::chrono::milliseconds(300);
         }
 
-        // Scrub ended: flush stale audio, then schedule a delayed unmute so the
-        // post-seek sentinel has time to clear the audio pipeline before we play.
+        // Scrub ended. Released at a position: its seek holds the device until
+        // the first frame there, and the audio from before the seek is
+        // dropped (hold_audio_for_seek), so the drag's mute is lifted now — a
+        // muted device keeps its ring full and push() then discards: the
+        // audio arriving during a delayed unmute was lost and playback jumped
+        // seconds ahead of the video. A cancelled drag (no seek): flush the
+        // stale audio and unmute once the pipeline has settled, as before.
         if (scrub_ended) {
-            if (has_audio) {
+            drag_first = true;
+            if (has_audio && seek_target >= 0.0) {
+                audio_player.set_muted(false);
+                unmute_at = std::chrono::steady_clock::time_point::max();
+            } else if (has_audio) {
                 audio_player.flush();
                 // Unmute after 300 ms — enough for the seek sentinel to propagate
                 // through audioq → AudioDecoder → flush → fresh audio at seek pos.
@@ -1702,9 +2179,41 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                     case SpeedStep::Speed: s_speed.store(ev.speed);                    break;
                     case SpeedStep::Pause: s_paused.store(true);                       break;
                     case SpeedStep::Play:  s_paused.store(false);                      break;
-                    case SpeedStep::Seek:  s_seek_delta.store(ev.speed - last_pts);    break;
+                    case SpeedStep::Seek:  s_seek_to.store(ev.speed);                  break;
                     case SpeedStep::KfNext: s_paused.store(true); s_step_frames.fetch_add(1);  break;
                     case SpeedStep::KfPrev: s_paused.store(true); s_step_frames.fetch_add(-1); break;
+                    case SpeedStep::Back:   s_paused.store(true); s_back_steps.fetch_add(1);   break;
+                    case SpeedStep::Fwd:    s_paused.store(true); s_single_steps.fetch_add(1); break;
+                    case SpeedStep::Scrub:
+                        // As a seek-bar drag does (see the ImGui integration
+                        // below): the scrub decoder gets the position, the
+                        // pipeline is bypassed until the release.
+                        if (duration > 0.0) {
+                            if (!qa_scrubbing) pre_scrub_pts = last_pts;
+                            qa_scrubbing    = true;
+                            qa_scrub_target = std::min(ev.speed, duration);
+                            qa_scrub_since  = now;
+                            last_scrub_frac = qa_scrub_target / duration;
+                            scrub_request(qa_scrub_target);
+                            last_pts = qa_scrub_target;
+                        }
+                        break;
+                    case SpeedStep::Release: qa_scrubbing = false; break;
+                    case SpeedStep::Snap:    qa_snap_pending = true; break;
+                    case SpeedStep::Esc:     s_escape.fetch_add(1); break;
+                    case SpeedStep::Panel:   // as its key does
+                        switch (static_cast<char>(ev.speed)) {
+                            case 'D': s_show_hud.store(!s_show_hud.load());             break;
+                            case 'I': s_show_inspector.store(!s_show_inspector.load()); break;
+                            case 'G': s_show_drift.store(!s_show_drift.load());         break;
+                            case 'T': s_show_tracks.store(!s_show_tracks.load());       break;
+                            case 'W': s_show_waveform.store(!s_show_waveform.load());   break;
+                            case 'N': s_show_network.store(!s_show_network.load());     break;
+                            case 'H': s_show_help.store(!s_show_help.load());           break;
+                            case 'V': s_show_vmaf.store(!s_show_vmaf.load());           break;
+                            default: break;
+                        }
+                        break;
                 }
                 logger::info("--speed-seq: t={:.2f} event {} {}", t, static_cast<int>(ev.kind), ev.speed);
             }
@@ -1753,7 +2262,9 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         if (scrubbing) {
             // ScrubDecoder handles seek+decode on its own thread; just upload
             // whatever it has decoded since the last render iteration.
-            AVFrame* scrub_frame = scrub_decoder.poll_frame();
+            int scrub_stream = -1;
+            AVFrame* scrub_frame = scrub_decoder.poll_frame(
+                drag_first ? std::numeric_limits<std::uint64_t>::max() : drag_serial0, &scrub_stream);
             if (scrub_frame) {
                 // Track the PTS of what's actually on screen so the thumbnail
                 // highlight matches the decoded keyframe, not the cursor position.
@@ -1762,7 +2273,15 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 //  keyframe interval — causing the highlight to flicker as the
                 //  cursor crosses the keyframe midpoint.)
                 if (scrub_frame->pts != AV_NOPTS_VALUE)
-                    scrub_display_pts = scrub_frame->pts * av_q2d(video_tb);
+                    scrub_display_pts = frame_pts_sec(scrub_frame);
+                scrub_shown_w = scrub_frame->width;
+                scrub_shown_h = scrub_frame->height;
+                if (qa_scrubbing)
+                    logger::info("scrub-trace: frame pts={:.3f} {}x{} stream {} for {:.3f} ({:.0f} ms after the request) (t={:.3f})",
+                                 scrub_display_pts, scrub_frame->width, scrub_frame->height, scrub_stream,
+                                 qa_scrub_target,
+                                 std::chrono::duration<double, std::milli>(now - qa_scrub_since).count(),
+                                 logger::uptime());
                 renderer.upload(scrub_frame);
                 av_frame_free(&scrub_frame);
                 has_frame = true;
@@ -1771,7 +2290,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         } else if (!paused && now >= next_pts_time) {
             // Normal playback
             AVFrame* frame = nullptr;
-            if (frameq.try_pop(frame)) {
+            if (pop_current(frame)) {
                 double pts = frame_pts_sec(frame);
 
                 // Audio clock is master once it has settled after a seek.
@@ -1779,7 +2298,8 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 // algorithm stalling on the clock-at-zero transient.
                 // Sync against what is audible: the device plays output_latency
                 // (wall) behind the ring clock, i.e. latency × speed of media.
-                bool audio_settled = has_audio && now >= audio_clock_valid_at;
+                // (Not while a seek holds the device: its clock is not running.)
+                bool audio_settled = has_audio && !seek_audio_held && now >= audio_clock_valid_at;
                 double master = audio_settled
                     ? audio_player.clock() - audio_player.output_latency_seconds() * speed
                     : pts;
@@ -1798,6 +2318,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                            && frameq.try_pop(next)) {
                         last_frame_dur = frame_duration(pts, last_pts, last_frame_dur);
                         last_pts = pts;
+                        keep_live(frame);   // not shown, but a frame-back step there must not skip it
                         av_frame_free(&frame);
                         frame = next;
                         pts = frame_pts_sec(frame);
@@ -1889,19 +2410,44 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             }
         }
 
+        // ── Paused before anything is on screen: show the first frame ─────
+        // Space (or the play button) during startup would otherwise leave a
+        // black window under "Loading" until playback resumed, although the
+        // frame is decoded and waiting — it looks exactly like a hang.
+        if (paused && !has_frame && !scrubbing && !pending_step_frame && !paused_switch_frame) {
+            AVFrame* frame = nullptr;
+            if (pop_current(frame)) {
+                const double pts = frame_pts_sec(frame);
+                on_present(frame, pts, now);
+                renderer.upload(frame);
+                av_frame_free(&frame);
+                has_frame = true;
+                last_pts  = pts;
+                ++frame_count;
+            }
+        }
+
         // ── Step frame: pop one frame while paused ───────────────────────
+        // A keyframe step shows the first frame decoded after its seek:
+        // frames from before that seek (the decode thread can still push some
+        // after the drain above, an HLS seek takes a while to reach the
+        // decoder, and an earlier seek may still be on its way) are dropped.
         if (pending_step_frame && !scrubbing) {
             AVFrame* frame = nullptr;
-            if (frameq.try_pop(frame)) {
+            while (frameq.try_pop(frame) && !MediaSession::tag_after_seek(frame, step_serial))
+                av_frame_free(&frame);
+            if (frame) {
                 double pts = (frame->pts != AV_NOPTS_VALUE) ? frame_pts_sec(frame) : last_pts;
                 on_present(frame, pts, now);
+                if (qa_started)
+                    logger::info("--speed-seq: {} landed at pts {:.3f} {}x{}", step_is_seek ? "seek" : "step",
+                                 pts, frame->width, frame->height);
                 renderer.upload(frame);
                 av_frame_free(&frame);
                 has_frame          = true;
                 last_pts           = pts;
                 ++frame_count;
                 pending_step_frame = false;
-                if (qa_started) logger::info("--speed-seq: step landed at pts {:.3f}", pts);
             }
             // else: frame not decoded yet — retry next iteration
         }
@@ -1933,9 +2479,28 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         // ── Frame-accurate forward step (Shift+.) ─────────────────────────
         // Pop the next decoded frame from frameq directly — no seek, no
         // discard. Advances exactly one decoded frame per request.
-        while (s_single_steps.load() > 0 && paused && !scrubbing) {
+        // Show the frame kept live_back before the newest (live frame steps).
+        auto show_kept = [&](const char* dir) {
+            AVFrame* f = live_hist.frames[live_hist.frames.size() - 1 - static_cast<std::size_t>(live_back)];
+            const double pts = frame_pts_sec(f);
+            if (qa_started)
+                logger::info("--speed-seq: {} step landed at pts {:.3f} {}x{} (live: kept frame {} before the newest)",
+                             dir, pts, f->width, f->height, live_back);
+            renderer.upload(f);
+            has_frame = true;
+            last_pts  = pts;
+            ++frame_count;
+            player_ui.toast(std::format("Frame {} \u00B7 {}", std::llround(pts * stream_fps), toast_clock(pts)));
+        };
+        while (s_single_steps.load() > 0 && paused && !scrubbing && !kf_wait.active) {
+            if (live_back > 0) {   // back up through the frames kept (live), then on from the decoder
+                --live_back;
+                show_kept("fwd");
+                s_single_steps.fetch_sub(1);
+                continue;
+            }
             AVFrame* frame = nullptr;
-            if (!frameq.try_pop(frame)) {          // wait for the decoder
+            if (!pop_current(frame)) {             // wait for the decoder
                 // Stepping consumes video only; once audioq fills the demuxer
                 // stalls and so would the steps. Unblock the audio side.
                 release_paused_audio();
@@ -1943,6 +2508,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             }
             double pts = frame_pts_sec(frame);
             on_present(frame, pts, now);
+            if (qa_started) logger::info("--speed-seq: fwd step landed at pts {:.3f} {}x{}", pts, frame->width, frame->height);
             renderer.upload(frame);
             av_frame_free(&frame);
             has_frame      = true;
@@ -1958,17 +2524,37 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         // forward to (last_pts - 1.5 * frame_dt). The 1.5× margin guards
         // against the >= comparison snapping back onto the current frame.
         // ScrubDecoder is stateful — issue request once, poll until result.
-        if (s_back_steps.load() > 0 && paused && !scrubbing) {
-            if (!pending_back_step) {
-                double target = std::max(0.0, last_pts - frame_dt * 1.5);
-                scrub_decoder.request(target);
-                pending_back_step = true;
+        // Live: FFmpeg can't seek in a live playlist, so the frames kept
+        // (live_hist) are shown again instead, as far back as they go.
+        if (s_back_steps.load() > 0 && paused && !scrubbing && !kf_wait.active && duration <= 0.0) {
+            s_back_steps.fetch_sub(1);
+            if (live_back + 1 < static_cast<int>(live_hist.frames.size())) {
+                ++live_back;
+                show_kept("back");
+            } else {
+                if (qa_started)
+                    logger::info("--speed-seq: back step: no earlier frame kept (live, {} kept)", live_hist.frames.size());
+                player_ui.toast("Frame back: no earlier frame kept on a live stream");
             }
-            AVFrame* frame = scrub_decoder.poll_frame();
+        } else if (s_back_steps.load() > 0 && paused && !scrubbing && !kf_wait.active) {
+            if (!pending_back_step) {
+                // One frame of the stream on screen (a switch can change it);
+                // without a declared rate, the PTS step measured in playback.
+                const double fdt = shown_frame_dt > 0.0 ? shown_frame_dt : last_frame_dur;
+                double target = std::max(0.0, last_pts - fdt * 1.5);
+                back_step_serial  = scrub_decoder.request(target);
+                pending_back_step = true;
+                back_step_target  = target;
+                back_step_since   = now;
+            }
+            int back_stream = -1;
+            AVFrame* frame = scrub_decoder.poll_frame(back_step_serial, &back_stream);
             if (frame) {
-                double pts = (frame->pts != AV_NOPTS_VALUE)
-                    ? frame->pts * av_q2d(video_tb)
-                    : last_pts;
+                double pts = (frame->pts != AV_NOPTS_VALUE) ? frame_pts_sec(frame) : last_pts;
+                if (qa_started)
+                    logger::info("--speed-seq: back step landed at pts {:.3f} {}x{} stream {} (from {:.3f}, request {:.3f}, {:.0f} ms)",
+                                 pts, frame->width, frame->height, back_stream, last_pts, back_step_target,
+                                 std::chrono::duration<double, std::milli>(now - back_step_since).count());
                 if (pts != AV_NOPTS_VALUE)
                     scrub_display_pts = pts;     // keep thumb highlight in sync
                 renderer.upload(frame);
@@ -1984,11 +2570,26 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             }
         }
 
+        // ── Startup watchdog: still nothing on screen → log every stage ──
+        if (!has_frame && startup_watchdog.due(since_open(now))) {
+            PipelineSnapshot snap = ms.pipeline_snapshot();
+            snap.since_start_s = since_open(now);
+            snap.paused        = paused;
+            snap.scrubbing     = scrubbing;
+            snap.focused       = glfwGetWindowAttrib(window, GLFW_FOCUSED) != 0;
+            logger::warn("startup-watchdog: no frame on screen {:.0f} s after open — {}",
+                         startup_watchdog.timeout(), diagnose_no_frame(snap));
+            logger::warn("startup-watchdog: {}", describe_pipeline(snap));
+        }
+
         // ── Waiting for data: settle switches, pick the loading indicator ──
         PlayerUIInputs::Busy busy;
         {
             if (sub_switch_req.first >= 0) {
-                ssw = { true, sub_switch_req.first, 0, sub_switch_req.second, now, "" };
+                std::string what = std::format("stream {}", sub_switch_req.first);
+                for (const SubChoice& c : sub_choices)
+                    if (c.kind == SubChoice::Embedded && c.stream_idx == sub_switch_req.first) { what = c.label(); break; }
+                ssw = { true, sub_switch_req.first, 0, sub_switch_req.second, now, std::move(what) };
                 sub_switch_req.first = -1;
             }
             // Audio: done once the decoder runs the new track and the device
@@ -2014,7 +2615,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             if (vsw.active && vsw.target != cur_video_stream) vsw.active = false;
             // A seek while paused shows no frame until playback resumes; it is
             // done waiting once the decoder has a frame from after it.
-            if (seek_wait && paused && ms.video_epoch.load() > seek_epoch && frameq.size() > 0)
+            if (seek_wait && paused && ms.video_seek_applied.load() >= seek_wait_serial && frameq.size() > 0)
                 seek_wait = false;
 
             // Nothing more will arrive: report why once and stop waiting.
@@ -2048,7 +2649,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 p->active = false;
                 player_ui.toast(p == &ssw ? std::string("Subtitles: no data after 20 s")
                                           : "Switch to " + p->what + ": no data after 20 s");
-                logger::warn("switch: no data 20 s after switching to {}", p->what);
+                logger::warn("switch: no data 20 s after switching {}to {}", p == &ssw ? "subtitles " : "", p->what);
             }
             if (seek_wait && now - seek_since > kSwitchTimeout) seek_wait = false;
 
@@ -2083,6 +2684,29 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             } else if (ssw.active && secs(ssw.since) >= kShowAfter) {
                 const double t = secs(ssw.since);
                 busy = { true, true, "Loading subtitles", elapsed(t), static_cast<float>(t) };
+            }
+        }
+
+        // ── A seek's held audio starts with its first frame ───────────────
+        // (or once the wait ended: end of media, timeout). Also if the
+        // pipeline is stuck on the held device — the demuxer waiting for
+        // room in audioq while the video decoder starves, e.g. a file whose
+        // audio runs far ahead of its video: the audio must play to free it.
+        if (seek_audio_held) {
+            const bool starved = demuxer.state() == DemuxState::PushAudio
+                              && ms.video_stats.get() == DecodeState::WaitPacket;
+            if (!starved)                                               hold_starved_since = {};
+            else if (hold_starved_since == SClock::time_point{})        hold_starved_since = now;
+            const bool stuck = starved && now - hold_starved_since > std::chrono::milliseconds(250);
+            if (!seek_wait || stuck) {
+                seek_audio_held = false;
+                if (stuck) logger::warn("seek: the held audio blocks the demuxer before the first frame — starting it");
+                if (!paused) {
+                    audio_clock_valid_at = std::max(audio_clock_valid_at, now + std::chrono::milliseconds(150));
+                    audio_player.set_paused(false);
+                } else {
+                    paused_seeked = true;   // paused meanwhile: the device starts on resume
+                }
             }
         }
 
@@ -2155,6 +2779,8 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         if (show_filmstrip) strips_fb += static_cast<float>(ThumbnailStrip::kStripPx) + 10.0f * global_ps;
         debug_hud.set_insets(PlayerUI::top_inset_logical() * global_ps, bottom_stack_base_fb);
 
+        debug_hud.clear_panel_rects();   // each panel drawn below records where (its close button)
+
         // ── Debug HUD (D key) ─────────────────────────────────────────────
         if (s_show_hud.load()) {
             // av_diff: meaningful only during active playback.
@@ -2204,11 +2830,26 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         if (!scrubbing)
             thumb_strip.upload_pending();
 
-        // Keyframe list for the seek-bar ticks: copied once it exists, and once
-        // more after the thumbnail thread finishes (it corrects DTS→PTS offsets).
-        if (kf_pts_ui.empty() || (!kf_pts_final && thumb_strip.ready())) {
-            if (thumb_strip.ready()) kf_pts_final = true;
-            kf_pts_ui = thumb_strip.keyframes_copy();
+        // Keyframe list for the seek-bar ticks, from where keyframe steps take
+        // them (see above). The container index: copied once it exists, and
+        // once more after the thumbnail thread finishes (it corrects DTS→PTS
+        // offsets). KeyframeIndex: whenever it changed — keyframes read, and
+        // apart (faint ticks) the predicted starts of HLS segments not read
+        // yet, whose other keyframes are unknown.
+        if (ms.container_keyframes(shown_stream)) {
+            if (kf_ui_from_index) { kf_ui_from_index = false; kf_pts_ui.clear(); kf_seg_ui.clear(); kf_pts_final = false; }
+            if (kf_pts_ui.empty() || (!kf_pts_final && thumb_strip.ready())) {
+                if (thumb_strip.ready()) kf_pts_final = true;
+                kf_pts_ui = thumb_strip.keyframes_copy();
+            }
+        } else if (const std::uint64_t v = ms.keyframes.version();
+                   !kf_ui_from_index || v != kf_ui_version || shown_stream != kf_ui_stream) {
+            kf_ui_from_index = true;
+            kf_ui_version    = v;
+            kf_ui_stream     = shown_stream;
+            kf_pts_ui.clear();
+            kf_seg_ui.clear();
+            for (const auto& k : ms.keyframes.list(shown_stream)) (k.predicted ? kf_seg_ui : kf_pts_ui).push_back(k.pts);
         }
 
         // bar_pts: position shown in the seek bar and used for the thumbnail strip.
@@ -2284,19 +2925,12 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                     bottom_off, clk_x, clk_y);
 
                 if (tick_seek >= 0.0) {
-                    // Consume click and seek
+                    // Consume the click; the seek is made next iteration, as
+                    // a seek-bar click's is.
                     s_click_x.store(-1.0);
                     s_click_y.store(-1.0);
                     s_seek_delta.store(0.0);
-                    last_any_seek_at = now;
-                    demuxer.request_seek(tick_seek);
-                    begin_seek_wait(now);
-                    AVFrame* stale;
-                    while (frameq.try_pop(stale)) av_frame_free(&stale);
-                    last_pts  = tick_seek;
-                    next_pts_time = now;
-                    audio_clock_valid_at = now + std::chrono::milliseconds(300);
-                    if (paused) release_paused_audio();
+                    s_seek_to.store(tick_seek);
                 }
                 bottom_off += static_cast<float>(DebugHUD::kTimelinePx) * ps;
 
@@ -2345,6 +2979,14 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 }
             }
         }
+        // QA: the subtitle text on screen, whenever it changes.
+        if (qa_trace_subs && qa_started && sub_text != qa_sub_shown) {
+            qa_sub_shown = sub_text;
+            logger::info("subtitle-trace: {} at pts {:.3f}{} (t={:.3f})",
+                         sub_text.empty() ? std::string("cleared")
+                                          : "\"" + sub_text.substr(0, sub_text.find('\n')) + "\"",
+                         last_pts, paused ? " (paused)" : "", logger::uptime());
+        }
 
         // Help (H / ?) is an ImGui shortcut card built by PlayerUI;
         // DebugHUD::draw_help is kept but no longer called.
@@ -2386,21 +3028,11 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             ui_info.range  = renderer.hdr_mode() == 0 ? "HDR10" : renderer.hdr_mode() == 1 ? "HLG" : "SDR";
 
             // HLS exposes each variant as an AVProgram (in master-playlist
-            // order); the one carrying both routed streams is playing.
-            playing_variant = -1;
-            if (const AVFormatContext* fc = demuxer.fmt_ctx(); fc && !manifest.variants().empty()) {
-                const int v_idx = demuxer.video_stream_index(), a_idx = demuxer.audio_stream_index();
-                for (unsigned p = 0; p < fc->nb_programs && playing_variant < 0; ++p) {
-                    const AVProgram* prog = fc->programs[p];
-                    bool has_v = v_idx < 0, has_a = a_idx < 0;
-                    for (unsigned k = 0; k < prog->nb_stream_indexes; ++k) {
-                        has_v = has_v || static_cast<int>(prog->stream_index[k]) == v_idx;
-                        has_a = has_a || static_cast<int>(prog->stream_index[k]) == a_idx;
-                    }
-                    if (has_v && has_a && fc->nb_programs == manifest.variants().size())
-                        playing_variant = static_cast<int>(p);
-                }
-            }
+            // order); the one carrying both routed streams is playing — or,
+            // when none has both (audio of another group, or a deduplicated
+            // copy of the master), the entry for the video's playlist with
+            // the audio's group.
+            playing_variant = ms.playing_hls_variant(demuxer.video_stream_index(), demuxer.audio_stream_index());
         }
         // Cheap and state-dependent (HW becomes active after the first decoded
         // frame): keep these current every frame.
@@ -2447,6 +3079,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             in.recents          = &app.recents;
             in.thumbs           = &thumb_strip;
             in.kf_pts           = &kf_pts_ui;
+            in.kf_seg_pts       = &kf_seg_ui;
             in.video_aspect     = video_aspect;
             in.video_rect       = ImVec4(static_cast<float>(vx) / global_ps,
                                          static_cast<float>(fb_h - vy - vh) / global_ps,
@@ -2479,7 +3112,15 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 const ImVec2 disp  = ImGui::GetIO().DisplaySize;
                 const auto net_out = app.net_inspector.draw(ni, disp.x, disp.y);
                 if (net_out.close) s_show_network.store(false);
-                if (net_out.seek_to >= 0.0 && !scrubbing) s_seek_delta.store(net_out.seek_to - last_pts);
+                if (net_out.width_set) persist_prefs();   // the sidebar width the user chose, kept
+                if (net_out.seek_to >= 0.0 && !scrubbing) s_seek_to.store(net_out.seek_to);
+                // QA: --align-report, once.
+                if (!app.cli.align_report_path.empty() && glfwGetTime() >= app.cli.align_report_secs) {
+                    std::ofstream f(app.cli.align_report_path);
+                    f << app.net_inspector.alignment_text();
+                    logger::info("--align-report: wrote {}", app.cli.align_report_path);
+                    app.cli.align_report_path.clear();
+                }
             }
 
             // ── Track selector card (T) ──────────────────────────────────────
@@ -2531,16 +3172,73 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 float vmaf_pos_frac = (duration > 0.0)
                     ? static_cast<float>(last_pts / duration) : 0.0f;
 
+                bool vmaf_open = true;
                 bool export_json = player_ui.draw_vmaf_results(
                     vmaf_ui_entries,
                     vmaf_analyzer.running(), vmaf_analyzer.progress(),
-                    vmaf_pos_frac);
+                    vmaf_pos_frac, &vmaf_open);
+                if (!vmaf_open) s_show_vmaf.store(false);
                 if (export_json) {
                     std::string json_path = open_path + ".vmaf.json";
                     vmaf_analyzer.write_json(json_path);
                     logger::info("VMAF report written to {}", json_path);
                 }
             }
+
+            // ── Close buttons on the GL-drawn panels ──────────────────────────
+            // (the ImGui ones — help, tracks, network, VMAF — have their own):
+            // an × in the top-right corner where the panel was drawn.
+            auto panel_close = [&](const char* id, DebugHUD::Panel which, std::atomic<bool>& flag,
+                                   const char* tip) {
+                const DebugHUD::PanelRect r = debug_hud.panel_rect(which);
+                if (r.w <= 0.0f || global_ps <= 0.0f) return;
+                namespace th = ui::theme;
+                constexpr float kSz = 18.0f;   // logical px
+                const ImVec2 pos((r.x + r.w) / global_ps - kSz - 3.0f, r.y / global_ps + 3.0f);
+                // Not over a card that hides the panel (the button would sit
+                // on top of it: it is a window of its own).
+                const ImRect btn(pos, ImVec2(pos.x + kSz, pos.y + kSz));
+                for (const char* card : { "##helpcard", "##trackpanel", "VMAF Analysis", "##opencard",
+                                          "##net_inspector", "##loading" }) {
+                    const ImGuiWindow* w = ImGui::FindWindowByName(card);
+                    if (w && (w->Active || w->WasActive)
+                        && ImRect(w->Pos, ImVec2(w->Pos.x + w->Size.x, w->Pos.y + w->Size.y)).Overlaps(btn))
+                        return;
+                }
+                ImGui::SetNextWindowPos(pos);
+                ImGui::SetNextWindowSize(ImVec2(kSz, kSz));
+                ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+                ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+                constexpr ImGuiWindowFlags kFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground
+                    | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing
+                    | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove;
+                if (ImGui::Begin(id, nullptr, kFlags)) {
+                    const ImVec2 p = ImGui::GetCursorScreenPos();
+                    const bool clicked = ImGui::InvisibleButton("##x", ImVec2(kSz, kSz));
+                    const bool hov = ImGui::IsItemHovered();
+                    ImDrawList* dl = ImGui::GetWindowDrawList();
+                    if (hov)
+                        dl->AddRectFilled(p, ImVec2(p.x + kSz, p.y + kSz),
+                                          ImGui::IsItemActive() ? th::kPressBg : th::kHoverBg, 4.0f);
+                    const ImVec2 c(p.x + kSz * 0.5f, p.y + kSz * 0.5f);
+                    const float  rr  = 4.0f;
+                    const ImU32  col = hov ? th::kIconHover : th::kTextDim;
+                    dl->AddLine(ImVec2(c.x - rr, c.y - rr), ImVec2(c.x + rr, c.y + rr), col, 1.5f);
+                    dl->AddLine(ImVec2(c.x - rr, c.y + rr), ImVec2(c.x + rr, c.y - rr), col, 1.5f);
+                    if (hov) ui::tooltip(tip);
+                    if (clicked) flag.store(false);
+                    // Leave no keyboard focus here, or the player's shortcuts
+                    // would stop (ImGui keyboard nav; see NetInspector::draw).
+                    if (ImGui::IsWindowFocused() && !ImGui::IsAnyItemActive()) ImGui::SetWindowFocus(nullptr);
+                }
+                ImGui::End();
+                ImGui::PopStyleVar(2);
+            };
+            if (s_show_hud.load())       panel_close("##close_hud",   DebugHUD::Panel::Hud,       s_show_hud,       "Close (D)");
+            if (s_show_inspector.load()) panel_close("##close_insp",  DebugHUD::Panel::Inspector, s_show_inspector, "Close (I)");
+            if (s_show_drift.load())     panel_close("##close_drift", DebugHUD::Panel::Drift,     s_show_drift,     "Close (G)");
+            if (s_show_waveform.load())  panel_close("##close_wave",  DebugHUD::Panel::Waveform,  s_show_waveform,  "Close (W)");
+            if (s_show_vmaf.load())      panel_close("##close_vmaf",  DebugHUD::Panel::Vmaf,      s_show_vmaf,      "Close (V)");
 
             player_ui.end_frame();
 
@@ -2552,7 +3250,41 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             const bool snap_busy = !cli.ui_snap_busy.empty();
             const bool busy_ok = !snap_busy
                 || (busy_match && now - busy_shown_since >= std::chrono::milliseconds(600));
-            if (ui_snap_mode && (has_frame || snap_busy) && ui_sub_at_landed
+            // --speed-seq snap@t: capture now (--ui-snapshot path; numbered
+            // when several), instead of after --ui-snapshot's frame count.
+            if (qa_snap_pending) {
+                qa_snap_pending = false;
+                std::string path = ui_snap_path;
+                if (qa_snaps_total > 1) {
+                    const std::filesystem::path p(ui_snap_path);
+                    path = (p.parent_path() / std::format("{}_{}{}", p.stem().string(), qa_snaps_done + 1,
+                                                          p.extension().string())).string();
+                }
+                ++qa_snaps_done;
+                if (path.empty()) {
+                    logger::error("--speed-seq snap: no --ui-snapshot path given");
+                } else {
+                    glFinish();
+                    std::vector<std::uint8_t> px(static_cast<std::size_t>(fb_w) * fb_h * 4);
+                    glReadBuffer(GL_BACK);
+                    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+                    glReadPixels(0, 0, fb_w, fb_h, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
+                    for (auto i = 3u; i < px.size(); i += 4) px[i] = 255;   // opaque PNG
+                    stbi_flip_vertically_on_write(1);
+                    const int ok = stbi_write_png(path.c_str(), fb_w, fb_h, 4, px.data(), fb_w * 4);
+                    if (scrubbing)
+                        logger::info("ui-snapshot: wrote {} ({}×{}) — scrub preview pts={:.3f} {}x{} for {:.3f}",
+                                     path, fb_w, fb_h, scrub_display_pts, scrub_shown_w, scrub_shown_h,
+                                     last_scrub_frac * duration);
+                    else
+                        logger::info("ui-snapshot: wrote {} ({}×{}) — pts={:.3f} {}x{}{}", path, fb_w, fb_h,
+                                     last_pts, shown_w, shown_h, paused ? " (paused)" : "");
+                    if (!ok) logger::error("ui-snapshot: stbi_write_png failed for {}", path);
+                }
+                if (qa_snaps_done >= qa_snaps_total && av_report_path.empty())
+                    glfwSetWindowShouldClose(window, GLFW_TRUE);
+            }
+            if (ui_snap_mode && qa_snaps_total == 0 && (has_frame || snap_busy) && ui_sub_at_landed
                 && (qa_open_done || snap_busy) && busy_ok) {
                 ++ui_frames;
                 const double hover_t = (ui_hover_frac >= 0.0f && duration > 0.0)
@@ -2603,7 +3335,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             // causes the audio decode thread to keep emptying the ring buffer after
             // release, producing the "buzz on one note" artifact.
             if (ui.seek_to >= 0.0 && !scrubbing && !scrub_ended)
-                s_seek_delta.store(ui.seek_to - last_pts);
+                s_seek_to.store(ui.seek_to);
 
             // Esc during a drag: forget the drag position so scrub_ended (next
             // frame) commits no seek, and put the clock back where it was. The
@@ -2623,7 +3355,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 if (last_scrub_frac < 0.0 ||
                     std::abs(f - static_cast<float>(last_scrub_frac)) >= static_cast<float>(kScrubMinDelta)) {
                     last_scrub_frac = static_cast<double>(f);
-                    scrub_decoder.request(f * static_cast<float>(duration));
+                    scrub_request(f * static_cast<float>(duration));
                     last_pts = f * duration;
                 }
             }
@@ -2736,7 +3468,8 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 for (const auto& sg : av_segs)
                     segs += (segs.empty() ? "" : ",\n    ") + av_segment_json(sg);
                 std::string req;
-                static constexpr const char* kKind[] = { "speed", "pause", "play", "seek", "kf+", "kf-" };
+                static constexpr const char* kKind[] = { "speed", "pause", "play", "seek", "kf+", "kf-",
+                                                         "scrub", "release", "back", "fwd", "snap", "esc", "panel" };
                 for (const auto& st : speed_seq)
                     req += std::format("{}{{\"{}\":{},\"at_s\":{}}}", req.empty() ? "" : ",",
                                        kKind[st.kind], st.speed, st.at_sec);

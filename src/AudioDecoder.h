@@ -35,6 +35,15 @@ public:
     // Flush codec + filter buffers after a seek.
     void flush();
 
+    // The audio decoded from here on starts at `t` (seconds, stream
+    // timeline): samples before it are dropped, to the sample — a track
+    // switch's take-over point, a seek's target. The demuxer queues a few
+    // packets before it, so the decoder is warmed up when it gets there
+    // (a decoder started on the packet holding `t` lost up to a packet's
+    // worth there and clicked). < 0: none. Kept by flush() / reopen(),
+    // cleared once a frame reaches it.
+    void start_at(double t) { start_at_ = t; }
+
     // Tear down and reinitialise for a new audio stream (track switch).
     [[nodiscard]] bool reopen(AVCodecParameters* par, AudioPlayer& player,
                                AVRational time_base);
@@ -68,6 +77,7 @@ private:
     // Reset by flush(); re-seeded from the first decoded frame's PTS.
     double out_media_pts_  = 0.0;
     bool   pts_inited_     = false;
+    double start_at_       = -1.0;   // start_at()
 
     // Build (or rebuild) a filter graph with the given speed.
     // speed == 1.0 → passthrough (no filter, graph is null)

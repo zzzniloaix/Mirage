@@ -2,6 +2,8 @@
 
 #include <glad/gl.h>
 
+#include "FfOpen.h"
+
 #include <string>
 #include <vector>
 #include <queue>
@@ -16,6 +18,16 @@ extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavutil/rational.h>
 }
+
+// HLS: one variant's media playlist for ThumbnailStrip to sample instead of
+// opening the master again (see HlsVariants.h) — normally the stream
+// ThumbnailStrip::pick_hls_source() chose in the playback context.
+// `playing`: it is the playing variant, so its keyframes are the playing
+// stream's and are published for keyframe stepping.
+struct ThumbVariantSource {
+    ffopen::VariantInput input;
+    bool                 playing = false;
+};
 
 // Async keyframe thumbnails: the seek-bar hover preview card (PlayerUI) and the
 // "Keyframe filmstrip" (K) drawn above the seek bar while scrubbing.
@@ -40,15 +52,28 @@ public:
     ThumbnailStrip(const ThumbnailStrip&) = delete;
     ThumbnailStrip& operator=(const ThumbnailStrip&) = delete;
 
+    using VariantSource = ThumbVariantSource;
+
     // Start async decode.  Must be called after the OpenGL context is current.
     // Returns false only if GL setup fails; a source without any usable index
     // or duration (live) just yields no thumbnails.
     // Thumbnail width follows the source's display aspect (sample aspect
     // ratio applied, rotation not), read from the decoded frames.
+    // `variant` set: sampled from that playlist when it opens and checks out,
+    // else from `url` as playback opened it (`master`, HLS: the master copy
+    // playback opened in place of url's — see ffopen::open_input).
     [[nodiscard]] bool init(const std::string& url,
                             int video_stream_idx,
                             AVRational time_base,
-                            double duration);
+                            double duration,
+                            const VariantSource& variant = {},
+                            const std::string& master = {});
+
+    // HLS context `fc`: the video stream to take thumbnails from instead of
+    // the playing `video_stream_idx` — the cheapest one of the same codec
+    // that is at least kDecodeH tall (thumbs::pick_thumb_stream). Any other
+    // input, or nothing cheaper known: video_stream_idx.
+    static int pick_hls_source(const AVFormatContext* fc, int video_stream_idx);
 
     // Upload pending decoded thumbnails to GPU (at most kUploadPerFrame per call,
     // to avoid hitches). Call every frame from the main thread.
@@ -63,7 +88,9 @@ public:
 
     // Keyframe navigation — available as soon as the container index is read
     // (before any thumbnails are decoded). Returns -1.0 if not yet ready or
-    // no keyframe exists in that direction.
+    // no keyframe exists in that direction. The playing stream's only while
+    // it is the one indexed: HLS and a video track switched to take theirs
+    // from MediaSession::keyframes (see MediaSession::container_keyframes).
     double next_keyframe_pts(double current_pts) const;
     double prev_keyframe_pts(double current_pts) const;
 
@@ -162,5 +189,6 @@ private:
                     int fb_w, int fb_h, float bottom_off);
 
     void decode_loop(std::stop_token st, std::string url,
-                     int video_stream_idx, AVRational time_base);
+                     int video_stream_idx, AVRational time_base,
+                     VariantSource variant, std::string master);
 };

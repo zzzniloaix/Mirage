@@ -73,7 +73,9 @@ public:
     // rendering path runs concurrently with decode_packet().
     [[nodiscard]] std::vector<BitmapSubEvent> active_bitmaps(double pts) const;
 
-    [[nodiscard]] bool is_text_format() const { return is_text_; }
+    // Any thread (the render thread asks while the subtitle thread reopens
+    // the decoder for a track switch).
+    [[nodiscard]] bool is_text_format() const { return is_text_.load(std::memory_order_relaxed); }
 
     // Plain text of an ASS event as produced by libavcodec text decoders
     // ("ReadOrder,Layer,Style,...,Text") or a "Dialogue:" script line:
@@ -94,7 +96,7 @@ public:
 private:
     AVCodecContext* ctx_       = nullptr;
     AVRational      time_base_ = {1, 1};
-    bool            is_text_   = false;
+    std::atomic<bool> is_text_{ false };
     bool            persistent_ = false;
 
     mutable std::mutex                ev_mtx_;

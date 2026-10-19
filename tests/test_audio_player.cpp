@@ -186,3 +186,61 @@ TEST_CASE("AudioPlayer push: mute while blocked releases the producer", "[audio]
     t.join();
     CHECK(done.load());
 }
+
+TEST_CASE("AudioPlayer push: drop_blocked_push releases a blocked push, keeps the ring, until flush", "[audio]")
+{
+    AudioPlayer p;
+    p.init_ring(kRate);
+    const int cap = p.max_buffered_frames();
+    push_frames(p, cap, 0.0, 1.0);
+
+    // A stopped device (paused) never makes room: the demuxer queues a flush
+    // sentinel and the audio thread must get to it.
+    std::atomic<bool> done{ false };
+    std::thread t([&] { push_frames(p, 4800, 1.0, 1.0); done = true; });
+    std::this_thread::sleep_for(50ms);
+    CHECK_FALSE(done.load());
+    p.drop_blocked_push();
+    t.join();
+    CHECK(done.load());
+    CHECK(p.dropped_frames() == 4800);
+    CHECK_THAT(p.buffered_seconds(), WithinAbs(static_cast<double>(cap) / kRate, 1e-9));   // the sentinel flushes it
+
+    // Stale audio popped before the sentinel: dropped too, without waiting.
+    auto t0 = std::chrono::steady_clock::now();
+    push_frames(p, 4800, 2.0, 1.0);
+    CHECK(std::chrono::steady_clock::now() - t0 < 40ms);
+    CHECK(p.dropped_frames() == 9600);
+
+    // The sentinel's flush ends it: the new track's audio fills the ring and
+    // waits for room again.
+    p.flush();
+    push_frames(p, cap, 10.0, 1.0);
+    CHECK(p.dropped_frames() == 9600);
+    std::atomic<bool> done2{ false };
+    std::thread t2([&] { push_frames(p, 4800, 20.0, 1.0); done2 = true; });
+    std::this_thread::sleep_for(50ms);
+    CHECK_FALSE(done2.load());
+    p.flush();
+    t2.join();
+}
+
+TEST_CASE("AudioPlayer clock: after a flush the first push sets it, before the device asks", "[audio]")
+{
+    // A stopped device (paused, or held for a seek) restarts with a delay:
+    // until its first callback the clock read 0, and video synced to a
+    // position 38 s away. Now it is the next sample to play.
+    AudioPlayer p;
+    p.init_ring(kRate);
+    push_frames(p, 4800, 10.0, 1.0);
+    drain(p, 480);
+    CHECK_THAT(p.clock(), WithinAbs(10.01, 1e-9));
+    p.flush();
+    CHECK(p.clock() == 0.0);
+    push_frames(p, 4800, 38.5, 1.0);
+    CHECK_THAT(p.clock(), WithinAbs(38.5, 1e-9));          // no callback yet
+    push_frames(p, 4800, 38.6, 1.0);
+    CHECK_THAT(p.clock(), WithinAbs(38.5, 1e-9));          // still the first sample
+    drain(p, 480);
+    CHECK_THAT(p.clock(), WithinAbs(38.51, 1e-9));         // the device's from then on
+}

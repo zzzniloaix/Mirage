@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glad/gl.h>
+#include <array>
 #include <cstdint>
 #include <cmath>
 #include <string>
@@ -39,6 +40,13 @@ public:
         top_inset_px_ = top_px_fb;
         bottom_inset_px_ = bottom_px_fb;
     }
+
+    // Where each panel was drawn since clear_panel_rects() (framebuffer px,
+    // top-left origin; w == 0: not drawn) — the UI puts its close button there.
+    enum class Panel { Hud, Inspector, Drift, Waveform, Vmaf, Count };
+    struct PanelRect { float x = 0.0f, y = 0.0f, w = 0.0f, h = 0.0f; };
+    void      clear_panel_rects()       { rects_ = {}; }
+    PanelRect panel_rect(Panel p) const { return rects_[static_cast<std::size_t>(p)]; }
 
     // Draw the live debug overlay (top-left).
     // scale = framebuffer_pixels / window_pixels (2.0 on retina displays).
@@ -169,6 +177,9 @@ public:
                          float bottom_offset_px = 0.0f);
 
 private:
+    std::array<PanelRect, static_cast<std::size_t>(Panel::Count)> rects_{};
+    void mark(Panel p, float x, float y, float w, float h) { rects_[static_cast<std::size_t>(p)] = { x, y, w, h }; }
+
     float top_inset_px_    = 0.0f;
     [[maybe_unused]] float bottom_inset_px_ = 0.0f;
 

@@ -24,8 +24,16 @@ std::string format_clock(double t, bool with_hours)
 std::string format_timecode(double t, double dur, int mode, double fps)
 {
     if (!(t > 0.0)) t = 0.0;
-    if (!(dur > 0.0))
+    if (!(dur > 0.0)) {
+        // Seconds since 1970 (live CMAF timestamps such as Unified
+        // Streaming's): the UTC time of day, as the stream's own clock.
+        if (t >= 1e9) {
+            const long long day_ms = std::llround(t * 1000.0) % 86'400'000;
+            return std::format("LIVE {:02d}:{:02d}:{:02d}.{:03d} UTC", day_ms / 3'600'000, (day_ms / 60'000) % 60,
+                               (day_ms / 1000) % 60, day_ms % 1000);
+        }
         return "LIVE " + format_clock(t, t >= 3600.0);
+    }
 
     const bool hours = dur >= 3600.0;
     if (mode == 1 && fps > 0.0) {

@@ -41,6 +41,8 @@ TEST_CASE("format_timecode: live or unknown duration", "[ui]")
 {
     CHECK(format_timecode(12.345, -1.0, 0, 30.0) == "LIVE 00:12.345");
     CHECK(format_timecode(12.345,  0.0, 2, 30.0) == "LIVE 00:12.345");
+    // Seconds since 1970 (live CMAF timestamps): the stream's UTC clock.
+    CHECK(format_timecode(1792183923.84, -1.0, 0, 25.0) == "LIVE 20:52:03.840 UTC");
 }
 
 // ── decimate_ticks ────────────────────────────────────────────────────────────

@@ -113,6 +113,9 @@ add_executable(mirage
     src/NetworkLogger.cpp
     src/NetDescribe.cpp
     src/NetInspector.cpp
+    src/NetInspectorAlign.cpp
+    src/NetInspectorResponse.cpp
+    src/NetProbe.cpp
     src/TrackPanel.cpp
     src/TrackGroups.cpp
     src/ManifestParser.cpp
@@ -129,7 +132,12 @@ add_executable(mirage
     src/UiWidgets.cpp
     src/ThumbPlan.cpp
     src/FfOpen.cpp
+    src/HlsMaster.cpp
+    src/HlsVariants.cpp
+    src/HlsAlign.cpp
     src/DemuxRetry.cpp
+    src/PipelineState.cpp
+    src/KeyframeIndex.cpp
 )
 
 target_include_directories(mirage PRIVATE
@@ -169,26 +177,43 @@ add_executable(mirage_tests
     tests/test_yuv_matrix.cpp
     tests/test_sync.cpp
     tests/test_audio_player.cpp
+    tests/test_audio_decoder.cpp
+    tests/test_queue.cpp
     tests/test_ui_format.cpp
     tests/test_thumb_plan.cpp
     tests/test_subtitle_select.cpp
     tests/test_demux_retry.cpp
     tests/test_demuxer_switch.cpp
     tests/test_track_groups.cpp
+    tests/test_pipeline_state.cpp
+    tests/test_hls_variants.cpp
+    tests/test_hls_master.cpp
+    tests/test_keyframe_index.cpp
+    tests/test_scrub_follow.cpp
+    tests/test_hls_align.cpp
     src/Demuxer.cpp
     src/NetworkLogger.cpp
     src/NetDescribe.cpp
+    src/NetProbe.cpp
     src/ManifestParser.cpp
     src/SubtitleDecoder.cpp
     src/Sync.cpp
     src/AudioPlayer.cpp
+    src/AudioDecoder.cpp
+    src/Decoder.cpp
     src/UiFormat.cpp
     src/SubtitleSelect.cpp
     src/SidecarSubtitles.cpp
     src/ThumbPlan.cpp
     src/FfOpen.cpp
+    src/HlsMaster.cpp
+    src/HlsVariants.cpp
+    src/HlsAlign.cpp
     src/DemuxRetry.cpp
     src/TrackGroups.cpp
+    src/PipelineState.cpp
+    src/KeyframeIndex.cpp
+    src/ScrubDecoder.cpp
 )
 
 target_include_directories(mirage_tests PRIVATE

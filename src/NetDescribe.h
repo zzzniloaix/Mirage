@@ -11,6 +11,8 @@
 
 #include <cstdint>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 enum class NetKind : std::uint8_t {
@@ -40,12 +42,30 @@ struct NetRendition {
 struct NetCatalog {
     std::string               manifest_url;
     std::vector<NetRendition> renditions;
+    // The media and init segments the renditions' playlists list, by URL
+    // without query: learned from the playlist responses (learn()). Where
+    // directories say nothing — every playlist next to the master, the
+    // segments of all renditions in one directory (Unified Streaming's
+    // "hls/") — this is how a segment request finds its rendition.
+    std::unordered_map<std::string, int> listed;    // URL → index into renditions
+    std::unordered_set<std::string>      inits;     // EXT-X-MAPs: "URL@offset" (a byte range of
+                                                    // the media file can be one: bipbop's main.mp4)
+    std::uint64_t learned = 0;   // bumped whenever `listed` gains an entry
 
     static NetCatalog build(const std::string& manifest_url,
                             const std::vector<VariantStream>& variants,
                             const std::vector<MediaRendition>& media);
-    // Longest-prefix match of `url` against playlist URLs / directories.
+    // `url` against the playlist URLs, then the segments they list, then
+    // (longest prefix) the playlist directories.
     const NetRendition* match(const std::string& url) const;
+    // Whether a playlist lists `url` (any byte range of it) / lists the byte
+    // range from `range_start` (-1: the whole file) as an init segment.
+    bool is_listed(const std::string& url) const;
+    bool is_init(const std::string& url, std::int64_t range_start) const;
+    // `text`, the response to playlist `playlist_url`: the segments it
+    // lists belong to that playlist's rendition (the first playlist to list
+    // one keeps it). False if nothing new was learned.
+    bool learn(const std::string& playlist_url, const std::string& text);
 };
 
 struct NetDesc {

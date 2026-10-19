@@ -25,6 +25,10 @@ public:
     void push(AVPacket* pkt);   // avcodec_send_packet
     bool pull(AVFrame* frame);  // avcodec_receive_frame; true = got frame
     void flush();               // avcodec_flush_buffers (call after seek)
+    // H.264 / HEVC: don't decode the frames nothing refers to (B-frames,
+    // mostly) — for packets whose frames are dropped unseen anyway (before a
+    // seek's / switch's target). Other codecs: no-op. A reopen clears it.
+    void skip_unreferenced(bool on);
 
     int                            width()                const;
     int                            height()               const;

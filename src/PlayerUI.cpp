@@ -522,7 +522,7 @@ void PlayerUI::build_menu_popup(const PlayerUIInputs& in, PlayerUIState& out)
     if (ImGui::BeginMenu("Media")) {
         if (ImGui::MenuItem("Open\u2026", "O")) show_open_dialog();
         ImGui::Separator();
-        if (ImGui::MenuItem("Quit", "Q / Esc")) out.quit = true;
+        if (ImGui::MenuItem("Quit", "Q")) out.quit = true;
         ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Playback")) {
@@ -598,6 +598,7 @@ void PlayerUI::build_controls(const PlayerUIInputs& in, PlayerUIState& out,
     sbi.cur              = in.cur_pts;
     sbi.buffered_end     = in.buffered_end_pts;
     sbi.kf_pts           = in.kf_pts;
+    sbi.kf_seg_pts       = in.kf_seg_pts;
     sbi.debug_hover_frac = in.debug_hover_frac;
     const ui::SeekBarOut sb = ui::seek_bar("##seek", ImVec2(th::kGutter, top),
                                            win_w - 2.0f * th::kGutter, sbi, seek_, dt);
@@ -982,7 +983,7 @@ void PlayerUI::build_help_card(PlayerUIState& out, float win_w, float win_h)
         { "N",            "Network inspector" },
         { "V",            "VMAF panel" },
         { "H  ?",         "This help" },
-        { "Esc",          "Exit fullscreen / cancel drag / quit" },
+        { "Esc",          "Close the last panel / exit fullscreen" },
         { "Q",            "Quit" },
     };
 
@@ -1397,7 +1398,7 @@ std::string PlayerUI::build_open_rows(const std::vector<std::string>& recents, f
 
 bool PlayerUI::draw_vmaf_results(const std::vector<VMAFResultEntry>& entries,
                                   bool analyzing, float progress,
-                                  float pos_frac)
+                                  float pos_frac, bool* open)
 {
     bool export_requested = false;
 
@@ -1407,7 +1408,7 @@ bool PlayerUI::draw_vmaf_results(const std::vector<VMAFResultEntry>& entries,
         ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f),
         ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
 
-    if (!ImGui::Begin("VMAF Analysis", nullptr, ImGuiWindowFlags_NoCollapse)) {
+    if (!ImGui::Begin("VMAF Analysis", open, ImGuiWindowFlags_NoCollapse)) {
         ImGui::End();
         return false;
     }

@@ -6,6 +6,7 @@
 #include "FfOpen.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <string_view>
@@ -118,7 +119,9 @@ ThumbnailStrip::~ThumbnailStrip()
 bool ThumbnailStrip::init(const std::string& url,
                            int video_stream_idx,
                            AVRational time_base,
-                           double duration)
+                           double duration,
+                           const VariantSource& variant,
+                           const std::string& master)
 {
     duration_        = duration;
     sample_stride_s_.store(thumbs::sample_stride(duration, kMaxThumbs));
@@ -128,9 +131,9 @@ bool ThumbnailStrip::init(const std::string& url,
     glGenVertexArrays(1, &bg_vao_);
     glGenVertexArrays(1, &thumb_vao_);
 
-    decode_thread_ = std::jthread([this, url, video_stream_idx, time_base]
+    decode_thread_ = std::jthread([this, url, video_stream_idx, time_base, variant, master]
                                   (std::stop_token st) {
-        decode_loop(st, url, video_stream_idx, time_base);
+        decode_loop(st, url, video_stream_idx, time_base, variant, master);
     });
 
     return true;
@@ -303,8 +306,26 @@ void ThumbnailStrip::draw_thumb(const Thumb& t, float cx_px, bool highlight,
 
 // ── Background decode thread ──────────────────────────────────────────────────
 
+int ThumbnailStrip::pick_hls_source(const AVFormatContext* fc, int video_stream_idx)
+{
+    if (!fc || !fc->iformat || !fc->iformat->name || std::string_view(fc->iformat->name) != "hls")
+        return video_stream_idx;
+    std::vector<thumbs::VideoCandidate> cands;
+    for (unsigned i = 0; i < fc->nb_streams; ++i) {
+        const AVStream* s = fc->streams[i];
+        if (s->codecpar->codec_type != AVMEDIA_TYPE_VIDEO) continue;
+        int64_t br = s->codecpar->bit_rate;
+        if (const AVDictionaryEntry* e = av_dict_get(s->metadata, "variant_bitrate", nullptr, 0))
+            br = std::strtoll(e->value, nullptr, 10);
+        cands.push_back({ static_cast<int>(i), static_cast<int>(s->codecpar->codec_id),
+                          s->codecpar->height, br });
+    }
+    return thumbs::pick_thumb_stream(cands, video_stream_idx, kDecodeH);
+}
+
 void ThumbnailStrip::decode_loop(std::stop_token st, std::string url,
-                                  int video_stream_idx, AVRational time_base)
+                                  int video_stream_idx, AVRational time_base,
+                                  VariantSource variant, std::string master)
 {
     // Flag completion on every exit path so ready() never stays false forever.
     struct DoneFlag { std::atomic<bool>& f; ~DoneFlag() { f.store(true); } } done_flag{ done_ };
@@ -312,54 +333,61 @@ void ThumbnailStrip::decode_loop(std::stop_token st, std::string url,
     // Open our own AVFormatContext — completely independent of the playback
     // pipeline. Network inputs time out, and stop_requested() aborts any
     // blocking I/O so the destructor's join never hangs on a dead URL.
+    using Clock = std::chrono::steady_clock;
+    const auto t_open = Clock::now();
     AVFormatContext* fmt_ctx = nullptr;
-    if (ffopen::open_input(&fmt_ctx, url, st, NetInitiator::Thumbnails) < 0) {
-        if (!st.stop_requested())
-            logger::error("ThumbnailStrip: failed to open '{}'", url);
-        return;
-    }
-    if (video_stream_idx < 0 || video_stream_idx >= static_cast<int>(fmt_ctx->nb_streams)) {
-        avformat_close_input(&fmt_ctx);
-        return;
-    }
-
+    int  src_idx = -1;
+    bool direct  = false;   // sampling variant.input's playlist on its own
     // HLS has no index, so thumbnails come from seek sampling, and every
-    // sample downloads a segment. Take them from the cheapest variant of the
-    // same codec instead of the (typically top-bitrate) playing one: same
-    // timeline, a fraction of the bytes. Stream indices match the playback
-    // Demuxer's (same URL, same demuxer).
-    int src_idx = video_stream_idx;
-    if (std::string_view(fmt_ctx->iformat->name) == "hls") {
-        std::vector<thumbs::VideoCandidate> cands;
-        for (unsigned i = 0; i < fmt_ctx->nb_streams; ++i) {
-            const AVStream* s = fmt_ctx->streams[i];
-            if (s->codecpar->codec_type != AVMEDIA_TYPE_VIDEO) continue;
-            int64_t br = s->codecpar->bit_rate;
-            if (const AVDictionaryEntry* e = av_dict_get(s->metadata, "variant_bitrate", nullptr, 0))
-                br = std::strtoll(e->value, nullptr, 10);
-            cands.push_back({ static_cast<int>(i), static_cast<int>(s->codecpar->codec_id),
-                              s->codecpar->height, br });
-        }
-        src_idx = thumbs::pick_thumb_stream(cands, video_stream_idx, kDecodeH);
+    // sample downloads a segment: they are taken from the cheapest variant of
+    // the same codec instead of the (typically top-bitrate) playing one —
+    // same timeline, a fraction of the bytes. Its media playlist is opened
+    // directly when known: the master would fetch every variant first.
+    if (!variant.input.url.empty()) {
+        direct = ffopen::open_variant(&fmt_ctx, &src_idx, variant.input, st, NetInitiator::Thumbnails) == 0;
+        if (st.stop_requested()) { if (fmt_ctx) avformat_close_input(&fmt_ctx); return; }
     }
+    if (!direct) {
+        if (ffopen::open_input(&fmt_ctx, url, st, NetInitiator::Thumbnails, master) < 0) {
+            if (!st.stop_requested())
+                logger::error("ThumbnailStrip: failed to open '{}'", url);
+            return;
+        }
+        if (video_stream_idx < 0 || video_stream_idx >= static_cast<int>(fmt_ctx->nb_streams)) {
+            avformat_close_input(&fmt_ctx);
+            return;
+        }
+        // Stream indices match the playback Demuxer's (same URL or master
+        // copy, same demuxer).
+        src_idx = pick_hls_source(fmt_ctx, video_stream_idx);
 
-    // Only that one video stream is needed. Discard the rest before probing
-    // so HLS doesn't fetch every variant's segments.
-    for (unsigned i = 0; i < fmt_ctx->nb_streams; ++i)
-        fmt_ctx->streams[i]->discard = static_cast<int>(i) == src_idx ? AVDISCARD_DEFAULT
-                                                                        : AVDISCARD_ALL;
-    if (avformat_find_stream_info(fmt_ctx, nullptr) < 0) {
-        avformat_close_input(&fmt_ctx);
-        return;
+        // Only that one video stream is needed. Discard the rest before probing
+        // so HLS doesn't fetch every variant's segments.
+        for (unsigned i = 0; i < fmt_ctx->nb_streams; ++i)
+            fmt_ctx->streams[i]->discard = static_cast<int>(i) == src_idx ? AVDISCARD_DEFAULT
+                                                                            : AVDISCARD_ALL;
+        const auto t_probe = Clock::now();
+        if (avformat_find_stream_info(fmt_ctx, nullptr) < 0) {
+            avformat_close_input(&fmt_ctx);
+            return;
+        }
+        logger::info("ThumbnailStrip: open {:.0f} ms, probe {:.0f} ms (t={:.3f})",
+                     std::chrono::duration<double, std::milli>(t_probe - t_open).count(),
+                     std::chrono::duration<double, std::milli>(Clock::now() - t_probe).count(),
+                     logger::uptime());
     }
 
     AVStream* stream = fmt_ctx->streams[src_idx];
     // Another variant has its own time_base (e.g. 1/30000 vs 1/60000).
-    const double tb  = av_q2d(src_idx == video_stream_idx ? time_base : stream->time_base);
+    const double tb  = av_q2d((!direct && src_idx == video_stream_idx) ? time_base : stream->time_base);
     // Keyframe stepping seeks the playing stream, so only publish keyframes
     // that are the playing stream's own (variants may place them differently).
-    const bool publish_kf = src_idx == video_stream_idx;
-    if (src_idx != video_stream_idx)
+    const bool publish_kf = direct ? variant.playing : src_idx == video_stream_idx;
+    if (direct)
+        logger::info("ThumbnailStrip: sampling variant playlist {} ({}p{}), open + probe {:.0f} ms (t={:.3f})",
+                     variant.input.url, stream->codecpar->height, variant.playing ? ", the playing one" : "",
+                     std::chrono::duration<double, std::milli>(Clock::now() - t_open).count(), logger::uptime());
+    else if (src_idx != video_stream_idx)
         logger::info("ThumbnailStrip: sampling HLS variant stream {} ({}p) instead of {}",
                      src_idx, stream->codecpar->height, video_stream_idx);
 

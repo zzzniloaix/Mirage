@@ -78,6 +78,7 @@ struct PlayerUIInputs {
 
     ThumbnailStrip*            thumbs = nullptr;   // main thread only
     const std::vector<double>* kf_pts = nullptr;   // copy held by main
+    const std::vector<double>* kf_seg_pts = nullptr;   // HLS segment starts not read yet (faint ticks)
     float  video_aspect = 16.0f / 9.0f;            // display w/h after SAR + rotation
     ImVec4 video_rect   = {};                      // logical px: x, y_top, w, h
 
@@ -151,9 +152,10 @@ public:
 
     // Draw the VMAF results ImGui window.  Call between begin_frame()/end_frame().
     // Returns true when the user clicks "Export JSON".
+    // open: cleared when its title-bar close button is clicked.
     bool draw_vmaf_results(const std::vector<VMAFResultEntry>& entries,
                            bool analyzing, float progress,
-                           float pos_frac);
+                           float pos_frac, bool* open = nullptr);
 
     // Submit the ImGui draw data to the GPU (call after all other drawing is done).
     void end_frame();

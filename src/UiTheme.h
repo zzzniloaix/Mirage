@@ -36,6 +36,7 @@ inline constexpr ImU32 kPanelBorder   = rgba(255, 255, 255, 0.08f);
 inline constexpr ImU32 kTrackRest     = rgba(255, 255, 255, 0.25f);
 inline constexpr ImU32 kTrackBuffered = rgba(255, 255, 255, 0.45f);
 inline constexpr ImU32 kTick          = rgba(255, 255, 255, 0.35f);
+inline constexpr ImU32 kTickFaint     = rgba(255, 255, 255, 0.14f);  // keyframe known only as a segment start
 inline constexpr ImU32 kError         = rgba(255,  97, 110, 1.00f);  // #FF616E
 inline constexpr ImU32 kWarn          = rgba(251, 191,  36, 1.00f);  // #FBBF24
 inline constexpr ImU32 kShadow        = rgba(  0,   0,   0, 0.35f);

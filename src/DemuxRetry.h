@@ -19,12 +19,13 @@ enum class ReadError {
 inline constexpr int kMaxReadRetries = 10;
 
 // Retries allowed when the only evidence of a failure is that the bytes
-// stopped short of the known size before the media's end (avio_short).
-// That heuristic can also fire at a genuine end of file (e.g. an MP4 whose
-// moov box sits after the media data, or a trailing stream that is
-// discarded), so it gets a small budget: a real dropped connection resumes
-// within a couple of reconnects, while a misread EOF ends after ~350 ms.
-inline constexpr int kMaxShortReadRetries = 3;
+// stopped short of the known size more than a second before the media's end
+// (avio_short). That heuristic can also fire at a genuine end of file (e.g.
+// an MP4 whose moov box sits after the media data, or a trailing stream that
+// is discarded), so it gets a smaller budget: ~2.5 s of backoff, enough for a
+// connection lost for a moment (3 retries, ~350 ms, ended playback as if the
+// file were over), while a misread EOF still ends soon.
+inline constexpr int kMaxShortReadRetries = 6;
 
 // Classify an av_read_frame() error.
 //   err             — the negative AVERROR returned by av_read_frame

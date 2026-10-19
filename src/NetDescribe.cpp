@@ -1,5 +1,7 @@
 #include "NetDescribe.h"
 
+#include "HlsAlign.h"
+
 #include <algorithm>
 #include <cctype>
 #include <format>
@@ -10,6 +12,17 @@ std::string lower(std::string s)
 {
     for (auto& c : s) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     return s;
+}
+
+// A variant whose CODECS lists no video codec: an audio-only EXT-X-STREAM-INF.
+bool audio_only(const std::string& codecs)
+{
+    if (codecs.empty()) return false;
+    static constexpr const char* kVideo[] = { "avc1", "avc3", "hvc1", "hev1", "dvh1", "dvhe", "dva1", "dvav",
+                                              "av01", "vp09", "vp08", "mp4v" };
+    const std::string c = lower(codecs);
+    return std::none_of(std::begin(kVideo), std::end(kVideo),
+                        [&](const char* v) { return c.find(v) != std::string::npos; });
 }
 
 // URL without query / fragment.
@@ -138,7 +151,7 @@ NetCatalog NetCatalog::build(const std::string& manifest_url,
         NetRendition r;
         r.url     = key;
         r.dir     = dir_of(v.url);
-        r.media   = NetMedia::Video;
+        r.media   = audio_only(v.codecs) ? NetMedia::Audio : NetMedia::Video;
         r.variant = static_cast<int>(i);
         r.label   = name_for(v.url, all);
         if (v.height > 0) {
@@ -165,13 +178,58 @@ NetCatalog NetCatalog::build(const std::string& manifest_url,
     return cat;
 }
 
+static std::string init_key(const std::string& url, std::int64_t offset)
+{
+    return std::format("{}@{}", url, offset < 0 ? 0 : offset);
+}
+
+bool NetCatalog::is_listed(const std::string& url) const
+{
+    return listed.contains(strip_query(url));
+}
+
+bool NetCatalog::is_init(const std::string& url, std::int64_t range_start) const
+{
+    return !inits.empty() && inits.contains(init_key(strip_query(url), range_start));
+}
+
+bool NetCatalog::learn(const std::string& playlist_url, const std::string& text)
+{
+    const std::string key = strip_query(playlist_url);
+    int idx = -1;
+    for (std::size_t i = 0; i < renditions.size(); ++i)
+        if (renditions[i].url == key) idx = static_cast<int>(i);
+    if (idx < 0) return false;
+    const hls::MediaTimeline tl = hls::parse_media_timeline(text, playlist_url);
+    if (!tl.ok) return false;
+    // A live playlist keeps listing new segments: bounded, the newest
+    // playlists teach it again.
+    if (listed.size() > 200'000) {
+        listed.clear();
+        inits.clear();
+    }
+    bool added = false;
+    for (const auto& m : tl.maps) {
+        const std::string u = strip_query(m.uri);
+        added |= listed.try_emplace(u, idx).second;
+        inits.insert(init_key(u, m.range.offset));
+    }
+    for (const auto& sg : tl.segments)
+        added |= listed.try_emplace(strip_query(sg.uri), idx).second;
+    if (added) ++learned;
+    return added;
+}
+
 const NetRendition* NetCatalog::match(const std::string& url) const
 {
     const std::string u = strip_query(url);
+    for (const auto& r : renditions)
+        if (r.url == u) return &r;
+    if (const auto it = listed.find(u); it != listed.end() && it->second < static_cast<int>(renditions.size()))
+        return &renditions[static_cast<std::size_t>(it->second)];
     const NetRendition* best = nullptr;
     std::size_t best_len = 0;
     for (const auto& r : renditions) {
-        if (r.url == u) return &r;
         // A shared directory (all playlists next to the master) says nothing.
         if (r.dir.empty() || r.dir == dir_of(manifest_url)) continue;
         if (u.starts_with(r.dir) && r.dir.size() > best_len) {
@@ -227,7 +285,8 @@ NetDesc net_describe(const NetRequest& r, const NetCatalog& cat)
         d.media = NetMedia::Subs;
         return d;
     }
-    if (r.protocol == "file") {
+    // A local file being played — unless a playlist lists it (local HLS).
+    if (r.protocol == "file" && !rend && !cat.is_listed(url)) {
         d.kind = NetKind::File;
         return d;
     }
@@ -251,7 +310,12 @@ NetDesc net_describe(const NetRequest& r, const NetCatalog& cat)
                          || ext == ".cmfv" || ext == ".cmfa" || ext == ".mp4a" || ext == ".ts"
                          || ext == ".aac";
 
-    if ((named_init && (media_ext || ext.empty())) || (rend && small_head)) {
+    // What the playlists list settles it; the URL and size only guess.
+    if (cat.is_init(url, r.range_start)) {
+        d.kind = NetKind::Init;
+        return d;
+    }
+    if (!cat.is_listed(url) && ((named_init && (media_ext || ext.empty())) || (rend && small_head))) {
         d.kind = NetKind::Init;
         return d;
     }

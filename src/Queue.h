@@ -1,9 +1,10 @@
 #pragma once
 
-#include <queue>
+#include <deque>
 #include <mutex>
 #include <condition_variable>
 #include <atomic>
+#include <chrono>
 #include <concepts>
 
 // Constraint: T must be a pointer type (AVPacket*, AVFrame*, etc.)
@@ -28,9 +29,25 @@ public:
         std::unique_lock lock(mu_);
         not_full_.wait(lock, [&] { return q_.size() < capacity_ || shutdown_; });
         if (shutdown_) return false;
-        q_.push(item);
+        q_.push_back(item);
         not_empty_.notify_one();
         return true;
+    }
+
+    // Push like push(), but stop waiting for room once give_up() returns
+    // true (checked every `poll` while full); the item is then not taken.
+    enum class PushResult { Pushed, GaveUp, Closed };
+    template<class GiveUp>
+    PushResult push_or_give_up(T item, GiveUp&& give_up, std::chrono::milliseconds poll) {
+        std::unique_lock lock(mu_);
+        while (q_.size() >= capacity_ && !shutdown_) {
+            if (give_up()) return PushResult::GaveUp;
+            not_full_.wait_for(lock, poll);
+        }
+        if (shutdown_) return PushResult::Closed;
+        q_.push_back(item);
+        not_empty_.notify_one();
+        return PushResult::Pushed;
     }
 
     // Blocking pop. Returns false if shut down and queue is empty.
@@ -39,7 +56,7 @@ public:
         not_empty_.wait(lock, [&] { return !q_.empty() || shutdown_; });
         if (q_.empty()) return false;
         out = q_.front();
-        q_.pop();
+        q_.pop_front();
         not_full_.notify_one();
         return true;
     }
@@ -49,9 +66,18 @@ public:
         std::lock_guard lock(mu_);
         if (q_.empty()) return false;
         out = q_.front();
-        q_.pop();
+        q_.pop_front();
         not_full_.notify_one();
         return true;
+    }
+
+    // Look at the queued items, next to pop first, under the queue's lock
+    // (the producer can't free one meanwhile): f(item) returns false to stop.
+    template<class F>
+    void scan(F&& f) const {
+        std::lock_guard lock(mu_);
+        for (const T& it : q_)
+            if (!f(it)) return;
     }
 
     // Wake all blocked push/pop calls so threads can exit.
@@ -71,7 +97,7 @@ public:
     // Caller is responsible for freeing any items that were in flight.
     void flush() {
         std::lock_guard lock(mu_);
-        while (!q_.empty()) q_.pop();
+        q_.clear();
         not_full_.notify_all();
     }
 
@@ -85,10 +111,11 @@ public:
     }
 
     int  size()        const { std::lock_guard l(mu_); return static_cast<int>(q_.size()); }
+    int  capacity()    const { std::lock_guard l(mu_); return static_cast<int>(capacity_); }
     bool is_shutdown() const { return shutdown_; }
 
 private:
-    std::queue<T>           q_;
+    std::deque<T>           q_;
     mutable std::mutex      mu_;
     std::condition_variable not_empty_;
     std::condition_variable not_full_;

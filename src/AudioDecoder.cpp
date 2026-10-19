@@ -2,6 +2,7 @@
 #include "Logger.h"
 
 #include <cmath>
+#include <cstring>
 #include <algorithm>
 
 extern "C" {
@@ -309,6 +310,23 @@ void AudioDecoder::decode(AVPacket* pkt, AudioPlayer& player)
             // Use stream time_base to get media seconds, then convert to sample units.
             if (frame_->pts != AV_NOPTS_VALUE) {
                 double media_sec = frame_->pts * av_q2d(time_base_);
+                // Before start_at_: dropped; the frame holding it starts there.
+                if (start_at_ >= 0.0) {
+                    const long long skip = std::llround((start_at_ - media_sec) * out_rate_);
+                    if (skip >= converted) {
+                        av_frame_unref(frame_);
+                        av_frame_unref(swr_frame_);
+                        continue;
+                    }
+                    if (skip > 0) {
+                        float* d = reinterpret_cast<float*>(swr_frame_->data[0]);   // packed stereo
+                        std::memmove(d, d + skip * 2,
+                                     static_cast<std::size_t>(converted - skip) * 2 * sizeof(float));
+                        swr_frame_->nb_samples = static_cast<int>(converted - skip);
+                        media_sec += static_cast<double>(skip) / out_rate_;
+                    }
+                    start_at_ = -1.0;
+                }
                 swr_frame_->pts = static_cast<int64_t>(media_sec * out_rate_);
                 // Re-seed our running tracker from the actual stream PTS on the
                 // first frame after open or flush (including post-seek frames).
