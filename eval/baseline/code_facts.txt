@@ -1,0 +1,104 @@
+$ git -C <worktree> rev-parse HEAD
+a4e02895d2d9c51c620e6c140f5566944c80ec71
+
+$ git -C <worktree> ls-files LICENSE* COPYING* license*
+
+$ wc -l <worktree>/src/VMAFAnalyzer.cpp <worktree>/src/VMAFAnalyzer.h
+     433 <worktree>/src/VMAFAnalyzer.cpp
+      75 <worktree>/src/VMAFAnalyzer.h
+     508 total
+
+$ grep -n -E n_threads|vmaf_model_load|SWS_BILINEAR|VMAF_POOL_METHOD|sorted\.size\(\) \* 5|next_video_frame\(\);|frame_idx\+\+|result\.width  = ref_w|std::ofstream f\(path\) <worktree>/src/VMAFAnalyzer.cpp
+145:    result.width  = ref_w;
+152:        SWS_BILINEAR, nullptr, nullptr, nullptr);
+157:        SWS_BILINEAR, nullptr, nullptr, nullptr);
+188:        .n_threads   = 4,
+199:    if (vmaf_model_load(&model, &model_cfg, "vmaf_v0.6.1") < 0) {
+201:        return fail("vmaf_model_load failed — is vmaf_v0.6.1.json installed?");
+216:        AVFrame* ref_frame = ref_ctx.next_video_frame();
+217:        AVFrame* dis_frame = dis_ctx.next_video_frame();
+260:        vmaf_read_pictures(vmaf, &ref_pic, &dis_pic, frame_idx++);
+276:        vmaf_score_pooled(vmaf, model, VMAF_POOL_METHOD_MEAN,
+278:        vmaf_score_pooled(vmaf, model, VMAF_POOL_METHOD_MIN,
+284:        result.vmaf_p5 = sorted[sorted.size() * 5 / 100];
+397:    std::ofstream f(path);
+
+$ grep -n -E vmaf\.json|write_json|start_manifest|auto_vmaf <worktree>/src/main.cpp
+517:    bool        auto_vmaf     = false;    // first
+896:            cli.auto_vmaf = true;
+1096:    if (cli.auto_vmaf) {
+1101:            vmaf_analyzer.start_manifest(session->manifest.variants());
+1181:    const bool         auto_vmaf        = cli.auto_vmaf;
+1829:            if (auto_vmaf && vmaf_was_running && !vmaf_running_now) {
+1830:                std::string json_path = open_path + ".vmaf.json";
+1831:                vmaf_analyzer.write_json(json_path);
+3182:                    std::string json_path = open_path + ".vmaf.json";
+3183:                    vmaf_analyzer.write_json(json_path);
+3419:                vmaf_analyzer.start_manifest(manifest.variants());
+3423:                std::string json_path = open_path + ".vmaf.json";
+3424:                vmaf_analyzer.write_json(json_path);
+
+$ grep -n -E draw_vmaf_results|pos_frac \* N|Export JSON <worktree>/src/PlayerUI.cpp
+1399:bool PlayerUI::draw_vmaf_results(const std::vector<VMAFResultEntry>& entries,
+1425:        if (ImGui::Button("Export JSON")) export_requested = true;
+1553:            int fi = static_cast<int>(pos_frac * N);
+
+$ grep -c -i vmaf <worktree>/src/main.cpp
+80
+
+$ grep -n -E vmaf_analyzer\.results\(\)|VMAF report written|cli.auto_vmaf\)|vmaf_pos_frac = <worktree>/src/main.cpp
+1096:    if (cli.auto_vmaf) {
+1832:                logger::info("VMAF report written to {}", json_path);
+2996:            auto vmaf_results = vmaf_analyzer.results();
+3005:            float vmaf_pos_frac = (duration > 0.0)
+3163:                auto vmaf_results = vmaf_analyzer.results();
+3172:                float vmaf_pos_frac = (duration > 0.0)
+3184:                    logger::info("VMAF report written to {}", json_path);
+3425:                logger::info("VMAF report written to {}", json_path);
+
+$ grep -n vmaf_analyzer <worktree>/src/MediaSession.h
+82:    VMAFAnalyzer     vmaf_analyzer;
+
+$ grep -n -E cancel\(\);|void VMAFAnalyzer::cancel <worktree>/src/VMAFAnalyzer.cpp <worktree>/src/VMAFAnalyzer.h
+<worktree>/src/VMAFAnalyzer.cpp:299:    cancel();
+<worktree>/src/VMAFAnalyzer.cpp:327:    cancel();
+<worktree>/src/VMAFAnalyzer.cpp:379:void VMAFAnalyzer::cancel()
+<worktree>/src/VMAFAnalyzer.h:39:    ~VMAFAnalyzer() { cancel(); }
+<worktree>/src/VMAFAnalyzer.h:51:    void cancel();
+
+$ (line span of a function: from its signature to the brace that closes it)
+src/PlayerUI.cpp bool PlayerUI::draw_vmaf_results: L1399-L1563 (165 lines)
+src/DebugHUD.cpp void DebugHUD::draw_vmaf_panel: L908-L1109 (202 lines)
+src/VMAFAnalyzer.cpp void VMAFAnalyzer::analyze_pair: L124-L293 (170 lines)
+src/VMAFAnalyzer.cpp void VMAFAnalyzer::start_manifest: L325-L377 (53 lines)
+src/VMAFAnalyzer.cpp bool VMAFAnalyzer::write_json: L392-L433 (42 lines)
+
+$ grep -rn -i -l vmaf <worktree>/tests
+
+$ grep -n -E FetchContent_Declare|GIT_TAG|pkg_check_modules <worktree>/CMakeLists.txt
+13:pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET
+23:pkg_check_modules(GLFW REQUIRED IMPORTED_TARGET glfw3)
+26:pkg_check_modules(VMAF REQUIRED IMPORTED_TARGET libvmaf)
+30:FetchContent_Declare(glad
+32:    GIT_TAG        v2.0.8
+39:FetchContent_Declare(miniaudio
+41:    GIT_TAG        master
+46:FetchContent_Declare(stb
+48:    GIT_TAG        master
+53:FetchContent_Declare(pugixml
+55:    GIT_TAG        v1.14
+60:FetchContent_Declare(Catch2
+62:    GIT_TAG        v3.7.1
+67:FetchContent_Declare(imgui
+69:    GIT_TAG        v1.91.9
+74:FetchContent_Declare(nfd
+76:    GIT_TAG        v1.2.1
+
+$ grep -n PKG_CONFIG_PATH <worktree>/CMakePresets.json
+13:        "PKG_CONFIG_PATH": "/opt/homebrew/opt/ffmpeg-full/lib/pkgconfig:$penv{PKG_CONFIG_PATH}"
+25:        "PKG_CONFIG_PATH": "/opt/homebrew/opt/ffmpeg-full/lib/pkgconfig:$penv{PKG_CONFIG_PATH}"
+
+$ grep -n -E brew install <worktree>/README.md <worktree>/CLAUDE.md
+<worktree>/README.md:14:brew install ffmpeg glfw ninja pkg-config libvmaf
+<worktree>/CLAUDE.md:17:brew install ffmpeg glfw ninja pkg-config libvmaf
+

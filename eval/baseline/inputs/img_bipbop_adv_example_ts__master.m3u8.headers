@@ -1,0 +1,15 @@
+HTTP/1.1 200 OK
+Date: Wed, 21 Oct 2026 22:41:05 GMT
+Last-Modified: Mon, 29 Jan 2024 21:26:12 GMT
+ETag: "242d0b61f7ca733605d1c5fd94c64093"
+Accept-Ranges: bytes
+Content-Type: application/x-mpegURL
+Content-Length: 6289
+Server: AmazonS3
+Cache-Control: max-age=600, public
+Via: https/1.1 uslax1-edge-mx-004.ts.apple.com (acdn/25.17695), https/1.1 uslax1-edge-fx-025.ts.apple.com (acdn/25.17695)
+X-Cache: hit-stale, hit-stale
+CDNUUID: acd66670-1963-4f60-a3f8-05789f15e768-225411153
+Age: 1
+Connection: keep-alive
+

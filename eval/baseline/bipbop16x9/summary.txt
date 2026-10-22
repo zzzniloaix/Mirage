@@ -1,0 +1,5 @@
+'1280x720  1.0 Mbps': frames=53946 written mean=74.5632 min=69.7469 p5=73.8895 | recomputed mean=74.5632 median=74.5802 max=75.7964 first_frame=69.7469 frames_above_5=53946 resolution_field='1920x1080'
+'960x540  0.9 Mbps': frames=53946 written mean=53.222 min=45.1244 p5=52.056 | recomputed mean=53.2220 median=53.3130 max=55.4501 first_frame=45.1244 frames_above_5=53946 resolution_field='1920x1080'
+'640x360  0.6 Mbps': frames=53946 written mean=33.0648 min=20.0523 p5=31.4198 | recomputed mean=33.0648 median=33.3308 max=37.3305 first_frame=20.0523 frames_above_5=53946 resolution_field='1920x1080'
+'416x234  0.3 Mbps': frames=53946 written mean=1.1455 min=0.0 p5=0.0 | recomputed mean=1.1455 median=1.1167 max=4.6752 first_frame=0.0000 frames_above_5=0 resolution_field='1920x1080'
+'0x0  0.0 Mbps': no scores; error='cannot open distorted: https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear0/prog_index.m3u8'

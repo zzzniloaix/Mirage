@@ -1,0 +1,41 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  Opening https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8 (t=0.235)
+[INFO]  ManifestParser: parsed HLS — 0 tags, 6 variants from https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8
+[INFO]  Demuxer: avformat_open_input 2631 ms (25 streams, 6 programs) (t=3.034)
+[INFO]  Demuxer: avformat_find_stream_info 64 ms (t=3.098)
+[INFO]  Container: Apple HTTP Live Streaming
+[INFO]  Duration:  00:30:00
+[INFO]  Video:     h264 416×234 @ 29.970 fps  pixel_fmt=yuv420p
+[INFO]  Audio:     aac 22050 Hz  2 ch  fmt=fltp
+[INFO]  Subtitles: 8 embedded track(s)
+[INFO]  Selected HW-capable decoder: h264 (default was h264)
+[INFO]  Decoder opened: h264 (416×234)  [HW: VideoToolbox requested]
+[INFO]  AudioPlayer: 48000 Hz stereo float32  device latency 30.0 ms (480 frames × 3 periods)
+[INFO]  Decoder opened: aac (0×0)
+[INFO]  AudioDecoder: 22050 Hz 2ch → 48000 Hz stereo f32
+[INFO]  Opened https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8 in 2992 ms (t=3.227)
+[INFO]  VideoRenderer: 416×234 SDR (yuv420p → RGB24 sRGB)  matrix=BT.601  limited-range
+[INFO]  MediaSession: helpers open variant playlists — scrub https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear1/prog_index.m3u8, thumbnails https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear1/prog_index.m3u8 (stream 10)
+[INFO]  SubtitleDecoder opened: webvtt (text)
+[INFO]  Subtitles: stream 2 read from the start
+[INFO]  VMAFAnalyzer: auto-starting manifest variant analysis
+[INFO]  Subtitles: 8 choice(s); initial 2 · en · WebVTT (forced) (forced)
+[INFO]  Decoder: VideoToolbox HW decode active (zero-copy IOSurface path)
+[INFO]  first-frame: pts=10.033 416x234 VideoToolbox, 163 ms after open (t=3.392)
+[INFO]  VideoRenderer: HW zero-copy path ready (8-bit, BT.601 matrix, limited-range)
+[INFO]  Keyframes: stream 10 — 181 segments (1800.0 s) in https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear1/prog_index.m3u8
+[INFO]  Keyframes: stream 10 — the playlist's 181 segment durations are not whole frames (or the start / frame rate is unknown): segment starts are not predicted
+[INFO]  ThumbnailStrip: sampling variant playlist https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear1/prog_index.m3u8 (234p, the playing one), open + probe 420 ms (t=3.649)
+[INFO]  ThumbnailStrip: 0 keyframes in index for stream 1 — seek-sampling 48 points (stride 37.50 s)
+[WARN]  Keyframes: stream 10 — the playlist's segment starts don't match the keyframes read (1 contradiction: keyframes at 15.005 and 20.010 were read in one go, none at the start predicted at 19.977): only keyframes read are listed
+[INFO]  ScrubDecoder: ready — variant playlist https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear1/prog_index.m3u8 (open + probe 480 ms) (t=3.709)
+[INFO]  ThumbnailStrip: coarse pass done (6 thumbnails)
+[INFO]  ThumbnailStrip: decode complete (48 thumbnails)
+[INFO]  VMAFAnalyzer: 53946 frames  mean=74.56  min=69.75  p5=73.89  [1280x720  1.0 Mbps]
+[INFO]  VMAFAnalyzer: 53946 frames  mean=53.22  min=45.12  p5=52.06  [960x540  0.9 Mbps]
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=1782.890)
+[INFO]  VMAFAnalyzer: 53946 frames  mean=33.06  min=20.05  p5=31.42  [640x360  0.6 Mbps]
+[INFO]  VMAFAnalyzer: 53946 frames  mean=1.15  min=0.00  p5=0.00  [416x234  0.3 Mbps]
+[WARN]  VMAFAnalyzer: cannot open distorted: https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear0/prog_index.m3u8
+[INFO]  VMAFAnalyzer: wrote report to https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8.vmaf.json
+[INFO]  VMAF report written to https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8.vmaf.json
