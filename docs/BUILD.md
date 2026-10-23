@@ -12,7 +12,7 @@ brew install cmake ninja pkgconf ffmpeg-full libvmaf glfw python@3.13
 
 The build check used these packages as they were already installed on its machine; their versions are in the record. The compiler is Apple clang from the Xcode Command Line Tools. `CMakeLists.txt` asks for CMake 3.28 or later.
 
-- **FFmpeg comes from `ffmpeg-full`.** Both presets put `/opt/homebrew/opt/ffmpeg-full/lib/pkgconfig` first on `PKG_CONFIG_PATH`, so the build links ffmpeg-full's libraries even when Homebrew's `ffmpeg` is installed too, as it is on the machine of the record (D-009). `README.md` and `CLAUDE.md` still say `brew install ffmpeg`; that is corrected later in Phase 1.
+- **FFmpeg comes from `ffmpeg-full`.** Both presets put `/opt/homebrew/opt/ffmpeg-full/lib/pkgconfig` first on `PKG_CONFIG_PATH`, so the build links ffmpeg-full's libraries even when Homebrew's `ffmpeg` is installed too, as it is on the machine of the record (D-009). `README.md` and `CLAUDE.md` name `ffmpeg-full` as well.
 - **Homebrew doesn't pin versions.** `brew install` installs the current formulae. In the record, Homebrew's current formulae of ffmpeg-full, libvmaf and GLFW are all newer than the installed versions the build was verified with, ffmpeg-full by a major version ("installed vs current stable"). Nothing in the build checks versions yet.
 - `python@3.13` is only for the glad workaround in step 3.
 

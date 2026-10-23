@@ -11,8 +11,10 @@ A C++20 video player built for video engineers. Supports local files and adaptiv
 ### 1. Install Homebrew dependencies
 
 ```bash
-brew install ffmpeg glfw ninja pkg-config libvmaf
+brew install ffmpeg-full glfw ninja pkg-config libvmaf
 ```
+
+> **Verified build** — `docs/BUILD.md` is the build as it was checked: the Homebrew packages, the versions the evaluation used, and what to do when the build stops at glad's code generation.
 
 > **Python / jinja2** — GLAD2 (the OpenGL loader) needs jinja2 at configure time. If you see `ModuleNotFoundError: No module named 'jinja2'` run:
 > ```bash
