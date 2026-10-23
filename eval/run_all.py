@@ -132,7 +132,11 @@ Run = collections.namedtuple("Run", "name options")
 
 def delta_options(frames, pairs=PAIRS, scaler="bilinear", model="vmaf_v0.6.1",
                   model_file=None, relabel=False):
-    """run_delta.sh's options; frames None for every frame."""
+    """run_delta.sh's options; frames None for every frame. The scaler, the
+    model and the threads are always given, so that a rerun has the settings
+    its run.cmd.txt records whatever run_delta.sh's defaults are: bilinear,
+    the scaler of every committed run that names no other, was its default
+    until D-024 made it bicubic."""
     opts = [] if frames is None else ["--frames", str(frames)]
     opts += ["--pairs", pairs, "--scaler", scaler]
     opts += ["--model-file", model_file] if model_file else ["--model", model]

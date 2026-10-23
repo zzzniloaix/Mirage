@@ -94,6 +94,17 @@ class StepsAgainstTheCommittedRuns(unittest.TestCase):
                             .replace("{format_clips}", "<tmp>/format_clips") for o in run.options]
                     self.assertEqual(as_options(ra.expand(mine, fake)), expected)
 
+    def test_every_delta_run_names_its_scaler_and_model(self):
+        # run_delta.sh's defaults can change, as its scaler did with D-024; a
+        # rerun that named no scaler or model would get the new default.
+        for s in ra.STEPS:
+            for run in s.runs:
+                with self.subTest(step=s.name, run=run.name):
+                    opts = as_options(run.options)
+                    self.assertIn("--scaler", opts)
+                    self.assertTrue("--model" in opts or "--model-file" in opts)
+                    self.assertIn("--threads", opts)
+
     def test_every_committed_measurement_has_a_step(self):
         covered = {os.path.join(s.committed, run.name) for s in ra.STEPS for run in s.runs}
         found = set()
