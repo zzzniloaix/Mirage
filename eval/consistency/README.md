@@ -101,10 +101,12 @@ python3 -I -B eval/consistency/compare_runs.py --base LABEL=DIR --run LABEL=DIR 
 `color_cases.py` makes the inputs that show what FFmpeg's §5 filter graph does with the distorted input's color matrix and range when the two inputs' tags differ, or are missing (D-016):
 
 ```
-python3 -I -B eval/consistency/color_cases.py <clips_dir> [--ffmpeg <ffmpeg>] [--ffprobe <ffprobe>] [--frames N]
+python3 -I -B eval/consistency/color_cases.py <clips_dir> [--set tags|formats] [--ffmpeg <ffmpeg>] [--ffprobe <ffprobe>] [--frames N]
 ```
 
-- The clips are FFmpeg's `testsrc2` pattern, 10 frames by default at 30000/1001 fps, yuv420p, uncompressed in Matroska: references at 1920x1080, distorted inputs scaled to 640x360 (like bipbop's gear5 and gear2). `setparams` gives each clip its tags; the pixels of all clips of one size are the same, which the script checks.
+- The clips are FFmpeg's `testsrc2` pattern, 10 frames by default at 30000/1001 fps: references at 1920x1080, distorted inputs scaled to 640x360 (like bipbop's gear5 and gear2). `setparams` gives each clip its tags.
+- `--set tags`, the default, makes the color tag cases: every clip yuv420p, uncompressed in Matroska, and the pixels of all clips of one size the same, which the script checks.
+- `--set formats` makes the reference format cases: references in yuv420p10le, yuv422p and yuv444p (FFV1, lossless) and a lossless full range H.264 reference, which FFmpeg's H.264 decoder gives as yuvj420p, against yuv420p distorted inputs; a 10-bit and a full range H.264 distorted input against a yuv420p reference; and YCgCo on both inputs. A clip's name says its codec and decoded pixel format when it isn't uncompressed yuv420p (`ref_ffv1-yuv420p10le_bt709-tv.mkv`). The script checks that all clips of one size made from one pixel format have the same pixels, the lossless H.264 clips those of the uncompressed yuv420p ones.
 - `<clips_dir>/pairs.txt` lists the cases FFmpeg's graph scores, `<clips_dir>/pairs_refused.txt` those it refuses (a YCgCo matrix, which libswscale doesn't have). Both are pairs files for `run_delta.sh --pairs`; each case's label names the reference's tags, then the distorted input's, and the file's comment lines say what each case is.
 - `<clips_dir>/clips.txt` records, for every clip, the command that made it, its stream parameters as ffprobe reads them back, and the MD5 of its decoded frames, with `<clips_dir>`, `<ffmpeg>` and `<ffprobe>` in place of local paths.
 - Exit status: 0 the clips have the intended tags and pixels; 1 a program failed or a clip is not as intended; 2 bad arguments.
@@ -124,7 +126,7 @@ eval/consistency/run_delta.sh build/macos-release/mirage_vmaf <out>/relabel --fr
 
 | File | Contents |
 |---|---|
-| `build.txt` | the `mirage_vmaf` of both runs, checked right before them: HEAD, a clean working tree, no change under `src`, `tools`, `tests` or the CMake files since stage 1 built it at `83c8ed6`, `ninja: no work to do`, and its SHA-256, which both runs' `environment.txt` repeat |
+| `build.txt` | the `mirage_vmaf` of both runs, checked right before them: HEAD, a clean working tree, no change under `src`, `tools`, `tests` or the CMake files since it was built at `83c8ed6`, `ninja: no work to do`, and its SHA-256, which both runs' `environment.txt` repeat |
 | `plain/` | the run with plain FFmpeg, the §5 comparison |
 | `relabel/` | the run with `--diagnostic-relabel` |
 | `checks.txt` | checks made on both runs afterwards, each command with its output: against Phase 0's outputs, at FFmpeg's 6 decimals, the frames of gear1 that pass, and the checksums |
@@ -194,7 +196,7 @@ Per case, from each case's `ffmpeg_colorspace_lines.txt` and `delta.md` in `colo
 
 In `refused/`, FFmpeg exits with status 178 for both YCgCo cases, with `Impossible to convert between the formats supported by the filter ...` (`u01_bt709_vs_ycgco/ffmpeg_colorspace_lines.txt`, and the same file for `u02`). Before D-016 `mirage_vmaf` scored both; after it, it exits with status 1 and names the matrix (`color-cases-after/checks.txt`, check 5).
 
-What "convert like FFmpeg" therefore means in FFmpeg 8.1.1, for the graph of the §5 comparison:
+What "convert like FFmpeg" therefore means in FFmpeg 8.1.1, for the graph of the §5 comparison and a yuv420p reference, as every reference of these cases and of the bipbop runs is (for a reference in another pixel format, FFmpeg converts the reference instead: `format-cases-before/`, `format-cases-after/` below):
 
 - **Matrix**: the distorted frames are converted to the reference's matrix tag, whatever it is, a missing tag included (`m04`, `m05`: `-> unknown`).
 - **Range**: they are converted to the reference's range tag. When the reference has none, FFmpeg keeps the distorted frames' range if that is limited or missing (`r05`, `m06`) and picks none for a full range (`r03`).
@@ -207,7 +209,50 @@ The FFmpeg 8.1.1 sources (`ffmpeg-8.1.1.tar.xz` from ffmpeg.org, whose SHA-256 i
 
 Mirage does the same (`src/VMAFColor.h`, P-014): its scores agree with FFmpeg's at the 6 decimals of FFmpeg's log on every frame of every case after D-016, its `dis_conversion` has the tags of FFmpeg's scale filter in every case, and it reports a matrix change exactly where FFmpeg's log has swscale's RGB note (`color-cases-after/checks.txt`, checks 2 and 3). `tests/test_vmaf_color.cpp` compares Mirage's converted frames with those of the same graph run through libavfilter, byte for byte, for the tags of these cases.
 
-Limits: synthetic 8-bit yuv420p clips at two sizes, 10 frames each, and only the libvmaf graph of the §5 comparison. The scores of these clips only compare the two tools.
+Limits: synthetic 8-bit yuv420p clips at two sizes, 10 frames each, and only the libvmaf graph of the §5 comparison; other pixel formats are the next section's. The scores of these clips only compare the two tools.
+
+### `format-cases-before/`, `format-cases-after/`: references that aren't yuv420p, before and after D-016 (P-029)
+
+Every reference of the color tag cases is yuv420p, and so are bipbop's. These runs use the clips of `color_cases.py --set formats` (10 frames each; `format-cases-before/clips.txt` records each clip, its tags and pixel format as ffprobe reads them back, and the MD5 of its decoded frames):
+
+```
+python3 -I -B eval/consistency/color_cases.py <tmp>/format_clips --set formats
+TMPDIR=<tmp> eval/consistency/run_delta.sh <mirage_vmaf> <out>/main --pairs <tmp>/format_clips/pairs.txt --frames 10
+TMPDIR=<tmp> eval/consistency/run_delta.sh <mirage_vmaf> <out>/refused --pairs <tmp>/format_clips/pairs_refused.txt --frames 10
+```
+
+| Directory | `mirage_vmaf` | Contents |
+|---|---|---|
+| `format-cases-before/` | built in a new worktree of `83c8ed6`, which converts no color; the SHA-256 of `diag-before-300/` and `color-cases-before/` (`build.txt`) | `clips.txt`; `main/`, the 12 cases FFmpeg scores; `refused/`, YCgCo on both inputs; `checks.txt` |
+| `format-cases-after/` | built in a new worktree of `d993686`, which converts as D-016 has it and warns about a reference that isn't yuv420p (P-030; `build.txt`) | the same runs on the same clips (`checks.txt`, check 2); `checks.txt` |
+
+Both runs were made from a clean worktree of `d993686` (`main/delta.md` of each). Per case, from `format-cases-before/checks.txt` (check 2, FFmpeg's scale filters) and the two `main/delta.md` (tags as color matrix/range, `unknown` = no tag; `auto_scale_0` is the scale filter FFmpeg inserts before the reference's `format=yuv420p`, `Parsed_scale_1` the distorted input's):
+
+| case | reference | distorted | FFmpeg: `auto_scale_0`, the reference | FFmpeg: `Parsed_scale_1`, the distorted frames | before D-016 | max \|delta\| | after D-016 | max \|delta\| | Mirage after: the distorted frames |
+|---|---|---|---|---|---|---|---|---|---|
+| `f01_10bit_bt709_vs_smpte170m` | yuv420p10le bt709/tv | smpte170m/tv | bt709/tv -> smpte170m/tv | smpte170m/tv -> smpte170m/tv | FAIL | 20.552759 | FAIL | 9.399921 | smpte170m/tv -> bt709/tv |
+| `f02_10bit_smpte170m_vs_bt709` | yuv420p10le smpte170m/tv | bt709/tv | smpte170m/tv -> bt709/tv | bt709/tv -> bt709/tv | FAIL | 32.029205 | FAIL | 7.026388 | bt709/tv -> smpte170m/tv |
+| `f03_10bit_nomatrix_vs_bt709` | yuv420p10le unknown/tv | bt709/tv | unknown/tv -> bt709/tv | bt709/tv -> bt709/tv | FAIL | 32.029205 | FAIL | 7.026388 | bt709/tv -> unknown/tv |
+| `f04_10bit_bt709_vs_bt709` | yuv420p10le bt709/tv | bt709/tv | bt709/tv -> bt709/tv | bt709/tv -> bt709/tv | PASS | 0.000000 | PASS | 0.000000 | bt709/tv -> bt709/tv |
+| `f05_422_bt709_vs_smpte170m` | yuv422p bt709/tv | smpte170m/tv | bt709/tv -> smpte170m/tv | smpte170m/tv -> smpte170m/tv | FAIL | 22.084801 | FAIL | 10.931963 | smpte170m/tv -> bt709/tv |
+| `f06_422_bt709_vs_bt709` | yuv422p bt709/tv | bt709/tv | bt709/tv -> bt709/tv | bt709/tv -> bt709/tv | PASS | 0.000000 | PASS | 0.000000 | bt709/tv -> bt709/tv |
+| `f07_444_bt709_vs_smpte170m` | yuv444p bt709/tv | smpte170m/tv | bt709/tv -> smpte170m/tv | smpte170m/tv -> smpte170m/tv | FAIL | 20.072068 | FAIL | 8.973356 | smpte170m/tv -> bt709/tv |
+| `f08_444_bt709_vs_bt709` | yuv444p bt709/tv | bt709/tv | bt709/tv -> bt709/tv | bt709/tv -> bt709/tv | PASS | 0.000000 | PASS | 0.000000 | bt709/tv -> bt709/tv |
+| `j01_yuvj_pc_vs_tv` | yuvj420p bt709/pc | bt709/tv | bt709/pc -> bt709/tv | bt709/tv -> bt709/tv | PASS | 0.000000 | FAIL | 13.274013 | bt709/tv -> bt709/pc |
+| `j02_yuvj_pc_vs_pc` | yuvj420p bt709/pc | bt709/pc | bt709/pc -> bt709/pc | bt709/pc -> bt709/pc | FAIL | 23.673382 | FAIL | 23.673382 | bt709/pc -> bt709/pc |
+| `d01_bt709_vs_10bit_smpte170m` | bt709/tv | yuv420p10le smpte170m/tv | (none) | smpte170m/tv -> bt709/tv | FAIL | 11.674191 | PASS | 0.000000 | smpte170m/tv -> bt709/tv |
+| `d02_bt709tv_vs_yuvj_pc` | bt709/tv | yuvj420p bt709/pc | (none) | bt709/pc -> bt709/tv | PASS | 0.000000 | PASS | 0.000000 | bt709/pc -> bt709/tv |
+
+What they show:
+
+- **For a reference that isn't yuv420p, FFmpeg converts the reference.** In every `f` and `j` case FFmpeg's log has `auto_scale_0` on the reference, with the flags of bicubic (`0x00000004`), converting it to the distorted input's matrix and range, while the distorted input's scale filter keeps the distorted frames' tags (check 2; the scale filter's flags are bilinear's, `0x00000002`, as `--scaler` asks). With a yuv420p reference (`d01`, `d02`) there is no `auto_scale_0` and FFmpeg converts the distorted frames to the reference's tags, as in the color tag cases, the 10-bit and the yuvj420p distorted input alike. `tests/test_vmaf_color.cpp` shows the distorted frame's tags of both kinds of case with the graph run through libavfilter.
+- **Mirage doesn't.** After D-016 it converts the distorted frames to the reference's tags whatever the reference's format (check 5), so it fails every `f` case whose tags differ, and `j01`; it agrees with FFmpeg on every frame of the `f` cases whose tags are the same (`f04`, `f06`, `f08`) and of both `d` cases (check 4). FFmpeg's side is the same in both runs on every metric of every frame (check 7).
+- **D-016 made `j01` fail and `d01` pass.** Before D-016 Mirage converted no color: it matched FFmpeg in `j01`, where FFmpeg's only conversion is the reference's range, and failed `d01`, where FFmpeg converts the distorted frames' matrix. After D-016 it is the other way round.
+- **A yuvj420p reference becomes limited range in Mirage.** `j02` fails before and after D-016, with the same tags on both inputs: Mirage's conversion of the reference to yuv420p takes a yuvj420p frame as full range and makes it limited (`tests/test_vmaf_color.cpp`), where FFmpeg keeps it full (`auto_scale_0` bt709/pc -> bt709/pc). Mirage's scores of `j02` are FFmpeg's of `j01`, whose log shows the reference converted from pc to tv, on all 10 frames at 6 decimals (check 8).
+- **The warning.** Every `f` and `j` report of `format-cases-after/` has the warning that the reference isn't yuv420p; the `d` reports have none (checks 5 and 6). The delta reports list it with the others (`main/delta.md`).
+- **YCgCo on both inputs is refused** by FFmpeg, with exit status 178 and `Impossible to convert between the formats supported by the filter 'Parsed_trim_0' and the filter 'auto_scale_0'`, as with YCgCo on one input; `mirage_vmaf` refuses it after D-016 and scored it before (`format-cases-after/checks.txt`, check 9).
+
+Which way Mirage should go for such references is the owner's decision (`docs/PHASE1_DECISIONS_PENDING.md`, "D-016: references that aren't yuv420p"). Limits: synthetic clips, 10 frames each, the §5 graph of FFmpeg 8.1.1 only; RGB and gray inputs, 12-bit and 4:4:4 distorted inputs, and distorted inputs without a range tag against such references are not measured. The scores of these clips only compare the two tools.
 
 ### `diag-after-300/`: the first 300 frames after D-016 (P-015)
 
