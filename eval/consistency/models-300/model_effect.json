@@ -1,0 +1,251 @@
+{
+  "report_version": 1,
+  "tool": "eval/consistency/compare_runs.py",
+  "base": {
+    "label": "vmaf_v0.6.1",
+    "dir": "vmaf_v0.6.1",
+    "delta_json_sha256": "727cbb55d53abb91aeb3b22412b3e9b315ee7f9e46c385ed3cf382a8f56752c6",
+    "status": "PASS",
+    "parameters": {
+      "variant": "plain",
+      "frames": 300,
+      "threshold": 0.01,
+      "scaler": "bilinear",
+      "model": "vmaf_v0.6.1",
+      "model_file": null,
+      "threads": 4
+    },
+    "mirage_vmaf_sha256": "3633c43eaf4261e567ef2fb3a24d015e3e00b9a8ee354ddef88b6330aca4938c",
+    "git_head": "8cc06a7c6939660e53097b948f6a78c068e8faee",
+    "ffmpeg_version": "ffmpeg version 8.1.1 Copyright (c) 2000-2026 the FFmpeg developers"
+  },
+  "runs": [
+    {
+      "label": "vmaf_v0.6.1neg",
+      "dir": "vmaf_v0.6.1neg",
+      "delta_json_sha256": "d34cff8a38517b908841a8184c851b9895361f1e22c98efd2276b773f1cbd3ea",
+      "status": "PASS",
+      "parameters": {
+        "variant": "plain",
+        "frames": 300,
+        "threshold": 0.01,
+        "scaler": "bilinear",
+        "model": "vmaf_v0.6.1neg",
+        "model_file": null,
+        "threads": 4
+      },
+      "mirage_vmaf_sha256": "3633c43eaf4261e567ef2fb3a24d015e3e00b9a8ee354ddef88b6330aca4938c",
+      "git_head": "8cc06a7c6939660e53097b948f6a78c068e8faee",
+      "ffmpeg_version": "ffmpeg version 8.1.1 Copyright (c) 2000-2026 the FFmpeg developers"
+    },
+    {
+      "label": "vmaf_4k_v0.6.1",
+      "dir": "vmaf_4k_v0.6.1",
+      "delta_json_sha256": "411685312d9cf3856236033a63cf0d4c30d042923f1a8660b06dd4ec936ab671",
+      "status": "PASS",
+      "parameters": {
+        "variant": "plain",
+        "frames": 300,
+        "threshold": 0.01,
+        "scaler": "bilinear",
+        "model": "vmaf_4k_v0.6.1",
+        "model_file": null,
+        "threads": 4
+      },
+      "mirage_vmaf_sha256": "3633c43eaf4261e567ef2fb3a24d015e3e00b9a8ee354ddef88b6330aca4938c",
+      "git_head": "8cc06a7c6939660e53097b948f6a78c068e8faee",
+      "ffmpeg_version": "ffmpeg version 8.1.1 Copyright (c) 2000-2026 the FFmpeg developers"
+    },
+    {
+      "label": "file_vmaf_v0.6.1",
+      "dir": "file_vmaf_v0.6.1",
+      "delta_json_sha256": "da7544652d78a71e2a6f579e36371c3126c1b4c539bc1ec12317bf95e7ffabb1",
+      "status": "PASS",
+      "parameters": {
+        "variant": "plain",
+        "frames": 300,
+        "threshold": 0.01,
+        "scaler": "bilinear",
+        "model": null,
+        "model_file": {
+          "path": "/opt/homebrew/opt/libvmaf/share/libvmaf/model/vmaf_v0.6.1.json",
+          "sha256": "5950d61fa1f861bd45d8149d80539ed9f3376cfc2495b8f0fa8e9f57cb131ee3"
+        },
+        "threads": 4
+      },
+      "mirage_vmaf_sha256": "3633c43eaf4261e567ef2fb3a24d015e3e00b9a8ee354ddef88b6330aca4938c",
+      "git_head": "8cc06a7c6939660e53097b948f6a78c068e8faee",
+      "ffmpeg_version": "ffmpeg version 8.1.1 Copyright (c) 2000-2026 the FFmpeg developers"
+    }
+  ],
+  "parameters_that_differ": [
+    "model",
+    "model_file"
+  ],
+  "warnings": [],
+  "pairs": [
+    {
+      "pair": "gear2_vs_gear5",
+      "base": {
+        "self_check": {
+          "status": "PASS",
+          "max_abs": 4.992173678886047e-07,
+          "over_threshold": 0,
+          "frames": {
+            "mirage": 300,
+            "ffmpeg": 300,
+            "compared": 300,
+            "counts_match": true
+          }
+        },
+        "pooled_mean": {
+          "mirage": 28.552935248395844,
+          "ffmpeg": 28.552935
+        },
+        "settings": {
+          "model": "vmaf_v0.6.1",
+          "model_source": "built-in",
+          "model_sha256": null,
+          "scaler": "bilinear"
+        }
+      },
+      "runs": {
+        "vmaf_v0.6.1neg": {
+          "self_check": {
+            "status": "PASS",
+            "max_abs": 4.998068234840503e-07,
+            "over_threshold": 0,
+            "frames": {
+              "mirage": 300,
+              "ffmpeg": 300,
+              "compared": 300,
+              "counts_match": true
+            }
+          },
+          "pooled_mean": {
+            "mirage": 19.498401840860332,
+            "ffmpeg": 19.498402
+          },
+          "settings": {
+            "model": "vmaf_v0.6.1neg",
+            "model_source": "built-in",
+            "model_sha256": null,
+            "scaler": "bilinear"
+          },
+          "mirage": {
+            "compared": 300,
+            "base_frames": 300,
+            "run_frames": 300,
+            "max_abs": 10.384559581305183,
+            "max_abs_index": 31,
+            "mean_signed": -9.054533407535509,
+            "mean_abs": 9.054533407535509,
+            "mean_base": 28.552935248395848,
+            "mean_run": 19.498401840860346
+          },
+          "ffmpeg": {
+            "compared": 300,
+            "base_frames": 300,
+            "run_frames": 300,
+            "max_abs": 10.384559,
+            "max_abs_index": 31,
+            "mean_signed": -9.054533416666667,
+            "mean_abs": 9.054533416666667,
+            "mean_base": 28.552935243333334,
+            "mean_run": 19.49840182666667
+          }
+        },
+        "vmaf_4k_v0.6.1": {
+          "self_check": {
+            "status": "PASS",
+            "max_abs": 4.971656437646743e-07,
+            "over_threshold": 0,
+            "frames": {
+              "mirage": 300,
+              "ffmpeg": 300,
+              "compared": 300,
+              "counts_match": true
+            }
+          },
+          "pooled_mean": {
+            "mirage": 47.4423748455065,
+            "ffmpeg": 47.442375
+          },
+          "settings": {
+            "model": "vmaf_4k_v0.6.1",
+            "model_source": "built-in",
+            "model_sha256": null,
+            "scaler": "bilinear"
+          },
+          "mirage": {
+            "compared": 300,
+            "base_frames": 300,
+            "run_frames": 300,
+            "max_abs": 22.251285157388637,
+            "max_abs_index": 0,
+            "mean_signed": 18.889439597110627,
+            "mean_abs": 18.889439597110627,
+            "mean_base": 28.552935248395848,
+            "mean_run": 47.44237484550648
+          },
+          "ffmpeg": {
+            "compared": 300,
+            "base_frames": 300,
+            "run_frames": 300,
+            "max_abs": 22.251285,
+            "max_abs_index": 0,
+            "mean_signed": 18.88943959666667,
+            "mean_abs": 18.88943959666667,
+            "mean_base": 28.552935243333334,
+            "mean_run": 47.44237484
+          }
+        },
+        "file_vmaf_v0.6.1": {
+          "self_check": {
+            "status": "PASS",
+            "max_abs": 4.992173678886047e-07,
+            "over_threshold": 0,
+            "frames": {
+              "mirage": 300,
+              "ffmpeg": 300,
+              "compared": 300,
+              "counts_match": true
+            }
+          },
+          "pooled_mean": {
+            "mirage": 28.552935248395844,
+            "ffmpeg": 28.552935
+          },
+          "settings": {
+            "model": "/opt/homebrew/opt/libvmaf/share/libvmaf/model/vmaf_v0.6.1.json",
+            "model_source": "file",
+            "model_sha256": "5950d61fa1f861bd45d8149d80539ed9f3376cfc2495b8f0fa8e9f57cb131ee3",
+            "scaler": "bilinear"
+          },
+          "mirage": {
+            "compared": 300,
+            "base_frames": 300,
+            "run_frames": 300,
+            "max_abs": 0.0,
+            "max_abs_index": 0,
+            "mean_signed": 0.0,
+            "mean_abs": 0.0,
+            "mean_base": 28.552935248395848,
+            "mean_run": 28.552935248395848
+          },
+          "ffmpeg": {
+            "compared": 300,
+            "base_frames": 300,
+            "run_frames": 300,
+            "max_abs": 0.0,
+            "max_abs_index": 0,
+            "mean_signed": 0.0,
+            "mean_abs": 0.0,
+            "mean_base": 28.552935243333334,
+            "mean_run": 28.552935243333334
+          }
+        }
+      }
+    }
+  ]
+}
