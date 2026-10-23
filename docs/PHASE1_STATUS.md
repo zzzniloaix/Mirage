@@ -60,7 +60,7 @@ The checks made on it afterwards (`eval/consistency/acceptance-full/checks.txt`;
 - D-016's rules for untagged inputs and for matrices libswscale can't convert, and D-019's boundary against the work order's "< 0.01": `docs/PHASE1_DECISIONS_PENDING.md`.
 - bipbop's rungs were rendered separately, so these scores compare the two tools, not the rungs' quality (D-005, D-011).
 
-## §1.1 libvmaf 3 integration: done
+## §1.1 libvmaf 3 integration: done in mirage_vmaf
 
 - **libvmaf's C API, no shell-out**: `mirage_vmaf` links FFmpeg's libraries, libvmaf and the system's C and C++ libraries, nothing else (`eval/build_check/macos-2026-10-23-6a6661f.txt`, "Built programs", `otool -L`). The `ffmpeg` program runs only in the eval tooling, as the reference §5 compares with.
 - **Version and model identifier at run time**: `mirage_vmaf`'s report has libvmaf's version at run time and its package version (D-006), and `model`, `model_source` and `model_sha256` (`src/VMAFReport.h`; P-017).
@@ -75,7 +75,7 @@ The checks made on it afterwards (`eval/consistency/acceptance-full/checks.txt`;
 - Not built: mezzanine mode for a ladder, and ladder scoring in `mirage_vmaf` (P-019); the choices they need are in the §1.2 package.
 - **Acceptance**, both modes on one ladder with the difference documented: MEASUREMENT PENDING. It needs a ladder with a mezzanine, D-011's self-encoded ladders.
 
-## §1.3 Resolution alignment: done, the default pending (#3)
+## §1.3 Resolution alignment: done in mirage_vmaf, the default pending (#3)
 
 - `mirage_vmaf --scaler bilinear|bicubic|lanczos`, and the report's `scaler` (P-017). Without it the scaler is bilinear, as before (D-003).
 - **Measured** (`eval/consistency/scalers-300/`, first 300 frames of the four pairs, each scaler on both sides): Mirage matches FFmpeg with each of the three (`checks.txt`, check 3), and the scaler moves the scores: against bilinear, the mean shift per pair is 6.775801 to 11.113910 with bicubic and 8.874908 to 13.334836 with lanczos, and no frame scores lower (`scaler_effect.md`).
@@ -109,7 +109,7 @@ Also open: whether glad's generated loader is committed (#11a), the README beyon
 
 ## The work order's engineering constraints
 
-- **C++20 in the style of the surrounding code**, with unit tests for every new feature: Catch2 tests in `mirage_tests` for the C++ (`tests/test_vmaf_analyzer.cpp`, `test_vmaf_cli.cpp`, `test_vmaf_color.cpp`, `test_vmaf_report.cpp`, `test_json_text.cpp`, `test_file_hash.cpp`), Python `unittest` suites for the eval scripts (`eval/tests/`, `eval/consistency/tests/`, `eval/pooling/tests/`, `eval/streams/tests/`). At `8aca01a`, the last commit that changes code or tests, `mirage_tests '~[audio]'` passes in the main working tree, 90726 assertions in 240 test cases, and so do the four Python suites, 19, 77, 7 and 16 tests (`eval/test_runs/macos-2026-10-23-8aca01a.txt`; P-028).
+- **C++20 in the style of the surrounding code**, with unit tests for every new feature: Catch2 tests in `mirage_tests` for the C++ (`tests/test_vmaf_analyzer.cpp`, `test_vmaf_cli.cpp`, `test_vmaf_color.cpp`, `test_vmaf_report.cpp`, `test_json_text.cpp`, `test_file_hash.cpp`), Python `unittest` suites for the eval scripts (`eval/tests/`, `eval/consistency/tests/`, `eval/pooling/tests/`, `eval/streams/tests/`). At `9855319`, after which no commit changes code or tests, `mirage_tests '~[audio]'` passes in the main working tree at the first run, 90866 assertions in 244 test cases, and so do the four Python suites, 20, 85, 7 and 16 tests (`eval/test_runs/macos-2026-10-23-9855319.txt`; P-028, P-032).
 - **Library APIs only**: as in §1.1.
 - **Every configurable item as a command line option and in a config file**: the options are on the command line; the config file is pending, its format being the owner's (`docs/PHASE1_DECISIONS_PENDING.md`).
 - **No document edited to make the implementation and the work order agree**: the differences are listed at the end of `docs/PHASE1_DECISIONS_PENDING.md`.
@@ -119,6 +119,6 @@ Two unit tests of code outside Phase 1 can fail: in a clean checkout, `SidecarSu
 ## Before the Phase 1 PR can merge
 
 - The owner's decisions in `docs/PHASE1_DECISIONS_PENDING.md`, and the reruns a changed default needs (§5 above).
-- The owner's review of Phase 1's commits, and confirmation of the process choices P-006 to P-031 (`docs/DECISIONS.md`).
+- The owner's review of Phase 1's commits, and confirmation of the process choices P-006 to P-032 (`docs/DECISIONS.md`).
 - The owner's confirmation of the Phase 1 rows of `docs/AI_CONTRIBUTIONS.md`.
 - The PR itself, which the owner opens (hard rule 5 of the work order: one PR for the phase).

@@ -812,3 +812,19 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
 - **Status**: pending owner confirmation
+
+### P-032 The records after the code changes of the review fixes: the unit tests, and a rerun of every measurement
+
+- **Choice**
+  - The unit test record of P-028 again, by the same commands, from the clean main working tree at `9855319`, after which no commit changes code or tests (`eval/test_runs/macos-2026-10-23-9855319.txt`). The PR description quotes it instead of the record at `8aca01a`.
+  - `eval/run_all.sh` with no program given and `--jobs 4`, every step, the full-length ones included, from a new clean worktree of the same commit, with its output directory and `TMPDIR` outside the repository; its record is committed as P-025's and P-027's are (`eval/run_all/2026-10-23-fix/`).
+- **Alternatives**
+  - Keep citing the record at `8aca01a` and the earlier `run_all.sh` records, whose `mirage_vmaf` is the program before P-030's warning.
+  - `--skip-full`, or `--jobs 1`.
+- **Rationale**
+  - P-030 changed `src/` and `tests/`, so the program at the head is not the one the committed runs after D-016 were made with; rerunning every committed measurement with it shows whether the change moved any score, and the PR's test record has to be of the code it merges.
+  - `--jobs` doesn't enter the scores (P-026), and with 4 the full-length step takes about as long as in P-027's rerun.
+- **Result** of the unit tests (`eval/test_runs/macos-2026-10-23-9855319.txt`): `mirage_tests '~[audio]'` passed at the first run, 90866 assertions in 244 test cases, and the four Python suites passed, 20, 85, 7 and 16 tests.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
