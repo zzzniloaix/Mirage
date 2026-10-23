@@ -320,7 +320,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - **Pooled values**: only libvmaf's pooled mean and min, as the analyzer computes them today. The analyzer's p5 stays out of the report while its definition is open (#6); every per-frame score is in the report.
   - **No report, and exit status 1**, when an input can't be opened, an input stops on a read or decode error instead of reaching its end, no pair is scored, or a libvmaf call fails while scoring. Until now the analyzer took a read or decode error for the end of the input, and a failed score stayed 0. The report is written to a temporary file next to `--out` and renamed over it once complete.
   - **FFmpeg's log level** in `mirage_vmaf`: warnings and errors only. That drops FFmpeg's informational lines, such as the "Opening … for reading" line for every HLS segment.
-  - The libvmaf package version is read at configure time, as the stage's task asked. The commit is recorded by the eval tooling when it runs, not by `mirage_vmaf`.
+  - The libvmaf package version is read at configure time, from the real path of the libvmaf the build links (`CMakeLists.txt`). The commit is recorded by the eval tooling when it runs, not by `mirage_vmaf`.
   - `mirage_tests` links libvmaf and runs the analyzer on clips it generates.
 - **Alternatives**
   - PTS: the frame's `pts`.
@@ -438,7 +438,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 
 - **Choice**
   - Before Mirage converts color (D-016), run `eval/consistency/run_delta.sh --frames 300` twice on the four pairs of D-018: plain, and with `--diagnostic-relabel` (P-010). The outputs are in `eval/consistency/diag-before-300/plain/` and `relabel/`, with `build.txt` and `checks.txt` beside them.
-  - The `mirage_vmaf` is the release build in the main working tree, at commit `ff98a13`, after `cmake --build --preset macos-release --target mirage_vmaf` reported no work to do. Its sources haven't changed since `83c8ed6`, where stage 1 built it (`build.txt`).
+  - The `mirage_vmaf` is the release build in the main working tree, at commit `ff98a13`, after `cmake --build --preset macos-release --target mirage_vmaf` reported no work to do. Its sources haven't changed since `83c8ed6`, at which it was built (`build.txt`).
   - One scoring process at a time, with the inputs fetched from Apple's CDN in each run rather than from a local copy.
 - **Alternatives**
   - Every frame now, which is D-018's input for the committed report. Phase 0's full-length run of the existing scorer over the ladder took 3172.96 s of wall time (`eval/baseline/bipbop16x9/time_l.txt`), with FFmpeg's side on top of that.
@@ -457,7 +457,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Choice**
   - `eval/consistency/color_cases.py` makes clips of FFmpeg's `testsrc2` pattern: references at 1920x1080, distorted inputs scaled to 640x360, 10 frames at 30000/1001 fps, 8-bit yuv420p, uncompressed in Matroska, each given its tags with `setparams`. ffprobe reads every clip's tags back, and the MD5 of the decoded frames is the same for all clips of one size, so the cases differ only in their tags (`eval/consistency/color-cases-before/clips.txt`).
   - 18 cases that FFmpeg's §5 graph scores: matrices (different, equal, missing on either input or both, two names of BT.601, a BT.2020 reference), ranges (full on either input, missing on either input), both at once, and tags FFmpeg leaves alone (primaries and transfer, chroma siting, interlacing). 2 cases it refuses: a YCgCo matrix on either input.
-  - Both sets go through `run_delta.sh --frames 10` in separate runs, with `TMPDIR` set to the directory that holds the clips, so that their paths show as `<tmp>`. Before D-016 with stage 1's `mirage_vmaf` (`color-cases-before/`); after it with the new one, on the same clips, their MD5s checked again (`color-cases-after/`).
+  - Both sets go through `run_delta.sh --frames 10` in separate runs, with `TMPDIR` set to the directory that holds the clips, so that their paths show as `<tmp>`. Before D-016 with the `mirage_vmaf` built at `83c8ed6` (`color-cases-before/`); after it with the new one, on the same clips, their MD5s checked again (`color-cases-after/`).
   - The FFmpeg 8.1.1 sources (`ffmpeg-8.1.1.tar.xz` from ffmpeg.org, checked against the SHA-256 in Homebrew's ffmpeg-full formula) were read to explain the logs. The evidence is the logs.
 - **Alternatives**
   - `setparams` on the bipbop streams inside FFmpeg's graph. That sets the tags the scale filter sees, but bypasses what FFmpeg's buffer source does with an untagged stream (for a missing range tag it also offers limited range), and `mirage_vmaf` would still see the streams' real tags.
@@ -530,7 +530,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - The scalers measured on Mirage's side only, against Phase 0's bilinear FFmpeg outputs.
   - A build in a clean worktree, as P-001 and P-007 did.
 - **Rationale**
-  - 300 frames are the range of `diag-before-300/` and `diag-after-300/`, so the bilinear run can be checked frame by frame against them (`scalers-300/checks.txt`, check 4), and stage 4's task asked for 300 frames. The full-length §5 report of D-018 is a separate run.
+  - 300 frames are the range of `diag-before-300/` and `diag-after-300/`, so the bilinear run can be checked frame by frame against them (`scalers-300/checks.txt`, check 4). The full-length §5 report of D-018 is a separate run.
   - D-003 asks for each scaler on both sides; with both, a scaler's effect on the scores and a disagreement between the tools can't be confused.
   - §1.1's acceptance needs observable differences and the model identifier, which one pair shows; the model file run shows `--model-file` and its SHA-256 on a file whose content is a built-in model's.
   - The main working tree was clean and at the commit every run records, as in P-012 and P-015.
@@ -640,7 +640,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - Following `README.md`'s quick start on its own as well.
 - **Rationale**
   - Installing or removing Homebrew packages changes the owner's machine, and a hosted runner needs the repository pushed; the worktree still fetches every FetchContent dependency anew and builds nothing uncommitted (P-001, P-007).
-  - The README's quick start is the record's default-Python path, which stops at glad on this machine; the README points to `docs/BUILD.md` for the rest.
+  - The README's quick start (`macos-debug`, default Python) runs the glad step at which the record's default-Python build of the release preset stops on this machine; the README points to `docs/BUILD.md` for the rest.
 - **Limits**: one machine, with its Homebrew packages, Xcode Command Line Tools and network; the player's window wasn't opened.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
@@ -751,6 +751,45 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Rationale**
   - Hard rule 5 of the work order has a PR's description show the actual output of its tests, and as a report its numbers come from committed outputs (hard rule 2).
   - The main working tree is where the measurements' programs were built. Its subtitle fixture, which `.gitignore` leaves out, lets that test pass there; the build check at `6a6661f`, whose C++ sources and CMake files are those of `8aca01a`, shows the one failure of a clean checkout (`docs/BUILD.md`, step 4).
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
+
+### P-029 The reference format cases: references that aren't yuv420p, scored before and after D-016
+
+- **Choice**
+  - `eval/consistency/color_cases.py --set formats` makes clips as P-013's are made, from FFmpeg's `testsrc2` pattern, 10 frames, references at 1920x1080 and distorted inputs at 640x360, tagged with `setparams`: references in yuv420p10le, yuv422p and yuv444p, losslessly in FFV1, and a full range reference losslessly in H.264 (libx264 with `-qp 0`), which FFmpeg's decoder gives as yuvj420p, each against a yuv420p distorted input with another matrix and with the same tags; a 10-bit and a full range H.264 distorted input against a yuv420p reference; and YCgCo on both inputs, as a refused case. The script checks every clip's tags and that all clips of one size made from one pixel format have the same pixels (`eval/consistency/format-cases-before/clips.txt`).
+  - Both pairs files go through `run_delta.sh --frames 10`, with `TMPDIR` above the clips, from a clean worktree of `d993686`, twice: with the `mirage_vmaf` of `83c8ed6`, which converts no color (`eval/consistency/format-cases-before/`), and with that of `d993686` (`format-cases-after/`), each built in a new worktree of its commit, release preset, the `mirage_vmaf` target only (`build.txt`). `checks.txt` was made afterwards from the clean tree. `eval/run_all.sh` reruns them (steps `format-clips`, `format-cases-before`, `format-cases-after`).
+- **Alternatives**
+  - Real streams in these formats, such as a 10-bit HLS rung or a full range H.264 file; none is in the repository's stream list (`eval/streams.md`).
+  - MJPEG for a yuvj420p reference, which is lossy.
+  - More formats and tags: RGB, gray, 12-bit, 4:4:4 distorted inputs, distorted inputs without a range tag.
+  - Only the current program, without a run before D-016.
+  - The release build of the main working tree, as P-015, P-016 and P-026 did.
+- **Rationale**
+  - Lossless coding keeps the pattern's pixels, so within one pixel format the cases differ only in their tags, and the lossless H.264 clips decode to the bytes of the uncompressed yuv420p ones (the MD5s in `clips.txt`).
+  - The run before D-016 shows what D-016's implementation changed for these references (`j01`, `d01`), which only the program of the other runs before D-016 can show.
+  - New worktrees tie both programs to their commits; the program of `83c8ed6` has the SHA-256 of `diag-before-300/build.txt`. Running from a separate worktree kept the runs' git state clean while documents were edited in the main working tree.
+- **Limits**: synthetic clips, 10 frames, and the §5 graph of FFmpeg 8.1.1 only; the formats and tags above only.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
+
+### P-030 A warning for a reference that isn't yuv420p, and a corrected --help
+
+- **Choice**
+  - Until the owner decides the package "D-016: references that aren't yuv420p" (`docs/PHASE1_DECISIONS_PENDING.md`), the analyzer scores such pairs as before and records a warning in `VMAFResult::warnings` whenever the reference's decoder gives another pixel format than yuv420p (`vmafcolor::converts_reference()`), also logged as a warning. `mirage_vmaf`'s report has a `warnings` list, empty when there is none. The delta tool lists each warning of the report among its own, prefixed `mirage_vmaf: `; like those, it doesn't fail a pair (P-009). The player shows nothing new.
+  - `mirage_vmaf --help` no longer says that the reference frame keeps its color: it keeps its size and color matrix, its conversion to yuv420p makes a yuvj420p reference limited range, and for a reference that isn't yuv420p FFmpeg's graph converts the reference instead.
+- **Alternatives**
+  - Refuse such pairs, as matrices libswscale lacks are refused (P-014).
+  - No warning until the decision.
+  - A narrower condition: only when the two inputs' tags differ, or when the reference is yuvj420p, the cases that fail in `eval/consistency/format-cases-after/`.
+  - The warning in the player's VMAF panel as well.
+- **Rationale**
+  - Refusing would change what the player and `mirage_vmaf` do with such inputs, which is the owner's choice (option 3 of the package); the warning changes no score and no default, and keeps scores that can differ from FFmpeg's from passing silently.
+  - The condition is the one under which FFmpeg's graph has to convert the reference's pixel format, its `format` filter taking yuv420p only; with a reference in each of four such formats, `tests/test_vmaf_color.cpp` shows the graph leaving the distorted frame's tags alone. The cases in which Mirage still agrees (`f04`, `f06`, `f08`) are synthetic, so "can differ" is what the evidence supports for any such reference.
+  - The player's own code wasn't changed in Phase 1; a warning in its panel would be a change to its interface.
+  - The help text has to say what the program does.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
 - **Status**: pending owner confirmation
