@@ -67,7 +67,7 @@ With `--diagnostic-relabel`, FFmpeg's distorted input gets the reference's `colo
 | `<pair>/mirage.json`, `mirage.stdout.txt`, `mirage.stderr.log.xz` | `mirage_vmaf`'s report (`src/VMAFReport.h`), output and log |
 | `<pair>/ffmpeg.json`, `ffmpeg.stderr.log.xz` | FFmpeg's libvmaf log and its verbose log |
 | `<pair>/mirage.json.xz`, `ffmpeg.json.xz` | in place of `mirage.json` or `ffmpeg.json` when that is larger than 1 MiB, as in full-length runs |
-| `<pair>/ffmpeg_colorspace_lines.txt` | the lines of FFmpeg's verbose log that state color spaces: the input and output video streams, the filter graph's inputs, the scale filters' input and output, and swscale's notes |
+| `<pair>/ffmpeg_colorspace_lines.txt` | the lines of FFmpeg's verbose log that state color spaces: the input and output video streams, the filter graph's inputs, the scale filters' input and output, swscale's notes, the libvmaf filter's warning that its inputs' frames have different color ranges, and FFmpeg's error when it finds no conversion between two filters' formats |
 | `<pair>/delta.md`, `delta.json` | the pair's delta report |
 | `SHA256SUMS` | SHA-256 of every file; check with `shasum -a 256 -c SHA256SUMS` in the directory |
 
@@ -80,7 +80,22 @@ With `--diagnostic-relabel`, FFmpeg's distorted input gets the reference's `colo
 python3 -I -B -m unittest discover -s eval/consistency/tests -v
 ```
 
-`tests/test_vmafdelta.py` covers the delta math, the commands, the parsing of FFmpeg's log and the reports. `tests/test_run_delta.py` runs the whole tool with stand-ins for `mirage_vmaf`, `ffmpeg` and `ffprobe` (`tests/fake_tools.py`), without network.
+`tests/test_vmafdelta.py` covers the delta math, the commands, the parsing of FFmpeg's log and the reports. `tests/test_run_delta.py` runs the whole tool with stand-ins for `mirage_vmaf`, `ffmpeg` and `ffprobe` (`tests/fake_tools.py`), without network. `tests/test_color_cases.py` covers `color_cases.py` without running FFmpeg.
+
+## Color tag cases (D-016)
+
+`color_cases.py` makes the inputs that show what FFmpeg's §5 filter graph does with the distorted input's color matrix and range when the two inputs' tags differ, or are missing (D-016):
+
+```
+python3 -I -B eval/consistency/color_cases.py <clips_dir> [--ffmpeg <ffmpeg>] [--ffprobe <ffprobe>] [--frames N]
+```
+
+- The clips are FFmpeg's `testsrc2` pattern, 10 frames by default at 30000/1001 fps, yuv420p, uncompressed in Matroska: references at 1920x1080, distorted inputs scaled to 640x360 (like bipbop's gear5 and gear2). `setparams` gives each clip its tags; the pixels of all clips of one size are the same, which the script checks.
+- `<clips_dir>/pairs.txt` lists the cases FFmpeg's graph scores, `<clips_dir>/pairs_refused.txt` those it refuses (a YCgCo matrix, which libswscale doesn't have). Both are pairs files for `run_delta.sh --pairs`; each case's label names the reference's tags, then the distorted input's, and the file's comment lines say what each case is.
+- `<clips_dir>/clips.txt` records, for every clip, the command that made it, its stream parameters as ffprobe reads them back, and the MD5 of its decoded frames, with `<clips_dir>`, `<ffmpeg>` and `<ffprobe>` in place of local paths.
+- Exit status: 0 the clips have the intended tags and pixels; 1 a program failed or a clip is not as intended; 2 bad arguments.
+
+`run_delta.sh` shows local paths under `TMPDIR` as `<tmp>`, so the clips belong under `TMPDIR` (or `TMPDIR` set to a directory that holds them) when a run's outputs are to be committed.
 
 ## Committed runs
 

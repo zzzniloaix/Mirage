@@ -327,6 +327,8 @@ _COLOR_LINE = re.compile(
     r"^(?:\[(?:Parsed_scale|auto_scale)_\d+ @ [^\]]*\] w:\d+ .* -> "   # scale: input -> output
     r"|\[graph \d+ input from stream \d+:\d+ @ [^\]]*\] .*\bcsp:"       # a filter graph input
     r"|\[swscaler @ [^\]]*\] "                                          # swscale's notes
+    r"|\[Parsed_libvmaf_\d+ @ [^\]]*\] .*different color ranges"       # libvmaf: ranges differ
+    r"|(?:\[[^\]]*\] )*Impossible to convert between the formats "     # no graph could be built
     r"|\s*Stream #\d+:\d+.*: Video: )")                                  # input / output streams
 
 # libswscale's scaler algorithms (enum SwsFlags, swscale.h), by the names the
@@ -342,7 +344,9 @@ _SWS_ALGORITHM_MASK = 0x7FF
 def colorspace_lines(text):
     """The lines of an FFmpeg verbose log that state color spaces: the input
     and output video streams, the inputs of the filter graph, each scale
-    filter's input -> output, and swscale's notes."""
+    filter's input -> output, swscale's notes, the libvmaf filter's warning
+    that its two inputs' frames have different color ranges, and FFmpeg's
+    error when no conversion between two filters' formats exists."""
     return [line for line in text.splitlines() if _COLOR_LINE.match(line)]
 
 

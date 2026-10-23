@@ -294,6 +294,20 @@ class Log(unittest.TestCase):
         self.assertTrue(lines[6].startswith("  Stream #0:0: Video: wrapped_avframe"))
         self.assertFalse(any("Audio" in l or "interl" in l or "framesync" in l for l in lines))
 
+    def test_colorspace_lines_warnings_and_refusals(self):
+        # Lines in the form FFmpeg 8.1.1 writes them (libavfilter/vf_libvmaf.c,
+        # libavfilter/avfiltergraph.c): libvmaf's warning, and the error of a
+        # graph whose distorted input has a matrix libswscale lacks.
+        warning = ("[Parsed_libvmaf_5 @ 0x7c4c25080] distorted and reference frames use "
+                   "different color ranges (pc != tv)")
+        refusal = ("Impossible to convert between the formats supported by the filter "
+                   "'Parsed_trim_0' and the filter 'auto_scale_0'")
+        prefixed = "[fc#0 @ 0x6000] " + refusal
+        other = "[Parsed_libvmaf_5 @ 0x7c4c25080] VMAF score: 26.276917"
+        text = "\n".join([warning, other, refusal, prefixed, "[fc#0 @ 0x6000] Error "
+                          "reinitializing filters!"])
+        self.assertEqual(vd.colorspace_lines(text), [warning, refusal, prefixed])
+
     def test_scale_lines_and_conversions(self):
         scales = vd.scale_lines(LOG)
         self.assertEqual(scales, [{
