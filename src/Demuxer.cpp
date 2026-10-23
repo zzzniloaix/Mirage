@@ -843,7 +843,7 @@ bool Demuxer::open(const std::string& url_or_path, const std::string& master)
         av_dict_set(&opts, "reconnect_streamed",  "1",       0);
         av_dict_set(&opts, "reconnect_delay_max", "2",       0);   // cap backoff at 2 s
         av_dict_set(&opts, "buffer_size",         "1048576", 0);
-        // Allow non-standard segment extensions (e.g. .mp4a used by Disney+/some HLS streams).
+        // Allow non-standard segment extensions (e.g. .mp4a used by some HLS streams).
         // FFmpeg 8 uses allowed_segment_extensions; extension_picky=0 disables the check entirely.
         av_dict_set(&opts, "allowed_segment_extensions", "ALL", 0);
         av_dict_set(&opts, "extension_picky",            "0",   0);
