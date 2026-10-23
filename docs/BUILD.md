@@ -2,7 +2,7 @@
 
 This is the build as it works today: macOS on Apple Silicon, with the two presets in `CMakePresets.json`. Linux, and a Docker or Nix environment for the evaluation, wait for the owner's decisions (the rest of item 11 of `docs/VMAF_GAP_REPORT.md`: whether glad's generated output is committed, and the scope of Linux support; see `docs/PHASE1_DECISIONS_PENDING.md`).
 
-Steps 2 to 4 were run on 2026-10-23 from a clean worktree of a committed HEAD. The record, with the versions of everything involved, is `eval/build_check/macos-2026-10-23.txt`; `eval/build_check/README.md` says how it was made (DECISIONS.md P-007).
+Steps 2 to 4 were run on 2026-10-23 from a clean worktree of a committed HEAD, twice: at `647dfbf` (`eval/build_check/macos-2026-10-23.txt`) and, after miniaudio and stb were pinned, at `6a6661f` (`eval/build_check/macos-2026-10-23-6a6661f.txt`). Each record has the versions of everything involved and the outcome of every step; `eval/build_check/README.md` says how they were made (DECISIONS.md P-007, P-022). Both ended as this file describes: the default Python stops the build at glad, the venv of step 3 builds both presets, and one unit test fails in a clean checkout. A clean worktree on a machine that already has the Homebrew packages is not a clean machine: neither check installed anything.
 
 ## 1. Homebrew packages
 
@@ -90,8 +90,9 @@ The FetchContent dependencies: how `CMakeLists.txt` pins each one, and the commi
 | nativefiledialog-extended | tag `v1.2.1` | `86d5f2005fe1c00747348a12070fec493ea2407e` |
 
 - The Phase 0 build fetched all seven commits above (`environment.txt`). miniaudio and stb then followed their `master` branch; they are pinned to the commits Phase 0 fetched.
-- The build check of 2026-10-23 fetched the same commits except stb, which was then at `003501f6d7a8668ce8b6d875e34dd97ad0d5d5b5` (`macos-2026-10-23.txt`, "Dependencies fetched at configure time").
-- `mirage_vmaf`, the program behind every §5 run, compiles neither miniaudio nor stb (`CMakeLists.txt`), so their versions take no part in any committed score.
+- The first build check of 2026-10-23 fetched the same commits except stb, which was then at `003501f6d7a8668ce8b6d875e34dd97ad0d5d5b5` (`macos-2026-10-23.txt`, "Dependencies fetched at configure time"). The two upstream commits from the pinned one to `003501f6` change only stb's `CONTRIBUTING.md` (`macos-2026-10-23-6a6661f.txt`).
+- The check at `6a6661f` fetched exactly the commits of the table. The miniaudio commit is the one miniaudio's tag `0.11.25` names; no tag names the stb commit (`macos-2026-10-23-6a6661f.txt`, "Dependencies fetched at configure time").
+- `mirage_vmaf`, the program behind every §5 run, compiles neither miniaudio nor stb (`CMakeLists.txt`), so their versions take no part in any committed score. The release `mirage_vmaf` the check at `6a6661f` built has the SHA-256 of the one that made the scaler and model runs, `3633c43eaf4261e567ef2fb3a24d015e3e00b9a8ee354ddef88b6330aca4938c` (`macos-2026-10-23-6a6661f.txt`, "Built programs"; `eval/consistency/scalers-300/build.txt`).
 
 ## Not covered yet
 

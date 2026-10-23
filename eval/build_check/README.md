@@ -31,4 +31,5 @@ Local paths in the record are replaced by placeholders: `<worktree>`, `<venv>`, 
 | File | Contents |
 |---|---|
 | `run_build_check.sh` | the script |
-| `macos-2026-10-23.txt` | its output for the run of 2026-10-23 |
+| `macos-2026-10-23.txt` | its output for the run of 2026-10-23 at `647dfbf`, made by the script as it was at that commit |
+| `macos-2026-10-23-6a6661f.txt` | its output for the run of 2026-10-23 at `6a6661f`, after miniaudio and stb were pinned: the check of the section 8 build (`docs/DECISIONS.md` P-022) |
