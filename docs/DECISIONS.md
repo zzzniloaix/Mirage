@@ -1068,3 +1068,87 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
 - **Status**: pending owner confirmation
+
+### P-038 How D-024 is implemented, and how the runs made with bilinear stay reproducible
+
+- **Choice**
+  - `VMAFOptions::scaler` defaults to bicubic, so the player's analysis (`start()`, `start_manifest()`) and `mirage_vmaf` without `--scaler` scale the distorted frames with `SWS_BICUBIC`. `mirage_vmaf`'s command line takes the analyzer's default (`vmafcli::Args::scaler` is `VMAFOptions{}.scaler`), and `--help` says so. The reference keeps its own flags, as before (P-017, P-033).
+  - `run_delta.sh`'s `--scaler` defaults to bicubic: FFmpeg's scale filter gets `flags=bicubic`, and a `mirage_vmaf` whose `--help` lists `--scaler` gets `--scaler bicubic`, the default included. A `mirage_vmaf` without the option, such as the one of `83c8ed6`, scores bilinear, so its runs fail with `SETTINGS MISMATCH` unless they name bilinear. `run.cmd.txt` records the scaler either way.
+  - `eval/run_all.sh` gives every rerun the scaler its `run.cmd.txt` records, as it did; a test now checks that every delta step names its scaler, model and threads. Every committed run made before D-024 recorded the scaler it ran with, bilinear unless it named another, so the reruns keep it, `acceptance-full` included.
+  - The command blocks of `eval/consistency/README.md` for the runs made before D-024 stay as they were run, with a note that those naming no scaler ran with bilinear, the default then.
+  - In the delta tool's tests, FFmpeg's stand-in states the flags of its graph's `flags=`, and `mirage_vmaf`'s stand-in without `--scaler`, which stands for the programs before that option, is given `--scaler bilinear`.
+- **Alternatives**
+  - Leave `run_delta.sh`'s default at bilinear and name bicubic where wanted. D-024 makes bicubic the delta tool's default for both sides.
+  - Give `mirage_vmaf` no `--scaler` when the scaler is the default, so that every run exercises its own default; the settings check would still catch a difference.
+  - Add `--scaler bilinear` to the earlier runs' command blocks.
+- **Rationale**
+  - One default in one place, so the command line can't drift from the analyzer, the player's included.
+  - A scaler given explicitly shows in every pair's `cmd.txt`; `mirage_vmaf`'s own default is checked directly instead (P-041).
+  - The command blocks are records of how the runs were made, and each run's `run.cmd.txt` has its full command.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
+
+### P-039 How D-027 is implemented: the pooled values from the per-frame scores
+
+- **Choice**
+  - `vmafpool::pool()` (`src/VMAFPool.h`) computes every pooled value from the per-frame scores:
+    - the mean, the harmonic mean and the minimum with libvmaf's formulas, `sum / n`, `n / sum(1 / (x + 1)) - 1` and the smallest score, summed frame by frame in index order;
+    - the minimum of frames 1 to n − 1 under the name `min_without_first_frame`, the name `eval/pooling/pooling.py` gives it, `null` for a pair of one frame;
+    - p1, p5, p10, p25 and p50 by linear interpolation as `pooling.py`'s `linear` definition computes it: `h = (n − 1) p / 100`, `k = floor(h)`, the fraction the double nearest `((n − 1) p mod 100) / 100`, and the difference, the product and the sum each rounded on their own. `src/VMAFPool.cpp` is compiled with `-ffp-contract=off`: Apple clang fuses a multiplication and an addition into one rounding by default, which can change the last bit (`tests/test_vmaf_pool.cpp` has such a case).
+  - The analyzer no longer asks libvmaf's `vmaf_score_pooled()` for the mean and the min. `VMAFResult::pooled` holds every value; `vmaf_mean`, `vmaf_min` and `vmaf_p5` stay, filled from it, for the player's VMAF panel and `write_json`, whose layout doesn't change, so the player's p5 is the interpolated one.
+  - `mirage_vmaf`'s report: `pooled { mean, harmonic_mean, min, min_without_first_frame, p1, p5, p10, p25, p50 }` at full precision.
+  - Checks: known values, the same in `tests/test_vmaf_pool.cpp` and `eval/pooling/tests/test_pooling.py`; the mean, minimum and harmonic mean against libvmaf's own pooling, of scores imported with `vmaf_import_feature_score()` (`vmaf_feature_score_pooled()`) and of a context the test scores 24 frame pairs in (`vmaf_score_pooled()`), compared with `==`; and a committed cross-check (P-041).
+  - The delta reports show both sides' harmonic means next to their means and minima, outside the verdict (P-009). `pooling.py --check-pooled` computes the values as `mirage_vmaf` does, `POOLED_D027`, and checks them against the report's; without the option its output is as before.
+- **Alternatives**
+  - Keep `vmaf_score_pooled()` for the mean, the minimum and the harmonic mean, and compute only the percentiles: libvmaf's values by construction, but undefined over the several libvmaf contexts in which D-028 scores a pair with gaps.
+  - Also call `vmaf_score_pooled()` on a pair scored in one context and warn when it differs.
+  - Exactly rounded sums (`math.fsum`), as `pooling.py`'s own mean and shifted harmonic mean are; they can differ from libvmaf's in the last bits (`eval/pooling/README.md`).
+  - Another name for the minimum without the first frame; leaving out the first frame of each libvmaf context once D-028 restarts them.
+- **Rationale**
+  - One definition for a pair scored in one context and in several; for one context the values are libvmaf's to the last bit (the tests; `eval/consistency/defaults-300/checks.txt`, check 5).
+  - The same arithmetic as `pooling.py`'s gives a reader who recomputes the values from the per-frame scores the same doubles, which the committed cross-check shows.
+  - The name says what the value is; with one frame no frame is left.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
+
+### P-040 How D-030 is implemented: what a config file accepts, and how the command line replaces it
+
+- **Choice**
+  - `--config FILE` is a row of the option table. The file has one `name = value` per line: `name` a long option's name without the leading `--`, `value` the rest of the line after the first `=`, both without the spaces and tabs around them and taken as they are, with no quotes, escapes or comments after a value. Blank lines and lines whose first character other than white space is `#` are skipped; a UTF-8 byte order mark at the start and a carriage return at a line's end are ignored.
+  - Every option but `--config` can be set in the file, the required `--ref`, `--dis` and `--out` included, each once; each value is checked by the option's own setter, also where the command line replaces it.
+  - An option on the command line replaces the file's setting. Options that exclude each other, `--model` and `--model-file`, are one setting, the model: either on the command line replaces either in the file, and both in the file, or both on the command line, are an error.
+  - Values mean what they mean on the command line: relative paths from the current directory.
+  - An unreadable file, an unknown or repeated name, a name written with `--`, `config` in the file, a line without `=`, and an empty or bad value are errors that name the file and the line; `mirage_vmaf` exits with status 2, as for bad arguments.
+  - The report's `config_file` gives the path as given and the SHA-256 of the bytes that were parsed, read once and hashed with `filehash`; `null` without a config file.
+- **Alternatives**
+  - Comments after a value, or quoted values.
+  - Only the scoring settings in the file, not the inputs and the output.
+  - Relative paths from the file's directory.
+  - Leaving the settings the command line replaces unchecked.
+- **Rationale**
+  - D-030's rationale: nothing can be set in one place but not the other, so every option of the table is allowed, and each is checked by the same code.
+  - Without quoting rules, paths and URLs with `#`, `=` or spaces are written as they are.
+  - Hashing the bytes that were parsed makes the recorded SHA-256 that of the settings the run used.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
+
+### P-041 The run with the defaults of D-024 and D-027, and the cross-check of its pooled values
+
+- **Choice**
+  - Build the release `mirage_vmaf` in a new worktree of `02ebed5`, the commit after this round's changes to the code and to the delta tool, release preset, the `mirage_vmaf` target only, as P-034 did (`eval/consistency/defaults-300/build.txt`), and from that worktree run `run_delta.sh --frames 300 --jobs 1` on the four pairs of D-018 without `--scaler`, so with the defaults on both sides, bicubic and vmaf_v0.6.1 (`defaults-300/plain/`).
+  - Run `pooling.py --delta-run eval/consistency/defaults-300/plain --check-pooled` from the clean tree at `a0a9058` (`eval/pooling/defaults-300/`), and make `defaults-300/checks.txt` from the clean tree at `9d8c173`, each command with its output. Check 4 runs the same program directly, with `--frames 300` and no `--scaler`, on each pair, and on gear2 with its settings in a config file.
+  - `eval/run_all.sh` steps `defaults-300`, HEAD's program with the options of its `run.cmd.txt`, bicubic named, and `pooling-defaults-300`, with `--check-pooled`.
+- **Alternatives**
+  - The checks in a scratch directory only, uncommitted.
+  - Every frame: the full-length report with bicubic that D-024 asks for is a run of its own.
+  - `--scaler bicubic` named in the run.
+- **Rationale**
+  - 300 frames are the range of `scalers-300/`, whose bicubic run named `--scaler bicubic`, so the two runs compare frame by frame, and its reports' pooled mean and min came from `vmaf_score_pooled()` for the same per-frame scores.
+  - A run without `--scaler` is what shows the defaults; the direct runs show `mirage_vmaf`'s own, which `run_delta.sh` passes explicitly.
+- **Result** (`eval/consistency/defaults-300/checks.txt`): every pair passes, every frame agreeing at the 6 decimals of FFmpeg's log, with no warning (check 8). Both sides used bicubic: `mirage_vmaf` was given `--scaler bicubic`, FFmpeg's scale filter `flags=bicubic` and states `flags:0x00000004` (check 2). Mirage's per-frame scores and FFmpeg's every libvmaf metric are those of `scalers-300/bicubic` on all 300 frames of every pair (check 3). The direct runs without `--scaler`, and the run with a config file, report bicubic and score all 300 frames as the run did; the config file's SHA-256 in the report is the one `shasum` computes (check 4). The reports' pooled mean and min equal those of `scalers-300/bicubic` at full precision (check 5); their mean, min and harmonic mean those of FFmpeg's log at 6 decimals (check 6); and all nine pooled values those `pooling.py` computes, at full precision (check 7; `eval/pooling/defaults-300/pooling.md`).
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
