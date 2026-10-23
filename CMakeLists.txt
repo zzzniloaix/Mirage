@@ -142,6 +142,7 @@ add_executable(mirage
     src/TrackGroups.cpp
     src/ManifestParser.cpp
     src/PlayerUI.cpp
+    src/VMAFAlign.cpp
     src/VMAFAnalyzer.cpp
     src/VMAFColor.cpp
     src/VMAFPool.cpp
@@ -201,6 +202,7 @@ set_source_files_properties(src/VMAFPool.cpp PROPERTIES COMPILE_OPTIONS "-ffp-co
 # (DECISIONS.md D-017). Links FFmpeg and libvmaf only.
 add_executable(mirage_vmaf
     tools/mirage_vmaf.cpp
+    src/VMAFAlign.cpp
     src/VMAFAnalyzer.cpp
     src/VMAFColor.cpp
     src/VMAFPool.cpp
@@ -250,6 +252,7 @@ add_executable(mirage_tests
     tests/test_json_text.cpp
     tests/test_vmaf_cli.cpp
     tests/test_vmaf_report.cpp
+    tests/test_vmaf_align.cpp
     tests/test_vmaf_analyzer.cpp
     tests/test_vmaf_color.cpp
     tests/test_vmaf_pool.cpp
@@ -280,6 +283,7 @@ add_executable(mirage_tests
     src/JsonText.cpp
     src/VMAFCli.cpp
     src/VMAFReport.cpp
+    src/VMAFAlign.cpp
     src/VMAFAnalyzer.cpp
     src/VMAFColor.cpp
     src/VMAFPool.cpp
