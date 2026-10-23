@@ -13,6 +13,7 @@
 #include "HlsVariants.h"
 #include "ManifestParser.h"
 #include "NetworkLogger.h"
+#include "TestTemp.h"
 
 #include <algorithm>
 #include <cmath>
@@ -230,7 +231,7 @@ void make_audio_playlist(const fs::path& dir)
 // once per group — FFmpeg gives every entry its own playlist and streams.
 fs::path make_master()
 {
-    const fs::path root = fs::temp_directory_path() / "mirage_test_hls_variants";
+    const fs::path root = testtemp::path("mirage_test_hls_variants");
     static bool made = false;   // once per test run, never a stale fixture
     if (made) return root;
     made = true;

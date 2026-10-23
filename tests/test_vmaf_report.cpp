@@ -4,6 +4,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include "TestTemp.h"
 #include "VMAFReport.h"
 
 #include <cmath>
@@ -273,7 +274,7 @@ std::string read_file(const fs::path& p)
 
 fs::path fresh_dir(const char* name)
 {
-    const fs::path dir = fs::temp_directory_path() / name;
+    const fs::path dir = testtemp::path(name);
     fs::remove_all(dir);
     fs::create_directories(dir);
     return dir;

@@ -3,6 +3,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "FileHash.h"
+#include "TestTemp.h"
 
 #include <filesystem>
 #include <fstream>
@@ -14,7 +15,7 @@ namespace {
 
 fs::path write_file(const char* name, const std::string& data)
 {
-    const fs::path p = fs::temp_directory_path() / name;
+    const fs::path p = testtemp::path(name);
     std::ofstream f(p, std::ios::binary | std::ios::trunc);
     f.write(data.data(), static_cast<std::streamsize>(data.size()));
     return p;
@@ -55,13 +56,13 @@ TEST_CASE("filehash::sha256_file: a file's contents, also over several reads", "
 
 TEST_CASE("filehash::sha256_file: a file that cannot be read", "[filehash]")
 {
-    const fs::path missing = fs::temp_directory_path() / "mirage_test_hash_missing.txt";
+    const fs::path missing = testtemp::path("mirage_test_hash_missing.txt");
     fs::remove(missing);
     std::string err;
     CHECK(filehash::sha256_file(missing.string(), err).empty());
     CHECK_FALSE(err.empty());
 
     err.clear();
-    CHECK(filehash::sha256_file(fs::temp_directory_path().string(), err).empty());   // a directory
+    CHECK(filehash::sha256_file(testtemp::dir().string(), err).empty());   // a directory
     CHECK_FALSE(err.empty());
 }

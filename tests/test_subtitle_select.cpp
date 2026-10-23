@@ -2,10 +2,10 @@
 
 #include "SubtitleSelect.h"
 #include "Demuxer.h"   // SubtitleTrackInfo
+#include "TestTemp.h"
 
 #include <filesystem>
 #include <fstream>
-#include <random>
 #include <string>
 #include <vector>
 
@@ -13,13 +13,13 @@ namespace fs = std::filesystem;
 
 namespace {
 
-// Fresh temp directory, removed on scope exit.
+// A fresh directory inside the run's own (TestTemp.h), removed on scope exit.
 struct TempDir {
     fs::path dir;
     TempDir()
     {
-        std::random_device rd;
-        dir = fs::temp_directory_path() / ("mirage_subsel_" + std::to_string(rd()));
+        static int made = 0;
+        dir = testtemp::path("mirage_subsel_" + std::to_string(made++));
         fs::create_directories(dir);
     }
     ~TempDir() { std::error_code ec; fs::remove_all(dir, ec); }

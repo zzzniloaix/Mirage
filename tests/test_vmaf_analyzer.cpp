@@ -8,6 +8,7 @@
 
 #include "FileHash.h"
 #include "ManifestParser.h"
+#include "TestTemp.h"
 #include "VMAFAnalyzer.h"
 
 #include <algorithm>
@@ -51,7 +52,7 @@ std::string make_clip(const char* name, int w, int h, int frames, AVColorSpace s
                       const ClipLook& look = {})
 {
     REQUIRE((!look.colored || look.pix_fmt == AV_PIX_FMT_YUV420P));
-    const fs::path path = fs::temp_directory_path() / name;
+    const fs::path path = testtemp::path(name);
     AVFormatContext* oc = nullptr;
     REQUIRE(avformat_alloc_output_context2(&oc, nullptr, "matroska", path.c_str()) >= 0);
     AVStream* st = avformat_new_stream(oc, nullptr);
@@ -253,7 +254,7 @@ TEST_CASE("VMAFAnalyzer::analyze: the shorter input ends the pairing", "[vmaf]")
 
 TEST_CASE("VMAFAnalyzer::analyze: an input that cannot be opened is an error", "[vmaf]")
 {
-    const std::string missing = (fs::temp_directory_path() / "mirage_test_vmaf_missing.mkv").string();
+    const std::string missing = testtemp::path("mirage_test_vmaf_missing.mkv").string();
     fs::remove(missing);
     const VMAFResult r = VMAFAnalyzer::analyze(missing, dis_clip());
     CHECK(r.done);
@@ -321,7 +322,7 @@ TEST_CASE("VMAFAnalyzer::start_manifest: top-rung pairs and write_json's format"
         "    }}\n  ]\n}}\n",
         ref_clip(), dis_clip(), r.vmaf_mean, r.vmaf_min, r.vmaf_p5, per_frame);
 
-    const fs::path out = fs::temp_directory_path() / "mirage_test_vmaf_gui.json";
+    const fs::path out = testtemp::path("mirage_test_vmaf_gui.json");
     REQUIRE(a.write_json(out.string()));
     std::ifstream f(out);
     std::ostringstream text;
@@ -418,7 +419,7 @@ TEST_CASE("VMAFAnalyzer::analyze: a model file, identified by its SHA-256", "[vm
     const fs::path file = fs::path(MIRAGE_LIBVMAF_MODEL_DIR) / "vmaf_v0.6.1neg.json";
     if (!fs::exists(file)) SKIP("no libvmaf model file at " << file.string());
     // A copy with one more newline at its end: other bytes, the same model.
-    const fs::path copy = fs::temp_directory_path() / "mirage_test_vmaf_model_copy.json";
+    const fs::path copy = testtemp::path("mirage_test_vmaf_model_copy.json");
     {
         std::ifstream in(file, std::ios::binary);
         std::ofstream out(copy, std::ios::binary | std::ios::trunc);
@@ -451,14 +452,14 @@ TEST_CASE("VMAFAnalyzer::analyze: a model libvmaf can't load is an error", "[vma
     CHECK(unknown.error == "vmaf_model_load failed: this libvmaf has no built-in model vmaf_v0.0.0");
     CHECK(unknown.per_frame.empty());
 
-    const fs::path missing = fs::temp_directory_path() / "mirage_test_vmaf_no_model.json";
+    const fs::path missing = testtemp::path("mirage_test_vmaf_no_model.json");
     fs::remove(missing);
     const VMAFResult gone = VMAFAnalyzer::analyze(ref_clip(), dis_clip(),
                                                   { .model = { .path = missing.string() } });
     CHECK(gone.error.starts_with("cannot read the model file " + missing.string() + ": "));
     CHECK(gone.per_frame.empty());
 
-    const fs::path junk = fs::temp_directory_path() / "mirage_test_vmaf_not_a_model.json";
+    const fs::path junk = testtemp::path("mirage_test_vmaf_not_a_model.json");
     std::ofstream(junk) << "not a model\n";
     const VMAFResult bad = VMAFAnalyzer::analyze(ref_clip(), dis_clip(),
                                                  { .model = { .path = junk.string() } });

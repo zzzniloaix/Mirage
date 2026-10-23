@@ -9,6 +9,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "Demuxer.h"
+#include "TestTemp.h"
 
 #include <algorithm>
 #include <atomic>
@@ -37,7 +38,7 @@ constexpr int    kAudioFrame = 400;   // 50 ms PCM packets
 // v0: 32x18, v1: 16x8 (stream 0/1), a0/a1: mono PCM (stream 2/3).
 std::string make_multitrack_file()
 {
-    const auto path = std::filesystem::temp_directory_path() / "mirage_test_multitrack.nut";
+    const auto path = testtemp::path("mirage_test_multitrack.nut");
     AVFormatContext* oc = nullptr;
     REQUIRE(avformat_alloc_output_context2(&oc, nullptr, "nut", path.c_str()) >= 0);
     const int vw[2] = { 32, 16 }, vh[2] = { 18, 8 };
@@ -108,7 +109,7 @@ std::string make_multitrack_file()
 // cue "cue N" from N to N+0.5 s every second (stream 3).
 std::string make_subtitle_file()
 {
-    const auto path = std::filesystem::temp_directory_path() / "mirage_test_subtitles.nut";
+    const auto path = testtemp::path("mirage_test_subtitles.nut");
     AVFormatContext* oc = nullptr;
     REQUIRE(avformat_alloc_output_context2(&oc, nullptr, "nut", path.c_str()) >= 0);
     AVStream* vs = avformat_new_stream(oc, nullptr);
@@ -194,7 +195,7 @@ std::string make_subtitle_file()
 std::string make_bframes_mkv()
 {
     constexpr int kVidSecs = 20;
-    const auto path = std::filesystem::temp_directory_path() / "mirage_test_bframes.mkv";
+    const auto path = testtemp::path("mirage_test_bframes.mkv");
     const AVCodec* codec = avcodec_find_encoder_by_name("libx264");
     if (!codec) return {};
     AVCodecContext* enc = avcodec_alloc_context3(codec);
