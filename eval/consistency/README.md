@@ -146,7 +146,7 @@ What they show:
 - **The relabel run.** With `setparams=colorspace=bt709` before FFmpeg's scale for gear2 and gear1 (of the two tags the relabel looks at, only `color_space` differs from gear5's; `color_range` is `tv` for every rung, `ffprobe_*.json`), all four pairs pass, and every frame of every pair agrees to FFmpeg's 6 decimals (check 3). The scale lines of gear2 and gear1 then read `csp:bt709 -> csp:bt709`, without swscale's note (`relabel/*/ffmpeg_colorspace_lines.txt`). FFmpeg's pooled means of gear2 and gear1 become Mirage's, 33.832772 and 1.884503 (`relabel/delta.md`). For gear4 and gear3 nothing is relabeled, and the results are the plain run's.
 - **Against Phase 0.** FFmpeg's side of the plain run has every libvmaf metric of all 300 frames of gear2 and gear1 equal to Phase 0's FFmpeg diagnostic (check 1), although Phase 0 stopped FFmpeg with `-frames:v 300` and these runs use `trim` (P-008). `mirage_vmaf`'s scores equal those of Phase 0's run of the player's analyzer at the 4 decimals that run wrote, on all 300 frames of each rung (check 2). The plain run's gear2 and gear1 figures agree with `eval/baseline/diagnostics/compare_first300.txt` (max |delta| 5.6747 and 3.8838, mean |delta| 5.2798 and 1.8784, 300 and 290 frames over 0.01) at those 4 decimals.
 
-So in these 300 frames, the whole difference between Mirage and FFmpeg on gear2 and gear1 comes with FFmpeg's conversion of the distorted frames from the smpte170m matrix to the reference's bt709 matrix, which Mirage doesn't make: without it, the two agree to the precision of FFmpeg's log. D-016 has Mirage convert as FFmpeg does. The §5 report itself, over every frame of the four rungs (D-018), comes after D-016 is implemented: MEASUREMENT PENDING.
+So in these 300 frames, the whole difference between Mirage and FFmpeg on gear2 and gear1 comes with FFmpeg's conversion of the distorted frames from the smpte170m matrix to the reference's bt709 matrix, which Mirage doesn't make: without it, the two agree to the precision of FFmpeg's log. D-016 has Mirage convert as FFmpeg does. The §5 report itself, over every frame of the four rungs (D-018), was made after D-016: `acceptance-full/` below.
 
 Limits:
 
@@ -241,7 +241,7 @@ What they show:
 
 Limits:
 
-- Only the first 300 frames. The committed §5 report covers every frame of the four rungs (D-018): MEASUREMENT PENDING.
+- Only the first 300 frames. The committed §5 report, over every frame of the four rungs (D-018), is `acceptance-full/` below.
 - Only the bilinear scaler on both sides (D-003), and the inputs as fetched during the run.
 - These scores only compare the two tools (D-005, D-011).
 
@@ -310,6 +310,45 @@ What they show:
 - **A model file works like the built-in model**: the run with the package's `vmaf_v0.6.1.json` keeps every score of the built-in vmaf_v0.6.1 on both sides, at full precision on Mirage's side and in every metric of FFmpeg's log (check 6), and the vmaf_v0.6.1 run has those of `scalers-300/bilinear` for gear2 (check 6).
 
 Limits: one pair, the first 300 frames; which model suits which content is not evaluated here.
+
+### `acceptance-full/`: the §5 report, every frame of the four pairs (D-018, P-026)
+
+The committed §5 delta report, D-018's acceptance output: every frame of the four pairs, plain FFmpeg, the defaults (bilinear, vmaf_v0.6.1, 4 libvmaf threads, threshold 0.01), with the release `mirage_vmaf` of the main working tree at the clean HEAD `3650f83dbbc196e62a360c31c96789c86f34dc43` (`build.txt`), the program of `scalers-300/` and `models-300/`, and four scoring processes at a time:
+
+```
+eval/consistency/run_delta.sh build/macos-release/mirage_vmaf <out>/plain --jobs 4
+```
+
+| File | Contents |
+|---|---|
+| `build.txt` | the build of `mirage_vmaf` right before the run: HEAD, a clean working tree, two builds with nothing to do, and its SHA-256, which `plain/environment.txt` repeats |
+| `plain/` | the run, with plain FFmpeg: the §5 comparison. Every pair's `mirage.json` and `ffmpeg.json` are over 1 MiB, so they are kept as `mirage.json.xz` and `ffmpeg.json.xz` |
+| `checks.txt` | checks made on the run afterwards, each command with its output |
+| `SHA256SUMS` | SHA-256 of `build.txt`, `checks.txt` and `plain/SHA256SUMS` |
+
+From `plain/delta.md` (|delta| = |Mirage − FFmpeg| per frame, 6 decimals; pooled means as libvmaf computes them):
+
+| pair | status | frame pairs (Mirage / FFmpeg) | max \|delta\| | mean \|delta\| | frames over 0.01 | pooled mean, Mirage | pooled mean, FFmpeg | conversion, both sides |
+|---|---|---|---|---|---|---|---|---|
+| gear4_vs_gear5 | PASS | 53946 / 53946 | 0.000000 | 0.000000 | 0 | 74.563207 | 74.563207 | bt709 -> bt709 |
+| gear3_vs_gear5 | PASS | 53946 / 53946 | 0.000000 | 0.000000 | 0 | 53.222012 | 53.222012 | bt709 -> bt709 |
+| gear2_vs_gear5 | PASS | 53946 / 53946 | 0.000000 | 0.000000 | 0 | 27.868640 | 27.868640 | smpte170m -> bt709 |
+| gear1_vs_gear5 | PASS | 53946 / 53946 | 0.000000 | 0.000000 | 0 | 0.000827 | 0.000827 | smpte170m -> bt709 |
+
+What they show:
+
+- **§5 passes over every frame.** All four pairs pass D-019, and written with the 6 decimals of FFmpeg's log, Mirage's score of every one of the 53946 frames of every pair is FFmpeg's (`checks.txt`, check 2). Both sides scored 53946 frame pairs, as many as Phase 0's run of the player's analyzer scored per rung (`eval/baseline/bipbop16x9/summary.txt`). The run has no warning, and the working tree was clean at its start and end (`plain/delta.md`).
+- **The conversions.** Both tools convert gear2 and gear1 from smpte170m/tv to bt709/tv and change nothing for gear4 and gear3; each `dis_conversion` has one entry, over all 53946 pairs (check 5, and the last two columns of `plain/delta.md`).
+- **The pairing.** Every pair's two frames have the same PTS, from 10 s to 1809.9666333333332 s, and none lacks one (check 6), so the comparison by position compared the same frames on both sides (P-009).
+- **The first 300 frames as in the 300-frame runs.** They have the scores of `scalers-300/bilinear`, made by the same program with `--frames 300` and one process at a time, at full precision on Mirage's side and in every metric of FFmpeg's log, on every pair (check 3).
+- **Against Phase 0.** gear4 and gear3 keep every score of Phase 0's run of the player's analyzer at the 4 decimals it wrote; gear2 keeps none, and gear1 only the 5976 frames that score 0.0000 in both (check 4): D-016's change. Phase 0's analyzer had pooled means of 33.0648 (640x360) and 1.1455 (416x234) over these frames (`eval/baseline/bipbop16x9/summary.txt`), where Mirage now has FFmpeg's, 27.868640 and 0.000827.
+- **Wall time.** Each side of each pair took from 1134.6 to 1396.7 s, four processes running at a time (the pairs' `delta.md`); the run lasted from 13:42:05Z to 14:24:46Z on 2026-10-23 (`plain/delta.md`).
+
+Limits:
+
+- bipbop 16x9's rungs were rendered separately, so these scores compare the two tools, not the rungs' quality (D-005, D-011).
+- Only the defaults of today, bilinear and vmaf_v0.6.1 (D-003, D-004); another default needs this run again. The other scalers and models are measured over 300 frames (`scalers-300/`, `models-300/`).
+- 8-bit yuv420p inputs only, fetched from Apple's CDN during the run.
 
 ### `ffmpeg-scale-default/`, `ffmpeg-libvmaf-filter/`: what the FFmpeg of these runs does by default (P-016)
 

@@ -38,4 +38,17 @@ What `pooling.md` shows:
 - **Harmonic mean.** For all four rungs, libvmaf's harmonic mean in FFmpeg's log equals the shifted form, `n / sum(1 / (x + 1)) - 1`, at the log's 6 decimals ("Checks" in `pooling.md`), e.g. 28.434599 for gear2, where the plain form gives 28.428817. With frames at 0, as in 416x234, the plain form is undefined while the shifted form is not (0.849321 on the full length, 0.004591 on the first 300 frames).
 - **Today's p5.** The analyzer's recorded `vmaf_p5` of each rung equals the **today** definition computed here at 4 decimals, and its recorded min equals the series' minimum.
 
-When the full-length §5 run of D-018 is committed, the same command with `--delta-run` on it gives these figures for every frame after D-016 (MEASUREMENT PENDING).
+## `acceptance-full/`: every frame after D-016
+
+```
+python3 -I -B eval/pooling/pooling.py --delta-run eval/consistency/acceptance-full/plain --out eval/pooling/acceptance-full/pooling
+```
+
+One source, in `pooling.md` (made at commit `dfadf66`, working tree clean; P-027): both sides of every frame of the four pairs of the committed §5 report, `eval/consistency/acceptance-full/plain` (D-018), 53946 frames per pair, after D-016. Mirage's series have full precision, FFmpeg's the 6 decimals of its log; the two give the same figures, apart from the sixth decimal of a few percentiles.
+
+What `pooling.md` shows:
+
+- **The minimum is the first frame's score.** In every series the first index at the minimum is 0. For gear4, gear3 and gear2 the first frame is the only frame at the minimum, and without it the minima are 73.172758 (index 7878), 48.441289 (25920) and 18.126492 (28320), where the minima are 69.746945, 45.124432 and 16.070202. gear1's minimum is 0, which 53790 of its 53946 frames score. In FFmpeg's logs the first frame's `integer_motion2` and `integer_motion` are 0, and in every pair it is the only frame with `integer_motion2` 0.
+- **Percentile definitions.** The three definitions differ by at most 0.000276 (gear3, p1) on these series; for gear1, p1 to p50 are 0 under all three.
+- **Harmonic mean.** For all four pairs, libvmaf's harmonic mean in FFmpeg's log equals the shifted form at the log's 6 decimals ("Checks" in `pooling.md`), e.g. 27.751821 for gear2, where the plain form gives 27.746387. For gear1 the plain form is undefined; the shifted form is 0.000574.
+- **Against `bipbop16x9/`.** gear4 and gear3 have the scores of Phase 0's series at its 4 decimals (`eval/consistency/acceptance-full/checks.txt`, check 4), and their minima without the first frame are where the baseline's are (indices 7878 and 25920). gear2 and gear1 changed with D-016: gear2's minimum without the first frame is now at index 28320, and gear1 has 53790 frames at 0 where the baseline had 5976.
