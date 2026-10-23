@@ -591,3 +591,115 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
 - **Status**: pending owner confirmation
+
+### P-020 The LICENSE text, and where it was checked
+
+- **Choice**
+  - `LICENSE` is the GNU General Public License, version 3, 29 June 2007, in the revision with `https` web addresses, copied from the `COPYING` file of Homebrew's GNU m4 package.
+  - It is checked against every GPLv3 text that the Homebrew packages on the machine ship: byte for byte the same as those of GnuTLS, libidn2, libtasn1, libunistring and XZ Utils as well as m4's; the texts of FFmpeg, GMP, readline and siege are an older revision that differs from it in four web addresses, and gettext's differs in one (`eval/build_check/macos-2026-10-23-6a6661f.txt`, "LICENSE", with the `diff`s).
+  - `README.md` states `GPL-3.0-or-later` and points to `LICENSE` (D-008), because the license text alone doesn't say "or any later version".
+- **Alternatives**
+  - FFmpeg's `COPYING.GPLv3`, the older revision with `http` addresses and the same terms.
+  - The text downloaded from gnu.org.
+  - A license notice with an SPDX identifier at the top of every source file as well.
+- **Rationale**
+  - It is the revision most of the copies on the machine share: 6 of the 12 GPLv3 texts in the record, shipped by six different upstream projects, are byte for byte `LICENSE`. That checks the text against independent copies without fetching anything.
+  - Notices in every source file touch every file of the player, and the work order asks only for the license file; that is left to the owner.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation. Whether legal or the company's open-source process has to confirm the license remains D-008's open question.
+
+### P-021 How the FetchContent dependencies and the glad venv are pinned
+
+- **Choice**
+  - miniaudio and stb, which followed their `master` branch, are pinned by full commit hash to the commits the Phase 0 build fetched (`eval/baseline/environment.txt`): miniaudio `9634bedb5b5a2ca38c1ee7108a9358a4e233f14d`, stb `a7d4c2175630e1ea5b6f8dd00ab96fed0b97b96d`.
+  - glad, pugixml, Catch2, Dear ImGui and nativefiledialog-extended keep their release tags. In both build checks each tag fetched the commit Phase 0 fetched (`eval/build_check/macos-2026-10-23.txt`, `macos-2026-10-23-6a6661f.txt`).
+  - The glad venv of `docs/BUILD.md` step 3 and of `run_build_check.sh` installs `markupsafe==3.0.4` with `jinja2==3.1.6`: the version pip chose in the first build check.
+- **Alternatives**
+  - Pin the five tagged dependencies by commit hash as well, with the tag in a comment.
+  - miniaudio by its tag `0.11.25`, which names the same commit (`macos-2026-10-23-6a6661f.txt`).
+  - stb at `003501f6d7a8668ce8b6d875e34dd97ad0d5d5b5`, the commit the first build check and the main working tree's builds of Phase 1 fetched; it differs from the pinned one only in stb's `CONTRIBUTING.md` (the same record).
+  - Copy the two single-header libraries into the repository.
+  - Leave MarkupSafe to pip.
+- **Rationale**
+  - The commits of Phase 0's build are the ones a committed record names for the baseline; a hash can't be moved the way a tag or branch can.
+  - Release tags say which version a dependency is, and the records show what they named when each build ran, so a moved tag would show in the next build check.
+  - No committed score depends on either pin: `mirage_vmaf` compiles neither miniaudio nor stb (`CMakeLists.txt`), and the release `mirage_vmaf` built after the pins has the SHA-256 of the one that made the scaler and model runs (`macos-2026-10-23-6a6661f.txt`, `eval/consistency/scalers-300/build.txt`).
+  - With MarkupSafe named, the venv has exactly the packages of both build checks.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
+
+### P-022 The section 8 build check: the clean worktree of 6a6661f, and what it stands for
+
+- **Choice**
+  - `eval/build_check/run_build_check.sh` (P-007), extended to record the dependency pins and what was fetched, the files glad generates, the SHA-256 of `mirage_vmaf`, how `LICENSE` compares with Homebrew's GPLv3 texts, and the help of `brew pin` and `brew extract`; run on a clean worktree of `6a6661f`, the commit after the pins and the `docs/BUILD.md` update, with the steps of `docs/BUILD.md`: both presets, first with the default Python, then with the venv (`eval/build_check/macos-2026-10-23-6a6661f.txt`).
+  - `docs/BUILD.md` and `eval/build_check/README.md` cite the record, and say that a clean worktree on a machine that has the Homebrew packages only approximates the clean machine of §8's acceptance.
+- **Alternatives**
+  - A new macOS user account, a virtual machine or a hosted CI runner, starting without the Homebrew packages.
+  - Following `README.md`'s quick start on its own as well.
+- **Rationale**
+  - Installing or removing Homebrew packages changes the owner's machine, and a hosted runner needs the repository pushed; the worktree still fetches every FetchContent dependency anew and builds nothing uncommitted (P-001, P-007).
+  - The README's quick start is the record's default-Python path, which stops at glad on this machine; the README points to `docs/BUILD.md` for the rest.
+- **Limits**: one machine, with its Homebrew packages, Xcode Command Line Tools and network; the player's window wasn't opened.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
+
+### P-023 The stream list and its fetch: playlists only, no media kept
+
+- **Choice**
+  - `eval/streams.md` lists bipbop 16x9, which every committed run used, and Apple's advanced TS sample, which P-002 considered, with only what committed files say about them.
+  - `eval/streams/fetch_streams.py` fetches each master playlist of `eval/streams/streams.txt` and every playlist its `EXT-X-STREAM-INF` entries name, keeps them with four response headers (`Last-Modified`, `ETag`, `Content-Length`, `Content-Type`), says whether each is byte for byte the copy Phase 0 kept in `eval/baseline/inputs/`, and with `--probe` records ffprobe's parameters of each video playlist's first video stream. No media is kept.
+  - One run, `--probe`, from a clean tree at `a1dec9f` (`eval/streams/fetched-2026-10-23/`).
+- **Alternatives**
+  - Mirror the media too (for example `ffmpeg -c copy`), for runs without network.
+  - Keep every response header.
+  - Also fetch the audio, subtitle and I-frame playlists.
+  - List the DASH-IF and Unified Streaming streams the work order names, unexamined.
+- **Rationale**
+  - Every committed run read the streams from Apple's CDN (P-012, P-016); scoring a local copy instead would first need a check, on one pair, that it scores exactly as the URLs do, which no run needed.
+  - The four headers identify the content; the others name CDN edge servers and request times.
+  - The video playlists are what the scorers read; the advanced sample's URL, its streams' parameters and its playlists' segments were in no committed file before.
+  - A stream nobody examined has no committed property to list.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
+
+### P-024 eval/run_all.sh: what it reruns, with which program, and what "as committed" means
+
+- **Choice**
+  - `eval/run_all.sh` reruns every committed Phase 1 measurement into a new directory outside the repository: the stream fetch, the color tag clips, the §5 runs before and after D-016, the scaler and model runs with their `compare_runs.py` summaries, the two FFmpeg default records, and the pooling measurement on the rerun of `diag-after-300`. Each `run_delta.sh` run gets the options its committed `run.cmd.txt` records, which `eval/tests/test_run_all.py` checks, together with a test that fails when a committed run has no step.
+  - The runs made before D-016 use the `mirage_vmaf` of `83c8ed6`, the commit their `build.txt` names; all the others use that of the repository's HEAD. Unless given, each is built in a temporary worktree of its commit, release preset, only the `mirage_vmaf` target.
+  - It compares the rerun with the committed outputs: Mirage's per-frame scores at full precision and every libvmaf metric of FFmpeg's log, frame by frame, and each pair's and run's verdict; the pairs of `compare_runs.py`'s JSON, its `settings` left out because they name a model file by its path; the series and skipped entries of `pooling.py`'s JSON; every playlist's SHA-256 and every probed stream's parameters; `clips.txt` as text; and the FFmpeg records' outputs, heap addresses in FFmpeg's error lines left out. It writes `run_all.md` and `rerun_check.md` (with JSON), and fails when anything differs.
+  - The `checks.txt` of the committed run directories aren't rerun: they compare committed outputs with each other, and the comparison with the committed outputs covers the rerun. The build checks of `eval/build_check/` aren't part of it: they need their own empty directory and Python 3.13, and build everything.
+  - One run from a clean tree, with both programs built by the script, verifies it (P-025).
+- **Alternatives**
+  - The after-D-016 runs with the programs they were made with, built at `5263061` and `8cc06a7`.
+  - Leave the runs before D-016 out: only the current code makes paper data.
+  - A plain shell script that reruns without comparing, or a comparison at the 6 decimals of FFmpeg's log only.
+  - Rerun the commands of every `checks.txt` as well.
+- **Rationale**
+  - HEAD's `mirage_vmaf` is the program the paper's numbers will come from. The bilinear run of `scalers-300`, made with the program built at `8cc06a7`, has the scores of `diag-after-300`, made at `5263061`, at full precision on every frame (`eval/consistency/scalers-300/checks.txt`, check 4), so one current program can reproduce all the runs after D-016.
+  - The runs before D-016 are part of the committed evidence for D-016, and only the code that made them can reproduce them.
+  - Comparing at full precision shows whether the rerun reproduces the committed outputs exactly, not only within D-019's threshold.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
+
+### P-025 The verification run of eval/run_all.sh, and what of it is committed
+
+- **Choice**
+  - One run of `eval/run_all.sh` with no program given, so that it built both from their commits, from a clean tree at `e2169f5`, with its output directory and `TMPDIR` in a scratch directory outside the repository.
+  - Committed in `eval/run_all/2026-10-23/`: `run_all.md` and `.json`, `rerun_check.md` and `.json`, each build's `build.txt` and logs, and the output of every command, with a `SHA256SUMS`. Not committed: the rerun outputs and the two programs.
+  - Two earlier runs aren't cited: the first's configure logs showed the temporary worktree's path in the form CMake gives check variables, and the second kept its build records in a directory `.gitignore` leaves out. Both were fixed before this run (`cf27231`, `e2169f5`).
+- **Alternatives**
+  - Commit the rerun outputs too.
+  - Run with the programs already built in the main working tree.
+- **Rationale**
+  - The record says what was rerun, with which programs, how it compared and how long it took; the rerun outputs would duplicate the committed ones wherever they match, which the record says they all do, and most of their size is the color cases' uncompressed clips.
+  - Building inside the run shows both programs come from commits, and their SHA-256s can be compared with those of the committed runs.
+- **Result** (`eval/run_all/2026-10-23/rerun_check.md`, `run_all.md`): every step ran and everything compared is as committed. The program built from `83c8ed6` has the SHA-256 that the `build.txt` of `diag-before-300` and `color-cases-before` records, and the one built from HEAD that of `scalers-300` and `models-300`. 544.3 s of wall time, both builds included.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
