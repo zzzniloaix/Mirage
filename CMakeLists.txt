@@ -191,6 +191,7 @@ add_executable(mirage_tests
     tests/test_keyframe_index.cpp
     tests/test_scrub_follow.cpp
     tests/test_hls_align.cpp
+    tests/test_json_text.cpp
     tests/test_vmaf_analyzer.cpp
     src/Demuxer.cpp
     src/NetworkLogger.cpp
@@ -215,6 +216,7 @@ add_executable(mirage_tests
     src/PipelineState.cpp
     src/KeyframeIndex.cpp
     src/ScrubDecoder.cpp
+    src/JsonText.cpp
     src/VMAFAnalyzer.cpp
 )
 
