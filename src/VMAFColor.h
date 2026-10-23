@@ -49,12 +49,14 @@ Tags target(const Tags& ref, const Tags& dis);
 // reference to the distorted frames' matrix and range and leaves the
 // distorted frames' alone, which the analyzer doesn't do, so its scores can
 // differ from FFmpeg's for such a reference (tests/test_vmaf_color.cpp;
-// docs/PHASE1_DECISIONS_PENDING.md).
+// FFmpeg's logs in eval/consistency/format-cases-before/, its checks.txt
+// summing them up; docs/PHASE1_DECISIONS_PENDING.md).
 bool converts_reference(AVPixelFormat ref_format);
 
 // Whether libswscale converts from and to this matrix (sws_test_colorspace).
 // FFmpeg can't build the graph when either input has another one, the other
-// input's matrix being supported or the same (tests/test_vmaf_color.cpp).
+// input's matrix being supported or the same (tests/test_vmaf_color.cpp;
+// eval/consistency/color-cases-before/refused/, format-cases-before/refused/).
 bool supported(AVColorSpace space);
 
 // What libswscale changes in the pixels when it converts `from` to `to`:
