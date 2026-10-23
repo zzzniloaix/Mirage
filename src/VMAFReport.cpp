@@ -32,6 +32,11 @@ std::string pts_at(const std::vector<double>& pts, std::size_t i)
     return i < pts.size() ? number(pts[i]) : "null";
 }
 
+std::string index_at(const std::vector<int64_t>& index, std::size_t i)
+{
+    return i < index.size() ? std::to_string(index[i]) : "null";
+}
+
 std::string conversions_json(const std::vector<VMAFColorConversion>& list)
 {
     std::string out = "[";
@@ -54,6 +59,42 @@ std::string texts_json(const std::vector<std::string>& list)
     for (std::size_t i = 0; i < list.size(); ++i)
         out += (i == 0 ? "\n    " : ",\n    ") + quote(list[i]);
     return out + (list.empty() ? "]" : "\n  ]");
+}
+
+std::string clock_json(const std::string& rate, double start, const std::string& from)
+{
+    return std::format("{{\"frame_rate\": {}, \"start\": {}, \"start_from\": {}}}", quote(rate),
+                       number(start), from.empty() ? "null" : quote(from));
+}
+
+std::string alignment_json(const VMAFAlignment& a)
+{
+    std::string out = std::format(
+        "{{\"rule\": {}, \"timestamp_origin\": {}, \"grid\": {}, \"tolerance\": {},\n"
+        "    \"reference\": {},\n    \"distorted\": {},\n"
+        "    \"paired\": {}, \"failed\": {}, \"failure_rate\": {}, \"threshold\": {}, "
+        "\"exceeded\": {},\n"
+        "    \"unmatched_reference\": {}, \"extra_distorted\": {}, \"duplicate_distorted\": {}, "
+        "\"no_timestamp\": {}, \"after_discontinuity\": {},\n"
+        "    \"discontinuities\": {}, \"off_grid_reference\": {}, \"off_grid_distorted\": {},\n"
+        "    \"vmaf_contexts\": [",
+        quote(a.rule), quote(a.timestamp_origin), quote(a.grid), number(a.tolerance),
+        clock_json(a.ref_frame_rate, a.ref_start, a.ref_start_from),
+        clock_json(a.dis_frame_rate, a.dis_start, a.dis_start_from), a.paired, a.failed,
+        number(a.failure_rate), number(a.threshold), a.exceeded, a.unmatched_reference,
+        a.extra_distorted, a.duplicate_distorted, a.no_timestamp, a.after_discontinuity,
+        a.discontinuities, a.off_grid_reference, a.off_grid_distorted);
+    for (std::size_t i = 0; i < a.contexts.size(); ++i)
+        out += std::format("{}{{\"first_index\": {}, \"pairs\": {}}}", i == 0 ? "" : ", ",
+                           a.contexts[i].first_index, a.contexts[i].pairs);
+    out += "],\n    \"failures\": [";
+    for (std::size_t i = 0; i < a.failures.size(); ++i) {
+        const VMAFAlignmentFailure& f = a.failures[i];
+        out += i == 0 ? "\n      " : ",\n      ";
+        out += std::format("{{\"input\": {}, \"index\": {}, \"pts\": {}, \"reason\": {}}}",
+                           quote(f.input), f.index, number(f.pts), quote(f.reason));
+    }
+    return out + (a.failures.empty() ? "]}" : "\n    ]}");
 }
 
 } // namespace
@@ -112,13 +153,16 @@ std::string to_json(const VMAFResult& r, const RunInfo& run)
                        number(p.mean), number(p.harmonic_mean), number(p.min),
                        number(p.min_without_first_frame), number(p.p1), number(p.p5),
                        number(p.p10), number(p.p25), number(p.p50));
+    out += std::format("  \"alignment\": {},\n", alignment_json(r.alignment));
     out += std::format("  \"ref\": {},\n", input_json(r.ref_url, r.ref_info));
     out += std::format("  \"dis\": {},\n", input_json(r.dis_url, r.dis_info));
     out += "  \"frames\": [";
     for (std::size_t i = 0; i < r.per_frame.size(); ++i) {
         out += i == 0 ? "\n    " : ",\n    ";
-        out += std::format("{{\"index\": {}, \"ref_pts\": {}, \"dis_pts\": {}, \"vmaf\": {}}}",
-                           i, pts_at(r.ref_pts, i), pts_at(r.dis_pts, i), number(r.per_frame[i]));
+        out += std::format("{{\"index\": {}, \"ref_index\": {}, \"dis_index\": {}, \"ref_pts\": {}, "
+                           "\"dis_pts\": {}, \"vmaf\": {}}}",
+                           i, index_at(r.ref_index, i), index_at(r.dis_index, i),
+                           pts_at(r.ref_pts, i), pts_at(r.dis_pts, i), number(r.per_frame[i]));
     }
     out += r.per_frame.empty() ? "]\n" : "\n  ]\n";
     out += "}\n";

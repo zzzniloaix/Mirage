@@ -252,6 +252,26 @@ VMAFResult sample_result()
     r.dis_info.ended = true;
     r.ref_pts   = { 10.0, 903003.0 / 90000.0, 906006.0 / 90000.0 };
     r.dis_pts   = { 10.0, std::numeric_limits<double>::quiet_NaN(), 906006.0 / 90000.0 };
+    r.ref_index = { 0, 1, 3 };
+    r.dis_index = { 0, 1, 2 };
+    r.alignment.grid           = "reference";
+    r.alignment.tolerance      = 1001.0 / 60000.0;
+    r.alignment.ref_frame_rate = "30000/1001";
+    r.alignment.dis_frame_rate = "30000/1001";
+    r.alignment.ref_start      = 10.0;
+    r.alignment.ref_start_from = "container";
+    r.alignment.dis_start      = 10.0;
+    r.alignment.dis_start_from = "first-frame";
+    r.alignment.paired         = 3;
+    r.alignment.unmatched_reference = 1;
+    r.alignment.failed         = 1;
+    r.alignment.failure_rate   = 0.25;
+    r.alignment.threshold      = 0.01;
+    r.alignment.exceeded       = true;
+    r.alignment.failures = { { .input = "reference", .index = 2, .pts = 906006.0 / 90000.0 - 1001.0 / 30000.0,
+                               .reason = "unmatched_reference" } };
+    r.alignment.contexts = { { 0, 2 }, { 2, 1 } };
+    r.alignment.warning  = "25.00% of the frames failed to pair by timestamp";
     r.dis_conversions = {
         { .from_space = "smpte170m", .from_range = "tv", .to_space = "bt709", .to_range = "tv",
           .matrix_changed = true, .range_changed = false, .first_index = 0, .pairs = 2 },
@@ -499,6 +519,63 @@ TEST_CASE("vmafreport::to_json: warnings", "[vmafreport]")
     CHECK(w.arr[1].str == r.warnings[1]);   // escaped and read back intact
 }
 
+TEST_CASE("vmafreport::to_json: how the frames were paired by timestamp (D-028)", "[vmafreport]")
+{
+    const VMAFResult r = sample_result();
+    const auto doc = parse(vmafreport::to_json(r, kRun));
+    REQUIRE(doc);
+    const Value& a = (*doc)["alignment"];
+    REQUIRE(a.kind == Value::Kind::Object);
+    CHECK(a["rule"].str == "reference-timeline");
+    CHECK(a["timestamp_origin"].str == "input-start");
+    CHECK(a["grid"].str == "reference");
+    CHECK(a["tolerance"].num == 1001.0 / 60000.0);   // full precision
+    CHECK(a["reference"]["frame_rate"].str == "30000/1001");
+    CHECK(a["reference"]["start"].num == 10.0);
+    CHECK(a["reference"]["start_from"].str == "container");
+    CHECK(a["distorted"]["start_from"].str == "first-frame");
+    CHECK(a["paired"].num == 3);
+    CHECK(a["failed"].num == 1);
+    CHECK(a["failure_rate"].num == 0.25);
+    CHECK(a["threshold"].num == 0.01);
+    CHECK(a["exceeded"].kind == Value::Kind::Bool);
+    CHECK(a["exceeded"].b);
+    for (const char* key : { "unmatched_reference", "extra_distorted", "duplicate_distorted",
+                             "no_timestamp", "after_discontinuity", "discontinuities",
+                             "off_grid_reference", "off_grid_distorted" }) {
+        INFO(key);
+        CHECK(a[key].kind == Value::Kind::Number);
+    }
+    CHECK(a["unmatched_reference"].num == 1);
+    CHECK(a["extra_distorted"].num == 0);
+    const Value& ctx = a["vmaf_contexts"];
+    REQUIRE(ctx.arr.size() == 2);
+    CHECK(ctx.arr[0]["first_index"].num == 0);
+    CHECK(ctx.arr[0]["pairs"].num == 2);
+    CHECK(ctx.arr[1]["first_index"].num == 2);
+    CHECK(ctx.arr[1]["pairs"].num == 1);
+    const Value& f = a["failures"];
+    REQUIRE(f.arr.size() == 1);
+    CHECK(f.arr[0]["input"].str == "reference");
+    CHECK(f.arr[0]["index"].num == 2);
+    CHECK(f.arr[0]["pts"].num == r.alignment.failures[0].pts);
+    CHECK(f.arr[0]["reason"].str == "unmatched_reference");
+    CHECK_FALSE(a.has("warning"));   // the warning is in "warnings", when the analysis put it there
+
+    // Nothing paired or failed: no failure rate; a start not known: null.
+    VMAFResult none = sample_result();
+    none.alignment = VMAFAlignment{};
+    const auto empty = parse(vmafreport::to_json(none, kRun));
+    REQUIRE(empty);
+    const Value& e = (*empty)["alignment"];
+    CHECK(e["failure_rate"].kind == Value::Kind::Null);
+    CHECK(e["reference"]["start"].kind == Value::Kind::Null);
+    CHECK(e["reference"]["start_from"].kind == Value::Kind::Null);
+    CHECK(e["failures"].kind == Value::Kind::Array);
+    CHECK(e["failures"].arr.empty());
+    CHECK(e["vmaf_contexts"].arr.empty());
+}
+
 TEST_CASE("vmafreport::to_json: one entry per frame pair, full precision", "[vmafreport]")
 {
     const VMAFResult r = sample_result();
@@ -513,6 +590,8 @@ TEST_CASE("vmafreport::to_json: one entry per frame pair, full precision", "[vma
         CHECK(f["index"].num == static_cast<double>(i));
         CHECK(f["vmaf"].num == r.per_frame[i]);
         CHECK(f["ref_pts"].num == r.ref_pts[i]);
+        CHECK(f["ref_index"].num == static_cast<double>(r.ref_index[i]));
+        CHECK(f["dis_index"].num == static_cast<double>(r.dis_index[i]));
     }
     CHECK(frames.arr[1]["dis_pts"].kind == Value::Kind::Null);   // NaN: the frame had no PTS
     CHECK(frames.arr[2]["dis_pts"].num == r.dis_pts[2]);
@@ -532,6 +611,7 @@ TEST_CASE("vmafreport::to_json: random scores survive the round trip exactly", "
     for (std::size_t i = 0; i < r.per_frame.size(); ++i)
         REQUIRE(frames.arr[i]["vmaf"].num == r.per_frame[i]);
     CHECK(frames.arr[499]["ref_pts"].kind == Value::Kind::Null);   // no PTS recorded that far
+    CHECK(frames.arr[499]["ref_index"].kind == Value::Kind::Null);
 }
 
 TEST_CASE("vmafreport::to_json: no frame limit, no frames, NaN pooled values", "[vmafreport]")

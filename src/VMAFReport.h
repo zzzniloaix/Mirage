@@ -34,9 +34,21 @@
 //                                      pools them, the min of frames 1 on
 //                                      (null for one frame), and percentiles
 //                                      by linear interpolation
+//   alignment {            how the frames were paired by timestamp (D-028,
+//                          src/VMAFAlign.h; VMAFResult::alignment)
+//     rule, timestamp_origin, grid, tolerance (seconds),
+//     reference / distorted { frame_rate, start (seconds), start_from },
+//     paired, failed, failure_rate, threshold, exceeded,
+//     unmatched_reference, extra_distorted, duplicate_distorted,
+//     no_timestamp, after_discontinuity, discontinuities,
+//     off_grid_reference, off_grid_distorted,
+//     vmaf_contexts [ { first_index, pairs } ],
+//     failures [ { input, index, pts, reason } ] }
 //   ref / dis { url, width, height, pix_fmt, color_space, color_range,
 //               color_primaries, color_trc, time_base, ended }
-//   frames [ { index, ref_pts, dis_pts, vmaf } ]      PTS in seconds
+//   frames [ { index, ref_index, dis_index, ref_pts, dis_pts, vmaf } ]
+//                          index: the pair's; ref_index, dis_index: its frames'
+//                          positions in their inputs; PTS in seconds
 
 #include "VMAFAnalyzer.h"
 
