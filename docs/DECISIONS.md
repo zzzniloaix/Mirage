@@ -48,6 +48,16 @@
 - **谁**：owner（Jiayu Lin）
 - **日期**：2026-10-22
 
+### D-003 scaler 默认值暂不决定，等 §5 诊断结果
+
+- **决策**：§1.3 的默认 scaler 暂不决定。§5 诊断时在 Mirage 和 FFmpeg 两边分别测 bilinear 与 bicubic，owner 看到实测结果后再定。在此之前代码保持现有的 bilinear 不动。
+- **备选**
+  - 现在定 bicubic（工作单 §1.3 的建议）。
+  - 现在定 bilinear（现有代码的行为）。
+- **理由**：Phase 0 测出的 5 分差异是在两边都用 bilinear 的条件下得到的，差异不一定来自 scaler 本身。看到 scaler 对分数的实际影响之前定默认值，没有数据依据。
+- **谁**：owner（Jiayu Lin），采纳 agent 的建议
+- **日期**：2026-10-23
+
 ---
 
 ## 测量 / 流程选择（agent，待 owner 确认）
