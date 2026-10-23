@@ -10,7 +10,8 @@ run's own verdict, Mirage against FFmpeg, from the run's delta.json.
 usage: compare_runs.py --base LABEL=DIR --run LABEL=DIR [--run LABEL=DIR ...] --out PREFIX
 
 Writes PREFIX.json and PREFIX.md. A shift is run - base, per frame, over the
-frames both runs scored. Run directories are shown relative to the
+frames both runs scored; the reports count the frames whose score went up,
+stayed and went down. Run directories are shown relative to the
 directory of PREFIX, which should hold them, so that nothing local is
 written. Python 3 standard library only; run it with python3 -I -B.
 
@@ -132,6 +133,8 @@ def shift(base, run):
     return {"compared": n, "base_frames": len(base), "run_frames": len(run),
             "max_abs": size[top] if n else None, "max_abs_index": top,
             "mean_signed": mean(d), "mean_abs": mean(size),
+            "frames_up": sum(1 for x in d if x > 0), "frames_same": sum(1 for x in d if x == 0),
+            "frames_down": sum(1 for x in d if x < 0),
             "mean_base": mean(base[:n]), "mean_run": mean(run[:n])}
 
 
@@ -229,20 +232,22 @@ def markdown(c):
 
     for side, title in (("mirage", "Mirage's scores"), ("ffmpeg", "FFmpeg's scores")):
         lines += ["", f"## How far {title} move from the {base['label']} run's", "",
-                  "| pair | run | frames compared | max \\|shift\\| (index) | mean shift "
+                  "| pair | run | frames compared | frames up / same / down "
+                  "| max \\|shift\\| (index) | mean shift "
                   "| mean \\|shift\\| | pooled mean, base | pooled mean, run | pooled mean shift |",
-                  "|---|---|---|---|---|---|---|---|---|"]
+                  "|---|---|---|---|---|---|---|---|---|---|"]
         for p in c["pairs"]:
             pb = p["base"]["pooled_mean"][side]
             for label, v in p["runs"].items():
                 s = v[side]
                 pr = v["pooled_mean"][side]
                 if s is None:
-                    lines.append(f"| {p['pair']} | {label} | - | - | - | - | {vd.num(pb)} "
+                    lines.append(f"| {p['pair']} | {label} | - | - | - | - | - | {vd.num(pb)} "
                                  f"| {vd.num(pr)} | - |")
                     continue
                 pd = pr - pb if pr is not None and pb is not None else None
                 lines.append(f"| {p['pair']} | {label} | {s['compared']} "
+                             f"| {s['frames_up']} / {s['frames_same']} / {s['frames_down']} "
                              f"| {vd.num(s['max_abs'])} ({s['max_abs_index']}) "
                              f"| {vd.num(s['mean_signed'])} | {vd.num(s['mean_abs'])} "
                              f"| {vd.num(pb)} | {vd.num(pr)} | {vd.num(pd)} |")

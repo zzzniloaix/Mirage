@@ -54,6 +54,7 @@ class Shift(unittest.TestCase):
     def test_numbers(self):
         s = cr.shift([10.0, 20.0, 30.0, 40.0], [10.5, 19.0, 30.0, 41.0])
         self.assertEqual((s["compared"], s["max_abs"], s["max_abs_index"]), (4, 1.0, 1))
+        self.assertEqual((s["frames_up"], s["frames_same"], s["frames_down"]), (2, 1, 1))
         self.assertEqual(s["mean_signed"], 0.125)
         self.assertEqual(s["mean_abs"], 0.625)
         self.assertEqual((s["mean_base"], s["mean_run"]), (25.0, 25.125))
@@ -103,8 +104,8 @@ class CompareRuns(unittest.TestCase):
         self.assertTrue(md.startswith("# Score shifts against the bilinear run\n"))
         self.assertIn("| run | directory | status (Mirage vs FFmpeg) | scaler |", md)
         self.assertIn("| bicubic | `bicubic` | PASS | bicubic |", md)
-        self.assertIn("| p | bicubic | 3 | 2.000000 (2) | 1.000000 | 1.000000 | 60.000000 "
-                      "| 61.000000 | 1.000000 |", md)
+        self.assertIn("| p | bicubic | 3 | 2 / 1 / 0 | 2.000000 (2) | 1.000000 | 1.000000 "
+                      "| 60.000000 | 61.000000 | 1.000000 |", md)
         self.assertIn("## How far FFmpeg's scores move from the bilinear run's", md)
         self.assertNotIn(self.root, md)
         self.assertNotIn(self.root, json.dumps(c))
@@ -135,7 +136,7 @@ class CompareRuns(unittest.TestCase):
                        [cr.load_run("b", f"{self.root}/b", "b")])
         self.assertIsNone(c["pairs"][0]["runs"]["b"]["mirage"])
         self.assertEqual(c["pairs"][0]["runs"]["b"]["ffmpeg"]["max_abs"], 1.0)
-        self.assertIn("| p | b | - | - | - | - |", cr.markdown(c))
+        self.assertIn("| p | b | - | - | - | - | - |", cr.markdown(c))
 
     def test_labels_must_differ(self):
         with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
