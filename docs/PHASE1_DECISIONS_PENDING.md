@@ -10,40 +10,71 @@ The §5 report of D-018 passes with today's defaults over every frame of the fou
 
 **Question.** D-016 has Mirage convert the distorted frames' color matrix and range to the reference's, as FFmpeg's filter graph does, with untagged streams handled the way FFmpeg handles them, and asks the agent to report what that means in practice for the owner to confirm. Is the behavior below what D-016 means?
 
-**Today** (`src/VMAFColor.h`, P-014). Mirage does what FFmpeg 8.1.1's §5 graph does in the color tag cases (`eval/consistency/README.md`, "Color tag cases"; `eval/consistency/color-cases-before/`):
+**Today** (`src/VMAFColor.h`, P-014). For a yuv420p reference, Mirage does what FFmpeg 8.1.1's §5 graph does in the color tag cases (`eval/consistency/README.md`, "Color tag cases"; `eval/consistency/color-cases-before/`). This is what the code does now, in `mirage_vmaf` and in the player, whose VMAF panel runs the same analyzer; a decision other than option 1 and (a) below changes that code, and the committed runs after D-016 that it affects would have to be made again. For a reference that isn't yuv420p, FFmpeg's graph does something else: next package.
 
 - The distorted frames get the reference's matrix tag, a missing tag included.
 - They get the reference's range tag. When the reference has none, they keep a limited or missing range, and a full range becomes unspecified.
 - In the pixels, libswscale takes a missing matrix as BT.601's and a missing range as limited. So an untagged distorted input against a BT.709 reference is converted from BT.601 to BT.709, a BT.709 distorted input against an untagged reference is converted to BT.601, and a full range distorted input against a reference without a range tag is converted to limited range.
 - The primaries and the transfer are never converted; the chroma siting is dropped, and interlaced frames are scaled as progressive.
-- A matrix libswscale has no coefficients for, such as YCgCo, on either input ends the analysis with an error, in the player too; `mirage_vmaf` then writes no report and exits with status 1. FFmpeg can't build its graph for such a pair: it exits with status 178 in both YCgCo cases (`color-cases-before/refused/delta.md`). Before D-016, Mirage scored such inputs without converting.
+- A matrix libswscale has no coefficients for, such as YCgCo, on either input ends the analysis with an error, in the player too; `mirage_vmaf` then writes no report and exits with status 1. FFmpeg can't build its graph for such a pair: it exits with status 178 with YCgCo on either input (`color-cases-before/refused/delta.md`) and on both (`format-cases-before/refused/delta.md`). Before D-016, Mirage scored such inputs without converting.
 
 **Measured.**
 
 - Before D-016, Mirage failed 9 of the 18 color tag cases FFmpeg scores (`color-cases-before/main/delta.md`); after it, all 18 pass, every frame agreeing at the 6 decimals of FFmpeg's log, and both tools refuse the 2 YCgCo cases (`color-cases-after/checks.txt`, checks 2 and 5).
 - On bipbop, gear2 and gear1 (smpte170m against gear5's bt709) failed over the first 300 frames before D-016 and pass after it (`eval/consistency/diag-before-300/`, `diag-after-300/`). Over every frame of the four pairs, both tools convert gear2 and gear1 the same way and agree on every frame (`eval/consistency/acceptance-full/plain/delta.md`; `checks.txt`, checks 2 and 5).
-- Not measured: inputs other than 8-bit yuv420p, such as RGB or gray, and FFmpeg versions other than 8.1.1 (P-013's limits).
+- Both tools refuse YCgCo on both inputs too (`format-cases-after/checks.txt`, check 9).
+- Not measured: RGB and gray inputs, and FFmpeg versions other than 8.1.1 (P-013's limits). References in other YUV formats are measured in the next package; 10-bit and yuvj420p distorted inputs against a yuv420p reference agree after D-016 (`format-cases-after/`, `d01` and `d02`).
 
 **Options.**
 
-1. Confirm: FFmpeg 8.1.1's behavior, as implemented.
-2. Deviate for untagged inputs, for example by converting nothing when either input lacks a tag. Plain FFmpeg would then disagree on those pairs, and §5 would need the relabel workaround for them (P-010).
+1. Confirm: FFmpeg 8.1.1's behavior for a yuv420p reference, as implemented and as the code, the player's included, does today.
+2. Deviate for untagged inputs, for example by converting nothing when either input lacks a tag. Plain FFmpeg would then disagree on those pairs, and §5 would need the relabel workaround for them (P-010). The code changes, and the runs after D-016 with untagged inputs would be made again.
 3. Make the handling of untagged inputs configurable, with option 1 as the default.
 
-For a matrix libswscale lacks: (a) refuse, as now; (b) score without converting and warn in the report, as before D-016.
+For a matrix libswscale lacks: (a) refuse, as the code, the player's included, does today; (b) score without converting and warn in the report, as before D-016, which changes the code and the refused runs after D-016.
 
 **Also open.**
 
 - **The FFmpeg libraries' versions in the report.** The rules are those of FFmpeg 8.1.1's libavfilter and libswscale, and Homebrew's current ffmpeg-full is a major version newer (`eval/build_check/macos-2026-10-23-6a6661f.txt`, "installed vs current stable"). `mirage_vmaf`'s report records libvmaf's versions (D-006) but not FFmpeg's; the delta runs record `ffmpeg -version` in `environment.txt`. Options: record the run-time libswscale and libavfilter versions in the report; leave them to the delta runs; also warn when FFmpeg's major version isn't 8.
 - **D-016's Background** says the §5 work would reproduce the effect with committed outputs (MEASUREMENT PENDING). They exist now: `diag-before-300/`, `diag-after-300/`, `color-cases-before/`, `color-cases-after/` and `acceptance-full/`. D-016 is the owner's entry and wasn't edited; a note citing them, as D-001 has its correction, is the owner's to add.
 
-**Agent's recommendation.** Option 1, and (a) for matrices libswscale lacks. D-016's rationale is matching a plain `ffmpeg -lavfi libvmaf` run, which the committed runs show Mirage doing frame for frame, and FFmpeg gives no score to match for a pair it refuses. Record the libswscale and libavfilter versions in the report, and rerun the color tag cases after any FFmpeg upgrade. The paper should say that an untagged input is taken as BT.601 with limited range.
+**Agent's recommendation.** Option 1, and (a) for matrices libswscale lacks. D-016's rationale is matching a plain `ffmpeg -lavfi libvmaf` run, which the committed runs show Mirage doing frame for frame for yuv420p references, and FFmpeg gives no score to match for a pair it refuses. Record the libswscale and libavfilter versions in the report, and rerun the color tag cases after any FFmpeg upgrade. The paper should say that an untagged input is taken as BT.601 with limited range.
+
+## D-016: references that aren't yuv420p (§5, #5)
+
+**Question.** D-016 has Mirage convert the distorted frames to the reference's color matrix and range, "as FFmpeg's filter graph does". For a reference whose frames aren't yuv420p, FFmpeg 8.1.1's §5 graph does something else: it converts the reference to the distorted frames' matrix and range, with a scale filter it inserts itself, and leaves the distorted frames' tags alone. Mirage converts the distorted frames as it does for a yuv420p reference, so its scores differ from FFmpeg's for such a reference wherever the two inputs' tags differ. Should Mirage follow FFmpeg for such references, or D-016's wording?
+
+**Today** (`src/VMAFColor.h`, `src/VMAFAnalyzer.cpp`; `mirage_vmaf` and the player alike):
+
+- Mirage converts the reference to 8-bit yuv420p with a legacy `sws_getContext()` call and bilinear flags, without converting its matrix; for a yuvj420p reference that call also turns full range into limited range (`tests/test_vmaf_color.cpp`). The distorted frames are converted to the reference's tags, as `vmafcolor::target()` derives them.
+- Since `0ff3178`, `mirage_vmaf`'s report has a warning for a reference that isn't yuv420p, and the delta reports list it; no score changed (P-030).
+- FFmpeg's graph puts `auto_scale_0` before the reference's `format=yuv420p`, with bicubic flags (`0x00000004`) where the distorted input's scale filter has bilinear's (`0x00000002`), and it converts the reference to the distorted frames' matrix and range; the distorted input's scale filter keeps their tags (`eval/consistency/format-cases-before/checks.txt`, check 2). The FFmpeg 8.1.1 sources explain the logs: once a scale filter is inserted on the reference's side, the matrix and range both inputs share are free to choose, and libavfilter reduces them to the tags of the distorted input's scale filter's input, which comes earlier in the graph (`libavfilter/avfiltergraph.c`, `query_formats`, `reduce_formats`).
+
+**Measured** (`eval/consistency/format-cases-before/`, `format-cases-after/`: synthetic clips, 10 frames each; P-029; the table in `eval/consistency/README.md`):
+
+- A 10-bit, 4:2:2 or 4:4:4 reference with another matrix than the distorted input: Mirage fails every case after D-016, by up to 10.931963 (`f05`; `f01`, `f02`, `f03`, `f05`, `f07` in `format-cases-after/main/delta.md`). Before D-016 they failed too, by 20.072068 to 32.029205 (`format-cases-before/main/delta.md`).
+- The same references with the same tags as the distorted input: Mirage agrees with FFmpeg on every frame (`f04`, `f06`, `f08`; `format-cases-after/checks.txt`, check 4).
+- A lossless full range H.264 reference, which FFmpeg's decoder gives as yuvj420p:
+  - against a limited range distorted input (`j01`), Mirage agreed with FFmpeg before D-016 and fails after it, by up to 13.274013: since D-016 it converts the distorted frames to full range, where FFmpeg converts the reference to limited range;
+  - against a full range distorted input (`j02`), it fails before and after D-016, by up to 23.673382: its conversion of the reference makes it limited range, where FFmpeg keeps it full. Mirage's scores of `j02` are FFmpeg's of `j01` on every frame at 6 decimals (`format-cases-after/checks.txt`, check 8).
+- 10-bit and yuvj420p distorted inputs against a yuv420p reference agree after D-016 (`d01`, `d02`); `d01` failed before it.
+- No committed bipbop run is affected: every bipbop rung is yuv420p (`eval/baseline/diagnostics/ffprobe_rungs.txt`).
+- Not measured: RGB and gray inputs, 12-bit and 4:4:4 distorted inputs, distorted inputs without a range tag against such references, and real streams in these formats (MEASUREMENT PENDING).
+
+**Options.**
+
+1. Follow FFmpeg: when the reference isn't yuv420p, convert the reference to the distorted frames' matrix and range through `sws_scale_frame()` with the flags of FFmpeg's inserted scale filter (bicubic), and leave the distorted frames' color as it is, still scaled with `--scaler`. `format-cases-after/` would then be expected to pass every case, and its rerun step in `eval/run_all.sh` would check it. It changes scores for such references, `j01` back to those before D-016, and for 10-bit references it decides how the reference is brought to 8 bits, which belongs with #5.
+2. Follow D-016's wording: keep converting the distorted frames to the reference's tags, and only make the reference's conversion keep a yuvj420p reference's range (`j02`). Plain FFmpeg then disagrees whenever such a reference's tags differ from the distorted input's, and the §5 comparison would need a workaround for those pairs, such as `setparams` on FFmpeg's side (P-010).
+3. Refuse such references, as matrices libswscale lacks are refused, until option 1 or 2 is built; or refuse them only when the tags differ or the reference is yuvj420p.
+4. Keep today's behavior, with the warning.
+
+**Agent's recommendation.** Option 1, decided together with #5. D-016's rationale is matching a plain `ffmpeg -lavfi libvmaf` run, and for these references FFmpeg's conversion is of the reference; the committed cases are its acceptance test. Until then, option 4: the warning keeps the wrong scores from being silent without changing any score. Before the paper uses any such reference, the decision has to be made and the cases rerun.
 
 ## D-019: a frame exactly at the threshold (§5)
 
 **Question.** The work order's §5 target is a per-frame difference "< 0.01". D-019 fails a frame if |Mirage − FFmpeg| > 0.01, so a frame at exactly 0.01 passes D-019 but misses the work order's wording. Which holds?
 
-**Today.** The delta tool implements D-019, and a test pins the boundary (`test_threshold_is_exclusive` in `eval/consistency/tests/test_vmafdelta.py`). In every committed run made after D-016, the largest |delta| is 0.000000 at the 6 decimals of FFmpeg's log (the runs' `delta.md` in `diag-after-300/`, `color-cases-after/`, `scalers-300/`, `models-300/` and `acceptance-full/`), so no frame has come near the boundary.
+**Today.** The delta tool implements D-019, and a test pins the boundary (`test_threshold_is_exclusive` in `eval/consistency/tests/test_vmafdelta.py`). In the committed runs made after D-016 that scored frames with a yuv420p reference, the largest |delta| is 0.000000 at the 6 decimals of FFmpeg's log (the runs' `delta.md` in `diag-after-300/`, `color-cases-after/main/`, `scalers-300/`, `models-300/` and `acceptance-full/`, and the pairs `d01` and `d02` of `format-cases-after/main/`), so no frame has come near the boundary. The other cases of `format-cases-after/main/` either agree at 0.000000 or fail far above it (previous package).
 
 **Options.**
 
@@ -71,7 +102,7 @@ For a matrix libswscale lacks: (a) refuse, as now; (b) score without converting 
   | gear1_vs_gear5 | 0.006117 | 6.781918 | 8.881025 |
 
   No frame of any pair scores lower with bicubic or lanczos than with bilinear; on average the scores rise by 6.775801 to 11.113910 points with bicubic and 8.874908 to 13.334836 with lanczos, depending on the pair (`scaler_effect.md`).
-- FFmpeg's scale filter given no `flags=` uses the flags of `flags=bicubic` (`eval/consistency/ffmpeg-scale-default/checks.txt`). So a plain `ffmpeg -lavfi` graph that scales without naming a scaler scores as Mirage does with `--scaler bicubic`, and differs from today's default.
+- FFmpeg's scale filter given no `flags=` uses the flags of `flags=bicubic` (`eval/consistency/ffmpeg-scale-default/checks.txt`). So a plain `ffmpeg -lavfi` graph that scales without naming a scaler runs with the swscale flags of `--scaler bicubic`, and is expected to score as Mirage does with it, not as with today's default; no such graph was scored here.
 - Not measured: the effect on a ladder encoded from one source (D-011's clips), and over every frame (MEASUREMENT PENDING).
 
 **A difference from the work order** (hard rule 4; nothing was edited to hide it): §1.3 suggests bicubic as the default "so that the §5 consistency check can pass". The runs show that §5 passes with each of the three scalers when both sides use the same one; the scaler decides the scores, not whether the two tools agree.
@@ -84,7 +115,7 @@ For a matrix libswscale lacks: (a) refuse, as now; (b) score without converting 
 
 Whatever the choice, the §5 runs give FFmpeg the same `flags=` (`run_delta.sh --scaler`), and every report states the scaler. The full-length §5 report of D-018 was made with today's default, bilinear (`eval/consistency/acceptance-full/`); another default means making it again.
 
-**Also open, with the scaler.** `--scaler` sets the distorted frames' scaler only; the reference keeps its size and is only converted to 8-bit yuv420p, with bilinear flags whatever `--scaler` says (P-017). Every reference so far is already yuv420p. For a reference in another format, FFmpeg's §5 graph converts it with an automatically inserted scale filter; whether Mirage's conversion gives the same pixels is part of #5 and untested.
+**Also open, with the scaler.** `--scaler` sets the distorted frames' scaler only; the reference keeps its size and is only converted to 8-bit yuv420p, with bilinear flags whatever `--scaler` says (P-017). Every bipbop reference is yuv420p. For a reference in another format, FFmpeg's §5 graph converts it with a scale filter it inserts itself, to the distorted frames' color and with bicubic flags, where the distorted input's scale filter had bilinear's (`eval/consistency/format-cases-before/checks.txt`, check 2; no other `flags=` was run with such a reference); Mirage's scores then differ from FFmpeg's where the tags differ (the package "D-016: references that aren't yuv420p").
 
 **Agent's recommendation.** Bicubic. It is the work order's suggestion and FFmpeg's own default when a scale filter names no scaler, so the paper's scores would be what a reader gets from a plain `ffmpeg` command with a plain `scale` filter. The continuity argument for bilinear is weak, because no score so far is paper data (D-005). Whichever is chosen, the paper should say which scaler, since the measured effect is several points.
 
@@ -120,9 +151,13 @@ Whatever the choice, the §5 runs give FFmpeg the same `flags=` (`run_delta.sh -
 
 **Question.** At what bit depth are frames handed to libvmaf?
 
-**Today.** Every input becomes 8-bit yuv420p before scoring (`src/VMAFAnalyzer.cpp`, `kScorePixFmt` and `kScoreBpc`), and the report states it (`scored_as`). FFmpeg's §5 graph does the same with `format=yuv420p` on both inputs, so the §5 comparison is of 8-bit scoring on both sides. A 10-bit input would be reduced to 8 bits by swscale on both sides: the distorted frames in the same step as their scaling, and the reference in Mirage's own conversion call and on FFmpeg's side in an automatically inserted scale filter. Whether the two sides then give the same bytes is not tested: no input scored so far has more than 8 bits (bipbop 16x9 is yuv420p, `eval/baseline/diagnostics/ffprobe_rungs.txt`).
+**Today.** Every input becomes 8-bit yuv420p before scoring (`src/VMAFAnalyzer.cpp`, `kScorePixFmt` and `kScoreBpc`), and the report states it (`scored_as`). FFmpeg's §5 graph does the same with `format=yuv420p` on both inputs, so the §5 comparison is of 8-bit scoring on both sides. A 10-bit input is reduced to 8 bits by swscale on both sides: the distorted frames in the same step as their scaling, and the reference in Mirage's own conversion call and on FFmpeg's side in a scale filter FFmpeg inserts. bipbop 16x9 is yuv420p (`eval/baseline/diagnostics/ffprobe_rungs.txt`); the synthetic reference format cases have 10-bit inputs (`eval/consistency/format-cases-after/`, P-029):
 
-**What the libraries take.** FFmpeg 8.1.1's libvmaf filter accepts 8-, 10-, 12- and 16-bit planar 4:2:0, 4:2:2 and 4:4:4 (`libavfilter/vf_libvmaf.c`, its format list), and libvmaf's `vmaf_picture_alloc()` takes a bit depth.
+- a 10-bit distorted input against a yuv420p reference: Mirage agrees with FFmpeg on every frame (`d01`);
+- a 10-bit reference with the distorted input's tags: it agrees on every frame (`f04`);
+- a 10-bit reference with other tags: it doesn't, because FFmpeg converts the reference's color as well (the package "D-016: references that aren't yuv420p").
+
+**What the libraries take.** FFmpeg's libvmaf filter takes higher bit depths than 8 as well, in 4:2:0, 4:2:2 and 4:4:4 (its format list in `libavfilter/vf_libvmaf.c` of the FFmpeg 8.1.1 sources, read, not run), and libvmaf's `vmaf_picture_alloc()` takes a bit depth.
 
 **Options.**
 
@@ -132,9 +167,9 @@ Whatever the choice, the §5 runs give FFmpeg the same `flags=` (`run_delta.sh -
 
 HDR content (PQ or HLG transfer) is a further question: the models above are SDR models, and nothing in this work handles HDR.
 
-**What a measurement needs.** A ladder of 10-bit SDR rungs encoded from one 10-bit source, which D-011's self-encoded ladders can provide; each rung scored at 8 and at its own bit depth, on both sides; and, for the §5 comparison, synthetic 10-bit clips run through `run_delta.sh` the way `eval/consistency/color_cases.py` makes 8-bit ones, to check the reference's conversion. No suitable public stream was at hand on 2026-10-23 (the streams this repository uses are 8-bit), so nothing was measured (MEASUREMENT PENDING).
+**What a measurement needs.** A ladder of 10-bit SDR rungs encoded from one 10-bit source, which D-011's self-encoded ladders can provide, and each rung scored at 8 and at its own bit depth, on both sides. No suitable public stream was at hand on 2026-10-23 (the streams this repository uses are 8-bit), so option 2 is not measured (MEASUREMENT PENDING). The synthetic 10-bit check of the §5 comparison exists now: `color_cases.py --set formats` (above).
 
-**Agent's recommendation.** Keep 8 bits until D-011's ladders exist, then measure option 2 against option 1 on them; add the synthetic 10-bit check to the §5 work before any 10-bit input is scored.
+**Agent's recommendation.** Keep 8 bits until D-011's ladders exist, then measure option 2 against option 1 on them. Decide together with the package "D-016: references that aren't yuv420p", which is about how a 10-bit reference is converted.
 
 ## #6 Pooling definitions (D-004)
 
@@ -231,7 +266,7 @@ D-009 standardized FFmpeg on ffmpeg-full and left two parts of #11 open: whether
 **Today.** Only macOS on Apple Silicon is built and documented:
 
 - Both presets of `CMakePresets.json` put `/opt/homebrew/opt/ffmpeg-full/lib/pkgconfig` on `PKG_CONFIG_PATH`.
-- `CMakeLists.txt` configures every target at once: OpenGL and GLFW are required, and nativefiledialog-extended v1.2.1 requires GTK 3 on Linux, or D-Bus with its portal option (its `src/CMakeLists.txt`), even when only `mirage_vmaf` is to be built. Apple frameworks (CoreVideo, IOSurface) are linked under `if(APPLE)`.
+- `CMakeLists.txt` configures every target at once: OpenGL and GLFW are required, and nativefiledialog-extended v1.2.1 requires GTK on Linux, or D-Bus with its portal option (its `src/CMakeLists.txt` in the fetched sources, read, not built), even when only `mirage_vmaf` is to be built. Apple frameworks (CoreVideo, IOSurface) are linked under `if(APPLE)`.
 - The player has macOS-specific code: VideoToolbox decoding (`src/Decoder.cpp`) and the IOSurface texture path (`src/VideoRenderer.cpp`, under `#ifdef __APPLE__`).
 - The libvmaf package version that D-006 records is read from a Homebrew Cellar path (`CMakeLists.txt`, `eval/consistency/run_delta.py`); elsewhere it would read `unknown`.
 - The eval scripts take the FFmpeg, ffprobe and model directory as options, with Homebrew paths as defaults, and `run_delta.py` finds linked libraries with `otool -L` or `ldd`.
@@ -242,7 +277,7 @@ Nothing has been built or run on Linux, so whether the code compiles there, whic
 
 1. macOS only, stated in the paper. This differs from §8, which asks for build instructions for Linux and macOS.
 2. Headless Linux: `mirage_vmaf`, `mirage_tests` and the eval tooling on Linux; the player stays macOS-only. Needs a CMake option that configures without the player's dependencies (OpenGL, GLFW, glad, Dear ImGui, nativefiledialog-extended), a Linux preset, Linux instructions in `docs/BUILD.md`, and a §5 run on Linux.
-3. Full Linux support, the player included: an OpenGL 4.1 core context (for example through Mesa), GLFW, nativefiledialog-extended with GTK 3 or its portal backend, and software decoding where VideoToolbox is missing.
+3. Full Linux support, the player included: an OpenGL 4.1 core context (for example through Mesa), GLFW, nativefiledialog-extended with GTK or its portal backend, and software decoding where VideoToolbox is missing.
 
 **Agent's recommendation.** Option 2. Every committed score comes from `mirage_vmaf` and the eval tooling, which use only FFmpeg and libvmaf; the player isn't needed to reproduce a number, and a headless build is what a Docker image (#11c) can run.
 
@@ -272,6 +307,7 @@ Nothing has been built or run on Linux, so whether the code compiles there, whic
 - "libvmaf model not found at runtime" says the model is loaded from a file under Homebrew's prefix; the analyzer loads built-in models by version (`vmaf_model_load` in `src/VMAFAnalyzer.cpp`) and reads a file only with `--model-file`.
 - The Python note suggests `pip3 install jinja2 --break-system-packages`, which installs into the Python that Homebrew manages; the build checks used the venv of `docs/BUILD.md` step 3.
 - The project tree lists two test files, and neither `tools/`, `docs/` nor `eval/`.
+- The FetchContent list leaves out stb, and gives miniaudio without the commit `CMakeLists.txt` now pins it to (P-021).
 
 **Options.**
 
@@ -292,7 +328,7 @@ Nothing has been built or run on Linux, so whether the code compiles there, whic
 
 ## Process choices to confirm
 
-P-006 to P-028 in `docs/DECISIONS.md` are the agent's measurement and process choices of Phase 1, each pending the owner's confirmation. The alternatives the agent pointed out for each, as its entry lists them:
+P-006 to P-030 in `docs/DECISIONS.md` are the agent's measurement and process choices of Phase 1, each pending the owner's confirmation. The alternatives the agent pointed out for each, as its entry lists them:
 
 | Entries | What | Alternatives worth a look |
 |---|---|---|
@@ -315,6 +351,8 @@ P-006 to P-028 in `docs/DECISIONS.md` are the agent's measurement and process ch
 | P-024, P-025 | `eval/run_all.sh` and its verification run | commit the rerun outputs; rerun the runs after D-016 with the programs they were made with |
 | P-027 | the full-length steps of `run_all.sh`, and pooling over every frame | leave the full-length run out of `run_all.sh` |
 | P-028 | the record of the test runs behind the PR description | the outputs in the PR description only |
+| P-029 | the reference format cases, synthetic and lossless, before and after D-016 | real streams in these formats; more formats, such as RGB, gray or 12-bit |
+| P-030 | a warning, not a refusal, for a reference that isn't yuv420p, until the owner decides | refuse such references; warn only where the tags differ |
 
 **Agent's recommendation**: confirm them all.
 
@@ -327,8 +365,9 @@ Reported, not edited:
 3. §5's command, `ffmpeg -i <distorted> -i <reference> -lavfi libvmaf=model=<same>`, has no scale filter, and FFmpeg's libvmaf filter refuses inputs of different sizes (`input width must match`, `eval/consistency/ffmpeg-libvmaf-filter/checks.txt`, check 4). The §5 tool adds `scale=W:H:flags=<scaler>` to the distorted input, as Phase 0's diagnostic did (P-005, P-008).
 4. §8 asks for FFmpeg 8.x, libvmaf 3.x, OpenGL 4.1, miniaudio and GLFW to be pinned, with their exact versions recorded. The versions are recorded (`docs/BUILD.md`, "Versions"), miniaudio is pinned by commit, and the generated loader fixes OpenGL at 4.1 core; FFmpeg, libvmaf and GLFW come from Homebrew, which can't pin them (#11c).
 5. §8 asks for build instructions for Linux and macOS, Apple Silicon included. Only macOS on Apple Silicon is documented and checked (#11b).
-6. §8's acceptance is a clean machine building as the README says. On the machine of the build checks, the README's quick start stops at glad with the default Python; the README now points to `docs/BUILD.md`, whose steps build both presets; and the check ran in a clean worktree, not on a clean machine (P-022).
+6. §8's acceptance is a clean machine building as the README says. On the machine of the build checks, the release preset stops at glad with the default Python, and the README's quick start (`macos-debug`) runs the same glad step; the README now points to `docs/BUILD.md`, whose steps build both presets; and the check ran in a clean worktree, not on a clean machine (P-022).
 7. §8 has `eval/run_all.sh` rerun all the paper's numbers and figures. There are none yet (D-005), so it reruns the committed Phase 1 measurements (P-024).
 8. §8 asks for `eval/streams.md` with a fetch script, and lists DASH-IF test vectors and Unified Streaming demo streams. `eval/streams/fetch_streams.py` fetches the playlists and probes the streams but keeps no media (P-023), and the DASH-IF and Unified Streaming streams were not examined (`eval/streams.md`).
 9. §1.1 to §1.3 ask the output to carry the libvmaf version and the model identifier, the `reference_mode` and the scaler. `mirage_vmaf`'s report does (`src/VMAFReport.h`). The player's own JSON export (`VMAFAnalyzer::write_json` in `src/VMAFAnalyzer.cpp`) still has its Phase 0 layout, which a test pins, without any of them, and the player has no scaler or model option. Options: give `write_json` those fields; have the player write `mirage_vmaf`'s report format; leave the player's export until §7's schema.
 10. §5's target is a per-frame difference "< 0.01"; D-019 passes a frame at exactly 0.01 (D-019 above).
+11. §5's target, under 0.01 per frame with the default configuration, is met for yuv420p references, and not for every reference in another pixel format: not where its tags differ from the distorted input's, nor for the full range yuvj420p reference with the same tags. The reason is the color conversion, which §5 asks the documents to state ("D-016: references that aren't yuv420p" above; `eval/consistency/README.md`).
