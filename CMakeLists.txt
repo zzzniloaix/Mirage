@@ -134,6 +134,7 @@ add_executable(mirage
     src/ManifestParser.cpp
     src/PlayerUI.cpp
     src/VMAFAnalyzer.cpp
+    src/VMAFColor.cpp
     src/ScrubDecoder.cpp
     src/SubtitleDecoder.cpp
     src/SubtitleSelect.cpp
@@ -185,6 +186,7 @@ endif()
 add_executable(mirage_vmaf
     tools/mirage_vmaf.cpp
     src/VMAFAnalyzer.cpp
+    src/VMAFColor.cpp
     src/VMAFCli.cpp
     src/VMAFReport.cpp
     src/JsonText.cpp
@@ -231,6 +233,7 @@ add_executable(mirage_tests
     tests/test_vmaf_cli.cpp
     tests/test_vmaf_report.cpp
     tests/test_vmaf_analyzer.cpp
+    tests/test_vmaf_color.cpp
     src/Demuxer.cpp
     src/NetworkLogger.cpp
     src/NetDescribe.cpp
@@ -258,6 +261,7 @@ add_executable(mirage_tests
     src/VMAFCli.cpp
     src/VMAFReport.cpp
     src/VMAFAnalyzer.cpp
+    src/VMAFColor.cpp
 )
 
 target_include_directories(mirage_tests PRIVATE
