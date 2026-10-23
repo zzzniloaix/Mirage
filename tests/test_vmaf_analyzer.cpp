@@ -252,7 +252,7 @@ TEST_CASE("VMAFAnalyzer::analyze: frame limit, paired PTS, settings and inputs",
     }
 
     CHECK(r.settings.model == "vmaf_v0.6.1");
-    CHECK(r.settings.scaler == "bilinear");
+    CHECK(r.settings.scaler == "bicubic");   // the default (D-024)
     CHECK(r.settings.pix_fmt == "yuv420p");
     CHECK(r.settings.bit_depth == 8);
     CHECK(r.settings.n_threads == 4);
@@ -473,13 +473,21 @@ TEST_CASE("VMAFAnalyzer::analyze: the scaler of the distorted frames, recorded i
         REQUIRE(r->error.empty());
         REQUIRE(r->per_frame.size() == 6);
     }
-    CHECK(def.settings.scaler == "bilinear");
+    CHECK(def.settings.scaler == "bicubic");
     CHECK(bilinear.settings.scaler == "bilinear");
     CHECK(bicubic.settings.scaler == "bicubic");
     CHECK(lanczos.settings.scaler == "lanczos");
-    CHECK(bilinear.per_frame == def.per_frame);   // the default is bilinear
+    CHECK(bicubic.per_frame == def.per_frame);   // the default is bicubic (D-024)
     CHECK(bicubic.per_frame != bilinear.per_frame);
     CHECK(lanczos.per_frame != bicubic.per_frame);
+
+    // The player's analysis, start(), scores with the default too.
+    VMAFAnalyzer a;
+    a.start(colored_ref_clip(), dis);
+    REQUIRE(wait_done(a));
+    REQUIRE(a.results().size() == 1);
+    CHECK(a.results()[0].settings.scaler == "bicubic");
+    CHECK(a.results()[0].per_frame == bicubic.per_frame);
 }
 
 TEST_CASE("VMAFAnalyzer::analyze: built-in models, recorded in the settings", "[vmaf]")

@@ -16,7 +16,7 @@ struct Args {
     std::string dis;            // --dis: distorted
     std::string out;            // --out: where the JSON report goes
     unsigned    frames = 0;     // --frames: score only the first N pairs; 0 = all
-    VMAFScaler  scaler = VMAFScaler::Bilinear;   // --scaler: scales the distorted frames
+    VMAFScaler  scaler = VMAFOptions{}.scaler;   // --scaler: scales the distorted frames
     VMAFModelChoice model;      // --model (version) or --model-file (path)
     bool        help   = false; // -h / --help: print usage() and exit
 };

@@ -12,9 +12,9 @@
 struct VariantStream;
 
 // The swscale algorithms the distorted frames can be scaled to the
-// reference's size with (work order section 1.3). Bilinear is what the
-// analyzer uses unless told otherwise; the default is the owner's to decide
-// (DECISIONS.md D-003).
+// reference's size with (work order section 1.3). Bicubic is what the
+// analyzer uses unless told otherwise (DECISIONS.md D-024), the scaler
+// FFmpeg's scale filter uses when it is given no flags=.
 enum class VMAFScaler { Bilinear, Bicubic, Lanczos };
 
 // The name of `s` as FFmpeg's scale filter takes it in flags=, e.g. "bicubic".
@@ -96,7 +96,7 @@ struct VMAFColorConversion {
 struct VMAFOptions {
     unsigned        max_frames = 0;       // stop after this many frame pairs; 0 = until an input ends
     bool            record_pts = false;   // fill VMAFResult::ref_pts / dis_pts
-    VMAFScaler      scaler     = VMAFScaler::Bilinear;   // scales the distorted frames
+    VMAFScaler      scaler     = VMAFScaler::Bicubic;    // scales the distorted frames (D-024)
     VMAFModelChoice model;
 };
 

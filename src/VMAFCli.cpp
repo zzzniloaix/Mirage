@@ -50,7 +50,7 @@ const std::array kOptions = {
     Option{ "--out", "<report.json>", "report to write; written only when the run succeeds", true,
             [](Args& a, std::string_view v) { a.out = v; return std::string(); } },
     Option{ "--frames", "N", "score only the first N frame pairs (N >= 1)", false, set_frames },
-    Option{ "--scaler", "NAME", "scales the distorted frames: bilinear (default), bicubic or lanczos",
+    Option{ "--scaler", "NAME", "scales the distorted frames: bilinear, bicubic (default) or lanczos",
             false, set_scaler },
     Option{ "--model", "NAME", "libvmaf built-in model: vmaf_v0.6.1 (default), vmaf_v0.6.1neg, "
             "vmaf_4k_v0.6.1, ...", false,
@@ -142,19 +142,20 @@ std::string usage()
         "frames of a pair become 8-bit yuv420p at the reference's size, in the color\n"
         "matrix and range FFmpeg 8.1.1's libvmaf filter graph negotiates for its two\n"
         "inputs, with FFmpeg's rules for missing tags. The distorted frame is scaled\n"
-        "with the swscale scaler --scaler names (bilinear unless given), with\n"
-        "swscale's default parameters for it, as FFmpeg's scale filter scales with\n"
-        "flags=NAME, and converted to those tags. A yuv420p reference is used as it\n"
-        "is, and the tags are its own. A reference in another pixel format is\n"
-        "converted to them with swscale's bicubic flags, as the scale filter FFmpeg\n"
-        "inserts for such a reference converts it, and the tags are then the\n"
-        "distorted frames' own, as far as they have tags. Frames in a pixel format\n"
-        "whose conversion isn't checked against FFmpeg's are scored, with a warning\n"
-        "in the report. Pairs are scored on 4 libvmaf threads with the model --model\n"
-        "or --model-file names: libvmaf's built-in vmaf_v0.6.1 unless given, as\n"
-        "FFmpeg's libvmaf filter scores with model=version=NAME or model=path=FILE.\n"
-        "An input whose color matrix swscale can't convert is not scored, as FFmpeg\n"
-        "doesn't score it.\n"
+        "with the swscale scaler --scaler names (bicubic unless given, the scaler\n"
+        "FFmpeg's scale filter uses without flags=), with swscale's default\n"
+        "parameters for it, as FFmpeg's scale filter scales with flags=NAME, and\n"
+        "converted to those tags. A yuv420p reference is used as it is, and the tags\n"
+        "are its own. A reference in another pixel format is converted to them with\n"
+        "swscale's bicubic flags, as the scale filter FFmpeg inserts for such a\n"
+        "reference converts it, and the tags are then the distorted frames' own, as\n"
+        "far as they have tags. Frames in a pixel format whose conversion isn't\n"
+        "checked against FFmpeg's are scored, with a warning in the report. Pairs\n"
+        "are scored on 4 libvmaf threads with the model --model or --model-file\n"
+        "names: libvmaf's built-in vmaf_v0.6.1 unless given, as FFmpeg's libvmaf\n"
+        "filter scores with model=version=NAME or model=path=FILE. An input whose\n"
+        "color matrix swscale can't convert is not scored, as FFmpeg doesn't score\n"
+        "it.\n"
         "\n"
         "With --frames N the last pair can score differently from the same pair in a\n"
         "longer run, because libvmaf's motion2 feature for a frame also uses the next\n"

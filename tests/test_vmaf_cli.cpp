@@ -53,7 +53,8 @@ TEST_CASE("vmafcli::parse: --scaler", "[vmafcli]")
 {
     vmafcli::Args a;
     REQUIRE(run({ "--ref", "a", "--dis", "b", "--out", "c" }, a).empty());
-    CHECK(a.scaler == VMAFScaler::Bilinear);   // the analyzer's scaler unless told otherwise
+    CHECK(a.scaler == VMAFScaler::Bicubic);    // the analyzer's scaler unless told otherwise (D-024)
+    CHECK(a.scaler == VMAFOptions{}.scaler);
     for (const auto& [name, want] : { std::pair{ "bilinear", VMAFScaler::Bilinear },
                                       std::pair{ "bicubic", VMAFScaler::Bicubic },
                                       std::pair{ "lanczos", VMAFScaler::Lanczos } }) {
