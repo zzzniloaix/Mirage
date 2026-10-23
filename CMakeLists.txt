@@ -144,6 +144,7 @@ add_executable(mirage
     src/PlayerUI.cpp
     src/VMAFAnalyzer.cpp
     src/VMAFColor.cpp
+    src/VMAFPool.cpp
     src/FileHash.cpp
     src/ScrubDecoder.cpp
     src/SubtitleDecoder.cpp
@@ -191,12 +192,18 @@ endif()
 
 # ── Headless VMAF scorer ─────────────────────────────────────────────────────
 
+# The pooled values are computed as eval/pooling/pooling.py computes them,
+# each multiplication and addition rounded on its own: no fused multiply-add
+# (src/VMAFPool.cpp). The player, mirage_vmaf and mirage_tests all compile it.
+set_source_files_properties(src/VMAFPool.cpp PROPERTIES COMPILE_OPTIONS "-ffp-contract=off")
+
 # mirage_vmaf: the player's VMAF analyzer without a window, GL or ImGui
 # (DECISIONS.md D-017). Links FFmpeg and libvmaf only.
 add_executable(mirage_vmaf
     tools/mirage_vmaf.cpp
     src/VMAFAnalyzer.cpp
     src/VMAFColor.cpp
+    src/VMAFPool.cpp
     src/FileHash.cpp
     src/VMAFCli.cpp
     src/VMAFReport.cpp
@@ -245,6 +252,7 @@ add_executable(mirage_tests
     tests/test_vmaf_report.cpp
     tests/test_vmaf_analyzer.cpp
     tests/test_vmaf_color.cpp
+    tests/test_vmaf_pool.cpp
     tests/test_file_hash.cpp
     src/Demuxer.cpp
     src/NetworkLogger.cpp
@@ -274,6 +282,7 @@ add_executable(mirage_tests
     src/VMAFReport.cpp
     src/VMAFAnalyzer.cpp
     src/VMAFColor.cpp
+    src/VMAFPool.cpp
     src/FileHash.cpp
 )
 
