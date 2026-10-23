@@ -930,6 +930,7 @@ TEST_CASE("VMAFAnalyzer::analyze: frames that line up keep their pairs, and the 
     CHECK(a.failure_rate == 0.0);
     CHECK(a.threshold == 0.01);
     CHECK_FALSE(a.exceeded);
+    CHECK(a.discontinuity_jump == 10.0);
     CHECK(a.failures.empty());
     CHECK(a.warning.empty());
     CHECK(r.warnings.empty());

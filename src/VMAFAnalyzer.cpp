@@ -320,6 +320,7 @@ void record_alignment(VMAFAlignment& out, const vmafalign::Aligner& a,
     out.failure_rate        = c.failure_rate();
     out.threshold           = vmafalign::kFailureThreshold;
     out.exceeded            = c.exceeded();
+    out.discontinuity_jump  = av_q2d(vmafalign::kForwardJump);
     out.failures.clear();
     for (const vmafalign::Failure& f : a.failures())
         out.failures.push_back({

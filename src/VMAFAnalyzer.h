@@ -142,6 +142,8 @@ struct VMAFAlignment {
     double      failure_rate = std::numeric_limits<double>::quiet_NaN();   // failed / (paired + failed)
     double      threshold    = 0.0;        // vmafalign::kFailureThreshold
     bool        exceeded     = false;      // failure_rate > threshold
+    double      discontinuity_jump = 0.0;  // seconds: a forward jump beyond it is a discontinuity
+                                           // (vmafalign::kForwardJump), as is any backward step
     std::vector<VMAFAlignmentFailure> failures;
     std::vector<VMAFContextRun>       contexts;
     std::string warning;   // when exceeded; also in VMAFResult::warnings, and in the player's VMAF panel

@@ -76,14 +76,16 @@ std::string alignment_json(const VMAFAlignment& a)
         "\"exceeded\": {},\n"
         "    \"unmatched_reference\": {}, \"extra_distorted\": {}, \"duplicate_distorted\": {}, "
         "\"no_timestamp\": {}, \"after_discontinuity\": {},\n"
-        "    \"discontinuities\": {}, \"off_grid_reference\": {}, \"off_grid_distorted\": {},\n"
+        "    \"discontinuities\": {}, \"discontinuity_jump\": {}, \"off_grid_reference\": {}, "
+        "\"off_grid_distorted\": {},\n"
         "    \"vmaf_contexts\": [",
         quote(a.rule), quote(a.timestamp_origin), quote(a.grid), number(a.tolerance),
         clock_json(a.ref_frame_rate, a.ref_start, a.ref_start_from),
         clock_json(a.dis_frame_rate, a.dis_start, a.dis_start_from), a.paired, a.failed,
         number(a.failure_rate), number(a.threshold), a.exceeded, a.unmatched_reference,
         a.extra_distorted, a.duplicate_distorted, a.no_timestamp, a.after_discontinuity,
-        a.discontinuities, a.off_grid_reference, a.off_grid_distorted);
+        a.discontinuities, number(a.discontinuity_jump), a.off_grid_reference,
+        a.off_grid_distorted);
     for (std::size_t i = 0; i < a.contexts.size(); ++i)
         out += std::format("{}{{\"first_index\": {}, \"pairs\": {}}}", i == 0 ? "" : ", ",
                            a.contexts[i].first_index, a.contexts[i].pairs);

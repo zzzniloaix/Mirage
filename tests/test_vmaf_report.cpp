@@ -268,6 +268,7 @@ VMAFResult sample_result()
     r.alignment.failure_rate   = 0.25;
     r.alignment.threshold      = 0.01;
     r.alignment.exceeded       = true;
+    r.alignment.discontinuity_jump = 10.0;
     r.alignment.failures = { { .input = "reference", .index = 2, .pts = 906006.0 / 90000.0 - 1001.0 / 30000.0,
                                .reason = "unmatched_reference" } };
     r.alignment.contexts = { { 0, 2 }, { 2, 1 } };
@@ -548,6 +549,7 @@ TEST_CASE("vmafreport::to_json: how the frames were paired by timestamp (D-028)"
     }
     CHECK(a["unmatched_reference"].num == 1);
     CHECK(a["extra_distorted"].num == 0);
+    CHECK(a["discontinuity_jump"].num == 10.0);
     const Value& ctx = a["vmaf_contexts"];
     REQUIRE(ctx.arr.size() == 2);
     CHECK(ctx.arr[0]["first_index"].num == 0);

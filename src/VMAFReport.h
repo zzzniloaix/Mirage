@@ -41,7 +41,7 @@
 //     paired, failed, failure_rate, threshold, exceeded,
 //     unmatched_reference, extra_distorted, duplicate_distorted,
 //     no_timestamp, after_discontinuity, discontinuities,
-//     off_grid_reference, off_grid_distorted,
+//     discontinuity_jump (seconds), off_grid_reference, off_grid_distorted,
 //     vmaf_contexts [ { first_index, pairs } ],
 //     failures [ { input, index, pts, reason } ] }
 //   ref / dis { url, width, height, pix_fmt, color_space, color_range,
