@@ -1,0 +1,152 @@
+# Checks on the runs in this directory, made after them from <repo>: each command, then its output. <tmp>/format_clips is the directory eval/consistency/color_cases.py --set formats made the clips in (format-cases-before/clips.txt); the clips are not in the repository.
+
+# 1. The repository when these checks were made: HEAD and the working tree's state.
+
+$ git rev-parse HEAD && git status --porcelain && echo '(end of git status)'
+e1968a0cbed0a8deefc2b1bc0133c82014c5a163
+(end of git status)
+
+# 2. The clips are those of format-cases-before: the MD5 of each clip's decoded frames against format-cases-before/clips.txt.
+
+$ cd <tmp>/format_clips && for f in *.mkv; do want=$(awk -v h="## $f" '$0==h{on=1} on && /^MD5=/{print; exit}' <repo>/eval/consistency/format-cases-before/clips.txt); got=$(/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -hide_banner -nostdin -v error -i "$f" -map 0:v:0 -c:v rawvideo -f md5 -); [ -n "$want" ] && [ "$want" = "$got" ] && echo same || echo "DIFFERENT $f"; done | sort | uniq -c
+  14 same
+
+# 3. Every case of main/: each scale filter of FFmpeg's graph, as in format-cases-before/checks.txt, check 2.
+
+$ python3 -I -c 'import re, sys
+for d in sys.argv[1:]:
+    for line in open(d + "/ffmpeg_colorspace_lines.txt"):
+        m = re.match(r"\[((?:Parsed|auto)_scale_\d+) @ [^\]]*\] w:\d+ h:\d+ fmt:(\S+) csp:(\S+) range:(\S+) sar:\S+ -> w:(\d+) h:(\d+) fmt:(\S+) csp:(\S+) range:(\S+) sar:\S+ flags:(\S+)", line)
+        if m:
+            g = m.groups()
+            print(d.split("/")[-1], g[0], g[1] + " " + g[2] + "/" + g[3], "->", g[4] + "x" + g[5], g[6] + " " + g[7] + "/" + g[8], "flags", g[9])' eval/consistency/format-cases-after/main/[fjd][0-9]*
+d01_bt709_vs_10bit_smpte170m Parsed_scale_1 yuv420p10le smpte170m/tv -> 1920x1080 yuv420p bt709/tv flags 0x00000002
+d02_bt709tv_vs_yuvj_pc Parsed_scale_1 yuvj420p bt709/pc -> 1920x1080 yuv420p bt709/tv flags 0x00000002
+f01_10bit_bt709_vs_smpte170m Parsed_scale_1 yuv420p smpte170m/tv -> 1920x1080 yuv420p smpte170m/tv flags 0x00000002
+f01_10bit_bt709_vs_smpte170m auto_scale_0 yuv420p10le bt709/tv -> 1920x1080 yuv420p smpte170m/tv flags 0x00000004
+f02_10bit_smpte170m_vs_bt709 Parsed_scale_1 yuv420p bt709/tv -> 1920x1080 yuv420p bt709/tv flags 0x00000002
+f02_10bit_smpte170m_vs_bt709 auto_scale_0 yuv420p10le smpte170m/tv -> 1920x1080 yuv420p bt709/tv flags 0x00000004
+f03_10bit_nomatrix_vs_bt709 Parsed_scale_1 yuv420p bt709/tv -> 1920x1080 yuv420p bt709/tv flags 0x00000002
+f03_10bit_nomatrix_vs_bt709 auto_scale_0 yuv420p10le unknown/tv -> 1920x1080 yuv420p bt709/tv flags 0x00000004
+f04_10bit_bt709_vs_bt709 Parsed_scale_1 yuv420p bt709/tv -> 1920x1080 yuv420p bt709/tv flags 0x00000002
+f04_10bit_bt709_vs_bt709 auto_scale_0 yuv420p10le bt709/tv -> 1920x1080 yuv420p bt709/tv flags 0x00000004
+f05_422_bt709_vs_smpte170m Parsed_scale_1 yuv420p smpte170m/tv -> 1920x1080 yuv420p smpte170m/tv flags 0x00000002
+f05_422_bt709_vs_smpte170m auto_scale_0 yuv422p bt709/tv -> 1920x1080 yuv420p smpte170m/tv flags 0x00000004
+f06_422_bt709_vs_bt709 Parsed_scale_1 yuv420p bt709/tv -> 1920x1080 yuv420p bt709/tv flags 0x00000002
+f06_422_bt709_vs_bt709 auto_scale_0 yuv422p bt709/tv -> 1920x1080 yuv420p bt709/tv flags 0x00000004
+f07_444_bt709_vs_smpte170m Parsed_scale_1 yuv420p smpte170m/tv -> 1920x1080 yuv420p smpte170m/tv flags 0x00000002
+f07_444_bt709_vs_smpte170m auto_scale_0 yuv444p bt709/tv -> 1920x1080 yuv420p smpte170m/tv flags 0x00000004
+f08_444_bt709_vs_bt709 Parsed_scale_1 yuv420p bt709/tv -> 1920x1080 yuv420p bt709/tv flags 0x00000002
+f08_444_bt709_vs_bt709 auto_scale_0 yuv444p bt709/tv -> 1920x1080 yuv420p bt709/tv flags 0x00000004
+j01_yuvj_pc_vs_tv Parsed_scale_1 yuv420p bt709/tv -> 1920x1080 yuv420p bt709/tv flags 0x00000002
+j01_yuvj_pc_vs_tv auto_scale_0 yuvj420p bt709/pc -> 1920x1080 yuv420p bt709/tv flags 0x00000004
+j02_yuvj_pc_vs_pc Parsed_scale_1 yuv420p bt709/pc -> 1920x1080 yuv420p bt709/pc flags 0x00000002
+j02_yuvj_pc_vs_pc auto_scale_0 yuvj420p bt709/pc -> 1920x1080 yuv420p bt709/pc flags 0x00000004
+
+# 4. Every case of main/: frame pairs on each side, and frames whose Mirage score, written with the 6 decimals of FFmpeg's log, is FFmpeg's.
+
+$ python3 -I -c 'import json, sys
+for d in sys.argv[1:]:
+    m = json.load(open(d + "/mirage.json"))["frames"]
+    f = json.load(open(d + "/ffmpeg.json"))["frames"]
+    same = sum(format(a["vmaf"], ".6f") == format(b["metrics"]["vmaf"], ".6f") for a, b in zip(m, f))
+    print(d.split("/")[-1], len(m), len(f), same)' eval/consistency/format-cases-after/main/[fjd][0-9]*
+d01_bt709_vs_10bit_smpte170m 10 10 10
+d02_bt709tv_vs_yuvj_pc 10 10 10
+f01_10bit_bt709_vs_smpte170m 10 10 0
+f02_10bit_smpte170m_vs_bt709 10 10 0
+f03_10bit_nomatrix_vs_bt709 10 10 0
+f04_10bit_bt709_vs_bt709 10 10 10
+f05_422_bt709_vs_smpte170m 10 10 0
+f06_422_bt709_vs_bt709 10 10 10
+f07_444_bt709_vs_smpte170m 10 10 0
+f08_444_bt709_vs_bt709 10 10 10
+j01_yuvj_pc_vs_tv 10 10 0
+j02_yuvj_pc_vs_pc 10 10 0
+
+# 5. Every case of main/: mirage_vmaf's scores against those of the run before D-016 (format-cases-before/main) at full precision (frames, frames with the same score), the dis_conversion of the report (from -> to, pairs), the number of warnings in the report, and the reference's pixel format.
+
+$ python3 -I -c 'import json, sys
+for name in sys.argv[1:]:
+    a = json.load(open("eval/consistency/format-cases-after/main/" + name + "/mirage.json"))
+    b = json.load(open("eval/consistency/format-cases-before/main/" + name + "/mirage.json"))
+    same = sum(x["vmaf"] == y["vmaf"] for x, y in zip(a["frames"], b["frames"]))
+    for c in a["dis_conversion"]:
+        print(name, len(a["frames"]), same, "|", c["from"]["color_space"] + "/" + c["from"]["color_range"], "->",
+              c["to"]["color_space"] + "/" + c["to"]["color_range"], "| pairs", c["pairs"], "| warnings", len(a["warnings"]),
+              "| ref", a["ref"]["pix_fmt"])' $(cd eval/consistency/format-cases-after/main && ls -d [fjd][0-9]*)
+d01_bt709_vs_10bit_smpte170m 10 0 | smpte170m/tv -> bt709/tv | pairs 10 | warnings 0 | ref yuv420p
+d02_bt709tv_vs_yuvj_pc 10 10 | bt709/pc -> bt709/tv | pairs 10 | warnings 0 | ref yuv420p
+f01_10bit_bt709_vs_smpte170m 10 0 | smpte170m/tv -> bt709/tv | pairs 10 | warnings 1 | ref yuv420p10le
+f02_10bit_smpte170m_vs_bt709 10 0 | bt709/tv -> smpte170m/tv | pairs 10 | warnings 1 | ref yuv420p10le
+f03_10bit_nomatrix_vs_bt709 10 0 | bt709/tv -> unknown/tv | pairs 10 | warnings 1 | ref yuv420p10le
+f04_10bit_bt709_vs_bt709 10 10 | bt709/tv -> bt709/tv | pairs 10 | warnings 1 | ref yuv420p10le
+f05_422_bt709_vs_smpte170m 10 0 | smpte170m/tv -> bt709/tv | pairs 10 | warnings 1 | ref yuv422p
+f06_422_bt709_vs_bt709 10 10 | bt709/tv -> bt709/tv | pairs 10 | warnings 1 | ref yuv422p
+f07_444_bt709_vs_smpte170m 10 0 | smpte170m/tv -> bt709/tv | pairs 10 | warnings 1 | ref yuv444p
+f08_444_bt709_vs_bt709 10 10 | bt709/tv -> bt709/tv | pairs 10 | warnings 1 | ref yuv444p
+j01_yuvj_pc_vs_tv 10 0 | bt709/tv -> bt709/pc | pairs 10 | warnings 1 | ref yuvj420p
+j02_yuvj_pc_vs_pc 10 10 | bt709/pc -> bt709/pc | pairs 10 | warnings 1 | ref yuvj420p
+
+# 6. The warnings of mirage_vmaf's reports, and the cases (by their first three characters) whose report has each.
+
+$ python3 -I -c 'import json, sys
+seen = {}
+for d in sys.argv[1:]:
+    for w in json.load(open(d + "/mirage.json"))["warnings"]:
+        seen.setdefault(w, []).append(d.split("/")[-1][:3])
+for w, names in seen.items():
+    print(" ".join(names) + ":", w)' eval/consistency/format-cases-after/main/[fjd][0-9]*
+f01 f02 f03 f04: the reference's frames are yuv420p10le, not yuv420p: FFmpeg's section 5 graph then converts the reference to the distorted input's color matrix and range, where Mirage converts the distorted frames to the reference's, so the scores can differ from FFmpeg's (docs/PHASE1_DECISIONS_PENDING.md)
+f05 f06: the reference's frames are yuv422p, not yuv420p: FFmpeg's section 5 graph then converts the reference to the distorted input's color matrix and range, where Mirage converts the distorted frames to the reference's, so the scores can differ from FFmpeg's (docs/PHASE1_DECISIONS_PENDING.md)
+f07 f08: the reference's frames are yuv444p, not yuv420p: FFmpeg's section 5 graph then converts the reference to the distorted input's color matrix and range, where Mirage converts the distorted frames to the reference's, so the scores can differ from FFmpeg's (docs/PHASE1_DECISIONS_PENDING.md)
+j01 j02: the reference's frames are yuvj420p, not yuv420p: FFmpeg's section 5 graph then converts the reference to the distorted input's color matrix and range, where Mirage converts the distorted frames to the reference's, so the scores can differ from FFmpeg's (docs/PHASE1_DECISIONS_PENDING.md)
+
+# 7. FFmpeg's side of every case against that of the run before D-016: frames on each side, and frames with every libvmaf metric equal.
+
+$ python3 -I -c 'import json, sys
+for name in sys.argv[1:]:
+    a = json.load(open("eval/consistency/format-cases-after/main/" + name + "/ffmpeg.json"))["frames"]
+    b = json.load(open("eval/consistency/format-cases-before/main/" + name + "/ffmpeg.json"))["frames"]
+    print(name, len(a), len(b), sum(x["metrics"] == y["metrics"] for x, y in zip(a, b)))' $(cd eval/consistency/format-cases-after/main && ls -d [fjd][0-9]*)
+d01_bt709_vs_10bit_smpte170m 10 10 10
+d02_bt709tv_vs_yuvj_pc 10 10 10
+f01_10bit_bt709_vs_smpte170m 10 10 10
+f02_10bit_smpte170m_vs_bt709 10 10 10
+f03_10bit_nomatrix_vs_bt709 10 10 10
+f04_10bit_bt709_vs_bt709 10 10 10
+f05_422_bt709_vs_smpte170m 10 10 10
+f06_422_bt709_vs_bt709 10 10 10
+f07_444_bt709_vs_smpte170m 10 10 10
+f08_444_bt709_vs_bt709 10 10 10
+j01_yuvj_pc_vs_tv 10 10 10
+j02_yuvj_pc_vs_pc 10 10 10
+
+# 8. mirage_vmaf's scores of j02 (a yuvj420p reference against a full range distorted input, same tags) against FFmpeg's of j01 (the same reference against a limited range distorted input with the same pixels, where FFmpeg's log shows auto_scale_0 converting the reference from pc to tv range): frames on each side, and frames that agree at the 6 decimals of FFmpeg's log.
+
+$ python3 -I -c 'import json
+m = json.load(open("eval/consistency/format-cases-after/main/j02_yuvj_pc_vs_pc/mirage.json"))["frames"]
+f = json.load(open("eval/consistency/format-cases-after/main/j01_yuvj_pc_vs_tv/ffmpeg.json"))["frames"]
+print(len(m), len(f), sum(format(a["vmaf"], ".6f") == format(b["metrics"]["vmaf"], ".6f") for a, b in zip(m, f)))'
+10 10 10
+
+# 9. The refused case, after and before D-016: why the pair fails, FFmpeg's error, and mirage_vmaf's message.
+
+$ python3 -I -c 'import json, lzma, sys
+for run in sys.argv[1:]:
+    d = "eval/consistency/" + run + "/refused/u03_ycgco_vs_ycgco"
+    print(run, json.load(open(d + "/delta.json"))["fail_reasons"])
+    print("  FFmpeg:", [l.split("] ", 1)[-1].strip() for l in open(d + "/ffmpeg_colorspace_lines.txt") if "Impossible to convert" in l])
+    print("  mirage_vmaf stderr:", lzma.open(d + "/mirage.stderr.log.xz", "rt").read().strip() or "(empty)")' format-cases-after format-cases-before
+format-cases-after ['mirage_vmaf exited with status 1', 'FFmpeg exited with status 178']
+  FFmpeg: ["Impossible to convert between the formats supported by the filter 'Parsed_trim_0' and the filter 'auto_scale_0'"]
+  mirage_vmaf stderr: mirage_vmaf: the reference has the color matrix ycgco, which FFmpeg's scale filter does not convert, so the pair can't be scored as FFmpeg scores it (DECISIONS.md D-016)
+format-cases-before ['FFmpeg exited with status 178']
+  FFmpeg: ["Impossible to convert between the formats supported by the filter 'Parsed_trim_0' and the filter 'auto_scale_0'"]
+  mirage_vmaf stderr: (empty)
+
+# 10. The runs' checksums.
+
+$ for d in main refused; do (cd eval/consistency/format-cases-after/$d && printf "%s: " $d && shasum -a 256 -c SHA256SUMS | awk '{n[$NF]++} END {for (k in n) printf "%d %s\n", n[k], k}'); done
+main: 137 OK
+refused: 14 OK
