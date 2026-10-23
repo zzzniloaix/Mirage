@@ -16,14 +16,14 @@ The evaluation's scripts and their committed outputs. The numbers in this reposi
 ## Rerunning every measurement: run_all.sh
 
 ```
-eval/run_all.sh <out_dir> [--mirage-vmaf PROG] [--mirage-vmaf-before PROG] [--skip-before]
-    [--skip-full] [--only STEP[,STEP...]] [--jobs J] [--ffmpeg PROG] [--ffprobe PROG]
-    [--model-dir DIR] [--work-dir DIR] [--no-compare]
+eval/run_all.sh <out_dir> [--mirage-vmaf PROG] [--mirage-vmaf-before PROG]
+    [--mirage-vmaf-before-d022 PROG] [--skip-before] [--skip-full] [--only STEP[,STEP...]]
+    [--jobs J] [--ffmpeg PROG] [--ffprobe PROG] [--model-dir DIR] [--work-dir DIR] [--no-compare]
 ```
 
 - `<out_dir>`: a new or empty directory outside the repository. The runs inside record the repository's commit and whether its working tree was clean, so run it from a clean tree when its outputs are to be cited.
 - It needs what `docs/BUILD.md` installs, without the glad venv, and the network: the streams come from Apple's CDN, and the builds fetch their dependencies from GitHub.
-- Without `--mirage-vmaf` and `--mirage-vmaf-before`, it builds both programs itself, each in a temporary worktree of its commit (`cmake --preset macos-release`, then only the `mirage_vmaf` target), and keeps them in `<out_dir>/builds/`.
+- Without `--mirage-vmaf`, `--mirage-vmaf-before` and `--mirage-vmaf-before-d022`, it builds the programs the steps need itself, each in a temporary worktree of its commit (`cmake --preset macos-release`, then only the `mirage_vmaf` target), and keeps them in `<out_dir>/builds/`.
 
 The steps, in order; each writes under `<out_dir>` the path its committed counterpart has under `eval/` (P-024):
 
@@ -37,7 +37,8 @@ The steps, in order; each writes under `<out_dir>` the path its committed counte
 | `format-cases-before` | `consistency/format-cases-before/`: the scored and the refused cases | `83c8ed6`'s |
 | `diag-after-300` | `consistency/diag-after-300/` | HEAD's |
 | `color-cases-after` | `consistency/color-cases-after/` | HEAD's |
-| `format-cases-after` | `consistency/format-cases-after/` | HEAD's |
+| `format-cases-after` | `consistency/format-cases-after/` | `d993686`'s |
+| `format-cases-d022` | `consistency/format-cases-d022/` | HEAD's |
 | `scalers-300` | `consistency/scalers-300/`: three runs and `scaler_effect.*` | HEAD's |
 | `models-300` | `consistency/models-300/`: four runs and `model_effect.*` | HEAD's |
 | `acceptance-full` | `consistency/acceptance-full/`: every frame of the four pairs of D-018, the §5 report | HEAD's |
@@ -46,8 +47,8 @@ The steps, in order; each writes under `<out_dir>` the path its committed counte
 | `pooling` | `pooling/bipbop16x9/`, on the rerun of `diag-after-300` | |
 | `pooling-full` | `pooling/acceptance-full/`, on the rerun of `acceptance-full` | |
 
-- Every `run_delta.sh` run gets the options of its committed `run.cmd.txt`. The runs made before D-016 need the program that didn't convert color yet, the build of `83c8ed6`; the others use HEAD's.
-- `--only` runs some steps, and the steps they need (`pooling` needs `diag-after-300`, `pooling-full` needs `acceptance-full`, the color tag cases need `clips` and the reference format cases `format-clips`); `--skip-before` leaves out the three steps before D-016, and `--skip-full` the two over every frame, `acceptance-full` and `pooling-full` (P-027). Each side of each pair of `acceptance-full` took longer than the whole run of 2026-10-23 below (the wall times in `consistency/acceptance-full/plain/*/delta.md`).
+- Every `run_delta.sh` run gets the options of its committed `run.cmd.txt`. The runs made before D-016 need the program that didn't convert color yet, the build of `83c8ed6`; `format-cases-after`, made after D-016 and before D-022, the build of `d993686`, which doesn't convert a reference that isn't yuv420p (P-034); the others use HEAD's.
+- `--only` runs some steps, and the steps they need (`pooling` needs `diag-after-300`, `pooling-full` needs `acceptance-full`, the color tag cases need `clips` and the three runs of the reference format cases `format-clips`); `--skip-before` leaves out the three steps before D-016, and `--skip-full` the two over every frame, `acceptance-full` and `pooling-full` (P-027). Each side of each pair of `acceptance-full` took longer than the whole run of 2026-10-23 below (the wall times in `consistency/acceptance-full/plain/*/delta.md`).
 - `--jobs` is `run_delta.sh`'s: how many scoring processes run at once. The committed runs used 1, except `acceptance-full`, which used 4; its first 300 frames have the scores of `scalers-300/bilinear`, made by the same program one process at a time (`consistency/acceptance-full/checks.txt`, check 3).
 
 **What "as committed" means.** For each step, `rerun_check.md` says whether the rerun has:
@@ -101,3 +102,10 @@ None of them needs the network. `tests/test_run_all.py` checks every step agains
 - The program it built from `9855319` has the SHA-256 of `consistency/format-cases-after/build.txt`, `b225a60efd146d27fbb59335176324fa9529b1a86921f8814a1b64e34d162803`. It reproduces exactly the scores of the other runs made after D-016, which programs of other SHA-256 made: `420b8776…`, built at `5263061` (`diag-after-300`, `color-cases-after`), and `3633c43e…` (`scalers-300`, `models-300`, `acceptance-full`). The program it built from `83c8ed6` has the SHA-256 of `diag-before-300`, `color-cases-before` and `format-cases-before`.
 - It took 2968.8 s of wall time, both builds included, of which 2557.4 s for `acceptance-full` (`run_all.md`).
 
+## The rerun after D-021, D-022 and D-032, 2026-10-23
+
+`run_all/2026-10-23-d022/` keeps the record of `eval/run_all.sh <out_dir> --skip-full --jobs 4`, made from a new clean worktree of `5135d58` with no program given, the same files as above (P-037): every step but the two over every frame, with the three programs built from their commits.
+
+- Everything compared is as committed (`rerun_check.md`), in every step.
+- The program it built from `5135d58`, which converts a reference that isn't yuv420p as FFmpeg does (D-022), has the SHA-256 of `consistency/format-cases-d022/build.txt`, `2220ce3a0997d53f750b34a770110f5c65f5f870cfb9a0e6347256733bcf09ea`. It reproduces exactly the scores of `format-cases-d022` and of the other runs it reran that were made after D-016, but `format-cases-after`, whose programs had other SHA-256s: `420b8776…` (`diag-after-300`, `color-cases-after`) and `3633c43e…` (`scalers-300`, `models-300`). The program built from `d993686` has the SHA-256 of `consistency/format-cases-after/build.txt`, and the one built from `83c8ed6` that of the runs before D-016.
+- It took 521.0 s of wall time, the three builds included (`run_all.md`).

@@ -48,7 +48,7 @@ Frame i of `mirage_vmaf`'s report is compared with frame i of FFmpeg's libvmaf l
 - both sides scored the same number of frames, and more than none (a mismatch shows as `FRAME COUNT MISMATCH`);
 - no frame has |delta| greater than the threshold.
 
-The reports also give the largest and mean |delta|, the mean delta, the frames over the threshold, the frames with the largest |delta|, both sides' pooled mean and min as libvmaf computes them, both sides' libvmaf versions at run time and their package versions (D-006: `mirage_vmaf`'s from its report, FFmpeg's from its libvmaf log and from the library its libavfilter links), how each side converted the distorted frames' color matrix and range (FFmpeg's scale filter lines, and the `dis_conversion` of `mirage_vmaf`'s report where it has one, D-016), and the warnings: checks that don't fail a pair, such as different libvmaf versions on the two sides, Mirage pairs whose two frames have different PTS, tags in FFmpeg's log that differ from ffprobe's, a `dis_conversion` whose tags differ from those of FFmpeg's scale filter, or a warning of `mirage_vmaf`'s own report, such as that the reference isn't yuv420p (P-030).
+The reports also give the largest and mean |delta|, the mean delta, the frames over the threshold, the frames with the largest |delta|, both sides' pooled mean and min as libvmaf computes them, both sides' libvmaf versions at run time and their package versions (D-006: `mirage_vmaf`'s from its report, FFmpeg's from its libvmaf log and from the library its libavfilter links), both sides' FFmpeg libraries at their run-time versions (D-021: `mirage_vmaf`'s from its report's `ffmpeg_libraries`, the `ffmpeg` program's from `ffmpeg -version`), how each side converted the distorted frames' color matrix and range (FFmpeg's scale filter lines, and the `dis_conversion` of `mirage_vmaf`'s report where it has one, D-016) and the reference's (the lines of the scale filters FFmpeg inserts, `auto_scale_N`, and the report's `ref_conversion` where it has one, D-022), and the warnings: checks that don't fail a pair, such as different libvmaf versions or FFmpeg library versions on the two sides, Mirage pairs whose two frames have different PTS, tags in FFmpeg's log that differ from ffprobe's, a `dis_conversion` whose tags differ from those of FFmpeg's scale filter, a `ref_conversion` whose tags differ from those of the scale filters FFmpeg inserts, or a warning of `mirage_vmaf`'s own report, such as frames in a pixel format whose conversion isn't checked against FFmpeg's (P-033; until D-022, that the reference isn't yuv420p, P-030).
 
 FFmpeg's side pairs frames by timestamp, Mirage's in the order they are decoded, so a comparison by position is only right while both sides pair the same frames; the PTS warning checks that from Mirage's side.
 
@@ -226,7 +226,7 @@ TMPDIR=<tmp> eval/consistency/run_delta.sh <mirage_vmaf> <out>/refused --pairs <
 | `format-cases-before/` | built in a new worktree of `83c8ed6`, which converts no color; the SHA-256 of `diag-before-300/` and `color-cases-before/` (`build.txt`) | `clips.txt`; `main/`, the 12 cases FFmpeg scores; `refused/`, YCgCo on both inputs; `checks.txt` |
 | `format-cases-after/` | built in a new worktree of `d993686`, which converts as D-016 has it and warns about a reference that isn't yuv420p (P-030; `build.txt`) | the same runs on the same clips (`checks.txt`, check 2); `checks.txt` |
 
-Both runs were made from a clean worktree of `d993686` (`main/delta.md` of each). Per case, from `format-cases-before/checks.txt` (check 2, FFmpeg's scale filters) and the two `main/delta.md` (tags as color matrix/range, `unknown` = no tag; `auto_scale_0` is the scale filter FFmpeg inserts before the reference's `format=yuv420p`, `Parsed_scale_1` the distorted input's):
+Both runs were made from a clean worktree of `d993686` (`main/delta.md` of each). What they show of Mirage is what the programs that made them do, before D-022. Per case, from `format-cases-before/checks.txt` (check 2, FFmpeg's scale filters) and the two `main/delta.md` (tags as color matrix/range, `unknown` = no tag; `auto_scale_0` is the scale filter FFmpeg inserts before the reference's `format=yuv420p`, `Parsed_scale_1` the distorted input's):
 
 | case | reference | distorted | FFmpeg: `auto_scale_0`, the reference | FFmpeg: `Parsed_scale_1`, the distorted frames | before D-016 | max \|delta\| | after D-016 | max \|delta\| | Mirage after: the distorted frames |
 |---|---|---|---|---|---|---|---|---|---|
@@ -252,7 +252,53 @@ What they show:
 - **The warning.** Every `f` and `j` report of `format-cases-after/` has the warning that the reference isn't yuv420p; the `d` reports have none (checks 5 and 6). The delta reports list it with the others (`main/delta.md`).
 - **YCgCo on both inputs is refused** by FFmpeg, with exit status 178 and `Impossible to convert between the formats supported by the filter 'Parsed_trim_0' and the filter 'auto_scale_0'`, as with YCgCo on one input; `mirage_vmaf` refuses it after D-016 and scored it before (`format-cases-after/checks.txt`, check 9).
 
-Which way Mirage should go for such references is the owner's decision (`docs/PHASE1_DECISIONS_PENDING.md`, "D-016: references that aren't yuv420p"). Limits: synthetic clips, 10 frames each, the §5 graph of FFmpeg 8.1.1 only; RGB and gray inputs, 12-bit and 4:4:4 distorted inputs, and distorted inputs without a range tag against such references are not measured. The scores of these clips only compare the two tools.
+The owner decided for FFmpeg's conversion of such references (D-022): `format-cases-d022/` below. Limits: synthetic clips, 10 frames each, the §5 graph of FFmpeg 8.1.1 only; RGB and gray inputs, 12-bit and 4:4:4 distorted inputs, and distorted inputs without a range tag against such references are not measured. The scores of these clips only compare the two tools.
+
+### `format-cases-d022/`: references that aren't yuv420p, after D-022 (P-033, P-034)
+
+D-022 has Mirage convert a reference that isn't yuv420p as FFmpeg's graph does: to the color matrix and range libavfilter negotiates for both inputs, with `sws_scale_frame()` and the bicubic flags of the scale filter FFmpeg inserts, the distorted frames keeping their color as far as their tags go (`src/VMAFColor.h`). These are the runs of `format-cases-after/` again, with the options its `run.cmd.txt` records, on clips made anew, with the `mirage_vmaf` built in a new worktree of `3ea02813df24e1b3a8675e44af902fac6a540524` (`build.txt`), from which both runs were made:
+
+```
+python3 -I -B eval/consistency/color_cases.py <tmp>/format_clips --set formats
+TMPDIR=<tmp> eval/consistency/run_delta.sh build/macos-release/mirage_vmaf <out>/main --frames 10 --pairs <tmp>/format_clips/pairs.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01
+TMPDIR=<tmp> eval/consistency/run_delta.sh build/macos-release/mirage_vmaf <out>/refused --frames 10 --pairs <tmp>/format_clips/pairs_refused.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01
+```
+
+| File | Contents |
+|---|---|
+| `build.txt` | the build of `mirage_vmaf` in the new worktree: its commit and clean state, the configure, the build's output, a second build with nothing to do, and its SHA-256, which both runs' `environment.txt` repeat |
+| `main/`, `refused/` | the two runs, as in `format-cases-after/` |
+| `checks.txt` | checks made on the runs afterwards, each command with its output |
+| `SHA256SUMS` | SHA-256 of `build.txt`, `checks.txt` and the two runs' own `SHA256SUMS` |
+
+Per case, from `checks.txt` (checks 3, 5 and 6) and `main/delta.md` (tags as color matrix/range, `unknown` = no tag; FFmpeg's side is the same as in both earlier runs, check 7):
+
+| case | FFmpeg: `auto_scale_0`, the reference | Mirage: `ref_conversion` | FFmpeg: `Parsed_scale_1`, the distorted frames | Mirage: `dis_conversion` | after D-022 | max \|delta\| | Mirage's scores equal to those before D-016 / after D-016 (of 10) |
+|---|---|---|---|---|---|---|---|
+| `f01_10bit_bt709_vs_smpte170m` | bt709/tv -> smpte170m/tv | bt709/tv -> smpte170m/tv | smpte170m/tv -> smpte170m/tv | smpte170m/tv -> smpte170m/tv | PASS | 0.000000 | 0 / 0 |
+| `f02_10bit_smpte170m_vs_bt709` | smpte170m/tv -> bt709/tv | smpte170m/tv -> bt709/tv | bt709/tv -> bt709/tv | bt709/tv -> bt709/tv | PASS | 0.000000 | 0 / 0 |
+| `f03_10bit_nomatrix_vs_bt709` | unknown/tv -> bt709/tv | unknown/tv -> bt709/tv | bt709/tv -> bt709/tv | bt709/tv -> bt709/tv | PASS | 0.000000 | 0 / 0 |
+| `f04_10bit_bt709_vs_bt709` | bt709/tv -> bt709/tv | bt709/tv -> bt709/tv | bt709/tv -> bt709/tv | bt709/tv -> bt709/tv | PASS | 0.000000 | 10 / 10 |
+| `f05_422_bt709_vs_smpte170m` | bt709/tv -> smpte170m/tv | bt709/tv -> smpte170m/tv | smpte170m/tv -> smpte170m/tv | smpte170m/tv -> smpte170m/tv | PASS | 0.000000 | 0 / 0 |
+| `f06_422_bt709_vs_bt709` | bt709/tv -> bt709/tv | bt709/tv -> bt709/tv | bt709/tv -> bt709/tv | bt709/tv -> bt709/tv | PASS | 0.000000 | 10 / 10 |
+| `f07_444_bt709_vs_smpte170m` | bt709/tv -> smpte170m/tv | bt709/tv -> smpte170m/tv | smpte170m/tv -> smpte170m/tv | smpte170m/tv -> smpte170m/tv | PASS | 0.000000 | 0 / 0 |
+| `f08_444_bt709_vs_bt709` | bt709/tv -> bt709/tv | bt709/tv -> bt709/tv | bt709/tv -> bt709/tv | bt709/tv -> bt709/tv | PASS | 0.000000 | 10 / 10 |
+| `j01_yuvj_pc_vs_tv` | bt709/pc -> bt709/tv | bt709/pc -> bt709/tv | bt709/tv -> bt709/tv | bt709/tv -> bt709/tv | PASS | 0.000000 | 10 / 0 |
+| `j02_yuvj_pc_vs_pc` | bt709/pc -> bt709/pc | bt709/pc -> bt709/pc | bt709/pc -> bt709/pc | bt709/pc -> bt709/pc | PASS | 0.000000 | 0 / 0 |
+| `d01_bt709_vs_10bit_smpte170m` | (none) | (none) | smpte170m/tv -> bt709/tv | smpte170m/tv -> bt709/tv | PASS | 0.000000 | 0 / 10 |
+| `d02_bt709tv_vs_yuvj_pc` | (none) | (none) | bt709/pc -> bt709/tv | bt709/pc -> bt709/tv | PASS | 0.000000 | 10 / 10 |
+
+What they show:
+
+- **Every case passes.** Written with the 6 decimals of FFmpeg's log, Mirage's score of every frame of every case is FFmpeg's (check 4), and the delta reports have no warning (check 8).
+- **The same conversions as FFmpeg.** Mirage's `ref_conversion` has the tags of FFmpeg's `auto_scale_0` in every `f` and `j` case, and its `dis_conversion` those of `Parsed_scale_1` in every case: the reference is converted to the distorted frames' matrix and range, which keep theirs. For the yuv420p references of `d01` and `d02` neither side converts the reference.
+- **`j01` has its scores from before D-016**, on all 10 frames at full precision, as D-022's acceptance asks; `d01` and `d02`, with yuv420p references, keep those after D-016 (check 5). In the cases whose tags are the same (`f04`, `f06`, `f08`) the scores are those of both earlier runs; the inserted scale filter's bicubic flags, where Mirage used bilinear ones before, change no score there.
+- **FFmpeg's side is unchanged**: every libvmaf metric of every frame is that of both earlier runs (check 7).
+- **No warning** in any report (check 6): every format of these clips is among `vmafcolor::verified_formats()`.
+- **YCgCo on both inputs is refused** by both programs, as in `format-cases-after/` (check 9).
+- **The FFmpeg libraries** both sides ran with have the same run-time versions (check 8; D-021).
+
+Limits: synthetic clips, 10 frames each, the §5 graph of FFmpeg 8.1.1 only. `tests/test_vmaf_color.cpp` compares the frames libvmaf gets with those of the graph run through libavfilter for further formats and tags, among them distorted inputs without a range tag or in full range against such references (P-033); real streams in these formats are not measured (MEASUREMENT PENDING). The scores of these clips only compare the two tools.
 
 ### `diag-after-300/`: the first 300 frames after D-016 (P-015)
 
