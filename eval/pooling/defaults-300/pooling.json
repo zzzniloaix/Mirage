@@ -1,0 +1,739 @@
+{
+  "report_version": 1,
+  "tool": "eval/pooling/pooling.py",
+  "definitions": {
+    "percentiles": {
+      "today": "sorted[floor(n*p/100)], counting from 0: the rule of the analyzer's vmaf_p5 until D-027 (src/VMAFAnalyzer.cpp, sorted[n * 5 / 100])",
+      "nearest-rank": "sorted[ceil(n*p/100) - 1], counting from 0: the nearest-rank method",
+      "linear": "sorted[k] + (h - k) * (sorted[k + 1] - sorted[k]) with h = (n - 1) * p / 100 and k = floor(h), counting from 0: linear interpolation between the closest ranks (Hyndman and Fan's definition 7)"
+    },
+    "harmonic_mean": {
+      "shifted": "n / sum(1 / (x + 1)) - 1",
+      "plain": "n / sum(1 / x), undefined when a frame scores 0"
+    },
+    "pooled_d027": {
+      "mean": "sum / n, summed in frame order (libvmaf's VMAF_POOL_METHOD_MEAN)",
+      "harmonic_mean": "n / sum(1 / (x + 1)) - 1, summed in frame order (libvmaf's VMAF_POOL_METHOD_HARMONIC_MEAN)",
+      "min": "the smallest score (libvmaf's VMAF_POOL_METHOD_MIN)",
+      "min_without_first_frame": "the smallest score of frames 1 to n - 1; null for one frame",
+      "p1": "the linear definition",
+      "p5": "the linear definition",
+      "p10": "the linear definition",
+      "p25": "the linear definition",
+      "p50": "the linear definition"
+    }
+  },
+  "git": {
+    "head_start": "a0a905813d712d2a70d166547d49dbfc4d328278",
+    "clean_start": true,
+    "head_end": "a0a905813d712d2a70d166547d49dbfc4d328278",
+    "clean_end": true
+  },
+  "sources": [
+    {
+      "kind": "delta-run",
+      "label": "The run_delta.sh run eval/consistency/defaults-300/plain",
+      "inputs": [
+        {
+          "path": "eval/consistency/defaults-300/plain/delta.json",
+          "sha256": "c9a61fc29438822adab88a49b9b53a657d6cc98fe22123ca46c04bd6e13e2ae5"
+        },
+        {
+          "path": "eval/consistency/defaults-300/plain/gear4_vs_gear5/mirage.json",
+          "sha256": "52a4bbe5b5e906db85dccc8362d49fa6cb0b6fe4768876c68def58325623cf2d"
+        },
+        {
+          "path": "eval/consistency/defaults-300/plain/gear4_vs_gear5/ffmpeg.json",
+          "sha256": "7c925bd4416158cf87c8b54145d6098afbd657118097212c8a2c8c3c5f00d185"
+        },
+        {
+          "path": "eval/consistency/defaults-300/plain/gear3_vs_gear5/mirage.json",
+          "sha256": "8e0edc2e7dfa80fd97842466bf355b47bf865b61aafb978995ced08e6e0dbce3"
+        },
+        {
+          "path": "eval/consistency/defaults-300/plain/gear3_vs_gear5/ffmpeg.json",
+          "sha256": "dc3a06dbe22025f0e1dc5d7f286abb7bfcf2eecfb5b00cfe8d247e41e5a39417"
+        },
+        {
+          "path": "eval/consistency/defaults-300/plain/gear2_vs_gear5/mirage.json",
+          "sha256": "bb05d059bc38b98c87ba33081829ffa132ff19e1b424601f6495a59219c74bac"
+        },
+        {
+          "path": "eval/consistency/defaults-300/plain/gear2_vs_gear5/ffmpeg.json",
+          "sha256": "0ffae81ee5db27b35bf3691bac6353401a30a853aa258467b46424922ec1197e"
+        },
+        {
+          "path": "eval/consistency/defaults-300/plain/gear1_vs_gear5/mirage.json",
+          "sha256": "08e50e04db8581e3a4e85ef0cd005b3db617d504c3c1cbdeb80f1ac69f70a34c"
+        },
+        {
+          "path": "eval/consistency/defaults-300/plain/gear1_vs_gear5/ffmpeg.json",
+          "sha256": "5f9b6611830cab12297baf759837a11ca17f5febbcc24c8a7bca5eb4be086958"
+        }
+      ],
+      "skipped": [],
+      "series": [
+        {
+          "label": "gear4_vs_gear5, Mirage",
+          "precision": "full (mirage_vmaf's report)",
+          "stats": {
+            "frames": 300,
+            "mean": 84.2580603478746,
+            "min": 79.61383719363732,
+            "max": 85.11057912823397,
+            "min_first_index": 0,
+            "frames_at_min": 1,
+            "first_frame": 79.61383719363732,
+            "min_without_first_frame": 82.96900123118027,
+            "min_without_first_frame_index": 82,
+            "percentiles": {
+              "p1": {
+                "today": 83.06380877100892,
+                "nearest-rank": 83.01514623082576,
+                "linear": 83.06332214560709,
+                "largest_difference": 0.04866254018315885
+              },
+              "p5": {
+                "today": 83.4343529116219,
+                "nearest-rank": 83.42159681826604,
+                "linear": 83.43371510695411,
+                "largest_difference": 0.012756093355861253
+              },
+              "p10": {
+                "today": 83.6397515524014,
+                "nearest-rank": 83.6310224871809,
+                "linear": 83.63887864587936,
+                "largest_difference": 0.008729065220506982
+              },
+              "p25": {
+                "today": 83.95901403546563,
+                "nearest-rank": 83.91209519073165,
+                "linear": 83.94728432428214,
+                "largest_difference": 0.046918844733980336
+              },
+              "p50": {
+                "today": 84.34177007258859,
+                "nearest-rank": 84.32465619089449,
+                "linear": 84.33321313174153,
+                "largest_difference": 0.017113881694100996
+              }
+            },
+            "harmonic_mean": {
+              "shifted": 84.25474044599245,
+              "plain": 84.2547003660502,
+              "frames_at_or_below_zero": 0
+            }
+          },
+          "recorded": {
+            "mean": 84.25806034787456,
+            "min": 79.61383719363732,
+            "source": "libvmaf's vmaf_score_pooled in mirage_vmaf"
+          },
+          "motion": null,
+          "checks": {
+            "recorded_min_equals_min": true,
+            "mirage_vmaf_pooled_values_equal_d027_at_full_precision": true
+          },
+          "d027": {
+            "computed": {
+              "mean": 84.25806034787456,
+              "harmonic_mean": 84.25474044599248,
+              "min": 79.61383719363732,
+              "min_without_first_frame": 82.96900123118027,
+              "p1": 83.06332214560709,
+              "p5": 83.43371510695411,
+              "p10": 83.63887864587936,
+              "p25": 83.94728432428214,
+              "p50": 84.33321313174153
+            },
+            "reported": {
+              "mean": 84.25806034787456,
+              "harmonic_mean": 84.25474044599248,
+              "min": 79.61383719363732,
+              "min_without_first_frame": 82.96900123118027,
+              "p1": 83.06332214560709,
+              "p5": 83.43371510695411,
+              "p10": 83.63887864587936,
+              "p25": 83.94728432428214,
+              "p50": 84.33321313174153
+            },
+            "equal_at_full_precision": {
+              "mean": true,
+              "harmonic_mean": true,
+              "min": true,
+              "min_without_first_frame": true,
+              "p1": true,
+              "p5": true,
+              "p10": true,
+              "p25": true,
+              "p50": true
+            }
+          }
+        },
+        {
+          "label": "gear4_vs_gear5, FFmpeg",
+          "precision": "6 decimals (FFmpeg's libvmaf log)",
+          "stats": {
+            "frames": 300,
+            "mean": 84.25806035000001,
+            "min": 79.613837,
+            "max": 85.110579,
+            "min_first_index": 0,
+            "frames_at_min": 1,
+            "first_frame": 79.613837,
+            "min_without_first_frame": 82.969001,
+            "min_without_first_frame_index": 82,
+            "percentiles": {
+              "p1": {
+                "today": 83.063809,
+                "nearest-rank": 83.015146,
+                "linear": 83.06332237000001,
+                "largest_difference": 0.048663000000004786
+              },
+              "p5": {
+                "today": 83.434353,
+                "nearest-rank": 83.421597,
+                "linear": 83.4337152,
+                "largest_difference": 0.012755999999995993
+              },
+              "p10": {
+                "today": 83.639752,
+                "nearest-rank": 83.631022,
+                "linear": 83.638879,
+                "largest_difference": 0.008729999999999905
+              },
+              "p25": {
+                "today": 83.959014,
+                "nearest-rank": 83.912095,
+                "linear": 83.94728425,
+                "largest_difference": 0.0469190000000026
+              },
+              "p50": {
+                "today": 84.34177,
+                "nearest-rank": 84.324656,
+                "linear": 84.333213,
+                "largest_difference": 0.017113999999992302
+              }
+            },
+            "harmonic_mean": {
+              "shifted": 84.25474044813022,
+              "plain": 84.25470036818805,
+              "frames_at_or_below_zero": 0
+            }
+          },
+          "recorded": {
+            "min": 79.613837,
+            "max": 85.110579,
+            "mean": 84.25806,
+            "harmonic_mean": 84.25474,
+            "source": "libvmaf's pooled_metrics in FFmpeg's log"
+          },
+          "motion": {
+            "frame0_integer_motion2": 0.0,
+            "frame0_integer_motion": 0.0,
+            "frames_with_integer_motion2_zero": 1
+          },
+          "checks": {
+            "shifted_harmonic_mean_equals_libvmaf_at_6_decimals": true,
+            "recorded_min_equals_min": true
+          }
+        },
+        {
+          "label": "gear3_vs_gear5, Mirage",
+          "precision": "full (mirage_vmaf's report)",
+          "stats": {
+            "frames": 300,
+            "mean": 64.84300242620922,
+            "min": 56.84453353023001,
+            "max": 66.39346038090225,
+            "min_first_index": 0,
+            "frames_at_min": 1,
+            "first_frame": 56.84453353023001,
+            "min_without_first_frame": 61.370428813368356,
+            "min_without_first_frame_index": 120,
+            "percentiles": {
+              "p1": {
+                "today": 61.56314412125402,
+                "nearest-rank": 61.54544962660882,
+                "linear": 61.562967176307566,
+                "largest_difference": 0.017694494645198233
+              },
+              "p5": {
+                "today": 63.882208686372095,
+                "nearest-rank": 63.85972738993837,
+                "linear": 63.88108462155041,
+                "largest_difference": 0.02248129643372465
+              },
+              "p10": {
+                "today": 64.06736767758937,
+                "nearest-rank": 64.04434623813441,
+                "linear": 64.06506553364387,
+                "largest_difference": 0.02302143945496482
+              },
+              "p25": {
+                "today": 64.43403641570252,
+                "nearest-rank": 64.43315571512329,
+                "linear": 64.43381624055772,
+                "largest_difference": 0.00088070057923062
+              },
+              "p50": {
+                "today": 64.90102487130937,
+                "nearest-rank": 64.8984739883877,
+                "linear": 64.89974942984854,
+                "largest_difference": 0.0025508829216676077
+              }
+            },
+            "harmonic_mean": {
+              "shifted": 64.83099106400165,
+              "plain": 64.83079631415119,
+              "frames_at_or_below_zero": 0
+            }
+          },
+          "recorded": {
+            "mean": 64.84300242620918,
+            "min": 56.84453353023001,
+            "source": "libvmaf's vmaf_score_pooled in mirage_vmaf"
+          },
+          "motion": null,
+          "checks": {
+            "recorded_min_equals_min": true,
+            "mirage_vmaf_pooled_values_equal_d027_at_full_precision": true
+          },
+          "d027": {
+            "computed": {
+              "mean": 64.84300242620918,
+              "harmonic_mean": 64.83099106400168,
+              "min": 56.84453353023001,
+              "min_without_first_frame": 61.370428813368356,
+              "p1": 61.562967176307566,
+              "p5": 63.88108462155041,
+              "p10": 64.06506553364387,
+              "p25": 64.43381624055772,
+              "p50": 64.89974942984854
+            },
+            "reported": {
+              "mean": 64.84300242620918,
+              "harmonic_mean": 64.83099106400168,
+              "min": 56.84453353023001,
+              "min_without_first_frame": 61.370428813368356,
+              "p1": 61.562967176307566,
+              "p5": 63.88108462155041,
+              "p10": 64.06506553364387,
+              "p25": 64.43381624055772,
+              "p50": 64.89974942984854
+            },
+            "equal_at_full_precision": {
+              "mean": true,
+              "harmonic_mean": true,
+              "min": true,
+              "min_without_first_frame": true,
+              "p1": true,
+              "p5": true,
+              "p10": true,
+              "p25": true,
+              "p50": true
+            }
+          }
+        },
+        {
+          "label": "gear3_vs_gear5, FFmpeg",
+          "precision": "6 decimals (FFmpeg's libvmaf log)",
+          "stats": {
+            "frames": 300,
+            "mean": 64.84300243666667,
+            "min": 56.844534,
+            "max": 66.39346,
+            "min_first_index": 0,
+            "frames_at_min": 1,
+            "first_frame": 56.844534,
+            "min_without_first_frame": 61.370429,
+            "min_without_first_frame_index": 120,
+            "percentiles": {
+              "p1": {
+                "today": 61.563144,
+                "nearest-rank": 61.54545,
+                "linear": 61.56296706,
+                "largest_difference": 0.017693999999998766
+              },
+              "p5": {
+                "today": 63.882209,
+                "nearest-rank": 63.859727,
+                "linear": 63.881084900000005,
+                "largest_difference": 0.022482000000003666
+              },
+              "p10": {
+                "today": 64.067368,
+                "nearest-rank": 64.044346,
+                "linear": 64.0650658,
+                "largest_difference": 0.023021999999997433
+              },
+              "p25": {
+                "today": 64.434036,
+                "nearest-rank": 64.433156,
+                "linear": 64.43381600000001,
+                "largest_difference": 0.0008800000000093178
+              },
+              "p50": {
+                "today": 64.901025,
+                "nearest-rank": 64.898474,
+                "linear": 64.8997495,
+                "largest_difference": 0.002551000000011072
+              }
+            },
+            "harmonic_mean": {
+              "shifted": 64.8309910746938,
+              "plain": 64.83079632484873,
+              "frames_at_or_below_zero": 0
+            }
+          },
+          "recorded": {
+            "min": 56.844534,
+            "max": 66.39346,
+            "mean": 64.843002,
+            "harmonic_mean": 64.830991,
+            "source": "libvmaf's pooled_metrics in FFmpeg's log"
+          },
+          "motion": {
+            "frame0_integer_motion2": 0.0,
+            "frame0_integer_motion": 0.0,
+            "frames_with_integer_motion2_zero": 1
+          },
+          "checks": {
+            "shifted_harmonic_mean_equals_libvmaf_at_6_decimals": true,
+            "recorded_min_equals_min": true
+          }
+        },
+        {
+          "label": "gear2_vs_gear5, Mirage",
+          "precision": "full (mirage_vmaf's report)",
+          "stats": {
+            "frames": 300,
+            "mean": 36.81766319253451,
+            "min": 23.48869176425057,
+            "max": 39.5972938823871,
+            "min_first_index": 0,
+            "frames_at_min": 1,
+            "first_frame": 23.48869176425057,
+            "min_without_first_frame": 27.36034402228314,
+            "min_without_first_frame_index": 120,
+            "percentiles": {
+              "p1": {
+                "today": 27.56268650086591,
+                "nearest-rank": 27.479642543583857,
+                "linear": 27.561856061293092,
+                "largest_difference": 0.08304395728205449
+              },
+              "p5": {
+                "today": 35.38166275805852,
+                "nearest-rank": 35.35684745539047,
+                "linear": 35.380421992925115,
+                "largest_difference": 0.024815302668045547
+              },
+              "p10": {
+                "today": 35.856537936243605,
+                "nearest-rank": 35.81567162379267,
+                "linear": 35.85245130499851,
+                "largest_difference": 0.040866312450937414
+              },
+              "p25": {
+                "today": 36.43339309779913,
+                "nearest-rank": 36.396684826716374,
+                "linear": 36.42421603002845,
+                "largest_difference": 0.03670827108275887
+              },
+              "p50": {
+                "today": 37.07226048554877,
+                "nearest-rank": 37.05919396687996,
+                "linear": 37.065727226214364,
+                "largest_difference": 0.013066518668807703
+              }
+            },
+            "harmonic_mean": {
+              "shifted": 36.714504032332385,
+              "plain": 36.710892935538844,
+              "frames_at_or_below_zero": 0
+            }
+          },
+          "recorded": {
+            "mean": 36.81766319253449,
+            "min": 23.48869176425057,
+            "source": "libvmaf's vmaf_score_pooled in mirage_vmaf"
+          },
+          "motion": null,
+          "checks": {
+            "recorded_min_equals_min": true,
+            "mirage_vmaf_pooled_values_equal_d027_at_full_precision": true
+          },
+          "d027": {
+            "computed": {
+              "mean": 36.81766319253449,
+              "harmonic_mean": 36.714504032332385,
+              "min": 23.48869176425057,
+              "min_without_first_frame": 27.36034402228314,
+              "p1": 27.561856061293092,
+              "p5": 35.380421992925115,
+              "p10": 35.85245130499851,
+              "p25": 36.42421603002845,
+              "p50": 37.065727226214364
+            },
+            "reported": {
+              "mean": 36.81766319253449,
+              "harmonic_mean": 36.714504032332385,
+              "min": 23.48869176425057,
+              "min_without_first_frame": 27.36034402228314,
+              "p1": 27.561856061293092,
+              "p5": 35.380421992925115,
+              "p10": 35.85245130499851,
+              "p25": 36.42421603002845,
+              "p50": 37.065727226214364
+            },
+            "equal_at_full_precision": {
+              "mean": true,
+              "harmonic_mean": true,
+              "min": true,
+              "min_without_first_frame": true,
+              "p1": true,
+              "p5": true,
+              "p10": true,
+              "p25": true,
+              "p50": true
+            }
+          }
+        },
+        {
+          "label": "gear2_vs_gear5, FFmpeg",
+          "precision": "6 decimals (FFmpeg's libvmaf log)",
+          "stats": {
+            "frames": 300,
+            "mean": 36.81766322,
+            "min": 23.488692,
+            "max": 39.597294,
+            "min_first_index": 0,
+            "frames_at_min": 1,
+            "first_frame": 23.488692,
+            "min_without_first_frame": 27.360344,
+            "min_without_first_frame_index": 120,
+            "percentiles": {
+              "p1": {
+                "today": 27.562687,
+                "nearest-rank": 27.479643,
+                "linear": 27.56185656,
+                "largest_difference": 0.083044000000001
+              },
+              "p5": {
+                "today": 35.381663,
+                "nearest-rank": 35.356847,
+                "linear": 35.380422200000005,
+                "largest_difference": 0.02481600000000128
+              },
+              "p10": {
+                "today": 35.856538,
+                "nearest-rank": 35.815672,
+                "linear": 35.8524514,
+                "largest_difference": 0.04086600000000118
+              },
+              "p25": {
+                "today": 36.433393,
+                "nearest-rank": 36.396685,
+                "linear": 36.424216,
+                "largest_difference": 0.036708000000004404
+              },
+              "p50": {
+                "today": 37.07226,
+                "nearest-rank": 37.059194,
+                "linear": 37.065726999999995,
+                "largest_difference": 0.01306600000000202
+              }
+            },
+            "harmonic_mean": {
+              "shifted": 36.71450406440666,
+              "plain": 36.71089296780687,
+              "frames_at_or_below_zero": 0
+            }
+          },
+          "recorded": {
+            "min": 23.488692,
+            "max": 39.597294,
+            "mean": 36.817663,
+            "harmonic_mean": 36.714504,
+            "source": "libvmaf's pooled_metrics in FFmpeg's log"
+          },
+          "motion": {
+            "frame0_integer_motion2": 0.0,
+            "frame0_integer_motion": 0.0,
+            "frames_with_integer_motion2_zero": 1
+          },
+          "checks": {
+            "shifted_harmonic_mean_equals_libvmaf_at_6_decimals": true,
+            "recorded_min_equals_min": true
+          }
+        },
+        {
+          "label": "gear1_vs_gear5, Mirage",
+          "precision": "full (mirage_vmaf's report)",
+          "stats": {
+            "frames": 300,
+            "mean": 6.781917868878008,
+            "min": 0.0,
+            "max": 9.433975832837639,
+            "min_first_index": 0,
+            "frames_at_min": 10,
+            "first_frame": 0.0,
+            "min_without_first_frame": 0.0,
+            "min_without_first_frame_index": 30,
+            "percentiles": {
+              "p1": {
+                "today": 0.0,
+                "nearest-rank": 0.0,
+                "linear": 0.0,
+                "largest_difference": 0.0
+              },
+              "p5": {
+                "today": 5.409786484115998,
+                "nearest-rank": 5.393480813774662,
+                "linear": 5.408971200598931,
+                "largest_difference": 0.01630567034133623
+              },
+              "p10": {
+                "today": 5.739042774541356,
+                "nearest-rank": 5.7073711236040126,
+                "linear": 5.735875609447621,
+                "largest_difference": 0.031671650937343365
+              },
+              "p25": {
+                "today": 6.25359543341394,
+                "nearest-rank": 6.249530720568103,
+                "linear": 6.25257925520248,
+                "largest_difference": 0.004064712845837093
+              },
+              "p50": {
+                "today": 7.0633523908461155,
+                "nearest-rank": 7.060764839068911,
+                "linear": 7.062058614957513,
+                "largest_difference": 0.0025875517772044887
+              }
+            },
+            "harmonic_mean": {
+              "shifted": 5.43975528745379,
+              "plain": null,
+              "frames_at_or_below_zero": 10
+            }
+          },
+          "recorded": {
+            "mean": 6.781917868878007,
+            "min": 0,
+            "source": "libvmaf's vmaf_score_pooled in mirage_vmaf"
+          },
+          "motion": null,
+          "checks": {
+            "recorded_min_equals_min": true,
+            "mirage_vmaf_pooled_values_equal_d027_at_full_precision": true
+          },
+          "d027": {
+            "computed": {
+              "mean": 6.781917868878007,
+              "harmonic_mean": 5.4397552874537904,
+              "min": 0.0,
+              "min_without_first_frame": 0.0,
+              "p1": 0.0,
+              "p5": 5.408971200598931,
+              "p10": 5.735875609447621,
+              "p25": 6.25257925520248,
+              "p50": 7.062058614957513
+            },
+            "reported": {
+              "mean": 6.781917868878007,
+              "harmonic_mean": 5.4397552874537904,
+              "min": 0,
+              "min_without_first_frame": 0,
+              "p1": 0,
+              "p5": 5.408971200598931,
+              "p10": 5.735875609447621,
+              "p25": 6.25257925520248,
+              "p50": 7.062058614957513
+            },
+            "equal_at_full_precision": {
+              "mean": true,
+              "harmonic_mean": true,
+              "min": true,
+              "min_without_first_frame": true,
+              "p1": true,
+              "p5": true,
+              "p10": true,
+              "p25": true,
+              "p50": true
+            }
+          }
+        },
+        {
+          "label": "gear1_vs_gear5, FFmpeg",
+          "precision": "6 decimals (FFmpeg's libvmaf log)",
+          "stats": {
+            "frames": 300,
+            "mean": 6.781917886666667,
+            "min": 0.0,
+            "max": 9.433976,
+            "min_first_index": 0,
+            "frames_at_min": 10,
+            "first_frame": 0.0,
+            "min_without_first_frame": 0.0,
+            "min_without_first_frame_index": 30,
+            "percentiles": {
+              "p1": {
+                "today": 0.0,
+                "nearest-rank": 0.0,
+                "linear": 0.0,
+                "largest_difference": 0.0
+              },
+              "p5": {
+                "today": 5.409786,
+                "nearest-rank": 5.393481,
+                "linear": 5.408970750000001,
+                "largest_difference": 0.016305000000000014
+              },
+              "p10": {
+                "today": 5.739043,
+                "nearest-rank": 5.707371,
+                "linear": 5.7358758,
+                "largest_difference": 0.03167199999999948
+              },
+              "p25": {
+                "today": 6.253595,
+                "nearest-rank": 6.249531,
+                "linear": 6.252579,
+                "largest_difference": 0.0040639999999996235
+              },
+              "p50": {
+                "today": 7.063352,
+                "nearest-rank": 7.060765,
+                "linear": 7.0620585,
+                "largest_difference": 0.002587000000000117
+              }
+            },
+            "harmonic_mean": {
+              "shifted": 5.439755300253502,
+              "plain": null,
+              "frames_at_or_below_zero": 10
+            }
+          },
+          "recorded": {
+            "min": 0.0,
+            "max": 9.433976,
+            "mean": 6.781918,
+            "harmonic_mean": 5.439755,
+            "source": "libvmaf's pooled_metrics in FFmpeg's log"
+          },
+          "motion": {
+            "frame0_integer_motion2": 0.0,
+            "frame0_integer_motion": 0.0,
+            "frames_with_integer_motion2_zero": 1
+          },
+          "checks": {
+            "shifted_harmonic_mean_equals_libvmaf_at_6_decimals": true,
+            "recorded_min_equals_min": true
+          }
+        }
+      ]
+    }
+  ]
+}
