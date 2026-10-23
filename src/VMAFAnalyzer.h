@@ -38,8 +38,8 @@ constexpr std::optional<VMAFScaler> vmaf_scaler_named(std::string_view name)
 
 // The libvmaf model the pairs are scored with (work order section 1.1): one
 // of the linked libvmaf's built-in models, by version, or a model file.
-// vmaf_v0.6.1 is what the analyzer uses unless told otherwise; the default
-// is the owner's to decide (DECISIONS.md D-004).
+// vmaf_v0.6.1 is what the analyzer uses unless told otherwise (DECISIONS.md
+// D-025), as FFmpeg's libvmaf filter does.
 struct VMAFModelChoice {
     std::string version = "vmaf_v0.6.1";   // built-in model; used when `path` is empty
     std::string path;                      // a libvmaf model file (JSON) instead
