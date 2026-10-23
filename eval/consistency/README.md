@@ -14,12 +14,12 @@ eval/consistency/run_delta.sh <mirage_vmaf> <out_dir> [--frames N] [--jobs J] [-
 
 - `<mirage_vmaf>`: the program to check, such as `build/macos-release/mirage_vmaf`. For outputs that are to be committed, build it from a committed, clean tree: the run records the commit, whether the working tree was clean at its start and end, and the program's SHA-256.
 - `<out_dir>`: a new or empty directory.
-- Defaults: the four pairs of `pairs/bipbop16x9.txt` (each lower bipbop 16x9 rung against gear5, D-018), every frame, model `vmaf_v0.6.1`, scaler `bilinear`, 4 libvmaf threads, threshold 0.01 (D-019), `/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg` with the `ffprobe` next to it, one scoring process at a time, and a limit of 6 hours per process. `--help` lists the options.
+- Defaults: the four pairs of `pairs/bipbop16x9.txt` (each lower bipbop 16x9 rung against gear5, D-018), every frame, model `vmaf_v0.6.1`, scaler `bicubic` on both sides (D-024; until then `bilinear`), 4 libvmaf threads, threshold 0.01 (D-019), `/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg` with the `ffprobe` next to it, one scoring process at a time, and a limit of 6 hours per process. `--help` lists the options.
 - It needs only Python 3 and its standard library; `run_delta.sh` runs it with `python3 -I -B` (`-B`: no `__pycache__` in the working tree, whose state the run records). Inputs given as URLs are fetched again on every run.
 - Exit status: 0 every pair passed; 1 at least one pair failed (the reports say why); 2 bad arguments, or the run could not start; 3 an output still contains a local path or name after the placeholders, and must not be committed.
 - A pairs file has one `<label> <reference> <distorted>` per line; `#` starts a comment line. The label names the pair's directory.
 
-`--scaler`, `--model`, `--model-file` and `--threads` set FFmpeg's side: the `flags=` of its scale filter, the `model=version=NAME` or `model=path=FILE` of its libvmaf filter, and its `n_threads`. `mirage_vmaf` is given `--scaler`, `--model` and `--model-file` only if its `--help` lists them, as it does since commits `6a9aca2` (`--scaler`) and `44cd4b5` (`--model`, `--model-file`); one that lists none of them scores with its fixed settings (bilinear, `vmaf_v0.6.1`). Its 4 libvmaf threads are fixed. A pair fails with `SETTINGS MISMATCH` when `mirage_vmaf`'s report has other settings than FFmpeg was given; with `--model-file`, the report must give `model_source` `file` and the SHA-256 the tool computes of the file. The path of a model file may not contain characters that mean something in a filter graph, such as `:` or `,`, or white space.
+`--scaler`, `--model`, `--model-file` and `--threads` set FFmpeg's side: the `flags=` of its scale filter, the `model=version=NAME` or `model=path=FILE` of its libvmaf filter, and its `n_threads`. `mirage_vmaf` is given `--scaler`, `--model` and `--model-file` only if its `--help` lists them, as it does since commits `6a9aca2` (`--scaler`) and `44cd4b5` (`--model`, `--model-file`), always with the values FFmpeg gets, the defaults included; one that lists none of them scores with its fixed settings (bilinear, `vmaf_v0.6.1`), so since D-024 its runs need `--scaler bilinear`. Its 4 libvmaf threads are fixed. A pair fails with `SETTINGS MISMATCH` when `mirage_vmaf`'s report has other settings than FFmpeg was given; with `--model-file`, the report must give `model_source` `file` and the SHA-256 the tool computes of the file. The path of a model file may not contain characters that mean something in a filter graph, such as `:` or `,`, or white space.
 
 ## What it runs for each pair
 
@@ -27,15 +27,15 @@ In `<out_dir>/<pair>/`, in this order (the exact commands are in that directory'
 
 1. `ffprobe` on both inputs, for the reference's size (FFmpeg scales the distorted input to it) and both inputs' color tags.
 2. `mirage_vmaf --ref <reference> --dis <distorted> --out mirage.json [--frames N]`, plus `--scaler`, and `--model` or `--model-file`, as above.
-3. FFmpeg's libvmaf filter, with the filter graph of Phase 0's diagnostic comparison (`eval/baseline/diagnostics/ffmpeg_libvmaf_gear2_vs_gear5_first300.cmd.txt`, P-005). With `--frames N`:
+3. FFmpeg's libvmaf filter, with the filter graph of Phase 0's diagnostic comparison (`eval/baseline/diagnostics/ffmpeg_libvmaf_gear2_vs_gear5_first300.cmd.txt`, P-005). With `--frames N` and the defaults:
 
    ```
    <ffmpeg> -hide_banner -nostdin -nostats -v verbose -i <distorted> -i <reference> -an -lavfi
-       '[0:v]trim=end_frame=N,scale=W:H:flags=bilinear,format=yuv420p[d];[1:v]trim=end_frame=N,format=yuv420p[r];
+       '[0:v]trim=end_frame=N,scale=W:H:flags=bicubic,format=yuv420p[d];[1:v]trim=end_frame=N,format=yuv420p[r];
         [d][r]libvmaf=model=version=vmaf_v0.6.1:n_threads=4:log_fmt=json:log_path=ffmpeg.json' -f null -
    ```
 
-   (one line in `cmd.txt`; without `--frames` there is no `trim`). How this differs from Phase 0's command, and why, is P-008: the reference's size in place of a fixed `1920:1080`, `trim` in place of `-frames:v`, no audio, and a verbose log.
+   (one line in `cmd.txt`; without `--frames` there is no `trim`, and `flags=` is the scaler `--scaler` names). How this differs from Phase 0's command, and why, is P-008: the reference's size in place of a fixed `1920:1080`, `trim` in place of `-frames:v`, no audio, and a verbose log. Phase 0's command, and the runs made before D-024 that name no scaler, have `flags=bilinear`.
 
 Then it compares the two sides frame by frame and writes the reports.
 
@@ -48,7 +48,7 @@ Frame i of `mirage_vmaf`'s report is compared with frame i of FFmpeg's libvmaf l
 - both sides scored the same number of frames, and more than none (a mismatch shows as `FRAME COUNT MISMATCH`);
 - no frame has |delta| greater than the threshold.
 
-The reports also give the largest and mean |delta|, the mean delta, the frames over the threshold, the frames with the largest |delta|, both sides' pooled mean and min as libvmaf computes them, both sides' libvmaf versions at run time and their package versions (D-006: `mirage_vmaf`'s from its report, FFmpeg's from its libvmaf log and from the library its libavfilter links), both sides' FFmpeg libraries at their run-time versions (D-021: `mirage_vmaf`'s from its report's `ffmpeg_libraries`, the `ffmpeg` program's from `ffmpeg -version`), how each side converted the distorted frames' color matrix and range (FFmpeg's scale filter lines, and the `dis_conversion` of `mirage_vmaf`'s report where it has one, D-016) and the reference's (the lines of the scale filters FFmpeg inserts, `auto_scale_N`, and the report's `ref_conversion` where it has one, D-022), and the warnings: checks that don't fail a pair, such as different libvmaf versions or FFmpeg library versions on the two sides, Mirage pairs whose two frames have different PTS, tags in FFmpeg's log that differ from ffprobe's, a `dis_conversion` whose tags differ from those of FFmpeg's scale filter, a `ref_conversion` whose tags differ from those of the scale filters FFmpeg inserts, or a warning of `mirage_vmaf`'s own report, such as frames in a pixel format whose conversion isn't checked against FFmpeg's (P-033; until D-022, that the reference isn't yuv420p, P-030).
+The reports also give the largest and mean |delta|, the mean delta, the frames over the threshold, the frames with the largest |delta|, both sides' pooled mean, min and harmonic mean as libvmaf computes them (`mirage_vmaf`'s harmonic mean since D-027; P-039), both sides' libvmaf versions at run time and their package versions (D-006: `mirage_vmaf`'s from its report, FFmpeg's from its libvmaf log and from the library its libavfilter links), both sides' FFmpeg libraries at their run-time versions (D-021: `mirage_vmaf`'s from its report's `ffmpeg_libraries`, the `ffmpeg` program's from `ffmpeg -version`), how each side converted the distorted frames' color matrix and range (FFmpeg's scale filter lines, and the `dis_conversion` of `mirage_vmaf`'s report where it has one, D-016) and the reference's (the lines of the scale filters FFmpeg inserts, `auto_scale_N`, and the report's `ref_conversion` where it has one, D-022), and the warnings: checks that don't fail a pair, such as different libvmaf versions or FFmpeg library versions on the two sides, Mirage pairs whose two frames have different PTS, tags in FFmpeg's log that differ from ffprobe's, a `dis_conversion` whose tags differ from those of FFmpeg's scale filter, a `ref_conversion` whose tags differ from those of the scale filters FFmpeg inserts, or a warning of `mirage_vmaf`'s own report, such as frames in a pixel format whose conversion isn't checked against FFmpeg's (P-033; until D-022, that the reference isn't yuv420p, P-030).
 
 FFmpeg's side pairs frames by timestamp, Mirage's in the order they are decoded, so a comparison by position is only right while both sides pair the same frames; the PTS warning checks that from Mirage's side.
 
@@ -114,6 +114,8 @@ python3 -I -B eval/consistency/color_cases.py <clips_dir> [--set tags|formats] [
 `run_delta.sh` shows local paths under `TMPDIR` as `<tmp>`, so the clips belong under `TMPDIR` (or `TMPDIR` set to a directory that holds them) when a run's outputs are to be committed.
 
 ## Committed runs
+
+The command blocks below are the commands as they were run. Until D-024, `run_delta.sh`'s default scaler was bilinear, so the blocks of runs made before it that name no scaler ran with bilinear on both sides; each run's `run.cmd.txt` records every option, the scaler included, and `eval/run_all.sh` gives each rerun those options (P-038).
 
 ### `diag-before-300/`: the diagnosis before D-016, first 300 frames (P-012)
 
@@ -367,7 +369,7 @@ From `scaler_effect.md`, Mirage's side (shift = the scaler's score minus bilinea
 What they show:
 
 - **Mirage matches FFmpeg with every scaler.** All three runs pass on all four pairs, and every frame of every pair agrees at the 6 decimals of FFmpeg's log (`checks.txt`, check 3). FFmpeg's scale filter ran with the flags of the scaler asked for, those of swscale's `SWS_BILINEAR`, `SWS_BICUBIC` and `SWS_LANCZOS` (check 5).
-- **The default is unchanged.** The bilinear run has, on both sides, the scores of `diag-after-300/` at full precision on every frame (check 4).
+- **Bilinear, the default until D-024, is unchanged.** The bilinear run has, on both sides, the scores of `diag-after-300/` at full precision on every frame (check 4).
 - **The scaler moves the scores a lot.** With bicubic and with lanczos no frame of any pair scores lower than with bilinear: every frame of gear4, gear3 and gear2 scores higher, and so does every frame of gear1 but 10 with bicubic and 9 with lanczos, which keep their score (`scaler_effect.md`, frames up / same / down). On average the scores rise by 6.775801 to 11.113910 points with bicubic and by 8.874908 to 13.334836 with lanczos, depending on the pair. FFmpeg's scores move the same way (the FFmpeg table of `scaler_effect.md`), so the scaler is no source of disagreement between the two tools, but it changes the scores themselves.
 
 Limits: the first 300 frames only; bipbop's rungs were rendered separately (D-011), so how much a scaler changes the scores of a ladder encoded from one source is not measured here (MEASUREMENT PENDING, after D-011's clips); the scores only compare settings and tools (D-005).
@@ -402,9 +404,42 @@ What they show:
 
 Limits: one pair, the first 300 frames; which model suits which content is not evaluated here.
 
+### `defaults-300/`: the first 300 frames with the defaults of D-024 and D-027 (P-041)
+
+The bicubic run of `scalers-300/` again, made without `--scaler`, so with `run_delta.sh`'s default since D-024, bicubic, on both sides, and with a `mirage_vmaf` whose report has the pooled values of D-027, built in a new worktree of `02ebed5103f612dad302da0162cc28c2a2cd48bf` (`build.txt`), from which the run was made:
+
+```
+eval/consistency/run_delta.sh build/macos-release/mirage_vmaf <out>/plain --frames 300 --jobs 1
+```
+
+| File | Contents |
+|---|---|
+| `build.txt` | the build of `mirage_vmaf` in the new worktree: its commit and clean state, the configure, the build's output, a second build with nothing to do, and its SHA-256, which `plain/environment.txt` repeats |
+| `plain/` | the run |
+| `checks.txt` | checks made on the run afterwards, each command with its output |
+| `SHA256SUMS` | SHA-256 of `build.txt`, `checks.txt` and `plain/SHA256SUMS` |
+
+`eval/pooling/defaults-300/` is `eval/pooling/pooling.py --check-pooled` on this run (`eval/pooling/README.md`).
+
+What they show:
+
+- **Both sides used bicubic.** `run.cmd.txt` records `--scaler bicubic`, the scaler `run_delta.sh` used; each pair's `mirage_vmaf` got `--scaler bicubic` and FFmpeg's scale filter `flags=bicubic`, whose line in FFmpeg's log has `flags:0x00000004`, the flags of `SWS_BICUBIC` (`checks.txt`, check 2).
+- **The scores of `scalers-300/bicubic`**, which was made with `--scaler bicubic` given: on all 300 frames of every pair, Mirage's score is the same at full precision and FFmpeg's every libvmaf metric is the same (check 3). All four pairs pass, every frame agreeing at the 6 decimals of FFmpeg's log, with no warning (`plain/delta.md`; check 8).
+- **`mirage_vmaf`'s own default.** The same program, run directly with `--frames 300` and no `--scaler` on each pair, reports the scaler bicubic and scores all 300 frames as the run did; so does a run of gear2 whose settings come from a config file, and its report's `config_file` has the file's path and the SHA-256 `shasum` computes of it (check 4; D-030).
+- **The pooled values of D-027.** Each report's pooled mean and min are those that `vmaf_score_pooled()` gave `scalers-300/bicubic`'s reports for the same per-frame scores, at full precision (check 5); its mean, min and harmonic mean are those of FFmpeg's libvmaf log at its 6 decimals (check 6); and all nine values are those `pooling.py` computes from the report's per-frame scores, at full precision (check 7). From `plain/*/mirage.json`, written with 6 decimals:
+
+  | pair | mean | harmonic mean | min | min without the first frame | p1 | p5 | p10 | p25 | p50 |
+  |---|---|---|---|---|---|---|---|---|---|
+  | gear4_vs_gear5 | 84.258060 | 84.254740 | 79.613837 | 82.969001 | 83.063322 | 83.433715 | 83.638879 | 83.947284 | 84.333213 |
+  | gear3_vs_gear5 | 64.843002 | 64.830991 | 56.844534 | 61.370429 | 61.562967 | 63.881085 | 64.065066 | 64.433816 | 64.899749 |
+  | gear2_vs_gear5 | 36.817663 | 36.714504 | 23.488692 | 27.360344 | 27.561856 | 35.380422 | 35.852451 | 36.424216 | 37.065727 |
+  | gear1_vs_gear5 | 6.781918 | 5.439755 | 0.000000 | 0.000000 | 0.000000 | 5.408971 | 5.735876 | 6.252579 | 7.062059 |
+
+Limits: the first 300 frames only; the full-length report with bicubic (D-024) is MEASUREMENT PENDING. bipbop's rungs were rendered separately (D-011), so the scores compare the tools and the settings, not the rungs' quality (D-005).
+
 ### `acceptance-full/`: the §5 report, every frame of the four pairs (D-018, P-026)
 
-The committed §5 delta report, D-018's acceptance output: every frame of the four pairs, plain FFmpeg, the defaults (bilinear, vmaf_v0.6.1, 4 libvmaf threads, threshold 0.01), with the release `mirage_vmaf` of the main working tree at the clean HEAD `3650f83dbbc196e62a360c31c96789c86f34dc43` (`build.txt`), the program of `scalers-300/` and `models-300/`, and four scoring processes at a time:
+The committed §5 delta report, D-018's acceptance output: every frame of the four pairs, plain FFmpeg, the defaults of its day (bilinear, vmaf_v0.6.1, 4 libvmaf threads, threshold 0.01), with the release `mirage_vmaf` of the main working tree at the clean HEAD `3650f83dbbc196e62a360c31c96789c86f34dc43` (`build.txt`), the program of `scalers-300/` and `models-300/`, and four scoring processes at a time:
 
 ```
 eval/consistency/run_delta.sh build/macos-release/mirage_vmaf <out>/plain --jobs 4
@@ -439,7 +474,7 @@ What they show:
 Limits:
 
 - bipbop 16x9's rungs were rendered separately, so these scores compare the two tools, not the rungs' quality (D-005, D-011).
-- Only the defaults of today, bilinear and vmaf_v0.6.1 (D-003, D-004); another default needs this run again. The other scalers and models are measured over 300 frames (`scalers-300/`, `models-300/`).
+- Only the defaults of its day, bilinear and vmaf_v0.6.1 (D-003, D-004). D-024 made bicubic the default, and has this report made again with it; that run is MEASUREMENT PENDING, and this one stays committed as the record it is. The other scalers and models are measured over 300 frames (`scalers-300/`, `models-300/`), and the defaults of D-024 over 300 frames in `defaults-300/`.
 - 8-bit yuv420p inputs only, fetched from Apple's CDN during the run.
 
 ### `ffmpeg-scale-default/`, `ffmpeg-libvmaf-filter/`: what the FFmpeg of these runs does by default (P-016)

@@ -1,23 +1,28 @@
 # Pooling definitions (work order §1.5)
 
-Work order §1.5 asks for `mean`, `harmonic_mean`, `min` and `p1` / `p5` / `p10` / `p25` / `p50`. How they are defined is the owner's decision #6 (`docs/DECISIONS.md` D-004), so Mirage's pooling is unchanged: `mirage_vmaf` reports libvmaf's pooled mean and min, and the player's analyzer also computes a `vmaf_p5` itself. `pooling.py` measures what the candidate definitions give on per-frame scores already committed in the repository. The decision package is in `docs/PHASE1_DECISIONS_PENDING.md`.
+Work order §1.5 asks for `mean`, `harmonic_mean`, `min` and `p1` / `p5` / `p10` / `p25` / `p50`. How they are defined was the owner's decision #6 (`docs/DECISIONS.md` D-004). `pooling.py` measured what the candidate definitions give on per-frame scores already committed in the repository (`bipbop16x9/`, `acceptance-full/` below; the package in `docs/PHASE1_DECISIONS_PENDING.md`), and D-027 decided:
+
+- the mean, the harmonic mean, `n / sum(1 / (x + 1)) - 1`, and the minimum as libvmaf pools them; the minimum without the first frame under its own name; and p1, p5, p10, p25 and p50 by linear interpolation, Hyndman and Fan's definition 7, the **linear** definition below.
+
+Since then `mirage_vmaf`'s report gives all of them (`pooled`, `src/VMAFReport.h`), and the player's p5 is the interpolated one. The analyzer computes them from the per-frame scores (`src/VMAFPool.h`; P-039): the mean, harmonic mean and minimum with libvmaf's formulas, summed frame by frame in index order as libvmaf sums them, so that they are `vmaf_score_pooled()`'s values to the last bit for the scores of one libvmaf context (`tests/test_vmaf_pool.cpp`), and the percentiles with the arithmetic of `pooling.py`'s linear definition. With `--check-pooled`, `pooling.py` computes the same values and checks them against those of `mirage_vmaf`'s reports (`defaults-300/` below).
 
 ## Running it
 
 ```
-python3 -I -B eval/pooling/pooling.py (--gui-report <report.vmaf.json> | --delta-run <run_delta output dir>)... --out <prefix>
+python3 -I -B eval/pooling/pooling.py (--gui-report <report.vmaf.json> | --delta-run <run_delta output dir>)... [--check-pooled] --out <prefix>
 python3 -I -B -m unittest discover -s eval/pooling/tests -v
 ```
 
 - `--gui-report`: a report the player's analyzer writes (`write_json`), whose per-frame scores have 4 decimals.
 - `--delta-run`: an `eval/consistency/run_delta.sh` output directory. For each pair it reads `mirage_vmaf`'s report (scores at full precision, libvmaf's pooled mean and min) and FFmpeg's libvmaf log (scores at 6 decimals; libvmaf's pooled min, max, mean and harmonic mean; each frame's features).
+- `--check-pooled`: for Mirage's series of each `--delta-run`, also the pooled values of D-027 as `mirage_vmaf` computes them (`POOLED_D027`) and those of its report, with a check that each pair of them is equal at full precision. Without it the output is what it was before D-027, which the reruns of `bipbop16x9/` and `acceptance-full/` by `eval/run_all.sh` rely on.
 - It writes `<prefix>.json` and `<prefix>.md`, with the SHA-256 of every input and the git HEAD and working tree state at the start and end of the run. Python 3 standard library only.
 
 For every series of per-frame scores it gives:
 
 - the mean, the minimum, the first index at the minimum, how many frames score the minimum, the first frame's score, and the minimum without the first frame;
-- p1, p5, p10, p25 and p50 under three definitions: **today**, `sorted[floor(n*p/100)]`, the rule of the analyzer's `vmaf_p5` (`src/VMAFAnalyzer.cpp`); **nearest-rank**, `sorted[ceil(n*p/100) - 1]`; **linear**, interpolation between the closest ranks with `h = (n - 1) * p / 100` (Hyndman and Fan's definition 7, also `statistics.quantiles(..., method="inclusive")`);
-- the harmonic mean in two forms, `n / sum(1 / (x + 1)) - 1` (**shifted**) and `n / sum(1 / x)` (**plain**, undefined when a frame scores 0), next to libvmaf's own harmonic mean where FFmpeg's log has it;
+- p1, p5, p10, p25 and p50 under three definitions: **today**, `sorted[floor(n*p/100)]`, the rule of the analyzer's `vmaf_p5` until D-027; **nearest-rank**, `sorted[ceil(n*p/100) - 1]`; **linear**, interpolation between the closest ranks with `h = (n - 1) * p / 100` (Hyndman and Fan's definition 7, also `statistics.quantiles(..., method="inclusive")`);
+- the harmonic mean in two forms, `n / sum(1 / (x + 1)) - 1` (**shifted**) and `n / sum(1 / x)` (**plain**, undefined when a frame scores 0), next to libvmaf's own harmonic mean where FFmpeg's log has it. The script's mean and harmonic means sum the scores exactly (`math.fsum`), where libvmaf, and so Mirage since D-027, sums them in frame order, and the two can differ in the last bits: in `defaults-300/pooling.json`, gear4's mean is 84.2580603478746 summed exactly and 84.25806034787456 in frame order, the value of `mirage_vmaf`'s report. The D-027 values of `--check-pooled` sum in frame order;
 - from FFmpeg's log, the first frame's `integer_motion2` and `integer_motion`, and how many frames have `integer_motion2` 0.
 
 ## `bipbop16x9/`: the Phase 0 baseline and the 300 frames after D-016
@@ -52,3 +57,17 @@ What `pooling.md` shows:
 - **Percentile definitions.** The three definitions differ by at most 0.000276 (gear3, p1) on these series; for gear1, p1 to p50 are 0 under all three.
 - **Harmonic mean.** For all four pairs, libvmaf's harmonic mean in FFmpeg's log equals the shifted form at the log's 6 decimals ("Checks" in `pooling.md`), e.g. 27.751821 for gear2, where the plain form gives 27.746387. For gear1 the plain form is undefined; the shifted form is 0.000574.
 - **Against `bipbop16x9/`.** gear4 and gear3 have the scores of Phase 0's series at its 4 decimals (`eval/consistency/acceptance-full/checks.txt`, check 4), and their minima without the first frame are where the baseline's are (indices 7878 and 25920). gear2 and gear1 changed with D-016: gear2's minimum without the first frame is now at index 28320, and gear1 has 53790 frames at 0 where the baseline had 5976.
+
+## `defaults-300/`: `mirage_vmaf`'s pooled values against this script (D-027)
+
+```
+python3 -I -B eval/pooling/pooling.py --delta-run eval/consistency/defaults-300/plain --check-pooled --out eval/pooling/defaults-300/pooling
+```
+
+One source, in `pooling.md` (made at commit `a0a9058`, working tree clean; P-041): both sides of the first 300 frames of the four pairs with the defaults of D-024 and D-027 (`eval/consistency/defaults-300/plain`), whose `mirage_vmaf` reports the pooled values of D-027.
+
+What `pooling.md` shows:
+
+- **Every pooled value of every report is `pooling.py`'s.** For each of the four pairs, the mean, harmonic mean, minimum, minimum without the first frame and p1, p5, p10, p25 and p50 of `mirage_vmaf`'s report equal the values `pooling.py` computes from the report's per-frame scores by `POOLED_D027`, at full precision ("The pooled values of D-027" in `pooling.md`, which writes both in full).
+- The other checks hold as on the earlier sources: libvmaf's harmonic mean in FFmpeg's logs is the shifted form at the log's 6 decimals, and each recorded minimum is the series' minimum ("Checks").
+- The comparisons with libvmaf's `vmaf_score_pooled()` and FFmpeg's log are `eval/consistency/defaults-300/checks.txt`, checks 5 and 6.

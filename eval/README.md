@@ -41,14 +41,16 @@ The steps, in order; each writes under `<out_dir>` the path its committed counte
 | `format-cases-d022` | `consistency/format-cases-d022/` | HEAD's |
 | `scalers-300` | `consistency/scalers-300/`: three runs and `scaler_effect.*` | HEAD's |
 | `models-300` | `consistency/models-300/`: four runs and `model_effect.*` | HEAD's |
+| `defaults-300` | `consistency/defaults-300/`: the first 300 frames of the four pairs with the defaults of D-024 and D-027 | HEAD's |
 | `acceptance-full` | `consistency/acceptance-full/`: every frame of the four pairs of D-018, the §5 report | HEAD's |
 | `ffmpeg-scale-default` | the commands of `consistency/ffmpeg-scale-default/checks.txt` | |
 | `ffmpeg-libvmaf-filter` | the commands of `consistency/ffmpeg-libvmaf-filter/checks.txt` | |
 | `pooling` | `pooling/bipbop16x9/`, on the rerun of `diag-after-300` | |
+| `pooling-defaults-300` | `pooling/defaults-300/`, `--check-pooled` on the rerun of `defaults-300` | |
 | `pooling-full` | `pooling/acceptance-full/`, on the rerun of `acceptance-full` | |
 
-- Every `run_delta.sh` run gets the options of its committed `run.cmd.txt`. The runs made before D-016 need the program that didn't convert color yet, the build of `83c8ed6`; `format-cases-after`, made after D-016 and before D-022, the build of `d993686`, which doesn't convert a reference that isn't yuv420p (P-034); the others use HEAD's.
-- `--only` runs some steps, and the steps they need (`pooling` needs `diag-after-300`, `pooling-full` needs `acceptance-full`, the color tag cases need `clips` and the three runs of the reference format cases `format-clips`); `--skip-before` leaves out the three steps before D-016, and `--skip-full` the two over every frame, `acceptance-full` and `pooling-full` (P-027). Each side of each pair of `acceptance-full` took longer than the whole run of 2026-10-23 below (the wall times in `consistency/acceptance-full/plain/*/delta.md`).
+- Every `run_delta.sh` run gets the options of its committed `run.cmd.txt`, the scaler, the model and the threads always named, which a test checks: since D-024 `run_delta.sh`'s default scaler is bicubic, and the runs made before it with bilinear, the default then, are rerun with bilinear (P-038). The runs made before D-016 need the program that didn't convert color yet, the build of `83c8ed6`; `format-cases-after`, made after D-016 and before D-022, the build of `d993686`, which doesn't convert a reference that isn't yuv420p (P-034); the others use HEAD's.
+- `--only` runs some steps, and the steps they need (`pooling` needs `diag-after-300`, `pooling-defaults-300` needs `defaults-300`, `pooling-full` needs `acceptance-full`, the color tag cases need `clips` and the three runs of the reference format cases `format-clips`); `--skip-before` leaves out the three steps before D-016, and `--skip-full` the two over every frame, `acceptance-full` and `pooling-full` (P-027). Each side of each pair of `acceptance-full` took longer than the whole run of 2026-10-23 below (the wall times in `consistency/acceptance-full/plain/*/delta.md`).
 - `--jobs` is `run_delta.sh`'s: how many scoring processes run at once. The committed runs used 1, except `acceptance-full`, which used 4; its first 300 frames have the scores of `scalers-300/bilinear`, made by the same program one process at a time (`consistency/acceptance-full/checks.txt`, check 3).
 
 **What "as committed" means.** For each step, `rerun_check.md` says whether the rerun has:
