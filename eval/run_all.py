@@ -44,7 +44,8 @@ outputs. It writes:
   run_all.md, run_all.json         every command, its exit status and wall time,
                                    the programs, and the repository's state
   rerun_check.md, rerun_check.json the comparison
-  build/<name>/build.txt           how each mirage_vmaf was built (and its logs)
+  builds/<name>/build.txt          how each mirage_vmaf was built (and its logs);
+                                   not build/, which .gitignore leaves out
   logs/                            each command's output
 
 Local paths in those files appear as <out_dir>, <work>, <worktree>, <repo>,
@@ -390,8 +391,8 @@ class Runner:
 
 def build_mirage_vmaf(r, name, commit, purpose):
     """Builds the mirage_vmaf of `commit` in a temporary worktree; the path of
-    the copy kept in <out_dir>/build/<name>/, and the build's record."""
-    bdir = os.path.join("build", name)
+    the copy kept in <out_dir>/builds/<name>/, and the build's record."""
+    bdir = os.path.join("builds", name)
     wt = os.path.join(r.work, f"{name}-worktree")
     r.set_redactor(worktree=wt)
     lines = [f"# The mirage_vmaf of {purpose}, built by eval/run_all.py in a temporary "
