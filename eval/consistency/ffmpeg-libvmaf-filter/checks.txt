@@ -1,0 +1,60 @@
+# The libvmaf filter of the FFmpeg that eval/consistency/run_delta.sh runs: its options and defaults, and inputs of different sizes (docs/plans/frame-alignment.md, docs/PHASE1_DECISIONS_PENDING.md). Made from <repo>: each command, then its output.
+
+# 1. The repository when these checks were made: HEAD and the working tree's state.
+
+$ git rev-parse HEAD && git status --porcelain && echo '(end of git status)'
+f9bbdf999cc34dd8accf758bdbb2a9fb3a759a04
+(end of git status)
+
+# 2. The FFmpeg of these checks, that of eval/consistency/run_delta.sh (D-009).
+
+$ /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -hide_banner -version | head -n 1
+ffmpeg version 8.1.1 Copyright (c) 2000-2026 the FFmpeg developers
+
+# 3. The libvmaf filter's options and their defaults, its framesync options among them, as this FFmpeg describes them.
+
+$ /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -hide_banner -h filter=libvmaf
+Filter libvmaf
+  Calculate the VMAF between two video streams.
+    Inputs:
+       #0: main (video)
+       #1: reference (video)
+    Outputs:
+       #0: default (video)
+libvmaf AVOptions:
+   log_path          <string>     ..FV....... Set the file path to be used to write log.
+   log_fmt           <string>     ..FV....... Set the format of the log (csv, json, xml, or sub). (default "xml")
+   pool              <string>     ..FV....... Set the pool method to be used for computing vmaf.
+   n_threads         <int>        ..FV....... Set number of threads to be used when computing vmaf. (from 0 to UINT32_MAX) (default 0)
+   n_subsample       <int>        ..FV....... Set interval for frame subsampling used when computing vmaf. (from 1 to UINT32_MAX) (default 1)
+   model             <string>     ..FV....... Set the model to be used for computing vmaf. (default "version=vmaf_v0.6.1")
+   feature           <string>     ..FV....... Set the feature to be used for computing vmaf.
+
+framesync AVOptions:
+   eof_action        <int>        ..FV....... Action to take when encountering EOF from secondary input  (from 0 to 2) (default repeat)
+     repeat          0            ..FV....... Repeat the previous frame.
+     endall          1            ..FV....... End both streams.
+     pass            2            ..FV....... Pass through the main input.
+   shortest          <boolean>    ..FV....... force termination when the shortest input terminates (default false)
+   repeatlast        <boolean>    ..FV....... extend last frame of secondary streams beyond EOF (default true)
+   ts_sync_mode      <int>        ..FV....... How strictly to sync streams based on secondary input timestamps (from 0 to 1) (default default)
+     default         0            ..FV....... Frame from secondary input with the nearest lower or equal timestamp to the primary input frame
+     nearest         1            ..FV....... Frame from secondary input with the absolute nearest timestamp to the primary input frame
+
+
+Exiting with exit code 0
+
+# 4. The libvmaf filter given two inputs of different sizes and no scale filter, as in the work order's section 5 command: FFmpeg's testsrc2 pattern at 640x360 as input 0, the distorted input, and at 1920x1080 as input 1, the reference; its error lines and FFmpeg's exit status.
+
+$ /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -hide_banner -nostdin -nostats -v error -f lavfi -i testsrc2=size=640x360:rate=30000/1001:duration=1 -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001:duration=1 -lavfi '[0:v][1:v]libvmaf=model=version=vmaf_v0.6.1' -f null - 2>&1 | sed -E 's/ @ 0x[0-9a-f]+//'; echo "exit status ${PIPESTATUS[0]:-?}"
+[Parsed_libvmaf_0] input width must match.
+[Parsed_libvmaf_0] input height must match.
+[Parsed_libvmaf_0] Failed to configure input pad on Parsed_libvmaf_0
+[fc#0] Error reinitializing filters!
+[fc#0] Task finished with error code: -22 (Invalid argument)
+[fc#0] Terminating thread with return code -22 (Invalid argument)
+[vost#0:0/wrapped_avframe] [enc:wrapped_avframe @ 0x96ec501c0] Could not open encoder before EOF
+[vost#0:0/wrapped_avframe] Task finished with error code: -22 (Invalid argument)
+[vost#0:0/wrapped_avframe] Terminating thread with return code -22 (Invalid argument)
+[out#0/null] Nothing was written into output file, because at least one of its streams received no packets.
+exit status 234
