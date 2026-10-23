@@ -3,7 +3,7 @@
 # 1. The repository when these checks and scaler_effect.* were made: HEAD and the working tree's state.
 
 $ git rev-parse HEAD && git status --porcelain && echo '(end of git status)'
-11c2c7d05c27717534034f8102ae9d42391ed45d
+f362eab2618c21b1ad8120debb56e6114dc13b48
 (end of git status)
 
 # 2. scaler_effect.md and scaler_effect.json: how far each side's scores move from the bilinear run's (eval/consistency/compare_runs.py).
