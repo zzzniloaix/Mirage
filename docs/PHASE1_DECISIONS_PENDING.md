@@ -42,7 +42,7 @@ For a matrix libswscale lacks: (a) refuse, as the code, the player's included, d
 
 ## D-016: references that aren't yuv420p (§5, #5)
 
-**Question.** D-016 has Mirage convert the distorted frames to the reference's color matrix and range, "as FFmpeg's filter graph does". For a reference whose frames aren't yuv420p, FFmpeg 8.1.1's §5 graph does something else: it converts the reference to the distorted frames' matrix and range, with a scale filter it inserts itself, and leaves the distorted frames' tags alone. Mirage converts the distorted frames as it does for a yuv420p reference, so its scores differ from FFmpeg's for such a reference wherever the two inputs' tags differ. Should Mirage follow FFmpeg for such references, or D-016's wording?
+**Question.** D-016 has Mirage convert the distorted frames to the reference's color matrix and range, "as FFmpeg's filter graph does". For a reference whose frames aren't yuv420p, FFmpeg 8.1.1's §5 graph does something else: it converts the reference to the distorted frames' matrix and range, with a scale filter it inserts itself, and leaves the distorted frames' tags alone. Mirage converts the distorted frames as it does for a yuv420p reference, so its scores differ from FFmpeg's for such a reference wherever the two inputs' tags differ, and, because of how it converts the reference, for a full range yuvj420p reference even with the same tags. Should Mirage follow FFmpeg for such references, or D-016's wording?
 
 **Today** (`src/VMAFColor.h`, `src/VMAFAnalyzer.cpp`; `mirage_vmaf` and the player alike):
 
@@ -63,8 +63,8 @@ For a matrix libswscale lacks: (a) refuse, as the code, the player's included, d
 
 **Options.**
 
-1. Follow FFmpeg: when the reference isn't yuv420p, convert the reference to the distorted frames' matrix and range through `sws_scale_frame()` with the flags of FFmpeg's inserted scale filter (bicubic), and leave the distorted frames' color as it is, still scaled with `--scaler`. `format-cases-after/` would then be expected to pass every case, and its rerun step in `eval/run_all.sh` would check it. It changes scores for such references, `j01` back to those before D-016, and for 10-bit references it decides how the reference is brought to 8 bits, which belongs with #5.
-2. Follow D-016's wording: keep converting the distorted frames to the reference's tags, and only make the reference's conversion keep a yuvj420p reference's range (`j02`). Plain FFmpeg then disagrees whenever such a reference's tags differ from the distorted input's, and the §5 comparison would need a workaround for those pairs, such as `setparams` on FFmpeg's side (P-010).
+1. Follow FFmpeg: when the reference isn't yuv420p, convert the reference to the distorted frames' matrix and range through `sws_scale_frame()` with the flags of FFmpeg's inserted scale filter (bicubic), and leave the distorted frames' color as it is, still scaled with `--scaler`. Every case of `format-cases-after/` would then be expected to pass, which its rerun step in `eval/run_all.sh` would check, `j01` with its scores before D-016. It changes scores for such references, and for 10-bit references it decides how the reference is brought to 8 bits, which belongs with #5.
+2. Follow D-016's wording: keep converting the distorted frames to the reference's tags, and only make the reference's conversion keep a yuvj420p reference's range (`j02`). Plain FFmpeg then disagrees whenever such a reference's tags differ from the distorted input's, and the §5 comparison would need a workaround on FFmpeg's side for those pairs, which no committed run has tried.
 3. Refuse such references, as matrices libswscale lacks are refused, until option 1 or 2 is built; or refuse them only when the tags differ or the reference is yuvj420p.
 4. Keep today's behavior, with the warning.
 
