@@ -4,6 +4,7 @@
 
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -48,6 +49,31 @@ TEST_CASE("vmafcli::parse: --frames", "[vmafcli]")
     }
 }
 
+TEST_CASE("vmafcli::parse: --scaler", "[vmafcli]")
+{
+    vmafcli::Args a;
+    REQUIRE(run({ "--ref", "a", "--dis", "b", "--out", "c" }, a).empty());
+    CHECK(a.scaler == VMAFScaler::Bilinear);   // the analyzer's scaler unless told otherwise
+    for (const auto& [name, want] : { std::pair{ "bilinear", VMAFScaler::Bilinear },
+                                      std::pair{ "bicubic", VMAFScaler::Bicubic },
+                                      std::pair{ "lanczos", VMAFScaler::Lanczos } }) {
+        INFO(name);
+        vmafcli::Args b;
+        REQUIRE(run({ "--ref", "a", "--dis", "b", "--out", "c", "--scaler", name }, b).empty());
+        CHECK(b.scaler == want);
+        CHECK(vmaf_scaler_name(want) == name);
+    }
+    for (std::string_view bad : { "Bicubic", "spline", "bicubic+accurate_rnd", "neighbor" }) {
+        INFO(bad);
+        vmafcli::Args b;
+        CHECK(contains(run({ "--ref", "a", "--dis", "b", "--out", "c", "--scaler", bad }, b),
+                       "--scaler wants bilinear, bicubic or lanczos"));
+    }
+    vmafcli::Args c;
+    CHECK(contains(run({ "--ref", "a", "--dis", "b", "--out", "c", "--scaler", "" }, c),
+                   "--scaler needs a non-empty value"));
+}
+
 TEST_CASE("vmafcli::parse: -h / --help wins over everything else", "[vmafcli]")
 {
     vmafcli::Args a;
@@ -88,8 +114,8 @@ TEST_CASE("vmafcli::usage: lists every option", "[vmafcli]")
 {
     const std::string u = vmafcli::usage();
     CHECK(u.starts_with("Usage: mirage_vmaf --ref <url|path> --dis <url|path> --out <report.json> "
-                        "[--frames N]\n"));
-    for (std::string_view opt : { "--ref", "--dis", "--out", "--frames", "-h, --help" }) {
+                        "[--frames N] [--scaler NAME]\n"));
+    for (std::string_view opt : { "--ref", "--dis", "--out", "--frames", "--scaler", "-h, --help" }) {
         INFO(opt);
         CHECK(contains(u, opt));
     }

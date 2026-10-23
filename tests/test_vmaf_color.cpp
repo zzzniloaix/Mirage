@@ -94,11 +94,11 @@ struct QuietLog {
 };
 
 // The distorted frame as the libvmaf filter of FFmpeg's section 5 graph
-// receives it: [dis]scale=W:H:flags=bilinear,format=yuv420p[d];
+// receives it: [dis]scale=W:H:flags=<scaler>,format=yuv420p[d];
 // [ref]format=yuv420p[r];[d][r]libvmaf. The libvmaf filter passes its
 // distorted input on, so the sink gets that frame. nullptr if FFmpeg cannot
 // build the graph.
-AVFrame* ffmpeg_distorted(const AVFrame& dis, const AVFrame& ref)
+AVFrame* ffmpeg_distorted(const AVFrame& dis, const AVFrame& ref, const char* scaler = "bilinear")
 {
     const QuietLog quiet;
     AVFilterGraph* g = avfilter_graph_alloc();
@@ -108,8 +108,8 @@ AVFrame* ffmpeg_distorted(const AVFrame& dis, const AVFrame& ref)
     REQUIRE(avfilter_graph_create_filter(&sink, avfilter_get_by_name("buffersink"), "out",
                                          nullptr, nullptr, g) >= 0);
     const std::string text = std::format(
-        "[dis]scale={}:{}:flags=bilinear,format=yuv420p[d];[ref]format=yuv420p[r];"
-        "[d][r]libvmaf=model=version=vmaf_v0.6.1:n_threads=1[out]", ref.width, ref.height);
+        "[dis]scale={}:{}:flags={},format=yuv420p[d];[ref]format=yuv420p[r];"
+        "[d][r]libvmaf=model=version=vmaf_v0.6.1:n_threads=1[out]", ref.width, ref.height, scaler);
     AVFilterInOut* outputs = endpoint("dis", src_dis, endpoint("ref", src_ref));
     AVFilterInOut* inputs = endpoint("out", sink);
     const int parsed = avfilter_graph_parse_ptr(g, text.c_str(), &inputs, &outputs, nullptr);
@@ -135,11 +135,12 @@ AVFrame* ffmpeg_distorted(const AVFrame& dis, const AVFrame& ref)
     return out;
 }
 
-// Mirage's conversion of `dis` to `ref`'s size and to target()'s tags.
-AVFrame* mirage_distorted(const AVFrame& dis, const AVFrame& ref)
+// Mirage's conversion of `dis` to `ref`'s size and to target()'s tags, with
+// swscale's scaler `flags`.
+AVFrame* mirage_distorted(const AVFrame& dis, const AVFrame& ref, unsigned flags = SWS_BILINEAR)
 {
     SwsContext* sws = sws_alloc_context();
-    sws->flags = SWS_BILINEAR;
+    sws->flags = flags;
     sws->threads = 1;
     AVFrame* in = av_frame_clone(&dis);
     AVFrame* out = av_frame_alloc();
@@ -271,6 +272,40 @@ TEST_CASE("vmafcolor::convert: the pixels and tags FFmpeg's graph gives the dist
         }
         av_frame_free(&got);
         av_frame_free(&want);
+        av_frame_free(&ref);
+        av_frame_free(&dis);
+    }
+}
+
+TEST_CASE("vmafcolor::convert: each scaler gives the pixels of FFmpeg's scale filter with those flags", "[vmafcolor]")
+{
+    if (!avfilter_get_by_name("libvmaf"))
+        SKIP("this libavfilter has no libvmaf filter");
+    // The scalers of VMAFScaler, by the names flags= takes, and their swscale flags.
+    const std::pair<const char*, unsigned> scalers[] = {
+        { "bilinear", SWS_BILINEAR }, { "bicubic", SWS_BICUBIC }, { "lanczos", SWS_LANCZOS },
+    };
+    for (const GraphCase& c : graph_cases()) {
+        INFO(c.label);
+        AVFrame* dis = make_frame(64, 36, c.dis);
+        AVFrame* ref = make_frame(192, 108, c.ref, 7);
+        std::vector<AVFrame*> got;
+        for (const auto& [scaler, flags] : scalers) {
+            INFO(scaler);
+            AVFrame* want = ffmpeg_distorted(*dis, *ref, scaler);
+            REQUIRE(want);
+            got.push_back(mirage_distorted(*dis, *ref, flags));
+            CHECK(name(vmafcolor::tags_of(*got.back())) == name(vmafcolor::tags_of(*want)));
+            for (int p = 0; p < 3; ++p) {
+                INFO("plane " << p);
+                CHECK(differing_rows(*got.back(), *want, p) == 0);
+            }
+            av_frame_free(&want);
+        }
+        // The scalers give different pixels, so a scaler that is not applied shows.
+        CHECK(differing_rows(*got[0], *got[1], 0) > 0);
+        CHECK(differing_rows(*got[1], *got[2], 0) > 0);
+        for (AVFrame*& f : got) av_frame_free(&f);
         av_frame_free(&ref);
         av_frame_free(&dis);
     }

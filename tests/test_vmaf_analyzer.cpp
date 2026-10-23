@@ -361,6 +361,29 @@ TEST_CASE("VMAFAnalyzer::analyze: converts the distorted frames' matrix as FFmpe
     CHECK_FALSE(r709.dis_conversions[0].range_changed);
 }
 
+TEST_CASE("VMAFAnalyzer::analyze: the scaler of the distorted frames, recorded in the settings", "[vmaf]")
+{
+    const std::string dis = colored_dis_clip("mirage_test_vmaf_colored_709.mkv", AVCOL_SPC_BT709);
+    const VMAFResult def = VMAFAnalyzer::analyze(colored_ref_clip(), dis);
+    const VMAFResult bilinear =
+        VMAFAnalyzer::analyze(colored_ref_clip(), dis, { .scaler = VMAFScaler::Bilinear });
+    const VMAFResult bicubic =
+        VMAFAnalyzer::analyze(colored_ref_clip(), dis, { .scaler = VMAFScaler::Bicubic });
+    const VMAFResult lanczos =
+        VMAFAnalyzer::analyze(colored_ref_clip(), dis, { .scaler = VMAFScaler::Lanczos });
+    for (const VMAFResult* r : { &def, &bilinear, &bicubic, &lanczos }) {
+        REQUIRE(r->error.empty());
+        REQUIRE(r->per_frame.size() == 6);
+    }
+    CHECK(def.settings.scaler == "bilinear");
+    CHECK(bilinear.settings.scaler == "bilinear");
+    CHECK(bicubic.settings.scaler == "bicubic");
+    CHECK(lanczos.settings.scaler == "lanczos");
+    CHECK(bilinear.per_frame == def.per_frame);   // the default is bilinear
+    CHECK(bicubic.per_frame != bilinear.per_frame);
+    CHECK(lanczos.per_frame != bicubic.per_frame);
+}
+
 TEST_CASE("VMAFAnalyzer::analyze: converts a full range distorted input to the reference's range", "[vmaf]")
 {
     const std::string pc = colored_dis_clip("mirage_test_vmaf_colored_709pc.mkv", AVCOL_SPC_BT709,

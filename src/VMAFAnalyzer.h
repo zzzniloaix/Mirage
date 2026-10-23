@@ -1,6 +1,8 @@
 #pragma once
 
 #include <string>
+#include <string_view>
+#include <optional>
 #include <vector>
 #include <mutex>
 #include <thread>
@@ -9,11 +11,36 @@
 
 struct VariantStream;
 
-// The scoring settings an analysis used. They are fixed for now; every result
-// records them so that a report can state what produced its scores.
+// The swscale algorithms the distorted frames can be scaled to the
+// reference's size with (work order section 1.3). Bilinear is what the
+// analyzer uses unless told otherwise; the default is the owner's to decide
+// (DECISIONS.md D-003).
+enum class VMAFScaler { Bilinear, Bicubic, Lanczos };
+
+// The name of `s` as FFmpeg's scale filter takes it in flags=, e.g. "bicubic".
+constexpr std::string_view vmaf_scaler_name(VMAFScaler s)
+{
+    switch (s) {
+    case VMAFScaler::Bilinear: return "bilinear";
+    case VMAFScaler::Bicubic:  return "bicubic";
+    case VMAFScaler::Lanczos:  return "lanczos";
+    }
+    return "";
+}
+
+// The scaler vmaf_scaler_name() calls `name`, if there is one.
+constexpr std::optional<VMAFScaler> vmaf_scaler_named(std::string_view name)
+{
+    for (VMAFScaler s : { VMAFScaler::Bilinear, VMAFScaler::Bicubic, VMAFScaler::Lanczos })
+        if (vmaf_scaler_name(s) == name) return s;
+    return std::nullopt;
+}
+
+// The scoring settings an analysis used. Every result records them so that
+// a report can state what produced its scores.
 struct VMAFSettings {
     std::string model;            // libvmaf built-in model version
-    std::string scaler;           // swscale algorithm that brings both inputs to the reference size
+    std::string scaler;           // swscale algorithm that scales the distorted frames to the reference size
     std::string pix_fmt;          // format both inputs are converted to before scoring
     int         bit_depth   = 0;  // bits per sample handed to libvmaf
     int         n_threads   = 0;  // libvmaf worker threads
@@ -53,11 +80,12 @@ struct VMAFColorConversion {
     unsigned    pairs          = 0;   // frame pairs converted this way
 };
 
-// Limits and extra recording for one pair. Default-constructed it is what
-// start() and start_manifest() use.
+// Settings, limits and extra recording for one pair. Default-constructed it
+// is what start() and start_manifest() use.
 struct VMAFOptions {
-    unsigned max_frames = 0;       // stop after this many frame pairs; 0 = until an input ends
-    bool     record_pts = false;   // fill VMAFResult::ref_pts / dis_pts
+    unsigned   max_frames = 0;       // stop after this many frame pairs; 0 = until an input ends
+    bool       record_pts = false;   // fill VMAFResult::ref_pts / dis_pts
+    VMAFScaler scaler     = VMAFScaler::Bilinear;   // scales the distorted frames
 };
 
 // Per-variant (or single-file) VMAF result.

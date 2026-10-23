@@ -3,6 +3,8 @@
 // Command line of the headless scorer, mirage_vmaf (tools/mirage_vmaf.cpp).
 // No FFmpeg / libvmaf here so it can be unit-tested in mirage_tests.
 
+#include "VMAFAnalyzer.h"
+
 #include <string>
 #include <string_view>
 #include <vector>
@@ -14,6 +16,7 @@ struct Args {
     std::string dis;            // --dis: distorted
     std::string out;            // --out: where the JSON report goes
     unsigned    frames = 0;     // --frames: score only the first N pairs; 0 = all
+    VMAFScaler  scaler = VMAFScaler::Bilinear;   // --scaler: scales the distorted frames
     bool        help   = false; // -h / --help: print usage() and exit
 };
 

@@ -49,7 +49,8 @@ int main(int argc, char** argv)
     avformat_network_init();
 
     const VMAFResult r = VMAFAnalyzer::analyze(
-        args.ref, args.dis, { .max_frames = args.frames, .record_pts = true });
+        args.ref, args.dis,
+        { .max_frames = args.frames, .record_pts = true, .scaler = args.scaler });
     if (const std::string why = vmafreport::incomplete(r); !why.empty()) {
         std::fprintf(stderr, "mirage_vmaf: %s\n", why.c_str());
         return 1;

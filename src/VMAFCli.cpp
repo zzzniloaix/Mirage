@@ -4,6 +4,7 @@
 #include <charconv>
 #include <format>
 #include <limits>
+#include <optional>
 #include <system_error>
 
 namespace vmafcli {
@@ -32,6 +33,14 @@ std::string set_frames(Args& a, std::string_view v)
     return {};
 }
 
+std::string set_scaler(Args& a, std::string_view v)
+{
+    const std::optional<VMAFScaler> s = vmaf_scaler_named(v);
+    if (!s) return std::format("--scaler wants bilinear, bicubic or lanczos, not '{}'", v);
+    a.scaler = *s;
+    return {};
+}
+
 const std::array kOptions = {
     Option{ "--ref", "<url|path>", "reference video: a file or any URL FFmpeg opens", true,
             [](Args& a, std::string_view v) { a.ref = v; return std::string(); } },
@@ -40,6 +49,8 @@ const std::array kOptions = {
     Option{ "--out", "<report.json>", "report to write; written only when the run succeeds", true,
             [](Args& a, std::string_view v) { a.out = v; return std::string(); } },
     Option{ "--frames", "N", "score only the first N frame pairs (N >= 1)", false, set_frames },
+    Option{ "--scaler", "NAME", "scales the distorted frames: bilinear (default), bicubic or lanczos",
+            false, set_scaler },
 };
 
 bool is_help(std::string_view a) { return a == "-h" || a == "--help"; }
@@ -107,15 +118,17 @@ std::string usage()
         "Options:\n"
         "{}"
         "\n"
-        "Scoring, fixed in this version: the best video stream of each input is\n"
-        "decoded, and frames are paired in the order the decoders output them until\n"
-        "either input ends. Both frames of a pair become 8-bit yuv420p at the\n"
-        "reference's size, the distorted one scaled with swscale's bilinear scaler.\n"
-        "Its color matrix and range are converted as FFmpeg 8.1.1's libvmaf filter\n"
-        "graph converts them: to the reference's, with FFmpeg's rules for missing\n"
-        "tags. The reference frame's color is not converted. Pairs are scored with\n"
-        "libvmaf's built-in vmaf_v0.6.1 model on 4 threads. An input whose color\n"
-        "matrix swscale can't convert is not scored, as FFmpeg doesn't score it.\n"
+        "Scoring: the best video stream of each input is decoded, and frames are\n"
+        "paired in the order the decoders output them until either input ends. Both\n"
+        "frames of a pair become 8-bit yuv420p at the reference's size. The\n"
+        "distorted one is scaled with the swscale scaler --scaler names (bilinear\n"
+        "unless given), with swscale's default parameters for it, as FFmpeg's scale\n"
+        "filter scales with flags=NAME. Its color matrix and range are converted as\n"
+        "FFmpeg 8.1.1's libvmaf filter graph converts them: to the reference's, with\n"
+        "FFmpeg's rules for missing tags. The reference frame keeps its size and\n"
+        "color. Pairs are scored with libvmaf's built-in vmaf_v0.6.1 model on 4\n"
+        "threads. An input whose color matrix swscale can't convert is not scored,\n"
+        "as FFmpeg doesn't score it.\n"
         "\n"
         "With --frames N the last pair can score differently from the same pair in a\n"
         "longer run, because libvmaf's motion2 feature for a frame also uses the next\n"

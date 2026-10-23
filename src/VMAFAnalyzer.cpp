@@ -28,14 +28,27 @@ extern "C" {
 namespace {
 
 // Scoring settings applied to every pair (recorded in VMAFResult::settings).
-constexpr const char*   kModelVersion = "vmaf_v0.6.1";
-constexpr int           kScaleFlags   = SWS_BILINEAR;
-constexpr const char*   kScalerName   = "bilinear";   // kScaleFlags' algorithm
-constexpr int           kScaleThreads = 1;            // swscale threads for the distorted frames
-constexpr AVPixelFormat kScorePixFmt  = AV_PIX_FMT_YUV420P;
-constexpr unsigned      kScoreBpc     = 8;
-constexpr unsigned      kThreads      = 4;
-constexpr unsigned      kSubsample    = 1;
+constexpr const char*   kModelVersion  = "vmaf_v0.6.1";
+// The reference keeps its size; only its pixel format is converted, with
+// these flags, whatever scaler the distorted frames get.
+constexpr int           kRefScaleFlags = SWS_BILINEAR;
+constexpr int           kScaleThreads  = 1;            // swscale threads for the distorted frames
+constexpr AVPixelFormat kScorePixFmt   = AV_PIX_FMT_YUV420P;
+constexpr unsigned      kScoreBpc      = 8;
+constexpr unsigned      kThreads       = 4;
+constexpr unsigned      kSubsample     = 1;
+
+// swscale's flags for a scaler: the flags FFmpeg's scale filter gets from
+// flags=<vmaf_scaler_name(s)>, with swscale's default parameters for it.
+unsigned sws_flags_of(VMAFScaler s)
+{
+    switch (s) {
+    case VMAFScaler::Bilinear: return SWS_BILINEAR;
+    case VMAFScaler::Bicubic:  return SWS_BICUBIC;
+    case VMAFScaler::Lanczos:  return SWS_LANCZOS;
+    }
+    return SWS_BILINEAR;
+}
 
 std::string av_error_text(int err)
 {
@@ -227,7 +240,7 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
     result.dis_info = dis_ctx.info();
     result.settings = {
         .model       = kModelVersion,
-        .scaler      = kScalerName,
+        .scaler      = std::string(vmaf_scaler_name(opts.scaler)),
         .pix_fmt     = name_or_unknown(av_get_pix_fmt_name(kScorePixFmt)),
         .bit_depth   = static_cast<int>(kScoreBpc),
         .n_threads   = static_cast<int>(kThreads),
@@ -238,14 +251,15 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
     SwsContext* ref_sws = sws_getContext(
         ref_ctx.width(), ref_ctx.height(), ref_ctx.pix_fmt(),
         ref_w, ref_h, kScorePixFmt,
-        kScaleFlags, nullptr, nullptr, nullptr);
+        kRefScaleFlags, nullptr, nullptr, nullptr);
 
-    // The distorted frames are scaled to the reference's size and converted
-    // to the color FFmpeg's filter graph gives them, frame by frame through
-    // swscale's frame API as FFmpeg's scale filter does (src/VMAFColor.h).
+    // The distorted frames are scaled to the reference's size with the
+    // chosen scaler and converted to the color FFmpeg's filter graph gives
+    // them, frame by frame through swscale's frame API as FFmpeg's scale
+    // filter does (src/VMAFColor.h).
     SwsContext* dis_sws = sws_alloc_context();
     if (dis_sws) {
-        dis_sws->flags   = kScaleFlags;
+        dis_sws->flags   = sws_flags_of(opts.scaler);
         dis_sws->threads = kScaleThreads;
     }
 
