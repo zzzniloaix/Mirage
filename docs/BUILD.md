@@ -55,7 +55,8 @@ perl -e 'alarm 900; exec @ARGV' build/macos-debug/mirage_tests '~[audio]'
 
 - This is the form the build check and unattended runs use: it leaves out the tests tagged `[audio]` and ends a run that stalls after 900 seconds. Without arguments, `mirage_tests` runs every test.
 - The `[vmaf]` tests run the VMAF analyzer on small clips they generate.
-- **In a clean checkout one test fails**: `SidecarSubtitles — decodes data/sub_test/test.srt` reads that file, but `.gitignore` ignores `data/`, so the file isn't in the repository (record: "Unit tests").
+- **In a clean checkout one test failed** until `97f0098`: `SidecarSubtitles — decodes data/sub_test/test.srt` read that file, but `.gitignore` ignores `data/`, so the file isn't in the repository (record: "Unit tests"). Since then the test, `SidecarSubtitles — decodes an SRT file`, writes its fixture at run time (D-032); no build check has run it in a clean checkout yet (MEASUREMENT PENDING).
+- Every test that writes a file writes it in a temporary directory of the run's own, `mirage_tests.XXXXXX` under the system's temporary directory, which the run removes when it ends normally (`tests/TestTemp.h`), so two runs at the same time don't share files.
 
 ## 5. Rerun the measurements
 
