@@ -93,10 +93,10 @@ fact env PKG_CONFIG_PATH=/opt/homebrew/opt/ffmpeg-full/lib/pkgconfig pkg-config 
     libavformat libavcodec libavutil libswscale libswresample libavfilter libvmaf glfw3
 fact "$py" --version
 fact env HOMEBREW_NO_AUTO_UPDATE=1 brew --version
-echo "What Homebrew offers for versions (the first lines of its help):"
+echo "What Homebrew offers for versions:"
 for c in pin extract; do
-    echo "\$ brew help $c | head -n 5"
-    HOMEBREW_NO_AUTO_UPDATE=1 brew help "$c" 2>&1 | head -n 5 | redact
+    echo "\$ brew help $c"
+    HOMEBREW_NO_AUTO_UPDATE=1 brew help "$c" 2>&1 | redact
     echo
 done
 

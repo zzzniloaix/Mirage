@@ -11,7 +11,7 @@ eval/build_check/run_build_check.sh <repo> <scratch> /opt/homebrew/opt/python@3.
 The output was copied verbatim to the record. The commit it built is in the record's "Commit" section.
 
 What `run_build_check.sh` does, in order:
-1. Records the machine, the tool versions, the installed and current Homebrew versions of ffmpeg-full, libvmaf and GLFW, what pkg-config resolves through the presets' `PKG_CONFIG_PATH`, Homebrew's version, and the first lines of `brew help pin` and `brew help extract`.
+1. Records the machine, the tool versions, the installed and current Homebrew versions of ffmpeg-full, libvmaf and GLFW, what pkg-config resolves through the presets' `PKG_CONFIG_PATH`, Homebrew's version, and the help of `brew pin` and `brew extract`.
 2. Checks that the repository's working tree is clean, and creates a worktree of HEAD with `git worktree add --detach`.
 3. Configures and builds the `macos-release` preset with the default Python, then builds only the `mirage_vmaf` target and only the `mirage_tests` target with it.
 4. Creates the glad venv (Python 3.13, with `jinja2==3.1.6` and `markupsafe==3.0.4` from PyPI). Configures and builds the release preset with `-DPython_EXECUTABLE=<venv>/bin/python`, configures it once more without that option and shows the interpreter left in its cache, then configures and builds the debug preset with the venv as well.
