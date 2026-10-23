@@ -6,13 +6,16 @@
 #include <cstring>
 #include <format>
 #include <fstream>
+#include <limits>
 #include <numeric>
 
 extern "C" {
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
 #include <libswscale/swscale.h>
+#include <libavutil/error.h>
 #include <libavutil/frame.h>
+#include <libavutil/pixdesc.h>
 #include <libavutil/rational.h>
 }
 
@@ -22,6 +25,24 @@ extern "C" {
 
 namespace {
 
+// Scoring settings applied to every pair (recorded in VMAFResult::settings).
+constexpr const char*   kModelVersion = "vmaf_v0.6.1";
+constexpr int           kScaleFlags   = SWS_BILINEAR;
+constexpr const char*   kScalerName   = "bilinear";   // kScaleFlags' algorithm
+constexpr AVPixelFormat kScorePixFmt  = AV_PIX_FMT_YUV420P;
+constexpr unsigned      kScoreBpc     = 8;
+constexpr unsigned      kThreads      = 4;
+constexpr unsigned      kSubsample    = 1;
+
+std::string av_error_text(int err)
+{
+    char buf[AV_ERROR_MAX_STRING_SIZE] = {};
+    av_strerror(err, buf, sizeof buf);
+    return buf;
+}
+
+std::string name_or_unknown(const char* name) { return name ? name : "unknown"; }
+
 enum class DecodeState { Reading, Flushing, Done };
 
 struct DecodeCtx {
@@ -30,6 +51,7 @@ struct DecodeCtx {
     AVPacket*        pkt       = nullptr;
     int              vid_idx   = -1;
     DecodeState      state     = DecodeState::Reading;
+    int              error     = 0;   // FFmpeg error that ended decoding; 0 = clean EOF / not ended
 
     [[nodiscard]] bool open(const std::string& url)
     {
@@ -61,7 +83,7 @@ struct DecodeCtx {
             int r = avcodec_receive_frame(codec_ctx, frame);
             if (r == 0)            return frame;
             if (r == AVERROR_EOF)  { state = DecodeState::Done; break; }
-            if (r != AVERROR(EAGAIN)) { state = DecodeState::Done; break; }
+            if (r != AVERROR(EAGAIN)) { error = r; state = DecodeState::Done; break; }
 
             // Codec needs more input
             if (state == DecodeState::Flushing) {
@@ -73,6 +95,7 @@ struct DecodeCtx {
             while (true) {
                 r = av_read_frame(fmt_ctx, pkt);
                 if (r < 0) {
+                    if (r != AVERROR_EOF) error = r;   // still drained like EOF
                     avcodec_send_packet(codec_ctx, nullptr);
                     state = DecodeState::Flushing;
                     break;
@@ -97,6 +120,7 @@ struct DecodeCtx {
         if (fmt_ctx)   avformat_close_input(&fmt_ctx);
         vid_idx = -1;
         state   = DecodeState::Reading;
+        error   = 0;
     }
 
     int           width()   const { return codec_ctx ? codec_ctx->width   : 0; }
@@ -115,6 +139,32 @@ struct DecodeCtx {
         if (!fmt_ctx || fmt_ctx->duration <= 0) return 0.0;
         return static_cast<double>(fmt_ctx->duration) / AV_TIME_BASE;
     }
+
+    // A timestamp of the video stream in seconds; NaN when there is none.
+    double seconds(int64_t ts) const
+    {
+        if (ts == AV_NOPTS_VALUE) return std::numeric_limits<double>::quiet_NaN();
+        const AVRational tb = fmt_ctx->streams[vid_idx]->time_base;
+        return static_cast<double>(ts) * tb.num / tb.den;
+    }
+
+    // The opened video stream as the decoder sees it.
+    VMAFInputInfo info() const
+    {
+        VMAFInputInfo in;
+        if (!codec_ctx) return in;
+        in.width           = codec_ctx->width;
+        in.height          = codec_ctx->height;
+        in.pix_fmt         = name_or_unknown(av_get_pix_fmt_name(codec_ctx->pix_fmt));
+        in.color_space     = name_or_unknown(av_color_space_name(codec_ctx->colorspace));
+        in.color_range     = name_or_unknown(av_color_range_name(codec_ctx->color_range));
+        in.color_primaries = name_or_unknown(av_color_primaries_name(codec_ctx->color_primaries));
+        in.color_trc       = name_or_unknown(av_color_transfer_name(codec_ctx->color_trc));
+        const AVRational tb = fmt_ctx->streams[vid_idx]->time_base;
+        in.time_base_num   = tb.num;
+        in.time_base_den   = tb.den;
+        return in;
+    }
 };
 
 }  // namespace
@@ -123,7 +173,7 @@ struct DecodeCtx {
 
 void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
                                  std::atomic<float>& progress_total,
-                                 float base, float span)
+                                 float base, float span, const VMAFOptions& opts)
 {
     DecodeCtx ref_ctx, dis_ctx;
 
@@ -144,27 +194,37 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
     const int ref_h = ref_ctx.height();
     result.width  = ref_w;
     result.height = ref_h;
+    result.ref_info = ref_ctx.info();
+    result.dis_info = dis_ctx.info();
+    result.settings = {
+        .model       = kModelVersion,
+        .scaler      = kScalerName,
+        .pix_fmt     = name_or_unknown(av_get_pix_fmt_name(kScorePixFmt)),
+        .bit_depth   = static_cast<int>(kScoreBpc),
+        .n_threads   = static_cast<int>(kThreads),
+        .n_subsample = static_cast<int>(kSubsample),
+    };
 
     // Both streams scale to YUV420P @ reference resolution
     SwsContext* ref_sws = sws_getContext(
         ref_ctx.width(), ref_ctx.height(), ref_ctx.pix_fmt(),
-        ref_w, ref_h, AV_PIX_FMT_YUV420P,
-        SWS_BILINEAR, nullptr, nullptr, nullptr);
+        ref_w, ref_h, kScorePixFmt,
+        kScaleFlags, nullptr, nullptr, nullptr);
 
     SwsContext* dis_sws = sws_getContext(
         dis_ctx.width(), dis_ctx.height(), dis_ctx.pix_fmt(),
-        ref_w, ref_h, AV_PIX_FMT_YUV420P,
-        SWS_BILINEAR, nullptr, nullptr, nullptr);
+        ref_w, ref_h, kScorePixFmt,
+        kScaleFlags, nullptr, nullptr, nullptr);
 
     // Reusable scaled buffers (output of sws_scale; NOT given directly to vmaf)
     AVFrame* ref_scaled = av_frame_alloc();
-    ref_scaled->format = AV_PIX_FMT_YUV420P;
+    ref_scaled->format = kScorePixFmt;
     ref_scaled->width  = ref_w;
     ref_scaled->height = ref_h;
     av_frame_get_buffer(ref_scaled, 32);
 
     AVFrame* dis_scaled = av_frame_alloc();
-    dis_scaled->format = AV_PIX_FMT_YUV420P;
+    dis_scaled->format = kScorePixFmt;
     dis_scaled->width  = ref_w;
     dis_scaled->height = ref_h;
     av_frame_get_buffer(dis_scaled, 32);
@@ -185,8 +245,8 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
 
     VmafConfiguration cfg {
         .log_level   = VMAF_LOG_LEVEL_NONE,
-        .n_threads   = 4,
-        .n_subsample = 1,
+        .n_threads   = kThreads,
+        .n_subsample = kSubsample,
         .cpumask     = 0,
         .gpumask     = 0,
     };
@@ -196,9 +256,9 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
     }
 
     VmafModelConfig model_cfg { .name = "vmaf", .flags = VMAF_MODEL_FLAGS_DEFAULT };
-    if (vmaf_model_load(&model, &model_cfg, "vmaf_v0.6.1") < 0) {
+    if (vmaf_model_load(&model, &model_cfg, kModelVersion) < 0) {
         cleanup();
-        return fail("vmaf_model_load failed — is vmaf_v0.6.1.json installed?");
+        return fail(std::format("vmaf_model_load failed — is {}.json installed?", kModelVersion));
     }
 
     if (vmaf_use_features_from_model(vmaf, model) < 0) {
@@ -208,11 +268,18 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
 
     // Estimate total frames for progress reporting
     double total_est = ref_ctx.duration_seconds() * ref_ctx.fps_estimate();
+    if (opts.max_frames > 0) total_est = std::min(total_est, static_cast<double>(opts.max_frames));
     if (total_est < 1.0) total_est = 1.0;
+
+    // The first libvmaf failure while scoring; the analysis itself goes on.
+    auto score_failed = [&](const char* call, int r) {
+        if (result.score_error.empty())
+            result.score_error = std::format("{} failed: {}", call, av_error_text(r));
+    };
 
     unsigned frame_idx = 0;
 
-    while (!st.stop_requested()) {
+    while (!st.stop_requested() && (opts.max_frames == 0 || frame_idx < opts.max_frames)) {
         AVFrame* ref_frame = ref_ctx.next_video_frame();
         AVFrame* dis_frame = dis_ctx.next_video_frame();
 
@@ -220,6 +287,11 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
             if (ref_frame) av_frame_free(&ref_frame);
             if (dis_frame) av_frame_free(&dis_frame);
             break;
+        }
+
+        if (opts.record_pts) {
+            result.ref_pts.push_back(ref_ctx.seconds(ref_frame->best_effort_timestamp));
+            result.dis_pts.push_back(dis_ctx.seconds(dis_frame->best_effort_timestamp));
         }
 
         // Scale both → YUV420P @ ref_w × ref_h
@@ -236,9 +308,9 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
         // Allocate VmafPictures and copy planes.
         // vmaf_read_pictures() takes ownership of the backing memory.
         VmafPicture ref_pic{}, dis_pic{};
-        vmaf_picture_alloc(&ref_pic, VMAF_PIX_FMT_YUV420P, 8,
+        vmaf_picture_alloc(&ref_pic, VMAF_PIX_FMT_YUV420P, kScoreBpc,
                            static_cast<unsigned>(ref_w), static_cast<unsigned>(ref_h));
-        vmaf_picture_alloc(&dis_pic, VMAF_PIX_FMT_YUV420P, 8,
+        vmaf_picture_alloc(&dis_pic, VMAF_PIX_FMT_YUV420P, kScoreBpc,
                            static_cast<unsigned>(ref_w), static_cast<unsigned>(ref_h));
 
         for (int p = 0; p < 3; ++p) {
@@ -257,7 +329,8 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
         }
 
         // Context takes ownership of ref_pic / dis_pic backing memory.
-        vmaf_read_pictures(vmaf, &ref_pic, &dis_pic, frame_idx++);
+        if (int r = vmaf_read_pictures(vmaf, &ref_pic, &dis_pic, frame_idx++); r < 0)
+            score_failed("vmaf_read_pictures", r);
 
         float pair_frac = std::min(static_cast<float>(frame_idx) /
                                    static_cast<float>(total_est), 0.99f);
@@ -265,18 +338,22 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
     }
 
     // Flush feature extractors
-    vmaf_read_pictures(vmaf, nullptr, nullptr, 0);
+    if (int r = vmaf_read_pictures(vmaf, nullptr, nullptr, 0); r < 0)
+        score_failed("vmaf_read_pictures (flush)", r);
 
     // Collect per-frame scores and pooled stats
     if (frame_idx > 0 && !st.stop_requested()) {
         result.per_frame.resize(frame_idx);
         for (unsigned i = 0; i < frame_idx; ++i)
-            vmaf_score_at_index(vmaf, model, &result.per_frame[i], i);
+            if (int r = vmaf_score_at_index(vmaf, model, &result.per_frame[i], i); r < 0)
+                score_failed("vmaf_score_at_index", r);
 
-        vmaf_score_pooled(vmaf, model, VMAF_POOL_METHOD_MEAN,
-                          &result.vmaf_mean, 0, frame_idx - 1);
-        vmaf_score_pooled(vmaf, model, VMAF_POOL_METHOD_MIN,
-                          &result.vmaf_min, 0, frame_idx - 1);
+        if (int r = vmaf_score_pooled(vmaf, model, VMAF_POOL_METHOD_MEAN,
+                                      &result.vmaf_mean, 0, frame_idx - 1); r < 0)
+            score_failed("vmaf_score_pooled (mean)", r);
+        if (int r = vmaf_score_pooled(vmaf, model, VMAF_POOL_METHOD_MIN,
+                                      &result.vmaf_min, 0, frame_idx - 1); r < 0)
+            score_failed("vmaf_score_pooled (min)", r);
 
         // 5th-percentile (manual — no pooling method in libvmaf for percentiles)
         auto sorted = result.per_frame;
@@ -287,6 +364,14 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
                      frame_idx, result.vmaf_mean, result.vmaf_min, result.vmaf_p5,
                      result.label);
     }
+
+    // How each input ended (before cleanup() resets the decode contexts).
+    auto record_end = [](const DecodeCtx& ctx, VMAFInputInfo& info) {
+        info.ended     = ctx.state == DecodeState::Done;
+        info.end_error = ctx.error ? av_error_text(ctx.error) : std::string();
+    };
+    record_end(ref_ctx, result.ref_info);
+    record_end(dis_ctx, result.dis_info);
 
     cleanup();
     result.done = true;
@@ -314,7 +399,7 @@ void VMAFAnalyzer::start(std::string ref_url, std::string dis_url, int64_t bandw
         VMAFResult local;
         { std::lock_guard g(mtx_); local = results_[0]; }
 
-        analyze_pair(local, st, progress_, 0.0f, 1.0f);
+        analyze_pair(local, st, progress_, 0.0f, 1.0f, {});
 
         { std::lock_guard g(mtx_); results_[0] = std::move(local); }
         progress_.store(1.0f);
@@ -367,13 +452,26 @@ void VMAFAnalyzer::start_manifest(const std::vector<VariantStream>& variants)
         for (std::size_t i = 0; i < pairs.size() && !st.stop_requested(); ++i) {
             float base = static_cast<float>(i) / n;
             float span = 1.0f / n;
-            analyze_pair(pairs[i], st, progress_, base, span);
+            analyze_pair(pairs[i], st, progress_, base, span, {});
             { std::lock_guard g(mtx_); results_[i] = pairs[i]; }
         }
 
         progress_.store(1.0f);
         running_.store(false);
     });
+}
+
+VMAFResult VMAFAnalyzer::analyze(std::string ref_url, std::string dis_url,
+                                  const VMAFOptions& opts)
+{
+    VMAFResult result{
+        .ref_url = std::move(ref_url),
+        .dis_url = std::move(dis_url),
+        .label   = "Analysis",
+    };
+    std::atomic<float> progress{ 0.0f };
+    analyze_pair(result, std::stop_token{}, progress, 0.0f, 1.0f, opts);
+    return result;
 }
 
 void VMAFAnalyzer::cancel()

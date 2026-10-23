@@ -191,6 +191,7 @@ add_executable(mirage_tests
     tests/test_keyframe_index.cpp
     tests/test_scrub_follow.cpp
     tests/test_hls_align.cpp
+    tests/test_vmaf_analyzer.cpp
     src/Demuxer.cpp
     src/NetworkLogger.cpp
     src/NetDescribe.cpp
@@ -214,6 +215,7 @@ add_executable(mirage_tests
     src/PipelineState.cpp
     src/KeyframeIndex.cpp
     src/ScrubDecoder.cpp
+    src/VMAFAnalyzer.cpp
 )
 
 target_include_directories(mirage_tests PRIVATE
@@ -225,6 +227,7 @@ target_include_directories(mirage_tests PRIVATE
 target_link_libraries(mirage_tests PRIVATE
     Catch2::Catch2WithMain
     PkgConfig::FFMPEG
+    PkgConfig::VMAF
     pugixml
 )
 
