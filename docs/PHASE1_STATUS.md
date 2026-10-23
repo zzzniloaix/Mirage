@@ -12,15 +12,15 @@ The open design decisions are in `docs/PHASE1_DECISIONS_PENDING.md`, each with i
 
 | Section | Status | Acceptance result | Waits for |
 |---|---|---|---|
-| §5 Score consistency check | done | `eval/consistency/acceptance-full/`: every frame of the four pairs of D-018 passes; the largest \|delta\| is 0.000000 at the 6 decimals of FFmpeg's log, and no frame is over 0.01 | the defaults of #3, #4, #5 and #7: with another default the report is made again |
-| §1.1 libvmaf 3 integration | done | `eval/consistency/models-300/`: each model changes the scores of every frame, and every report names its model | #4, the default model |
+| §5 Score consistency check | done for yuv420p references | `eval/consistency/acceptance-full/`: every frame of the four pairs of D-018 passes; the largest \|delta\| is 0.000000 at the 6 decimals of FFmpeg's log, and no frame is over 0.01. For a reference in another pixel format with other tags than the distorted input, Mirage's scores differ from FFmpeg's (`eval/consistency/format-cases-after/`) | the defaults of #3, #4, #5 and #7: with another default the report is made again; the package "D-016: references that aren't yuv420p" |
+| §1.1 libvmaf 3 integration | done in `mirage_vmaf`; the player's own export lacks the new fields (difference 9) | `eval/consistency/models-300/`: each model changes the scores of every frame, and every report names its model | #4, the default model |
 | §1.2 Two reference modes | partial | not run: it needs a ladder with a mezzanine (D-011) | the §1.2 package, D-011's clips |
-| §1.3 Resolution alignment | done | the work order gives none; `eval/consistency/scalers-300/` measures the three scalers on both sides | #3, the default scaler |
+| §1.3 Resolution alignment | done in `mirage_vmaf`; the player's own export doesn't state the scaler (difference 9) | the work order gives none; `eval/consistency/scalers-300/` measures the three scalers on both sides | #3, the default scaler |
 | §1.4 Frame alignment | pending: a plan | not run | approval of `docs/plans/frame-alignment.md` and #7 |
 | §1.5 Score pooling | partial | the work order gives none; `eval/pooling/` measures the candidate definitions | #6, the definitions |
 | §8 Reproducible packaging | partial | a build in a clean worktree, which approximates the clean machine of the acceptance | #11a to #11c, the README package |
 
-## §5 Score consistency check: done
+## §5 Score consistency check: done for yuv420p references
 
 What the work order asks for, and where it is:
 
@@ -51,11 +51,12 @@ The checks made on it afterwards (`eval/consistency/acceptance-full/checks.txt`;
 - The run was made at commit `3650f83` with a clean working tree at its start and end, with a `mirage_vmaf` whose SHA-256 builds of commits in clean worktrees reproduced (`build.txt`; P-026).
 - A rerun by `eval/run_all.sh`, with a `mirage_vmaf` it built from commit `e0beb49`, reproduced every verdict and every score of both sides exactly (`eval/run_all/2026-10-23-full/rerun_check.md`; P-027).
 
-**How it got there.** Phase 0 found Mirage scoring 640x360 higher than FFmpeg on every one of the first 300 frames, by 5.2798 on average (`eval/baseline/diagnostics/compare_first300.txt`: all 300 frames over 0.01, and the signed mean equal to the mean |delta|). The cause was FFmpeg's conversion of the distorted frames from the smpte170m color matrix to the reference's bt709, which Mirage didn't make (`eval/consistency/diag-before-300/`). Since D-016, Mirage converts the color matrix and range as FFmpeg's filter graph does (`src/VMAFColor.h`, P-014), and the two agree on every frame of the 300-frame runs and of 18 synthetic color tag cases (`eval/consistency/diag-after-300/`, `color-cases-after/`; `eval/consistency/README.md`).
+**How it got there.** Phase 0 found Mirage scoring 640x360 higher than FFmpeg on every one of the first 300 frames, by 5.2798 on average (`eval/baseline/diagnostics/compare_first300.txt`: all 300 frames over 0.01, and the signed mean equal to the mean |delta|). The cause was FFmpeg's conversion of the distorted frames from the smpte170m color matrix to the reference's bt709, which Mirage didn't make (`eval/consistency/diag-before-300/`). Since D-016, Mirage converts the color matrix and range as FFmpeg's filter graph does for a yuv420p reference (`src/VMAFColor.h`, P-014), and the two agree on every frame of the 300-frame runs and of 18 synthetic color tag cases (`eval/consistency/diag-after-300/`, `color-cases-after/`; `eval/consistency/README.md`).
 
 **Remaining.**
 
 - The report was made with today's defaults. If the owner chooses another default scaler, model, bit depth or pairing (#3, #4, #5, #7), it has to be made again with it. Bicubic and lanczos pass on 300 frames when both sides use them (`eval/consistency/scalers-300/`); over every frame they are MEASUREMENT PENDING.
+- **References that aren't yuv420p.** For such a reference FFmpeg's graph converts the reference to the distorted frames' color, which Mirage doesn't. On synthetic 10-bit, 4:2:2, 4:4:4 and full range H.264 references, Mirage's scores differ from FFmpeg's in every case whose tags differ, by up to 13.274013, and by up to 23.673382 in the full range case with the same tags; they agree in the other same-tag cases (`eval/consistency/format-cases-after/main/delta.md`). Since D-016 the full range case against a limited range distorted input fails, which passed before (`format-cases-before/`). `mirage_vmaf`'s report warns about such a reference (P-030); the fix is the owner's decision ("D-016: references that aren't yuv420p" in `docs/PHASE1_DECISIONS_PENDING.md`). No bipbop rung is affected: all are yuv420p.
 - D-016's rules for untagged inputs and for matrices libswscale can't convert, and D-019's boundary against the work order's "< 0.01": `docs/PHASE1_DECISIONS_PENDING.md`.
 - bipbop's rungs were rendered separately, so these scores compare the two tools, not the rungs' quality (D-005, D-011).
 
@@ -102,7 +103,7 @@ The checks made on it afterwards (`eval/consistency/acceptance-full/checks.txt`;
 | Build instructions for Linux and macOS, Apple Silicon included | partial: macOS on Apple Silicon only | `docs/BUILD.md`; #11b, difference 5 |
 | `eval/run_all.sh`, one script that reruns the paper's numbers | done for the committed Phase 1 measurements, the full-length §5 run included; its two committed runs found everything as committed. There are no paper numbers yet (D-005) | `eval/README.md`, `eval/run_all/2026-10-23/` and `2026-10-23-full/`, P-024, P-025, P-027; difference 7 |
 | `eval/streams.md` and a fetch script | partial: the bipbop and advanced Apple streams; the fetch keeps playlists, no media; DASH-IF and Unified Streaming streams not examined | `eval/streams.md`, P-023; difference 8 |
-| **Acceptance**: a clean machine builds by the README | partial: two builds in clean worktrees of committed HEADs on the machine of the measurements; on it the README's quick start stops at glad with the default Python, and `docs/BUILD.md`'s venv builds both presets | `eval/build_check/macos-2026-10-23-6a6661f.txt`, P-022; difference 6 |
+| **Acceptance**: a clean machine builds by the README | partial: two builds in clean worktrees of committed HEADs on the machine of the measurements; on it the release preset stops at glad with the default Python, the glad step the README's `macos-debug` quick start runs too, and `docs/BUILD.md`'s venv builds both presets | `eval/build_check/macos-2026-10-23-6a6661f.txt`, P-022; difference 6 |
 
 Also open: whether glad's generated loader is committed (#11a), the README beyond its install line, and the root `vcpkg.json`, which the build doesn't use and which lists FFmpeg and GLFW without libvmaf or versions (`docs/VMAF_GAP_REPORT.md`, "Specific gaps for §8"; `docs/PHASE1_DECISIONS_PENDING.md`).
 
@@ -118,6 +119,6 @@ Two unit tests of code outside Phase 1 can fail: in a clean checkout, `SidecarSu
 ## Before the Phase 1 PR can merge
 
 - The owner's decisions in `docs/PHASE1_DECISIONS_PENDING.md`, and the reruns a changed default needs (§5 above).
-- The owner's review of Phase 1's commits, and confirmation of the process choices P-006 to P-028 (`docs/DECISIONS.md`).
+- The owner's review of Phase 1's commits, and confirmation of the process choices P-006 to P-030 (`docs/DECISIONS.md`).
 - The owner's confirmation of the Phase 1 rows of `docs/AI_CONTRIBUTIONS.md`.
 - The PR itself, which the owner opens (hard rule 5 of the work order: one PR for the phase).
