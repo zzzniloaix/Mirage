@@ -9,13 +9,13 @@
 // color matrix and one range for both inputs of the libvmaf filter, and the
 // distorted input's scale filter scales the distorted frames and converts them
 // to those tags. A yuv420p reference passes unconverted, and the tags are its
-// own (target()). For a reference in another pixel format, libavfilter puts a
-// scale filter of its own before the reference's format filter, which
-// converts the reference to yuv420p and to the negotiated tags; those are
-// then the distorted frames' own, as far as they have tags (negotiated()).
-// Each conversion is one sws_scale_frame() call, as in FFmpeg's scale filter
-// (convert()). FFmpeg's logs of the committed cases are in
-// eval/consistency/color-cases-before/ and format-cases-before/;
+// own as far as it has tags (target()). For a reference in another pixel
+// format, libavfilter puts a scale filter of its own before the reference's
+// format filter, which converts the reference to yuv420p and to the
+// negotiated tags; those are then the distorted frames' own, as far as they
+// have tags (negotiated()). Each conversion is one sws_scale_frame() call, as
+// in FFmpeg's scale filter (convert()). FFmpeg's logs of the committed cases
+// are in eval/consistency/color-cases-before/ and format-cases-before/;
 // eval/consistency/README.md sums them up. tests/test_vmaf_color.cpp runs the
 // graph through libavfilter and compares the bytes libvmaf gets.
 
@@ -64,9 +64,9 @@ inline constexpr unsigned kInsertedScaleFlags = SWS_BICUBIC;
 // The matrix and range libavfilter negotiates for both inputs of the libvmaf
 // filter, from both frames' pixel formats and tags (libavfilter/buffersrc.c,
 // formats.c and avfiltergraph.c of FFmpeg 8.1.1). A buffer source offers its
-// frames' matrix tag, and their range tag, or that and limited when they have
-// none; for a yuvj format, full range only; for RGB, gray and the other
-// formats that aren't plain YUV, every matrix and every range.
+// frames' matrix tag, and their range tag, or unspecified and limited when
+// they have none; for a yuvj format, full range only; for RGB, gray and the
+// other formats that aren't plain YUV, every matrix and every range.
 //
 //   - A yuv420p reference: its own lists reach the libvmaf filter. The
 //     matrix is the reference's; the range is the reference's, or, when it
