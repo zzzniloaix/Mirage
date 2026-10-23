@@ -194,7 +194,7 @@
 **需要 owner 决定（可能还需公司法务）**
 - Mirage 自身采用什么许可证。CFP 举的例子是 GPLv2、LGPLv2、BSD。
 - 选定的许可证与"链接 GPLv3+ 的 FFmpeg 构建"之间如何兼容，二进制分发时适用什么条款。
-- 仓库托管在公司 GitHub 上，对外开源前需要确认公司的开源发布流程。
+- 仓库的 `origin` 是 github.com 上的 `zzzniloaix/Mirage`（SSH 别名 `github-zzzniloaix` 解析到 `github.com`，2026-10-23 用 `ssh -G` 核对）。初稿写成了公司 GitHub，有误，已更正。仓库是否公开、作为开源项目发布是否需要走公司的流程，由 owner 确认。
 
 ## 10. 工作单 §1–§8 逐节状态
 
