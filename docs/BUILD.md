@@ -57,6 +57,15 @@ perl -e 'alarm 900; exec @ARGV' build/macos-debug/mirage_tests '~[audio]'
 - The `[vmaf]` tests run the VMAF analyzer on small clips they generate.
 - **In a clean checkout one test fails**: `SidecarSubtitles — decodes data/sub_test/test.srt` reads that file, but `.gitignore` ignores `data/`, so the file isn't in the repository (record: "Unit tests").
 
+## 5. Rerun the measurements
+
+```
+eval/run_all.sh <out_dir>
+```
+
+- It builds the `mirage_vmaf` of each committed run from its commit, reruns every committed Phase 1 measurement, and compares the outputs with the committed ones; `eval/README.md` says how. It needs the packages of step 1 and the network, not the venv of step 3.
+- Its run of 2026-10-23, from a clean tree at `e2169f5`, found everything as committed and took 544.3 s of wall time, both builds included (`eval/run_all/2026-10-23/rerun_check.md`, `run_all.md`).
+
 ## Versions
 
 The versions the committed measurements were made with, from the environment captures committed next to them:

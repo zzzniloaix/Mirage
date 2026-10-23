@@ -2,6 +2,8 @@
 
 `run_delta.sh` compares Mirage's per-frame VMAF scores with those of FFmpeg's libvmaf filter, over the same frames of the same inputs, and writes a delta report per pair and for the whole run (work order §5; `docs/DECISIONS.md` D-017 to D-019). Mirage's side is `mirage_vmaf` (D-017). FFmpeg's side is the `ffmpeg` program of ffmpeg-full (D-009), used here only as the reference to check against.
 
+`eval/run_all.sh` reruns every committed run below and compares it with the committed outputs (`eval/README.md`).
+
 ## Running it
 
 ```
