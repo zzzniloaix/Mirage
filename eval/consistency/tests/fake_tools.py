@@ -20,7 +20,10 @@ as the current mirage_vmaf does (model_source, model_sha256,
 reference_mode). With FAKE_MIRAGE_HAS_D022=1 it also reports the FFmpeg
 libraries' versions (those of ffmpeg's stand-in), the distorted frames'
 conversion to the reference's color space, as ffmpeg's stand-in converts
-them, and no conversion of the reference.
+them, and no conversion of the reference; with FAKE_MIRAGE_HAS_D027=1 its
+pooled values include the harmonic mean and the minimum without the first
+frame. FFmpeg's stand-in logs libvmaf's pooled mean and harmonic mean at
+the 6 decimals of FFmpeg's log.
 """
 
 import hashlib
@@ -37,6 +40,11 @@ LIBRARIES = {"libavutil": "60.26.101", "libavcodec": "62.28.101", "libavformat":
 
 # The swscale flags ffmpeg's stand-in states for its scale filter's flags=.
 SWS_FLAGS = {"bilinear": 0x2, "bicubic": 0x4, "lanczos": 0x200}
+
+
+def harmonic(scores):
+    """libvmaf's harmonic mean: n / sum(1 / (x + 1)) - 1."""
+    return len(scores) / sum(1.0 / (x + 1.0) for x in scores) - 1.0
 
 
 def parse_input(url):
@@ -83,8 +91,8 @@ def ffmpeg(args):
                    "frames": [{"frameNum": i, "metrics": {"vmaf": v}}
                               for i, v in enumerate(scores)],
                    "pooled_metrics": {"vmaf": {"min": min(scores), "max": max(scores),
-                                               "mean": sum(scores) / n,
-                                               "harmonic_mean": 0.0}},
+                                               "mean": round(sum(scores) / n, 6),
+                                               "harmonic_mean": round(harmonic(scores), 6)}},
                    "aggregate_metrics": {}}, f, indent=2)
     w, h = (int(v) for v in re.search(r"scale=(\d+):(\d+)", graph).groups())
     flags = SWS_FLAGS[re.search(r"scale=\d+:\d+:flags=(\w+)", graph).group(1)]
@@ -105,6 +113,7 @@ def mirage_vmaf(args):
     has_scaler = os.environ.get("FAKE_MIRAGE_HAS_SCALER") == "1"
     has_model = os.environ.get("FAKE_MIRAGE_HAS_MODEL") == "1"
     has_d022 = os.environ.get("FAKE_MIRAGE_HAS_D022") == "1"
+    has_d027 = os.environ.get("FAKE_MIRAGE_HAS_D027") == "1"
     if "--help" in args:
         print("Usage: mirage_vmaf --ref <url|path> --dis <url|path> --out <report.json> "
               "[--frames N]\n\nOptions:\n  --ref <url|path>      reference\n"
@@ -147,7 +156,10 @@ def mirage_vmaf(args):
               "scored_as": {"width": ref["width"], "height": ref["height"],
                             "pix_fmt": "yuv420p", "bit_depth": 8},
               "frame_limit": limit, "frames_scored": n,
-              "pooled": {"mean": sum(scores) / n, "min": min(scores)},
+              "pooled": {"mean": sum(scores) / n, "min": min(scores)}
+                        | ({"harmonic_mean": harmonic(scores),
+                            "min_without_first_frame": min(scores[1:]) if n > 1 else None}
+                           if has_d027 else {}),
               "ref": info(ref), "dis": info(dis),
               "frames": [{"index": i, "ref_pts": 10 + i / 30, "dis_pts": 10 + i / 30,
                           "vmaf": v} for i, v in enumerate(scores)]}

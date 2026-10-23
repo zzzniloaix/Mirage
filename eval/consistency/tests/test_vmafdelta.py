@@ -368,12 +368,29 @@ class EvaluatePair(unittest.TestCase):
         self.assertEqual(r["frames"], {"mirage": 3, "ffmpeg": 3, "compared": 3,
                                        "counts_match": True})
         self.assertEqual(r["delta"]["max_abs"], 0.0)
-        self.assertEqual(r["pooled"]["difference"], {"mean": 0.0, "min": 0.0})
+        # The report has no harmonic mean, as before D-027.
+        self.assertEqual(r["pooled"]["difference"], {"mean": 0.0, "min": 0.0,
+                                                     "harmonic_mean": None})
         self.assertEqual(r["ffmpeg_color"]["conversions"],
                          ["Parsed_scale_1: color_space smpte170m -> bt709"])
         self.assertEqual(r["mirage_vmaf"]["pairs_with_different_pts"], 0)
         self.assertEqual(r["warnings"], [])
         json.loads(vd.to_json(r))
+
+    def test_pooled_values_of_both_sides(self):
+        # D-027: mirage_vmaf's harmonic mean next to that of FFmpeg's log.
+        scores = [50.0, 60.0, 70.0]
+        hm = 3 / (1 / 51 + 1 / 61 + 1 / 71) - 1
+        s = sides(scores, scores, pooled={"mean": 60.0, "min": 50.0, "harmonic_mean": hm,
+                                          "min_without_first_frame": 60.0})
+        s["ffmpeg"]["log"]["pooled_metrics"]["vmaf"]["harmonic_mean"] = round(hm, 6)
+        r = vd.evaluate_pair(PAIR, PARAMS, s)
+        self.assertEqual(r["status"], "PASS", r["fail_reasons"])
+        self.assertEqual(r["pooled"]["mirage"], {"mean": 60.0, "min": 50.0, "harmonic_mean": hm})
+        self.assertEqual(r["pooled"]["ffmpeg"]["harmonic_mean"], round(hm, 6))
+        self.assertAlmostEqual(r["pooled"]["difference"]["harmonic_mean"], hm - round(hm, 6), 12)
+        md = vd.pair_markdown(r)
+        self.assertIn(f"| pooled harmonic mean (libvmaf) | {hm:.6f} | {hm:.6f} | 0.000000 |", md)
 
     def test_frames_over_the_threshold_fail(self):
         r = vd.evaluate_pair(PAIR, PARAMS, sides([50.0, 60.02, 70.0], [50.0, 60.0, 70.0]))

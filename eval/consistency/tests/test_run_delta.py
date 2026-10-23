@@ -291,6 +291,15 @@ class RunDelta(unittest.TestCase):
         self.assertIn("- FFmpeg libraries at run time: mirage_vmaf libavutil 60.26.101",
                       self.read("delta.md"))
 
+    def test_pooled_harmonic_mean_of_a_current_mirage_vmaf(self):
+        # D-027: both sides' harmonic means, as libvmaf pools them.
+        rc, _, err = self.run_tool(self.pairs(("same", REF, SAME)), "--frames", "4",
+                                   env={"FAKE_MIRAGE_HAS_D027": "1"})
+        self.assertEqual(rc, 0, err)
+        p = self.report("same/delta.json")["pooled"]
+        self.assertAlmostEqual(p["mirage"]["harmonic_mean"], p["ffmpeg"]["harmonic_mean"], 6)
+        self.assertIn("| pooled harmonic mean (libvmaf) | 51.4", self.read("same/delta.md"))
+
     def test_large_json_outputs_are_compressed(self):
         with mock.patch.object(run_delta, "COMPRESS_JSON_ABOVE", 200):
             rc, _, err = self.run_tool(self.pairs(("same", REF, SAME)), "--frames", "5")

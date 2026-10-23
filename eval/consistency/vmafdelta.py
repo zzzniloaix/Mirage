@@ -31,6 +31,10 @@ WORST_FRAMES = 5
 # How many runs of over-threshold frames a Markdown report spells out.
 MARKDOWN_RANGES = 20
 
+# The pooled values both sides give as libvmaf pools them: mirage_vmaf's
+# report (the harmonic mean since D-027) and FFmpeg's libvmaf log.
+POOLED = ("mean", "min", "harmonic_mean")
+
 VARIANT_PLAIN = "plain"
 VARIANT_RELABEL = "diagnostic-relabel"
 
@@ -669,13 +673,13 @@ def evaluate_pair(pair, params, sides):
             mp = rep.get("pooled") or {}
             fp = (log.get("pooled_metrics") or {}).get("vmaf") or {}
             pooled = {"mirage": {k: mp.get(k) if is_number(mp.get(k)) else None
-                                 for k in ("mean", "min")},
+                                 for k in POOLED},
                       "ffmpeg": {k: fp.get(k) if is_number(fp.get(k)) else None
-                                 for k in ("mean", "min")}}
+                                 for k in POOLED}}
             pooled["difference"] = {
                 k: (pooled["mirage"][k] - pooled["ffmpeg"][k])
                 if pooled["mirage"][k] is not None and pooled["ffmpeg"][k] is not None else None
-                for k in ("mean", "min")}
+                for k in POOLED}
 
     return {
         "report_version": REPORT_VERSION,
@@ -869,6 +873,8 @@ def pair_markdown(r):
               f"| {num(pd.get('mean'))} |",
               f"| pooled min (libvmaf) | {num(pm.get('min'))} | {num(pf.get('min'))} "
               f"| {num(pd.get('min'))} |",
+              f"| pooled harmonic mean (libvmaf) | {num(pm.get('harmonic_mean'))} "
+              f"| {num(pf.get('harmonic_mean'))} | {num(pd.get('harmonic_mean'))} |",
               f"| mean of the compared frames | {num(d.get('mean_mirage'))} "
               f"| {num(d.get('mean_ffmpeg'))} | {num(d.get('mean_signed'))} |",
               f"| libvmaf version (run time) | {cell(m.get('libvmaf_version', '-'))} "
