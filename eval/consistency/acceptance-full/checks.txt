@@ -1,0 +1,78 @@
+# Checks on the run in this directory, made after it from <repo>: each command, then its output.
+
+# 1. The repository when these checks were made: HEAD and the working tree's state.
+
+$ git rev-parse HEAD && git status --porcelain && echo '(end of git status)'
+17a2a28933558c3a1a8f6f39837e9c11df7c4dc0
+(end of git status)
+
+# 2. Every pair: frame pairs on each side, and frames whose Mirage score, written with the 6 decimals of FFmpeg's log, is FFmpeg's. Both JSON outputs of every pair are over 1 MiB, so the run keeps them xz-compressed.
+
+$ python3 -I -c 'import json, lzma, sys
+for d in sys.argv[1:]:
+    m = json.load(lzma.open(d + "/mirage.json.xz"))["frames"]
+    f = json.load(lzma.open(d + "/ffmpeg.json.xz"))["frames"]
+    same = sum(format(a["vmaf"], ".6f") == format(b["metrics"]["vmaf"], ".6f") for a, b in zip(m, f))
+    print(d, len(m), len(f), same)' eval/consistency/acceptance-full/plain/*_vs_gear5
+eval/consistency/acceptance-full/plain/gear1_vs_gear5 53946 53946 53946
+eval/consistency/acceptance-full/plain/gear2_vs_gear5 53946 53946 53946
+eval/consistency/acceptance-full/plain/gear3_vs_gear5 53946 53946 53946
+eval/consistency/acceptance-full/plain/gear4_vs_gear5 53946 53946 53946
+
+# 3. The first 300 frames against scalers-300/bilinear, made by the same program (the SHA-256 in both build.txt) with the same settings but --frames 300, one process at a time: for index 0 to 298, frames with the same mirage_vmaf score at full precision and frames with every libvmaf metric of FFmpeg's log equal; then, for index 299, the last frame of the limited run, which had no successor there, whether the mirage_vmaf score and FFmpeg's metrics are the same.
+
+$ python3 -I -c 'import json, lzma, sys
+for name in sys.argv[1:]:
+    a = json.load(lzma.open("eval/consistency/acceptance-full/plain/" + name + "/mirage.json.xz"))["frames"]
+    b = json.load(open("eval/consistency/scalers-300/bilinear/" + name + "/mirage.json"))["frames"]
+    c = json.load(lzma.open("eval/consistency/acceptance-full/plain/" + name + "/ffmpeg.json.xz"))["frames"]
+    d = json.load(open("eval/consistency/scalers-300/bilinear/" + name + "/ffmpeg.json"))["frames"]
+    print(name, len(b), sum(x["vmaf"] == y["vmaf"] for x, y in zip(a[:299], b[:299])),
+          sum(x["metrics"] == y["metrics"] for x, y in zip(c[:299], d[:299])),
+          "index 299:", a[299]["vmaf"] == b[299]["vmaf"], c[299]["metrics"] == d[299]["metrics"])' gear4_vs_gear5 gear3_vs_gear5 gear2_vs_gear5 gear1_vs_gear5
+gear4_vs_gear5 300 299 299 index 299: True True
+gear3_vs_gear5 300 299 299 index 299: True True
+gear2_vs_gear5 300 299 299 index 299: True True
+gear1_vs_gear5 300 299 299 index 299: True True
+
+# 4. Mirage's scores against those of Phase 0's run of the player's analyzer over the whole ladder (eval/baseline/bipbop16x9/report.vmaf.json, 4 decimals, before D-016), matched by the distorted rung's URL: frames on each side, frames whose Mirage score, written with 4 decimals, is Phase 0's, and how many of those are 0.0000 on both sides.
+
+$ python3 -I -c 'import json, lzma, sys
+base = {r["dis"]: r.get("per_frame", []) for r in json.load(open("eval/baseline/bipbop16x9/report.vmaf.json"))["results"]}
+for name in sys.argv[1:]:
+    m = json.load(lzma.open("eval/consistency/acceptance-full/plain/" + name + "/mirage.json.xz"))
+    old = base[m["dis"]["url"]]
+    same = [format(b, ".4f") for a, b in zip(m["frames"], old) if format(a["vmaf"], ".4f") == format(b, ".4f")]
+    print(name, len(m["frames"]), len(old), len(same), same.count("0.0000"))' gear4_vs_gear5 gear3_vs_gear5 gear2_vs_gear5 gear1_vs_gear5
+gear4_vs_gear5 53946 53946 53946 0
+gear3_vs_gear5 53946 53946 53946 0
+gear2_vs_gear5 53946 53946 0 0
+gear1_vs_gear5 53946 53946 5976 5976
+
+# 5. The distorted frames' color conversion in each mirage_vmaf report (dis_conversion).
+
+$ python3 -I -c 'import json, lzma, sys
+for p in sys.argv[1:]:
+    print(p, json.dumps(json.load(lzma.open(p))["dis_conversion"]))' eval/consistency/acceptance-full/plain/*_vs_gear5/mirage.json.xz
+eval/consistency/acceptance-full/plain/gear1_vs_gear5/mirage.json.xz [{"from": {"color_space": "smpte170m", "color_range": "tv"}, "to": {"color_space": "bt709", "color_range": "tv"}, "matrix_changed": true, "range_changed": false, "first_index": 0, "pairs": 53946}]
+eval/consistency/acceptance-full/plain/gear2_vs_gear5/mirage.json.xz [{"from": {"color_space": "smpte170m", "color_range": "tv"}, "to": {"color_space": "bt709", "color_range": "tv"}, "matrix_changed": true, "range_changed": false, "first_index": 0, "pairs": 53946}]
+eval/consistency/acceptance-full/plain/gear3_vs_gear5/mirage.json.xz [{"from": {"color_space": "bt709", "color_range": "tv"}, "to": {"color_space": "bt709", "color_range": "tv"}, "matrix_changed": false, "range_changed": false, "first_index": 0, "pairs": 53946}]
+eval/consistency/acceptance-full/plain/gear4_vs_gear5/mirage.json.xz [{"from": {"color_space": "bt709", "color_range": "tv"}, "to": {"color_space": "bt709", "color_range": "tv"}, "matrix_changed": false, "range_changed": false, "first_index": 0, "pairs": 53946}]
+
+# 6. Each mirage_vmaf report's pairs: the first and last index with both frames' PTS in seconds, the pairs whose two frames have different PTS, and the pairs where either frame has none.
+
+$ python3 -I -c 'import json, lzma, sys
+for p in sys.argv[1:]:
+    f = json.load(lzma.open(p))["frames"]
+    differ = sum(x["ref_pts"] != x["dis_pts"] for x in f)
+    missing = sum(x["ref_pts"] is None or x["dis_pts"] is None for x in f)
+    print(p, [(x["index"], x["ref_pts"], x["dis_pts"]) for x in (f[0], f[-1])], "different PTS:", differ, "no PTS:", missing)' eval/consistency/acceptance-full/plain/*_vs_gear5/mirage.json.xz
+eval/consistency/acceptance-full/plain/gear1_vs_gear5/mirage.json.xz [(0, 10, 10), (53945, 1809.9666333333332, 1809.9666333333332)] different PTS: 0 no PTS: 0
+eval/consistency/acceptance-full/plain/gear2_vs_gear5/mirage.json.xz [(0, 10, 10), (53945, 1809.9666333333332, 1809.9666333333332)] different PTS: 0 no PTS: 0
+eval/consistency/acceptance-full/plain/gear3_vs_gear5/mirage.json.xz [(0, 10, 10), (53945, 1809.9666333333332, 1809.9666333333332)] different PTS: 0 no PTS: 0
+eval/consistency/acceptance-full/plain/gear4_vs_gear5/mirage.json.xz [(0, 10, 10), (53945, 1809.9666333333332, 1809.9666333333332)] different PTS: 0 no PTS: 0
+
+# 7. The run's checksums.
+
+$ cd eval/consistency/acceptance-full/plain && shasum -a 256 -c SHA256SUMS | awk '{n[$NF]++} END {for (k in n) print n[k], k}'
+49 OK
