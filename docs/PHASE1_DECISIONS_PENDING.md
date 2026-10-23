@@ -91,6 +91,8 @@ For a matrix libswscale lacks: (a) refuse, as the code, the player's included, d
 
 ## #3 The default scaler (D-003)
 
+**Decided**: D-024, bicubic. **Done** (P-038): the analyzer's default, and so the player's and `mirage_vmaf`'s, is bicubic, and so is `run_delta.sh`'s on both sides; `eval/run_all.sh` reruns the runs made with bilinear with bilinear named. Over the first 300 frames of the four pairs, a run with the defaults has the scores of `scalers-300/bicubic` on every frame, and `mirage_vmaf` without `--scaler` scores as it does (`eval/consistency/defaults-300/checks.txt`, checks 2 to 4; P-041). The full-length §5 report with bicubic is MEASUREMENT PENDING. The rest of this package describes the code before D-024.
+
 **Question.** Which swscale scaler brings the distorted frames to the reference's size by default, in the GUI and in `mirage_vmaf`, and so in the paper's scores?
 
 **Today.** Bilinear, as since before Phase 0; every committed §5 run used bilinear on both sides, except the bicubic and lanczos runs of `scalers-300/` below. `--scaler` now chooses bilinear, bicubic or lanczos, and the report records it.
@@ -179,6 +181,8 @@ HDR content (PQ or HLG transfer) is a further question: the models above are SDR
 
 ## #6 Pooling definitions (D-004)
 
+**Decided**: D-027. **Done** (P-039): `mirage_vmaf`'s report gives the mean, harmonic mean and minimum as libvmaf pools them, the minimum without the first frame (`min_without_first_frame`) and p1 to p50 by linear interpolation; the analyzer computes them from the per-frame scores, so the player's p5 is the interpolated one. On the first 300 frames with the defaults, each report's mean and min are those of libvmaf's `vmaf_score_pooled()` at full precision, its mean, min and harmonic mean those of FFmpeg's log at 6 decimals, and all nine values those of `pooling.py` at full precision (`eval/consistency/defaults-300/checks.txt`, checks 5 to 7; P-041). The rest of this package describes the code before D-027.
+
 **Question.** How are `mean`, `harmonic_mean`, `min` and `p1` / `p5` / `p10` / `p25` / `p50` (work order §1.5) defined?
 
 **Today.** `mirage_vmaf` reports libvmaf's pooled mean and min (`vmaf_score_pooled`); the player's analyzer also computes `vmaf_p5` as `sorted[n * 5 / 100]`, which `mirage_vmaf` leaves out (P-006). Nothing was changed.
@@ -233,6 +237,8 @@ No candidate clip was examined in Phase 1 (`eval/streams.md`, MEASUREMENT PENDIN
 **Agent's recommendation.** Choose the clips before the ladder mode of §1.2 is built, so that its acceptance can run on them; a 10-bit SDR source would also serve #5.
 
 ## The config file (the work order's engineering constraints)
+
+**Decided**: D-030, the agent's recommendation below. **Done** (P-040): `mirage_vmaf --config FILE`, `name = value` lines read through the option table, the command line replacing the file's settings, and the report's `config_file` with the file's path and SHA-256. A run whose settings come from a config file scores as the same run from the command line (`eval/consistency/defaults-300/checks.txt`, check 4). What D-030 leaves open is in "Open after D-020" below. The rest of this package describes the code before D-030.
 
 The work order asks for every configurable item as a command line option and in a config file. `mirage_vmaf`'s options are all on its command line: `--ref`, `--dis`, `--out`, `--frames`, `--scaler`, `--model`, `--model-file`. Fixed in the code, not configurable: libvmaf's threads and subsampling, the 8-bit yuv420p scoring format (#5), and pairing in decode order (#7). The player gets no new flags.
 
@@ -422,7 +428,41 @@ For a yuv420p reference without a range tag, distorted frames tagged limited in 
 
 `format-cases-after/` is rerun with the program of `d993686`, the commit its `build.txt` names, because HEAD's converts a reference that isn't yuv420p since D-022; `format-cases-d022/` is rerun with HEAD's, as the other runs made after D-016 are.
 
+### D-027: the minimum without the first frame (P-039)
+
+**Question.** D-027 reports the minimum without the first frame under its own name. Which name, and what for a pair of one frame? And once D-028 starts a new libvmaf context after each gap, the first frame of each context has motion features of 0 too: should the value leave those out as well?
+
+**Today.** `min_without_first_frame`, the name `eval/pooling/pooling.py` gives it: the smallest score of frames 1 to n − 1 of the pair, `null` for a pair of one frame. Every run so far scored each pair in one libvmaf context, and over every frame of the four pairs frame 0 is the only frame whose `integer_motion2` is 0 (`eval/pooling/README.md`, on `acceptance-full/`).
+
+**Options.**
+
+1. As today.
+2. Another name, such as `min_excluding_first`.
+3. Once D-028 is implemented, also leave out the first frame of every libvmaf context, under the same name or another.
+
+**Agent's recommendation.** Option 1 now, and option 3 decided with D-028's implementation, whose runs show where contexts restart.
+
+### D-030: what a config file accepts (P-040)
+
+**Question.** D-030 decides the format (`name = value` lines with the long options' names), the option table, the command line's precedence and the report's path and SHA-256. Which of the details it leaves open should hold?
+
+**Today** (`src/VMAFCli.h`; tests in `tests/test_vmaf_cli.cpp`):
+
+- Blank lines and lines whose first character other than white space is `#` are skipped; there are no comments after a value, no quotes and no escapes: the value is the rest of the line after the first `=`, without the white space around it.
+- Every option but `--config` can be set in the file, the inputs and the output included, each once; each value is checked as on the command line, also where the command line replaces it.
+- `--model` and `--model-file` are one setting: either on the command line replaces either in the file; both in one place are an error.
+- Relative paths are taken from the current directory, as on the command line.
+- A file that can't be read or has an error ends `mirage_vmaf` with status 2, the file and line named.
+
+**Options.** As today; comments after a value; only the scoring settings in the file, not the inputs and the output; relative paths from the file's directory; settings the command line replaces left unchecked.
+
+**Agent's recommendation.** As today: nothing a command line can say is written differently in the file, and a file with an error doesn't run.
+
 ### Smaller choices
 
+- P-038: the bicubic default in one place, the analyzer's, which `mirage_vmaf`'s command line takes; `run_delta.sh`'s default for both sides, with the scaler always given to a `mirage_vmaf` that has `--scaler`; every rerun of `eval/run_all.sh` naming its scaler, model and threads; the command blocks of earlier runs in `eval/consistency/README.md` left as they were run, with a note.
+- P-039: the pooled values computed from the per-frame scores with libvmaf's sums in frame order and the percentile arithmetic of `pooling.py` (compiled without fused multiply-add); the harmonic mean in the delta reports; `pooling.py --check-pooled`.
+- P-041: the 300-frame run with the defaults, made without `--scaler`, and its checks, the direct runs of `mirage_vmaf` among them; `eval/run_all.sh`'s steps for it.
+- P-042: the rerun of the committed measurements after D-024, D-027 and D-030.
 - P-035: the five FFmpeg libraries of the report's `ffmpeg_libraries`, at their run-time versions; a warning, not a failure, in the delta reports when the two sides' versions differ.
 - P-036: the tests' temporary directory per run, removed when the process exits normally; the subtitle test's fixture; the analyzer's decode context freed by its destructor.
