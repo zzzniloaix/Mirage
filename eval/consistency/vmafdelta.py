@@ -538,6 +538,9 @@ def evaluate_pair(pair, params, sides):
         if len(timed) != len(frames):
             warn.append(f"{len(frames) - len(timed)} of mirage_vmaf's pairs have no PTS "
                         "for one of their frames")
+        # What mirage_vmaf itself knows can make its scores differ from FFmpeg's.
+        own = rep.get("warnings") if isinstance(rep.get("warnings"), list) else []
+        warn.extend(f"mirage_vmaf: {w}" for w in own)
         mirage_info = {
             "exit_code": m_side["run"]["exit_code"],
             "elapsed_s": m_side["run"].get("elapsed_s"),
@@ -550,6 +553,7 @@ def evaluate_pair(pair, params, sides):
             "first_ref_pts": float(timed[0]["ref_pts"]) if timed else None,
             "last_ref_pts": float(timed[-1]["ref_pts"]) if timed else None,
             "pairs_with_different_pts": differ,
+            "warnings": own,
         }
 
     # FFmpeg's log: libvmaf's version and how the scale filter converted.

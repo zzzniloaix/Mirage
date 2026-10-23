@@ -422,6 +422,18 @@ class EvaluatePair(unittest.TestCase):
         self.assertTrue(any(w.startswith("dis: mirage_vmaf's decoder has color_space")
                             for w in r["warnings"]))
 
+    def test_mirage_vmafs_own_warnings(self):
+        w = "the reference's frames are yuv422p, not yuv420p: ..."
+        r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0],
+                                                 warnings=[w]))
+        self.assertEqual(r["status"], "PASS")
+        self.assertEqual(r["warnings"], ["mirage_vmaf: " + w])
+        self.assertEqual(r["mirage_vmaf"]["warnings"], [w])
+        self.assertIn("mirage_vmaf: " + w, vd.pair_markdown(r))
+        # A report without the field, as mirage_vmaf wrote before it had one.
+        r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0]))
+        self.assertEqual((r["warnings"], r["mirage_vmaf"]["warnings"]), ([], []))
+
     def test_model_file_settings(self):
         params = dict(PARAMS, model=None, model_file={"path": "/m/x.json", "sha256": "ab12"})
         good = sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0], model="/m/x.json", model_source="file",
