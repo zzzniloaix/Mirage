@@ -237,3 +237,9 @@ cd build/macos-debug && ctest --output-on-failure && cd ../..
 ```
 
 CLion: open the folder, select the `macos-debug` CMake preset, build target `mirage`.
+
+---
+
+## License
+
+Mirage is licensed under the GNU General Public License, version 3 or (at your option) any later version: `GPL-3.0-or-later` (`docs/DECISIONS.md` D-008). The license text is in [`LICENSE`](LICENSE). The libraries Mirage uses keep their own licenses; item 9 of `docs/VMAF_GAP_REPORT.md` lists them.
