@@ -32,6 +32,22 @@ std::string pts_at(const std::vector<double>& pts, std::size_t i)
     return i < pts.size() ? number(pts[i]) : "null";
 }
 
+std::string conversions_json(const std::vector<VMAFColorConversion>& list)
+{
+    std::string out = "[";
+    for (std::size_t i = 0; i < list.size(); ++i) {
+        const VMAFColorConversion& c = list[i];
+        out += i == 0 ? "\n    " : ",\n    ";
+        out += std::format(
+            "{{\"from\": {{\"color_space\": {}, \"color_range\": {}}}, "
+            "\"to\": {{\"color_space\": {}, \"color_range\": {}}}, "
+            "\"matrix_changed\": {}, \"range_changed\": {}, \"first_index\": {}, \"pairs\": {}}}",
+            quote(c.from_space), quote(c.from_range), quote(c.to_space), quote(c.to_range),
+            c.matrix_changed, c.range_changed, c.first_index, c.pairs);
+    }
+    return out + (list.empty() ? "]" : "\n  ]");
+}
+
 } // namespace
 
 std::string incomplete(const VMAFResult& r)
@@ -61,6 +77,7 @@ std::string to_json(const VMAFResult& r, const RunInfo& run)
     out += std::format("  \"scored_as\": {{\"width\": {}, \"height\": {}, \"pix_fmt\": {}, "
                        "\"bit_depth\": {}}},\n",
                        r.width, r.height, quote(s.pix_fmt), s.bit_depth);
+    out += std::format("  \"dis_conversion\": {},\n", conversions_json(r.dis_conversions));
     out += std::format("  \"frame_limit\": {},\n",
                        run.frame_limit > 0 ? std::to_string(run.frame_limit) : "null");
     out += std::format("  \"frames_scored\": {},\n", r.per_frame.size());

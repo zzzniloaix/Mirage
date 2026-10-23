@@ -1,7 +1,8 @@
 // VMAFAnalyzer on generated local clips: Matroska files with uncompressed
 // yuv420p video (no encoder needed) whose color tags survive the container.
 // Checks what the analyzer records about a run (frame limit, paired PTS,
-// input parameters, how the inputs ended), not the scores themselves.
+// input parameters, how the inputs ended, the distorted frames' color
+// conversion), and which tags change the scores, not the scores themselves.
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -32,11 +33,19 @@ namespace {
 
 constexpr int kFps = 25;   // Matroska stores milliseconds: frame k is at k * 40 ms
 
+// What else a clip of make_clip() has besides its size, length and matrix.
+struct ClipLook {
+    bool          uneven = false;   // the ramp moves 4 and 1 steps in turn, not 3
+    bool          colored = false;  // chroma gradients instead of gray
+    AVColorRange  range = AVCOL_RANGE_MPEG;
+    AVFieldOrder  field_order = AV_FIELD_UNKNOWN;
+};
+
 // A clip of `frames` frames of w x h yuv420p: a diagonal ramp that moves
-// every frame, so libvmaf's motion feature has something to measure. With
-// `uneven` the ramp moves 4 and 1 steps in turn instead of 3 every frame.
+// every frame, so libvmaf's motion feature has something to measure, in gray
+// unless `look.colored`; a matrix conversion leaves gray's luma alone.
 std::string make_clip(const char* name, int w, int h, int frames, AVColorSpace space,
-                      bool uneven = false)
+                      const ClipLook& look = {})
 {
     const fs::path path = fs::temp_directory_path() / name;
     AVFormatContext* oc = nullptr;
@@ -49,7 +58,8 @@ std::string make_clip(const char* name, int w, int h, int frames, AVColorSpace s
     st->codecpar->width       = w;
     st->codecpar->height      = h;
     st->codecpar->color_space = space;
-    st->codecpar->color_range = AVCOL_RANGE_MPEG;
+    st->codecpar->color_range = look.range;
+    st->codecpar->field_order = look.field_order;
     st->time_base             = { 1, kFps };
     st->avg_frame_rate        = { kFps, 1 };
     REQUIRE(avio_open(&oc->pb, path.c_str(), AVIO_FLAG_WRITE) >= 0);
@@ -57,7 +67,7 @@ std::string make_clip(const char* name, int w, int h, int frames, AVColorSpace s
 
     const int size = av_image_get_buffer_size(AV_PIX_FMT_YUV420P, w, h, 1);
     for (int k = 0; k < frames; ++k) {
-        const int shift = uneven ? (k / 2) * 5 + (k % 2) * 4 : 3 * k;
+        const int shift = look.uneven ? (k / 2) * 5 + (k % 2) * 4 : 3 * k;
         AVPacket* pkt = av_packet_alloc();
         REQUIRE(av_new_packet(pkt, size) >= 0);
         uint8_t* y = pkt->data;
@@ -65,6 +75,16 @@ std::string make_clip(const char* name, int w, int h, int frames, AVColorSpace s
             for (int col = 0; col < w; ++col)
                 y[row * w + col] = static_cast<uint8_t>((col * 256 / w + row * 128 / h + shift) & 0xff);
         std::fill(pkt->data + w * h, pkt->data + size, static_cast<uint8_t>(128));
+        if (look.colored) {
+            const int cw = (w + 1) / 2, ch = (h + 1) / 2;
+            uint8_t* u = pkt->data + w * h;
+            uint8_t* v = u + cw * ch;
+            for (int row = 0; row < ch; ++row)
+                for (int col = 0; col < cw; ++col) {
+                    u[row * cw + col] = static_cast<uint8_t>(40 + col * 176 / cw);
+                    v[row * cw + col] = static_cast<uint8_t>(216 - row * 176 / ch);
+                }
+        }
         pkt->stream_index = 0;
         pkt->pts = pkt->dts = k;
         pkt->duration = 1;
@@ -97,14 +117,28 @@ const std::string& short_clip()
 const std::string& uneven_ref_clip()
 {
     static const std::string p =
-        make_clip("mirage_test_vmaf_uneven_ref.mkv", 192, 108, 8, AVCOL_SPC_BT709, true);
+        make_clip("mirage_test_vmaf_uneven_ref.mkv", 192, 108, 8, AVCOL_SPC_BT709, { .uneven = true });
     return p;
 }
 const std::string& uneven_dis_clip()
 {
     static const std::string p =
-        make_clip("mirage_test_vmaf_uneven_dis.mkv", 96, 54, 8, AVCOL_SPC_BT709, true);
+        make_clip("mirage_test_vmaf_uneven_dis.mkv", 96, 54, 8, AVCOL_SPC_BT709, { .uneven = true });
     return p;
+}
+
+// Colored clips: one reference, and distorted clips with the same pixels
+// under other tags.
+const std::string& colored_ref_clip()
+{
+    static const std::string p =
+        make_clip("mirage_test_vmaf_colored_ref.mkv", 192, 108, 6, AVCOL_SPC_BT709, { .colored = true });
+    return p;
+}
+std::string colored_dis_clip(const char* name, AVColorSpace space, ClipLook look = {})
+{
+    look.colored = true;
+    return make_clip(name, 96, 54, 6, space, look);
 }
 
 double ms(int k) { return static_cast<double>(k * 1000 / kFps) / 1000.0; }
@@ -290,4 +324,96 @@ TEST_CASE("VMAFAnalyzer::start_manifest: top-rung pairs and write_json's format"
     text << f.rdbuf();
     CHECK(text.str() == expected);
     fs::remove(out);
+}
+
+TEST_CASE("VMAFAnalyzer::analyze: converts the distorted frames' matrix as FFmpeg does (D-016)", "[vmaf]")
+{
+    const std::string s170m = colored_dis_clip("mirage_test_vmaf_colored_170m.mkv", AVCOL_SPC_SMPTE170M);
+    const std::string s470bg = colored_dis_clip("mirage_test_vmaf_colored_470bg.mkv", AVCOL_SPC_BT470BG);
+    const std::string s709 = colored_dis_clip("mirage_test_vmaf_colored_709.mkv", AVCOL_SPC_BT709);
+    const VMAFResult r170m = VMAFAnalyzer::analyze(colored_ref_clip(), s170m);
+    const VMAFResult r470bg = VMAFAnalyzer::analyze(colored_ref_clip(), s470bg);
+    const VMAFResult r709 = VMAFAnalyzer::analyze(colored_ref_clip(), s709);
+    REQUIRE(r170m.error.empty());
+    REQUIRE(r170m.per_frame.size() == 6);
+    REQUIRE(r709.per_frame.size() == 6);
+
+    // The same pixels: converted from BT.601 to the reference's BT.709, or not
+    // converted. smpte170m and bt470bg are both BT.601.
+    CHECK(r170m.per_frame != r709.per_frame);
+    CHECK(r470bg.per_frame == r170m.per_frame);
+
+    REQUIRE(r170m.dis_conversions.size() == 1);
+    const VMAFColorConversion& c = r170m.dis_conversions[0];
+    CHECK(c.from_space == "smpte170m");
+    CHECK(c.from_range == "tv");
+    CHECK(c.to_space == "bt709");
+    CHECK(c.to_range == "tv");
+    CHECK(c.matrix_changed);
+    CHECK_FALSE(c.range_changed);
+    CHECK(c.first_index == 0);
+    CHECK(c.pairs == 6);
+
+    REQUIRE(r709.dis_conversions.size() == 1);
+    CHECK(r709.dis_conversions[0].from_space == "bt709");
+    CHECK(r709.dis_conversions[0].to_space == "bt709");
+    CHECK_FALSE(r709.dis_conversions[0].matrix_changed);
+    CHECK_FALSE(r709.dis_conversions[0].range_changed);
+}
+
+TEST_CASE("VMAFAnalyzer::analyze: converts a full range distorted input to the reference's range", "[vmaf]")
+{
+    const std::string pc = colored_dis_clip("mirage_test_vmaf_colored_709pc.mkv", AVCOL_SPC_BT709,
+                                            { .range = AVCOL_RANGE_JPEG });
+    const std::string tv = colored_dis_clip("mirage_test_vmaf_colored_709.mkv", AVCOL_SPC_BT709);
+    const VMAFResult rpc = VMAFAnalyzer::analyze(colored_ref_clip(), pc);
+    const VMAFResult rtv = VMAFAnalyzer::analyze(colored_ref_clip(), tv);
+    REQUIRE(rpc.error.empty());
+    CHECK(rpc.per_frame != rtv.per_frame);
+    REQUIRE(rpc.dis_conversions.size() == 1);
+    CHECK(rpc.dis_conversions[0].from_range == "pc");
+    CHECK(rpc.dis_conversions[0].to_range == "tv");
+    CHECK(rpc.dis_conversions[0].range_changed);
+    CHECK_FALSE(rpc.dis_conversions[0].matrix_changed);
+}
+
+TEST_CASE("VMAFAnalyzer::analyze: an untagged distorted input is BT.601 to libswscale", "[vmaf]")
+{
+    const std::string untagged =
+        colored_dis_clip("mirage_test_vmaf_colored_untagged.mkv", AVCOL_SPC_UNSPECIFIED,
+                         { .range = AVCOL_RANGE_UNSPECIFIED });
+    const std::string s170m = colored_dis_clip("mirage_test_vmaf_colored_170m.mkv", AVCOL_SPC_SMPTE170M);
+    const VMAFResult r = VMAFAnalyzer::analyze(colored_ref_clip(), untagged);
+    REQUIRE(r.error.empty());
+    CHECK(r.dis_info.color_space == "unknown");
+    CHECK(r.per_frame == VMAFAnalyzer::analyze(colored_ref_clip(), s170m).per_frame);
+    REQUIRE(r.dis_conversions.size() == 1);
+    CHECK(r.dis_conversions[0].from_space == "unknown");
+    CHECK(r.dis_conversions[0].from_range == "unknown");
+    CHECK(r.dis_conversions[0].to_space == "bt709");
+    CHECK(r.dis_conversions[0].to_range == "tv");
+    CHECK(r.dis_conversions[0].matrix_changed);
+}
+
+TEST_CASE("VMAFAnalyzer::analyze: interlaced distorted frames are scaled as progressive", "[vmaf]")
+{
+    const std::string tt = colored_dis_clip("mirage_test_vmaf_colored_170m_tt.mkv", AVCOL_SPC_SMPTE170M,
+                                            { .field_order = AV_FIELD_TT });
+    const std::string s170m = colored_dis_clip("mirage_test_vmaf_colored_170m.mkv", AVCOL_SPC_SMPTE170M);
+    const VMAFResult r = VMAFAnalyzer::analyze(colored_ref_clip(), tt);
+    REQUIRE(r.error.empty());
+    REQUIRE(r.per_frame.size() == 6);
+    CHECK(r.per_frame == VMAFAnalyzer::analyze(colored_ref_clip(), s170m).per_frame);
+}
+
+TEST_CASE("VMAFAnalyzer::analyze: a matrix libswscale does not convert is an error", "[vmaf]")
+{
+    const std::string ycgco = colored_dis_clip("mirage_test_vmaf_colored_ycgco.mkv", AVCOL_SPC_YCGCO);
+    const VMAFResult r = VMAFAnalyzer::analyze(colored_ref_clip(), ycgco);
+    CHECK(r.done);
+    CHECK(r.error.find("the distorted input has the color matrix ycgco") != std::string::npos);
+    CHECK(r.per_frame.empty());
+
+    const VMAFResult ref = VMAFAnalyzer::analyze(ycgco, colored_ref_clip());
+    CHECK(ref.error.find("the reference has the color matrix ycgco") != std::string::npos);
 }

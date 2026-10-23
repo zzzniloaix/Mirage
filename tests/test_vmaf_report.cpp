@@ -249,6 +249,12 @@ VMAFResult sample_result()
     r.dis_info.ended = true;
     r.ref_pts   = { 10.0, 903003.0 / 90000.0, 906006.0 / 90000.0 };
     r.dis_pts   = { 10.0, std::numeric_limits<double>::quiet_NaN(), 906006.0 / 90000.0 };
+    r.dis_conversions = {
+        { .from_space = "smpte170m", .from_range = "tv", .to_space = "bt709", .to_range = "tv",
+          .matrix_changed = true, .range_changed = false, .first_index = 0, .pairs = 2 },
+        { .from_space = "unknown", .from_range = "pc", .to_space = "bt709", .to_range = "tv",
+          .matrix_changed = true, .range_changed = true, .first_index = 2, .pairs = 1 },
+    };
     return r;
 }
 
@@ -351,6 +357,37 @@ TEST_CASE("vmafreport::to_json: inputs, escaped strings included", "[vmafreport]
     CHECK(ref["ended"].kind == Value::Kind::Bool);
     CHECK_FALSE(ref["ended"].b);
     CHECK(dis["ended"].b);
+}
+
+TEST_CASE("vmafreport::to_json: the distorted frames' color conversions", "[vmafreport]")
+{
+    const auto doc = parse(vmafreport::to_json(sample_result(), kRun));
+    REQUIRE(doc);
+    const Value& conv = (*doc)["dis_conversion"];
+    REQUIRE(conv.kind == Value::Kind::Array);
+    REQUIRE(conv.arr.size() == 2);
+    const Value& a = conv.arr[0];
+    CHECK(a["from"]["color_space"].str == "smpte170m");
+    CHECK(a["from"]["color_range"].str == "tv");
+    CHECK(a["to"]["color_space"].str == "bt709");
+    CHECK(a["to"]["color_range"].str == "tv");
+    CHECK(a["matrix_changed"].kind == Value::Kind::Bool);
+    CHECK(a["matrix_changed"].b);
+    CHECK_FALSE(a["range_changed"].b);
+    CHECK(a["first_index"].num == 0);
+    CHECK(a["pairs"].num == 2);
+    const Value& b = conv.arr[1];
+    CHECK(b["from"]["color_space"].str == "unknown");
+    CHECK(b["range_changed"].b);
+    CHECK(b["first_index"].num == 2);
+    CHECK(b["pairs"].num == 1);
+
+    VMAFResult none = sample_result();
+    none.dis_conversions.clear();
+    const auto empty = parse(vmafreport::to_json(none, kRun));
+    REQUIRE(empty);
+    CHECK((*empty)["dis_conversion"].kind == Value::Kind::Array);
+    CHECK((*empty)["dis_conversion"].arr.empty());
 }
 
 TEST_CASE("vmafreport::to_json: one entry per frame pair, full precision", "[vmafreport]")

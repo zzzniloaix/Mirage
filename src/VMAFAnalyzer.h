@@ -37,6 +37,22 @@ struct VMAFInputInfo {
     std::string end_error;           // FFmpeg error that ended it; empty = clean end or not ended
 };
 
+// How the distorted frames' color was converted before scoring, as FFmpeg's
+// filter graph converts it (DECISIONS.md D-016, src/VMAFColor.h): the frames'
+// matrix and range tags, the tags they were converted to, and whether that
+// changed the matrix or the range of the pixels. One entry per distinct
+// conversion, in the order the pairs first used it. Tags under FFmpeg's names.
+struct VMAFColorConversion {
+    std::string from_space;
+    std::string from_range;
+    std::string to_space;
+    std::string to_range;
+    bool        matrix_changed = false;
+    bool        range_changed  = false;
+    unsigned    first_index    = 0;   // first frame pair converted this way
+    unsigned    pairs          = 0;   // frame pairs converted this way
+};
+
 // Limits and extra recording for one pair. Default-constructed it is what
 // start() and start_manifest() use.
 struct VMAFOptions {
@@ -63,6 +79,7 @@ struct VMAFResult {
     VMAFInputInfo ref_info;
     VMAFInputInfo dis_info;
     std::string   score_error;       // first libvmaf call that failed while scoring; empty = none
+    std::vector<VMAFColorConversion> dis_conversions;
     // With VMAFOptions::record_pts: the best-effort PTS (seconds) of the
     // reference and distorted frame scored at each index of per_frame.
     // NaN = the frame had no timestamp.

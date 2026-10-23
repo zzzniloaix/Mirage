@@ -7,6 +7,11 @@
 //   tool, libvmaf_version, libvmaf_package_version,
 //   model, scaler, n_threads, n_subsample,
 //   scored_as { width, height, pix_fmt, bit_depth }   what libvmaf was given
+//   dis_conversion [ { from { color_space, color_range },
+//                      to { color_space, color_range },
+//                      matrix_changed, range_changed,
+//                      first_index, pairs } ]       the distorted frames' color
+//                                                    conversions (VMAFColorConversion)
 //   frame_limit (null = none), frames_scored,
 //   pooled { mean, min }                             libvmaf's vmaf_score_pooled
 //   ref / dis { url, width, height, pix_fmt, color_space, color_range,
