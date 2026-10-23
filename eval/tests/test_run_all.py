@@ -146,6 +146,24 @@ class StepsAgainstTheCommittedRuns(unittest.TestCase):
                          ["clips", "pooling"])
 
 
+class Redaction(unittest.TestCase):
+    def test_paths_and_their_cmake_variable_forms(self):
+        with tempfile.TemporaryDirectory() as d:
+            wt = os.path.join(d, "run-all", "head-worktree")
+            r = ra.Redactor([(wt, "<worktree>"), (d, "<tmp>")])
+            mangled = "".join(c if c.isalnum() else "_" for c in os.path.realpath(wt))
+            text = (f"cd {wt}/build && ls {os.path.realpath(d)}/x\n"
+                    f"-- Performing Test HAVE_FLAG__ffile_prefix_map_{mangled}_build__deps__")
+            out, _ = r.text(text)
+            self.assertEqual(out, "cd <worktree>/build && ls <tmp>/x\n"
+                                  "-- Performing Test HAVE_FLAG__ffile_prefix_map_<worktree>"
+                                  "_build__deps__")
+            self.assertEqual(r.data(text.encode())[0], out.encode())
+        # A one-component path only as itself, not as a word.
+        r = ra.Redactor([("/tmp", "<tmp>")])
+        self.assertEqual(r.text("a_tmp_b /tmp/c")[0], "a_tmp_b <tmp>/c")
+
+
 class Comparisons(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()

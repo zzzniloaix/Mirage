@@ -179,6 +179,39 @@ class SetupError(Exception):
     pass
 
 
+class Redactor:
+    """Replaces local paths with placeholders, longest first: each path as
+    given and as its real path, and each of those of two or more components
+    also as CMake writes it into the name of a compiler check's variable,
+    every character but a letter or a digit as '_' (Catch2's configure
+    checks a -ffile-prefix-map flag that holds its source directory's path).
+    A one-component path such as /tmp would turn into a word that occurs
+    anywhere."""
+
+    def __init__(self, paths):
+        subs = {}
+        for path, placeholder in paths:
+            if not path:
+                continue
+            for p in (os.path.abspath(path), os.path.realpath(path)):
+                p = p.rstrip("/")
+                if len(p) > 1:
+                    subs.setdefault(p, placeholder)
+                    if p.count("/") >= 2:
+                        subs.setdefault(re.sub(r"[^A-Za-z0-9]", "_", p), placeholder)
+        self._subs = sorted(subs.items(), key=lambda s: (-len(s[0]), s[0]))
+
+    def text(self, s):
+        for path, placeholder in self._subs:
+            s = s.replace(path, placeholder)
+        return s, None
+
+    def data(self, b):
+        for path, placeholder in self._subs:
+            b = b.replace(path.encode(), placeholder.encode())
+        return b, None
+
+
 def utc_now():
     return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -291,7 +324,7 @@ class Runner:
 
     def set_redactor(self, worktree=None):
         """Local paths and their placeholders; a build's worktree as <worktree>."""
-        self.redactor = vd.Redactor([(worktree, "<worktree>"), (self.out, "<out_dir>"),
+        self.redactor = Redactor([(worktree, "<worktree>"), (self.out, "<out_dir>"),
                                      (self.work, "<work>"), (REPO, "<repo>"),
                                      (os.path.expanduser("~"), "<home>"),
                                      (os.environ.get("TMPDIR") or "/tmp", "<tmp>")])
