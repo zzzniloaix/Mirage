@@ -138,6 +138,8 @@ class StepsAgainstTheCommittedRuns(unittest.TestCase):
                          ["clips", "color-cases-after"])
         self.assertEqual(names(only=["format-cases-after"], skip_before=False),
                          ["format-clips", "format-cases-after"])
+        self.assertEqual(names(only=["format-cases-d022"], skip_before=False),
+                         ["format-clips", "format-cases-d022"])
         self.assertNotIn("format-cases-before", names(only=None, skip_before=True))
         self.assertEqual(names(only=None, skip_before=False), list(ra.STEP_NAMES))
         self.assertNotIn("diag-before-300", names(only=None, skip_before=True))
@@ -147,6 +149,25 @@ class StepsAgainstTheCommittedRuns(unittest.TestCase):
         rest = names(only=None, skip_before=False, skip_full=True)
         self.assertEqual(rest, [n for n in ra.STEP_NAMES if n not in ra.FULL_LENGTH])
         self.assertIn("pooling", rest)
+
+    def test_each_delta_step_has_the_program_of_its_build_txt(self):
+        # The commit a committed run's build.txt names, for the programs built
+        # from a fixed commit; the head's runs name the commit they were made at.
+        programs = {name: (option, commit) for name, option, commit, _ in ra.PROGRAMS}
+        for s in ra.STEPS:
+            if s.kind != "delta":
+                continue
+            with self.subTest(step=s.name):
+                self.assertIn(s.binary, programs)
+                commit = programs[s.binary][1]
+                with open(os.path.join(EVAL, s.committed, "build.txt"), encoding="utf-8") as f:
+                    text = f.read()
+                if commit:
+                    self.assertIn(commit[:7], text)   # some name it by its short hash
+        self.assertEqual([s.name for s in ra.STEPS if s.binary == "before-d022"],
+                         ["format-cases-after"])
+        self.assertEqual(ra.parse_args(["out", "--mirage-vmaf-before-d022", "p"])
+                         .mirage_vmaf_before_d022, "p")
 
     def test_clips_steps_and_their_sets(self):
         clips = {s.name: s for s in ra.STEPS if s.kind == "clips"}

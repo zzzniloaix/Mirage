@@ -2,6 +2,7 @@
 compares what it gets with the committed outputs.
 
 usage: eval/run_all.sh <out_dir> [--mirage-vmaf PROG] [--mirage-vmaf-before PROG]
+                       [--mirage-vmaf-before-d022 PROG]
                        [--skip-before] [--skip-full] [--only STEP[,STEP...]]
                        [--jobs J] [--ffmpeg PROG] [--ffprobe PROG]
                        [--model-dir DIR] [--work-dir DIR] [--no-compare]
@@ -22,6 +23,7 @@ in this order:
   diag-after-300         consistency/diag-after-300/plain/
   color-cases-after      consistency/color-cases-after/{main,refused}/
   format-cases-after     consistency/format-cases-after/{main,refused}/
+  format-cases-d022      consistency/format-cases-d022/{main,refused}/
   scalers-300            consistency/scalers-300/{bilinear,bicubic,lanczos}/ and
                          scaler_effect.*
   models-300             consistency/models-300/{vmaf_v0.6.1,...}/ and model_effect.*
@@ -37,12 +39,15 @@ in this order:
 Each run_delta.sh run gets the options its committed run.cmd.txt records.
 The runs made before D-016 (diag-before-300, color-cases-before,
 format-cases-before) use the mirage_vmaf of commit 83c8ed6, which converts
-no color; all the others use the mirage_vmaf of the repository's HEAD. --skip-before leaves out the runs
-made before D-016, --skip-full the two steps over every frame
-(acceptance-full, pooling-full). Unless --mirage-vmaf /
---mirage-vmaf-before give one, each is built in a temporary worktree of
-its commit: `cmake --preset macos-release`, then only the mirage_vmaf
-target, which needs no glad venv (docs/BUILD.md, step 3).
+no color; format-cases-after, made after D-016 and before D-022, uses that
+of commit d993686, which doesn't convert a reference that isn't yuv420p;
+all the others use the mirage_vmaf of the repository's HEAD. --skip-before
+leaves out the runs made before D-016, --skip-full the two steps over every
+frame (acceptance-full, pooling-full). Unless --mirage-vmaf,
+--mirage-vmaf-before or --mirage-vmaf-before-d022 give one, each is built in
+a temporary worktree of its commit: `cmake --preset macos-release`, then
+only the mirage_vmaf target, which needs no glad venv (docs/BUILD.md, step
+3).
 
 Then it compares, step by step, the rerun with the committed outputs: the
 per-frame scores of both sides of every pair (Mirage's at full precision,
@@ -97,6 +102,21 @@ DEFAULT_MODEL_DIR = "/opt/homebrew/opt/libvmaf/share/libvmaf/model"
 # check that it was unchanged when they ran; format-cases-before/build.txt
 # builds it in a worktree of 83c8ed6.
 BEFORE_D016 = "83c8ed6b497783cc6dd265637e7b2298399ba41a"
+
+# The commit whose mirage_vmaf made format-cases-after, after D-016 and
+# before D-022 (its build.txt): the head converts a reference that isn't
+# yuv420p since D-022, which changes the scores of most of those cases.
+BEFORE_D022 = "d993686add8b2af709e1200437e9d643aed26238"
+
+# The programs the steps use, by the name of a step's `binary`: the option
+# that gives one, the commit to build otherwise (None: the repository's
+# HEAD), and what it is for.
+PROGRAMS = (
+    ("head", "--mirage-vmaf", None, "every run made after D-016 except format-cases-after"),
+    ("before", "--mirage-vmaf-before", BEFORE_D016, "the runs made before D-016"),
+    ("before-d022", "--mirage-vmaf-before-d022", BEFORE_D022,
+     "format-cases-after, made after D-016 and before D-022"),
+)
 
 BUILD_TIMEOUT = 3600      # seconds per configure or build
 STEP_TIMEOUT = 6 * 3600   # seconds per measurement command
@@ -153,8 +173,12 @@ STEPS = (
          committed="consistency/color-cases-after", runs=[
              Run("main", delta_options(10, pairs="{clips}/pairs.txt")),
              Run("refused", delta_options(10, pairs="{clips}/pairs_refused.txt"))]),
-    step("format-cases-after", "delta", "head", needs=["format-clips"],
+    step("format-cases-after", "delta", "before-d022", needs=["format-clips"],
          committed="consistency/format-cases-after", runs=[
+             Run("main", delta_options(10, pairs="{format_clips}/pairs.txt")),
+             Run("refused", delta_options(10, pairs="{format_clips}/pairs_refused.txt"))]),
+    step("format-cases-d022", "delta", "head", needs=["format-clips"],
+         committed="consistency/format-cases-d022", runs=[
              Run("main", delta_options(10, pairs="{format_clips}/pairs.txt")),
              Run("refused", delta_options(10, pairs="{format_clips}/pairs_refused.txt"))]),
     step("scalers-300", "delta", "head", committed="consistency/scalers-300",
@@ -320,6 +344,9 @@ def parse_args(argv):
     p.add_argument("--mirage-vmaf-before", metavar="PROG",
                    help="the mirage_vmaf for the runs before D-016 (default: build commit "
                         f"{BEFORE_D016[:7]} in a temporary worktree)")
+    p.add_argument("--mirage-vmaf-before-d022", metavar="PROG",
+                   help="the mirage_vmaf for format-cases-after, made before D-022 (default: "
+                        f"build commit {BEFORE_D022[:7]} in a temporary worktree)")
     p.add_argument("--skip-before", action="store_true",
                    help="leave out the runs made before D-016")
     p.add_argument("--skip-full", action="store_true",
@@ -886,13 +913,13 @@ def main(argv=None):
     steps = selected_steps(args.only, args.skip_before, args.skip_full)
     binaries, built = {}, []
     needed = {s.binary for s in steps if s.binary}
-    for name, given, commit, purpose in (
-            ("head", args.mirage_vmaf, head_start, "the runs made after D-016"),
-            ("before", args.mirage_vmaf_before, BEFORE_D016, "the runs made before D-016")):
+    for name, option, commit, purpose in PROGRAMS:
+        given = getattr(args, option[2:].replace("-", "_"))
+        commit = commit or head_start
         if name not in needed:
             continue
         if given:
-            prog = Runner.program(given, f"--mirage-vmaf{'-before' if name == 'before' else ''}")
+            prog = Runner.program(given, option)
             binaries[name] = prog
             built.append({"name": name, "purpose": purpose, "commit": None,
                           "path": r.shown_path(prog), "sha256": vd.sha256_file(prog)})
