@@ -1,0 +1,4 @@
+$ otool -L /opt/homebrew/opt/ffmpeg-full/lib/libavfilter.11.dylib | grep -i vmaf
+	/opt/homebrew/opt/libvmaf/lib/libvmaf.3.dylib (compatibility version 3.0.0, current version 3.0.0)
+$ readlink /opt/homebrew/opt/libvmaf
+../Cellar/libvmaf/3.1.0

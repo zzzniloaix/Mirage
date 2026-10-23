@@ -1,0 +1,8 @@
+'640x360  0.6 Mbps' vs ffmpeg_libvmaf_gear2_vs_gear5_first300.json: frames compared=300
+  mirage mean=33.8328  ffmpeg mean=28.5529  ffmpeg pooled mean=28.5529
+  |delta| per frame: max=5.6747 mean=5.2798 frames over 0.01: 300
+  signed mean (mirage - ffmpeg)=5.2798
+'416x234  0.3 Mbps' vs ffmpeg_libvmaf_gear1_vs_gear5_first300.json: frames compared=300
+  mirage mean=1.8845  ffmpeg mean=0.0061  ffmpeg pooled mean=0.0061
+  |delta| per frame: max=3.8838 mean=1.8784 frames over 0.01: 290
+  signed mean (mirage - ffmpeg)=1.8784

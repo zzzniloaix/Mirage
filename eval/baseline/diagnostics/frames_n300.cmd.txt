@@ -1,0 +1,2 @@
+$ ffmpeg -v error -i https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear5/prog_index.m3u8 -vf 'select=eq(n\,300)' -frames:v 1 -fps_mode passthrough frame_n300_gear5.png
+$ ffmpeg -v error -i https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear1/prog_index.m3u8 -vf 'select=eq(n\,300)' -frames:v 1 -fps_mode passthrough frame_n300_gear1.png

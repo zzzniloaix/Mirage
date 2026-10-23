@@ -1,0 +1,60 @@
+# Clean build of a4e0289 (cmake --preset macos-release, default Python 3.14.7) — raw log, scratch paths shortened to $S
+[0/54] glad_gl_core_41-generate
+Cleaning $S/wt-head/build/macos-release/gladsources/glad_gl_core_41
+Generating with args --out-path $S/wt-head/build/macos-release/gladsources/glad_gl_core_41 --api gl:core=4.1 --reproducible c
+[21.10.2026 15:33:40][INFO	][glad   	]: getting 'gl' specification from remote location
+[21.10.2026 15:33:40][DEBUG	][glad.files	]: intercepted attempt to retrieve resource: 'https://raw.githubusercontent.com/KhronosGroup/OpenGL-Registry/main/xml/gl.xml'
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/xml/etree/ElementTree.py", line 1546, in __init__
+    from xml.parsers import expat
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/xml/parsers/expat.py", line 4, in <module>
+    from pyexpat import *
+ImportError: dlopen(/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/pyexpat.cpython-314-darwin.so, 0x0002): Symbol not found: _XML_SetAllocTrackerActivationThreshold
+  Referenced from: <46224F46-6E0E-3C48-95AB-C29DC7EB8DFF> /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/pyexpat.cpython-314-darwin.so
+  Expected in:     <4D62FA9D-D86A-3DD0-98F2-C6D0718849E8> /usr/lib/libexpat.1.dylib
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/xml/etree/ElementTree.py", line 1549, in __init__
+    import pyexpat as expat
+ImportError: dlopen(/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/pyexpat.cpython-314-darwin.so, 0x0002): Symbol not found: _XML_SetAllocTrackerActivationThreshold
+  Referenced from: <46224F46-6E0E-3C48-95AB-C29DC7EB8DFF> /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/pyexpat.cpython-314-darwin.so
+  Expected in:     <4D62FA9D-D86A-3DD0-98F2-C6D0718849E8> /usr/lib/libexpat.1.dylib
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 203, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "$S/wt-head/build/macos-release/_deps/glad-src/glad/__main__.py", line 197, in <module>
+    main()
+    ~~~~^^
+  File "$S/wt-head/build/macos-release/_deps/glad-src/glad/__main__.py", line 156, in main
+    specifications = load_specifications(
+        [value[0] for value in global_config['API'].values()], opener=opener
+    )
+  File "$S/wt-head/build/macos-release/_deps/glad-src/glad/__main__.py", line 91, in load_specifications
+    specification = Specification.from_remote(opener=opener)
+  File "$S/wt-head/build/macos-release/_deps/glad-src/glad/parse.py", line 269, in from_remote
+    return cls.from_url(cls.API + cls.NAME + '.xml', opener=opener)
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "$S/wt-head/build/macos-release/_deps/glad-src/glad/parse.py", line 265, in from_url
+    return cls(xml_fromstring(raw))
+               ~~~~~~~~~~~~~~^^^^^
+  File "$S/wt-head/build/macos-release/_deps/glad-src/glad/parse.py", line 18, in xml_fromstring
+    return etree.fromstring(argument)
+           ~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/xml/etree/ElementTree.py", line 1365, in XML
+    parser = XMLParser(target=TreeBuilder())
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/xml/etree/ElementTree.py", line 1551, in __init__
+    raise ImportError(
+        "No module named expat; use SimpleXMLTreeBuilder instead"
+        )
+ImportError: No module named expat; use SimpleXMLTreeBuilder instead
+FAILED: [code=1] gladsources/glad_gl_core_41/include/KHR/khrplatform.h gladsources/glad_gl_core_41/include/glad/gl.h gladsources/glad_gl_core_41/src/gl.c gladsources/glad_gl_core_41/args.txt $S/wt-head/build/macos-release/gladsources/glad_gl_core_41/include/KHR/khrplatform.h $S/wt-head/build/macos-release/gladsources/glad_gl_core_41/include/glad/gl.h $S/wt-head/build/macos-release/gladsources/glad_gl_core_41/src/gl.c $S/wt-head/build/macos-release/gladsources/glad_gl_core_41/args.txt 
+cd $S/wt-head/build/macos-release/_deps/glad-src && echo Cleaning $S/wt-head/build/macos-release/gladsources/glad_gl_core_41 && /opt/homebrew/bin/cmake -E remove_directory $S/wt-head/build/macos-release/gladsources/glad_gl_core_41 && /opt/homebrew/bin/cmake -E make_directory $S/wt-head/build/macos-release/gladsources/glad_gl_core_41 && echo Generating with args --out-path $S/wt-head/build/macos-release/gladsources/glad_gl_core_41 --api gl:core=4.1 --reproducible c && /opt/homebrew/Frameworks/Python.framework/Versions/3.14/bin/python3.14 -m glad --out-path $S/wt-head/build/macos-release/gladsources/glad_gl_core_41 --api gl:core=4.1 --reproducible c && echo Writing $S/wt-head/build/macos-release/gladsources/glad_gl_core_41/args.txt && echo --out-path $S/wt-head/build/macos-release/gladsources/glad_gl_core_41 --api gl:core=4.1 --reproducible c > $S/wt-head/build/macos-release/gladsources/glad_gl_core_41/args.txt
+[2/54] Building C object _deps/nfd-build/src/CMakeFiles/nfd.dir/nfd_cocoa.m.o
+[3/54] Building CXX object _deps/pugixml-build/CMakeFiles/pugixml-static.dir/src/pugixml.cpp.o
+ninja: build stopped: subcommand failed.
+build rc=1

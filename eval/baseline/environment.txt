@@ -1,0 +1,270 @@
+$ date -u +%Y-%m-%dT%H:%M:%SZ
+2026-10-21T23:37:14Z
+
+$ git -C <worktree> rev-parse HEAD
+a4e02895d2d9c51c620e6c140f5566944c80ec71
+
+$ git -C <worktree> log -1 --format=%H %cd %s --date=iso
+a4e02895d2d9c51c620e6c140f5566944c80ec71 2026-10-19 14:32:15 -0700 HLS response/alignment inspector, frame-accurate seeks, playback fixes
+
+$ sw_vers
+ProductName:		macOS
+ProductVersion:		26.2
+BuildVersion:		25C56
+
+$ uname -a
+Darwin <hostname> 25.2.0 Darwin Kernel Version 25.2.0: Tue Nov 18 21:09:45 PST 2025; root:xnu-12377.61.12~1/RELEASE_ARM64_T6030 arm64
+
+$ sysctl -n machdep.cpu.brand_string hw.physicalcpu hw.logicalcpu hw.memsize
+Apple M3 Pro
+12
+12
+38654705664
+
+$ clang --version
+Apple clang version 21.0.0 (clang-2100.1.1.101)
+Target: arm64-apple-darwin25.2.0
+Thread model: posix
+InstalledDir: /Library/Developer/CommandLineTools/usr/bin
+
+$ cmake --version
+cmake version 4.3.0
+
+CMake suite maintained and supported by Kitware (kitware.com/cmake).
+
+$ ninja --version
+1.13.2
+
+$ brew list --versions ffmpeg ffmpeg-full libvmaf glfw pkg-config python@3.13 python@3.14
+ffmpeg 8.1.1
+ffmpeg-full 8.1.1
+glfw 3.4
+libvmaf 3.1.0
+pkgconf 2.5.1
+python@3.13 3.13.1
+python@3.14 3.14.7
+
+$ PKG_CONFIG_PATH=/opt/homebrew/opt/ffmpeg-full/lib/pkgconfig pkg-config --modversion libavformat libavcodec libavutil libswscale libswresample libavfilter libvmaf glfw3
+62.12.101
+62.28.101
+60.26.101
+9.5.101
+6.3.101
+11.14.101
+3.0.0
+3.4.0
+
+$ /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -hide_banner -version
+ffmpeg version 8.1.1 Copyright (c) 2000-2026 the FFmpeg developers
+built with Apple clang version 21.0.0 (clang-2100.0.123.102)
+configuration: --prefix=/opt/homebrew/Cellar/ffmpeg-full/8.1.1 --enable-shared --enable-pthreads --enable-version3 --cc=clang --host-cflags= --host-ldflags= --enable-ffplay --enable-gnutls --enable-gpl --enable-libaom --enable-libaribb24 --enable-libbluray --enable-libdav1d --enable-libharfbuzz --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librav1e --enable-librist --enable-librubberband --enable-libsnappy --enable-libsrt --enable-libssh --enable-libsvtav1 --enable-libtesseract --enable-libtheora --enable-libvidstab --enable-libvmaf --enable-libvorbis --enable-libvpx --enable-libwebp --enable-libx264 --enable-libx265 --enable-libxml2 --enable-libxvid --enable-lzma --enable-libfontconfig --enable-libfreetype --enable-frei0r --enable-libass --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenjpeg --enable-libspeex --enable-libsoxr --enable-libzmq --enable-libzimg --enable-whisper --disable-libjack --disable-indev=jack --enable-videotoolbox --enable-audiotoolbox --enable-neon
+libavutil      60. 26.101 / 60. 26.101
+libavcodec     62. 28.101 / 62. 28.101
+libavformat    62. 12.101 / 62. 12.101
+libavdevice    62.  3.101 / 62.  3.101
+libavfilter    11. 14.101 / 11. 14.101
+libswscale      9.  5.101 /  9.  5.101
+libswresample   6.  3.101 /  6.  3.101
+
+Exiting with exit code 0
+
+$ /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -hide_banner -buildconf
+
+  configuration:
+    --prefix=/opt/homebrew/Cellar/ffmpeg-full/8.1.1
+    --enable-shared
+    --enable-pthreads
+    --enable-version3
+    --cc=clang
+    --host-cflags=
+    --host-ldflags=
+    --enable-ffplay
+    --enable-gnutls
+    --enable-gpl
+    --enable-libaom
+    --enable-libaribb24
+    --enable-libbluray
+    --enable-libdav1d
+    --enable-libharfbuzz
+    --enable-libjxl
+    --enable-libmp3lame
+    --enable-libopus
+    --enable-libplacebo
+    --enable-librav1e
+    --enable-librist
+    --enable-librubberband
+    --enable-libsnappy
+    --enable-libsrt
+    --enable-libssh
+    --enable-libsvtav1
+    --enable-libtesseract
+    --enable-libtheora
+    --enable-libvidstab
+    --enable-libvmaf
+    --enable-libvorbis
+    --enable-libvpx
+    --enable-libwebp
+    --enable-libx264
+    --enable-libx265
+    --enable-libxml2
+    --enable-libxvid
+    --enable-lzma
+    --enable-libfontconfig
+    --enable-libfreetype
+    --enable-frei0r
+    --enable-libass
+    --enable-libopencore-amrnb
+    --enable-libopencore-amrwb
+    --enable-libopenjpeg
+    --enable-libspeex
+    --enable-libsoxr
+    --enable-libzmq
+    --enable-libzimg
+    --enable-whisper
+    --disable-libjack
+    --disable-indev=jack
+    --enable-videotoolbox
+    --enable-audiotoolbox
+    --enable-neon
+
+Exiting with exit code 0
+
+$ /opt/homebrew/opt/ffmpeg/bin/ffmpeg -hide_banner -version
+ffmpeg version 8.1.1 Copyright (c) 2000-2026 the FFmpeg developers
+built with Apple clang version 21.0.0 (clang-2100.0.123.102)
+configuration: --prefix=/opt/homebrew/Cellar/ffmpeg/8.1.1 --enable-shared --enable-pthreads --enable-version3 --cc=clang --host-cflags= --host-ldflags= --enable-ffplay --enable-gpl --enable-libsvtav1 --enable-libopus --enable-libx264 --enable-libmp3lame --enable-libdav1d --enable-libvmaf --enable-libvpx --enable-libx265 --enable-openssl --enable-videotoolbox --enable-audiotoolbox --enable-neon
+libavutil      60. 26.101 / 60. 26.101
+libavcodec     62. 28.101 / 62. 28.101
+libavformat    62. 12.101 / 62. 12.101
+libavdevice    62.  3.101 / 62.  3.101
+libavfilter    11. 14.101 / 11. 14.101
+libswscale      9.  5.101 /  9.  5.101
+libswresample   6.  3.101 /  6.  3.101
+
+Exiting with exit code 0
+
+$ /opt/homebrew/opt/ffmpeg/bin/ffmpeg -hide_banner -buildconf
+
+  configuration:
+    --prefix=/opt/homebrew/Cellar/ffmpeg/8.1.1
+    --enable-shared
+    --enable-pthreads
+    --enable-version3
+    --cc=clang
+    --host-cflags=
+    --host-ldflags=
+    --enable-ffplay
+    --enable-gpl
+    --enable-libsvtav1
+    --enable-libopus
+    --enable-libx264
+    --enable-libmp3lame
+    --enable-libdav1d
+    --enable-libvmaf
+    --enable-libvpx
+    --enable-libx265
+    --enable-openssl
+    --enable-videotoolbox
+    --enable-audiotoolbox
+    --enable-neon
+
+Exiting with exit code 0
+
+$ /opt/homebrew/opt/libvmaf/bin/vmaf --version
+3.0.0
+
+$ grep -E VMAF_API_VERSION_(MAJOR|MINOR|PATCH) /opt/homebrew/opt/libvmaf/include/libvmaf/version.h
+#define VMAF_API_VERSION_MAJOR 3
+#define VMAF_API_VERSION_MINOR 0
+#define VMAF_API_VERSION_PATCH 0
+
+$ ls /opt/homebrew/opt/libvmaf/share/libvmaf/model
+other_models
+vmaf_4k_rb_v0.6.2
+vmaf_4k_v0.6.1.json
+vmaf_4k_v0.6.1neg.json
+vmaf_b_v0.6.3.json
+vmaf_float_4k_v0.6.1.json
+vmaf_float_b_v0.6.3
+vmaf_float_b_v0.6.3.json
+vmaf_float_v0.6.1.json
+vmaf_float_v0.6.1.pkl
+vmaf_float_v0.6.1.pkl.model
+vmaf_float_v0.6.1neg.json
+vmaf_float_v0.6.1neg.pkl
+vmaf_float_v0.6.1neg.pkl.model
+vmaf_rb_v0.6.2
+vmaf_rb_v0.6.3
+vmaf_v0.6.1.json
+vmaf_v0.6.1neg.json
+
+$ otool -L <worktree>/build/macos-release/mirage
+<worktree>/build/macos-release/mirage:
+	/System/Library/Frameworks/OpenGL.framework/Versions/A/OpenGL (compatibility version 1.0.0, current version 1.0.0)
+	/System/Library/Frameworks/CoreVideo.framework/Versions/A/CoreVideo (compatibility version 1.2.0, current version 734.4.0)
+	/System/Library/Frameworks/IOSurface.framework/Versions/A/IOSurface (compatibility version 1.0.0, current version 1.0.0)
+	/opt/homebrew/opt/ffmpeg-full/lib/libavfilter.11.dylib (compatibility version 11.0.0, current version 11.14.101)
+	/opt/homebrew/opt/ffmpeg-full/lib/libswscale.9.dylib (compatibility version 9.0.0, current version 9.5.101)
+	/opt/homebrew/opt/ffmpeg-full/lib/libavformat.62.dylib (compatibility version 62.0.0, current version 62.12.101)
+	/opt/homebrew/opt/ffmpeg-full/lib/libavcodec.62.dylib (compatibility version 62.0.0, current version 62.28.101)
+	/opt/homebrew/opt/ffmpeg-full/lib/libswresample.6.dylib (compatibility version 6.0.0, current version 6.3.101)
+	/opt/homebrew/opt/ffmpeg-full/lib/libavutil.60.dylib (compatibility version 60.0.0, current version 60.26.101)
+	/opt/homebrew/opt/libvmaf/lib/libvmaf.3.dylib (compatibility version 3.0.0, current version 3.0.0)
+	/opt/homebrew/opt/glfw/lib/libglfw.3.dylib (compatibility version 3.0.0, current version 3.4.0)
+	/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit (compatibility version 45.0.0, current version 2685.60.104)
+	/System/Library/Frameworks/UniformTypeIdentifiers.framework/Versions/A/UniformTypeIdentifiers (compatibility version 1.0.0, current version 709.0.0)
+	/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 2100.43.0)
+	/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1356.0.0)
+	/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation (compatibility version 150.0.0, current version 5026.5.4)
+	/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation (compatibility version 300.0.0, current version 5026.5.4)
+	/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)
+
+$ brew info --json=v2 ffmpeg ffmpeg-full libvmaf glfw  (name, formula version now, license)
+ffmpeg 9.0.2 GPL-3.0-or-later
+ffmpeg-full 9.0.2 GPL-3.0-or-later
+libvmaf 3.2.1 BSD-2-Clause-Patent
+glfw 3.5.1 Zlib
+
+$ <tmp>/tmp.nefw6ndR0G/vmaf_version
+vmaf_version()=3.0.0
+
+$ /opt/homebrew/bin/python3.14 -c import sys; print(sys.version); import pyexpat; print("pyexpat", pyexpat.EXPAT_VERSION)
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import sys; print(sys.version); import pyexpat; print("pyexpat", pyexpat.EXPAT_VERSION)
+                                    ^^^^^^^^^^^^^^
+ImportError: dlopen(/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/pyexpat.cpython-314-darwin.so, 0x0002): Symbol not found: _XML_SetAllocTrackerActivationThreshold
+  Referenced from: <46224F46-6E0E-3C48-95AB-C29DC7EB8DFF> /opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/pyexpat.cpython-314-darwin.so
+  Expected in:     <4D62FA9D-D86A-3DD0-98F2-C6D0718849E8> /usr/lib/libexpat.1.dylib
+3.14.7 (main, Aug  5 2026, 10:29:49) [Clang 21.0.0 (clang-2100.1.1.101)]
+
+$ /opt/homebrew/bin/python3.13 -c import sys; print(sys.version); import pyexpat; print("pyexpat", pyexpat.EXPAT_VERSION)
+3.13.1 (main, Dec  3 2024, 17:59:52) [Clang 16.0.0 (clang-1600.0.26.4)]
+pyexpat expat_2.7.1
+
+$ otool -L /opt/homebrew/opt/python@3.14/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/pyexpat.cpython-314-darwin.so
+/opt/homebrew/opt/python@3.14/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/pyexpat.cpython-314-darwin.so:
+	/usr/lib/libexpat.1.dylib (compatibility version 7.0.0, current version 8.0.0)
+	/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1356.0.0)
+
+$ git -C <worktree>/build/macos-release/_deps/miniaudio-src log -1 --format=miniaudio %H %cs
+miniaudio 9634bedb5b5a2ca38c1ee7108a9358a4e233f14d 2026-03-04
+
+$ git -C <worktree>/build/macos-release/_deps/stb-src log -1 --format=stb %H %cs
+stb a7d4c2175630e1ea5b6f8dd00ab96fed0b97b96d 2026-10-19
+
+$ git -C <worktree>/build/macos-release/_deps/glad-src log -1 --format=glad %H %cs
+glad 73db193f853e2ee079bf3ca8a64aa2eaf6459043 2024-09-29
+
+$ git -C <worktree>/build/macos-release/_deps/imgui-src log -1 --format=imgui %H %cs
+imgui 97428e8ac99e339ce05eee531cf55b77b29ea709 2025-03-14
+
+$ git -C <worktree>/build/macos-release/_deps/pugixml-src log -1 --format=pugixml %H %cs
+pugixml db78afc2b7d8f043b4bc6b185635d949ea2ed2a8 2023-09-07
+
+$ git -C <worktree>/build/macos-release/_deps/nfd-src log -1 --format=nfd %H %cs
+nfd 86d5f2005fe1c00747348a12070fec493ea2407e 2024-08-03
+
+$ git -C <worktree>/build/macos-release/_deps/catch2-src log -1 --format=catch2 %H %cs
+catch2 fa43b77429ba76c462b1898d6cd2f2d7a9416b14 2024-09-17
+
