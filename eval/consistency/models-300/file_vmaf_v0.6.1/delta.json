@@ -1,0 +1,105 @@
+{
+  "report_version": 1,
+  "tool": "eval/consistency/run_delta.py",
+  "variant": "plain",
+  "status": "PASS",
+  "pairs_total": 1,
+  "pairs_failed": [],
+  "parameters": {
+    "variant": "plain",
+    "frames": 300,
+    "threshold": 0.01,
+    "model": null,
+    "scaler": "bilinear",
+    "threads": 4,
+    "model_file": {
+      "path": "/opt/homebrew/opt/libvmaf/share/libvmaf/model/vmaf_v0.6.1.json",
+      "sha256": "5950d61fa1f861bd45d8149d80539ed9f3376cfc2495b8f0fa8e9f57cb131ee3"
+    }
+  },
+  "command": "eval/consistency/run_delta.sh <mirage_vmaf> <out_dir> --frames 300 --jobs 1 --pairs eval/consistency/pairs/bipbop16x9_gear2.txt --scaler bilinear --model-file /opt/homebrew/opt/libvmaf/share/libvmaf/model/vmaf_v0.6.1.json --threads 4 --threshold 0.01 --ffmpeg <ffmpeg> --ffprobe <ffprobe> --timeout 21600",
+  "started_utc": "2026-10-23T12:06:38Z",
+  "ended_utc": "2026-10-23T12:06:49Z",
+  "git": {
+    "head_start": "8cc06a7c6939660e53097b948f6a78c068e8faee",
+    "head_end": "8cc06a7c6939660e53097b948f6a78c068e8faee",
+    "clean_start": true,
+    "clean_end": true
+  },
+  "environment": {
+    "os": "macOS 26.2 (25C56)",
+    "cpu": "Apple M3 Pro",
+    "logical_cpus": "12",
+    "kernel": "Darwin 25.2.0 arm64",
+    "python": "3.14.7",
+    "ffmpeg_version": "ffmpeg version 8.1.1 Copyright (c) 2000-2026 the FFmpeg developers",
+    "ffprobe_version": "ffprobe version 8.1.1 Copyright (c) 2007-2026 the FFmpeg developers",
+    "ffmpeg_libvmaf": "/opt/homebrew/Cellar/libvmaf/3.1.0/lib/libvmaf.3.dylib",
+    "ffmpeg_libvmaf_package_version": "3.1.0"
+  },
+  "mirage_vmaf": {
+    "path": "build/macos-release/mirage_vmaf",
+    "sha256": "3633c43eaf4261e567ef2fb3a24d015e3e00b9a8ee354ddef88b6330aca4938c",
+    "libvmaf": "/opt/homebrew/Cellar/libvmaf/3.1.0/lib/libvmaf.3.dylib",
+    "options": [
+      "--dis",
+      "--frames",
+      "--model",
+      "--model-file",
+      "--out",
+      "--ref",
+      "--scaler"
+    ],
+    "libvmaf_version": "3.0.0",
+    "libvmaf_package_version": "3.1.0"
+  },
+  "ffmpeg_libvmaf": {
+    "libvmaf_version": "3.0.0",
+    "libvmaf_package_version": "3.1.0"
+  },
+  "pairs_file": {
+    "path": "eval/consistency/pairs/bipbop16x9_gear2.txt",
+    "sha256": "88f1dd00ff403260acede37d694e070d8f3a0d22cbf58287fc6498506be2aa21"
+  },
+  "warnings": [],
+  "pairs": [
+    {
+      "pair": "gear2_vs_gear5",
+      "status": "PASS",
+      "fail_reasons": [],
+      "warnings": [],
+      "frames": {
+        "mirage": 300,
+        "ffmpeg": 300,
+        "compared": 300,
+        "counts_match": true
+      },
+      "max_abs": 4.992173678886047e-07,
+      "max_abs_index": 131,
+      "mean_abs": 2.621200335184426e-07,
+      "mean_signed": 5.062518451855643e-09,
+      "over_threshold": 0,
+      "pooled": {
+        "mirage": {
+          "mean": 28.552935248395844,
+          "min": 16.070202275139188
+        },
+        "ffmpeg": {
+          "mean": 28.552935,
+          "min": 16.070202
+        },
+        "difference": {
+          "mean": 2.483958425614219e-07,
+          "min": 2.75139189653828e-07
+        }
+      },
+      "relabel": null,
+      "ffmpeg_conversions": [
+        "Parsed_scale_1: color_space smpte170m -> bt709"
+      ],
+      "ffmpeg_distorted_csp": "smpte170m -> bt709",
+      "mirage_distorted_csp": "smpte170m -> bt709"
+    }
+  ],
+  "redactions": {}
+}
