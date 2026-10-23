@@ -18,6 +18,8 @@
 //                      matrix_changed, range_changed,
 //                      first_index, pairs } ]       the distorted frames' color
 //                                                    conversions (VMAFColorConversion)
+//   ref_conversion [ ... ]  the reference's, the same way; empty for a yuv420p
+//                           reference, which is used as it is
 //   warnings [ text ]      what can make the scores differ from FFmpeg's
 //                          (VMAFResult::warnings); empty when nothing is known
 //   frame_limit (null = none), frames_scored,

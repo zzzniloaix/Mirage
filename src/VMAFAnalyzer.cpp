@@ -29,10 +29,11 @@ extern "C" {
 namespace {
 
 // Scoring settings applied to every pair (recorded in VMAFResult::settings).
-// The reference keeps its size; only its pixel format is converted, with
-// these flags, whatever scaler the distorted frames get.
+// A yuv420p reference keeps its size and pixels: it is copied with these
+// flags, whatever scaler the distorted frames get. One in another pixel
+// format is converted with vmafcolor::kInsertedScaleFlags.
 constexpr int           kRefScaleFlags = SWS_BILINEAR;
-constexpr int           kScaleThreads  = 1;            // swscale threads for the distorted frames
+constexpr int           kScaleThreads  = 1;            // swscale threads of each conversion
 constexpr AVPixelFormat kScorePixFmt   = AV_PIX_FMT_YUV420P;
 constexpr unsigned      kScoreBpc      = 8;
 constexpr unsigned      kThreads       = 4;
@@ -58,6 +59,29 @@ std::string av_error_text(int err)
 }
 
 std::string name_or_unknown(const char* name) { return name ? name : "unknown"; }
+
+// The warning for frames in a pixel format vmafcolor::verified() doesn't list.
+std::string unverified(const char* side, AVPixelFormat format)
+{
+    return std::format("the {}'s frames are {}, a pixel format whose conversion isn't checked "
+                       "against FFmpeg's section 5 graph (vmafcolor::verified), so the scores "
+                       "can differ from FFmpeg's",
+                       side, name_or_unknown(av_get_pix_fmt_name(format)));
+}
+
+// Converts `in` into a new yuv420p frame `out` of w x h with the tags `to`
+// (vmafcolor::convert). Returns 0 or a negative AVERROR; `out` may be set
+// either way.
+int convert_into(SwsContext* sws, AVFrame& in, int w, int h, const vmafcolor::Tags& to,
+                 AVFrame*& out)
+{
+    out = av_frame_alloc();
+    if (!out) return AVERROR(ENOMEM);
+    out->format = kScorePixFmt;
+    out->width  = w;
+    out->height = h;
+    return vmafcolor::convert(sws, in, *out, to);
+}
 
 // Counts frame pair `index` under its color conversion in `list`; `seen`
 // holds the tags of each entry of `list`.
@@ -255,28 +279,24 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
         .n_subsample  = static_cast<int>(kSubsample),
     };
 
-    // The reference is only brought to YUV420P, at its own size. FFmpeg's
-    // graph converts a reference in another format to the distorted input's
-    // color instead, which is not done here: say so.
-    if (vmafcolor::converts_reference(ref_ctx.pix_fmt())) {
-        result.warnings.push_back(std::format(
-            "the reference's frames are {}, not {}: FFmpeg's section 5 graph then converts "
-            "the reference to the distorted input's color matrix and range, where Mirage "
-            "converts the distorted frames to the reference's, so the scores can differ from "
-            "FFmpeg's (docs/PHASE1_DECISIONS_PENDING.md)",
-            name_or_unknown(av_get_pix_fmt_name(ref_ctx.pix_fmt())),
-            name_or_unknown(av_get_pix_fmt_name(kScorePixFmt))));
-        logger::warn("VMAFAnalyzer: {}", result.warnings.back());
-    }
+    // A yuv420p reference is used as it is, as FFmpeg's graph passes it on:
+    // copied at its own size.
     SwsContext* ref_sws = sws_getContext(
-        ref_ctx.width(), ref_ctx.height(), ref_ctx.pix_fmt(),
+        ref_w, ref_h, kScorePixFmt,
         ref_w, ref_h, kScorePixFmt,
         kRefScaleFlags, nullptr, nullptr, nullptr);
 
-    // The distorted frames are scaled to the reference's size with the
-    // chosen scaler and converted to the color FFmpeg's filter graph gives
-    // them, frame by frame through swscale's frame API as FFmpeg's scale
-    // filter does (src/VMAFColor.h).
+    // A reference in another pixel format is converted to yuv420p and to the
+    // color matrix and range FFmpeg's graph negotiates, as the scale filter
+    // FFmpeg inserts for it converts it (DECISIONS.md D-022). The distorted
+    // frames are scaled to the reference's size with the chosen scaler and
+    // converted to those tags, as FFmpeg's scale filter does. Frame by frame
+    // through swscale's frame API (src/VMAFColor.h).
+    SwsContext* ref_conv_sws = sws_alloc_context();
+    if (ref_conv_sws) {
+        ref_conv_sws->flags   = vmafcolor::kInsertedScaleFlags;
+        ref_conv_sws->threads = kScaleThreads;
+    }
     SwsContext* dis_sws = sws_alloc_context();
     if (dis_sws) {
         dis_sws->flags   = sws_flags_of(opts.scaler);
@@ -297,15 +317,16 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
         if (model)      vmaf_model_destroy(model);
         if (vmaf)       vmaf_close(vmaf);
         sws_freeContext(ref_sws);
+        sws_free_context(&ref_conv_sws);
         sws_free_context(&dis_sws);
         if (ref_scaled) av_frame_free(&ref_scaled);
         ref_ctx.close();
         dis_ctx.close();
     };
 
-    if (!dis_sws) {
+    if (!ref_conv_sws || !dis_sws) {
         cleanup();
-        return fail("cannot allocate the distorted input's scaler");
+        return fail("cannot allocate the scalers");
     }
 
     VmafConfiguration cfg {
@@ -357,9 +378,17 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
             result.score_error = std::format("{} failed: {}", call, av_error_text(r));
     };
 
+    // What can make the scores differ from FFmpeg's, each said once.
+    auto warn = [&](std::string text) {
+        if (std::ranges::find(result.warnings, text) != result.warnings.end()) return;
+        logger::warn("VMAFAnalyzer: {}", text);
+        result.warnings.push_back(std::move(text));
+    };
+
     unsigned frame_idx = 0;
-    std::string convert_error;   // why a distorted frame could not be converted
-    std::vector<std::pair<vmafcolor::Tags, vmafcolor::Tags>> conversion_tags;
+    std::string convert_error;   // why a frame could not be converted
+    std::vector<std::pair<vmafcolor::Tags, vmafcolor::Tags>> ref_conversion_tags;
+    std::vector<std::pair<vmafcolor::Tags, vmafcolor::Tags>> dis_conversion_tags;
 
     while (!st.stop_requested() && (opts.max_frames == 0 || frame_idx < opts.max_frames)) {
         AVFrame* ref_frame = ref_ctx.next_video_frame();
@@ -376,46 +405,58 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
             result.dis_pts.push_back(dis_ctx.seconds(dis_frame->best_effort_timestamp));
         }
 
-        // Reference → YUV420P; distorted → YUV420P @ ref_w × ref_h, in the
-        // reference's color matrix and range as FFmpeg negotiates them.
-        sws_scale(ref_sws,
-                  ref_frame->data, ref_frame->linesize, 0, ref_ctx.height(),
-                  ref_scaled->data, ref_scaled->linesize);
-
-        const vmafcolor::Tags ref_tags = vmafcolor::tags_of(*ref_frame);
-        const vmafcolor::Tags dis_tags = vmafcolor::tags_of(*dis_frame);
-        av_frame_free(&ref_frame);
-
+        // Both frames → YUV420P @ ref_w × ref_h, in the color matrix and
+        // range FFmpeg's graph negotiates for the two (src/VMAFColor.h).
+        const vmafcolor::Input ref_in = vmafcolor::input_of(*ref_frame);
+        const vmafcolor::Input dis_in = vmafcolor::input_of(*dis_frame);
+        AVFrame* ref_conv   = nullptr;   // the reference converted, when it isn't yuv420p
         AVFrame* dis_scaled = nullptr;
-        if (!vmafcolor::supported(ref_tags.space) || !vmafcolor::supported(dis_tags.space)) {
-            const bool ref_bad = !vmafcolor::supported(ref_tags.space);
+        if (!vmafcolor::supported(ref_in.tags.space) || !vmafcolor::supported(dis_in.tags.space)) {
+            const bool ref_bad = !vmafcolor::supported(ref_in.tags.space);
             convert_error = std::format(
                 "the {} has the color matrix {}, which FFmpeg's scale filter does not "
                 "convert, so the pair can't be scored as FFmpeg scores it (DECISIONS.md D-016)",
                 ref_bad ? "reference" : "distorted input",
-                name_or_unknown(av_color_space_name(ref_bad ? ref_tags.space : dis_tags.space)));
-        } else {
-            const vmafcolor::Tags to = vmafcolor::target(ref_tags, dis_tags);
-            dis_scaled = av_frame_alloc();
-            if (!dis_scaled) {
-                convert_error = "cannot allocate a frame for the distorted input";
-            } else {
-                dis_scaled->format = kScorePixFmt;
-                dis_scaled->width  = ref_w;
-                dis_scaled->height = ref_h;
-                if (int r = vmafcolor::convert(dis_sws, *dis_frame, *dis_scaled, to); r < 0)
-                    convert_error = std::format("converting distorted frame {} failed: {}",
-                                                frame_idx, av_error_text(r));
-                else
-                    count_conversion(result.dis_conversions, conversion_tags, dis_tags, to,
-                                     frame_idx);
+                name_or_unknown(av_color_space_name(ref_bad ? ref_in.tags.space
+                                                            : dis_in.tags.space)));
+        } else if (vmafcolor::converts_reference(ref_in.format)) {
+            const vmafcolor::Tags to = vmafcolor::negotiated(ref_in, dis_in);
+            int r = convert_into(ref_conv_sws, *ref_frame, ref_w, ref_h, to, ref_conv);
+            if (r < 0)
+                convert_error = std::format("converting reference frame {} failed: {}",
+                                            frame_idx, av_error_text(r));
+            else if ((r = convert_into(dis_sws, *dis_frame, ref_w, ref_h, to, dis_scaled)) < 0)
+                convert_error = std::format("converting distorted frame {} failed: {}",
+                                            frame_idx, av_error_text(r));
+            if (convert_error.empty()) {
+                count_conversion(result.ref_conversions, ref_conversion_tags, ref_in.tags, to,
+                                 frame_idx);
+                count_conversion(result.dis_conversions, dis_conversion_tags, dis_in.tags, to,
+                                 frame_idx);
             }
+            if (!vmafcolor::verified(ref_in.format)) warn(unverified("reference", ref_in.format));
+        } else {
+            sws_scale(ref_sws,
+                      ref_frame->data, ref_frame->linesize, 0, ref_ctx.height(),
+                      ref_scaled->data, ref_scaled->linesize);
+            const vmafcolor::Tags to = vmafcolor::target(ref_in.tags, dis_in.tags);
+            if (int r = convert_into(dis_sws, *dis_frame, ref_w, ref_h, to, dis_scaled); r < 0)
+                convert_error = std::format("converting distorted frame {} failed: {}",
+                                            frame_idx, av_error_text(r));
+            else
+                count_conversion(result.dis_conversions, dis_conversion_tags, dis_in.tags, to,
+                                 frame_idx);
         }
+        if (convert_error.empty() && !vmafcolor::verified(dis_in.format))
+            warn(unverified("distorted input", dis_in.format));
+        av_frame_free(&ref_frame);
         av_frame_free(&dis_frame);
         if (!convert_error.empty()) {
-            if (dis_scaled) av_frame_free(&dis_scaled);
+            av_frame_free(&ref_conv);
+            av_frame_free(&dis_scaled);
             break;
         }
+        const AVFrame* ref_out = ref_conv ? ref_conv : ref_scaled;
 
         // Allocate VmafPictures and copy planes.
         // vmaf_read_pictures() takes ownership of the backing memory.
@@ -428,17 +469,18 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
         for (int p = 0; p < 3; ++p) {
             int pw = (p == 0) ? ref_w : (ref_w + 1) / 2;
             int ph = (p == 0) ? ref_h : (ref_h + 1) / 2;
-            const auto* rsrc = ref_scaled->data[p];
+            const auto* rsrc = ref_out->data[p];
             const auto* dsrc = dis_scaled->data[p];
             auto* rdst = static_cast<uint8_t*>(ref_pic.data[p]);
             auto* ddst = static_cast<uint8_t*>(dis_pic.data[p]);
             for (int row = 0; row < ph; ++row) {
                 std::memcpy(rdst + row * ref_pic.stride[p],
-                            rsrc + row * ref_scaled->linesize[p], pw);
+                            rsrc + row * ref_out->linesize[p], pw);
                 std::memcpy(ddst + row * dis_pic.stride[p],
                             dsrc + row * dis_scaled->linesize[p], pw);
             }
         }
+        av_frame_free(&ref_conv);
         av_frame_free(&dis_scaled);
 
         // Context takes ownership of ref_pic / dis_pic backing memory.

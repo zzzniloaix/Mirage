@@ -90,6 +90,7 @@ std::string to_json(const VMAFResult& r, const RunInfo& run)
                        "\"bit_depth\": {}}},\n",
                        r.width, r.height, quote(s.pix_fmt), s.bit_depth);
     out += std::format("  \"dis_conversion\": {},\n", conversions_json(r.dis_conversions));
+    out += std::format("  \"ref_conversion\": {},\n", conversions_json(r.ref_conversions));
     out += std::format("  \"warnings\": {},\n", texts_json(r.warnings));
     out += std::format("  \"frame_limit\": {},\n",
                        run.frame_limit > 0 ? std::to_string(run.frame_limit) : "null");

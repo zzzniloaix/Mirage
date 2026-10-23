@@ -409,6 +409,35 @@ TEST_CASE("vmafreport::to_json: the distorted frames' color conversions", "[vmaf
     CHECK((*empty)["dis_conversion"].arr.empty());
 }
 
+TEST_CASE("vmafreport::to_json: the reference's color conversions", "[vmafreport]")
+{
+    // A yuv420p reference: none.
+    const auto plain = parse(vmafreport::to_json(sample_result(), kRun));
+    REQUIRE(plain);
+    CHECK((*plain)["ref_conversion"].kind == Value::Kind::Array);
+    CHECK((*plain)["ref_conversion"].arr.empty());
+
+    VMAFResult r = sample_result();
+    r.ref_conversions = {
+        { .from_space = "bt709", .from_range = "pc", .to_space = "smpte170m", .to_range = "tv",
+          .matrix_changed = true, .range_changed = true, .first_index = 0, .pairs = 3 },
+    };
+    const auto doc = parse(vmafreport::to_json(r, kRun));
+    REQUIRE(doc);
+    const Value& conv = (*doc)["ref_conversion"];
+    REQUIRE(conv.arr.size() == 1);
+    const Value& a = conv.arr[0];
+    CHECK(a["from"]["color_space"].str == "bt709");
+    CHECK(a["from"]["color_range"].str == "pc");
+    CHECK(a["to"]["color_space"].str == "smpte170m");
+    CHECK(a["to"]["color_range"].str == "tv");
+    CHECK(a["matrix_changed"].b);
+    CHECK(a["range_changed"].b);
+    CHECK(a["first_index"].num == 0);
+    CHECK(a["pairs"].num == 3);
+    CHECK((*doc)["dis_conversion"].arr.size() == 2);   // the distorted frames' stay apart
+}
+
 TEST_CASE("vmafreport::to_json: warnings", "[vmafreport]")
 {
     const auto none = parse(vmafreport::to_json(sample_result(), kRun));

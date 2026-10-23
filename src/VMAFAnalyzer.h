@@ -75,10 +75,10 @@ struct VMAFInputInfo {
     std::string end_error;           // FFmpeg error that ended it; empty = clean end or not ended
 };
 
-// How the distorted frames' color was converted before scoring, as FFmpeg's
-// filter graph converts it (DECISIONS.md D-016, src/VMAFColor.h): the frames'
-// matrix and range tags, the tags they were converted to, and whether that
-// changed the matrix or the range of the pixels. One entry per distinct
+// How one input's frames' color was converted before scoring, as FFmpeg's
+// filter graph converts it (DECISIONS.md D-016, D-022, src/VMAFColor.h): the
+// frames' matrix and range tags, the tags they were converted to, and whether
+// that changed the matrix or the range of the pixels. One entry per distinct
 // conversion, in the order the pairs first used it. Tags under FFmpeg's names.
 struct VMAFColorConversion {
     std::string from_space;
@@ -120,9 +120,14 @@ struct VMAFResult {
     VMAFInputInfo dis_info;
     std::string   score_error;       // first libvmaf call that failed while scoring; empty = none
     std::vector<VMAFColorConversion> dis_conversions;
+    // The reference's, when its frames aren't yuv420p and FFmpeg's graph
+    // converts them too (vmafcolor::converts_reference); empty for a yuv420p
+    // reference, which is used as it is.
+    std::vector<VMAFColorConversion> ref_conversions;
     // What can make these scores differ from those of FFmpeg's section 5
-    // graph although the analysis succeeded, such as a reference that isn't
-    // yuv420p (vmafcolor::converts_reference). Empty = nothing known.
+    // graph although the analysis succeeded: frames in a pixel format whose
+    // conversion isn't checked against FFmpeg's (vmafcolor::verified), each
+    // said once. Empty = nothing known.
     std::vector<std::string> warnings;
     // With VMAFOptions::record_pts: the best-effort PTS (seconds) of the
     // reference and distorted frame scored at each index of per_frame.

@@ -43,13 +43,13 @@ struct ClipLook {
     bool          colored = false;  // chroma gradients instead of gray; yuv420p only
     AVColorRange  range = AVCOL_RANGE_MPEG;
     AVFieldOrder  field_order = AV_FIELD_UNKNOWN;
-    AVPixelFormat pix_fmt = AV_PIX_FMT_YUV420P;   // or another 8-bit planar YUV format
+    AVPixelFormat pix_fmt = AV_PIX_FMT_YUV420P;   // or another 8-bit planar YUV format, or NV12
 };
 
 // A clip of `frames` frames of w x h yuv420p (or look.pix_fmt): a diagonal
 // ramp that moves every frame, so libvmaf's motion feature has something to
 // measure, in gray unless `look.colored`; a matrix conversion leaves gray's
-// luma alone.
+// luma alone. The luma plane comes first, every chroma byte is 128.
 std::string make_clip(const char* name, int w, int h, int frames, AVColorSpace space,
                       const ClipLook& look = {})
 {
@@ -596,20 +596,62 @@ TEST_CASE("VMAFAnalyzer::analyze: a matrix libswscale does not convert is an err
     CHECK(ref.error.find("the reference has the color matrix ycgco") != std::string::npos);
 }
 
-TEST_CASE("VMAFAnalyzer::analyze: a reference that isn't yuv420p is scored with a warning", "[vmaf]")
+TEST_CASE("VMAFAnalyzer::analyze: a reference that isn't yuv420p is converted to the distorted frames' tags (D-022)", "[vmaf]")
 {
-    // FFmpeg's section 5 graph converts such a reference itself, which the
-    // analyzer doesn't (vmafcolor::converts_reference).
+    // FFmpeg's section 5 graph converts such a reference itself, with a scale
+    // filter it inserts, to the tags it negotiates for both inputs: here the
+    // distorted frames' (vmafcolor::negotiated), which then keep theirs.
     static const std::string ref422 = make_clip("mirage_test_vmaf_ref422.mkv", 192, 108, 6,
                                                 AVCOL_SPC_BT709, { .pix_fmt = AV_PIX_FMT_YUV422P });
     const VMAFResult r = VMAFAnalyzer::analyze(ref422, dis_clip());
     REQUIRE(r.error.empty());
     CHECK(r.ref_info.pix_fmt == "yuv422p");
     CHECK(r.per_frame.size() == 6);
-    REQUIRE(r.warnings.size() == 1);
-    CHECK(r.warnings[0].starts_with("the reference's frames are yuv422p, not yuv420p: FFmpeg's "
-                                    "section 5 graph then converts the reference"));
+    CHECK(r.warnings.empty());   // yuv422p is among the verified formats
+    REQUIRE(r.ref_conversions.size() == 1);
+    const VMAFColorConversion& c = r.ref_conversions[0];
+    CHECK(c.from_space == "bt709");
+    CHECK(c.from_range == "tv");
+    CHECK(c.to_space == "smpte170m");
+    CHECK(c.to_range == "tv");
+    CHECK(c.matrix_changed);
+    CHECK_FALSE(c.range_changed);
+    CHECK(c.first_index == 0);
+    CHECK(c.pairs == 6);
+    REQUIRE(r.dis_conversions.size() == 1);
+    const VMAFColorConversion& d = r.dis_conversions[0];
+    CHECK(d.from_space == "smpte170m");
+    CHECK(d.to_space == "smpte170m");
+    CHECK(d.to_range == "tv");
+    CHECK_FALSE(d.matrix_changed);
+    CHECK_FALSE(d.range_changed);
 
-    // A yuv420p reference has none.
-    CHECK(VMAFAnalyzer::analyze(ref_clip(), dis_clip(), { .max_frames = 2 }).warnings.empty());
+    // A yuv420p reference is used as it is.
+    const VMAFResult plain = VMAFAnalyzer::analyze(ref_clip(), dis_clip(), { .max_frames = 2 });
+    CHECK(plain.ref_conversions.empty());
+    CHECK(plain.warnings.empty());
+}
+
+TEST_CASE("VMAFAnalyzer::analyze: frames in a pixel format not checked against FFmpeg's are scored with a warning", "[vmaf]")
+{
+    // NV12 isn't among vmafcolor::verified_formats().
+    static const std::string dis = make_clip("mirage_test_vmaf_nv12.mkv", 96, 54, 4,
+                                             AVCOL_SPC_SMPTE170M, { .pix_fmt = AV_PIX_FMT_NV12 });
+    static const std::string ref = make_clip("mirage_test_vmaf_nv12_ref.mkv", 192, 108, 4,
+                                             AVCOL_SPC_BT709, { .pix_fmt = AV_PIX_FMT_NV12 });
+    const VMAFResult a = VMAFAnalyzer::analyze(ref_clip(), dis);
+    REQUIRE(a.error.empty());
+    CHECK(a.dis_info.pix_fmt == "nv12");
+    CHECK(a.per_frame.size() == 4);
+    REQUIRE(a.warnings.size() == 1);   // once, not once per pair
+    CHECK(a.warnings[0].starts_with("the distorted input's frames are nv12, a pixel format whose "
+                                    "conversion isn't checked against FFmpeg's section 5 graph"));
+
+    const VMAFResult b = VMAFAnalyzer::analyze(ref, dis_clip());
+    REQUIRE(b.error.empty());
+    CHECK(b.ref_info.pix_fmt == "nv12");
+    CHECK(b.ref_conversions.size() == 1);
+    REQUIRE(b.warnings.size() == 1);
+    CHECK(b.warnings[0].starts_with("the reference's frames are nv12, a pixel format whose "
+                                    "conversion isn't checked"));
 }
