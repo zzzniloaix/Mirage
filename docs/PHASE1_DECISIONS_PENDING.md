@@ -1,8 +1,56 @@
 # Phase 1: decisions pending for the owner
 
-The design decisions of Phase 1's §1 and §8 work that are still open, each as a package: the question, what the code does today, what has been measured and where the outputs are, the options, and, marked as such, the agent's recommendation. The decisions are the owner's (hard rule 3 of the work order, `docs/DECISIONS.md` D-003, D-004, D-007). Every number below comes from a committed output, named next to it; where there is none, it says MEASUREMENT PENDING. Numbered items (#3 to #7, #11) are those of the gap report's "Decisions needed from the owner" (`docs/VMAF_GAP_REPORT.md`).
+The design decisions of Phase 1 (§5, §1 and §8) that are still open, each as a package: the question, what the code does today, what has been measured and where the outputs are, the options, and, marked as such, the agent's recommendation. The decisions are the owner's (hard rule 3 of the work order, `docs/DECISIONS.md` D-003, D-004, D-007). Every number below comes from a committed output, named next to it; where there is none, it says MEASUREMENT PENDING. Numbered items (#3 to #7, #11) are those of the gap report's "Decisions needed from the owner" (`docs/VMAF_GAP_REPORT.md`).
 
 What the same work added without needing a decision, keeping every default as it was: `mirage_vmaf --scaler` (bilinear, bicubic, lanczos), `--model` and `--model-file` with the model's identifier in the report, a `reference_mode` field, both libvmaf versions of both sides in the §5 delta reports (D-006), and the measurements below. The process choices behind them are P-016 to P-019 in `docs/DECISIONS.md`.
+
+The §5 report of D-018 passes with today's defaults over every frame of the four pairs (`eval/consistency/acceptance-full/`; `docs/PHASE1_STATUS.md`). A decision below that changes a default means making that report again. The state of each section of Phase 1 is in `docs/PHASE1_STATUS.md`.
+
+## D-016: untagged streams, and matrices libswscale can't convert (§5)
+
+**Question.** D-016 has Mirage convert the distorted frames' color matrix and range to the reference's, as FFmpeg's filter graph does, with untagged streams handled the way FFmpeg handles them, and asks the agent to report what that means in practice for the owner to confirm. Is the behavior below what D-016 means?
+
+**Today** (`src/VMAFColor.h`, P-014). Mirage does what FFmpeg 8.1.1's §5 graph does in the color tag cases (`eval/consistency/README.md`, "Color tag cases"; `eval/consistency/color-cases-before/`):
+
+- The distorted frames get the reference's matrix tag, a missing tag included.
+- They get the reference's range tag. When the reference has none, they keep a limited or missing range, and a full range becomes unspecified.
+- In the pixels, libswscale takes a missing matrix as BT.601's and a missing range as limited. So an untagged distorted input against a BT.709 reference is converted from BT.601 to BT.709, a BT.709 distorted input against an untagged reference is converted to BT.601, and a full range distorted input against a reference without a range tag is converted to limited range.
+- The primaries and the transfer are never converted; the chroma siting is dropped, and interlaced frames are scaled as progressive.
+- A matrix libswscale has no coefficients for, such as YCgCo, on either input ends the analysis with an error, in the player too; `mirage_vmaf` then writes no report and exits with status 1. FFmpeg can't build its graph for such a pair: it exits with status 178 in both YCgCo cases (`color-cases-before/refused/delta.md`). Before D-016, Mirage scored such inputs without converting.
+
+**Measured.**
+
+- Before D-016, Mirage failed 9 of the 18 color tag cases FFmpeg scores (`color-cases-before/main/delta.md`); after it, all 18 pass, every frame agreeing at the 6 decimals of FFmpeg's log, and both tools refuse the 2 YCgCo cases (`color-cases-after/checks.txt`, checks 2 and 5).
+- On bipbop, gear2 and gear1 (smpte170m against gear5's bt709) failed over the first 300 frames before D-016 and pass after it (`eval/consistency/diag-before-300/`, `diag-after-300/`). Over every frame of the four pairs, both tools convert gear2 and gear1 the same way and agree on every frame (`eval/consistency/acceptance-full/plain/delta.md`; `checks.txt`, checks 2 and 5).
+- Not measured: inputs other than 8-bit yuv420p, such as RGB or gray, and FFmpeg versions other than 8.1.1 (P-013's limits).
+
+**Options.**
+
+1. Confirm: FFmpeg 8.1.1's behavior, as implemented.
+2. Deviate for untagged inputs, for example by converting nothing when either input lacks a tag. Plain FFmpeg would then disagree on those pairs, and §5 would need the relabel workaround for them (P-010).
+3. Make the handling of untagged inputs configurable, with option 1 as the default.
+
+For a matrix libswscale lacks: (a) refuse, as now; (b) score without converting and warn in the report, as before D-016.
+
+**Also open.**
+
+- **The FFmpeg libraries' versions in the report.** The rules are those of FFmpeg 8.1.1's libavfilter and libswscale, and Homebrew's current ffmpeg-full is a major version newer (`eval/build_check/macos-2026-10-23-6a6661f.txt`, "installed vs current stable"). `mirage_vmaf`'s report records libvmaf's versions (D-006) but not FFmpeg's; the delta runs record `ffmpeg -version` in `environment.txt`. Options: record the run-time libswscale and libavfilter versions in the report; leave them to the delta runs; also warn when FFmpeg's major version isn't 8.
+- **D-016's Background** says the §5 work would reproduce the effect with committed outputs (MEASUREMENT PENDING). They exist now: `diag-before-300/`, `diag-after-300/`, `color-cases-before/`, `color-cases-after/` and `acceptance-full/`. D-016 is the owner's entry and wasn't edited; a note citing them, as D-001 has its correction, is the owner's to add.
+
+**Agent's recommendation.** Option 1, and (a) for matrices libswscale lacks. D-016's rationale is matching a plain `ffmpeg -lavfi libvmaf` run, which the committed runs show Mirage doing frame for frame, and FFmpeg gives no score to match for a pair it refuses. Record the libswscale and libavfilter versions in the report, and rerun the color tag cases after any FFmpeg upgrade. The paper should say that an untagged input is taken as BT.601 with limited range.
+
+## D-019: a frame exactly at the threshold (§5)
+
+**Question.** The work order's §5 target is a per-frame difference "< 0.01". D-019 fails a frame if |Mirage − FFmpeg| > 0.01, so a frame at exactly 0.01 passes D-019 but misses the work order's wording. Which holds?
+
+**Today.** The delta tool implements D-019, and a test pins the boundary (`test_threshold_is_exclusive` in `eval/consistency/tests/test_vmafdelta.py`). In every committed run made after D-016, the largest |delta| is 0.000000 at the 6 decimals of FFmpeg's log (the runs' `delta.md` in `diag-after-300/`, `color-cases-after/`, `scalers-300/`, `models-300/` and `acceptance-full/`), so no frame has come near the boundary.
+
+**Options.**
+
+1. Keep D-019, and state the boundary in the method text.
+2. Fail a frame when |delta| ≥ 0.01, as the work order's wording has it.
+
+**Agent's recommendation.** Option 1: the two differ only for a frame at exactly 0.01.
 
 ## #3 The default scaler (D-003)
 
@@ -34,7 +82,7 @@ What the same work added without needing a decision, keeping every default as it
 2. Bicubic: the work order's suggestion, and what FFmpeg's scale filter does when no scaler is named.
 3. Lanczos.
 
-Whatever the choice, the §5 runs give FFmpeg the same `flags=` (`run_delta.sh --scaler`), and every report states the scaler. The full-length §5 report of D-018 runs with whatever the default is when it is made.
+Whatever the choice, the §5 runs give FFmpeg the same `flags=` (`run_delta.sh --scaler`), and every report states the scaler. The full-length §5 report of D-018 was made with today's default, bilinear (`eval/consistency/acceptance-full/`); another default means making it again.
 
 **Also open, with the scaler.** `--scaler` sets the distorted frames' scaler only; the reference keeps its size and is only converted to 8-bit yuv420p, with bilinear flags whatever `--scaler` says (P-017). Every reference so far is already yuv420p. For a reference in another format, FFmpeg's §5 graph converts it with an automatically inserted scale filter; whether Mirage's conversion gives the same pixels is part of #5 and untested.
 
@@ -84,7 +132,7 @@ Whatever the choice, the §5 runs give FFmpeg the same `flags=` (`run_delta.sh -
 
 HDR content (PQ or HLG transfer) is a further question: the models above are SDR models, and nothing in this work handles HDR.
 
-**What a measurement needs.** A ladder of 10-bit SDR rungs encoded from one 10-bit source, which D-011's self-encoded ladders can provide; each rung scored at 8 and at its own bit depth, on both sides; and, for the §5 comparison, synthetic 10-bit clips run through `run_delta.sh` the way `eval/consistency/color_cases.py` makes 8-bit ones, to check the reference's conversion. No suitable public stream was at hand tonight (the streams this repository uses are 8-bit), so nothing was measured (MEASUREMENT PENDING).
+**What a measurement needs.** A ladder of 10-bit SDR rungs encoded from one 10-bit source, which D-011's self-encoded ladders can provide; each rung scored at 8 and at its own bit depth, on both sides; and, for the §5 comparison, synthetic 10-bit clips run through `run_delta.sh` the way `eval/consistency/color_cases.py` makes 8-bit ones, to check the reference's conversion. No suitable public stream was at hand on 2026-10-23 (the streams this repository uses are 8-bit), so nothing was measured (MEASUREMENT PENDING).
 
 **Agent's recommendation.** Keep 8 bits until D-011's ladders exist, then measure option 2 against option 1 on them; add the synthetic 10-bit check to the §5 work before any 10-bit input is scored.
 
@@ -100,7 +148,7 @@ HDR content (PQ or HLG transfer) is a further question: the models above are SDR
 - **Percentile definitions**: today's rule (`sorted[floor(n*p/100)]`), nearest rank (`sorted[ceil(n*p/100) - 1]`) and linear interpolation (Hyndman and Fan's definition 7) differ by at most 0.0003 on the full-length series (4 decimals), and by up to 0.093440 (gear2, p1), 0.082396 (gear3, p1) and 0.071134 (gear3, p5) on 300 frames.
 - **Harmonic mean**: libvmaf's harmonic mean in FFmpeg's logs is `n / sum(1 / (x + 1)) - 1` for all four rungs, at the log's 6 decimals; the plain `n / sum(1 / x)` differs (gear2: 28.434599 against 28.428817), and it is undefined when a frame scores 0, as 416x234's frames do.
 - The analyzer's recorded `vmaf_p5` is today's rule, and its recorded min is the series' minimum, on every rung.
-- Not measured: every frame after D-016 (the full-length §5 run of D-018; MEASUREMENT PENDING; the same script runs on it).
+- **Every frame after D-016** (`eval/pooling/acceptance-full/pooling.md`, from both sides of the committed §5 report; P-027): the minimum is again the first frame's score in every series, and for gear4, gear3 and gear2 the only frame at it; without the first frame, gear2's minimum is 18.126492 where its minimum is 16.070202. gear1's minimum is 0, which 53790 of its 53946 frames score, so its plain harmonic mean is undefined. The three percentile definitions differ by at most 0.000276 (gear3, p1). libvmaf's harmonic mean in FFmpeg's logs is the shifted form for all four pairs, e.g. 27.751821 for gear2, where the plain form gives 27.746387.
 
 **Options.**
 
@@ -120,6 +168,28 @@ The plan is `docs/plans/frame-alignment.md`. It asks for approval of pairing by 
 - **`reference_mode` of `mirage_vmaf`**: `explicit-pair`, because the command line names both inputs (P-017). The work order's §7 lists only `mezzanine` and `top-rung`; confirm the name, or choose another, such as letting the user declare one of the two.
 - **Ladder scoring in `mirage_vmaf`** (top rung by default per D-002, a mezzanine optionally) is not built (P-019). It needs the owner's or §2's choices: which `EXT-X-STREAM-INF` entries are scored (audio-only entries, entries that share a video playlist, equal bandwidths), what a failed rung does to the run and its exit status given P-006, and how one report holds several pairs while keeping the two modes apart before §7's schema. **Agent's recommendation**: score each video playlist once, skip entries without video and list them as skipped, let one failed rung fail the run as P-006 does for a pair, and write one report per reference mode with a `pairs` list, so that mode A and mode B never share a report.
 - **§1.2's acceptance**, both modes on one ladder with the difference documented, needs a ladder with a mezzanine: D-011's source clips (MEASUREMENT PENDING).
+
+## D-011: the source clips of the self-encoded ladders
+
+**Question.** D-011 has the evaluation encode its own HLS ladders from public source clips, each clip serving as the mezzanine, and leaves the clips and the encoding parameters to the owner when encoding starts. Which clips, and which parameters (rungs, sizes, codec and bitrates, segment length, color tags)?
+
+**What waits for them.**
+
+- §1.2's acceptance: both reference modes on one ladder (above).
+- How much the scaler and the model change the scores of a ladder encoded from one source (#3, #4): `scalers-300/` and `models-300/` measure bipbop's rungs, which were rendered separately.
+- #5's measurement, which needs a 10-bit SDR ladder.
+- §1.4's tests with dropped and duplicated frames and discontinuities, which can be cut from such a ladder (`docs/plans/frame-alignment.md`).
+- Every score meant for the paper: the bipbop scores only compare the tools (D-005, D-011).
+
+**What Phase 1's runs say about the choice.**
+
+- Clips with explicit color matrix and range tags stay clear of the untagged rules of D-016 above, under which an untagged input is taken as BT.601 with limited range.
+- Each side of each pair of the full-length §5 run took from 1134.6 to 1396.7 s for 53946 frames against a 1920x1080 reference, four processes running at a time (the pairs' `delta.md` in `eval/consistency/acceptance-full/plain/`). The clips' length sets how long a rerun of `eval/run_all.sh` takes.
+- §8 needs the clips listed in `eval/streams.md` with a way to fetch them (`eval/streams/fetch_streams.py` fetches HLS playlists only, P-023), so their terms have to let others download them.
+
+No candidate clip was examined in Phase 1 (`eval/streams.md`, MEASUREMENT PENDING).
+
+**Agent's recommendation.** Choose the clips before the ladder mode of §1.2 is built, so that its acceptance can run on them; a 10-bit SDR source would also serve #5.
 
 ## The config file (the work order's engineering constraints)
 
@@ -211,6 +281,43 @@ Nothing has been built or run on Linux, so whether the code compiles there, whic
 
 **Agent's recommendation.** Option 2: one place for the build steps that the build checks verify, and a README whose facts match the repository.
 
+## Smaller items found in Phase 1
+
+- **The subtitle test's fixture.** In a clean checkout `SidecarSubtitles — decodes data/sub_test/test.srt` fails: it reads `data/sub_test/test.srt`, which `.gitignore` leaves out of the repository (`eval/build_check/macos-2026-10-23-6a6661f.txt`, "Unit tests"); in the main working tree the file exists and the test passes (`eval/test_runs/macos-2026-10-23-8aca01a.txt`). Options: commit the file with a `.gitignore` exception; move it to a tracked test directory; have the test write it to a temporary file, as the other media tests generate their inputs; leave it, as `docs/BUILD.md` says. **Agent's recommendation**: have the test write it, a change to the test only.
+- **An intermittent test.** `Demuxer: seamless video and audio switches on a local file` (`tests/test_demuxer_switch.cpp`) failed now and then in scratch runs on this branch and on the commit Phase 1 started from; their outputs weren't committed, so no rate is given here, and it passed in the committed test record. A fix may touch `Demuxer`, which is on the decode path (D-007). Options: leave it and rerun on failure; a plan that finds out whether the test's timing or the track switch is at fault; leave it out of unattended runs. **Agent's recommendation**: the plan, since a race in track switching would matter for §3 and §4.
+- **D-009's alternatives.** D-009 says that standardizing on `ffmpeg` would need a separately installed FFmpeg with libvmaf, but Homebrew's `ffmpeg` 8.1.1 on the machine of the measurements was built with `--enable-libvmaf` as well (`eval/baseline/environment.txt`, line 163). The decision stands on its other reasons. D-009 is the owner's entry and wasn't edited; options: a correction note, as D-001 has; leave it.
+- **Server addresses in the committed logs.** The delta runs keep FFmpeg's verbose logs, xz-compressed, and these include FFmpeg's TCP connection lines with the IP addresses of Apple's CDN servers: public addresses, not local information, so the runs' privacy scan doesn't flag them (P-011). Options: keep the logs as FFmpeg wrote them; filter the network lines out of the stored logs, which would then no longer be raw; lower the log level of FFmpeg's network layer only. **Agent's recommendation**: keep them raw.
+- **D-008's open question**: whether legal or the company's open-source process has to confirm GPL-3.0-or-later before the repository is made public again. `LICENSE` is committed as D-008 decided (P-020). This is the owner's to check.
+- **`vcpkg.json`.** The repository's root `vcpkg.json` lists FFmpeg and GLFW, without libvmaf or versions, and the build doesn't use it (`docs/VMAF_GAP_REPORT.md`, "Specific gaps for §8"); `docs/BUILD.md` doesn't mention it. Options: remove it; make it a second, pinned way to get the dependencies, libvmaf included, together with #11b and #11c; leave it. **Agent's recommendation**: remove it, unless #11b or #11c chooses vcpkg.
+
+## Process choices to confirm
+
+P-006 to P-028 in `docs/DECISIONS.md` are the agent's measurement and process choices of Phase 1, each pending the owner's confirmation. The alternatives the agent pointed out for each, as its entry lists them:
+
+| Entries | What | Alternatives worth a look |
+|---|---|---|
+| P-006 | what `mirage_vmaf` records, and when it writes no report | the first decoded frame's color tags as well as the decoder's; libvmaf's package version read at run time from the loaded library; a report with an error field instead of none |
+| P-007, P-022 | the build checks in clean worktrees | a virtual machine, another macOS account or a hosted runner, starting without the Homebrew packages |
+| P-008 | FFmpeg's side of the delta tool | Phase 0's `-frames:v` instead of `trim` (FFmpeg's scores were the same over 300 frames, `diag-before-300/checks.txt`, check 1) |
+| P-009 | how a pair passes | make some warnings failures, such as different libvmaf versions on the two sides or pairs with different PTS |
+| P-010 | the relabel diagnostic | relabel the color matrix only |
+| P-011 | what a delta run records | uncompressed logs; absolute paths |
+| P-012, P-015, P-016, P-026 | the runs, with the release build of the main working tree at a clean HEAD | builds in clean worktrees; the scaler and model runs over every frame |
+| P-013 | the synthetic color tag cases | H.264 clips encoded without tags |
+| P-014 | how Mirage converts | the tags of the decoders' stream parameters or of the first pair instead of each frame's; as many swscale threads as FFmpeg's scale filter |
+| P-015 | the delta tool's warning when the two sides' conversions differ | a failure instead |
+| P-017 | `--scaler`, `--model`, `--model-file`, `reference_mode` | `--scaler` for the reference's conversion too |
+| P-018 | the pooling measurement | more percentile definitions |
+| P-019 | ladder scoring and the config file not built yet | build them now (their open choices are above) |
+| P-020 | the `LICENSE` text | SPDX license notices in every source file |
+| P-021 | the pins | the five tagged dependencies pinned by commit as well; stb at `003501f6`, which the main working tree's Phase 1 builds fetched |
+| P-023 | the stream fetch keeps playlists only | mirror the media for runs without network, after checking that a copy scores as the URLs do |
+| P-024, P-025 | `eval/run_all.sh` and its verification run | commit the rerun outputs; rerun the runs after D-016 with the programs they were made with |
+| P-027 | the full-length steps of `run_all.sh`, and pooling over every frame | leave the full-length run out of `run_all.sh` |
+| P-028 | the record of the test runs behind the PR description | the outputs in the PR description only |
+
+**Agent's recommendation**: confirm them all.
+
 ## Differences between the work order and the implementation found in this work (hard rule 4)
 
 Reported, not edited:
@@ -223,3 +330,5 @@ Reported, not edited:
 6. §8's acceptance is a clean machine building as the README says. On the machine of the build checks, the README's quick start stops at glad with the default Python; the README now points to `docs/BUILD.md`, whose steps build both presets; and the check ran in a clean worktree, not on a clean machine (P-022).
 7. §8 has `eval/run_all.sh` rerun all the paper's numbers and figures. There are none yet (D-005), so it reruns the committed Phase 1 measurements (P-024).
 8. §8 asks for `eval/streams.md` with a fetch script, and lists DASH-IF test vectors and Unified Streaming demo streams. `eval/streams/fetch_streams.py` fetches the playlists and probes the streams but keeps no media (P-023), and the DASH-IF and Unified Streaming streams were not examined (`eval/streams.md`).
+9. §1.1 to §1.3 ask the output to carry the libvmaf version and the model identifier, the `reference_mode` and the scaler. `mirage_vmaf`'s report does (`src/VMAFReport.h`). The player's own JSON export (`VMAFAnalyzer::write_json` in `src/VMAFAnalyzer.cpp`) still has its Phase 0 layout, which a test pins, without any of them, and the player has no scaler or model option. Options: give `write_json` those fields; have the player write `mirage_vmaf`'s report format; leave the player's export until §7's schema.
+10. §5's target is a per-frame difference "< 0.01"; D-019 passes a frame at exactly 0.01 (D-019 above).
