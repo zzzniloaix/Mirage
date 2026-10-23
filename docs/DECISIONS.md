@@ -1,276 +1,275 @@
-# 决策日志
+# Decision Log
 
-用途：论文 design rationale 一节的素材，以及 owner 答辩时的依据（见 VMAF 工作单硬约束 4）。
+Purpose: material for the paper's design-rationale section, and the owner's basis when defending the design (see hard rule 4 of the VMAF work order).
 
-每条记录包含：决策、备选方案、选择理由、谁做的决定、日期。
+Each entry records the decision, the alternatives, the rationale, who decided and the date.
 
-**设计决策只能由 owner 做出**（工作单硬约束 3）。agent 只能做测量与流程上的选择，这类条目单独列在下面，并标注「待 owner 确认」。
-
----
-
-## 设计决策（owner）
-
-其余待决定的事项见 `docs/VMAF_GAP_REPORT.md` 的「需要 owner 决定的事项」一节。
-
-### D-001 Phase 1 内部顺序：§5 一致性校验先做
-
-- **决策**
-  - 工作单的 Phase 1 = §8 + §1 + §5，按工作单要求作为一个 PR 提交。
-  - Phase 1 内部顺序：
-    1. §5：做 Mirage 与 FFmpeg libvmaf 滤镜的逐帧 delta 工具，查明 Phase 0 发现的差异（640x360 前 300 帧 |Δ| 均值 5.28，Mirage 每帧都偏高）的原因。同时只做复现运行所需的最小 §8：把 Python 3.13 venv 的 glad 生成方式写成文档（对应 P-003）。
-    2. §1：VMAF 核心（PTS 配对、模型 / scaler 可配置等）。
-    3. §8：完整的可复现性打包。
-    4. 重跑 §5，delta 报告提交进 `eval/`。
-  - Phase 2 及以后按工作单的依赖顺序；§5 不通过不进 Phase 2。
-- **备选**
-  - §8 先行：先钉死构建环境，再做任何测量。代价是 VMAF 正确性要推迟，而且要先定 #10（许可证）和 #11（构建策略）。
-  - §1 先行：先完成分析器核心，再用 §5 验证。代价是在一个原因不明的 5 分差异上继续开发，而且要先定 #2–#7。
-  - Phase 1 拆成 1a / 1b / 1c 三个 PR。不选：与工作单硬约束 5（一个 Phase 一个 PR）不符。
-- **理由**
-  - 论文里的所有分数都依赖 §5 通过；工作单也要求 §5 提前做。
-  - 差异的原因可能直接决定 #3（scaler 默认值）。
-- **已知代价**：§1 的改动可能再次改变分数，所以 §1 完成后要重跑 §5；Phase 1 的 PR 会很大。
-- **更正记录**：本条初稿（2026-10-22）把 §1、§8 写成了 Phase 2、Phase 3，与工作单的 phase 划分不符。原因是 agent 提问时选项措辞有误，不是 owner 的决定。owner 看过工作单后确认为现在的写法。
-- **谁**：owner（Jiayu Lin）
-- **日期**：2026-10-22
-
-### D-002 参考源默认模式：top-rung（模式 B）
-
-- **决策**：§1.2 的默认参考源是 top-rung，即以最高带宽 variant 为参考。mezzanine 参考（模式 A）按工作单要求同样实现，作为可选模式。
-- **备选**：默认 mezzanine（模式 A），所有 variant 对外部源素材打分。
-- **理由**：owner 选择时未说明理由，待 owner 补充。
-- **影响**（agent 记录，供 owner 核对）
-  - 默认分数衡量的是 ladder 内部的相对退化，不是绝对质量。论文需要讲清这一点（工作单 §1.2）。
-  - 与现有代码的行为一致（现有 ladder 打分只支持 top-rung）。
-  - 公开流通常拿不到 mezzanine，默认 top-rung 时公开流可以直接打分。
-  - 输出仍须带 `reference_mode` 字段，两种模式的分数不得混在同一组报告里。
-  - 默认模式下，top-rung 必须是其他档的同源缩放编码，否则分数没有意义。bipbop 16x9 不满足这一点（见差距报告"现状基线"），所以 #14 的 ladder 选择更重要了。
-- **谁**：owner（Jiayu Lin）
-- **日期**：2026-10-22
-
-### D-003 scaler 默认值暂不决定，等 §5 诊断结果
-
-- **决策**：§1.3 的默认 scaler 暂不决定。§5 诊断时在 Mirage 和 FFmpeg 两边分别测 bilinear 与 bicubic，owner 看到实测结果后再定。在此之前代码保持现有的 bilinear 不动。
-- **备选**
-  - 现在定 bicubic（工作单 §1.3 的建议）。
-  - 现在定 bilinear（现有代码的行为）。
-- **理由**：Phase 0 测出的 5 分差异是在两边都用 bilinear 的条件下得到的，差异不一定来自 scaler 本身。看到 scaler 对分数的实际影响之前定默认值，没有数据依据。
-- **谁**：owner（Jiayu Lin），采纳 agent 的建议
-- **日期**：2026-10-23
-
-### D-004 #4–#8 推迟到对应章节开工时决定
-
-- **决策**
-  - #4 默认模型、#5 位深处理、#6 池化定义、#7 帧对齐失败阈值：§1 开工时决定。
-  - #8 背压策略默认值：Phase 4（§4）开工时决定。
-  - §5 对比期间沿用现有设置（`vmaf_v0.6.1`、8 bit YUV420P），不为对比改代码。
-- **备选**：现在逐条决定。
-- **理由**：这几项都会改变分数。和 D-003 一样，等有实测数据时再定。
-- **谁**：owner（Jiayu Lin），采纳 agent 的建议
-- **日期**：2026-10-23
-
-### D-005 Phase 0 基线分数只当现状记录，不进论文
-
-- **决策**：`eval/baseline/` 里的分数只作为 Phase 0 的现状记录。论文里的数字一律来自 §5 通过之后的运行。
-- **备选**：基线分数进论文，例如作为修复前的对照，并写明原因。
-- **理由**：Mirage 与 FFmpeg libvmaf 在同等条件下有约 5 分的差异，原因未查明（见差距报告"现状基线"）。
-- **谁**：owner（Jiayu Lin），采纳 agent 的建议
-- **日期**：2026-10-23
-
-### D-006 libvmaf 版本：包版本与运行时自报版本都记录
-
-- **决策**：JSON 输出和 §5 delta 报告同时记录 libvmaf 的包版本（本机 Homebrew 为 3.1.0）和运行时 `vmaf_version()` 的返回值（本机为 3.0.0）。
-- **备选**
-  - 只记运行时自报版本（§1.1 的字面要求）。
-  - 只记包版本。
-- **理由**：两者在本机不一致。都记下来，复现时才能看出用的是哪个构建。
-- **谁**：owner（Jiayu Lin），采纳 agent 的建议
-- **日期**：2026-10-23
-
-### D-007 触及渲染或解码路径的重构一律先交方案
-
-- **决策**：任何改动渲染或解码路径的重构（例如 §4 对播放帧打分、把分析器移出 `MediaSession`），agent 先写方案交 owner 审批，批准后才改代码。
-- **备选**：小的重构直接做，在 PR 里说明；大的再先报方案。
-- **理由**：工作单硬约束 3。
-- **谁**：owner（Jiayu Lin），采纳 agent 的建议
-- **日期**：2026-10-23
-
-### D-008 Mirage 采用 GPL-3.0-or-later
-
-- **决策**：Mirage 的许可证是 GPL-3.0-or-later。LICENSE 文件在 Phase 1 的 §8 部分加入。
-- **备选**
-  - GPL-2.0-or-later（CFP 举的例子是 GPLv2；与 GPLv3 的 FFmpeg 组合分发时按 GPLv3 生效）。
-  - BSD / MIT（源码宽松，但带 ffmpeg-full 的二进制整体仍是 GPLv3）。
-  - 等法务或公司开源流程的结论再定。
-  - GPLv2-only 不可选：与链接的 GPLv3 FFmpeg 构建不兼容。
-- **理由**：Mirage 链接的 ffmpeg-full 8.1.1 是 GPL-3.0-or-later（`--enable-gpl --enable-version3`，见差距报告第 9 条），选同一许可证，源码与二进制分发的条款最简单。
-- **未完成**：是否需要法务或公司开源流程确认，由 owner 自行核实。
-- **谁**：owner（Jiayu Lin）
-- **日期**：2026-10-23
-
-### D-009 FFmpeg 统一为 ffmpeg-full
-
-- **决策**：构建统一使用 Homebrew 的 ffmpeg-full。`CMakePresets.json` 已经指向它，README / CLAUDE.md 中的 `brew install ffmpeg` 在 Phase 1 的 §8 部分改正。
-- **备选**
-  - 统一为 `ffmpeg`：改 preset 跟 README。§5 对比还需另装带 libvmaf 的 FFmpeg，并要重跑基线。
-  - 推迟到 §8 再定。
-- **理由**
-  - ffmpeg-full 带 libvmaf 滤镜，§5 对比要用。
-  - Phase 0 基线就是用 ffmpeg-full 跑的。
-  - 与 D-008 的 GPL-3.0-or-later 一致。
-- **未决定**：#11 的另外两部分（glad 生成结果是否入库、Linux 支持范围）在 §8 开工时决定。
-- **谁**：owner（Jiayu Lin）
-- **日期**：2026-10-23
-
-### D-010 先把 fix/high-speed-playback 合入 main，VMAF 工作 PR 到 main
-
-- **决策**
-  - 把 `fix/high-speed-playback`（`a4e0289`）快进合入 `main`。
-  - VMAF 各 phase 的分支都 PR 到 `main`。`vmaf/phase-0` 本来就基于 `a4e0289`，不需要 rebase。
-  - FairPlay 改动留在本地分支 `feat/fairplay-drm`，不推送（owner 2026-10-22 的指示）。
-- **备选**
-  - PR 到 `fix/high-speed-playback`，`main` 保持不动。
-  - 开一个长期的 vmaf 分支，投稿前再合入 `main`。
-- **理由**：`main` 落后 `a4e0289` 6 个提交，可以快进。VMAF 的 PR 以 `main` 为目标，diff 里就只有 VMAF 的改动。
-- **谁**：owner（Jiayu Lin）
-- **日期**：2026-10-23
-
-### D-011 evaluation 用自己编码的 ladder
-
-- **决策**：evaluation 用公开源片自己编码 HLS ladder，源片即 mezzanine。编码脚本和参数进 `eval/`。具体源片与编码参数在开始编码时再由 owner 定。
-- **备选**
-  - 挑选现成的公开流（DASH-IF、Unified Streaming demo 等）：拿不到 mezzanine，流也可能变动或下线。
-  - 两种都用：自编 ladder 做绝对质量与 §3 归因测试，公开流做适用性演示。
-- **理由**
-  - 各档出自同一源片，满足 D-002（默认 top-rung 参考）的前提，也能跑 mezzanine 模式。
-  - 可控、可复现，还能有意做出丢帧、discontinuity 等测试用例。
-  - Phase 0 用的 bipbop 16x9 各档是分别渲染的，不适合衡量质量（见差距报告"现状基线"）。
-- **谁**：owner（Jiayu Lin）
-- **日期**：2026-10-23
-
-### D-012 改写全部历史，提交邮箱统一为 GitHub noreply 地址
-
-- **决策**
-  - 所有提交的作者 / 提交者邮箱改为 `217987193+zzzniloaix@users.noreply.github.com`，并强推 `main` 与 `fix/high-speed-playback`。
-  - 本仓库以后的提交也用这个地址（仓库级 git 配置）。
-- **备选**：只改以后的提交，已推送的历史不动。
-- **理由**：不在公开历史里暴露个人邮箱。仓库 2026-04-03 起公开，2026-10-23 改为私有，投稿时还要重新公开。
-- **影响**
-  - 所有提交的 SHA 都变了。已推送的 25 个提交逐个核对过 tree hash，文件树没有任何变化。
-  - 新旧对照：基线提交 `a4e02895d2d9c51c620e6c140f5566944c80ec71` → `1bab7a3104cf9149300eafd3d3deb7ae4a9c6f69`，tree `61765e415978c5a9735a3a6a3e245c52d0e6be99` 不变。差距报告、本日志（P-001、D-010）以及 `eval/` 原始输出里的 `a4e0289` 都指这个提交。原始输出保持原样，不改成新 SHA。
-  - `vmaf/phase-0` 的 7 个提交同时按 D-013、D-014 改写，文件树因此有变化。
-- **谁**：owner（Jiayu Lin）
-- **日期**：2026-10-23
-
-### D-013 工作单不放进仓库
-
-- **决策**：工作单（`mirage-vmaf-spec-agent.md`，"Mirage VMAF Subsystem — Agent Work Order"）只保存在 owner 本地，不入库。之前放在 `docs/spec/` 下的副本已从 `vmaf/phase-0` 的全部历史中移除。仓库里的文档按标题和文件名引用它。
-- **备选**
-  - 删去不宜公开的段落后入库，并注明删改过。
-  - 原样入库。
-- **理由**：工作单含有 owner 的个人信息，不适合放进将要公开的仓库。
-- **谁**：owner（Jiayu Lin）
-- **日期**：2026-10-23
-
-### D-014 Phase 0 原始输出中的本机信息打码
-
-- **决策**：`eval/baseline/` 和差距报告里的本机信息换成占位符，其余内容不变。
-  - `<worktree>`：Phase 0 编译基线用的干净 worktree 路径（P-001）。
-  - `<repo>`：本仓库在 owner 机器上的路径。
-  - `<tmp>`：系统按用户生成的临时目录。
-  - `<hostname>`：机器名（`uname -a` 的输出）。
-  - `run_baseline.sh` 里写死的临时目录改为读环境变量 `SCRATCH`。
-  - 差距报告第 9 条删去了一个不应公开的主机名。
-- **涉及文件**：`environment.txt`、`code_facts.txt`、`run_baseline.sh`、`diagnostics/ffmpeg_libvmaf_gear1_vs_gear5_first300.cmd.txt`、`diagnostics/ffmpeg_libvmaf_gear2_vs_gear5_first300.cmd.txt`、`docs/VMAF_GAP_REPORT.md`。分数、日志和其他输出都没有改动。
-- **校验和**：`diagnostics/SHA256SUMS` 只更新了两个 cmd 文件的行，其余各行逐字节不变。改写后两个目录的 `shasum -a 256 -c` 全部通过。
-  - `ffmpeg_libvmaf_gear1_vs_gear5_first300.cmd.txt`：`92ae786fad941303c5a0128c7a4cda0d14948e039f628663def57e3adbcae66f`（打码前）→ `555e64e875918da3a237b6f790b579d049acfe05158566c50f7a024bab197b3e`
-  - `ffmpeg_libvmaf_gear2_vs_gear5_first300.cmd.txt`：`13001dca0964b86eb7651cfa171649d15b4a27f4d2ec47ca1fc6ff6af14bd318`（打码前）→ `2050a5d83277c54a5bd386326cc272dddc50bf3fe47073d0c5bd144f3b9ce939`
-- **原件**：未打码的原件保存在 owner 本地的私有备份里，不入库。
-- **备选**：原样保留。
-- **理由**：机器名和本机路径与复现无关，不应进入公开仓库。
-- **谁**：owner（Jiayu Lin）
-- **日期**：2026-10-23
-
-### D-015 签收 Phase 0
-
-- **决策**
-  - owner 认可 Phase 0 的差距报告和现状基线，并确认 P-001–P-005。
-  - Phase 1 可以开始，范围与顺序见 D-001。
-  - Phase 0 按工作单硬约束 5 作为一个 PR 提交到 `main`（D-010）。
-- **备选**：先通读差距报告再签收。
-- **谁**：owner（Jiayu Lin）
-- **日期**：2026-10-23
+**Only the owner makes design decisions** (hard rule 3 of the work order). The agent only makes measurement and process choices. Those entries are listed separately below and stay marked as pending until the owner confirms them.
 
 ---
 
-## 测量 / 流程选择（agent 提出，owner 确认）
+## Design decisions (owner)
 
-### P-001 Phase 0 基线用干净 worktree 编译已提交的 HEAD
+The remaining open items are listed in the "Decisions needed from the owner" section of `docs/VMAF_GAP_REPORT.md`.
 
-- **选择**
-  - 在 `git worktree add --detach <scratch>/wt-head HEAD` 得到的目录里，用 `cmake --preset macos-release` 编译 commit `a4e0289`。
-  - 用编出的二进制跑现有打分功能。
-- **备选**
-  - 直接用主工作区的 debug 构建。
-  - 先 `git stash` 再编译。
-- **理由**
-  - 主工作区里有未提交的 FairPlay/AVFoundation 改动，不属于勘察对象。worktree 保证测的是一个可引用的 commit，而且不动工作区。
-  - 选 release 只为缩短运行时间：libvmaf 与 FFmpeg 都是预编译库，Mirage 自己的代码只做帧搬运和排序，不参与分数计算。这一点是基于代码阅读的推断，没有实测验证。
-- **谁**：agent（Claude）
-- **日期**：2026-10-21
-- **状态**：owner 已确认（2026-10-23）
+### D-001 Order within Phase 1: the §5 consistency check comes first
 
-### P-002 基线 ladder 选 Apple bipbop 16x9
+- **Decision**
+  - The work order's Phase 1 = §8 + §1 + §5, submitted as one PR as the work order requires.
+  - Order within Phase 1:
+    1. §5: build a per-frame delta tool comparing Mirage with FFmpeg's libvmaf filter, and find the cause of the discrepancy Phase 0 found (640x360, first 300 frames, mean |Δ| 5.28, Mirage higher on every frame). Alongside it, do only the minimal §8 needed to reproduce runs: document the Python 3.13 venv approach to glad generation (see P-003).
+    2. §1: the VMAF core (PTS pairing, configurable model / scaler, etc.).
+    3. §8: full reproducible packaging.
+    4. Re-run §5 and commit the delta report to `eval/`.
+  - Phase 2 onward follows the work order's dependency order. Phase 2 doesn't start until §5 passes.
+- **Alternatives**
+  - §8 first: pin the build environment before any measurement. The cost is that VMAF correctness is delayed, and #10 (license) and #11 (build strategy) have to be decided first.
+  - §1 first: finish the analyzer core, then verify it with §5. The cost is building on an unexplained 5-point discrepancy, and #2–#7 have to be decided first.
+  - Split Phase 1 into three PRs, 1a / 1b / 1c. Not chosen: it conflicts with hard rule 5 of the work order (one PR per phase).
+- **Rationale**
+  - Every score in the paper depends on §5 passing, and the work order also asks for §5 to be done early.
+  - The cause of the discrepancy may directly decide #3 (the default scaler).
+- **Known cost**: §1's changes may shift the scores again, so §5 has to be re-run after §1. The Phase 1 PR will be large.
+- **Correction**: the first draft of this entry (2026-10-22) listed §1 and §8 as Phase 2 and Phase 3, which doesn't match the work order's phases. The cause was the agent's wording of the options when asking, not the owner's decision. After reading the work order, the owner confirmed the current wording.
+- **Who**: owner (Jiayu Lin)
+- **Date**: 2026-10-22
 
-- **选择**：`https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8`
-- **备选**
-  - Apple advanced 示例 `img_bipbop_adv_example_ts/master.m3u8`。它有 24 个 `EXT-X-STREAM-INF`（bipbop 16x9 是 6 个），指向 8 个视频播放列表，帧率分 30 / 60 两档。现有打分器是串行的，会对每个条目逐一打分，包括指向同一播放列表的重复条目。没有选它当 Phase 0 基线，它更适合以后专门测帧率不一致和重复条目。两个 master 的原文见 `eval/baseline/inputs/`。
-  - 其他公开流，留到 Phase 1 的 `eval/streams.md`。
-- **理由**
-  - Apple 官方托管，地址稳定。
-  - 5 个视频 variant 外加 1 个纯音频 variant，正好能看到现有工具遇到纯音频 variant 时的行为。
-  - 以上 variant 数与时长都来自对 master 和 variant 播放列表的实际抓取（见 `eval/baseline/README.md`）。
-- **谁**：agent
-- **日期**：2026-10-21
-- **状态**：owner 已确认（2026-10-23）
+### D-002 Default reference mode: top-rung (mode B)
 
-### P-003 glad 代码生成改用 scratch venv（Python 3.13 + jinja2 3.1.6）
+- **Decision**: §1.2's default reference is top-rung, i.e. the highest-bandwidth variant. The mezzanine reference (mode A) is also implemented, as the work order requires, as an optional mode.
+- **Alternatives**: default to mezzanine (mode A), which scores every variant against the external source material.
+- **Rationale**: the owner gave no reason when choosing; to be added by the owner.
+- **Implications** (recorded by the agent for the owner to check)
+  - Default scores measure relative degradation within the ladder, not absolute quality. The paper has to make this clear (work order §1.2).
+  - Consistent with the current code's behavior (the existing ladder scoring only supports top-rung).
+  - Public streams rarely come with a mezzanine. With top-rung as the default, they can be scored directly.
+  - The output still has to carry a `reference_mode` field, and scores from the two modes must not be mixed in one report.
+  - In the default mode, the other rungs must be scaled encodes of the same source as the top rung, or the scores mean nothing. bipbop 16x9 doesn't satisfy this (see "Baseline" in the gap report), which makes the ladder choice in #14 more important.
+- **Who**: owner (Jiayu Lin)
+- **Date**: 2026-10-22
 
-- **选择**：worktree 配置时指定 `-DPython_EXECUTABLE=<scratch>/venv-glad/bin/python`。
-- **备选**
-  - 修复 Homebrew 的 Python 3.14。这会改动机器环境，需要 owner 决定。
-  - 复制主仓库已生成的 glad 文件。试过不行：ninja 仍要求重跑生成步骤。
-- **理由**
-  - 本机 Homebrew Python 3.14.7 的 `pyexpat` 导入失败（`Symbol not found: _XML_SetAllocTrackerActivationThreshold`），导致干净构建在 glad 生成步骤失败。
-  - venv 不改系统环境。生成的 `gl.h` / `gl.c` / `khrplatform.h` 与主仓库构建产物逐字节一致（已用 `cmp` 核对）。
-- **谁**：agent
-- **日期**：2026-10-21
-- **状态**：owner 已确认（2026-10-23）。这件事本身也是 §8 可复现性的问题，见差距报告。
+### D-003 Default scaler deferred until the §5 diagnosis
 
-### P-004 让现有代码能写出 JSON 报告：预先创建 URL 形状的目录
+- **Decision**: §1.3's default scaler is not decided yet. During the §5 diagnosis, bilinear and bicubic are each measured on both the Mirage side and the FFmpeg side, and the owner decides after seeing the measurements. Until then the code keeps its current bilinear.
+- **Alternatives**
+  - Decide bicubic now (the suggestion in work order §1.3).
+  - Decide bilinear now (the current code's behavior).
+- **Rationale**: the 5-point discrepancy measured in Phase 0 was obtained with bilinear on both sides, so it doesn't necessarily come from the scaler itself. Choosing a default before seeing the scaler's actual effect on scores would have no data behind it.
+- **Who**: owner (Jiayu Lin), adopting the agent's suggestion
+- **Date**: 2026-10-23
 
-- **选择**：在运行目录下预先创建 `https:/devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/`。
-- **备选**
-  - 不创建。现有代码写 `<URL>.vmaf.json` 这个相对路径会失败，基线就只剩日志。
-  - 改代码。Phase 0 禁止。
-- **理由**：不改代码，也能拿到现有导出功能的真实输出。
-- **谁**：agent
-- **日期**：2026-10-21
-- **状态**：owner 已确认（2026-10-23）。这个导出路径问题在差距报告里单列。
+### D-004 #4–#8 deferred until their sections start
 
-### P-005 基线分数的诊断性对照：FFmpeg libvmaf 滤镜，前 300 帧，两档
+- **Decision**
+  - #4 default model, #5 bit-depth handling, #6 pooling definitions, #7 frame-alignment failure threshold: decided when §1 starts.
+  - #8 default backpressure policy: decided when Phase 4 (§4) starts.
+  - During the §5 comparison the current settings (`vmaf_v0.6.1`, 8-bit YUV420P) stay, and the code isn't changed for the comparison.
+- **Alternatives**: decide each one now.
+- **Rationale**: all of these change scores. As with D-003, they are decided once there's measured data.
+- **Who**: owner (Jiayu Lin), adopting the agent's suggestion
+- **Date**: 2026-10-23
 
-- **选择**
-  - 用 ffmpeg-full 8.1.1 的 `libvmaf` 滤镜，对 640x360 和 416x234 两档的前 300 帧打分，再和 Mirage 的逐帧分数比较。
-  - 对照条件尽量贴近 Mirage：模型 `vmaf_v0.6.1`，`n_threads=4`，失真用 `scale=1920:1080:flags=bilinear` 放大，参考原样。
-- **备选**
-  - 不做对照，只报告基线数字。缺点是 416x234 的 1.1455 是否可信就无从判断。
-  - 全片对照。太耗时，而且已经超出 Phase 0 的范围，属于 §5。
-- **理由**
-  - 判断基线分数能不能信，是差距报告必须回答的问题。
-  - 选这两档，是因为它们一个是异常档，一个是正常档。
-  - 300 帧在 30000/1001 fps 下比第一个 segment 长一点：两档播放列表里第一个 segment 的 `EXTINF` 都是 9.9766（见 `eval/baseline/inputs/`），所以对照范围跨进了第二个 segment。配对是否一致，用序号 300 的帧（序号从 0 计，紧接对照范围之后）核对过：两档的帧计数器都显示 000300。
-- **谁**：agent
-- **日期**：2026-10-21
-- **状态**：owner 已确认（2026-10-23）。这一步**不是** §5 的实现。§5 的校验工具、参数和阈值仍由 owner 决定。
+### D-005 Phase 0 baseline scores are a record of the current state only, not paper data
 
+- **Decision**: the scores in `eval/baseline/` serve only as Phase 0's record of the current state. Every number in the paper comes from runs made after §5 passes.
+- **Alternatives**: put the baseline scores in the paper, e.g. as a before-the-fix comparison, with the reason stated.
+- **Rationale**: under equivalent conditions Mirage and FFmpeg libvmaf differ by about 5 points, and the cause hasn't been found (see "Baseline" in the gap report).
+- **Who**: owner (Jiayu Lin), adopting the agent's suggestion
+- **Date**: 2026-10-23
+
+### D-006 libvmaf version: record both the package version and the runtime version
+
+- **Decision**: the JSON output and the §5 delta report record both libvmaf's package version (3.1.0 from Homebrew on this machine) and the value returned by `vmaf_version()` at runtime (3.0.0 on this machine).
+- **Alternatives**
+  - Record only the runtime version (the literal requirement of §1.1).
+  - Record only the package version.
+- **Rationale**: the two disagree on this machine. Recording both is the only way to tell which build was used when reproducing.
+- **Who**: owner (Jiayu Lin), adopting the agent's suggestion
+- **Date**: 2026-10-23
+
+### D-007 Any refactor touching the render or decode path needs a plan first
+
+- **Decision**: for any refactor that changes the render or decode path (e.g. §4's scoring of played frames, or moving the analyzer out of `MediaSession`), the agent first writes a plan for the owner to approve, and changes code only after approval.
+- **Alternatives**: do small refactors directly and explain them in the PR; only large ones need a plan first.
+- **Rationale**: hard rule 3 of the work order.
+- **Who**: owner (Jiayu Lin), adopting the agent's suggestion
+- **Date**: 2026-10-23
+
+### D-008 Mirage is licensed GPL-3.0-or-later
+
+- **Decision**: Mirage's license is GPL-3.0-or-later. The LICENSE file is added in the §8 part of Phase 1.
+- **Alternatives**
+  - GPL-2.0-or-later (the CFP's example is GPLv2; when distributed together with the GPLv3 FFmpeg, GPLv3 applies).
+  - BSD / MIT (permissive source, but a binary that includes ffmpeg-full is still GPLv3 as a whole).
+  - Wait for legal or the company's open-source process before deciding.
+  - GPLv2-only isn't an option: it's incompatible with the linked GPLv3 FFmpeg build.
+- **Rationale**: the ffmpeg-full 8.1.1 that Mirage links is GPL-3.0-or-later (`--enable-gpl --enable-version3`, see item 9 of the gap report). Choosing the same license keeps the terms for source and binary distribution simplest.
+- **Open**: whether legal or the company's open-source process has to confirm this is for the owner to check.
+- **Who**: owner (Jiayu Lin)
+- **Date**: 2026-10-23
+
+### D-009 FFmpeg is standardized on ffmpeg-full
+
+- **Decision**: the build standardizes on Homebrew's ffmpeg-full. `CMakePresets.json` already points to it. The `brew install ffmpeg` in README / CLAUDE.md is corrected in the §8 part of Phase 1.
+- **Alternatives**
+  - Standardize on `ffmpeg`: change the presets to match the README. The §5 comparison would then need a separately installed FFmpeg with libvmaf, and the baseline would have to be re-run.
+  - Defer the decision to §8.
+- **Rationale**
+  - ffmpeg-full has the libvmaf filter, which the §5 comparison needs.
+  - The Phase 0 baseline was run with ffmpeg-full.
+  - It's consistent with D-008's GPL-3.0-or-later.
+- **Not decided**: the other two parts of #11 (whether glad's generated output is committed, and the scope of Linux support) are decided when §8 starts.
+- **Who**: owner (Jiayu Lin)
+- **Date**: 2026-10-23
+
+### D-010 Merge fix/high-speed-playback into main first; VMAF work goes to main through PRs
+
+- **Decision**
+  - Fast-forward `main` to `fix/high-speed-playback` (`a4e0289`).
+  - Every VMAF phase branch gets a PR into `main`. `vmaf/phase-0` is already based on `a4e0289` and needs no rebase.
+  - The FairPlay changes stay on the local branch `feat/fairplay-drm` and are not pushed (the owner's instruction of 2026-10-22).
+- **Alternatives**
+  - PR into `fix/high-speed-playback` and leave `main` alone.
+  - Open a long-lived vmaf branch and merge it into `main` before submission.
+- **Rationale**: `main` was 6 commits behind `a4e0289` and could fast-forward. With `main` as the target, a VMAF PR's diff shows only VMAF changes.
+- **Who**: owner (Jiayu Lin)
+- **Date**: 2026-10-23
+
+### D-011 The evaluation uses self-encoded ladders
+
+- **Decision**: the evaluation encodes its own HLS ladders from public source clips, with the source clip serving as the mezzanine. The encoding scripts and parameters go in `eval/`. The owner picks the specific clips and encoding parameters when encoding starts.
+- **Alternatives**
+  - Pick existing public streams (DASH-IF, Unified Streaming demos, etc.): no mezzanine is available, and the streams may change or go offline.
+  - Use both: self-encoded ladders for absolute quality and the §3 attribution tests, public streams to demonstrate applicability.
+- **Rationale**
+  - All rungs come from one source clip. That meets the precondition of D-002 (top-rung reference by default) and also allows mezzanine mode.
+  - Controllable and reproducible, and test cases such as dropped frames and discontinuities can be built deliberately.
+  - The rungs of bipbop 16x9 used in Phase 0 were rendered separately and are unsuitable for measuring quality (see "Baseline" in the gap report).
+- **Who**: owner (Jiayu Lin)
+- **Date**: 2026-10-23
+
+### D-012 Rewrite all history; commit emails become the GitHub noreply address
+
+- **Decision**
+  - Change the author / committer email of every commit to `217987193+zzzniloaix@users.noreply.github.com`, and force-push `main` and `fix/high-speed-playback`.
+  - Future commits in this repository use the same address (repository-level git config).
+- **Alternatives**: change only future commits and leave the pushed history alone.
+- **Rationale**: keep personal email addresses out of the public history. The repository was public from 2026-04-03, was made private on 2026-10-23, and will be made public again for the submission.
+- **Implications**
+  - Every commit SHA changed. Each of the 25 pushed commits was checked by tree hash, and no file tree changed at all.
+  - Old → new: the baseline commit `a4e02895d2d9c51c620e6c140f5566944c80ec71` → `1bab7a3104cf9149300eafd3d3deb7ae4a9c6f69`, with tree `61765e415978c5a9735a3a6a3e245c52d0e6be99` unchanged. Every `a4e0289` in the gap report, in this log (P-001, D-010) and in the raw outputs in `eval/` refers to this commit. The raw outputs are kept as they are and are not changed to the new SHA.
+  - The 7 commits of `vmaf/phase-0` were also rewritten per D-013 and D-014, so their trees did change.
+- **Who**: owner (Jiayu Lin)
+- **Date**: 2026-10-23
+
+### D-013 The work order stays out of the repository
+
+- **Decision**: the work order (`mirage-vmaf-spec-agent.md`, "Mirage VMAF Subsystem — Agent Work Order") is kept only locally by the owner and isn't committed. The copy that was under `docs/spec/` has been removed from the entire history of `vmaf/phase-0`. Documents in the repository refer to it by title and file name.
+- **Alternatives**
+  - Commit it with the passages unsuitable for publication removed, noting that it was edited.
+  - Commit it as is.
+- **Rationale**: the work order contains the owner's personal information and isn't suitable for a repository that will be public.
+- **Who**: owner (Jiayu Lin)
+- **Date**: 2026-10-23
+
+### D-014 Local machine details redacted in the Phase 0 raw outputs
+
+- **Decision**: local machine details in `eval/baseline/` and in the gap report are replaced with placeholders, and nothing else changes.
+  - `<worktree>`: the path of the clean worktree used to build the baseline in Phase 0 (P-001).
+  - `<repo>`: the path of this repository on the owner's machine.
+  - `<tmp>`: the per-user temporary directory the system generates.
+  - `<hostname>`: the machine name (in the output of `uname -a`).
+  - The scratch directory hard-coded in `run_baseline.sh` is now read from the environment variable `SCRATCH`.
+  - Item 9 of the gap report dropped a hostname that shouldn't be public.
+- **Files affected**: `environment.txt`, `code_facts.txt`, `run_baseline.sh`, `diagnostics/ffmpeg_libvmaf_gear1_vs_gear5_first300.cmd.txt`, `diagnostics/ffmpeg_libvmaf_gear2_vs_gear5_first300.cmd.txt`, `docs/VMAF_GAP_REPORT.md`. No score, log or other output changed.
+- **Checksums**: in `diagnostics/SHA256SUMS`, only the lines for the two cmd files were updated; every other line is byte-for-byte unchanged. After the rewrite, `shasum -a 256 -c` passes in both directories.
+  - `ffmpeg_libvmaf_gear1_vs_gear5_first300.cmd.txt`: `92ae786fad941303c5a0128c7a4cda0d14948e039f628663def57e3adbcae66f` (before redaction) → `555e64e875918da3a237b6f790b579d049acfe05158566c50f7a024bab197b3e`
+  - `ffmpeg_libvmaf_gear2_vs_gear5_first300.cmd.txt`: `13001dca0964b86eb7651cfa171649d15b4a27f4d2ec47ca1fc6ff6af14bd318` (before redaction) → `2050a5d83277c54a5bd386326cc272dddc50bf3fe47073d0c5bd144f3b9ce939`
+- **Originals**: the unredacted originals are kept in the owner's private local backup and aren't committed.
+- **Alternatives**: keep the outputs as they are.
+- **Rationale**: the machine name and local paths are irrelevant to reproduction and shouldn't be in a public repository.
+- **Who**: owner (Jiayu Lin)
+- **Date**: 2026-10-23
+
+### D-015 Phase 0 signed off
+
+- **Decision**
+  - The owner accepts Phase 0's gap report and baseline, and confirms P-001–P-005.
+  - Phase 1 can start. For its scope and order, see D-001.
+  - Phase 0 is submitted to `main` as one PR, per hard rule 5 of the work order (D-010).
+- **Alternatives**: read the whole gap report before signing off.
+- **Who**: owner (Jiayu Lin)
+- **Date**: 2026-10-23
+
+---
+
+## Measurement / process choices (proposed by the agent, confirmed by the owner)
+
+### P-001 The Phase 0 baseline builds the committed HEAD in a clean worktree
+
+- **Choice**
+  - In the directory created by `git worktree add --detach <scratch>/wt-head HEAD`, build commit `a4e0289` with `cmake --preset macos-release`.
+  - Run the existing scoring feature with the resulting binary.
+- **Alternatives**
+  - Use the debug build of the main working tree directly.
+  - `git stash` first, then build.
+- **Rationale**
+  - The main working tree has uncommitted FairPlay/AVFoundation changes that aren't part of the survey. A worktree guarantees that what's measured is a citable commit, and it leaves the working tree alone.
+  - Release was chosen only to shorten the run: libvmaf and FFmpeg are prebuilt libraries, and Mirage's own code only moves and orders frames without taking part in computing scores. This is an inference from reading the code, not verified by measurement.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-21
+- **Status**: confirmed by the owner (2026-10-23)
+
+### P-002 Apple bipbop 16x9 as the baseline ladder
+
+- **Choice**: `https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8`
+- **Alternatives**
+  - Apple's advanced sample `img_bipbop_adv_example_ts/master.m3u8`. It has 24 `EXT-X-STREAM-INF` entries (bipbop 16x9 has 6) pointing to 8 video playlists, at two frame rates, 30 and 60. The existing scorer is serial and scores every entry one by one, including duplicate entries that point to the same playlist. It wasn't chosen as the Phase 0 baseline; it's better suited to later, dedicated tests of frame-rate mismatches and duplicate entries. The original text of both masters is in `eval/baseline/inputs/`.
+  - Other public streams, left for Phase 1's `eval/streams.md`.
+- **Rationale**
+  - Hosted by Apple, at a stable address.
+  - 5 video variants plus 1 audio-only variant, which shows how the existing tool behaves when it meets an audio-only variant.
+  - The variant counts and durations above all come from actually fetching the master and variant playlists (see `eval/baseline/README.md`).
+- **Who**: agent
+- **Date**: 2026-10-21
+- **Status**: confirmed by the owner (2026-10-23)
+
+### P-003 glad code generation through a scratch venv (Python 3.13 + jinja2 3.1.6)
+
+- **Choice**: configure the worktree with `-DPython_EXECUTABLE=<scratch>/venv-glad/bin/python`.
+- **Alternatives**
+  - Fix Homebrew's Python 3.14. That changes the machine's environment and needs the owner's decision.
+  - Copy the glad files already generated in the main repository. Tried, and it didn't work: ninja still insisted on re-running the generation step.
+- **Rationale**
+  - On this machine, importing `pyexpat` in Homebrew Python 3.14.7 fails (`Symbol not found: _XML_SetAllocTrackerActivationThreshold`), so a clean build fails at the glad generation step.
+  - The venv doesn't change the system environment. The generated `gl.h` / `gl.c` / `khrplatform.h` are byte-for-byte identical to the main repository's build output (checked with `cmp`).
+- **Who**: agent
+- **Date**: 2026-10-21
+- **Status**: confirmed by the owner (2026-10-23). This is itself a §8 reproducibility issue; see the gap report.
+
+### P-004 Letting the existing code write its JSON report: pre-creating URL-shaped directories
+
+- **Choice**: pre-create `https:/devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/` under the run directory.
+- **Alternatives**
+  - Don't create them. The existing code's write to the relative path `<URL>.vmaf.json` would fail, and the baseline would have only logs.
+  - Change the code. Forbidden in Phase 0.
+- **Rationale**: get real output from the existing export feature without changing code.
+- **Who**: agent
+- **Date**: 2026-10-21
+- **Status**: confirmed by the owner (2026-10-23). The export-path problem is listed separately in the gap report.
+
+### P-005 Diagnostic comparison of the baseline scores: FFmpeg libvmaf filter, first 300 frames, two rungs
+
+- **Choice**
+  - Use the `libvmaf` filter of ffmpeg-full 8.1.1 to score the first 300 frames of the 640x360 and 416x234 rungs, then compare with Mirage's per-frame scores.
+  - Keep the conditions as close to Mirage's as possible: model `vmaf_v0.6.1`, `n_threads=4`, the distorted video upscaled with `scale=1920:1080:flags=bilinear`, the reference used as is.
+- **Alternatives**
+  - No comparison, only the baseline numbers. The drawback is that there would be no way to judge whether 416x234's 1.1455 is credible.
+  - Compare the whole clip. Too slow, and beyond Phase 0's scope; that belongs to §5.
+- **Rationale**
+  - Whether the baseline scores can be trusted is a question the gap report has to answer.
+  - These two rungs were chosen because one is anomalous and the other is normal.
+  - At 30000/1001 fps, 300 frames is a little longer than the first segment: in both rungs' playlists the first segment's `EXTINF` is 9.9766 (see `eval/baseline/inputs/`), so the compared range runs into the second segment. The pairing was checked with the frame at index 300 (counting from 0, right after the compared range): the frame counters on both rungs show 000300.
+- **Who**: agent
+- **Date**: 2026-10-21
+- **Status**: confirmed by the owner (2026-10-23). This step is **not** the §5 implementation. §5's check tool, parameters and thresholds are still the owner's to decide.

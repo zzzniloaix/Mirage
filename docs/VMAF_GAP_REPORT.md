@@ -1,138 +1,136 @@
-# Mirage VMAF 差距报告（Phase 0）
+# Mirage VMAF Gap Report (Phase 0)
 
-- 日期：2026-10-21
-- 依据工作单：`mirage-vmaf-spec-agent.md`
-- 勘察对象：commit `a4e02895d2d9c51c620e6c140f5566944c80ec71`（分支 `fix/high-speed-playback` 的 HEAD）。2026-10-23 改写历史后，这个提交是 `1bab7a3104cf9149300eafd3d3deb7ae4a9c6f69`，文件树 `61765e415978c5a9735a3a6a3e245c52d0e6be99` 不变（见 `docs/DECISIONS.md` D-012）
-- 撰写：agent（Claude），由 owner 审阅
+- Date: 2026-10-21
+- Work order: `mirage-vmaf-spec-agent.md`
+- Surveyed: commit `a4e02895d2d9c51c620e6c140f5566944c80ec71` (HEAD of branch `fix/high-speed-playback`). After the 2026-10-23 history rewrite this commit is `1bab7a3104cf9149300eafd3d3deb7ae4a9c6f69`, with the same tree `61765e415978c5a9735a3a6a3e245c52d0e6be99` (see `docs/DECISIONS.md` D-012)
+- Written by: the agent (Claude), reviewed by the owner
 
-**范围说明**
-- 主工作区里另有未提交的 FairPlay/AVFoundation 改动。它们不碰 VMAF 打分代码，只改了 `main.cpp` 里 `--vmaf` 自动启动的分支（多了"AVFoundation 会话不跑 VMAF"的判断）和 DebugHUD 的混合方式。本报告不讨论这些改动，基线也用 HEAD 编译。
-- 报告中的行号都指 HEAD 版本。每个数字或版本号都能在 `eval/baseline/` 的原始输出里找到出处：
-  - `code_facts.txt`：代码位置与行数；
-  - `environment.txt`：依赖版本与机器信息；
-  - `bipbop16x9/`：基线运行的原始输出。
-
----
-
-## 一句话结论
-
-现有实现能做的是：
-- 对 HLS ladder 以**最高带宽 variant 为参考**，串行地逐个打分；
-- 或者对单个文件和一份参考文件打分；
-- 输出逐帧分数，以及 mean / min / p5，还有一份简陋的 JSON。
-
-它没有做到的是：
-- 按 PTS 对齐帧；
-- 可配置的模型和 scaler；
-- 版本与配置进输出；
-- 一致性校验；
-- 统一时间轴；
-- benchmark；
-- 许可证与可复现打包。
-
-论文的立论点 §3 目前只有零散的数据源，各自分开，没有统一的数据结构和查询 API。
-
-**此外，基线发现现有分数与 FFmpeg 的 libvmaf 滤镜对不上。** 640x360 那一档前 300 帧，逐帧绝对差平均 5.2798，见下文"现状基线"。§5 这道闸门今天过不去。
+**Scope**
+- The main working tree also holds uncommitted FairPlay/AVFoundation changes. They don't touch the VMAF scoring code. They only change the `--vmaf` auto-start branch in `main.cpp` (an added check that AVFoundation sessions don't run VMAF) and how DebugHUD blends. This report doesn't discuss them, and the baseline is built from HEAD.
+- Line numbers in this report refer to the HEAD version. Every number or version in it can be traced to a raw output in `eval/baseline/`:
+  - `code_facts.txt`: code locations and line counts;
+  - `environment.txt`: dependency versions and machine information;
+  - `bipbop16x9/`: raw output of the baseline run.
 
 ---
 
-## 1. VMAF 相关代码：文件、行数、架构
+## Summary
 
-| 位置 | 内容 | 规模（HEAD） |
+What the current implementation can do:
+- score an HLS ladder serially, one variant at a time, **using the highest-bandwidth variant as the reference**;
+- or score a single file against one reference file;
+- output per-frame scores, mean / min / p5, and a basic JSON file.
+
+What it doesn't do:
+- align frames by PTS;
+- configurable model and scaler;
+- versions and configuration in the output;
+- a consistency check;
+- a unified timeline;
+- benchmarks;
+- a license and reproducible packaging.
+
+§3, the paper's central claim, currently has only scattered data sources, each separate, with no unified data structure or query API.
+
+**The baseline also found that the current scores don't match FFmpeg's libvmaf filter.** On the first 300 frames of the 640x360 rung, the mean per-frame absolute difference is 5.2798; see "Baseline" below. The §5 gate would not pass today.
+
+---
+
+## 1. VMAF code: files, size, architecture
+
+| Location | Contents | Size (HEAD) |
 |---|---|---|
-| `src/VMAFAnalyzer.h` | `VMAFResult`、`VMAFAnalyzer` 声明 | 75 行 |
-| `src/VMAFAnalyzer.cpp` | 解码、libvmaf 打分、JSON 导出 | 433 行 |
-| `src/PlayerUI.cpp` `draw_vmaf_results` | "VMAF Analysis" ImGui 窗口：表格 + 第一条结果的逐帧曲线 | L1399–1563 |
-| `src/DebugHUD.cpp` `draw_vmaf_panel` | 右下角 GL 小面板（V 键） | L908–1109 |
-| `src/PlayerUI.cpp` 菜单 | Analyze → "VMAF — Single File…" / "VMAF — Manifest Variants" | — |
-| `src/main.cpp` | `--vmaf [ref]` 参数、自动启动（L1096–1108）、完成后自动导出（L1826–1834）、面板接线、导出按钮（L3180–3184、L3422–3425） | 共 80 行含 "vmaf" |
-| `src/MediaSession.h` | `VMAFAnalyzer vmaf_analyzer;`（L82）：分析器属于单个媒体会话 | — |
-| `CMakeLists.txt` | `pkg_check_modules(VMAF REQUIRED IMPORTED_TARGET libvmaf)`，链接 `PkgConfig::VMAF` | — |
+| `src/VMAFAnalyzer.h` | `VMAFResult` and `VMAFAnalyzer` declarations | 75 lines |
+| `src/VMAFAnalyzer.cpp` | decoding, libvmaf scoring, JSON export | 433 lines |
+| `src/PlayerUI.cpp` `draw_vmaf_results` | the "VMAF Analysis" ImGui window: a table plus the per-frame curve of the first result | L1399–1563 |
+| `src/DebugHUD.cpp` `draw_vmaf_panel` | small GL panel in the bottom-right corner (V key) | L908–1109 |
+| `src/PlayerUI.cpp` menu | Analyze → "VMAF — Single File…" / "VMAF — Manifest Variants" | — |
+| `src/main.cpp` | the `--vmaf [ref]` flag, auto-start (L1096–1108), auto-export on completion (L1826–1834), panel wiring, export buttons (L3180–3184, L3422–3425) | 80 lines contain "vmaf" |
+| `src/MediaSession.h` | `VMAFAnalyzer vmaf_analyzer;` (L82): the analyzer belongs to a single media session | — |
+| `CMakeLists.txt` | `pkg_check_modules(VMAF REQUIRED IMPORTED_TARGET libvmaf)`, links `PkgConfig::VMAF` | — |
 
-**架构**
+**Architecture**
 
-- `VMAFAnalyzer` 在自己的 `std::jthread` 里工作。
-- 对每一对（参考，失真），它用 `avformat_open_input` 直接打开两个 URL，各建一个解码上下文（`DecodeCtx`），软件解码各自最佳的视频流。
-- 两路帧都经 `sws_scale` 转成参考分辨率的 8 bit YUV420P（`SWS_BILINEAR`，L152、L157），拷进 `VmafPicture` 后逐帧调用 `vmaf_read_pictures`。
-- 任一路到 EOF 就结束。然后 flush，用 `vmaf_score_at_index` 取逐帧分数，用 `vmaf_score_pooled` 取 mean / min，p5 在 C++ 里手工计算。
-- 结果存在加锁的 vector 里，UI 每帧复制一份快照。
+- `VMAFAnalyzer` works in its own `std::jthread`.
+- For each (reference, distorted) pair it opens both URLs directly with `avformat_open_input`, creates a decode context (`DecodeCtx`) for each, and software-decodes each one's best video stream.
+- Frames from both sides go through `sws_scale` to 8-bit YUV420P at the reference resolution (`SWS_BILINEAR`, L152, L157). They are copied into a `VmafPicture`, and `vmaf_read_pictures` is called frame by frame.
+- Scoring stops when either side reaches EOF. It then flushes, reads per-frame scores with `vmaf_score_at_index` and mean / min with `vmaf_score_pooled`. p5 is computed by hand in C++.
+- Results live in a locked vector, and the UI copies a snapshot every frame.
 
-## 2. libvmaf：库链接还是 shell out
+## 2. libvmaf: linked library or shell-out
 
-- **以库形式链接，直接调用 C API**：
-  - 头文件 `#include <libvmaf/libvmaf.h>`；
-  - 调用 `vmaf_init` / `vmaf_model_load` / `vmaf_read_pictures` / `vmaf_score_*`；
-  - 动态链接 `/opt/homebrew/opt/libvmaf/lib/libvmaf.3.dylib`（`otool -L`，见 `environment.txt`）。
-- `VMAFAnalyzer` 里没有 `system` / `popen` 一类调用。
-- 这一条符合 §1.1 的"禁止 shell out"。
+- **Linked as a library, calling the C API directly**:
+  - header `#include <libvmaf/libvmaf.h>`;
+  - calls `vmaf_init` / `vmaf_model_load` / `vmaf_read_pictures` / `vmaf_score_*`;
+  - dynamically links `/opt/homebrew/opt/libvmaf/lib/libvmaf.3.dylib` (`otool -L`, see `environment.txt`).
+- `VMAFAnalyzer` makes no `system` / `popen`-style calls.
+- This meets §1.1's "no shelling out".
 
-## 3. libvmaf 版本、模型、可配置性
+## 3. libvmaf version, model, configurability
 
-**版本**
+**Version**
 
-| 来源 | 版本号 |
+| Source | Version |
 |---|---|
-| Homebrew 安装的包 `libvmaf` | 3.1.0 |
-| 库自报 `vmaf_version()` | 3.0.0 |
+| Homebrew package `libvmaf` | 3.1.0 |
+| Library's own `vmaf_version()` | 3.0.0 |
 | `vmaf --version` | 3.0.0 |
 | `libvmaf.pc` | 3.0.0 |
-| `version.h` 的 `VMAF_API_VERSION` | 3.0.0 |
+| `VMAF_API_VERSION` in `version.h` | 3.0.0 |
 
-三处自报的版本号与包版本不一致。§7 的 `libvmaf_version` 记哪个，需要 owner 定（见文末决策清单）。
+The library's self-reported versions don't match the package version. Which one §7's `libvmaf_version` records is for the owner to decide (see the decision list at the end).
 
-**模型**
-- 写死为 `vmaf_model_load(&model, &model_cfg, "vmaf_v0.6.1")`（L199），按版本字符串加载内置模型，`flags = VMAF_MODEL_FLAGS_DEFAULT`。
-- 不可配置，输出里也没有模型标识。
-- 本机 `/opt/homebrew/opt/libvmaf/share/libvmaf/model/` 下有 `vmaf_v0.6.1.json`、`vmaf_v0.6.1neg.json`、`vmaf_4k_v0.6.1.json` 等文件，但代码不用。
+**Model**
+- Hard-coded as `vmaf_model_load(&model, &model_cfg, "vmaf_v0.6.1")` (L199), which loads the built-in model by version string, with `flags = VMAF_MODEL_FLAGS_DEFAULT`.
+- Not configurable, and the output has no model identifier.
+- `/opt/homebrew/opt/libvmaf/share/libvmaf/model/` on this machine holds `vmaf_v0.6.1.json`, `vmaf_v0.6.1neg.json`, `vmaf_4k_v0.6.1.json` and others, but the code doesn't use them.
 
-**其他固定参数**
-- `n_threads = 4`（L188）
+**Other fixed parameters**
+- `n_threads = 4` (L188)
 - `n_subsample = 1`
 - `log_level = NONE`
 
-这些都不可配置，也不进输出。
+None of these is configurable or recorded in the output.
 
-## 4. Ladder 全量打分与参考源
+## 4. Full-ladder scoring and the reference source
 
-**支持。** 入口有两个：
-- `start_manifest(variants)`（`VMAFAnalyzer.cpp` L325–377）；
-- 菜单 "Manifest Variants" 和 `--vmaf`（不带参数）都走这里。
+**Supported.** There are two entry points, the "Manifest Variants" menu item and `--vmaf` (without an argument). Both go through `start_manifest(variants)` (`VMAFAnalyzer.cpp` L325–377).
 
-做法：
-1. 把 master 里的所有 `EXT-X-STREAM-INF` 按 `BANDWIDTH` 降序排序，第一个作为参考（相当于 §1.2 的模式 B，top-rung）。
-2. 其余每个条目各和它打一次分。
-3. 单线程、串行、一对接一对。
+How it works:
+1. Sort all `EXT-X-STREAM-INF` entries in the master by `BANDWIDTH`, descending. The first is the reference (equivalent to §1.2's mode B, top-rung).
+2. Score every other entry against it, once each.
+3. Single-threaded and serial, one pair after another.
 
-问题：
-- **按 `EXT-X-STREAM-INF` 条目打分，不按视频播放列表去重。**
-  - 有的 ladder 让同一视频播放列表配不同音频组，同一播放列表因此会被重复打分。例如 Apple advanced 示例：24 个条目，指向 8 个视频播放列表，见 `eval/baseline/inputs/`。
-  - 参考播放列表的其他条目也会和参考本身对打。
-- 纯音频条目（无 `RESOLUTION`）同样会被尝试，打不开时记为错误。
-- 每一对都重新解码一遍参考，N 个条目就把参考解码 N−1 遍。
-- 打开 variant 时没有挂 NetworkLogger 的 hook，这些请求在网络面板里显示为 initiator "other"。也没有设置 `timeout` / `rw_timeout` / `reconnect` 这些选项（播放路径的 `Demuxer` 设置了），网络异常时只能按 FFmpeg 默认行为处理。
-- 整段 VOD 从头解码到尾，没有时间窗选项。
-- 参考源模式 A（mezzanine）**只在单文件模式下存在**：当前打开的文件对一份手选文件打分（`start(ref, dis)`）。ladder 不能对外部参考打分。
-- 打开的是 HLS master 时，`--vmaf <ref>` 里的参考文件**会被忽略**，照样走 top-rung 的 ladder 模式。原因是 `main.cpp` L1099–1105 先判断 manifest 有没有 variant，有就直接调 `start_manifest`。
-- 输出里没有 `reference_mode`。
+Problems:
+- **It scores per `EXT-X-STREAM-INF` entry, without deduplicating by video playlist.**
+  - Some ladders pair the same video playlist with different audio groups, so the same playlist gets scored more than once. Example: Apple's advanced sample has 24 entries pointing to 8 video playlists; see `eval/baseline/inputs/`.
+  - The reference playlist's other entries are also scored against the reference itself.
+- Audio-only entries (no `RESOLUTION`) are attempted too, and are recorded as errors when they can't be opened.
+- Every pair decodes the reference again, so N entries decode the reference N−1 times.
+- Opening a variant doesn't attach the NetworkLogger hook, so these requests show up in the network panel with initiator "other". It also sets none of `timeout` / `rw_timeout` / `reconnect` (the playback path's `Demuxer` does), so network errors fall back to FFmpeg's default behavior.
+- The whole VOD is decoded from start to end. There's no time-window option.
+- Reference mode A (mezzanine) **exists only in single-file mode**: the currently open file is scored against one hand-picked file (`start(ref, dis)`). A ladder can't be scored against an external reference.
+- When the open source is an HLS master, the reference file in `--vmaf <ref>` **is ignored** and the top-rung ladder mode runs anyway. The reason is that `main.cpp` L1099–1105 first checks whether the manifest has variants, and if it does, calls `start_manifest` directly.
+- The output has no `reference_mode`.
 
-## 5. 逐帧分数，以及是否与播放时间轴对齐
+## 5. Per-frame scores, and alignment with the playback timeline
 
-**有逐帧分数**：`VMAFResult::per_frame`，按帧序号存放。
+**Per-frame scores exist**: `VMAFResult::per_frame`, stored by frame index.
 
-**不对齐 PTS**：
-- 参考与失真按**解码顺序的序号**一一配对：L216–217 各取下一帧，L260 用 `frame_idx++` 作索引。
-- 不读也不存 PTS。
-- 先结束的一路决定总帧数。
-- 帧率不一致、丢帧、重复帧都不检测，也不报告。帧率不同的 ladder（例如 Apple advanced 示例同时有 30 和 60 fps 的条目），按代码逻辑会静默错位出分。这一点是读代码得出的，没有实测，§1.4 的验收会构造用例验证。
+**Not aligned by PTS**:
+- Reference and distorted frames are paired one-to-one by **decode-order index**: L216–217 each take the next frame, and L260 uses `frame_idx++` as the index.
+- PTS is neither read nor stored.
+- Whichever side ends first sets the frame count.
+- Frame-rate mismatches, dropped frames and duplicated frames are neither detected nor reported. By the code's logic, a ladder with mixed frame rates (e.g. Apple's advanced sample, which has both 30 and 60 fps entries) would be silently misaligned and still produce scores. This comes from reading the code, not from a measurement. §1.4's acceptance test will construct a case to verify it.
 
-**与播放时间轴的关系**：
-- UI 曲线上的播放位置标记按 `pos_frac × N` 取帧（`PlayerUI.cpp` L1553），其中 `pos_frac = 当前 PTS / 时长`。
-- 这等于假设打分帧均匀铺满整个时长，只是近似。
-- 曲线只画第一条完成的结果。
+**Relation to the playback timeline**:
+- The playback-position marker on the UI curve picks the frame as `pos_frac × N` (`PlayerUI.cpp` L1553), where `pos_frac = current PTS / duration`.
+- That assumes the scored frames are spread evenly over the whole duration, so it's only an approximation.
+- The curve only draws the first completed result.
 
-## 6. JSON 导出与 schema
+## 6. JSON export and schema
 
-**有**：`write_json(path)`（L392–433），手写拼接字符串。结构如下：
+**Exists**: `write_json(path)` (L392–433), built by concatenating strings by hand. Structure:
 
 ```
 { "results": [ { "label", "ref", "dis", "bandwidth", "resolution",
@@ -140,201 +138,201 @@
                | { …, "error" } ] }
 ```
 
-问题：
-- 没有以下字段：
-  - schema 版本；
-  - 工具版本、git commit、libvmaf 版本；
-  - 模型、参考模式、scaler、环境；
-  - 逐帧的 PTS。
-- 字符串没有做 JSON 转义：URL 或 label 里出现 `"` 或 `\` 就会产生非法 JSON。
-- `"resolution"` 写的是**参考**的分辨率（L145 `result.width = ref_w`），而 `"label"` 写的是失真 variant 的分辨率。字段名有误导性。
-- **输出路径是 `open_path + ".vmaf.json"`**，自动导出（main.cpp L1830）和导出按钮（L3182、L3423）都是这个写法。
-  - 打开的是 URL 时，它是一个相对路径，形如 `https:/<host>/<path>/master.m3u8.vmaf.json`，只有当前目录下恰好存在这些子目录时才能写成功。
-  - 调用方在 `write_json` 返回 false 时**仍然打印** "VMAF report written to …"（L1831–1832，L3183–3184，L3424–3425）。
-  - 基线运行为了拿到真实输出，预先建了这些目录，见 `docs/DECISIONS.md` P-004。
-- 只在分析完成时（`--vmaf`）或按导出按钮时才写。
+Problems:
+- These fields are missing:
+  - a schema version;
+  - tool version, git commit, libvmaf version;
+  - model, reference mode, scaler, environment;
+  - per-frame PTS.
+- Strings aren't JSON-escaped: a `"` or `\` in a URL or label produces invalid JSON.
+- `"resolution"` holds the **reference's** resolution (L145 `result.width = ref_w`), while `"label"` holds the distorted variant's resolution. The field name is misleading.
+- **The output path is `open_path + ".vmaf.json"`**, both for the auto-export (main.cpp L1830) and for the export buttons (L3182, L3423).
+  - When the open source is a URL, this is a relative path like `https:/<host>/<path>/master.m3u8.vmaf.json`, and the write only succeeds if those subdirectories happen to exist under the current directory.
+  - When `write_json` returns false, the callers **still print** "VMAF report written to …" (L1831–1832, L3183–3184, L3424–3425).
+  - To capture real output, the baseline run created those directories beforehand; see `docs/DECISIONS.md` P-004.
+- It's written only when an analysis finishes (`--vmaf`) or when the export button is pressed.
 
-## 7. 打分与播放的并发关系
+## 7. Concurrency between scoring and playback
 
-结构上**不在渲染线程打分**：
-- 打分在独立的 `std::jthread` 里进行，有自己的 demux / decode 上下文，不和播放共用解码器。
+Structurally, **scoring doesn't run on the render thread**:
+- Scoring runs in its own `std::jthread`, with its own demux / decode contexts, and doesn't share a decoder with playback.
 
-但需要说明：
-- 这是对 variant 文件的**离线**整段打分，不是对"正在播放的帧"打分。
-- 没有帧队列，没有背压策略。统计只有一个 `progress()` 浮点数。
-- 打分与播放争 CPU 的影响没有测过（**MEASUREMENT PENDING**）。
-- 按 V 打开后（GL 小面板和 ImGui 窗口由同一个开关控制），渲染线程每帧会调用两次 `results()`（`main.cpp` L2996、L3163），每次在锁内复制全部结果，包括每条的逐帧 vector。开销随帧数增长，没有测过（**MEASUREMENT PENDING**）。
-- 分析器是 `MediaSession` 的成员。打开另一个源时会话被销毁，分析被取消，结果丢失。
+But note:
+- This is **offline** scoring of whole variant files, not scoring of "the frames being played".
+- There's no frame queue and no backpressure policy. The only statistic is a single `progress()` float.
+- How scoring competes with playback for CPU hasn't been measured (**MEASUREMENT PENDING**).
+- Once opened with V (the GL panel and the ImGui window share one toggle), the render thread calls `results()` twice per frame (`main.cpp` L2996, L3163). Each call copies all results under the lock, including every result's per-frame vector. The cost grows with the frame count and hasn't been measured (**MEASUREMENT PENDING**).
+- The analyzer is a member of `MediaSession`. Opening another source destroys the session, cancels the analysis and loses the results.
 
-## 8. 现有测试对 VMAF 的覆盖
+## 8. Existing test coverage of VMAF
 
-**没有。**
-- `tests/` 下没有任何文件提到 VMAF（`grep -rli vmaf tests` 无输出）。
-- `VMAFAnalyzer.cpp` 不在 `mirage_tests` 的源文件列表里。
+**None.**
+- No file under `tests/` mentions VMAF (`grep -rli vmaf tests` prints nothing).
+- `VMAFAnalyzer.cpp` isn't in the source list of `mirage_tests`.
 
 ## 9. LICENSE
 
-**仓库里没有 LICENSE 或 COPYING 文件**（`git ls-files` 无匹配）。按工作单 §8，这一条**直接不满足投稿要求**。
+**The repository has no LICENSE or COPYING file** (`git ls-files` finds no match). Under §8 of the work order, this alone **fails the submission requirements**.
 
-依赖的许可证（来自各依赖自带的 LICENSE 文件和 Homebrew 元数据）：
+Dependency licenses (from each dependency's own LICENSE file and Homebrew metadata):
 
-| 依赖 | 接入方式 | 许可证 |
+| Dependency | How it's included | License |
 |---|---|---|
-| FFmpeg（实际链接 **ffmpeg-full 8.1.1**，见下） | Homebrew，动态链接 | **GPL-3.0-or-later**：该构建的 configure 选项含 `--enable-gpl --enable-version3`，并带 `libx264` / `libx265` / `libzimg` / `libvmaf`，没有 `--enable-nonfree`（`environment.txt`）。Homebrew 元数据给的许可证也是 GPL-3.0-or-later |
+| FFmpeg (the build actually linked is **ffmpeg-full 8.1.1**, see below) | Homebrew, dynamically linked | **GPL-3.0-or-later**: this build's configure options include `--enable-gpl --enable-version3`, with `libx264` / `libx265` / `libzimg` / `libvmaf` and without `--enable-nonfree` (`environment.txt`). Homebrew's metadata also gives GPL-3.0-or-later |
 | libvmaf 3.x | Homebrew | BSD-2-Clause-Patent |
 | GLFW 3.4 | Homebrew | Zlib |
 | Dear ImGui v1.91.9 | FetchContent | MIT |
-| miniaudio（`master`） | FetchContent | public domain 或 MIT-0，二选一 |
-| stb（`master`） | FetchContent | MIT 或 public domain，二选一 |
-| glad2 v2.0.8 | FetchContent | 生成器本身为 MIT；生成代码与 Khronos 头文件的条款见 glad 的 LICENSE |
+| miniaudio (`master`) | FetchContent | public domain or MIT-0, either one |
+| stb (`master`) | FetchContent | MIT or public domain, either one |
+| glad2 v2.0.8 | FetchContent | the generator itself is MIT; for the generated code and the Khronos headers, see glad's LICENSE |
 | pugixml v1.14 | FetchContent | MIT |
 | nativefiledialog-extended v1.2.1 | FetchContent | Zlib |
-| Catch2 v3.7.1（只用于测试） | FetchContent | BSL-1.0 |
+| Catch2 v3.7.1 (tests only) | FetchContent | BSL-1.0 |
 
-**需要 owner 决定（可能还需公司法务）**
-- Mirage 自身采用什么许可证。CFP 举的例子是 GPLv2、LGPLv2、BSD。
-- 选定的许可证与"链接 GPLv3+ 的 FFmpeg 构建"之间如何兼容，二进制分发时适用什么条款。
-- 仓库的 `origin` 是 github.com 上的 `zzzniloaix/Mirage`（SSH 别名 `github-zzzniloaix` 解析到 `github.com`，2026-10-23 用 `ssh -G` 核对）。初稿写成了公司 GitHub，有误，已更正。仓库 2026-04-03 起公开，2026-10-23 改为私有，投稿前需要重新公开。作为开源项目发布是否需要走公司的流程，由 owner 确认。
+**Needs an owner decision (possibly with the company's legal team)**
+- Which license Mirage itself uses. The CFP's examples are GPLv2, LGPLv2 and BSD.
+- How the chosen license fits with linking a GPLv3+ FFmpeg build, and which terms apply to binary distribution.
+- The repository's `origin` is `zzzniloaix/Mirage` on github.com (the SSH alias `github-zzzniloaix` resolves to `github.com`, checked with `ssh -G` on 2026-10-23). The first draft wrongly said the company's GitHub; this has been corrected. The repository was public from 2026-04-03 and was made private on 2026-10-23. It has to be made public again before submission. The owner will confirm whether releasing it as open source has to go through the company's process.
 
-## 10. 工作单 §1–§8 逐节状态
+## 10. Status of work order §1–§8, section by section
 
-| 节 | 状态 | 已有 | 缺什么 |
+| Section | Status | Exists | Missing |
 |---|---|---|---|
-| §1.1 libvmaf 3 集成 | 部分实现 | 直接链接 C API | 运行时报告版本与模型标识；可选模型（v0.6.1 / neg / 4k）；自定义模型路径 |
-| §1.2 参考源双模式 | 部分实现 | ladder 只有 top-rung；mezzanine 只在单文件模式 | ladder 的 mezzanine 模式；`reference_mode` 字段；两种模式分开出报告 |
-| §1.3 分辨率对齐 | 部分实现 | 失真升采样到参考分辨率 | scaler 写死为 bilinear，不可配，也不进输出 |
-| §1.4 帧对齐 | 未实现 | — | PTS 配对；帧率不一致、丢帧、重复帧的处理；失败帧数与阈值告警 |
-| §1.5 分数池化 | 部分实现 | mean、min、p5 | harmonic_mean、p1/p10/p25/p50；p5 现在是不插值的 nearest-rank（`sorted[n*5/100]`，L284），定义需要明确 |
-| §2 ladder 编排 | 部分实现 | 解析 master 的 BANDWIDTH / RESOLUTION / CODECS（ManifestParser）；自动选最高带宽为参考；取消时已完成的结果保留 | 线程池与并发度；内存上限；按视频播放列表去重；discontinuity 与 segment 时长不一致的处理；UI 里的取消按钮（目前只在新开分析或销毁时取消） |
-| §3.1 时间轴模型 | 部分实现（数据源零散，没有统一模型） | 见下方 | 以 PTS 为主键的统一事件结构；SCTE-35；ABR/切换事件；VMAF 逐帧分数上时间轴 |
-| §3.2 归因查询 | 未实现 | — | 查询 API、CLI 子命令、自动检出、两个归因测试用例 |
-| §3.3 UI 呈现 | 部分实现 | 单条逐帧曲线；网络侧栏的时间线与对齐视图；manifest tag 的时间刻度条（仅当打开的是媒体播放列表时才有 tag） | 缩放 / 拖拽时间轴、点击跳帧并显示归因、多 variant 叠加、事件标记叠在分数曲线上 |
-| §4 并发打分 | 部分实现 | 独立线程、独立解码器（离线打分） | 对播放帧打分、有界队列、三种背压策略、实时统计、掉帧测量 |
-| §5 一致性校验 | 未实现 | 本机 ffmpeg-full 带 `--enable-libvmaf`，可作对照工具（只用于校验，不进实现）。Phase 0 的诊断对照已发现差异，见"现状基线" | 校验工具、delta 报告；查明并消除现有差异 |
-| §6 benchmark | 未实现 | 播放侧已有 QA 工具（`--av-report`、`--net-report`），与 VMAF 无关 | bench / sweep 模式、资源统计、环境元数据 |
-| §7 JSON schema | 部分实现 | 上面第 6 条的那份 JSON | 版本化 schema 文件，以及 §7 列出的全部字段 |
-| §8 可复现性打包 | 未实现 | 部分依赖钉了 tag | 见下方 |
+| §1.1 libvmaf 3 integration | Partial | Links the C API directly | Runtime report of the version and model identifier; selectable models (v0.6.1 / neg / 4k); custom model path |
+| §1.2 Two reference modes | Partial | Ladders only have top-rung; mezzanine exists only in single-file mode | Mezzanine mode for ladders; a `reference_mode` field; separate reports for the two modes |
+| §1.3 Resolution alignment | Partial | Distorted frames are upsampled to the reference resolution | The scaler is hard-coded to bilinear, not configurable, and not in the output |
+| §1.4 Frame alignment | Not implemented | — | PTS pairing; handling of frame-rate mismatches, dropped frames and duplicated frames; failed-frame count and threshold warning |
+| §1.5 Score pooling | Partial | mean, min, p5 | harmonic_mean, p1/p10/p25/p50; p5 is currently a non-interpolated nearest-rank (`sorted[n*5/100]`, L284), and the definition needs to be pinned down |
+| §2 Ladder orchestration | Partial | Parses the master's BANDWIDTH / RESOLUTION / CODECS (ManifestParser); automatically picks the highest bandwidth as the reference; completed results are kept on cancel | Thread pool and concurrency level; memory cap; deduplication by video playlist; handling of discontinuities and mismatched segment durations; a cancel button in the UI (today an analysis is only cancelled by starting a new one or on destruction) |
+| §3.1 Timeline model | Partial (scattered data sources, no unified model) | See below | A unified event structure keyed by PTS; SCTE-35; ABR/switch events; VMAF per-frame scores on the timeline |
+| §3.2 Attribution queries | Not implemented | — | Query API, CLI subcommand, automatic detection, the two attribution test cases |
+| §3.3 UI | Partial | A single per-frame curve; the network sidebar's timeline and alignment view; a time ruler for manifest tags (tags only exist when the open source is a media playlist) | Zooming / dragging the timeline, click-to-seek with attribution, multi-variant overlay, event markers over the score curve |
+| §4 Concurrent scoring | Partial | Separate thread and decoder (offline scoring) | Scoring of played frames, bounded queues, the three backpressure policies, live statistics, dropped-frame measurement |
+| §5 Consistency check | Not implemented | This machine's ffmpeg-full has `--enable-libvmaf` and can serve as the comparison tool (for checking only, not part of the implementation). Phase 0's diagnostic comparison already found a discrepancy; see "Baseline" | The check tool and delta report; finding and removing the existing discrepancy |
+| §6 Benchmarks | Not implemented | The playback side already has QA tools (`--av-report`, `--net-report`), unrelated to VMAF | bench / sweep modes, resource statistics, environment metadata |
+| §7 JSON schema | Partial | The JSON from item 6 above | A versioned schema file, and every field §7 lists |
+| §8 Reproducible packaging | Not implemented | Some dependencies pin a tag | See below |
 
-**§3.1 现有的数据源**（逐项都要接进统一时间轴）
+**Existing data sources for §3.1** (each one has to be wired into the unified timeline)
 
 - **NetworkLogger**
-  - 每个 HTTP 请求有开始、发出、首字节、结束、字节数、状态码。时间用 steady clock 微秒，可以换算成 wallclock。
-  - 不以媒体 PTS 为键。
+  - Each HTTP request has start, sent, first byte, end, byte count and status code. Times are steady-clock microseconds and can be converted to wall-clock time.
+  - Not keyed by media PTS.
 - **ManifestParser**
-  - 能解析 `EXT-X-DISCONTINUITY`、`DISCONTINUITY-SEQUENCE`、`PROGRAM-DATE-TIME`、`CUE-OUT` / `CUE-IN`、未知的 `EXT-X-*` tag，以及 DASH 的 Period / Event。
-  - 只解析它打开的那份播放列表。打开 HLS master 时拿不到 segment 级事件，因为这些 tag 只出现在媒体播放列表里。
-  - 不解析 `EXT-X-DATERANGE` 的 SCTE-35 属性，也不解码 splice_info。
-- **HlsAlign**（`MediaTimeline`）
-  - 能把媒体播放列表的每个 segment 映射到播放列表时间，带 discontinuity 与 PDT，并检查 segment 内部时间戳。
-  - 用于网络侧栏的对齐视图。
-- **播放器切换**
-  - Mirage 不做 ABR。用户手动切换 variant 时只写日志文本，不产生结构化事件。
-- **解码器**
-  - 有丢帧计数；`KeyframeIndex` 记录关键帧位置。
+  - Parses `EXT-X-DISCONTINUITY`, `DISCONTINUITY-SEQUENCE`, `PROGRAM-DATE-TIME`, `CUE-OUT` / `CUE-IN`, unknown `EXT-X-*` tags, and DASH Period / Event.
+  - Only parses the playlist it opened. When an HLS master is opened it gets no segment-level events, because those tags only appear in media playlists.
+  - Doesn't parse the SCTE-35 attributes of `EXT-X-DATERANGE`, and doesn't decode splice_info.
+- **HlsAlign** (`MediaTimeline`)
+  - Maps every segment of a media playlist to playlist time, with discontinuities and PDT, and checks the timestamps inside segments.
+  - Used by the network sidebar's alignment view.
+- **Player switching**
+  - Mirage doesn't do ABR. When the user switches variants manually it only writes log text and produces no structured event.
+- **Decoder**
+  - Has a dropped-frame counter; `KeyframeIndex` records keyframe positions.
 
-**§8 的具体缺口**
+**Specific gaps for §8**
 
-- 没有 LICENSE（见第 9 条）。
-- **构建依赖没有钉死，文档也不一致**：
-  - miniaudio 和 stb 的 FetchContent 用的是 `GIT_TAG master`。
-  - Homebrew 依赖不钉版本。本机装的是 ffmpeg / ffmpeg-full 8.1.1、libvmaf 3.1.0、GLFW 3.4，而 Homebrew 当前的 formula 已经是 ffmpeg 9.0.2、libvmaf 3.2.1、glfw 3.5.1（`environment.txt`）。干净机器今天照 README 安装，FFmpeg 会是另一个大版本。
-  - README 和 CLAUDE.md 写的是 `brew install ffmpeg`，而 `CMakePresets.json` 用 `PKG_CONFIG_PATH` 指向 **ffmpeg-full**。按 README 在干净机器上安装，链接到的会是另一个 FFmpeg 构建。本机两个都装了，版本都是 8.1.1，但 configure 选项不同。
-- **本机当前无法从零构建**：
-  - glad 在构建时用 Python 生成 GL loader。
-  - 本机 Homebrew Python 3.14.7 的 `pyexpat` 扩展链接的是系统的 `/usr/lib/libexpat.1.dylib`，并且需要系统库里没有的 `_XML_SetAllocTrackerActivationThreshold`，所以 `import pyexpat` 失败。干净构建因此在这一步失败。原始错误见 `eval/baseline/environment.txt` 和 `eval/baseline/build_failure_python314.log`。Python 3.13 没有这个问题。
-  - 基线是用 scratch venv 绕过去的（DECISIONS P-003）。
-  - 可以考虑把 glad 的生成结果放进仓库，或者钉死生成环境。属于 Phase 1 的范围，待 owner 决定。
-- 只有 macOS preset，没有 Linux 构建说明，没有 Docker / Nix，没有 `eval/run_all.sh`，没有 `eval/streams.md`。
-- 根目录的 `vcpkg.json` 列了 ffmpeg 和 glfw3，没有 libvmaf，也不钉版本。CMake 构建不用它。
+- No LICENSE (see item 9).
+- **Build dependencies aren't pinned, and the docs disagree**:
+  - The FetchContent declarations for miniaudio and stb use `GIT_TAG master`.
+  - Homebrew dependencies aren't pinned. This machine has ffmpeg / ffmpeg-full 8.1.1, libvmaf 3.1.0 and GLFW 3.4, while Homebrew's current formulae are already ffmpeg 9.0.2, libvmaf 3.2.1 and glfw 3.5.1 (`environment.txt`). A clean machine following the README today would get a different major version of FFmpeg.
+  - README and CLAUDE.md say `brew install ffmpeg`, while `CMakePresets.json` points `PKG_CONFIG_PATH` at **ffmpeg-full**. Installing per the README on a clean machine links a different FFmpeg build. This machine has both installed, both at 8.1.1, but with different configure options.
+- **This machine currently can't build from scratch**:
+  - glad generates the GL loader with Python at build time.
+  - On this machine, the `pyexpat` extension of Homebrew Python 3.14.7 links the system `/usr/lib/libexpat.1.dylib` and needs `_XML_SetAllocTrackerActivationThreshold`, which the system library lacks, so `import pyexpat` fails. A clean build therefore fails at this step. The raw errors are in `eval/baseline/environment.txt` and `eval/baseline/build_failure_python314.log`. Python 3.13 doesn't have this problem.
+  - The baseline worked around it with a scratch venv (DECISIONS P-003).
+  - Options are committing glad's generated output or pinning the generation environment. This is in Phase 1's scope and waits for the owner's decision.
+- Only a macOS preset exists. There are no Linux build instructions, no Docker / Nix, no `eval/run_all.sh` and no `eval/streams.md`.
+- The root `vcpkg.json` lists ffmpeg and glfw3 but not libvmaf, and pins no versions. The CMake build doesn't use it.
 
 ---
 
-## 现状基线（Apple bipbop 16x9，2026-10-21）
+## Baseline (Apple bipbop 16x9, 2026-10-21)
 
-全过程与全部原始输出都在 `eval/baseline/`，说明见 `eval/baseline/README.md`。
+The whole process and all raw outputs are in `eval/baseline/`; see `eval/baseline/README.md`.
 
-**跑通了。** 构建和输出路径各绕行了一处（P-003、P-004），现有代码一行没改。
+**It ran.** The build and the output path each needed one workaround (P-003, P-004). Not a line of existing code was changed.
 
-**结果**
-- 参考：gear5，1920x1080，`BANDWIDTH=1924009`。
-- 数据来源：`bipbop16x9/report.vmaf.json` 与 `summary.txt`。
+**Results**
+- Reference: gear5, 1920x1080, `BANDWIDTH=1924009`.
+- Source: `bipbop16x9/report.vmaf.json` and `summary.txt`.
 
-| 失真（现有 label） | 帧数 | mean | min | p5 | JSON 里的 `resolution` |
+| Distorted (existing label) | Frames | mean | min | p5 | `resolution` in the JSON |
 |---|---|---|---|---|---|
 | 1280x720  1.0 Mbps | 53946 | 74.5632 | 69.7469 | 73.8895 | 1920x1080 |
 | 960x540  0.9 Mbps | 53946 | 53.2220 | 45.1244 | 52.0560 | 1920x1080 |
 | 640x360  0.6 Mbps | 53946 | 33.0648 | 20.0523 | 31.4198 | 1920x1080 |
 | 416x234  0.3 Mbps | 53946 | 1.1455 | 0.0000 | 0.0000 | 1920x1080 |
-| 0x0  0.0 Mbps（gear0，纯音频） | — | — | — | — | 记为错误 `cannot open distorted: …/gear0/prog_index.m3u8` |
+| 0x0  0.0 Mbps (gear0, audio-only) | — | — | — | — | recorded as the error `cannot open distorted: …/gear0/prog_index.m3u8` |
 
-**资源**
-- 数据来源：`bipbop16x9/time_l.txt`，即 `/usr/bin/time -l` 的输出。
+**Resources**
+- Source: `bipbop16x9/time_l.txt`, the output of `/usr/bin/time -l`.
 
-| 项 | 数值 |
+| Item | Value |
 |---|---|
-| 墙钟 | 3172.96 s |
+| Wall clock | 3172.96 s |
 | user | 12899.81 s |
 | sys | 188.51 s |
 | maximum resident set size | 640106496 bytes |
 | peak memory footprint | 812352904 bytes |
 
-- 这些是**整个播放器进程**的数字：从启动、边播放边打分，一直到报告写出后 2 s。不是"单纯打分"的数字，现有工具也没法把两者分开测。
+- These numbers cover the **whole player process**: from launch, through playing while scoring, until 2 s after the report was written. They aren't "scoring only" numbers, and the existing tool can't measure the two separately.
 
-**从输出里直接看到的问题**
+**Problems visible directly in the output**
 
-1. `"resolution"` 一栏全是参考的分辨率 1920x1080，与第 6 条的分析一致。
-2. 纯音频条目进入了打分列表，被记为错误。它的 label 是 "0x0  0.0 Mbps"：`BANDWIDTH=41457` 按 Mbps 保留一位小数显示为 0.0。
-3. 有分数的四档，**min 都等于第一帧的分数**（`summary.txt` 的 `first_frame`）。也就是说，现有的 min 池化取的就是第一帧。§1.5 定义池化时需要考虑这一点。
-4. 416x234 这一档：
-   - 整段没有一帧超过 5 分（max 4.6752）。
-   - 时序上没有对出错的迹象：各档帧率都是 30000/1001，起始时间都是 10.0 s，开头 12 帧的 PTS 序列完全相同（`diagnostics/ffprobe_rungs.txt`）；从头解码、序号为 300 的那一帧（序号从 0 计）在两档上都显示帧计数 000300（`diagnostics/frame_n300_*.png`）。
-   - 但两档的画面不是同一张图：叠加文字各写各的分辨率和 gear 号，低档里分辨率测试栅格已经糊成灰块。
-   - 所以这条 ladder 的低档不是"参考画面的缩放编码"。它适合当功能基线，不适合当绝对质量的测量对象。论文 evaluation 选流时需要注意（决策 14）。
+1. The `"resolution"` column holds the reference's 1920x1080 everywhere, consistent with the analysis in item 6.
+2. The audio-only entry entered the scoring list and was recorded as an error. Its label is "0x0  0.0 Mbps": `BANDWIDTH=41457`, shown in Mbps with one decimal place, is 0.0.
+3. For the four rungs that have scores, **min equals the first frame's score** (`first_frame` in `summary.txt`). In other words, the existing min pooling just picks up the first frame. §1.5 has to take this into account when it defines pooling.
+4. The 416x234 rung:
+   - Not a single frame scores above 5 (max 4.6752).
+   - Nothing suggests a timing misalignment. Every rung runs at 30000/1001 and starts at 10.0 s, and the PTS sequences of the first 12 frames are identical (`diagnostics/ffprobe_rungs.txt`). Decoding from the start, the frame with index 300 (counting from 0) shows the frame counter 000300 on both rungs (`diagnostics/frame_n300_*.png`).
+   - But the two rungs don't show the same picture: each overlay states its own resolution and gear number, and in the low rung the resolution test grid has already blurred into gray blocks.
+   - So this ladder's low rungs aren't "scaled encodes of the reference picture". The ladder works as a functional baseline but not as a subject for measuring absolute quality. Choosing streams for the paper's evaluation needs to account for this (decision 14).
 
-**诊断性对照：现有分数与 FFmpeg libvmaf 不一致**
+**Diagnostic comparison: current scores disagree with FFmpeg libvmaf**
 
-这不是 §5 的实现，只是在 Phase 0 判断"基线的分数能不能信"。
+This isn't the §5 implementation. It was done in Phase 0 only to judge whether the baseline scores can be trusted.
 
-对照条件：
-- 工具：FFmpeg 8.1.1（ffmpeg-full）的 `libvmaf` 滤镜。
-- 模型 `vmaf_v0.6.1`，`n_threads=4`。
-- 失真经 `scale=1920:1080:flags=bilinear`，参考原样。
-- 范围：前 300 帧。
-- 两边用的是**同一个** `libvmaf.3.dylib`（`diagnostics/libvmaf_used_by_ffmpeg.txt`）。
-- 滤镜的输入顺序是 #0 失真、#1 参考，调用的是 `vmaf_read_pictures(ref, dist)`，和 Mirage 一致。
-- 命令和原始日志在 `diagnostics/`；对比由 `tools/compare_first_frames.py` 完成，输出在 `diagnostics/compare_first300.txt`。
+Conditions:
+- Tool: the `libvmaf` filter of FFmpeg 8.1.1 (ffmpeg-full).
+- Model `vmaf_v0.6.1`, `n_threads=4`.
+- The distorted video goes through `scale=1920:1080:flags=bilinear`; the reference is used as is.
+- Range: the first 300 frames.
+- Both sides use **the same** `libvmaf.3.dylib` (`diagnostics/libvmaf_used_by_ffmpeg.txt`).
+- The filter's input order is #0 distorted, #1 reference, and it calls `vmaf_read_pictures(ref, dist)`, the same as Mirage.
+- The commands and raw logs are in `diagnostics/`. The comparison was done by `tools/compare_first_frames.py`, with its output in `diagnostics/compare_first300.txt`.
 
-| 失真 | Mirage 前 300 帧均值 | FFmpeg 均值 | 逐帧 \|Δ\| 最大 | 逐帧 \|Δ\| 平均 | \|Δ\| > 0.01 的帧 |
+| Distorted | Mirage mean, first 300 frames | FFmpeg mean | Per-frame \|Δ\| max | Per-frame \|Δ\| mean | Frames with \|Δ\| > 0.01 |
 |---|---|---|---|---|---|
 | 640x360 | 33.8328 | 28.5529 | 5.6747 | 5.2798 | 300 / 300 |
 | 416x234 | 1.8845 | 0.0061 | 3.8838 | 1.8784 | 290 / 300 |
 
-- 每一帧都是 Mirage 更高：带符号的平均差与绝对平均差相等。
-- §5 的目标是"默认配置下逐帧绝对差 < 0.01"。**现状达不到。**
-- 原因还没定位。打分库相同，模型相同，参考帧相同（同尺寸同格式）。前 300 帧的配对也相同：开头的 PTS 序列一致，序号 300 的帧计数一致。剩下已知的差别是**失真帧的缩放实现**：
-  - Mirage：`sws_getContext(..., SWS_BILINEAR, ...)` 加 `sws_scale`；
-  - 对照：`scale` 滤镜，`flags=bilinear`。
-  - 这只是候选原因，要在 §5 里逐项排除，排除后才能下结论。
-- 这说明工作单把 §5 排在 §3 之前是对的：在一致性问题查清之前，**现有实现产出的分数（包括上表）都不应当用作论文数据**。
+- Mirage is higher on every frame: the signed mean difference equals the absolute mean difference.
+- §5's target is "per-frame absolute difference < 0.01 with the default configuration". **The current implementation doesn't meet it.**
+- The cause hasn't been located. The scoring library, the model and the reference frames (same size, same format) are all the same. The pairing of the first 300 frames is also the same: the opening PTS sequences match, and so do the frame counters at index 300. The remaining known difference is **how the distorted frames are scaled**:
+  - Mirage: `sws_getContext(..., SWS_BILINEAR, ...)` plus `sws_scale`;
+  - the comparison: the `scale` filter with `flags=bilinear`.
+  - This is only a candidate cause. Candidates have to be ruled out one by one in §5 before drawing a conclusion.
+- This shows the work order was right to put §5 before §3: until the consistency problem is resolved, **no score produced by the current implementation (including the table above) should be used as paper data**.
 
 ---
 
-## 需要 owner 决定的事项
+## Decisions needed from the owner
 
-按工作单硬约束 3，以下各项都等 owner 拍板。agent 不会自行选择。
+Under hard rule 3 of the work order, every item below waits for the owner's call. The agent won't choose on its own.
 
-1. **范围确认**：Phase 1 从哪里开始，§8 和 §1 / §5 的先后顺序。
-2. **§1.2 参考源默认值**：mezzanine 还是 top-rung。
-3. **§1.3 scaler 默认值**：工作单建议 bicubic；现在的代码是 bilinear。
-4. **默认模型**：v0.6.1、neg 还是 4k。另外，按分辨率自动选模型是否算默认行为。
-5. **位深处理**：现在一律转成 8 bit YUV420P，10 bit / HDR 内容会被截断成 8 bit 再打分。这会影响分数。
-6. **池化定义**：百分位用 nearest-rank 还是插值；harmonic mean 用 libvmaf 自带的还是自己算。
-7. **帧对齐失败阈值**：工作单建议 1%。超过阈值时是只告警，还是拒绝出分。
-8. **§4 背压策略默认值**：三选一。
-9. **版本号记录**：libvmaf 包版本 3.1.0，自报 3.0.0，两个都记还是只记一个。
-10. **许可证**：Mirage 用什么许可证，FFmpeg 构建怎么选（第 9 条）。
-11. **构建策略**：glad 生成结果是否入库；FFmpeg 依赖统一成 ffmpeg 还是 ffmpeg-full；Linux 支持的范围。
-12. **分支与 PR**：VMAF 工作基于哪个分支、向哪里提 PR。现在的 `fix/high-speed-playback` 比 origin 多 2 个未推送的提交，工作区还有未提交的 FairPlay 改动。
-13. **会改动渲染或解码路径的重构**：例如 §4 对播放帧打分、把分析器移出 `MediaSession`。这类重构一律先报方案。
-14. **evaluation 用哪些 ladder**：bipbop 16x9 的低档不是参考画面的缩放编码（见"现状基线"）。绝对质量评估和 §3 的归因测试都需要"同一源素材编出的 ladder"，可以自己用公开源片编码，也可以挑合适的公开流。
-15. **对待 Phase 0 基线分数的态度**：在 §5 查清差异之前，基线分数只当"现状记录"，不进论文。是否认可这个处理，需要你确认。
+1. **Scope**: where Phase 1 starts, and the order of §8 versus §1 / §5.
+2. **§1.2 default reference**: mezzanine or top-rung.
+3. **§1.3 default scaler**: the work order suggests bicubic; the current code uses bilinear.
+4. **Default model**: v0.6.1, neg or 4k. Also, whether picking the model automatically by resolution counts as the default behavior.
+5. **Bit depth**: everything is currently converted to 8-bit YUV420P, so 10-bit / HDR content is truncated to 8 bits before scoring. This affects scores.
+6. **Pooling definitions**: nearest-rank or interpolated percentiles; libvmaf's built-in harmonic mean or our own.
+7. **Frame-alignment failure threshold**: the work order suggests 1%. Above the threshold, only warn, or refuse to produce scores.
+8. **§4 default backpressure policy**: one of the three.
+9. **Version recording**: libvmaf's package version is 3.1.0 and it reports 3.0.0. Record both, or only one.
+10. **License**: which license Mirage uses, and which FFmpeg build to choose (item 9).
+11. **Build strategy**: whether glad's generated output is committed; whether the FFmpeg dependency is standardized on ffmpeg or ffmpeg-full; the scope of Linux support.
+12. **Branches and PRs**: which branch the VMAF work is based on and where PRs go. Right now `fix/high-speed-playback` is 2 unpushed commits ahead of origin, and the working tree also has uncommitted FairPlay changes.
+13. **Refactors that change the render or decode path**: e.g. §4's scoring of played frames, or moving the analyzer out of `MediaSession`. Every such refactor gets a written plan first.
+14. **Which ladders the evaluation uses**: bipbop 16x9's low rungs aren't scaled encodes of the reference picture (see "Baseline"). Both the absolute-quality evaluation and §3's attribution tests need "a ladder encoded from one source". One can be encoded from a public source clip, or a suitable public stream can be picked.
+15. **How to treat the Phase 0 baseline scores**: until §5 resolves the discrepancy, the baseline scores are only a "record of the current state" and stay out of the paper. Please confirm whether you accept this.
