@@ -981,3 +981,90 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
 - **Status**: confirmed by the owner (2026-10-23, D-033)
+
+### P-033 How D-022 is implemented, and what remains of P-030's warning
+
+- **Choice**
+  - **The tags.** `vmafcolor::negotiated()` (`src/VMAFColor.h`) derives the color matrix and range that FFmpeg 8.1.1's libavfilter negotiates for both inputs of the §5 graph's libvmaf filter, from both frames' pixel formats and tags, as the FFmpeg 8.1.1 sources do it (`ffmpeg-8.1.1.tar.xz`, whose SHA-256 is the one in the installed ffmpeg-full formula; `libavfilter/buffersrc.c`, `formats.c`, `avfiltergraph.c`, `vf_scale.c`). A buffer source offers its frames' matrix and range, limited as well when the range is untagged, full range only for a yuvj format, and every matrix and range for a format that isn't plain YUV (RGB, gray, palette, XYZ, floating point). For a yuv420p reference the reference's own lists reach the libvmaf filter. For any other reference, the scale filter libavfilter inserts cuts the reference's lists off, and libavfilter reduces the shared lists to the distorted input's single entry, else the reference's, else unspecified. For a yuv420p reference the analyzer keeps `target()`, D-016's rule as implemented (D-021).
+  - **The conversion.** A reference that isn't yuv420p goes through `vmafcolor::convert()`, the `sws_scale_frame()` call and frame handling of FFmpeg's scale filter, with a context from `sws_alloc_context()` given `SWS_BICUBIC` (`vmafcolor::kInsertedScaleFlags`, the inserted filter's `flags:0x00000004` in the logs of `eval/consistency/format-cases-before/`) and one thread, as the distorted frames' conversion has (P-014). A yuv420p reference keeps the plain copy it had. The distorted frames get the same tags, scaled with the chosen scaler.
+  - **The report.** `ref_conversion` lists the reference's conversions in the form of `dis_conversion`, empty for a yuv420p reference. The delta tool shows it next to FFmpeg's scale filter lines and warns when its tags differ from those of the scale filters FFmpeg inserts (`auto_scale_N`), as it warns for the distorted frames (P-015).
+  - **Where FFmpeg's negotiation and D-022's wording part.** D-022 leaves the distorted frames' color as it is. FFmpeg 8.1.1's graph does so whenever the distorted input's buffer source offers one matrix and one range, as in every committed case. For a distorted input without a range tag against a reference that has one, or is yuvj, both inputs get the reference's range, so a full range reference makes the distorted frames full range; for a distorted input in a format that isn't plain YUV, such as gray or RGB, both get the reference's matrix and range. The analyzer follows FFmpeg there too, as D-022's rationale, parity with plain FFmpeg, has it (the negotiation test in `tests/test_vmaf_color.cpp`). Listed for the owner's confirmation in `docs/PHASE1_DECISIONS_PENDING.md`.
+  - **The warning.** P-030's warning about a reference that isn't yuv420p is gone. The analyzer warns instead, once per input, when frames it converts, the distorted frames always and the reference when it isn't yuv420p, are in a pixel format outside `vmafcolor::verified_formats()`: the formats that `tests/test_vmaf_color.cpp` compares byte for byte with the graph run through libavfilter on its default threads, as reference and as distorted input, against tagged, untagged and full range inputs. NV12 and NV21 are left out: with a change of matrix, libswscale 9.5 converts them differently on four threads than on one (the same test), and FFmpeg's scale filters run on as many threads as `ffmpeg` finds CPUs. The player shows the warnings nowhere, as before.
+  - **Kept as implemented (D-021).** For a yuv420p reference without a range tag and distorted frames tagged limited in a yuvj format or one that isn't plain YUV, `target()` keeps limited where FFmpeg's graph tags the frames unspecified. libswscale converts both alike, so the pixels are the same (`tests/test_vmaf_color.cpp`), and there is no warning; only `dis_conversion`'s `to` range differs from FFmpeg's scale filter line, which the delta tool would show as a warning.
+- **Alternatives**
+  - D-022's wording where FFmpeg changes the distorted frames' range or matrix: convert the reference to the distorted frames' tags as they are.
+  - No warning at all; a warning only for formats that aren't plain YUV, which no committed delta run covers; refusing unverified formats.
+  - As many swscale threads as FFmpeg's scale filters use, which might give NV12 and NV21 FFmpeg's bytes on the same machine (not measured).
+  - `negotiated()` for a yuv420p reference too, which changes no pixel, only that tag.
+- **Rationale**
+  - The same library call with the same frames, tags and flags gives FFmpeg's bytes; the rule names the source files it comes from, and the test checks it against libavfilter for every combination of five kinds of pixel format on both inputs, with five tag sets on the reference and four on the distorted input.
+  - A warning where the conversion is checked against FFmpeg's would say nothing; where it isn't checked, or is known to depend on the thread count, the scores can differ.
+  - D-021 keeps a yuv420p reference's rules as implemented, and the difference there is a tag, not a pixel.
+- **Limits**: the rule is FFmpeg 8.1.1's; synthetic frames in the test, and the committed runs' clips (P-034).
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
+
+### P-034 The reference format cases after D-022, and how eval/run_all.sh reruns all three runs of them
+
+- **Choice**
+  - Build the release `mirage_vmaf` in a new worktree of `3ea0281`, the commit after the code of D-021, D-022 and the delta tool's changes, release preset, the `mirage_vmaf` target only, as P-029 did (`eval/consistency/format-cases-d022/build.txt`). From that worktree, make the clips with `color_cases.py --set formats` and run `run_delta.sh` on both pairs files with the options of `format-cases-after/`'s `run.cmd.txt`, `TMPDIR` above the clips (`format-cases-d022/main/`, `refused/`). `checks.txt` afterwards from the clean tree at `5135d58`.
+  - `eval/run_all.sh`: a step `format-cases-d022` with HEAD's program; `format-cases-after` with the program of `d993686`, the commit its `build.txt` names (`BEFORE_D022`, `--mirage-vmaf-before-d022`), because HEAD's converts a reference that isn't yuv420p since D-022 and no longer reproduces those scores. The other runs made after D-016 keep HEAD's program and the options their `run.cmd.txt` records: their references are all yuv420p, which D-022 leaves as it was, so HEAD's program should reproduce them, and a rerun with it shows that. The runs before D-016 keep the program of `83c8ed6`.
+- **Alternatives**
+  - `format-cases-after` with HEAD's program, its rerun no longer as committed.
+  - The program of `9855319`, which has `format-cases-after`'s SHA-256 too (`eval/run_all/2026-10-23-fix/rerun_check.md`), instead of `d993686`'s.
+  - A build in the main working tree, as P-015 and P-016 did.
+- **Rationale**
+  - A new directory keeps the committed runs as records (hard rule of this work), and the same options and clips make the three runs compare case by case.
+  - `d993686` is the commit the record itself names, as `83c8ed6` is for the runs before D-016.
+- **Result** (`eval/consistency/format-cases-d022/checks.txt`): the clips are those of `format-cases-before` (check 2); every case of `main/` passes, every frame agreeing at the 6 decimals of FFmpeg's log (check 4); `j01` has its scores from before D-016 at full precision on all 10 frames (check 5); every report's `ref_conversion` has the tags of FFmpeg's `auto_scale_0` and its `dis_conversion` those of `Parsed_scale_1` (checks 3 and 6), and the delta reports have no warning (check 8); FFmpeg's side has every libvmaf metric of every frame of both earlier runs (check 7); both programs refuse YCgCo on both inputs (check 9).
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
+
+### P-035 The FFmpeg libraries' versions in mirage_vmaf's report (D-021)
+
+- **Choice**
+  - The report's `ffmpeg_libraries`, next to libvmaf's versions: libavutil, libavcodec, libavformat, libswscale and libavfilter, each with the version its `*_version()` function reports at run time, as `major.minor.micro` (`vmaf_ffmpeg_libraries()`). libswresample and libavdevice, which the analyzer doesn't use, are left out.
+  - The delta tool reads the run-time column of `ffmpeg -version`'s library lines (`environment.txt`), shows both sides' versions of each library in the pair reports and both sets in the run report, and warns, without failing the pair, when a library that both sides name has other versions, as for libvmaf's versions (P-009).
+- **Alternatives**
+  - The versions the build compiled against as well; FFmpeg's version string (`av_version_info()`); every library the program links.
+  - A failure when the versions differ.
+- **Rationale**
+  - D-021 names the run-time versions, libswscale and libavfilter among them; these five decode the inputs, convert the frames, and give the negotiation the analyzer follows.
+  - Both sides link the same Homebrew libraries on the machine of the measurements, and a difference elsewhere is what the warning is for.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
+
+### P-036 D-032's fixes in the tests and the analyzer
+
+- **Choice**
+  - `tests/TestTemp.h`: one directory per run of `mirage_tests`, made by `mkdtemp()` as `mirage_tests.XXXXXX` under the system's temporary directory on first use, and removed with its contents when the process exits normally. Every test that writes a file writes it there: the tests of `filehash`, `Demuxer` switching, `PipelineState`, HLS variants, scrub following, the network logger, subtitle selection, `VMAFReport` and `VMAFAnalyzer`.
+  - The subtitle test writes its three cues to an SRT file in that directory and reads it back; data/ is left alone. The test is renamed `SidecarSubtitles — decodes an SRT file`.
+  - The analyzer's decode context frees its demuxer, decoder and packet in its destructor, so every early return of `analyze_pair()` leaks nothing; a test scores an input that opens without a video stream and one whose FFV1 decoder rejects its extradata, on either side.
+- **Alternatives**
+  - A directory per test case; unique file names in the shared directory; Catch2 listeners for the cleanup.
+  - Committing the SRT file with a `.gitignore` exception (the package's other options).
+  - Closing both inputs before each early return instead of a destructor.
+- **Rationale**
+  - One directory per process is what makes two runs at the same time safe, and removing it at exit leaves nothing behind; a crash leaves it, under a name that says what it is.
+  - A destructor covers early returns added later as well.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
+
+### P-037 The rerun of the committed measurements after D-021, D-022 and D-032, and what of it is committed
+
+- **Choice**
+  - One run of `eval/run_all.sh --skip-full --jobs 4` with no program given, so that it built all three programs from their commits, from a new clean worktree of `5135d58`, the commit after this round's changes to the code and to the eval tooling, with its output directory and `TMPDIR` outside the repository. After `5135d58` the code changes in comments only (`efaa2ef`).
+  - Committed in `eval/run_all/2026-10-23-d022/` as P-025's record is: `run_all.md` and `.json`, `rerun_check.md` and `.json`, the three builds' `build.txt` and logs, and the output of every command, with a `SHA256SUMS`.
+- **Alternatives**
+  - Every step, the two over every frame included, as P-032 did.
+  - `--only` the steps of the reference format cases.
+- **Rationale**
+  - D-021, D-022 and D-032 must leave every committed run as it is: the runs with yuv420p references for HEAD's program, and the others for the programs that made them; a rerun of every step shows that, the two over every frame aside. Those are to be made again with the decided defaults (D-024), and the first 300 frames of `acceptance-full` have the scores of `scalers-300/bilinear` (`eval/consistency/acceptance-full/checks.txt`, check 3), which this run reruns.
+- **Result** (`eval/run_all/2026-10-23-d022/rerun_check.md`, `run_all.md`): every step ran, and everything compared is as committed. The program built from `5135d58` has the SHA-256 of `eval/consistency/format-cases-d022/build.txt`, the one built from `d993686` that of `format-cases-after/build.txt`, and the one built from `83c8ed6` that of the runs before D-016. 521.0 s of wall time, the three builds included.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
