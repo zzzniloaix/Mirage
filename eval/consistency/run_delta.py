@@ -207,6 +207,7 @@ class Run:
         # Filled in by main() from the environment before the pairs are prepared.
         self.mirage_options = set()
         self.ffmpeg_libvmaf_package = None
+        self.ffmpeg_libraries = None
 
     # Files in <out_dir>: always through these, so that nothing local is left.
     def redact(self, text):
@@ -357,6 +358,8 @@ class Environment:
 
         _, out = self.cmd([r.ffmpeg, "-hide_banner", "-version"], "<ffmpeg> -hide_banner -version")
         self.fields["ffmpeg_version"] = out.splitlines()[0] if out else "unknown"
+        # The run-time versions of FFmpeg's libraries (D-021).
+        self.fields["ffmpeg_libraries"] = vd.library_versions(out)
         _, out = self.cmd([r.ffprobe, "-hide_banner", "-version"],
                           "<ffprobe> -hide_banner -version")
         self.fields["ffprobe_version"] = out.splitlines()[0] if out else "unknown"
@@ -436,7 +439,8 @@ def prepare_pair(run, pair, params):
     os.makedirs(pdir)
     sides = {"probe": {"ref": None, "dis": None, "errors": []}, "relabel": None,
              "relabel_warnings": [], "mirage": {"run": None},
-             "ffmpeg": {"run": None, "libvmaf_package_version": run.ffmpeg_libvmaf_package}}
+             "ffmpeg": {"run": None, "libvmaf_package_version": run.ffmpeg_libvmaf_package,
+                        "ffmpeg_libraries": run.ffmpeg_libraries}}
     lines = [f"# {pair.label}: the commands eval/consistency/run_delta.py ran, in "
              f"<out_dir>/{pair.label}. Their stderr logs are kept xz-compressed "
              "(*.stderr.log.xz), as are JSON outputs over 1 MiB (*.json.xz); empty "
@@ -540,6 +544,7 @@ def main(argv=None):
     env.capture_machine_and_programs()
     run.mirage_options = vd.help_options(env.help_text)
     run.ffmpeg_libvmaf_package = env.fields.get("ffmpeg_libvmaf_package_version")
+    run.ffmpeg_libraries = env.fields.get("ffmpeg_libraries")
 
     shown_pairs = run.shown_path(args.pairs, "<pairs>")
     command = ["eval/consistency/run_delta.sh", SHOWN["mirage"], "<out_dir>"]
@@ -584,6 +589,11 @@ def main(argv=None):
     for k in ("libvmaf_version", "libvmaf_package_version"):
         values = sorted({f[k] for f in fields if f.get(k) is not None})
         mirage_fields[k] = values[0] if len(values) == 1 else values or None
+    # The FFmpeg libraries' versions of its reports (D-021), one set if all agree.
+    libs = sorted({json.dumps(f["ffmpeg_libraries"]) for f in fields
+                   if isinstance(f.get("ffmpeg_libraries"), dict)})
+    mirage_fields["ffmpeg_libraries"] = (json.loads(libs[0]) if len(libs) == 1 else
+                                         [json.loads(x) for x in libs] or None)
     # FFmpeg's libvmaf: the version its logs give at run time (D-006), and the
     # package version of the library it links.
     versions = sorted({r["ffmpeg"]["libvmaf_version"] for r in reports

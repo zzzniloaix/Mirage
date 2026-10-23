@@ -237,6 +237,27 @@ class RunDelta(unittest.TestCase):
         self.assertIn("libvmaf 3.0.0 at run time (its libvmaf logs), package unknown.",
                       self.read("delta.md"))
 
+    def test_ffmpeg_libraries_and_conversions_of_a_current_mirage_vmaf(self):
+        # D-021 and D-022: both sides' FFmpeg libraries, and the conversions.
+        rc, _, err = self.run_tool(self.pairs(("same", REF, SAME)), "--frames", "2",
+                                   env={"FAKE_MIRAGE_HAS_D022": "1"})
+        self.assertEqual(rc, 0, err)
+        self.check_files()
+        r = self.report("same/delta.json")
+        self.assertEqual(r["warnings"], [])
+        libs = r["mirage_vmaf"]["ffmpeg_libraries"]
+        self.assertEqual(list(libs), ["libavutil", "libavcodec", "libavformat", "libswscale",
+                                      "libavfilter"])
+        self.assertEqual(r["ffmpeg"]["ffmpeg_libraries"]["libswscale"], libs["libswscale"])
+        self.assertEqual(r["mirage_color"]["ref_conversion"], [])
+        self.assertIn("| libswscale version (run time) | 9.5.101 | 9.5.101 | |",
+                      self.read("same/delta.md"))
+        o = self.report()
+        self.assertEqual(o["environment"]["ffmpeg_libraries"]["libavfilter"], "11.14.101")
+        self.assertEqual(o["mirage_vmaf"]["ffmpeg_libraries"], libs)
+        self.assertIn("- FFmpeg libraries at run time: mirage_vmaf libavutil 60.26.101",
+                      self.read("delta.md"))
+
     def test_large_json_outputs_are_compressed(self):
         with mock.patch.object(run_delta, "COMPRESS_JSON_ABOVE", 200):
             rc, _, err = self.run_tool(self.pairs(("same", REF, SAME)), "--frames", "5")

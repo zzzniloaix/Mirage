@@ -345,6 +345,15 @@ class Log(unittest.TestCase):
         self.assertEqual(vd.conversions(vd.scale_lines(auto)),
                          ["auto_scale_0: color_range tv -> pc"])
 
+    def test_library_versions(self):
+        # Two lines of `ffmpeg -version`: the version built with, then the one run with.
+        text = ("ffmpeg version 8.1.1 Copyright (c) 2000-2025 the FFmpeg developers\n"
+                "libavutil      60. 26.101 / 60. 26.101\n"
+                "libswscale      9.  5.101 /  9.  6.100\n")
+        self.assertEqual(vd.library_versions(text), {"libavutil": "60.26.101",
+                                                     "libswscale": "9.6.100"})
+        self.assertEqual(vd.library_versions("ffmpeg version fake\n"), {})
+
     def test_graph_inputs(self):
         self.assertEqual(vd.graph_inputs(LOG), [
             {"input": 0, "stream": 1, "color_space": "smpte170m", "color_range": "tv"},
@@ -477,6 +486,27 @@ class EvaluatePair(unittest.TestCase):
         self.assertIn("| libvmaf version (run time) | 3.0.0 | 3.0.0 | |", md)
         self.assertIn("| libvmaf package version | 3.1.0 | 3.1.0 | |", md)
 
+    def test_the_ffmpeg_libraries_of_both_sides(self):
+        # D-021: mirage_vmaf's report and FFmpeg's `-version` output.
+        libs = {"libavutil": "60.26.101", "libswscale": "9.5.101"}
+        s = sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0], ffmpeg_libraries=libs)
+        s["ffmpeg"]["ffmpeg_libraries"] = dict(libs, libavdevice="62.3.101")
+        r = vd.evaluate_pair(PAIR, PARAMS, s)
+        self.assertEqual(r["warnings"], [])
+        self.assertEqual(r["mirage_vmaf"]["ffmpeg_libraries"], libs)
+        self.assertEqual(r["ffmpeg"]["ffmpeg_libraries"]["libavdevice"], "62.3.101")
+        md = vd.pair_markdown(r)
+        self.assertIn("| libavutil version (run time) | 60.26.101 | 60.26.101 | |", md)
+        self.assertIn("| libavdevice version (run time) | - | 62.3.101 | |", md)
+        s["ffmpeg"]["ffmpeg_libraries"]["libswscale"] = "9.6.100"
+        r = vd.evaluate_pair(PAIR, PARAMS, s)
+        self.assertEqual(r["status"], "PASS")
+        self.assertEqual(r["warnings"], ["FFmpeg library versions differ: libswscale "
+                                         "mirage_vmaf '9.5.101', FFmpeg '9.6.100'"])
+        # A report without the field, as mirage_vmaf wrote before D-021.
+        r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0]))
+        self.assertEqual((r["warnings"], r["mirage_vmaf"]["ffmpeg_libraries"]), ([], None))
+
     def test_frames_scored_must_match_the_frames(self):
         r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0],
                                                  frames_scored=4))
@@ -500,7 +530,7 @@ class Conversions(unittest.TestCase):
         r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0],
                                                  dis_conversion=CONVERTED))
         self.assertEqual(r["warnings"], [])
-        self.assertEqual(r["mirage_color"], {"dis_conversion": CONVERTED})
+        self.assertEqual(r["mirage_color"], {"dis_conversion": CONVERTED, "ref_conversion": None})
         self.assertEqual(vd.pair_summary(r)["mirage_distorted_csp"], "smpte170m -> bt709")
         md = vd.pair_markdown(r)
         self.assertIn("- smpte170m/tv -> bt709/tv: matrix changed; 3 pairs from index 0", md)
@@ -519,9 +549,73 @@ class Conversions(unittest.TestCase):
 
     def test_a_report_without_conversions(self):
         r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0]))
-        self.assertEqual(r["mirage_color"], {"dis_conversion": None})
+        self.assertEqual(r["mirage_color"], {"dis_conversion": None, "ref_conversion": None})
         self.assertEqual(vd.pair_summary(r)["mirage_distorted_csp"], "-")
         self.assertIn("- not in the report: this mirage_vmaf does not record a conversion",
+                      vd.pair_markdown(r))
+
+
+# FFmpeg's log of a 10-bit bt709 reference against a 640x360 smpte170m rung:
+# the scale filter FFmpeg inserts converts the reference to the distorted
+# frames' tags, which the distorted input's scale filter keeps.
+LOG_INSERTED = LOG.replace(
+    "csp:smpte170m range:tv sar:0/1 -> w:1920 h:1080 fmt:yuv420p csp:bt709 range:tv",
+    "csp:smpte170m range:tv sar:0/1 -> w:1920 h:1080 fmt:yuv420p csp:smpte170m range:tv") + \
+    ("[auto_scale_0 @ 0x9c508c000] w:1920 h:1080 fmt:yuv420p10le csp:bt709 range:tv sar:1/1 -> "
+     "w:1920 h:1080 fmt:yuv420p csp:smpte170m range:tv sar:1/1 flags:0x00000004\n")
+KEPT = [dict(CONVERTED[0], to={"color_space": "smpte170m", "color_range": "tv"},
+             matrix_changed=False)]
+REF_CONVERTED = [{"from": {"color_space": "bt709", "color_range": "tv"},
+                  "to": {"color_space": "smpte170m", "color_range": "tv"},
+                  "matrix_changed": True, "range_changed": False, "first_index": 0, "pairs": 3}]
+
+
+class ReferenceConversions(unittest.TestCase):
+    def test_the_inserted_scale_filter(self):
+        scales = vd.scale_lines(LOG_INSERTED)
+        self.assertEqual(vd.inserted_conversions(scales), ["bt709/tv -> smpte170m/tv"])
+        self.assertEqual(vd.scale_conversions(scales), ["smpte170m/tv -> smpte170m/tv"])
+        self.assertEqual(vd.inserted_conversions(vd.scale_lines(LOG)), [])
+
+    def test_the_same_conversions_are_no_warning(self):
+        r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0],
+                                                 stderr=LOG_INSERTED, dis_conversion=KEPT,
+                                                 ref_conversion=REF_CONVERTED))
+        self.assertEqual(r["warnings"], [])
+        self.assertEqual(r["mirage_color"]["ref_conversion"], REF_CONVERTED)
+        summary = vd.pair_summary(r)
+        self.assertEqual(summary["ffmpeg_reference_csp"], "bt709 -> smpte170m")
+        self.assertEqual(summary["mirage_reference_csp"], "bt709 -> smpte170m")
+        self.assertEqual(summary["ffmpeg_distorted_csp"], "smpte170m -> smpte170m")
+        md = vd.pair_markdown(r)
+        self.assertIn("Mirage's color handling of the reference frames (mirage_vmaf's report, "
+                      "ref_conversion; DECISIONS.md D-022):\n- bt709/tv -> smpte170m/tv: matrix "
+                      "changed; 3 pairs from index 0", md)
+
+    def test_other_conversions_are_a_warning(self):
+        # A reference converted where FFmpeg passes it on, and the reverse.
+        r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0],
+                                                 dis_conversion=CONVERTED,
+                                                 ref_conversion=REF_CONVERTED))
+        self.assertEqual(r["status"], "PASS")
+        self.assertEqual(r["warnings"], [
+            "the reference frames' color conversions differ: mirage_vmaf bt709/tv -> "
+            "smpte170m/tv, FFmpeg's inserted scale filter none"])
+        r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0],
+                                                 stderr=LOG_INSERTED, dis_conversion=KEPT,
+                                                 ref_conversion=[]))
+        self.assertEqual(r["warnings"], [
+            "the reference frames' color conversions differ: mirage_vmaf none, FFmpeg's "
+            "inserted scale filter bt709/tv -> smpte170m/tv"])
+        self.assertIn("- none: the reference's frames are used as they are", vd.pair_markdown(r))
+
+    def test_a_report_without_reference_conversions(self):
+        # As mirage_vmaf wrote them before D-022: nothing to compare.
+        r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0],
+                                                 stderr=LOG_INSERTED, dis_conversion=KEPT))
+        self.assertEqual(r["warnings"], [])
+        self.assertEqual(vd.pair_summary(r)["mirage_reference_csp"], "-")
+        self.assertIn("- not in the report: this mirage_vmaf does not record one",
                       vd.pair_markdown(r))
 
 
@@ -571,6 +665,11 @@ class Reports(unittest.TestCase):
             "ffmpeg_libvmaf": {"libvmaf_version": "3.0.0", "libvmaf_package_version": "3.1.0"}})
         md = vd.overall_markdown(o)
         self.assertIn("- mirage_vmaf: sha256 s; libvmaf 3.0.0 at run time, package 3.1.0.", md)
+        self.assertNotIn("FFmpeg libraries at run time", md)
+        o["mirage_vmaf"]["ffmpeg_libraries"] = {"libavutil": "60.26.101"}
+        o["environment"]["ffmpeg_libraries"] = {"libavutil": "60.26.101", "libavdevice": "62.3.101"}
+        self.assertIn("- FFmpeg libraries at run time: mirage_vmaf libavutil 60.26.101; FFmpeg "
+                      "libavutil 60.26.101, libavdevice 62.3.101.", vd.overall_markdown(o))
         self.assertIn("- FFmpeg: ffmpeg version 8.1.1; libvmaf 3.0.0 at run time (its libvmaf "
                       "logs), package 3.1.0.", md)
         o = vd.overall_report(dict(PARAMS, model=None,

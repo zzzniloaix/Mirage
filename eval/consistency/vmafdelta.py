@@ -420,10 +420,31 @@ def scale_conversions(scales):
                    if s["filter"].startswith("Parsed_scale")})
 
 
+def inserted_conversions(scales):
+    """The same for the scale filters FFmpeg inserts itself (auto_scale_N),
+    which, in a graph FFmpeg builds, convert a reference that isn't yuv420p."""
+    return sorted({f"{_tags(s['in'])} -> {_tags(s['out'])}" for s in scales
+                   if s["filter"].startswith("auto_scale")})
+
+
 def mirage_conversions(conv):
-    """The same for the dis_conversion of a mirage_vmaf report (src/VMAFReport.h)."""
+    """The same for the dis_conversion or ref_conversion of a mirage_vmaf
+    report (src/VMAFReport.h)."""
     return sorted({f"{_tags(c.get('from') or {})} -> {_tags(c.get('to') or {})}"
                    for c in conv if isinstance(c, dict)})
+
+
+# A library line of `ffmpeg -version`: the version the program was built
+# with, then the one it runs with.
+_LIBRARY_LINE = re.compile(r"^(lib\w+)\s+\d+\.\s*\d+\.\s*\d+ / \s*(\d+)\.\s*(\d+)\.\s*(\d+)\s*$",
+                           re.M)
+
+
+def library_versions(version_text):
+    """The run-time version of each library in the output of `ffmpeg
+    -version`: {"libavutil": "60.26.101", ...}."""
+    return {m[1]: f"{int(m[2])}.{int(m[3])}.{int(m[4])}"
+            for m in _LIBRARY_LINE.finditer(version_text)}
 
 
 # ── One pair ─────────────────────────────────────────────────────────────────
@@ -465,12 +486,14 @@ def evaluate_pair(pair, params, sides):
     sides   {"probe": {"ref": info or None, "dis": info or None, "errors": [...]},
              "relabel": setparams filter or None, "relabel_warnings": [...],
              "mirage": {"run", "report", "error"},
-             "ffmpeg": {"run", "log", "error", "stderr", "libvmaf_package_version"}}
+             "ffmpeg": {"run", "log", "error", "stderr", "libvmaf_package_version",
+                        "ffmpeg_libraries"}}
             where a run is {"exit_code", "timed_out", "timeout_s", "error",
             "elapsed_s", ...} or None if the side was not run, report and log
             are the parsed JSON outputs (None if missing), stderr is FFmpeg's
-            verbose log, and libvmaf_package_version that of the libvmaf
-            FFmpeg links (environment.txt).
+            verbose log, libvmaf_package_version that of the libvmaf FFmpeg
+            links, and ffmpeg_libraries the run-time versions of FFmpeg's
+            libraries (library_versions(); both from environment.txt).
 
     The pair passes only if both sides ran to completion, mirage_vmaf's
     settings are the ones FFmpeg was given, both scored the same number of
@@ -545,9 +568,10 @@ def evaluate_pair(pair, params, sides):
             "exit_code": m_side["run"]["exit_code"],
             "elapsed_s": m_side["run"].get("elapsed_s"),
             **{k: rep.get(k) for k in ("tool", "reference_mode", "libvmaf_version",
-                                       "libvmaf_package_version", "model", "model_source",
-                                       "model_sha256", "scaler", "n_threads", "n_subsample",
-                                       "scored_as", "frame_limit", "frames_scored")},
+                                       "libvmaf_package_version", "ffmpeg_libraries", "model",
+                                       "model_source", "model_sha256", "scaler", "n_threads",
+                                       "n_subsample", "scored_as", "frame_limit",
+                                       "frames_scored")},
             "ref_ended": (rep.get("ref") or {}).get("ended"),
             "dis_ended": (rep.get("dis") or {}).get("ended"),
             "first_ref_pts": float(timed[0]["ref_pts"]) if timed else None,
@@ -565,10 +589,19 @@ def evaluate_pair(pair, params, sides):
         ffmpeg_info = {"exit_code": f_side["run"]["exit_code"],
                        "elapsed_s": f_side["run"].get("elapsed_s"),
                        "libvmaf_version": log.get("version"),
-                       "libvmaf_package_version": f_side.get("libvmaf_package_version")}
+                       "libvmaf_package_version": f_side.get("libvmaf_package_version"),
+                       "ffmpeg_libraries": f_side.get("ffmpeg_libraries")}
         if rep is not None and log.get("version") != rep.get("libvmaf_version"):
             warn.append(f"libvmaf versions differ: mirage_vmaf {rep.get('libvmaf_version')!r}, "
                         f"FFmpeg {log.get('version')!r}")
+        # D-021: the FFmpeg libraries both sides ran with, where both name them.
+        mine_libs = rep.get("ffmpeg_libraries") if rep is not None else None
+        theirs_libs = f_side.get("ffmpeg_libraries")
+        if isinstance(mine_libs, dict) and isinstance(theirs_libs, dict):
+            for name, version in mine_libs.items():
+                if name in theirs_libs and theirs_libs[name] != version:
+                    warn.append(f"FFmpeg library versions differ: {name} mirage_vmaf "
+                                f"{version!r}, FFmpeg {theirs_libs[name]!r}")
         dis_scales = [s for s in scales if s["filter"].startswith("Parsed_scale")]
         if not dis_scales:
             warn.append("FFmpeg's log has no line in which the distorted input's scale "
@@ -590,8 +623,9 @@ def evaluate_pair(pair, params, sides):
                             f"{g['color_space']} range {g['color_range']}, ffprobe "
                             f"{info.get('color_space')} {info.get('color_range')}")
 
-    # How each side converted the distorted frames' color (D-016). Only a
-    # mirage_vmaf that converts records dis_conversion.
+    # How each side converted the distorted frames' color (D-016), and the
+    # reference's (D-022). Only a mirage_vmaf that converts records
+    # dis_conversion, and only one that converts the reference ref_conversion.
     mirage_conv = rep.get("dis_conversion") if rep is not None else None
     if not isinstance(mirage_conv, list):
         mirage_conv = None
@@ -601,6 +635,15 @@ def evaluate_pair(pair, params, sides):
             warn.append("the distorted frames' color conversions differ: mirage_vmaf "
                         f"{', '.join(mine) or 'none'}, FFmpeg's scale filter "
                         f"{', '.join(theirs)}")
+    mirage_ref_conv = rep.get("ref_conversion") if rep is not None else None
+    if not isinstance(mirage_ref_conv, list):
+        mirage_ref_conv = None
+    if mirage_ref_conv is not None and log is not None:
+        mine, theirs = mirage_conversions(mirage_ref_conv), inserted_conversions(scales)
+        if mine != theirs:
+            warn.append("the reference frames' color conversions differ: mirage_vmaf "
+                        f"{', '.join(mine) or 'none'}, FFmpeg's inserted scale filter "
+                        f"{', '.join(theirs) or 'none'}")
 
     # The scores.
     delta, n_mirage, n_ffmpeg, pooled = None, None, None, None
@@ -653,7 +696,7 @@ def evaluate_pair(pair, params, sides):
         "relabel": sides.get("relabel"),
         "ffmpeg_color": {"graph_inputs": inputs, "scale": scales,
                          "conversions": conversions(scales)},
-        "mirage_color": {"dis_conversion": mirage_conv},
+        "mirage_color": {"dis_conversion": mirage_conv, "ref_conversion": mirage_ref_conv},
         "inputs": {"ref": {"ffprobe": ref_probe, "mirage_vmaf": (rep or {}).get("ref")},
                    "dis": {"ffprobe": dis_probe, "mirage_vmaf": (rep or {}).get("dis")}},
         "mirage_vmaf": mirage_info,
@@ -673,6 +716,8 @@ def pair_summary(r):
         "relabel": r["relabel"], "ffmpeg_conversions": r["ffmpeg_color"]["conversions"],
         "ffmpeg_distorted_csp": _distorted_csp(r),
         "mirage_distorted_csp": _mirage_csp(r),
+        "ffmpeg_reference_csp": _distorted_csp(r, "auto_scale"),
+        "mirage_reference_csp": _mirage_csp(r, "ref_conversion"),
     }
 
 
@@ -743,9 +788,11 @@ def _scale_text(s):
             + (f" flags:{s['flags']}" if s["flags"] else ""))
 
 
-def _distorted_csp(r):
-    """The distorted input's color space before and after FFmpeg's scale."""
-    scales = [s for s in r["ffmpeg_color"]["scale"] if s["filter"].startswith("Parsed_scale")]
+def _distorted_csp(r, prefix="Parsed_scale"):
+    """The distorted input's color space before and after FFmpeg's scale;
+    with prefix "auto_scale", the reference's before and after the scale
+    filter FFmpeg inserts."""
+    scales = [s for s in r["ffmpeg_color"]["scale"] if s["filter"].startswith(prefix)]
     seen = []
     for s in scales:
         t = f"{s['in']['color_space']} -> {s['out']['color_space']}"
@@ -754,9 +801,10 @@ def _distorted_csp(r):
     return "; ".join(seen) if seen else "-"
 
 
-def _mirage_csp(r):
-    """The distorted frames' color space before and after mirage_vmaf's conversion."""
-    conv = (r.get("mirage_color") or {}).get("dis_conversion")
+def _mirage_csp(r, key="dis_conversion"):
+    """The distorted frames' color space before and after mirage_vmaf's
+    conversion; with key "ref_conversion", the reference's."""
+    conv = (r.get("mirage_color") or {}).get(key)
     if conv is None:
         return "-"
     seen = []
@@ -826,7 +874,13 @@ def pair_markdown(r):
               f"| libvmaf version (run time) | {cell(m.get('libvmaf_version', '-'))} "
               f"| {cell(f.get('libvmaf_version', '-'))} | |",
               f"| libvmaf package version | {cell(m.get('libvmaf_package_version') or '-')} "
-              f"| {cell(f.get('libvmaf_package_version') or '-')} | |",
+              f"| {cell(f.get('libvmaf_package_version') or '-')} | |"]
+    m_libs = m.get("ffmpeg_libraries") if isinstance(m.get("ffmpeg_libraries"), dict) else {}
+    f_libs = f.get("ffmpeg_libraries") if isinstance(f.get("ffmpeg_libraries"), dict) else {}
+    for name in list(m_libs) + [n for n in f_libs if n not in m_libs]:
+        lines.append(f"| {cell(name)} version (run time) | {cell(m_libs.get(name, '-'))} "
+                     f"| {cell(f_libs.get(name, '-'))} | |")
+    lines += [
               f"| exit status | {num(m.get('exit_code'))} | {num(f.get('exit_code'))} | |",
               f"| wall time, s | {num(m.get('elapsed_s'), 1)} | {num(f.get('elapsed_s'), 1)} | |"]
 
@@ -861,6 +915,14 @@ def pair_markdown(r):
     else:
         entries = [f"- {_conversion_line(c)}" for c in conv if isinstance(c, dict)]
         lines += entries or ["- no pair was converted"]
+    ref_conv = (r.get("mirage_color") or {}).get("ref_conversion")
+    lines += ["", "Mirage's color handling of the reference frames (mirage_vmaf's report, "
+              "ref_conversion; DECISIONS.md D-022):"]
+    if ref_conv is None:
+        lines.append("- not in the report: this mirage_vmaf does not record one")
+    else:
+        entries = [f"- {_conversion_line(c)}" for c in ref_conv if isinstance(c, dict)]
+        lines += entries or ["- none: the reference's frames are used as they are"]
 
     lines += ["", "Inputs (ffprobe / mirage_vmaf's decoder):", "",
               "| | reference | distorted |", "|---|---|---|"]
@@ -912,6 +974,12 @@ def overall_markdown(o):
         lines.append(f"- mirage_vmaf: sha256 {mv.get('sha256')}; libvmaf "
                      f"{mv.get('libvmaf_version')} at run time, package "
                      f"{mv.get('libvmaf_package_version')}.")
+    libs = [(who, x) for who, x in (("mirage_vmaf", mv.get("ffmpeg_libraries")),
+                                    ("FFmpeg", env.get("ffmpeg_libraries") if env else None))
+            if isinstance(x, dict) and x]
+    if libs:
+        lines.append("- FFmpeg libraries at run time: " + "; ".join(
+            f"{who} " + ", ".join(f"{n} {v}" for n, v in x.items()) for who, x in libs) + ".")
     if env:
         lines.append(f"- FFmpeg: {env.get('ffmpeg_version')}; libvmaf "
                      + (f"{fv.get('libvmaf_version')} at run time (its libvmaf logs), "

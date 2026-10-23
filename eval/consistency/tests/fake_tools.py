@@ -13,6 +13,10 @@ exit with status 1 and no report. A fake input has 10 frames.
 With FAKE_MIRAGE_HAS_SCALER=1 mirage_vmaf's stand-in takes --scaler, with
 FAKE_MIRAGE_HAS_MODEL=1 --model and --model-file, and reports the model as
 the current mirage_vmaf does (model_source, model_sha256, reference_mode).
+With FAKE_MIRAGE_HAS_D022=1 it also reports the FFmpeg libraries' versions
+(those of ffmpeg's stand-in), the distorted frames' conversion to the
+reference's color space, as ffmpeg's stand-in converts them, and no
+conversion of the reference.
 """
 
 import hashlib
@@ -22,6 +26,10 @@ import re
 import sys
 
 FRAMES = 10
+
+# The libraries ffmpeg's stand-in prints in -version, at run time.
+LIBRARIES = {"libavutil": "60.26.101", "libavcodec": "62.28.101", "libavformat": "62.12.101",
+             "libavfilter": "11.14.101", "libswscale": "9.5.101"}
 
 
 def parse_input(url):
@@ -51,6 +59,9 @@ def ffprobe(args):
 def ffmpeg(args):
     if "-version" in args:
         print("ffmpeg version fake\nconfiguration: --enable-libvmaf")
+        for name, version in LIBRARIES.items():
+            major, minor, micro = (int(x) for x in version.split("."))
+            print(f"{name:<14}{major:2d}.{minor:3d}.{micro:3d} / {major:2d}.{minor:3d}.{micro:3d}")
         return 0
     dis, ref = (parse_input(args[i + 1]) for i, a in enumerate(args) if a == "-i")
     graph = args[args.index("-lavfi") + 1]
@@ -85,6 +96,7 @@ def ffmpeg(args):
 def mirage_vmaf(args):
     has_scaler = os.environ.get("FAKE_MIRAGE_HAS_SCALER") == "1"
     has_model = os.environ.get("FAKE_MIRAGE_HAS_MODEL") == "1"
+    has_d022 = os.environ.get("FAKE_MIRAGE_HAS_D022") == "1"
     if "--help" in args:
         print("Usage: mirage_vmaf --ref <url|path> --dis <url|path> --out <report.json> "
               "[--frames N]\n\nOptions:\n  --ref <url|path>      reference\n"
@@ -131,6 +143,15 @@ def mirage_vmaf(args):
               "ref": info(ref), "dis": info(dis),
               "frames": [{"index": i, "ref_pts": 10 + i / 30, "dis_pts": 10 + i / 30,
                           "vmaf": v} for i, v in enumerate(scores)]}
+    if has_d022:
+        report.update(
+            ffmpeg_libraries={k: LIBRARIES[k] for k in ("libavutil", "libavcodec", "libavformat",
+                                                        "libswscale", "libavfilter")},
+            dis_conversion=[{"from": {"color_space": dis["color_space"], "color_range": "tv"},
+                             "to": {"color_space": ref["color_space"], "color_range": "tv"},
+                             "matrix_changed": dis["color_space"] != ref["color_space"],
+                             "range_changed": False, "first_index": 0, "pairs": n}],
+            ref_conversion=[])
     with open(opts["--out"], "w") as f:
         json.dump(report, f, indent=2)
     print(f"mirage_vmaf: {n} frame pairs scored, report written to {opts['--out']}")
