@@ -697,8 +697,8 @@ def pair_markdown(r):
         lines.append("- No relabel: the inputs' color_space and color_range tags are the same.")
     lines.append(f"- Reference: {r['reference']}")
     lines.append(f"- Distorted: {r['distorted']}")
-    lines.append("- Frames: " + (f"the first {r['frame_limit']} frame pairs"
-                                 if r["frame_limit"] else "every frame pair"))
+    lines.append("- Frames: " + (f"the first {r['frame_limit']} frame pairs."
+                                 if r["frame_limit"] else "every frame pair."))
     lines.append(f"- A frame fails if \\|delta\\| > {r['threshold']}, with delta = Mirage - FFmpeg "
                  "(docs/DECISIONS.md D-019).")
 
@@ -777,7 +777,7 @@ def overall_markdown(o):
                                                    f": all {o['pairs_total']} pairs pass."))
     lines += ["", f"- Variant: {VARIANT_TEXT[o['variant']]}.",
               "- Frames: " + (f"the first {p['frames']} frame pairs of each pair (--frames "
-                              f"{p['frames']})" if p["frames"] else "every frame pair"),
+                              f"{p['frames']})." if p["frames"] else "every frame pair."),
               f"- A frame fails if \\|delta\\| > {p['threshold']}, with delta = Mirage - FFmpeg "
               "(docs/DECISIONS.md D-019). A pair passes only if both sides ran to the end, "
               "used the same settings, scored the same number of frames and no frame fails.",

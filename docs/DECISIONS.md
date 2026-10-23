@@ -417,13 +417,14 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Choice**
   - Every command it runs, in the pair's `cmd.txt` and the run's `run.cmd.txt`, with the programs shown as `<mirage_vmaf>`, `<ffmpeg>` and `<ffprobe>`. The programs run in the pair's directory with relative output paths.
   - Local paths in all outputs replaced by `<out_dir>`, `<repo>`, `<home>` and `<tmp>`, with the number of replacements per file in `delta.json`. A path that would still show local details, such as a pairs file elsewhere, appears as a placeholder only. Finally all outputs, logs decompressed, are searched for the home, temporary, output and repository paths, the system's temporary directory, the user name and the host name; a find ends the run with exit status 3.
-  - Both programs' stderr logs, always xz-compressed. Empty outputs aren't kept.
+  - Both programs' stderr logs, always xz-compressed, and their JSON outputs when larger than 1 MiB, as full-length runs make them. Empty outputs aren't kept.
   - `environment.txt`: git HEAD and `git status --porcelain` at the start and end of the run; OS, CPU, kernel, Python; `ffmpeg -version`, `ffprobe -version`; the libvmaf library FFmpeg's libavfilter links and the Homebrew package version in its real path; `mirage_vmaf`'s path, SHA-256, size, linked libvmaf and the first line of its `--help`.
   - `SHA256SUMS` over every file.
   - One scoring process at a time unless `--jobs` says more; each is stopped after `--timeout` seconds, 6 hours by default, the alarm of the Phase 0 run (`eval/baseline/README.md`).
 - **Alternatives**
   - Absolute paths in the outputs.
   - Uncompressed logs, or compressing only large ones.
+  - JSON outputs uncompressed whatever their size.
   - No final search of the outputs.
 - **Rationale**
   - Local paths and personal details stay out of the repository (D-013, D-014), and the placeholders keep the commands readable.

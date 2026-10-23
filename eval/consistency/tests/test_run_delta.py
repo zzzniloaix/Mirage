@@ -185,6 +185,19 @@ class RunDelta(unittest.TestCase):
         self.assertEqual(rc, 0, err)
         self.assertIn("--frames 2 --scaler bicubic >", self.read("same/cmd.txt"))
 
+    def test_large_json_outputs_are_compressed(self):
+        with mock.patch.object(run_delta, "COMPRESS_JSON_ABOVE", 200):
+            rc, _, err = self.run_tool(self.pairs(("same", REF, SAME)), "--frames", "5")
+        self.assertEqual(rc, 0, err)
+        files = self.check_files()
+        for name in ("mirage.json", "ffmpeg.json"):
+            self.assertNotIn(f"same/{name}", files)
+            with open(os.path.join(self.out, "same", name + ".xz"), "rb") as f:
+                data = json.loads(lzma.decompress(f.read()))
+            self.assertEqual(len(data["frames"]), 5)
+        self.assertIn("same/ffprobe_ref.json", files)   # not a scoring output: as it is
+        self.assertEqual(self.report("same/delta.json")["frames"]["compared"], 5)
+
     def test_failing_mirage_vmaf(self):
         rc, _, _ = self.run_tool(self.pairs(("bad", REF, SAME + ":mirage_fails")), "--frames", "2")
         self.assertEqual(rc, 1)

@@ -9,7 +9,8 @@ writes into <out_dir>:
   environment.txt           machine, programs, libvmaf builds, git state
   delta.md, delta.json      the delta report of the whole run
   <pair>/                   per pair: cmd.txt (every command), ffprobe_*.json,
-                            mirage.json, ffmpeg.json, the stderr logs (xz),
+                            mirage.json, ffmpeg.json (xz when over 1 MiB),
+                            the stderr logs (xz),
                             ffmpeg_colorspace_lines.txt, delta.md, delta.json
   SHA256SUMS                every file above
 
@@ -49,6 +50,10 @@ DEFAULT_FFMPEG = "/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg"   # docs/DECISIONS.m
 DEFAULT_TIMEOUT = 6 * 3600   # seconds per scoring process, as the Phase 0 run's alarm
 
 SHOWN = {"mirage": "<mirage_vmaf>", "ffmpeg": "<ffmpeg>", "ffprobe": "<ffprobe>"}
+
+# Raw JSON outputs larger than this many bytes are kept xz-compressed, as
+# full-length runs make them (<name>.json.xz).
+COMPRESS_JSON_ABOVE = 1 << 20
 
 # How a program outside the repository shows whose path would reveal local details.
 OUTSIDE = "(a local path outside the repository)"
@@ -408,7 +413,8 @@ def prepare_pair(run, pair, params):
              "relabel_warnings": [], "mirage": {"run": None}, "ffmpeg": {"run": None}}
     lines = [f"# {pair.label}: the commands eval/consistency/run_delta.py ran, in "
              f"<out_dir>/{pair.label}. Their stderr logs are kept xz-compressed "
-             "(*.stderr.log.xz); empty outputs are not kept."]
+             "(*.stderr.log.xz), as are JSON outputs over 1 MiB (*.json.xz); empty "
+             "outputs are not kept."]
     for side, url in (("ref", pair.ref), ("dis", pair.dis)):
         argv = vd.probe_command(run.ffprobe, url)
         out_rel, err_rel = f"ffprobe_{side}.json", f"ffprobe_{side}.stderr.txt"
@@ -467,10 +473,17 @@ def score(run, pair, pdir, sides, task):
     stderr = run.store_log(f"{pair.label}/{key}.stderr.log")
     side = sides[key]
     side["run"] = rec
-    if os.path.exists(os.path.join(pdir, out_rel)):
+    out_path = os.path.join(pdir, out_rel)
+    if os.path.exists(out_path):
         run.redact_file(f"{pair.label}/{out_rel}")
-    result, side["error"] = read_json(os.path.join(pdir, out_rel))
+    result, side["error"] = read_json(out_path)
     side["report" if key == "mirage" else "log"] = result
+    if os.path.exists(out_path) and os.path.getsize(out_path) > COMPRESS_JSON_ABOVE:
+        with open(out_path, "rb") as f:
+            data = f.read()
+        with open(out_path + ".xz", "wb") as f:
+            f.write(vd.xz(data))
+        os.remove(out_path)
     if key == "ffmpeg":
         side["stderr"] = stderr
         run.write_text(f"{pair.label}/ffmpeg_colorspace_lines.txt",
