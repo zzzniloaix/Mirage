@@ -1,0 +1,5 @@
+  Stream #0:0: Video: rawvideo, 1 reference frame (I420 / 0x30323449), yuv420p(tv, ycgco/unknown/unknown, progressive), 640x360, SAR 1:1 DAR 16:9, 29.97 fps, 29.97 tbr, 1k tbn
+  Stream #1:0: Video: rawvideo, 1 reference frame (I420 / 0x30323449), yuv420p(tv, ycgco/unknown/unknown, progressive), 1920x1080, SAR 1:1 DAR 16:9, 29.97 fps, 29.97 tbr, 1k tbn
+[graph 0 input from stream 0:0 @ 0x97900d740] w:640 h:360 pixfmt:yuv420p tb:1/1000 fr:30000/1001 sar:1/1 csp:ycgco range:tv alpha:unspecified
+[graph 0 input from stream 1:0 @ 0x97900d8c0] w:1920 h:1080 pixfmt:yuv420p tb:1/1000 fr:30000/1001 sar:1/1 csp:ycgco range:tv alpha:unspecified
+Impossible to convert between the formats supported by the filter 'Parsed_trim_0' and the filter 'auto_scale_0'

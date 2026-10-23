@@ -1,0 +1,4 @@
+# Reference format cases that FFmpeg's section 5 graph refuses (docs/DECISIONS.md D-016).
+# Made by eval/consistency/color_cases.py; <label> <reference> <distorted>. The cases:
+#   u03_ycgco_vs_ycgco: YCgCo on both inputs
+u03_ycgco_vs_ycgco <tmp>/format_clips/ref_ycgco-tv.mkv <tmp>/format_clips/dis_ycgco-tv.mkv

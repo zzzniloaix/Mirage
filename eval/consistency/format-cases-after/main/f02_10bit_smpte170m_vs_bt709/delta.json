@@ -1,0 +1,256 @@
+{
+  "report_version": 1,
+  "pair": "f02_10bit_smpte170m_vs_bt709",
+  "reference": "<tmp>/format_clips/ref_ffv1-yuv420p10le_smpte170m-tv.mkv",
+  "distorted": "<tmp>/format_clips/dis_bt709-tv.mkv",
+  "variant": "plain",
+  "status": "FAIL",
+  "fail_reasons": [
+    "10 of 10 frames have |delta| > 0.01"
+  ],
+  "warnings": [
+    "mirage_vmaf: the reference's frames are yuv420p10le, not yuv420p: FFmpeg's section 5 graph then converts the reference to the distorted input's color matrix and range, where Mirage converts the distorted frames to the reference's, so the scores can differ from FFmpeg's (docs/PHASE1_DECISIONS_PENDING.md)",
+    "the distorted frames' color conversions differ: mirage_vmaf bt709/tv -> smpte170m/tv, FFmpeg's scale filter bt709/tv -> bt709/tv"
+  ],
+  "threshold": 0.01,
+  "frame_limit": 10,
+  "frames": {
+    "mirage": 10,
+    "ffmpeg": 10,
+    "compared": 10,
+    "counts_match": true
+  },
+  "delta": {
+    "compared": 10,
+    "max_abs": 7.026387917513716,
+    "max_abs_index": 0,
+    "mean_abs": 5.771826564286107,
+    "mean_signed": 5.771826564286107,
+    "over_threshold": 10,
+    "over_threshold_ranges": [
+      [
+        0,
+        9
+      ]
+    ],
+    "worst": [
+      {
+        "index": 0,
+        "mirage": 40.62322391751372,
+        "ffmpeg": 33.596836,
+        "delta": 7.026387917513716
+      },
+      {
+        "index": 1,
+        "mirage": 41.89590505535071,
+        "ffmpeg": 35.419362,
+        "delta": 6.47654305535071
+      },
+      {
+        "index": 2,
+        "mirage": 40.807094592742324,
+        "ffmpeg": 34.963967,
+        "delta": 5.843127592742327
+      },
+      {
+        "index": 3,
+        "mirage": 40.528598478447265,
+        "ffmpeg": 34.827859,
+        "delta": 5.700739478447268
+      },
+      {
+        "index": 9,
+        "mirage": 39.339610479787176,
+        "ffmpeg": 33.759786,
+        "delta": 5.579824479787177
+      }
+    ],
+    "mean_mirage": 40.07838236428611,
+    "mean_ffmpeg": 34.3065558
+  },
+  "pooled": {
+    "mirage": {
+      "mean": 40.0783823642861,
+      "min": 39.29517558324229
+    },
+    "ffmpeg": {
+      "mean": 34.306556,
+      "min": 33.596836
+    },
+    "difference": {
+      "mean": 5.771826364286099,
+      "min": 5.698339583242287
+    }
+  },
+  "relabel": null,
+  "ffmpeg_color": {
+    "graph_inputs": [
+      {
+        "input": 0,
+        "stream": 0,
+        "color_space": "bt709",
+        "color_range": "tv"
+      },
+      {
+        "input": 1,
+        "stream": 0,
+        "color_space": "smpte170m",
+        "color_range": "tv"
+      }
+    ],
+    "scale": [
+      {
+        "filter": "Parsed_scale_1",
+        "in": {
+          "width": 640,
+          "height": 360,
+          "pix_fmt": "yuv420p",
+          "color_space": "bt709",
+          "color_range": "tv"
+        },
+        "out": {
+          "width": 1920,
+          "height": 1080,
+          "pix_fmt": "yuv420p",
+          "color_space": "bt709",
+          "color_range": "tv"
+        },
+        "flags": "0x00000002"
+      },
+      {
+        "filter": "auto_scale_0",
+        "in": {
+          "width": 1920,
+          "height": 1080,
+          "pix_fmt": "yuv420p10le",
+          "color_space": "smpte170m",
+          "color_range": "tv"
+        },
+        "out": {
+          "width": 1920,
+          "height": 1080,
+          "pix_fmt": "yuv420p",
+          "color_space": "bt709",
+          "color_range": "tv"
+        },
+        "flags": "0x00000004"
+      }
+    ],
+    "conversions": [
+      "auto_scale_0: color_space smpte170m -> bt709",
+      "auto_scale_0: pix_fmt yuv420p10le -> yuv420p"
+    ]
+  },
+  "mirage_color": {
+    "dis_conversion": [
+      {
+        "from": {
+          "color_space": "bt709",
+          "color_range": "tv"
+        },
+        "to": {
+          "color_space": "smpte170m",
+          "color_range": "tv"
+        },
+        "matrix_changed": true,
+        "range_changed": false,
+        "first_index": 0,
+        "pairs": 10
+      }
+    ]
+  },
+  "inputs": {
+    "ref": {
+      "ffprobe": {
+        "codec_name": "ffv1",
+        "width": 1920,
+        "height": 1080,
+        "pix_fmt": "yuv420p10le",
+        "color_space": "smpte170m",
+        "color_range": "tv",
+        "color_primaries": null,
+        "color_transfer": null,
+        "time_base": "1/1000",
+        "r_frame_rate": "30000/1001",
+        "avg_frame_rate": "30000/1001",
+        "start_time": "0.000000"
+      },
+      "mirage_vmaf": {
+        "url": "<tmp>/format_clips/ref_ffv1-yuv420p10le_smpte170m-tv.mkv",
+        "width": 1920,
+        "height": 1080,
+        "pix_fmt": "yuv420p10le",
+        "color_space": "smpte170m",
+        "color_range": "tv",
+        "color_primaries": "unknown",
+        "color_trc": "unknown",
+        "time_base": "1/1000",
+        "ended": false
+      }
+    },
+    "dis": {
+      "ffprobe": {
+        "codec_name": "rawvideo",
+        "width": 640,
+        "height": 360,
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_range": "tv",
+        "color_primaries": null,
+        "color_transfer": null,
+        "time_base": "1/1000",
+        "r_frame_rate": "30000/1001",
+        "avg_frame_rate": "30000/1001",
+        "start_time": "0.000000"
+      },
+      "mirage_vmaf": {
+        "url": "<tmp>/format_clips/dis_bt709-tv.mkv",
+        "width": 640,
+        "height": 360,
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_range": "tv",
+        "color_primaries": "unknown",
+        "color_trc": "unknown",
+        "time_base": "1/1000",
+        "ended": false
+      }
+    }
+  },
+  "mirage_vmaf": {
+    "exit_code": 0,
+    "elapsed_s": 0.378,
+    "tool": "mirage_vmaf",
+    "reference_mode": "explicit-pair",
+    "libvmaf_version": "3.0.0",
+    "libvmaf_package_version": "3.1.0",
+    "model": "vmaf_v0.6.1",
+    "model_source": "built-in",
+    "model_sha256": null,
+    "scaler": "bilinear",
+    "n_threads": 4,
+    "n_subsample": 1,
+    "scored_as": {
+      "width": 1920,
+      "height": 1080,
+      "pix_fmt": "yuv420p",
+      "bit_depth": 8
+    },
+    "frame_limit": 10,
+    "frames_scored": 10,
+    "ref_ended": false,
+    "dis_ended": false,
+    "first_ref_pts": 0.0,
+    "last_ref_pts": 0.3,
+    "pairs_with_different_pts": 0,
+    "warnings": [
+      "the reference's frames are yuv420p10le, not yuv420p: FFmpeg's section 5 graph then converts the reference to the distorted input's color matrix and range, where Mirage converts the distorted frames to the reference's, so the scores can differ from FFmpeg's (docs/PHASE1_DECISIONS_PENDING.md)"
+    ]
+  },
+  "ffmpeg": {
+    "exit_code": 0,
+    "elapsed_s": 0.265,
+    "libvmaf_version": "3.0.0",
+    "libvmaf_package_version": "3.1.0"
+  }
+}
