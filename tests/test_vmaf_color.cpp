@@ -1,12 +1,13 @@
-// vmafcolor: the tags FFmpeg's section 5 filter graph converts the distorted
-// frames to, and Mirage's conversion of the frames against the same graph run
-// through libavfilter (scale, format and libvmaf filters, as
-// eval/consistency/run_delta.py runs them through ffmpeg).
+// vmafcolor: the tags FFmpeg's section 5 filter graph negotiates for both
+// inputs of its libvmaf filter, and Mirage's conversion of both frames of a
+// pair against the same graph run through libavfilter (scale, format and
+// libvmaf filters, as eval/consistency/run_delta.py runs them through ffmpeg).
 
 #include <catch2/catch_test_macros.hpp>
 
 #include "VMAFColor.h"
 
+#include <cstdint>
 #include <cstring>
 #include <format>
 #include <string>
@@ -63,6 +64,43 @@ AVFrame* make_frame(int w, int h, const Tags& t, int seed = 0)
     return f;
 }
 
+// A w x h frame of any pixel format the tests use, tagged `t`: every
+// component at its own bit depth, mostly inside the limited range, with values
+// that differ from pixel to pixel, so that a change of matrix, range, chroma
+// subsampling or bit depth shows in the bytes.
+AVFrame* make_any(AVPixelFormat fmt, int w, int h, const Tags& t, int seed = 0)
+{
+    AVFrame* f = av_frame_alloc();
+    f->format = fmt;
+    f->width = w;
+    f->height = h;
+    REQUIRE(av_frame_get_buffer(f, 0) >= 0);
+    const AVPixFmtDescriptor* d = av_pix_fmt_desc_get(fmt);
+    std::vector<std::uint16_t> line(static_cast<std::size_t>(w));
+    for (int c = 0; c < d->nb_components; ++c) {
+        const bool chroma = (c == 1 || c == 2) && !(d->flags & AV_PIX_FMT_FLAG_RGB);
+        const int cw = chroma ? AV_CEIL_RSHIFT(w, d->log2_chroma_w) : w;
+        const int ch = chroma ? AV_CEIL_RSHIFT(h, d->log2_chroma_h) : h;
+        const int top = (1 << d->comp[c].depth) - 1;
+        const int lo = top / 16, span = top - 2 * lo + 1;
+        for (int y = 0; y < ch; ++y) {
+            for (int x = 0; x < cw; ++x) {
+                unsigned v = static_cast<unsigned>(x * 7919 + y * 104729 + c * 31337 + seed * 977);
+                v ^= v >> 7;
+                v *= 2654435761u;
+                v ^= v >> 13;
+                const int value = lo + static_cast<int>(v % static_cast<unsigned>(span));
+                line[static_cast<std::size_t>(x)] = static_cast<std::uint16_t>(value);
+            }
+            av_write_image_line2(line.data(), f->data, f->linesize, d, 0, y, c, cw, 2);
+        }
+    }
+    f->colorspace = t.space;
+    f->color_range = t.range;
+    f->pts = 0;
+    return f;
+}
+
 AVFilterContext* source(AVFilterGraph* g, const char* label, const AVFrame& f)
 {
     const std::string args = std::format(
@@ -93,12 +131,16 @@ struct QuietLog {
     ~QuietLog() { av_log_set_level(level); }
 };
 
-// The distorted frame as the libvmaf filter of FFmpeg's section 5 graph
+// One frame of a pair as the libvmaf filter of FFmpeg's section 5 graph
 // receives it: [dis]scale=W:H:flags=<scaler>,format=yuv420p[d];
-// [ref]format=yuv420p[r];[d][r]libvmaf. The libvmaf filter passes its
-// distorted input on, so the sink gets that frame. nullptr if FFmpeg cannot
-// build the graph.
-AVFrame* ffmpeg_distorted(const AVFrame& dis, const AVFrame& ref, const char* scaler = "bilinear")
+// [ref]format=yuv420p[r];[d][r]libvmaf. The libvmaf filter passes its first
+// input on, so the sink gets the distorted frame; with `reference`, the graph
+// ends in [r][d]libvmaf and the sink gets the reference frame. The order of
+// the pads changes nothing else: the libvmaf filter shares one list of
+// matrices and one of ranges over its inputs and its output
+// (libavfilter/formats.c, ff_default_query_formats), and its filters are made
+// in the same order. nullptr if FFmpeg cannot build the graph.
+AVFrame* ffmpeg_frame(const AVFrame& dis, const AVFrame& ref, const char* scaler, bool reference)
 {
     const QuietLog quiet;
     AVFilterGraph* g = avfilter_graph_alloc();
@@ -109,7 +151,8 @@ AVFrame* ffmpeg_distorted(const AVFrame& dis, const AVFrame& ref, const char* sc
                                          nullptr, nullptr, g) >= 0);
     const std::string text = std::format(
         "[dis]scale={}:{}:flags={},format=yuv420p[d];[ref]format=yuv420p[r];"
-        "[d][r]libvmaf=model=version=vmaf_v0.6.1:n_threads=1[out]", ref.width, ref.height, scaler);
+        "{}libvmaf=model=version=vmaf_v0.6.1:n_threads=1[out]", ref.width, ref.height, scaler,
+        reference ? "[r][d]" : "[d][r]");
     AVFilterInOut* outputs = endpoint("dis", src_dis, endpoint("ref", src_ref));
     AVFilterInOut* inputs = endpoint("out", sink);
     const int parsed = avfilter_graph_parse_ptr(g, text.c_str(), &inputs, &outputs, nullptr);
@@ -133,6 +176,52 @@ AVFrame* ffmpeg_distorted(const AVFrame& dis, const AVFrame& ref, const char* sc
     REQUIRE(av_buffersink_get_frame(sink, out) >= 0);
     avfilter_graph_free(&g);
     return out;
+}
+
+AVFrame* ffmpeg_distorted(const AVFrame& dis, const AVFrame& ref, const char* scaler = "bilinear")
+{
+    return ffmpeg_frame(dis, ref, scaler, false);
+}
+
+AVFrame* ffmpeg_reference(const AVFrame& dis, const AVFrame& ref)
+{
+    return ffmpeg_frame(dis, ref, "bilinear", true);
+}
+
+// The tags the analyzer gives both frames (VMAFAnalyzer.cpp): negotiated()
+// when FFmpeg's graph converts the reference, else D-016's target().
+Tags analyzer_tags(const AVFrame& ref, const AVFrame& dis)
+{
+    return vmafcolor::converts_reference(static_cast<AVPixelFormat>(ref.format))
+        ? vmafcolor::negotiated(vmafcolor::input_of(ref), vmafcolor::input_of(dis))
+        : vmafcolor::target(vmafcolor::tags_of(ref), vmafcolor::tags_of(dis));
+}
+
+// Mirage's conversion of `in` to a w x h yuv420p frame with the tags `to`,
+// with swscale's `flags` on `threads` threads, the analyzer's one by default.
+AVFrame* mirage_convert(const AVFrame& in, int w, int h, const Tags& to, unsigned flags,
+                        int threads = 1)
+{
+    SwsContext* sws = sws_alloc_context();
+    sws->flags = flags;
+    sws->threads = threads;
+    AVFrame* copy = av_frame_clone(&in);
+    AVFrame* out = av_frame_alloc();
+    out->format = AV_PIX_FMT_YUV420P;
+    out->width = w;
+    out->height = h;
+    REQUIRE(vmafcolor::convert(sws, *copy, *out, to) == 0);
+    av_frame_free(&copy);
+    sws_free_context(&sws);
+    return out;
+}
+
+// Mirage's conversion of a reference that isn't yuv420p, as VMAFAnalyzer.cpp does it.
+AVFrame* mirage_reference(const AVFrame& ref, const AVFrame& dis)
+{
+    REQUIRE(vmafcolor::converts_reference(static_cast<AVPixelFormat>(ref.format)));
+    return mirage_convert(ref, ref.width, ref.height, analyzer_tags(ref, dis),
+                          vmafcolor::kInsertedScaleFlags);
 }
 
 // Mirage's conversion of `dis` to `ref`'s size and to target()'s tags, with
@@ -409,45 +498,242 @@ TEST_CASE("vmafcolor: FFmpeg's graph refuses a matrix libswscale lacks", "[vmafc
     }
 }
 
-TEST_CASE("vmafcolor::converts_reference: FFmpeg's graph converts a reference that isn't yuv420p", "[vmafcolor]")
+namespace {
+
+// Matrix and range tags of the negotiation tests: tagged, full range, no tags,
+// no range tag, no matrix tag.
+const std::vector<Tags>& tag_cases()
+{
+    static const std::vector<Tags> t = {
+        { AVCOL_SPC_BT709, kTv }, { AVCOL_SPC_SMPTE170M, kPc }, { kNoSpace, kNoRange },
+        { AVCOL_SPC_BT709, kNoRange }, { kNoSpace, kTv },
+    };
+    return t;
+}
+
+// One pixel format of each kind negotiated() tells apart: yuv420p, another
+// plain YUV format, a yuvj format, and formats that aren't plain YUV.
+constexpr AVPixelFormat kKinds[] = { AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P10LE, AV_PIX_FMT_YUVJ420P,
+                                     AV_PIX_FMT_GRAY8, AV_PIX_FMT_RGB24 };
+
+bool kind_offers_one_range(AVPixelFormat f)
+{
+    return f == AV_PIX_FMT_YUV420P || f == AV_PIX_FMT_YUV420P10LE;
+}
+
+std::string input_name(const AVFrame& f)
+{
+    return std::format("{} {}", av_get_pix_fmt_name(static_cast<AVPixelFormat>(f.format)),
+                       name(vmafcolor::tags_of(f)));
+}
+
+int differing_rows_all(const AVFrame& a, const AVFrame& b)
+{
+    return differing_rows(a, b, 0) + differing_rows(a, b, 1) + differing_rows(a, b, 2);
+}
+
+} // namespace
+
+TEST_CASE("vmafcolor::negotiated: the tags libavfilter gives both inputs of the libvmaf filter", "[vmafcolor]")
 {
     if (!avfilter_get_by_name("libvmaf"))
         SKIP("this libavfilter has no libvmaf filter");
-    const Tags dis_tags{ AVCOL_SPC_SMPTE170M, kTv };
-    AVFrame* dis = make_frame(64, 36, dis_tags);
-    AVFrame* ref420 = make_frame(192, 108, { AVCOL_SPC_BT709, kTv }, 7);
-
-    // A yuv420p reference: the distorted frame gets target()'s tags.
-    CHECK_FALSE(vmafcolor::converts_reference(AV_PIX_FMT_YUV420P));
-    AVFrame* got = ffmpeg_distorted(*dis, *ref420);
-    REQUIRE(got);
-    CHECK(name(vmafcolor::tags_of(*got)) == "bt709/tv");
-    CHECK(name(vmafcolor::tags_of(*got)) ==
-          name(vmafcolor::target(vmafcolor::tags_of(*ref420), dis_tags)));
-    av_frame_free(&got);
-
-    // Any other reference format: the distorted frame keeps its own tags,
-    // and FFmpeg converts the reference to them instead.
-    for (AVPixelFormat fmt : { AV_PIX_FMT_YUV420P10LE, AV_PIX_FMT_YUV422P, AV_PIX_FMT_YUV444P,
-                               AV_PIX_FMT_YUVJ420P }) {
-        INFO(av_get_pix_fmt_name(fmt));
-        CHECK(vmafcolor::converts_reference(fmt));
-        AVFrame* ref = in_format(*ref420, fmt);
-        AVFrame* out = ffmpeg_distorted(*dis, *ref);
-        REQUIRE(out);
-        CHECK(name(vmafcolor::tags_of(*out)) == name(dis_tags));
-        av_frame_free(&out);
-        av_frame_free(&ref);
+    for (AVPixelFormat rf : kKinds) {
+        for (const Tags& rt : tag_cases()) {
+            AVFrame* ref = make_any(rf, 192, 108, rt, 7);
+            for (AVPixelFormat df : kKinds) {
+                for (std::size_t k = 0; k < 4; ++k) {
+                    AVFrame* dis = make_any(df, 64, 36, tag_cases()[k]);
+                    INFO("reference " << input_name(*ref) << ", distorted " << input_name(*dis));
+                    const std::string want = name(vmafcolor::negotiated(vmafcolor::input_of(*ref),
+                                                                        vmafcolor::input_of(*dis)));
+                    AVFrame* d = ffmpeg_distorted(*dis, *ref);
+                    REQUIRE(d);
+                    CHECK(name(vmafcolor::tags_of(*d)) == want);
+                    av_frame_free(&d);
+                    // The reference frame gets the same tags: one list for both.
+                    if (df == AV_PIX_FMT_YUV420P || df == AV_PIX_FMT_GRAY8) {
+                        AVFrame* r = ffmpeg_reference(*dis, *ref);
+                        REQUIRE(r);
+                        CHECK(name(vmafcolor::tags_of(*r)) == want);
+                        av_frame_free(&r);
+                    }
+                    av_frame_free(&dis);
+                }
+            }
+            av_frame_free(&ref);
+        }
     }
-    av_frame_free(&ref420);
-    av_frame_free(&dis);
 }
 
-TEST_CASE("The analyzer's conversion of a yuvj420p reference makes it limited range", "[vmafcolor]")
+TEST_CASE("vmafcolor::target: negotiated()'s tags for a yuv420p reference, but for one range tag", "[vmafcolor]")
 {
-    // VMAFAnalyzer converts the reference with sws_getContext() from the
-    // decoder's pixel format to yuv420p at the same size, with bilinear flags.
-    // libswscale takes a yuvj420p input as full range and yuv420p as limited.
+    // D-016's rule as implemented (D-021) takes the distorted frames' range
+    // tag where libavfilter takes what their buffer source offers. They differ
+    // only for a reference without a range tag and distorted frames tagged
+    // limited in a format whose source offers more than limited, and there
+    // target() says limited where FFmpeg's graph says unspecified, which
+    // libswscale converts alike (next test).
+    for (const Tags& rt : tag_cases()) {
+        for (AVPixelFormat df : kKinds) {
+            for (const Tags& dt : tag_cases()) {
+                INFO(name(rt) << " vs " << av_get_pix_fmt_name(df) << " " << name(dt));
+                const vmafcolor::Input ref{ AV_PIX_FMT_YUV420P, rt };
+                const vmafcolor::Input dis{ df, dt };
+                const Tags mine = vmafcolor::target(rt, dt);
+                const Tags theirs = vmafcolor::negotiated(ref, dis);
+                const bool differ =
+                    rt.range == kNoRange && dt.range == kTv && !kind_offers_one_range(df);
+                CHECK((mine == theirs) == !differ);
+                if (differ) {
+                    CHECK(name(mine) == name({ rt.space, kTv }));
+                    CHECK(name(theirs) == name({ rt.space, kNoRange }));
+                }
+            }
+        }
+    }
+}
+
+TEST_CASE("vmafcolor::convert: where target() and FFmpeg's graph tag the range differently, the pixels are the same", "[vmafcolor]")
+{
+    if (!avfilter_get_by_name("libvmaf"))
+        SKIP("this libavfilter has no libvmaf filter");
+    AVFrame* ref = make_any(AV_PIX_FMT_YUV420P, 192, 108, { AVCOL_SPC_BT709, kNoRange }, 7);
+    for (AVPixelFormat df : { AV_PIX_FMT_YUVJ420P, AV_PIX_FMT_GRAY8, AV_PIX_FMT_RGB24 }) {
+        INFO(av_get_pix_fmt_name(df));
+        AVFrame* dis = make_any(df, 64, 36, { AVCOL_SPC_SMPTE170M, kTv });
+        AVFrame* want = ffmpeg_distorted(*dis, *ref);
+        REQUIRE(want);
+        AVFrame* got = mirage_distorted(*dis, *ref);
+        CHECK(name(vmafcolor::tags_of(*want)) == "bt709/unknown");
+        CHECK(name(vmafcolor::tags_of(*got)) == "bt709/tv");
+        CHECK(differing_rows_all(*got, *want) == 0);
+        av_frame_free(&got);
+        av_frame_free(&want);
+        av_frame_free(&dis);
+    }
+    av_frame_free(&ref);
+}
+
+TEST_CASE("vmafcolor::convert: a reference that isn't yuv420p gets the bytes of the scale filter FFmpeg inserts (D-022)", "[vmafcolor]")
+{
+    if (!avfilter_get_by_name("libvmaf"))
+        SKIP("this libavfilter has no libvmaf filter");
+    // Every verified format but yuv420p, against distorted frames whose tags
+    // differ from the reference's in matrix, range or both, or are missing,
+    // and against one that needs a format conversion as well.
+    const std::pair<AVPixelFormat, Tags> dis_cases[] = {
+        { AV_PIX_FMT_YUV420P, { AVCOL_SPC_SMPTE170M, kTv } },
+        { AV_PIX_FMT_YUV420P, { AVCOL_SPC_BT709, kPc } },
+        { AV_PIX_FMT_YUV420P, { kNoSpace, kNoRange } },
+        { AV_PIX_FMT_YUV420P10LE, { AVCOL_SPC_BT709, kTv } },
+    };
+    const Tags ref_tags[] = { { AVCOL_SPC_BT709, kTv }, { kNoSpace, kNoRange },
+                              { AVCOL_SPC_SMPTE170M, kPc } };
+    for (AVPixelFormat rf : vmafcolor::verified_formats()) {
+        if (!vmafcolor::converts_reference(rf)) continue;
+        for (const Tags& rt : ref_tags) {
+            AVFrame* ref = make_any(rf, 192, 108, rt, 7);
+            for (const auto& [df, dt] : dis_cases) {
+                AVFrame* dis = make_any(df, 64, 36, dt);
+                INFO("reference " << input_name(*ref) << ", distorted " << input_name(*dis));
+                AVFrame* want = ffmpeg_reference(*dis, *ref);
+                REQUIRE(want);
+                REQUIRE(want->format == AV_PIX_FMT_YUV420P);
+                AVFrame* got = mirage_reference(*ref, *dis);
+                CHECK(name(vmafcolor::tags_of(*got)) == name(vmafcolor::tags_of(*want)));
+                for (int p = 0; p < 3; ++p) {
+                    INFO("plane " << p);
+                    CHECK(differing_rows(*got, *want, p) == 0);
+                }
+                av_frame_free(&got);
+                av_frame_free(&want);
+                av_frame_free(&dis);
+            }
+            av_frame_free(&ref);
+        }
+    }
+}
+
+TEST_CASE("vmafcolor::convert: distorted frames of every verified format get the bytes of FFmpeg's scale filter", "[vmafcolor]")
+{
+    if (!avfilter_get_by_name("libvmaf"))
+        SKIP("this libavfilter has no libvmaf filter");
+    // Against yuv420p references, tagged and untagged, which pass
+    // unconverted, and against references FFmpeg converts too; the first with
+    // each scaler.
+    const std::pair<AVPixelFormat, Tags> ref_cases[] = {
+        { AV_PIX_FMT_YUV420P, { AVCOL_SPC_BT709, kTv } },
+        { AV_PIX_FMT_YUV420P, { kNoSpace, kNoRange } },
+        { AV_PIX_FMT_YUV422P, { AVCOL_SPC_BT709, kTv } },
+        { AV_PIX_FMT_YUV420P10LE, { AVCOL_SPC_SMPTE170M, kPc } },
+    };
+    const std::pair<const char*, unsigned> scalers[] = {
+        { "bilinear", SWS_BILINEAR }, { "bicubic", SWS_BICUBIC }, { "lanczos", SWS_LANCZOS },
+    };
+    const Tags dis_tags[] = { { AVCOL_SPC_SMPTE170M, kTv }, { AVCOL_SPC_BT709, kPc },
+                              { kNoSpace, kNoRange } };
+    for (AVPixelFormat df : vmafcolor::verified_formats()) {
+        for (const Tags& dt : dis_tags) {
+            AVFrame* dis = make_any(df, 64, 36, dt);
+            for (std::size_t k = 0; k < std::size(ref_cases); ++k) {
+                AVFrame* ref = make_any(ref_cases[k].first, 192, 108, ref_cases[k].second, 7);
+                for (std::size_t s = 0; s < (k == 0 ? std::size(scalers) : 1); ++s) {
+                    INFO("reference " << input_name(*ref) << ", distorted " << input_name(*dis)
+                         << ", " << scalers[s].first);
+                    AVFrame* want = ffmpeg_distorted(*dis, *ref, scalers[s].first);
+                    REQUIRE(want);
+                    AVFrame* got = mirage_convert(*dis, 192, 108, analyzer_tags(*ref, *dis),
+                                                  scalers[s].second);
+                    // The same tags, but where target() tags the range limited
+                    // and FFmpeg's graph unspecified (the tests above).
+                    CHECK(name(vmafcolor::tags_of(*want)) ==
+                          name(vmafcolor::negotiated(vmafcolor::input_of(*ref),
+                                                     vmafcolor::input_of(*dis))));
+                    for (int p = 0; p < 3; ++p) {
+                        INFO("plane " << p);
+                        CHECK(differing_rows(*got, *want, p) == 0);
+                    }
+                    av_frame_free(&got);
+                    av_frame_free(&want);
+                }
+                av_frame_free(&ref);
+            }
+            av_frame_free(&dis);
+        }
+    }
+}
+
+TEST_CASE("vmafcolor::verified: not NV12 or NV21, which libswscale converts differently with more threads", "[vmafcolor]")
+{
+    // With a change of matrix, one swscale thread, as the analyzer uses, and
+    // four give other bytes; FFmpeg's scale filters use as many threads as
+    // `ffmpeg` finds CPUs. Without one they agree.
+    for (AVPixelFormat fmt : { AV_PIX_FMT_NV12, AV_PIX_FMT_NV21 }) {
+        INFO(av_get_pix_fmt_name(fmt));
+        CHECK_FALSE(vmafcolor::verified(fmt));
+        AVFrame* in = make_any(fmt, 192, 108, { AVCOL_SPC_BT709, kTv });
+        for (const Tags& to : { Tags{ AVCOL_SPC_SMPTE170M, kTv }, Tags{ AVCOL_SPC_BT709, kTv } }) {
+            INFO(name(to));
+            AVFrame* one = mirage_convert(*in, 192, 108, to, SWS_BICUBIC, 1);
+            AVFrame* four = mirage_convert(*in, 192, 108, to, SWS_BICUBIC, 4);
+            CHECK((differing_rows_all(*one, *four) > 0) == (to.space != AVCOL_SPC_BT709));
+            av_frame_free(&four);
+            av_frame_free(&one);
+        }
+        av_frame_free(&in);
+    }
+    for (AVPixelFormat fmt : vmafcolor::verified_formats())
+        CHECK(vmafcolor::verified(fmt));
+}
+
+TEST_CASE("sws_getContext(), the analyzer's reference conversion before D-022, makes a yuvj420p reference limited range", "[vmafcolor]")
+{
+    // Until D-022, VMAFAnalyzer converted every reference with
+    // sws_getContext() from the decoder's pixel format to yuv420p at the same
+    // size, with bilinear flags; eval/consistency/format-cases-after/ was made
+    // so. libswscale takes a yuvj420p input as full range and yuv420p as
+    // limited.
     AVFrame* src = make_frame(64, 36, { AVCOL_SPC_BT709, kTv });
     src->data[0][0] = 0;
     src->data[0][1] = 255;
