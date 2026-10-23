@@ -514,3 +514,80 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
 - **Status**: pending owner confirmation
+
+### P-016 The scaler and model measurements: 300 frames, both sides, one setting changed at a time
+
+- **Choice**
+  - Build the release `mirage_vmaf` in the main working tree at a clean HEAD, `8cc06a7`, as P-015 did; `eval/consistency/scalers-300/build.txt` records it, and `models-300/build.txt` is the same record.
+  - D-003: `run_delta.sh --frames 300` on the four pairs of D-018, plain FFmpeg, once with each scaler of work order §1.3, `--scaler bilinear`, `bicubic` and `lanczos`, which `run_delta.sh` gives both sides (`eval/consistency/scalers-300/`). Lanczos is included because the work order lists it and it costs one more run of the same kind.
+  - Work order §1.1: the same on one pair, gear2 against gear5 (`pairs/bipbop16x9_gear2.txt`), bilinear, once with each built-in model the work order names, `--model vmaf_v0.6.1`, `vmaf_v0.6.1neg` and `vmaf_4k_v0.6.1`, and once with `--model-file` and the libvmaf package's `vmaf_v0.6.1.json` (`eval/consistency/models-300/`).
+  - Commit the runs, then make the comparisons and checks from the clean tree: `compare_runs.py` against the bilinear run and against the vmaf_v0.6.1 run (`scaler_effect.*`, `model_effect.*`), and `checks.txt` in each directory, each command with its output.
+  - One check run of FFmpeg's scale filter without `flags=`, on FFmpeg's own test pattern, for which scaler it then uses (`eval/consistency/ffmpeg-scale-default/checks.txt`).
+  - The inputs are fetched from Apple's CDN in every run, as in P-012; no local mirror.
+- **Alternatives**
+  - Every frame, D-018's length, for the scaler runs.
+  - The model runs on all four pairs.
+  - The scalers measured on Mirage's side only, against Phase 0's bilinear FFmpeg outputs.
+  - A build in a clean worktree, as P-001 and P-007 did.
+- **Rationale**
+  - 300 frames are the range of `diag-before-300/` and `diag-after-300/`, so the bilinear run can be checked frame by frame against them (`scalers-300/checks.txt`, check 4), and stage 4's task asked for 300 frames. The full-length §5 report of D-018 is a separate run.
+  - D-003 asks for each scaler on both sides; with both, a scaler's effect on the scores and a disagreement between the tools can't be confused.
+  - §1.1's acceptance needs observable differences and the model identifier, which one pair shows; the model file run shows `--model-file` and its SHA-256 on a file whose content is a built-in model's.
+  - The main working tree was clean and at the commit every run records, as in P-012 and P-015.
+- **Limits**: bipbop's rungs were rendered separately (D-011), so the size of a scaler's or model's effect on a ladder encoded from one source isn't measured here.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
+
+### P-017 How mirage_vmaf takes the scaler and the model, and what its report says about them
+
+- **Choice**
+  - `--scaler NAME` takes the three scalers of work order §1.3 by the names FFmpeg's scale filter takes in `flags=`: `bilinear`, `bicubic`, `lanczos`. It sets the swscale flags of the distorted frames' scaler only, with swscale's default parameters for that scaler; the reference keeps the flags of its pixel format conversion. Without `--scaler` the scaler is bilinear, as before (D-003).
+  - `--model NAME` takes any built-in model of the linked libvmaf by its version, and libvmaf says which it has: an unknown name ends the run with status 1 and no report (P-006). `--help` lists the work order's three. `--model-file FILE` loads a libvmaf model file instead; the two exclude each other. Without either the model is vmaf_v0.6.1, as before (D-004).
+  - The report names the model by `model` (the version, or the file's path as given), `model_source` (`built-in` or `file`) and `model_sha256` (SHA-256 of the file's contents, read right before libvmaf reads it; `null` for a built-in model). The analyzer records them, so the GUI's results have them too.
+  - The report's `reference_mode` is `explicit-pair`: `mirage_vmaf` scores the one pair its command line names, and doesn't know whether that reference is a ladder's top rung or a mezzanine.
+  - `run_delta.sh --model-file FILE` gives FFmpeg `model=path=FILE` and `mirage_vmaf` `--model-file FILE`, and fails a pair unless the report has `model_source` `file` and the SHA-256 the tool computes; a path with characters that mean something in a filter graph, or white space, is refused before anything runs. For D-006, every pair report states both sides' libvmaf package versions and run time versions, and the run's report FFmpeg's run time version next to its package version.
+- **Alternatives**
+  - `--scaler` for the reference's conversion too, or other swscale algorithms.
+  - A fixed list of model names checked by the command line.
+  - One `--model` option that takes a name or a path.
+  - The model file's SHA-256 computed by `mirage_vmaf` rather than recorded by the analyzer.
+  - `reference_mode` left out until §7's schema, or a `--reference-mode` option with which the user declares `top-rung` or `mezzanine`.
+- **Rationale**
+  - FFmpeg's `flags=` names make the two sides' settings the same words, which `run_delta.sh` passes on unchanged. The reference keeps its size; in the §5 graph its format conversion isn't the scale filter that `flags=` sets, so applying `--scaler` to it wouldn't match FFmpeg either. Every reference so far is yuv420p and kept at its own size, so its conversion has no format or size to change; what the flags do to a reference in another format belongs to #5.
+  - Which built-in models a libvmaf has depends on how it was built, so libvmaf is the one to ask; FFmpeg's libvmaf filter has `model=version=` and `model=path=` too.
+  - A path doesn't identify a file's contents; the SHA-256 does, and `models-300/checks.txt` (check 4) shows it is the value `shasum -a 256` computes.
+  - Work order §1.2 asks every output for a `reference_mode`. Its two values describe how a ladder's reference is chosen; for a pair given by hand neither is known. The work order's §7 lists only `mezzanine` and `top-rung`, which is a difference the owner decides.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
+
+### P-018 The pooling measurement: candidate definitions on per-frame scores already committed
+
+- **Choice**
+  - `eval/pooling/pooling.py` computes, without changing Mirage's pooling (#6), on the full-length per-frame scores of Phase 0's baseline (`eval/baseline/bipbop16x9/report.vmaf.json`, 4 decimals) and on both sides of `eval/consistency/diag-after-300/plain`: the minimum and where it falls, the first frame's score and the minimum without the first frame; p1, p5, p10, p25 and p50 by the analyzer's current rule (`sorted[floor(n*p/100)]`), by nearest rank, and by linear interpolation (Hyndman and Fan's definition 7); the harmonic mean as `n / sum(1 / (x + 1)) - 1` and as `n / sum(1 / x)`; and, from FFmpeg's logs, libvmaf's own pooled values and the first frame's motion features.
+  - It checks its own reading: the analyzer's recorded `vmaf_p5` against the current rule, libvmaf's harmonic mean against both forms, and the recorded minima. The outputs are in `eval/pooling/bipbop16x9/`, made from a clean tree, with the inputs' SHA-256.
+- **Alternatives**
+  - Wait for the full-length §5 run of D-018, whose scores are all after D-016.
+  - More percentile definitions, such as Hyndman and Fan's definition 6.
+  - Add libvmaf's harmonic mean to `mirage_vmaf`'s report now.
+- **Rationale**
+  - The baseline has full-length series, which show how much the definitions differ on long runs, and `diag-after-300/` has full precision and libvmaf's harmonic mean in FFmpeg's logs. The baseline's scores of 640x360 and 416x234 are from before D-016; the definitions are applied to them only as series (`eval/pooling/README.md`). The script runs on D-018's run unchanged once it is committed.
+  - The three definitions are the current one, the textbook nearest rank, and the interpolation that common analysis tools use by default (NumPy's `percentile`, R's `quantile`).
+  - Any new pooled value in the report would pick a definition, which is #6.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
+
+### P-019 Not yet in mirage_vmaf: ladder scoring and a config file
+
+- **Choice**: `mirage_vmaf` still scores one pair. It gets neither a ladder mode (work order §1.2: the top rung of a master playlist by default, D-002, or a mezzanine) nor a config file (the work order's engineering constraints). `docs/PHASE1_DECISIONS_PENDING.md` describes both as pending items.
+- **Alternatives**
+  - A ladder mode now, with the player's current behavior: every `EXT-X-STREAM-INF` entry but the top one, audio-only and repeated playlists included, as `start_manifest()` does.
+  - A config file now, in a format of the agent's choosing.
+- **Rationale**
+  - A ladder mode could be built without touching the player and without new dependencies (`ManifestParser` and pugixml are in the tree), but it needs choices that are the owner's or §2's: which entries are scored (audio-only entries, entries that share a playlist, equal bandwidths), what a failed rung does to the run and its exit status given P-006, and how one report holds several pairs and keeps the two reference modes apart before §7's schema exists. Its acceptance, both modes on one ladder, also needs a ladder with a mezzanine, which waits for D-011's clips.
+  - The config file's format is the owner's to choose (`docs/PHASE1_DECISIONS_PENDING.md`).
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
