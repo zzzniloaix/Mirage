@@ -2,10 +2,12 @@
 #include "FileHash.h"
 #include "ManifestParser.h"
 #include "Logger.h"
+#include "VMAFAlign.h"
 #include "VMAFColor.h"
 
 #include <algorithm>
 #include <cstring>
+#include <deque>
 #include <format>
 #include <fstream>
 #include <limits>
@@ -61,6 +63,30 @@ std::string av_error_text(int err)
 }
 
 std::string name_or_unknown(const char* name) { return name ? name : "unknown"; }
+
+static_assert(vmafalign::kNoTimestamp == AV_NOPTS_VALUE);
+
+const char* input_name(vmafalign::Input in)
+{
+    return in == vmafalign::Input::Reference ? "reference" : "distorted";
+}
+
+// The warning for a pairing whose failure rate is above the threshold.
+std::string alignment_warning(const vmafalign::Counts& c)
+{
+    std::string kinds;
+    for (const auto& [n, what] : { std::pair{ c.unmatched_reference, "unmatched reference" },
+                                   std::pair{ c.extra_distorted, "extra distorted" },
+                                   std::pair{ c.duplicate_distorted, "duplicate distorted" },
+                                   std::pair{ c.no_timestamp, "without a timestamp" },
+                                   std::pair{ c.after_discontinuity, "after a discontinuity" } })
+        if (n > 0) kinds += std::format("{}{} {}", kinds.empty() ? "" : ", ", n, what);
+    return std::format("{:.2f}% of the frames failed to pair by timestamp ({} of {}: {}), above "
+                       "the threshold of {}% (DECISIONS.md D-028); the scores are those of the "
+                       "{} frame pairs that paired",
+                       100.0 * c.failure_rate(), c.failed(), c.paired + c.failed(), kinds,
+                       100.0 * vmafalign::kFailureThreshold, c.paired);
+}
 
 // The warning for frames in a pixel format vmafcolor::verified() doesn't list.
 std::string unverified(const char* side, AVPixelFormat format)
@@ -224,6 +250,24 @@ struct DecodeCtx {
         return static_cast<double>(ts) * tb.num / tb.den;
     }
 
+    // The video stream's timing for pairing by timestamp (src/VMAFAlign.h):
+    // its time base; the frame rate `ffmpeg` gives its filter graph for the
+    // stream when the command line names none (av_guess_frame_rate(),
+    // fftools/ffmpeg_demux.c of FFmpeg 8.1.1); and the container's start
+    // time in the stream's time base, rounded as `ffmpeg` rounds the offset
+    // it shifts the input's timestamps by without -copyts.
+    vmafalign::Clock clock() const
+    {
+        AVStream* st = fmt_ctx->streams[vid_idx];
+        return {
+            .time_base  = st->time_base,
+            .frame_rate = av_guess_frame_rate(fmt_ctx, st, nullptr),
+            .start      = fmt_ctx->start_time == AV_NOPTS_VALUE
+                              ? vmafalign::kNoTimestamp
+                              : av_rescale_q(fmt_ctx->start_time, AV_TIME_BASE_Q, st->time_base),
+        };
+    }
+
     // The opened video stream as the decoder sees it.
     VMAFInputInfo info() const
     {
@@ -242,6 +286,50 @@ struct DecodeCtx {
         return in;
     }
 };
+
+// What `a` did with the frames of the two inputs, for VMAFResult::alignment.
+void record_alignment(VMAFAlignment& out, const vmafalign::Aligner& a,
+                      const DecodeCtx& ref, const vmafalign::Clock& ref_clock,
+                      const DecodeCtx& dis, const vmafalign::Clock& dis_clock)
+{
+    using vmafalign::Input;
+    out.grid      = input_name(a.grid());
+    out.tolerance = av_q2d(a.tolerance());
+    const auto input = [&](Input in, const DecodeCtx& ctx, const vmafalign::Clock& clock,
+                           std::string& rate, double& start, std::string& from) {
+        rate = std::format("{}/{}", clock.frame_rate.num, clock.frame_rate.den);
+        if (const std::optional<int64_t> s = a.start(in)) {
+            start = ctx.seconds(*s);
+            from  = a.start_from_clock(in) ? "container" : "first-frame";
+        }
+    };
+    input(Input::Reference, ref, ref_clock, out.ref_frame_rate, out.ref_start, out.ref_start_from);
+    input(Input::Distorted, dis, dis_clock, out.dis_frame_rate, out.dis_start, out.dis_start_from);
+
+    const vmafalign::Counts& c = a.counts();
+    out.paired              = c.paired;
+    out.unmatched_reference = c.unmatched_reference;
+    out.extra_distorted     = c.extra_distorted;
+    out.duplicate_distorted = c.duplicate_distorted;
+    out.no_timestamp        = c.no_timestamp;
+    out.after_discontinuity = c.after_discontinuity;
+    out.off_grid_reference  = c.off_grid_reference;
+    out.off_grid_distorted  = c.off_grid_distorted;
+    out.discontinuities     = c.discontinuities;
+    out.failed              = c.failed();
+    out.failure_rate        = c.failure_rate();
+    out.threshold           = vmafalign::kFailureThreshold;
+    out.exceeded            = c.exceeded();
+    out.failures.clear();
+    for (const vmafalign::Failure& f : a.failures())
+        out.failures.push_back({
+            .input  = input_name(f.input),
+            .index  = f.index,
+            .pts    = (f.input == Input::Reference ? ref : dis).seconds(f.timestamp),
+            .reason = vmafalign::reason_name(f.reason),
+        });
+    out.warning = out.exceeded ? alignment_warning(c) : std::string();
+}
 
 }  // namespace
 
@@ -328,6 +416,9 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
     VmafContext* vmaf  = nullptr;
     VmafModel*   model = nullptr;
 
+    // The decoded frames the aligner holds, in its order (src/VMAFAlign.h).
+    std::deque<AVFrame*> ref_queue, dis_queue;
+
     auto cleanup = [&] {
         if (model)      vmaf_model_destroy(model);
         if (vmaf)       vmaf_close(vmaf);
@@ -335,6 +426,10 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
         sws_free_context(&ref_conv_sws);
         sws_free_context(&dis_sws);
         if (ref_scaled) av_frame_free(&ref_scaled);
+        for (auto* q : { &ref_queue, &dis_queue })
+            for (AVFrame*& f : *q) av_frame_free(&f);
+        ref_queue.clear();
+        dis_queue.clear();
         ref_ctx.close();
         dis_ctx.close();
     };
@@ -400,26 +495,39 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
         result.warnings.push_back(std::move(text));
     };
 
-    unsigned frame_idx = 0;
+    // The two inputs' frames are paired by timestamp (src/VMAFAlign.h,
+    // DECISIONS.md D-028).
+    const vmafalign::Clock ref_clock = ref_ctx.clock();
+    const vmafalign::Clock dis_clock = dis_ctx.clock();
+    vmafalign::Aligner aligner(ref_clock, dis_clock);
+    if (!aligner.ok()) {
+        cleanup();
+        return fail(aligner.error());
+    }
+
+    unsigned frame_idx = 0;      // frame pairs scored
+    unsigned ctx_first = 0;      // the first of them in the current libvmaf context
     std::string convert_error;   // why a frame could not be converted
     std::vector<std::pair<vmafcolor::Tags, vmafcolor::Tags>> ref_conversion_tags;
     std::vector<std::pair<vmafcolor::Tags, vmafcolor::Tags>> dis_conversion_tags;
 
-    while (!st.stop_requested() && (opts.max_frames == 0 || frame_idx < opts.max_frames)) {
-        AVFrame* ref_frame = ref_ctx.next_video_frame();
-        AVFrame* dis_frame = dis_ctx.next_video_frame();
+    // Flushes the current libvmaf context's feature extractors and, with
+    // `read`, reads the scores of its pairs.
+    auto finish_context = [&](bool read) {
+        if (int r = vmaf_read_pictures(vmaf, nullptr, nullptr, 0); r < 0)
+            score_failed("vmaf_read_pictures (flush)", r);
+        if (!read || frame_idx == ctx_first) return;
+        result.per_frame.resize(frame_idx);
+        for (unsigned i = ctx_first; i < frame_idx; ++i)
+            if (int r = vmaf_score_at_index(vmaf, model, &result.per_frame[i], i - ctx_first); r < 0)
+                score_failed("vmaf_score_at_index", r);
+        result.alignment.contexts.push_back({ .first_index = ctx_first,
+                                              .pairs       = frame_idx - ctx_first });
+    };
 
-        if (!ref_frame || !dis_frame) {
-            if (ref_frame) av_frame_free(&ref_frame);
-            if (dis_frame) av_frame_free(&dis_frame);
-            break;
-        }
-
-        if (opts.record_pts) {
-            result.ref_pts.push_back(ref_ctx.seconds(ref_frame->best_effort_timestamp));
-            result.dis_pts.push_back(dis_ctx.seconds(dis_frame->best_effort_timestamp));
-        }
-
+    // Converts both frames of a pair and gives them to libvmaf; frees them.
+    // False when a frame could not be converted (convert_error says why).
+    auto score_pair = [&](AVFrame* ref_frame, AVFrame* dis_frame) {
         // Both frames → YUV420P @ ref_w × ref_h, in the color matrix and
         // range FFmpeg's graph negotiates for the two (src/VMAFColor.h).
         const vmafcolor::Input ref_in = vmafcolor::input_of(*ref_frame);
@@ -469,7 +577,7 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
         if (!convert_error.empty()) {
             av_frame_free(&ref_conv);
             av_frame_free(&dis_scaled);
-            break;
+            return false;
         }
         const AVFrame* ref_out = ref_conv ? ref_conv : ref_scaled;
 
@@ -498,9 +606,69 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
         av_frame_free(&ref_conv);
         av_frame_free(&dis_scaled);
 
-        // Context takes ownership of ref_pic / dis_pic backing memory.
-        if (int r = vmaf_read_pictures(vmaf, &ref_pic, &dis_pic, frame_idx++); r < 0)
+        // Context takes ownership of ref_pic / dis_pic backing memory; its
+        // indices count from its first pair.
+        if (int r = vmaf_read_pictures(vmaf, &ref_pic, &dis_pic, frame_idx++ - ctx_first); r < 0)
             score_failed("vmaf_read_pictures", r);
+        return true;
+    };
+
+    using StepKind = vmafalign::Step::Kind;
+    while (!st.stop_requested() && (opts.max_frames == 0 || frame_idx < opts.max_frames)) {
+        const vmafalign::Step step = aligner.next();
+        if (step.kind == StepKind::Done) break;
+
+        if (step.kind == StepKind::NeedReference || step.kind == StepKind::NeedDistorted) {
+            const bool ref = step.kind == StepKind::NeedReference;
+            const vmafalign::Input in = ref ? vmafalign::Input::Reference
+                                            : vmafalign::Input::Distorted;
+            if (AVFrame* f = (ref ? ref_ctx : dis_ctx).next_video_frame()) {
+                (ref ? ref_queue : dis_queue).push_back(f);
+                aligner.push(in, f->best_effort_timestamp);
+            } else {
+                aligner.end(in);
+            }
+            continue;
+        }
+        if (step.kind == StepKind::DropReference || step.kind == StepKind::DropDistorted) {
+            std::deque<AVFrame*>& q = step.kind == StepKind::DropReference ? ref_queue : dis_queue;
+            av_frame_free(&q.front());
+            q.pop_front();
+            continue;
+        }
+
+        // A pair, scored in a new libvmaf context after a gap in the
+        // reference's frames, so that no motion feature spans it.
+        AVFrame* ref_frame = ref_queue.front();
+        AVFrame* dis_frame = dis_queue.front();
+        ref_queue.pop_front();
+        dis_queue.pop_front();
+        if (step.new_context) {
+            finish_context(true);
+            vmaf_close(vmaf);
+            vmaf      = nullptr;
+            ctx_first = frame_idx;
+            VmafContext* fresh = nullptr;
+            const char* failed = vmaf_init(&fresh, cfg) < 0 ? "vmaf_init failed" : nullptr;
+            if (!failed) {
+                vmaf = fresh;
+                if (vmaf_use_features_from_model(vmaf, model) < 0)
+                    failed = "vmaf_use_features_from_model failed";
+            }
+            if (failed) {
+                av_frame_free(&ref_frame);
+                av_frame_free(&dis_frame);
+                cleanup();
+                return fail(failed);
+            }
+        }
+        if (opts.record_pts) {
+            result.ref_pts.push_back(ref_ctx.seconds(ref_frame->best_effort_timestamp));
+            result.dis_pts.push_back(dis_ctx.seconds(dis_frame->best_effort_timestamp));
+            result.ref_index.push_back(step.ref_index);
+            result.dis_index.push_back(step.dis_index);
+        }
+        if (!score_pair(ref_frame, dis_frame)) break;
 
         float pair_frac = std::min(static_cast<float>(frame_idx) /
                                    static_cast<float>(total_est), 0.99f);
@@ -512,17 +680,16 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
         return fail(convert_error);
     }
 
-    // Flush feature extractors
-    if (int r = vmaf_read_pictures(vmaf, nullptr, nullptr, 0); r < 0)
-        score_failed("vmaf_read_pictures (flush)", r);
+    // Flush feature extractors, and collect the last context's scores. A
+    // cancelled analysis has none.
+    finish_context(!st.stop_requested());
+    if (st.stop_requested()) {
+        result.per_frame.clear();
+        result.alignment.contexts.clear();
+    }
 
-    // Collect per-frame scores and pooled stats
+    // Pooled stats
     if (frame_idx > 0 && !st.stop_requested()) {
-        result.per_frame.resize(frame_idx);
-        for (unsigned i = 0; i < frame_idx; ++i)
-            if (int r = vmaf_score_at_index(vmaf, model, &result.per_frame[i], i); r < 0)
-                score_failed("vmaf_score_at_index", r);
-
         // Pooled from the per-frame scores, with libvmaf's formulas for the
         // mean, the harmonic mean and the minimum, so that a pair scored in
         // one libvmaf context gets vmaf_score_pooled()'s values and one
@@ -536,6 +703,10 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
                      frame_idx, result.vmaf_mean, result.vmaf_min, result.vmaf_p5,
                      result.label);
     }
+
+    // How the frames paired, with a warning above the threshold (D-028).
+    record_alignment(result.alignment, aligner, ref_ctx, ref_clock, dis_ctx, dis_clock);
+    if (result.alignment.exceeded) warn(result.alignment.warning);
 
     // How each input ended (before cleanup() resets the decode contexts).
     auto record_end = [](const DecodeCtx& ctx, VMAFInputInfo& info) {

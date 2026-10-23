@@ -17,6 +17,7 @@
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <functional>
 #include <sstream>
 #include <string>
 #include <thread>
@@ -201,6 +202,182 @@ std::string make_unscorable(const char* name, bool video)
 
 double ms(int k) { return static_cast<double>(k * 1000 / kFps) / 1000.0; }
 
+// The luma of make_clip()'s ramp as it is at `ms` milliseconds: it moves 3
+// steps every 40 ms, so a frame at 40 k ms shows make_clip()'s frame k.
+void fill_ramp_at(uint8_t* y, int linesize, int w, int h, int ms)
+{
+    const int shift = 3 * ms / 40;
+    for (int row = 0; row < h; ++row)
+        for (int col = 0; col < w; ++col)
+            y[row * linesize + col] = static_cast<uint8_t>((col * 256 / w + row * 128 / h + shift) & 0xff);
+}
+
+// The frames of a timed clip, for pairing by timestamp (D-028).
+struct Timing {
+    std::vector<int> times_ms;                 // each frame's timestamp; it shows the ramp at that time
+    AVRational       frame_rate = { kFps, 1 };   // the stream's average frame rate
+    bool             audio = false;            // a mono PCM track as well, from 0 to the video's end
+};
+
+// 40 k for k = 0 .. n - 1: make_clip()'s timestamps.
+std::vector<int> every_40ms(int n)
+{
+    std::vector<int> out;
+    for (int k = 0; k < n; ++k) out.push_back(40 * k);
+    return out;
+}
+
+// A Matroska clip of gray w x h yuv420p frames at the given timestamps, each
+// showing the ramp at its own time, so that a frame dropped or repeated
+// leaves the others' pictures and timestamps as they were.
+std::string make_timed_clip(const char* name, int w, int h, AVColorSpace space, const Timing& t)
+{
+    const fs::path path = testtemp::path(name);
+    AVFormatContext* oc = nullptr;
+    REQUIRE(avformat_alloc_output_context2(&oc, nullptr, "matroska", path.c_str()) >= 0);
+    AVStream* st = avformat_new_stream(oc, nullptr);
+    st->codecpar->codec_type  = AVMEDIA_TYPE_VIDEO;
+    st->codecpar->codec_id    = AV_CODEC_ID_RAWVIDEO;
+    st->codecpar->codec_tag   = avcodec_pix_fmt_to_codec_tag(AV_PIX_FMT_YUV420P);
+    st->codecpar->format      = AV_PIX_FMT_YUV420P;
+    st->codecpar->width       = w;
+    st->codecpar->height      = h;
+    st->codecpar->color_space = space;
+    st->codecpar->color_range = AVCOL_RANGE_MPEG;
+    st->time_base             = { 1, 1000 };
+    st->avg_frame_rate        = t.frame_rate;
+    AVStream* au = nullptr;
+    if (t.audio) {
+        au = avformat_new_stream(oc, nullptr);
+        au->codecpar->codec_type  = AVMEDIA_TYPE_AUDIO;
+        au->codecpar->codec_id    = AV_CODEC_ID_PCM_S16LE;
+        au->codecpar->format      = AV_SAMPLE_FMT_S16;
+        au->codecpar->sample_rate = 8000;
+        av_channel_layout_default(&au->codecpar->ch_layout, 1);
+        au->time_base = { 1, 1000 };
+    }
+    REQUIRE(avio_open(&oc->pb, path.c_str(), AVIO_FLAG_WRITE) >= 0);
+    REQUIRE(avformat_write_header(oc, nullptr) >= 0);
+
+    const auto write = [&](AVStream* s, int pts_ms, int duration_ms, int size,
+                           const std::function<void(uint8_t*)>& fill) {
+        AVPacket* pkt = av_packet_alloc();
+        REQUIRE(av_new_packet(pkt, size) >= 0);
+        fill(pkt->data);
+        pkt->stream_index = s->index;
+        pkt->pts = pkt->dts = pts_ms;
+        pkt->duration = duration_ms;
+        pkt->flags |= AV_PKT_FLAG_KEY;
+        av_packet_rescale_ts(pkt, { 1, 1000 }, s->time_base);
+        REQUIRE(av_interleaved_write_frame(oc, pkt) >= 0);
+        av_packet_free(&pkt);
+    };
+    const int size = av_image_get_buffer_size(AV_PIX_FMT_YUV420P, w, h, 1);
+    const int duration = static_cast<int>(av_rescale(1000, t.frame_rate.den, t.frame_rate.num));
+    std::size_t next = 0;   // the next video frame
+    const int end = t.times_ms.empty() ? 0 : t.times_ms.back() + 40;
+    for (int slot = 0; slot < end || next < t.times_ms.size(); slot += 40) {
+        if (au && slot < end)
+            write(au, slot, 40, 640, [](uint8_t* d) { std::fill_n(d, 640, static_cast<uint8_t>(0)); });
+        while (next < t.times_ms.size() && t.times_ms[next] < slot + 40) {
+            const int ms = t.times_ms[next++];
+            write(st, ms, duration, size, [&](uint8_t* d) {
+                fill_ramp_at(d, w, w, h, ms);
+                std::fill(d + w * h, d + size, static_cast<uint8_t>(128));
+            });
+        }
+    }
+    REQUIRE(av_write_trailer(oc) >= 0);
+    avio_closep(&oc->pb);
+    avformat_free_context(oc);
+    return path.string();
+}
+
+// An MPEG-TS clip of `frames` frames of the ramp at 25 fps and w x h, MPEG-2
+// coded with every frame a key frame and BT.601 tags, written as two TS
+// files one after the other, as an HLS stream's segments are: the second
+// starts at frame `restart`, its timestamps start again from 0, and it marks
+// its first packets as discontinuous (mpegts_flags initial_discontinuity).
+std::string make_ts_restart_clip(const char* name, int w, int h, int frames, int restart)
+{
+    const AVCodec* codec = avcodec_find_encoder(AV_CODEC_ID_MPEG2VIDEO);
+    REQUIRE(codec);
+    AVCodecContext* enc = avcodec_alloc_context3(codec);
+    enc->width          = w;
+    enc->height         = h;
+    enc->pix_fmt        = AV_PIX_FMT_YUV420P;
+    enc->time_base      = { 1, kFps };
+    enc->framerate      = { kFps, 1 };
+    enc->gop_size       = 1;
+    enc->max_b_frames   = 0;
+    enc->flags         |= AV_CODEC_FLAG_QSCALE;
+    enc->global_quality = FF_QP2LAMBDA * 2;
+    enc->colorspace     = AVCOL_SPC_SMPTE170M;
+    enc->color_range    = AVCOL_RANGE_MPEG;
+    REQUIRE(avcodec_open2(enc, codec, nullptr) >= 0);
+
+    std::vector<AVPacket*> packets;
+    const auto drain = [&] {
+        for (AVPacket* pkt = av_packet_alloc(); avcodec_receive_packet(enc, pkt) == 0;
+             pkt = av_packet_alloc())
+            packets.push_back(pkt);
+    };
+    AVFrame* f = av_frame_alloc();
+    f->format = AV_PIX_FMT_YUV420P;
+    f->width  = w;
+    f->height = h;
+    REQUIRE(av_frame_get_buffer(f, 0) >= 0);
+    for (int k = 0; k < frames; ++k) {
+        REQUIRE(av_frame_make_writable(f) >= 0);
+        fill_ramp_at(f->data[0], f->linesize[0], w, h, 40 * k);
+        for (int p = 1; p < 3; ++p)
+            for (int row = 0; row < (h + 1) / 2; ++row)
+                std::fill_n(f->data[p] + row * f->linesize[p], (w + 1) / 2, static_cast<uint8_t>(128));
+        f->pts = k;
+        REQUIRE(avcodec_send_frame(enc, f) >= 0);
+        drain();
+    }
+    REQUIRE(avcodec_send_frame(enc, nullptr) >= 0);
+    drain();
+    av_frame_free(&f);
+    REQUIRE(static_cast<int>(packets.size()) == frames);
+
+    const fs::path path = testtemp::path(name);
+    std::ofstream out(path, std::ios::binary | std::ios::trunc);
+    for (int part = 0; part < 2; ++part) {
+        const fs::path piece = testtemp::path(std::format("{}.part{}", name, part).c_str());
+        AVFormatContext* oc = nullptr;
+        REQUIRE(avformat_alloc_output_context2(&oc, nullptr, "mpegts", piece.c_str()) >= 0);
+        AVStream* st = avformat_new_stream(oc, nullptr);
+        REQUIRE(avcodec_parameters_from_context(st->codecpar, enc) >= 0);
+        st->time_base = { 1, 90000 };
+        REQUIRE(avio_open(&oc->pb, piece.c_str(), AVIO_FLAG_WRITE) >= 0);
+        AVDictionary* opts = nullptr;
+        if (part == 1) av_dict_set(&opts, "mpegts_flags", "initial_discontinuity", 0);
+        REQUIRE(avformat_write_header(oc, &opts) >= 0);
+        av_dict_free(&opts);
+        const int from = part == 0 ? 0 : restart, to = part == 0 ? restart : frames;
+        for (int k = from; k < to; ++k) {
+            AVPacket* pkt = av_packet_clone(packets[k]);
+            pkt->stream_index = 0;
+            pkt->pts -= from;   // the second file starts from 0 again
+            pkt->dts -= from;
+            av_packet_rescale_ts(pkt, enc->time_base, st->time_base);
+            REQUIRE(av_interleaved_write_frame(oc, pkt) >= 0);
+            av_packet_free(&pkt);
+        }
+        REQUIRE(av_write_trailer(oc) >= 0);
+        avio_closep(&oc->pb);
+        avformat_free_context(oc);
+        std::ifstream in(piece, std::ios::binary);
+        out << in.rdbuf();
+        fs::remove(piece);
+    }
+    for (AVPacket*& pkt : packets) av_packet_free(&pkt);
+    avcodec_free_context(&enc);
+    return path.string();
+}
+
 // Waits for a background analysis; false if it is still running after a minute.
 bool wait_done(const VMAFAnalyzer& a)
 {
@@ -349,14 +526,25 @@ TEST_CASE("VMAFAnalyzer::analyze: the last pair of a limited run has no successo
     CHECK(part.per_frame[3] != full.per_frame[3]);
 }
 
-TEST_CASE("VMAFAnalyzer::analyze: the shorter input ends the pairing", "[vmaf]")
+TEST_CASE("VMAFAnalyzer::analyze: the frames of the longer input past the shorter's end fail to pair", "[vmaf]")
 {
+    // Since D-028 the longer input is read to its end, so that what is left
+    // of it is counted: here the reference's last 4 frames, unmatched.
     const VMAFResult r = VMAFAnalyzer::analyze(ref_clip(), short_clip(), { .record_pts = true });
     REQUIRE(r.error.empty());
     CHECK(r.per_frame.size() == 8);
     CHECK(r.dis_pts.size() == 8);
     CHECK(r.dis_info.ended);
-    CHECK_FALSE(r.ref_info.ended);
+    CHECK(r.ref_info.ended);
+    CHECK(r.alignment.paired == 8);
+    CHECK(r.alignment.unmatched_reference == 4);
+    CHECK(r.alignment.failed == 4);
+    CHECK(r.alignment.failure_rate == 4.0 / 12.0);
+    CHECK(r.alignment.exceeded);
+    REQUIRE(r.alignment.failures.size() == 4);
+    CHECK(r.alignment.failures[0].input == "reference");
+    CHECK(r.alignment.failures[0].index == 8);
+    CHECK(r.alignment.failures[0].pts == ms(8));
 }
 
 TEST_CASE("VMAFAnalyzer::analyze: an input that cannot be opened is an error", "[vmaf]")
@@ -665,12 +853,12 @@ TEST_CASE("VMAFAnalyzer::analyze: a reference that isn't yuv420p is converted to
     // FFmpeg's section 5 graph converts such a reference itself, with a scale
     // filter it inserts, to the tags it negotiates for both inputs: here the
     // distorted frames' (vmafcolor::negotiated), which then keep theirs.
-    static const std::string ref422 = make_clip("mirage_test_vmaf_ref422.mkv", 192, 108, 6,
+    static const std::string ref422 = make_clip("mirage_test_vmaf_ref422.mkv", 192, 108, 12,
                                                 AVCOL_SPC_BT709, { .pix_fmt = AV_PIX_FMT_YUV422P });
     const VMAFResult r = VMAFAnalyzer::analyze(ref422, dis_clip());
     REQUIRE(r.error.empty());
     CHECK(r.ref_info.pix_fmt == "yuv422p");
-    CHECK(r.per_frame.size() == 6);
+    CHECK(r.per_frame.size() == 12);
     CHECK(r.warnings.empty());   // yuv422p is among the verified formats
     REQUIRE(r.ref_conversions.size() == 1);
     const VMAFColorConversion& c = r.ref_conversions[0];
@@ -681,7 +869,7 @@ TEST_CASE("VMAFAnalyzer::analyze: a reference that isn't yuv420p is converted to
     CHECK(c.matrix_changed);
     CHECK_FALSE(c.range_changed);
     CHECK(c.first_index == 0);
-    CHECK(c.pairs == 6);
+    CHECK(c.pairs == 12);
     REQUIRE(r.dis_conversions.size() == 1);
     const VMAFColorConversion& d = r.dis_conversions[0];
     CHECK(d.from_space == "smpte170m");
@@ -699,14 +887,14 @@ TEST_CASE("VMAFAnalyzer::analyze: a reference that isn't yuv420p is converted to
 TEST_CASE("VMAFAnalyzer::analyze: frames in a pixel format not checked against FFmpeg's are scored with a warning", "[vmaf]")
 {
     // NV12 isn't among vmafcolor::verified_formats().
-    static const std::string dis = make_clip("mirage_test_vmaf_nv12.mkv", 96, 54, 4,
+    static const std::string dis = make_clip("mirage_test_vmaf_nv12.mkv", 96, 54, 12,
                                              AVCOL_SPC_SMPTE170M, { .pix_fmt = AV_PIX_FMT_NV12 });
-    static const std::string ref = make_clip("mirage_test_vmaf_nv12_ref.mkv", 192, 108, 4,
+    static const std::string ref = make_clip("mirage_test_vmaf_nv12_ref.mkv", 192, 108, 12,
                                              AVCOL_SPC_BT709, { .pix_fmt = AV_PIX_FMT_NV12 });
     const VMAFResult a = VMAFAnalyzer::analyze(ref_clip(), dis);
     REQUIRE(a.error.empty());
     CHECK(a.dis_info.pix_fmt == "nv12");
-    CHECK(a.per_frame.size() == 4);
+    CHECK(a.per_frame.size() == 12);
     REQUIRE(a.warnings.size() == 1);   // once, not once per pair
     CHECK(a.warnings[0].starts_with("the distorted input's frames are nv12, a pixel format whose "
                                     "conversion isn't checked against FFmpeg's section 5 graph"));
@@ -718,4 +906,261 @@ TEST_CASE("VMAFAnalyzer::analyze: frames in a pixel format not checked against F
     REQUIRE(b.warnings.size() == 1);
     CHECK(b.warnings[0].starts_with("the reference's frames are nv12, a pixel format whose "
                                     "conversion isn't checked"));
+}
+
+// ── Pairing by timestamp (D-028) ─────────────────────────────────────────────
+
+TEST_CASE("VMAFAnalyzer::analyze: frames that line up keep their pairs, and the alignment says so", "[vmaf]")
+{
+    const VMAFResult r = VMAFAnalyzer::analyze(ref_clip(), dis_clip(), { .record_pts = true });
+    REQUIRE(r.error.empty());
+    REQUIRE(r.per_frame.size() == 12);
+    const VMAFAlignment& a = r.alignment;
+    CHECK(a.rule == "reference-timeline");
+    CHECK(a.timestamp_origin == "input-start");
+    CHECK(a.grid == "reference");
+    CHECK(a.tolerance == 0.02);   // half of 1/25 s
+    CHECK(a.ref_frame_rate == "25/1");
+    CHECK(a.dis_frame_rate == "25/1");
+    CHECK(a.ref_start == 0.0);
+    CHECK(a.ref_start_from == "container");
+    CHECK(a.dis_start_from == "container");
+    CHECK(a.paired == 12);
+    CHECK(a.failed == 0);
+    CHECK(a.failure_rate == 0.0);
+    CHECK(a.threshold == 0.01);
+    CHECK_FALSE(a.exceeded);
+    CHECK(a.failures.empty());
+    CHECK(a.warning.empty());
+    CHECK(r.warnings.empty());
+    CHECK(a.contexts == std::vector<VMAFContextRun>{ { 0, 12 } });
+    for (int k = 0; k < 12; ++k) {
+        INFO(k);
+        CHECK(r.ref_index[k] == k);
+        CHECK(r.dis_index[k] == k);
+        CHECK(r.ref_pts[k] == r.dis_pts[k]);
+    }
+}
+
+TEST_CASE("VMAFAnalyzer::analyze: a stream with a frame dropped on purpose (section 1.4's acceptance)", "[vmaf]")
+{
+    // The distorted clip without its frame 5, the other frames' timestamps
+    // and pictures as in dis_clip().
+    std::vector<int> times = every_40ms(12);
+    times.erase(times.begin() + 5);
+    const std::string dropped = make_timed_clip("mirage_test_vmaf_dropped.mkv", 96, 54,
+                                                AVCOL_SPC_SMPTE170M, { .times_ms = times });
+    const VMAFResult full = VMAFAnalyzer::analyze(ref_clip(), dis_clip(), { .record_pts = true });
+    const VMAFResult r = VMAFAnalyzer::analyze(ref_clip(), dropped, { .record_pts = true });
+    REQUIRE(r.error.empty());
+    REQUIRE(full.per_frame.size() == 12);
+
+    // The failed frame is reported: the reference's frame 5, which no
+    // distorted frame pairs with.
+    const VMAFAlignment& a = r.alignment;
+    CHECK(a.paired == 11);
+    CHECK(a.unmatched_reference == 1);
+    CHECK(a.failed == 1);
+    CHECK(a.failure_rate == 1.0 / 12.0);
+    CHECK(a.exceeded);
+    REQUIRE(a.failures.size() == 1);
+    CHECK(a.failures[0].input == "reference");
+    CHECK(a.failures[0].index == 5);
+    CHECK(a.failures[0].pts == ms(5));
+    CHECK(a.failures[0].reason == "unmatched_reference");
+    CHECK(a.warning.starts_with("8.33% of the frames failed to pair by timestamp (1 of 12: "
+                                "1 unmatched reference), above the threshold of 1%"));
+    CHECK(std::ranges::find(r.warnings, a.warning) != r.warnings.end());
+
+    // No mismatched pair is scored: every pair's frames have the same
+    // timestamp, the distorted frames after the gap with the next reference frame.
+    REQUIRE(r.per_frame.size() == 11);
+    for (std::size_t i = 0; i < 11; ++i) {
+        INFO(i);
+        CHECK(r.ref_pts[i] == r.dis_pts[i]);
+        CHECK(r.ref_index[i] == static_cast<int64_t>(i < 5 ? i : i + 1));
+        CHECK(r.dis_index[i] == static_cast<int64_t>(i));
+    }
+    // A new libvmaf context after the gap, and away from it the scores of the
+    // full clip against itself: frames 0 to 3 before it, 7 to 11 after it.
+    // Frame 6, the first of its context, has no motion to the frame before.
+    CHECK(a.contexts == std::vector<VMAFContextRun>{ { 0, 5 }, { 5, 6 } });
+    for (int k : { 0, 1, 2, 3, 7, 8, 9, 10, 11 }) {
+        INFO(k);
+        CHECK(r.per_frame[k < 5 ? k : k - 1] == full.per_frame[k]);
+    }
+    CHECK(r.per_frame[5] != full.per_frame[6]);
+}
+
+TEST_CASE("VMAFAnalyzer::analyze: a duplicated timestamp is a failure, and the pairs keep their scores", "[vmaf]")
+{
+    // Frame 5 twice, under the same timestamp.
+    std::vector<int> times = every_40ms(12);
+    times.insert(times.begin() + 6, 200);
+    const std::string dup = make_timed_clip("mirage_test_vmaf_duplicate.mkv", 96, 54,
+                                            AVCOL_SPC_SMPTE170M, { .times_ms = times });
+    const VMAFResult r = VMAFAnalyzer::analyze(ref_clip(), dup, { .record_pts = true });
+    REQUIRE(r.error.empty());
+    CHECK(r.alignment.paired == 12);
+    CHECK(r.alignment.duplicate_distorted == 1);
+    CHECK(r.alignment.failed == 1);
+    CHECK(r.alignment.exceeded);
+    REQUIRE(r.alignment.failures.size() == 1);
+    CHECK(r.alignment.failures[0].input == "distorted");
+    CHECK(r.alignment.failures[0].index == 6);
+    CHECK(r.alignment.failures[0].pts == ms(5));
+    CHECK(r.alignment.failures[0].reason == "duplicate_distorted");
+    CHECK(r.alignment.contexts == std::vector<VMAFContextRun>{ { 0, 12 } });
+    // The reference's frames all pair with the frames of their time.
+    CHECK(r.per_frame == VMAFAnalyzer::analyze(ref_clip(), dis_clip()).per_frame);
+}
+
+TEST_CASE("VMAFAnalyzer::analyze: half and double the reference's frame rate are scored on the coarser grid", "[vmaf]")
+{
+    // Half: every other picture of dis_clip(), 80 ms apart.
+    std::vector<int> half_times;
+    for (int k = 0; k < 6; ++k) half_times.push_back(80 * k);
+    const std::string half = make_timed_clip("mirage_test_vmaf_half_rate.mkv", 96, 54,
+                                             AVCOL_SPC_SMPTE170M,
+                                             { .times_ms = half_times, .frame_rate = { kFps, 2 } });
+    const VMAFResult h = VMAFAnalyzer::analyze(ref_clip(), half, { .record_pts = true });
+    REQUIRE(h.error.empty());
+    CHECK(h.alignment.grid == "distorted");
+    CHECK(h.alignment.dis_frame_rate == "25/2");
+    CHECK(h.alignment.tolerance == 0.02);   // still half the reference's frame duration
+    CHECK(h.alignment.paired == 6);
+    CHECK(h.alignment.off_grid_reference == 6);
+    CHECK(h.alignment.failed == 0);
+    CHECK_FALSE(h.alignment.exceeded);
+    CHECK(h.warnings.empty());
+    REQUIRE(h.per_frame.size() == 6);
+    for (int k = 0; k < 6; ++k) {
+        INFO(k);
+        CHECK(h.ref_index[k] == 2 * k);
+        CHECK(h.dis_index[k] == k);
+        CHECK(h.ref_pts[k] == h.dis_pts[k]);
+    }
+
+    // Double: a frame every 20 ms, every other one a picture of dis_clip().
+    std::vector<int> double_times;
+    for (int j = 0; j < 24; ++j) double_times.push_back(20 * j);
+    const std::string dbl = make_timed_clip("mirage_test_vmaf_double_rate.mkv", 96, 54,
+                                            AVCOL_SPC_SMPTE170M,
+                                            { .times_ms = double_times, .frame_rate = { 2 * kFps, 1 } });
+    const VMAFResult d = VMAFAnalyzer::analyze(ref_clip(), dbl, { .record_pts = true });
+    REQUIRE(d.error.empty());
+    CHECK(d.alignment.grid == "reference");
+    CHECK(d.alignment.paired == 12);
+    CHECK(d.alignment.off_grid_distorted == 12);
+    CHECK(d.alignment.failed == 0);
+    CHECK(d.warnings.empty());
+    for (int k = 0; k < 12; ++k) {
+        INFO(k);
+        CHECK(d.dis_index[k] == 2 * k);
+        CHECK(d.ref_pts[k] == d.dis_pts[k]);
+    }
+    // The pairs are dis_clip()'s, and so are the scores.
+    CHECK(d.per_frame == VMAFAnalyzer::analyze(ref_clip(), dis_clip()).per_frame);
+}
+
+TEST_CASE("VMAFAnalyzer::analyze: a later start, measured from each input's start", "[vmaf]")
+{
+    const VMAFResult full = VMAFAnalyzer::analyze(ref_clip(), dis_clip());
+    std::vector<int> times = every_40ms(12);
+    times.erase(times.begin(), times.begin() + 3);   // the first three frames cut, timestamps kept
+
+    // Video only: the container starts at the first frame left, 120 ms, and
+    // times count from there, as `ffmpeg` counts them without -copyts. So the
+    // cut clip pairs from its start, each frame with a reference frame three
+    // frames earlier in the picture, and the reference's last three frames
+    // are left over.
+    const std::string cut = make_timed_clip("mirage_test_vmaf_cut.mkv", 96, 54,
+                                            AVCOL_SPC_SMPTE170M, { .times_ms = times });
+    const VMAFResult c = VMAFAnalyzer::analyze(ref_clip(), cut, { .record_pts = true });
+    REQUIRE(c.error.empty());
+    CHECK(c.alignment.dis_start == 0.12);
+    CHECK(c.alignment.dis_start_from == "container");
+    CHECK(c.alignment.paired == 9);
+    CHECK(c.alignment.unmatched_reference == 3);
+    for (int k = 0; k < 9; ++k) {
+        INFO(k);
+        CHECK(c.ref_index[k] == k);
+        CHECK(c.ref_pts[k] == ms(k));
+        CHECK(c.dis_pts[k] == ms(k + 3));
+    }
+    REQUIRE(c.alignment.failures.size() == 3);
+    CHECK(c.alignment.failures[0].index == 9);
+
+    // With an audio track from 0 the container starts at 0: the video starts
+    // 120 ms in, and the reference's first three frames are unmatched.
+    const std::string late = make_timed_clip("mirage_test_vmaf_late.mkv", 96, 54,
+                                             AVCOL_SPC_SMPTE170M, { .times_ms = times, .audio = true });
+    const VMAFResult l = VMAFAnalyzer::analyze(ref_clip(), late, { .record_pts = true });
+    REQUIRE(l.error.empty());
+    CHECK(l.alignment.dis_start == 0.0);
+    CHECK(l.alignment.paired == 9);
+    CHECK(l.alignment.unmatched_reference == 3);
+    REQUIRE(l.alignment.failures.size() == 3);
+    for (int k = 0; k < 3; ++k) {
+        INFO(k);
+        CHECK(l.alignment.failures[k].input == "reference");
+        CHECK(l.alignment.failures[k].index == k);
+    }
+    REQUIRE(l.per_frame.size() == 9);
+    CHECK(l.alignment.contexts == std::vector<VMAFContextRun>{ { 0, 9 } });
+    for (int k = 0; k < 9; ++k) {
+        INFO(k);
+        CHECK(l.ref_index[k] == k + 3);
+        CHECK(l.ref_pts[k] == l.dis_pts[k]);
+        // The first pair has no frame before it; the others score as in the full run.
+        if (k > 0) CHECK(l.per_frame[k] == full.per_frame[k + 3]);
+    }
+}
+
+TEST_CASE("VMAFAnalyzer::analyze: MPEG-TS timestamps that restart midway stop the pairing", "[vmaf]")
+{
+    const std::string ts = make_ts_restart_clip("mirage_test_vmaf_restart.ts", 96, 54, 12, 6);
+    const VMAFResult r = VMAFAnalyzer::analyze(ref_clip(), ts, { .record_pts = true });
+    REQUIRE(r.error.empty());
+    CHECK(r.dis_info.time_base_den == 90000);
+    CHECK(r.alignment.dis_frame_rate == "25/1");
+    // The six frames before the restart pair with the reference's first six.
+    REQUIRE(r.per_frame.size() == 6);
+    for (int k = 0; k < 6; ++k) {
+        INFO(k);
+        CHECK(r.ref_index[k] == k);
+        CHECK(r.dis_index[k] == k);
+        CHECK(std::abs(r.dis_pts[k] - r.alignment.dis_start - ms(k)) < 1e-9);
+    }
+    // Then pairing stops, and the rest of both inputs counts as failed.
+    CHECK(r.alignment.discontinuities == 1);
+    CHECK(r.alignment.after_discontinuity == 12);
+    CHECK(r.alignment.failed == 12);
+    CHECK(r.alignment.failure_rate == 12.0 / 18.0);
+    CHECK(r.alignment.exceeded);
+    CHECK(r.ref_info.ended);
+    CHECK(r.dis_info.ended);
+    REQUIRE(r.alignment.failures.size() == 12);
+    for (const VMAFAlignmentFailure& f : r.alignment.failures) CHECK(f.reason == "after_discontinuity");
+    CHECK(r.alignment.warning.find("12 after a discontinuity") != std::string::npos);
+}
+
+TEST_CASE("VMAFAnalyzer::start: the player's analysis records the alignment and its warning", "[vmaf]")
+{
+    std::vector<int> times = every_40ms(12);
+    times.erase(times.begin() + 5);
+    const std::string dropped = make_timed_clip("mirage_test_vmaf_dropped_gui.mkv", 96, 54,
+                                                AVCOL_SPC_SMPTE170M, { .times_ms = times });
+    VMAFAnalyzer a;
+    a.start(ref_clip(), dropped);
+    REQUIRE(wait_done(a));
+    const auto results = a.results();
+    REQUIRE(results.size() == 1);
+    const VMAFResult& r = results[0];
+    REQUIRE(r.error.empty());
+    CHECK(r.per_frame.size() == 11);
+    CHECK(r.alignment.unmatched_reference == 1);
+    CHECK(r.alignment.exceeded);
+    CHECK_FALSE(r.alignment.warning.empty());   // what the VMAF panel shows next to the label
+    CHECK(r.ref_index.empty());                 // no PTS or indices recorded
 }

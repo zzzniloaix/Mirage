@@ -2,6 +2,8 @@
 
 #include "VMAFPool.h"
 
+#include <cstdint>
+#include <limits>
 #include <string>
 #include <string_view>
 #include <optional>
@@ -93,11 +95,63 @@ struct VMAFColorConversion {
     unsigned    pairs          = 0;   // frame pairs converted this way
 };
 
+// A frame that failed to pair by timestamp (DECISIONS.md D-028).
+struct VMAFAlignmentFailure {
+    std::string input;    // "reference" | "distorted"
+    int64_t     index = 0;   // the frame's position in its input, from 0
+    double      pts   = std::numeric_limits<double>::quiet_NaN();   // seconds; NaN without one
+    std::string reason;   // vmafalign::reason_name(): "unmatched_reference", "extra_distorted",
+                          // "duplicate_distorted", "no_timestamp", "after_discontinuity"
+};
+
+// One libvmaf context of a pair: the pairs it scored, from first_index on.
+// A new one starts after each gap in the reference's frames (D-028).
+struct VMAFContextRun {
+    unsigned first_index = 0;
+    unsigned pairs       = 0;
+
+    bool operator==(const VMAFContextRun&) const = default;
+};
+
+// How the analysis paired the two inputs' frames by timestamp, as
+// src/VMAFAlign.h says it does; the counts are of the frames it decided on
+// before it stopped.
+struct VMAFAlignment {
+    std::string rule             = "reference-timeline";   // D-028's rule A
+    std::string timestamp_origin = "input-start";          // each input's start, as `ffmpeg` without -copyts
+    std::string grid;             // "reference", or "distorted" when that frame rate is lower
+    double      tolerance = std::numeric_limits<double>::quiet_NaN();   // seconds
+    // Each input's frame rate ("30000/1001"; "0/1" when unknown), the PTS
+    // in seconds its times are measured from (NaN: not known), and where
+    // that came from: "container" (its start time) or "first-frame"; empty
+    // when not known.
+    std::string ref_frame_rate, dis_frame_rate;
+    double      ref_start = std::numeric_limits<double>::quiet_NaN();
+    double      dis_start = std::numeric_limits<double>::quiet_NaN();
+    std::string ref_start_from, dis_start_from;
+    int64_t     paired              = 0;
+    int64_t     unmatched_reference = 0;
+    int64_t     extra_distorted     = 0;
+    int64_t     duplicate_distorted = 0;
+    int64_t     no_timestamp        = 0;
+    int64_t     after_discontinuity = 0;
+    int64_t     off_grid_reference  = 0;   // skipped by the coarser grid; not failures
+    int64_t     off_grid_distorted  = 0;
+    int64_t     discontinuities     = 0;
+    int64_t     failed              = 0;
+    double      failure_rate = std::numeric_limits<double>::quiet_NaN();   // failed / (paired + failed)
+    double      threshold    = 0.0;        // vmafalign::kFailureThreshold
+    bool        exceeded     = false;      // failure_rate > threshold
+    std::vector<VMAFAlignmentFailure> failures;
+    std::vector<VMAFContextRun>       contexts;
+    std::string warning;   // when exceeded; also in VMAFResult::warnings, and in the player's VMAF panel
+};
+
 // Settings, limits and extra recording for one pair. Default-constructed it
 // is what start() and start_manifest() use.
 struct VMAFOptions {
-    unsigned        max_frames = 0;       // stop after this many frame pairs; 0 = until an input ends
-    bool            record_pts = false;   // fill VMAFResult::ref_pts / dis_pts
+    unsigned        max_frames = 0;       // stop after this many frame pairs; 0 = until both inputs end
+    bool            record_pts = false;   // fill VMAFResult::ref_pts, dis_pts, ref_index, dis_index
     VMAFScaler      scaler     = VMAFScaler::Bicubic;    // scales the distorted frames (D-024)
     VMAFModelChoice model;
 };
@@ -147,20 +201,26 @@ struct VMAFResult {
     // reference, which is used as it is.
     std::vector<VMAFColorConversion> ref_conversions;
     // What can make these scores differ from those of FFmpeg's section 5
-    // graph although the analysis succeeded: frames in a pixel format whose
-    // conversion isn't checked against FFmpeg's (vmafcolor::verified), each
-    // said once. Empty = nothing known.
+    // graph although the analysis succeeded, each said once: frames in a
+    // pixel format whose conversion isn't checked against FFmpeg's
+    // (vmafcolor::verified), and a failure rate of the pairing above its
+    // threshold (alignment.warning). Empty = nothing known.
     std::vector<std::string> warnings;
+    VMAFAlignment alignment;
     // With VMAFOptions::record_pts: the best-effort PTS (seconds) of the
-    // reference and distorted frame scored at each index of per_frame.
-    // NaN = the frame had no timestamp.
-    std::vector<double> ref_pts;
-    std::vector<double> dis_pts;
+    // reference and distorted frame scored at each index of per_frame
+    // (NaN = the frame had no timestamp), and their positions in their
+    // inputs, from 0.
+    std::vector<double>  ref_pts;
+    std::vector<double>  dis_pts;
+    std::vector<int64_t> ref_index;
+    std::vector<int64_t> dis_index;
 };
 
 // Offline VMAF analyzer.
 //
-// Runs decode + libvmaf scoring in a background jthread.
+// Runs decode + libvmaf scoring in a background jthread. The two inputs'
+// frames are paired by timestamp (src/VMAFAlign.h, DECISIONS.md D-028).
 // For single-file mode: start(ref, dis)
 // For manifest mode:    start_manifest(variants) — highest-bandwidth is reference.
 // Headless (no thread): analyze(ref, dis, opts)
