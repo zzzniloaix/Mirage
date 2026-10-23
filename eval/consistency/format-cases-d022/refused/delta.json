@@ -1,0 +1,110 @@
+{
+  "report_version": 1,
+  "tool": "eval/consistency/run_delta.py",
+  "variant": "plain",
+  "status": "FAIL",
+  "pairs_total": 1,
+  "pairs_failed": [
+    "u03_ycgco_vs_ycgco"
+  ],
+  "parameters": {
+    "variant": "plain",
+    "frames": 10,
+    "threshold": 0.01,
+    "model": "vmaf_v0.6.1",
+    "scaler": "bilinear",
+    "threads": 4,
+    "model_file": null
+  },
+  "command": "eval/consistency/run_delta.sh <mirage_vmaf> <out_dir> --frames 10 --jobs 1 --pairs <tmp>/format_clips/pairs_refused.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --ffmpeg <ffmpeg> --ffprobe <ffprobe> --timeout 21600",
+  "started_utc": "2026-10-23T21:41:34Z",
+  "ended_utc": "2026-10-23T21:41:35Z",
+  "git": {
+    "head_start": "3ea02813df24e1b3a8675e44af902fac6a540524",
+    "head_end": "3ea02813df24e1b3a8675e44af902fac6a540524",
+    "clean_start": true,
+    "clean_end": true
+  },
+  "environment": {
+    "os": "macOS 26.2 (25C56)",
+    "cpu": "Apple M3 Pro",
+    "logical_cpus": "12",
+    "kernel": "Darwin 25.2.0 arm64",
+    "python": "3.14.7",
+    "ffmpeg_version": "ffmpeg version 8.1.1 Copyright (c) 2000-2026 the FFmpeg developers",
+    "ffmpeg_libraries": {
+      "libavutil": "60.26.101",
+      "libavcodec": "62.28.101",
+      "libavformat": "62.12.101",
+      "libavdevice": "62.3.101",
+      "libavfilter": "11.14.101",
+      "libswscale": "9.5.101",
+      "libswresample": "6.3.101"
+    },
+    "ffprobe_version": "ffprobe version 8.1.1 Copyright (c) 2007-2026 the FFmpeg developers",
+    "ffmpeg_libvmaf": "/opt/homebrew/Cellar/libvmaf/3.1.0/lib/libvmaf.3.dylib",
+    "ffmpeg_libvmaf_package_version": "3.1.0"
+  },
+  "mirage_vmaf": {
+    "path": "build/macos-release/mirage_vmaf",
+    "sha256": "2220ce3a0997d53f750b34a770110f5c65f5f870cfb9a0e6347256733bcf09ea",
+    "libvmaf": "/opt/homebrew/Cellar/libvmaf/3.1.0/lib/libvmaf.3.dylib",
+    "options": [
+      "--dis",
+      "--frames",
+      "--model",
+      "--model-file",
+      "--out",
+      "--ref",
+      "--scaler"
+    ],
+    "libvmaf_version": null,
+    "libvmaf_package_version": null,
+    "ffmpeg_libraries": null
+  },
+  "ffmpeg_libvmaf": {
+    "libvmaf_version": null,
+    "libvmaf_package_version": "3.1.0"
+  },
+  "pairs_file": {
+    "path": "<tmp>/format_clips/pairs_refused.txt",
+    "sha256": "250087c2692f6abb4a2419ba2a04273c041964f41cff9ececd50c1b01706ca76"
+  },
+  "warnings": [],
+  "pairs": [
+    {
+      "pair": "u03_ycgco_vs_ycgco",
+      "status": "FAIL",
+      "fail_reasons": [
+        "mirage_vmaf exited with status 1",
+        "FFmpeg exited with status 178"
+      ],
+      "warnings": [],
+      "frames": {
+        "mirage": null,
+        "ffmpeg": null,
+        "compared": 0,
+        "counts_match": false
+      },
+      "max_abs": null,
+      "max_abs_index": null,
+      "mean_abs": null,
+      "mean_signed": null,
+      "over_threshold": null,
+      "pooled": null,
+      "relabel": null,
+      "ffmpeg_conversions": [],
+      "ffmpeg_distorted_csp": "-",
+      "mirage_distorted_csp": "-",
+      "ffmpeg_reference_csp": "-",
+      "mirage_reference_csp": "-"
+    }
+  ],
+  "redactions": {
+    "pairs.txt": 2,
+    "u03_ycgco_vs_ycgco/cmd.txt": 6,
+    "u03_ycgco_vs_ycgco/delta.json": 2,
+    "u03_ycgco_vs_ycgco/delta.md": 2,
+    "u03_ycgco_vs_ycgco/ffmpeg.stderr.log.xz": 4
+  }
+}
