@@ -1,9 +1,8 @@
 """Pooling definitions computed on committed per-frame VMAF scores (work order section 1.5).
 
-The owner decides how Mirage pools per-frame scores (decision #6 of
-docs/VMAF_GAP_REPORT.md, deferred by D-004): which percentile definition,
-and whose harmonic mean. This measures what the candidates give on per-frame
-scores already committed in the repository, without changing Mirage:
+How Mirage pools per-frame scores was decision #6 of docs/VMAF_GAP_REPORT.md,
+deferred by D-004 and made by D-027. This measures what the candidate
+definitions give on per-frame scores already committed in the repository:
 
   --gui-report FILE  the JSON the player's analyzer writes (write_json),
                      e.g. eval/baseline/bipbop16x9/report.vmaf.json, whose
@@ -16,10 +15,14 @@ scores already committed in the repository, without changing Mirage:
 For each series of per-frame scores it gives the minimum and where it
 occurs, p1, p5, p10, p25 and p50 under three definitions (DEFINITIONS), two
 forms of the harmonic mean, and, where the source has them, the values
-libvmaf pooled itself. It writes PREFIX.json and PREFIX.md, with the inputs'
-SHA-256 and the git state of the repository at the start and end of the run.
+libvmaf pooled itself. With --check-pooled it also computes, for Mirage's
+series of a delta run, the pooled values as D-027 defines them and
+mirage_vmaf computes them (POOLED_D027, src/VMAFPool.h), and checks them
+against those mirage_vmaf's report gives, at full precision. It writes
+PREFIX.json and PREFIX.md, with the inputs' SHA-256 and the git state of the
+repository at the start and end of the run.
 
-usage: pooling.py (--gui-report FILE | --delta-run DIR)... --out PREFIX
+usage: pooling.py (--gui-report FILE | --delta-run DIR)... [--check-pooled] --out PREFIX
 
 Python 3 standard library only; run it with python3 -I -B. Exit status: 0
 the reports were written; 1 an input is missing or unreadable; 2 bad
@@ -46,7 +49,7 @@ PERCENTILES = (1, 5, 10, 25, 50)
 
 DEFINITIONS = {
     "today": "sorted[floor(n*p/100)], counting from 0: the rule of the analyzer's "
-             "vmaf_p5 (src/VMAFAnalyzer.cpp, sorted[n * 5 / 100])",
+             "vmaf_p5 until D-027 (src/VMAFAnalyzer.cpp, sorted[n * 5 / 100])",
     "nearest-rank": "sorted[ceil(n*p/100) - 1], counting from 0: the nearest-rank method",
     "linear": "sorted[k] + (h - k) * (sorted[k + 1] - sorted[k]) with h = (n - 1) * p / 100 "
               "and k = floor(h), counting from 0: linear interpolation between the closest "
@@ -56,6 +59,20 @@ DEFINITIONS = {
 HARMONIC = {
     "shifted": "n / sum(1 / (x + 1)) - 1",
     "plain": "n / sum(1 / x), undefined when a frame scores 0",
+}
+
+# The pooled values mirage_vmaf reports since D-027, as it computes them
+# (src/VMAFPool.h): libvmaf's mean, harmonic mean and minimum, summed frame by
+# frame in index order as libvmaf sums them (where "mean" and "shifted" above
+# sum exactly, with math.fsum); the minimum without the first frame; and the
+# "linear" percentiles.
+POOLED_D027 = {
+    "mean": "sum / n, summed in frame order (libvmaf's VMAF_POOL_METHOD_MEAN)",
+    "harmonic_mean": "n / sum(1 / (x + 1)) - 1, summed in frame order (libvmaf's "
+                     "VMAF_POOL_METHOD_HARMONIC_MEAN)",
+    "min": "the smallest score (libvmaf's VMAF_POOL_METHOD_MIN)",
+    "min_without_first_frame": "the smallest score of frames 1 to n - 1; null for one frame",
+    **{f"p{p}": "the linear definition" for p in PERCENTILES},
 }
 
 
@@ -93,6 +110,32 @@ def harmonic_plain(scores):
     if any(x <= 0 for x in scores):
         return None
     return len(scores) / math.fsum(1.0 / x for x in scores)
+
+
+def libvmaf_mean(scores):
+    """libvmaf's pooled mean: the scores summed in frame order, over n."""
+    total = 0.0
+    for x in scores:
+        total += x
+    return total / len(scores)
+
+
+def libvmaf_harmonic_mean(scores):
+    """libvmaf's harmonic mean, n / sum(1 / (x + 1)) - 1, summed in frame order."""
+    inverse = 0.0
+    for x in scores:
+        inverse += 1.0 / (x + 1.0)
+    return len(scores) / inverse - 1.0
+
+
+def d027_pooled(scores):
+    """The pooled values of POOLED_D027 for one series of scores, in frame order."""
+    order = sorted(scores)
+    out = {"mean": libvmaf_mean(scores), "harmonic_mean": libvmaf_harmonic_mean(scores),
+           "min": order[0],
+           "min_without_first_frame": min(scores[1:]) if len(scores) > 1 else None}
+    out.update({f"p{p}": pct_linear(order, p) for p in PERCENTILES})
+    return out
 
 
 def series_stats(scores):
@@ -174,10 +217,12 @@ def gui_series(path):
     return {"kind": "gui-report", "files": [used], "series": series, "skipped": skipped}
 
 
-def delta_series(run_dir):
+def delta_series(run_dir, check_pooled=False):
     """The series of a run_delta.py run: per pair, Mirage's scores (with
     libvmaf's pooled mean and min from mirage_vmaf's report) and FFmpeg's
-    (with libvmaf's pooled values and frame 0's motion from its log)."""
+    (with libvmaf's pooled values and frame 0's motion from its log). With
+    `check_pooled`, Mirage's series also hold the report's pooled values of
+    POOLED_D027 ("reported"; None for a value the report lacks)."""
     overall, used = read_json(os.path.join(run_dir, "delta.json"))
     files, series = [used], []
     for s in overall.get("pairs") or []:
@@ -193,14 +238,17 @@ def delta_series(run_dir):
         pooled = (log.get("pooled_metrics") or {}).get("vmaf") or {}
         motion = [(fr.get("metrics") or {}).get("integer_motion2") for fr in frames]
         first = frames[0].get("metrics") or {}
-        series.append({
+        mirage = {
             "label": f"{s['pair']}, Mirage",
             "scores": [float(v) for v in m],
             "precision": "full (mirage_vmaf's report)",
             "recorded": {"mean": (rep.get("pooled") or {}).get("mean"),
                          "min": (rep.get("pooled") or {}).get("min"),
                          "source": "libvmaf's vmaf_score_pooled in mirage_vmaf"},
-        })
+        }
+        if check_pooled:
+            mirage["reported"] = {k: (rep.get("pooled") or {}).get(k) for k in POOLED_D027}
+        series.append(mirage)
         series.append({
             "label": f"{s['pair']}, FFmpeg",
             "scores": [float(v) for v in f],
@@ -255,7 +303,9 @@ def shown(path, root):
 
 def build_report(sources, git_start, git_end, root):
     out = {"report_version": REPORT_VERSION, "tool": "eval/pooling/pooling.py",
-           "definitions": {"percentiles": DEFINITIONS, "harmonic_mean": HARMONIC},
+           "definitions": {"percentiles": DEFINITIONS, "harmonic_mean": HARMONIC}
+                          | ({"pooled_d027": POOLED_D027} if any(
+                              "reported" in s for src in sources for s in src["series"]) else {}),
            "git": {"head_start": git_start[0], "clean_start": git_start[1],
                    "head_end": git_end[0], "clean_end": git_end[1]},
            "sources": []}
@@ -276,9 +326,16 @@ def build_report(sources, git_start, git_end, root):
                     f"{st['harmonic_mean']['shifted']:.6f}" == f"{rec['harmonic_mean']:.6f}"
             if is_number(rec.get("min")):
                 checks["recorded_min_equals_min"] = rec["min"] == st["min"]
-            entry["series"].append({"label": s["label"], "precision": s["precision"],
-                                    "stats": st, "recorded": rec,
-                                    "motion": s.get("motion"), "checks": checks})
+            out_series = {"label": s["label"], "precision": s["precision"], "stats": st,
+                          "recorded": rec, "motion": s.get("motion"), "checks": checks}
+            if "reported" in s:
+                mine = d027_pooled(s["scores"])
+                equal = {k: s["reported"][k] == mine[k] for k in POOLED_D027}
+                out_series["d027"] = {"computed": mine, "reported": s["reported"],
+                                      "equal_at_full_precision": equal}
+                checks["mirage_vmaf_pooled_values_equal_d027_at_full_precision"] = \
+                    all(equal.values())
+            entry["series"].append(out_series)
         out["sources"].append(entry)
     return out
 
@@ -294,9 +351,14 @@ def fmt(v, digits):
     return s[1:] if s.startswith("-") and not s.strip("-0.") else s
 
 
+def full(v):
+    """A number in full: the shortest text that reads back as the same double."""
+    return "-" if v is None else repr(v)
+
+
 def markdown(r):
     lines = ["# Pooling definitions on committed per-frame scores", "",
-             "Work order section 1.5; the owner's decision #6 (D-004). Made by "
+             "Work order section 1.5; the owner's decision #6 (D-004, made by D-027). Made by "
              "`eval/pooling/pooling.py`"
              + (f" at commit {r['git']['head_start']}" if r["git"]["head_start"] else "")
              + (", working tree clean at the start and end of the run."
@@ -306,6 +368,9 @@ def markdown(r):
     lines += [f"- **{k}**: {v}." for k, v in DEFINITIONS.items()]
     lines += ["", "Harmonic mean, two forms:"] + \
              [f"- **{k}**: {v}." for k, v in HARMONIC.items()]
+    if any(s.get("d027") for src in r["sources"] for s in src["series"]):
+        lines += ["", "The pooled values of D-027, as mirage_vmaf computes them:"] + \
+                 [f"- **{k}**: {v}." for k, v in POOLED_D027.items()]
     for src in r["sources"]:
         digits = 4 if src["kind"] == "gui-report" else 6
         lines += ["", f"## {src['label']}", ""]
@@ -352,6 +417,20 @@ def markdown(r):
                 lines.append(f"| {s['label']} | {fmt(mo['frame0_integer_motion2'], 6)} "
                              f"| {fmt(mo['frame0_integer_motion'], 6)} "
                              f"| {mo['frames_with_integer_motion2_zero']} |")
+        d027 = [s for s in src["series"] if s.get("d027")]
+        if d027:
+            lines += ["", "### The pooled values of D-027: mirage_vmaf's report against "
+                          "this script", "",
+                      "Each value as mirage_vmaf computes it (src/VMAFPool.h), from the "
+                      "report's per-frame scores, against the report's own, both written in "
+                      "full (the shortest digits that read back as the same double).", "",
+                      "| series | value | pooling.py | mirage_vmaf's report | equal |",
+                      "|---|---|---|---|---|"]
+            for s in d027:
+                d = s["d027"]
+                lines += [f"| {s['label']} | {k} | {full(d['computed'][k])} "
+                          f"| {full(d['reported'][k])} "
+                          f"| {fmt(d['equal_at_full_precision'][k], 0)} |" for k in POOLED_D027]
         checked = [s for s in src["series"] if s["checks"]]
         if checked:
             lines += ["", "### Checks", ""]
@@ -369,6 +448,9 @@ def parse_args(argv):
                    help="a report of the player's VMAF analyzer (write_json)")
     p.add_argument("--delta-run", action="append", default=[], metavar="DIR",
                    help="an eval/consistency/run_delta.sh output directory")
+    p.add_argument("--check-pooled", action="store_true",
+                   help="also compute the pooled values of D-027 for Mirage's series of each "
+                        "--delta-run and check them against those of mirage_vmaf's report")
     p.add_argument("--out", required=True, metavar="PREFIX",
                    help="writes PREFIX.json and PREFIX.md")
     args = p.parse_args(argv)
@@ -388,7 +470,7 @@ def main(argv=None):
             src["label"] = f"The player's VMAF report {shown(path, root)}"
             sources.append(src)
         for path in args.delta_run:
-            src = delta_series(path)
+            src = delta_series(path, args.check_pooled)
             src["label"] = f"The run_delta.sh run {shown(path, root)}"
             sources.append(src)
     except (InputError, OSError, KeyError) as e:
