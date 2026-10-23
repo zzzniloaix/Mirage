@@ -46,7 +46,7 @@ Frame i of `mirage_vmaf`'s report is compared with frame i of FFmpeg's libvmaf l
 - both sides scored the same number of frames, and more than none (a mismatch shows as `FRAME COUNT MISMATCH`);
 - no frame has |delta| greater than the threshold.
 
-The reports also give the largest and mean |delta|, the mean delta, the frames over the threshold, the frames with the largest |delta|, both sides' pooled mean and min as libvmaf computes them, and the warnings: checks that don't fail a pair, such as different libvmaf versions on the two sides, Mirage pairs whose two frames have different PTS, or tags in FFmpeg's log that differ from ffprobe's.
+The reports also give the largest and mean |delta|, the mean delta, the frames over the threshold, the frames with the largest |delta|, both sides' pooled mean and min as libvmaf computes them, how each side converted the distorted frames' color matrix and range (FFmpeg's scale filter lines, and the `dis_conversion` of `mirage_vmaf`'s report where it has one, D-016), and the warnings: checks that don't fail a pair, such as different libvmaf versions on the two sides, Mirage pairs whose two frames have different PTS, tags in FFmpeg's log that differ from ffprobe's, or a `dis_conversion` whose tags differ from those of FFmpeg's scale filter.
 
 FFmpeg's side pairs frames by timestamp, Mirage's in the order they are decoded, so a comparison by position is only right while both sides pair the same frames; the PTS warning checks that from Mirage's side.
 

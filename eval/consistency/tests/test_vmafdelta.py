@@ -407,6 +407,48 @@ class EvaluatePair(unittest.TestCase):
         self.assertEqual(r["status"], "FAIL")
 
 
+# The dis_conversion of a mirage_vmaf report that converts as LOG's FFmpeg does.
+CONVERTED = [{"from": {"color_space": "smpte170m", "color_range": "tv"},
+              "to": {"color_space": "bt709", "color_range": "tv"},
+              "matrix_changed": True, "range_changed": False, "first_index": 0, "pairs": 3}]
+
+
+class Conversions(unittest.TestCase):
+    def test_both_sides_listed(self):
+        self.assertEqual(vd.scale_conversions(vd.scale_lines(LOG)),
+                         ["smpte170m/tv -> bt709/tv"])
+        self.assertEqual(vd.mirage_conversions(CONVERTED), ["smpte170m/tv -> bt709/tv"])
+        self.assertEqual(vd.mirage_conversions([]), [])
+
+    def test_the_same_conversion_is_no_warning(self):
+        r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0],
+                                                 dis_conversion=CONVERTED))
+        self.assertEqual(r["warnings"], [])
+        self.assertEqual(r["mirage_color"], {"dis_conversion": CONVERTED})
+        self.assertEqual(vd.pair_summary(r)["mirage_distorted_csp"], "smpte170m -> bt709")
+        md = vd.pair_markdown(r)
+        self.assertIn("- smpte170m/tv -> bt709/tv: matrix changed; 3 pairs from index 0", md)
+
+    def test_another_conversion_is_a_warning(self):
+        kept = [dict(CONVERTED[0], to={"color_space": "smpte170m", "color_range": "tv"},
+                     matrix_changed=False)]
+        r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0],
+                                                 dis_conversion=kept))
+        self.assertEqual(r["status"], "PASS")
+        self.assertEqual(r["warnings"], [
+            "the distorted frames' color conversions differ: mirage_vmaf "
+            "smpte170m/tv -> smpte170m/tv, FFmpeg's scale filter smpte170m/tv -> bt709/tv"])
+        self.assertIn("- smpte170m/tv -> smpte170m/tv: matrix and range unchanged; 3 pairs "
+                      "from index 0", vd.pair_markdown(r))
+
+    def test_a_report_without_conversions(self):
+        r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0]))
+        self.assertEqual(r["mirage_color"], {"dis_conversion": None})
+        self.assertEqual(vd.pair_summary(r)["mirage_distorted_csp"], "-")
+        self.assertIn("- not in the report: this mirage_vmaf does not record a conversion",
+                      vd.pair_markdown(r))
+
+
 class Reports(unittest.TestCase):
     def reports(self):
         ok = vd.evaluate_pair(vd.Pair("gear3_vs_gear5", REF, DIS), PARAMS,
@@ -437,7 +479,7 @@ class Reports(unittest.TestCase):
         md = vd.overall_markdown(o)
         self.assertIn("**Overall: FAIL**: 1 of 2 pairs fail.", md)
         self.assertIn("| gear3_vs_gear5 | PASS | 3 / 3 | 0.000000 | 0.000000 | 0 | 2.000000 "
-                      "| 2.000000 | 0.000000 | smpte170m -> bt709 |", md)
+                      "| 2.000000 | 0.000000 | smpte170m -> bt709 | - |\n", md)
         self.assertIn("- gear2_vs_gear5: 3 of 3 frames have \\|delta\\| > 0.01", md)
         self.assertIn("the working tree was clean at the start of the run and clean at its end",
                       md)

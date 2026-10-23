@@ -392,6 +392,23 @@ def conversions(scales):
     return notes
 
 
+def _tags(side):
+    return f"{_tag(side.get('color_space'))}/{_tag(side.get('color_range'))}"
+
+
+def scale_conversions(scales):
+    """The distorted input's scale filter's tags in -> out, once each and
+    sorted: ["smpte170m/tv -> bt709/tv"]."""
+    return sorted({f"{_tags(s['in'])} -> {_tags(s['out'])}" for s in scales
+                   if s["filter"].startswith("Parsed_scale")})
+
+
+def mirage_conversions(conv):
+    """The same for the dis_conversion of a mirage_vmaf report (src/VMAFReport.h)."""
+    return sorted({f"{_tags(c.get('from') or {})} -> {_tags(c.get('to') or {})}"
+                   for c in conv if isinstance(c, dict)})
+
+
 # ── One pair ─────────────────────────────────────────────────────────────────
 
 def _run_problem(name, run, result, error):
@@ -539,6 +556,18 @@ def evaluate_pair(pair, params, sides):
                             f"{g['color_space']} range {g['color_range']}, ffprobe "
                             f"{info.get('color_space')} {info.get('color_range')}")
 
+    # How each side converted the distorted frames' color (D-016). Only a
+    # mirage_vmaf that converts records dis_conversion.
+    mirage_conv = rep.get("dis_conversion") if rep is not None else None
+    if not isinstance(mirage_conv, list):
+        mirage_conv = None
+    if mirage_conv is not None and log is not None and scale_conversions(scales):
+        mine, theirs = mirage_conversions(mirage_conv), scale_conversions(scales)
+        if mine != theirs:
+            warn.append("the distorted frames' color conversions differ: mirage_vmaf "
+                        f"{', '.join(mine) or 'none'}, FFmpeg's scale filter "
+                        f"{', '.join(theirs)}")
+
     # The scores.
     delta, n_mirage, n_ffmpeg, pooled = None, None, None, None
     if rep is not None and log is not None:
@@ -590,6 +619,7 @@ def evaluate_pair(pair, params, sides):
         "relabel": sides.get("relabel"),
         "ffmpeg_color": {"graph_inputs": inputs, "scale": scales,
                          "conversions": conversions(scales)},
+        "mirage_color": {"dis_conversion": mirage_conv},
         "inputs": {"ref": {"ffprobe": ref_probe, "mirage_vmaf": (rep or {}).get("ref")},
                    "dis": {"ffprobe": dis_probe, "mirage_vmaf": (rep or {}).get("dis")}},
         "mirage_vmaf": mirage_info,
@@ -608,6 +638,7 @@ def pair_summary(r):
         "over_threshold": d.get("over_threshold"), "pooled": r["pooled"],
         "relabel": r["relabel"], "ffmpeg_conversions": r["ffmpeg_color"]["conversions"],
         "ffmpeg_distorted_csp": _distorted_csp(r),
+        "mirage_distorted_csp": _mirage_csp(r),
     }
 
 
@@ -689,6 +720,32 @@ def _distorted_csp(r):
     return "; ".join(seen) if seen else "-"
 
 
+def _mirage_csp(r):
+    """The distorted frames' color space before and after mirage_vmaf's conversion."""
+    conv = (r.get("mirage_color") or {}).get("dis_conversion")
+    if conv is None:
+        return "-"
+    seen = []
+    for c in conv:
+        if not isinstance(c, dict):
+            continue
+        t = (f"{_tag((c.get('from') or {}).get('color_space'))} -> "
+             f"{_tag((c.get('to') or {}).get('color_space'))}")
+        if t not in seen:
+            seen.append(t)
+    return "; ".join(seen) if seen else "-"
+
+
+def _conversion_line(c):
+    """One dis_conversion entry of a mirage_vmaf report, for the Markdown report."""
+    changed = [k for k, key in (("matrix", "matrix_changed"), ("range", "range_changed"))
+               if c.get(key)]
+    first, n = c.get("first_index"), c.get("pairs")
+    return (f"{_tags(c.get('from') or {})} -> {_tags(c.get('to') or {})}: "
+            + (" and ".join(changed) + " changed" if changed else "matrix and range unchanged")
+            + f"; {num(n)} pairs from index {num(first)}")
+
+
 def pair_markdown(r):
     """The Markdown delta report of one pair."""
     lines = [f"# {r['pair']}: Mirage vs FFmpeg's libvmaf filter", ""]
@@ -747,6 +804,14 @@ def pair_markdown(r):
     lines += [f"- {_scale_text(s)}" for s in color["scale"]]
     lines.append("- Converts: " + (", ".join(color["conversions"]) if color["conversions"]
                                    else "nothing besides the size"))
+    conv = (r.get("mirage_color") or {}).get("dis_conversion")
+    lines += ["", "Mirage's color handling of the distorted frames (mirage_vmaf's report, "
+              "dis_conversion; DECISIONS.md D-016):"]
+    if conv is None:
+        lines.append("- not in the report: this mirage_vmaf does not record a conversion")
+    else:
+        entries = [f"- {_conversion_line(c)}" for c in conv if isinstance(c, dict)]
+        lines += entries or ["- no pair was converted"]
 
     lines += ["", "Inputs (ffprobe / mirage_vmaf's decoder):", "",
               "| | reference | distorted |", "|---|---|---|"]
@@ -809,8 +874,8 @@ def overall_markdown(o):
 
     lines += ["", "| pair | status | frame pairs (Mirage / FFmpeg) | max \\|delta\\| "
               "| mean \\|delta\\| | frames over | pooled mean Mirage | pooled mean FFmpeg "
-              "| difference | FFmpeg's scale: distorted csp |",
-              "|---|---|---|---|---|---|---|---|---|---|"]
+              "| difference | FFmpeg's scale: distorted csp | Mirage: distorted csp |",
+              "|---|---|---|---|---|---|---|---|---|---|---|"]
     for s in o["pairs"]:
         pooled = s["pooled"] or {}
         lines.append(
@@ -819,7 +884,7 @@ def overall_markdown(o):
             f"| {num((pooled.get('mirage') or {}).get('mean'))} "
             f"| {num((pooled.get('ffmpeg') or {}).get('mean'))} "
             f"| {num((pooled.get('difference') or {}).get('mean'))} "
-            f"| {cell(s['ffmpeg_distorted_csp'])} |")
+            f"| {cell(s['ffmpeg_distorted_csp'])} | {cell(s['mirage_distorted_csp'])} |")
     if any(s["relabel"] for s in o["pairs"]):
         lines += ["", "Relabels inserted before FFmpeg's scale:"]
         lines += [f"- {s['pair']}: `{s['relabel']}`" for s in o["pairs"] if s["relabel"]]
