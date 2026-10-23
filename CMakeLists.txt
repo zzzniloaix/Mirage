@@ -53,17 +53,21 @@ FetchContent_Declare(glad
 FetchContent_MakeAvailable(glad)
 glad_add_library(glad_gl_core_41 STATIC REPRODUCIBLE API gl:core=4.1)
 
+# miniaudio and stb used to follow their master branch. Both are pinned to the
+# commit the Phase 0 baseline build fetched (eval/baseline/environment.txt);
+# the other dependencies are pinned by release tag.
+
 # miniaudio — single header, no build step
 FetchContent_Declare(miniaudio
     GIT_REPOSITORY https://github.com/mackron/miniaudio.git
-    GIT_TAG        master
+    GIT_TAG        9634bedb5b5a2ca38c1ee7108a9358a4e233f14d   # on master, committed 2026-03-04
 )
 FetchContent_MakeAvailable(miniaudio)
 
 # stb — single-header utilities (stb_easy_font for debug HUD text rendering)
 FetchContent_Declare(stb
     GIT_REPOSITORY https://github.com/nothings/stb.git
-    GIT_TAG        master
+    GIT_TAG        a7d4c2175630e1ea5b6f8dd00ab96fed0b97b96d   # on master, committed 2026-10-19
 )
 FetchContent_MakeAvailable(stb)
 
