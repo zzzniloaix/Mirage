@@ -1,0 +1,29 @@
+# Which swscale flags the scale filter of the FFmpeg that eval/consistency/run_delta.sh runs uses without flags= (docs/DECISIONS.md D-003, P-016). Made from <repo>: each command, then its output.
+
+# 1. The repository when these checks were made: HEAD and the working tree's state.
+
+$ git rev-parse HEAD && git status --porcelain && echo '(end of git status)'
+13c03dc278c7721aa152e562d1c01745fe43dd0c
+(end of git status)
+
+# 2. The FFmpeg of these checks, that of eval/consistency/run_delta.sh (D-009).
+
+$ /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -hide_banner -version | head -n 1
+ffmpeg version 8.1.1 Copyright (c) 2000-2026 the FFmpeg developers
+
+# 3. FFmpeg's scale filter given no flags= (input: FFmpeg's testsrc2 pattern at 640x360, one frame), then given flags=bilinear and flags=bicubic: its input -> output line, which ends with the swscale flags it ran with.
+
+$ for flags in '' ':flags=bilinear' ':flags=bicubic'; do echo "scale=1920:1080$flags"; /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -hide_banner -nostdin -nostats -v verbose -f lavfi -i testsrc2=size=640x360:rate=30000/1001:duration=1 -vf "scale=1920:1080$flags" -frames:v 1 -f null - 2>&1 | grep -E '^\[Parsed_scale_0 @ [^]]*\] w:[0-9]+ h:[0-9]+ fmt:' | sed -E 's/ @ 0x[0-9a-f]+//'; done
+scale=1920:1080
+[Parsed_scale_0] w:640 h:360 fmt:yuv420p csp:unknown range:unknown sar:1/1 -> w:1920 h:1080 fmt:yuv420p csp:unknown range:unknown sar:1/1 flags:0x00000004
+scale=1920:1080:flags=bilinear
+[Parsed_scale_0] w:640 h:360 fmt:yuv420p csp:unknown range:unknown sar:1/1 -> w:1920 h:1080 fmt:yuv420p csp:unknown range:unknown sar:1/1 flags:0x00000002
+scale=1920:1080:flags=bicubic
+[Parsed_scale_0] w:640 h:360 fmt:yuv420p csp:unknown range:unknown sar:1/1 -> w:1920 h:1080 fmt:yuv420p csp:unknown range:unknown sar:1/1 flags:0x00000004
+
+# 4. The values of those flags in the installed FFmpeg's header.
+
+$ grep -E 'SWS_(BILINEAR|BICUBIC) ' /opt/homebrew/opt/ffmpeg-full/include/libswscale/swscale.h
+    SWS_BILINEAR      = 1 <<  1, ///< bilinear filtering
+    SWS_BICUBIC       = 1 <<  2, ///< 2-tap cubic B-spline
+ *              For SWS_BICUBIC param[0] and [1] tune the shape of the basis
