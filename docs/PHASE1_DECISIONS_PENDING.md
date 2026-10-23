@@ -320,7 +320,7 @@ Nothing has been built or run on Linux, so whether the code compiles there, whic
 ## Smaller items found in Phase 1
 
 - **The subtitle test's fixture.** In a clean checkout `SidecarSubtitles — decodes data/sub_test/test.srt` fails: it reads `data/sub_test/test.srt`, which `.gitignore` leaves out of the repository (`eval/build_check/macos-2026-10-23-6a6661f.txt`, "Unit tests"); in the main working tree the file exists and the test passes (`eval/test_runs/macos-2026-10-23-8aca01a.txt`). Options: commit the file with a `.gitignore` exception; move it to a tracked test directory; have the test write it to a temporary file, as the other media tests generate their inputs; leave it, as `docs/BUILD.md` says. **Agent's recommendation**: have the test write it, a change to the test only.
-- **An intermittent test.** `Demuxer: seamless video and audio switches on a local file` (`tests/test_demuxer_switch.cpp`) failed now and then in scratch runs on this branch and on the commit Phase 1 started from; their outputs weren't committed, so no rate is given here, and it passed in the committed test record. A fix may touch `Demuxer`, which is on the decode path (D-007). Options: leave it and rerun on failure; a plan that finds out whether the test's timing or the track switch is at fault; leave it out of unattended runs. **Agent's recommendation**: the plan, since a race in track switching would matter for §3 and §4.
+- **An intermittent test.** `Demuxer: seamless video and audio switches on a local file` (`tests/test_demuxer_switch.cpp`) fails now and then, at the commit Phase 1 started from as on this branch: run alone 650 times, a build of `37472fd` failed 5 times and one of `855a71b` 4 times, each time at one of the same two assertions (`eval/test_runs/demuxer-switch-150-2026-10-23.txt` and `demuxer-switch-500-2026-10-23.txt`, P-031; summed up in `eval/test_runs/README.md`). The test and `src/Demuxer.*` are the same at both commits. It passed in the test record at `8aca01a`. A fix may touch `Demuxer`, which is on the decode path (D-007). Options: leave it and rerun on failure; a plan that finds out whether the test's timing or the track switch is at fault; leave it out of unattended runs. **Agent's recommendation**: the plan, since a race in track switching would matter for §3 and §4.
 - **D-009's alternatives.** D-009 says that standardizing on `ffmpeg` would need a separately installed FFmpeg with libvmaf, but Homebrew's `ffmpeg` 8.1.1 on the machine of the measurements was built with `--enable-libvmaf` as well (`eval/baseline/environment.txt`, line 163). The decision stands on its other reasons. D-009 is the owner's entry and wasn't edited; options: a correction note, as D-001 has; leave it.
 - **Server addresses in the committed logs.** The delta runs keep FFmpeg's verbose logs, xz-compressed, and these include FFmpeg's TCP connection lines with the IP addresses of Apple's CDN servers: public addresses, not local information, so the runs' privacy scan doesn't flag them (P-011). Options: keep the logs as FFmpeg wrote them; filter the network lines out of the stored logs, which would then no longer be raw; lower the log level of FFmpeg's network layer only. **Agent's recommendation**: keep them raw.
 - **D-008's open question**: whether legal or the company's open-source process has to confirm GPL-3.0-or-later before the repository is made public again. `LICENSE` is committed as D-008 decided (P-020). This is the owner's to check.
@@ -328,7 +328,7 @@ Nothing has been built or run on Linux, so whether the code compiles there, whic
 
 ## Process choices to confirm
 
-P-006 to P-030 in `docs/DECISIONS.md` are the agent's measurement and process choices of Phase 1, each pending the owner's confirmation. The alternatives the agent pointed out for each, as its entry lists them:
+P-006 to P-031 in `docs/DECISIONS.md` are the agent's measurement and process choices of Phase 1, each pending the owner's confirmation. The alternatives the agent pointed out for each, as its entry lists them:
 
 | Entries | What | Alternatives worth a look |
 |---|---|---|
@@ -353,6 +353,7 @@ P-006 to P-030 in `docs/DECISIONS.md` are the agent's measurement and process ch
 | P-028 | the record of the test runs behind the PR description | the outputs in the PR description only |
 | P-029 | the reference format cases, synthetic and lossless, before and after D-016 | real streams in these formats; more formats, such as RGB, gray or 12-bit |
 | P-030 | a warning, not a refusal, for a reference that isn't yuv420p, until the owner decides | refuse such references; warn only where the tags differ |
+| P-031 | repeated runs of the intermittent Demuxer test at the start and the head of Phase 1 | the whole suite repeated; one series only |
 
 **Agent's recommendation**: confirm them all.
 

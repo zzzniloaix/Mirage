@@ -114,11 +114,11 @@ Also open: whether glad's generated loader is committed (#11a), the README beyon
 - **Every configurable item as a command line option and in a config file**: the options are on the command line; the config file is pending, its format being the owner's (`docs/PHASE1_DECISIONS_PENDING.md`).
 - **No document edited to make the implementation and the work order agree**: the differences are listed at the end of `docs/PHASE1_DECISIONS_PENDING.md`.
 
-Two unit tests of code outside Phase 1 can fail: in a clean checkout, `SidecarSubtitles — decodes data/sub_test/test.srt`, whose fixture `.gitignore` leaves out (`docs/BUILD.md`, step 4); and now and then `Demuxer: seamless video and audio switches on a local file`, which failed in scratch runs on this branch and on the commit Phase 1 started from, whose outputs weren't committed. Both are in `docs/PHASE1_DECISIONS_PENDING.md`, "Smaller items found in Phase 1".
+Two unit tests of code outside Phase 1 can fail: in a clean checkout, `SidecarSubtitles — decodes data/sub_test/test.srt`, whose fixture `.gitignore` leaves out (`docs/BUILD.md`, step 4); and now and then `Demuxer: seamless video and audio switches on a local file`, which, run alone 650 times, failed 5 times in a build of `37472fd`, the commit Phase 1 started from, and 4 times in one of `855a71b`, each time at one of the same two assertions (`eval/test_runs/README.md`, "Repeated runs of one test"; P-031). Both are in `docs/PHASE1_DECISIONS_PENDING.md`, "Smaller items found in Phase 1".
 
 ## Before the Phase 1 PR can merge
 
 - The owner's decisions in `docs/PHASE1_DECISIONS_PENDING.md`, and the reruns a changed default needs (§5 above).
-- The owner's review of Phase 1's commits, and confirmation of the process choices P-006 to P-030 (`docs/DECISIONS.md`).
+- The owner's review of Phase 1's commits, and confirmation of the process choices P-006 to P-031 (`docs/DECISIONS.md`).
 - The owner's confirmation of the Phase 1 rows of `docs/AI_CONTRIBUTIONS.md`.
 - The PR itself, which the owner opens (hard rule 5 of the work order: one PR for the phase).
