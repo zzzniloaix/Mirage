@@ -25,6 +25,19 @@ pkg_check_modules(GLFW REQUIRED IMPORTED_TARGET glfw3)
 # libvmaf (via homebrew — brew install libvmaf)
 pkg_check_modules(VMAF REQUIRED IMPORTED_TARGET libvmaf)
 
+# libvmaf's package version, which can differ from the version the library
+# reports through vmaf_version() (DECISIONS.md D-006). Read from the real path
+# of the library pkg-config resolved, e.g. a Homebrew Cellar path; "unknown"
+# when that path carries no version. mirage_vmaf records it in its reports.
+set(MIRAGE_LIBVMAF_PACKAGE_VERSION "unknown")
+foreach(_vmaf_lib IN LISTS VMAF_LINK_LIBRARIES)
+    file(REAL_PATH "${_vmaf_lib}" _vmaf_real)
+    if(_vmaf_real MATCHES "/Cellar/libvmaf/([^/]+)/")
+        set(MIRAGE_LIBVMAF_PACKAGE_VERSION "${CMAKE_MATCH_1}")
+    endif()
+endforeach()
+message(STATUS "libvmaf package version: ${MIRAGE_LIBVMAF_PACKAGE_VERSION}")
+
 # GLAD2 — generates a minimal OpenGL 4.1 Core loader at configure time
 include(FetchContent)
 FetchContent_Declare(glad
@@ -165,6 +178,29 @@ if(APPLE)
     )
 endif()
 
+# ── Headless VMAF scorer ─────────────────────────────────────────────────────
+
+# mirage_vmaf: the player's VMAF analyzer without a window, GL or ImGui
+# (DECISIONS.md D-017). Links FFmpeg and libvmaf only.
+add_executable(mirage_vmaf
+    tools/mirage_vmaf.cpp
+    src/VMAFAnalyzer.cpp
+    src/VMAFCli.cpp
+    src/VMAFReport.cpp
+    src/JsonText.cpp
+)
+
+target_include_directories(mirage_vmaf PRIVATE src)
+
+target_link_libraries(mirage_vmaf PRIVATE
+    PkgConfig::FFMPEG
+    PkgConfig::VMAF
+)
+
+target_compile_definitions(mirage_vmaf PRIVATE
+    MIRAGE_LIBVMAF_PACKAGE_VERSION="${MIRAGE_LIBVMAF_PACKAGE_VERSION}"
+)
+
 # ── Unit tests ────────────────────────────────────────────────────────────────
 
 include(CTest)
@@ -192,6 +228,8 @@ add_executable(mirage_tests
     tests/test_scrub_follow.cpp
     tests/test_hls_align.cpp
     tests/test_json_text.cpp
+    tests/test_vmaf_cli.cpp
+    tests/test_vmaf_report.cpp
     tests/test_vmaf_analyzer.cpp
     src/Demuxer.cpp
     src/NetworkLogger.cpp
@@ -217,6 +255,8 @@ add_executable(mirage_tests
     src/KeyframeIndex.cpp
     src/ScrubDecoder.cpp
     src/JsonText.cpp
+    src/VMAFCli.cpp
+    src/VMAFReport.cpp
     src/VMAFAnalyzer.cpp
 )
 

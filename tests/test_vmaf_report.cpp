@@ -1,0 +1,463 @@
+// vmafreport::to_json / write_file. The report is read back with a small
+// strict JSON parser (RFC 8259 grammar) so that the tests check what a reader
+// gets, not how the text happens to be laid out.
+
+#include <catch2/catch_test_macros.hpp>
+
+#include "VMAFReport.h"
+
+#include <cmath>
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
+#include <limits>
+#include <map>
+#include <memory>
+#include <random>
+#include <sstream>
+#include <string>
+#include <vector>
+
+namespace fs = std::filesystem;
+
+namespace {
+
+// ── Minimal JSON reader ───────────────────────────────────────────────────────
+
+struct Value {
+    enum class Kind { Null, Bool, Number, String, Array, Object } kind = Kind::Null;
+    bool                         b = false;
+    double                       num = 0.0;
+    std::string                  str;
+    std::vector<Value>           arr;
+    std::map<std::string, Value> obj;
+
+    const Value& operator[](const std::string& key) const
+    {
+        static const Value missing;
+        const auto it = obj.find(key);
+        return it == obj.end() ? missing : it->second;
+    }
+    bool has(const std::string& key) const { return obj.count(key) != 0; }
+};
+
+class Reader {
+public:
+    explicit Reader(const std::string& text) : s_(text) {}
+
+    // The document, or nullptr when `text` is not exactly one JSON value.
+    std::unique_ptr<Value> document()
+    {
+        auto v = std::make_unique<Value>();
+        if (!value(*v)) return nullptr;
+        skip_ws();
+        return i_ == s_.size() ? std::move(v) : nullptr;
+    }
+
+private:
+    const std::string& s_;
+    std::size_t        i_ = 0;
+
+    void skip_ws()
+    {
+        while (i_ < s_.size() && (s_[i_] == ' ' || s_[i_] == '\t' || s_[i_] == '\n' || s_[i_] == '\r'))
+            ++i_;
+    }
+    bool eat(char c)
+    {
+        skip_ws();
+        if (i_ < s_.size() && s_[i_] == c) { ++i_; return true; }
+        return false;
+    }
+    bool literal(const char* word)
+    {
+        const std::string w(word);
+        if (s_.compare(i_, w.size(), w) != 0) return false;
+        i_ += w.size();
+        return true;
+    }
+
+    bool value(Value& v)
+    {
+        skip_ws();
+        if (i_ >= s_.size()) return false;
+        const char c = s_[i_];
+        if (c == '{') return object(v);
+        if (c == '[') return array(v);
+        if (c == '"') { v.kind = Value::Kind::String; return string(v.str); }
+        if (c == 't') { v.kind = Value::Kind::Bool; v.b = true;  return literal("true"); }
+        if (c == 'f') { v.kind = Value::Kind::Bool; v.b = false; return literal("false"); }
+        if (c == 'n') { v.kind = Value::Kind::Null; return literal("null"); }
+        return number(v);
+    }
+
+    bool object(Value& v)
+    {
+        v.kind = Value::Kind::Object;
+        ++i_;
+        if (eat('}')) return true;
+        do {
+            skip_ws();
+            std::string key;
+            if (i_ >= s_.size() || s_[i_] != '"' || !string(key)) return false;
+            if (v.obj.count(key)) return false;   // duplicate keys are not wanted in a report
+            if (!eat(':') || !value(v.obj[key])) return false;
+        } while (eat(','));
+        return eat('}');
+    }
+
+    bool array(Value& v)
+    {
+        v.kind = Value::Kind::Array;
+        ++i_;
+        if (eat(']')) return true;
+        do {
+            v.arr.emplace_back();
+            if (!value(v.arr.back())) return false;
+        } while (eat(','));
+        return eat(']');
+    }
+
+    static void put_utf8(std::string& out, unsigned cp)
+    {
+        if (cp < 0x80) { out += static_cast<char>(cp); return; }
+        if (cp < 0x800) {
+            out += static_cast<char>(0xc0 | (cp >> 6));
+        } else if (cp < 0x10000) {
+            out += static_cast<char>(0xe0 | (cp >> 12));
+            out += static_cast<char>(0x80 | ((cp >> 6) & 0x3f));
+        } else {
+            out += static_cast<char>(0xf0 | (cp >> 18));
+            out += static_cast<char>(0x80 | ((cp >> 12) & 0x3f));
+            out += static_cast<char>(0x80 | ((cp >> 6) & 0x3f));
+        }
+        out += static_cast<char>(0x80 | (cp & 0x3f));
+    }
+
+    bool hex4(unsigned& cp)
+    {
+        if (i_ + 4 > s_.size()) return false;
+        cp = 0;
+        for (int k = 0; k < 4; ++k) {
+            const char h = s_[i_++];
+            cp <<= 4;
+            if      (h >= '0' && h <= '9') cp |= static_cast<unsigned>(h - '0');
+            else if (h >= 'a' && h <= 'f') cp |= static_cast<unsigned>(h - 'a' + 10);
+            else if (h >= 'A' && h <= 'F') cp |= static_cast<unsigned>(h - 'A' + 10);
+            else return false;
+        }
+        return true;
+    }
+
+    bool string(std::string& out)
+    {
+        ++i_;   // opening quote
+        while (i_ < s_.size()) {
+            const auto c = static_cast<unsigned char>(s_[i_++]);
+            if (c == '"') return true;
+            if (c < 0x20) return false;   // raw control characters are invalid
+            if (c != '\\') { out += static_cast<char>(c); continue; }
+            if (i_ >= s_.size()) return false;
+            const char e = s_[i_++];
+            switch (e) {
+            case '"': out += '"';  break;
+            case '\\': out += '\\'; break;
+            case '/': out += '/';  break;
+            case 'b': out += '\b'; break;
+            case 'f': out += '\f'; break;
+            case 'n': out += '\n'; break;
+            case 'r': out += '\r'; break;
+            case 't': out += '\t'; break;
+            case 'u': {
+                unsigned cp = 0;
+                if (!hex4(cp)) return false;
+                if (cp >= 0xd800 && cp <= 0xdbff) {
+                    unsigned lo = 0;
+                    if (!literal("\\u") || !hex4(lo) || lo < 0xdc00 || lo > 0xdfff) return false;
+                    cp = 0x10000 + ((cp - 0xd800) << 10) + (lo - 0xdc00);
+                } else if (cp >= 0xdc00 && cp <= 0xdfff) {
+                    return false;
+                }
+                put_utf8(out, cp);
+                break;
+            }
+            default: return false;
+            }
+        }
+        return false;
+    }
+
+    bool number(Value& v)
+    {
+        const std::size_t start = i_;
+        auto digit = [&] { return i_ < s_.size() && s_[i_] >= '0' && s_[i_] <= '9'; };
+        if (i_ < s_.size() && s_[i_] == '-') ++i_;
+        if (!digit()) return false;
+        if (s_[i_] == '0') ++i_;
+        else while (digit()) ++i_;
+        if (i_ < s_.size() && s_[i_] == '.') {
+            ++i_;
+            if (!digit()) return false;
+            while (digit()) ++i_;
+        }
+        if (i_ < s_.size() && (s_[i_] == 'e' || s_[i_] == 'E')) {
+            ++i_;
+            if (i_ < s_.size() && (s_[i_] == '+' || s_[i_] == '-')) ++i_;
+            if (!digit()) return false;
+            while (digit()) ++i_;
+        }
+        v.kind = Value::Kind::Number;
+        v.num  = std::strtod(s_.substr(start, i_ - start).c_str(), nullptr);
+        return true;
+    }
+};
+
+std::unique_ptr<Value> parse(const std::string& text) { return Reader(text).document(); }
+
+// ── Fixtures ──────────────────────────────────────────────────────────────────
+
+VMAFInputInfo input(int w, int h, const char* space)
+{
+    VMAFInputInfo in;
+    in.width = w;
+    in.height = h;
+    in.pix_fmt = "yuv420p";
+    in.color_space = space;
+    in.color_range = "tv";
+    in.color_primaries = "unknown";
+    in.color_trc = "bt709";
+    in.time_base_num = 1;
+    in.time_base_den = 90000;
+    return in;
+}
+
+VMAFResult sample_result()
+{
+    VMAFResult r;
+    r.ref_url   = "https://example.com/gear5/prog_index.m3u8";
+    r.dis_url   = "dir with \"quotes\"\\and\ttab/caf\xc3\xa9.ts";
+    r.width     = 1920;
+    r.height    = 1080;
+    r.vmaf_mean = 12.345678901234567;
+    r.vmaf_min  = 0.1 + 0.2;   // 0.30000000000000004: needs all 17 digits
+    r.per_frame = { 0.1 + 0.2, 100.0, 1.0 / 3.0 };
+    r.done      = true;
+    r.settings  = { .model = "vmaf_v0.6.1", .scaler = "bilinear", .pix_fmt = "yuv420p",
+                    .bit_depth = 8, .n_threads = 4, .n_subsample = 1 };
+    r.ref_info  = input(1920, 1080, "bt709");
+    r.dis_info  = input(960, 540, "smpte170m");
+    r.dis_info.ended = true;
+    r.ref_pts   = { 10.0, 903003.0 / 90000.0, 906006.0 / 90000.0 };
+    r.dis_pts   = { 10.0, std::numeric_limits<double>::quiet_NaN(), 906006.0 / 90000.0 };
+    return r;
+}
+
+const vmafreport::RunInfo kRun{
+    .tool = "mirage_vmaf", .libvmaf_version = "3.0.0",
+    .libvmaf_package_version = "3.1.0", .frame_limit = 30,
+};
+
+std::string read_file(const fs::path& p)
+{
+    std::ifstream f(p, std::ios::binary);
+    std::ostringstream ss;
+    ss << f.rdbuf();
+    return ss.str();
+}
+
+fs::path fresh_dir(const char* name)
+{
+    const fs::path dir = fs::temp_directory_path() / name;
+    fs::remove_all(dir);
+    fs::create_directories(dir);
+    return dir;
+}
+
+} // namespace
+
+// ── incomplete ────────────────────────────────────────────────────────────────
+
+TEST_CASE("vmafreport::incomplete: a complete run, and each reason it is not", "[vmafreport]")
+{
+    CHECK(vmafreport::incomplete(sample_result()).empty());
+
+    VMAFResult failed = sample_result();
+    failed.error = "cannot open reference: x";
+    CHECK(vmafreport::incomplete(failed) == "cannot open reference: x");
+
+    VMAFResult ref_err = sample_result();
+    ref_err.ref_info.end_error = "Input/output error";
+    CHECK(vmafreport::incomplete(ref_err) ==
+          "reading the reference stopped on an error: Input/output error");
+
+    VMAFResult dis_err = sample_result();
+    dis_err.dis_info.end_error = "Invalid data found when processing input";
+    CHECK(vmafreport::incomplete(dis_err) ==
+          "reading the distorted input stopped on an error: Invalid data found when processing input");
+
+    VMAFResult none = sample_result();
+    none.per_frame.clear();
+    none.score_error = "vmaf_read_pictures (flush) failed: Invalid argument";
+    CHECK(vmafreport::incomplete(none) == "no frame pair was scored");
+
+    VMAFResult score = sample_result();
+    score.score_error = "vmaf_score_at_index failed: Invalid argument";
+    CHECK(vmafreport::incomplete(score) == "vmaf_score_at_index failed: Invalid argument");
+}
+
+// ── to_json ───────────────────────────────────────────────────────────────────
+
+TEST_CASE("vmafreport::to_json: run settings and pooled scores", "[vmafreport]")
+{
+    const std::string text = vmafreport::to_json(sample_result(), kRun);
+    const auto doc = parse(text);
+    REQUIRE(doc);
+    const Value& d = *doc;
+    CHECK(d["tool"].str == "mirage_vmaf");
+    CHECK(d["libvmaf_version"].str == "3.0.0");
+    CHECK(d["libvmaf_package_version"].str == "3.1.0");
+    CHECK(d["model"].str == "vmaf_v0.6.1");
+    CHECK(d["scaler"].str == "bilinear");
+    CHECK(d["n_threads"].num == 4);
+    CHECK(d["n_subsample"].num == 1);
+    CHECK(d["scored_as"]["width"].num == 1920);
+    CHECK(d["scored_as"]["height"].num == 1080);
+    CHECK(d["scored_as"]["pix_fmt"].str == "yuv420p");
+    CHECK(d["scored_as"]["bit_depth"].num == 8);
+    CHECK(d["frame_limit"].num == 30);
+    CHECK(d["frames_scored"].num == 3);
+    CHECK(d["pooled"]["mean"].num == 12.345678901234567);   // full precision
+    CHECK(d["pooled"]["min"].num == 0.1 + 0.2);
+}
+
+TEST_CASE("vmafreport::to_json: inputs, escaped strings included", "[vmafreport]")
+{
+    const VMAFResult r = sample_result();
+    const auto doc = parse(vmafreport::to_json(r, kRun));
+    REQUIRE(doc);
+    const Value& ref = (*doc)["ref"];
+    const Value& dis = (*doc)["dis"];
+    CHECK(ref["url"].str == r.ref_url);
+    CHECK(dis["url"].str == r.dis_url);   // quotes, backslash, tab, UTF-8 read back intact
+    CHECK(ref["width"].num == 1920);
+    CHECK(dis["height"].num == 540);
+    CHECK(ref["color_space"].str == "bt709");
+    CHECK(dis["color_space"].str == "smpte170m");
+    CHECK(dis["color_range"].str == "tv");
+    CHECK(dis["color_primaries"].str == "unknown");
+    CHECK(dis["color_trc"].str == "bt709");
+    CHECK(dis["pix_fmt"].str == "yuv420p");
+    CHECK(ref["time_base"].str == "1/90000");
+    CHECK(ref["ended"].kind == Value::Kind::Bool);
+    CHECK_FALSE(ref["ended"].b);
+    CHECK(dis["ended"].b);
+}
+
+TEST_CASE("vmafreport::to_json: one entry per frame pair, full precision", "[vmafreport]")
+{
+    const VMAFResult r = sample_result();
+    const auto doc = parse(vmafreport::to_json(r, kRun));
+    REQUIRE(doc);
+    const Value& frames = (*doc)["frames"];
+    REQUIRE(frames.kind == Value::Kind::Array);
+    REQUIRE(frames.arr.size() == 3);
+    for (std::size_t i = 0; i < 3; ++i) {
+        INFO(i);
+        const Value& f = frames.arr[i];
+        CHECK(f["index"].num == static_cast<double>(i));
+        CHECK(f["vmaf"].num == r.per_frame[i]);
+        CHECK(f["ref_pts"].num == r.ref_pts[i]);
+    }
+    CHECK(frames.arr[1]["dis_pts"].kind == Value::Kind::Null);   // NaN: the frame had no PTS
+    CHECK(frames.arr[2]["dis_pts"].num == r.dis_pts[2]);
+}
+
+TEST_CASE("vmafreport::to_json: random scores survive the round trip exactly", "[vmafreport]")
+{
+    VMAFResult r = sample_result();
+    std::mt19937_64 rng(42);
+    std::uniform_real_distribution<double> score(0.0, 100.0);
+    r.per_frame.resize(500);
+    for (double& s : r.per_frame) s = score(rng);
+    const auto doc = parse(vmafreport::to_json(r, kRun));
+    REQUIRE(doc);
+    const Value& frames = (*doc)["frames"];
+    REQUIRE(frames.arr.size() == r.per_frame.size());
+    for (std::size_t i = 0; i < r.per_frame.size(); ++i)
+        REQUIRE(frames.arr[i]["vmaf"].num == r.per_frame[i]);
+    CHECK(frames.arr[499]["ref_pts"].kind == Value::Kind::Null);   // no PTS recorded that far
+}
+
+TEST_CASE("vmafreport::to_json: no frame limit, no frames, NaN pooled scores", "[vmafreport]")
+{
+    VMAFResult r = sample_result();
+    r.per_frame.clear();
+    r.ref_pts.clear();
+    r.dis_pts.clear();
+    r.vmaf_mean = std::numeric_limits<double>::quiet_NaN();
+    vmafreport::RunInfo run = kRun;
+    run.frame_limit = 0;
+    run.libvmaf_package_version = "unknown";
+    const auto doc = parse(vmafreport::to_json(r, run));
+    REQUIRE(doc);
+    CHECK((*doc)["frame_limit"].kind == Value::Kind::Null);
+    CHECK((*doc)["frames_scored"].num == 0);
+    CHECK((*doc)["frames"].kind == Value::Kind::Array);
+    CHECK((*doc)["frames"].arr.empty());
+    CHECK((*doc)["pooled"]["mean"].kind == Value::Kind::Null);
+    CHECK((*doc)["libvmaf_package_version"].str == "unknown");
+}
+
+TEST_CASE("JSON reader used by these tests rejects invalid documents", "[vmafreport]")
+{
+    CHECK(parse(R"({"a": 1})"));
+    CHECK_FALSE(parse(R"({"a": 1,})"));
+    CHECK_FALSE(parse(R"({"a": nan})"));
+    CHECK_FALSE(parse(R"({"a": 01})"));
+    CHECK_FALSE(parse(R"({"a": "x"} trailing)"));
+    CHECK_FALSE(parse("{\"a\": \"raw\ttab\"}"));
+    CHECK_FALSE(parse(R"({"a": 1, "a": 2})"));
+}
+
+// ── write_file ────────────────────────────────────────────────────────────────
+
+TEST_CASE("vmafreport::write_file: writes the text and leaves no temporary file", "[vmafreport]")
+{
+    const fs::path dir = fresh_dir("mirage_test_vmaf_report");
+    const fs::path out = dir / "report.json";
+    std::string err;
+    REQUIRE(vmafreport::write_file(out.string(), "{\"a\": 1}\n", err));
+    CHECK(err.empty());
+    CHECK(read_file(out) == "{\"a\": 1}\n");
+
+    // Replaces an existing report.
+    REQUIRE(vmafreport::write_file(out.string(), "{}\n", err));
+    CHECK(read_file(out) == "{}\n");
+
+    std::vector<fs::path> files;
+    for (const auto& e : fs::directory_iterator(dir)) files.push_back(e.path().filename());
+    CHECK(files == std::vector<fs::path>{ "report.json" });
+    fs::remove_all(dir);
+}
+
+TEST_CASE("vmafreport::write_file: failures are reported and leave nothing behind", "[vmafreport]")
+{
+    const fs::path dir = fresh_dir("mirage_test_vmaf_report_fail");
+
+    std::string err;
+    const fs::path no_dir = dir / "missing" / "report.json";
+    CHECK_FALSE(vmafreport::write_file(no_dir.string(), "{}\n", err));
+    CHECK_FALSE(err.empty());
+    CHECK_FALSE(fs::exists(no_dir));
+
+    // The target is a directory: the rename fails, the temporary file is removed.
+    const fs::path is_dir = dir / "taken";
+    fs::create_directories(is_dir / "child");
+    err.clear();
+    CHECK_FALSE(vmafreport::write_file(is_dir.string(), "{}\n", err));
+    CHECK_FALSE(err.empty());
+    CHECK(fs::is_directory(is_dir));
+    CHECK_FALSE(fs::exists(dir / "taken.partial"));
+
+    fs::remove_all(dir);
+}
