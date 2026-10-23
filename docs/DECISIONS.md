@@ -10,7 +10,7 @@ Each entry records the decision, the alternatives, the rationale, who decided an
 
 ## Design decisions (owner)
 
-The remaining open items are listed in the "Decisions needed from the owner" section of `docs/VMAF_GAP_REPORT.md`.
+The remaining open items are listed in the "Decisions needed from the owner" section of `docs/VMAF_GAP_REPORT.md`. Those still open after Phase 1, each with its options and measurements, are in `docs/PHASE1_DECISIONS_PENDING.md`.
 
 ### D-001 Order within Phase 1: the §5 consistency check comes first
 
@@ -363,7 +363,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
     - with `--frames N`, `trim=end_frame=N` starts both inputs' chains, instead of `-frames:v N`;
     - `-an`: no audio output;
     - `-v verbose` and `-nostats`.
-  - Mirage's side is `mirage_vmaf [--frames N]` on the same two inputs. Both sides get model `vmaf_v0.6.1`, the bilinear scaler and 4 libvmaf threads by default. `mirage_vmaf` is given `--scaler` and `--model` only when its `--help` lists them; today it has neither (P-009 makes a pair fail on any settings mismatch).
+  - Mirage's side is `mirage_vmaf [--frames N]` on the same two inputs. Both sides get model `vmaf_v0.6.1`, the bilinear scaler and 4 libvmaf threads by default. `mirage_vmaf` is given `--scaler` and `--model` only when its `--help` lists them; when this entry was written it had neither (P-009 makes a pair fail on any settings mismatch). It has both since `6a9aca2` and `44cd4b5` (P-017).
 - **Alternatives**
   - Phase 0's `-frames:v N`.
   - FFmpeg's default log level, with the color space lines taken from a separate verbose run.
@@ -630,7 +630,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Date**: 2026-10-23
 - **Status**: pending owner confirmation
 
-### P-022 The section 8 build check: the clean worktree of 6a6661f, and what it stands for
+### P-022 The §8 build check: the clean worktree of 6a6661f, and what it stands for
 
 - **Choice**
   - `eval/build_check/run_build_check.sh` (P-007), extended to record the dependency pins and what was fetched, the files glad generates, the SHA-256 of `mirage_vmaf`, how `LICENSE` compares with Homebrew's GPLv3 texts, and the help of `brew pin` and `brew extract`; run on a clean worktree of `6a6661f`, the commit after the pins and the `docs/BUILD.md` update, with the steps of `docs/BUILD.md`: both presets, first with the default Python, then with the venv (`eval/build_check/macos-2026-10-23-6a6661f.txt`).
@@ -700,6 +700,55 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - The record says what was rerun, with which programs, how it compared and how long it took; the rerun outputs would duplicate the committed ones wherever they match, which the record says they all do, and most of their size is the color cases' uncompressed clips.
   - Building inside the run shows both programs come from commits, and their SHA-256s can be compared with those of the committed runs.
 - **Result** (`eval/run_all/2026-10-23/rerun_check.md`, `run_all.md`): every step ran and everything compared is as committed. The program built from `83c8ed6` has the SHA-256 that the `build.txt` of `diag-before-300` and `color-cases-before` records, and the one built from HEAD that of `scalers-300` and `models-300`. 544.3 s of wall time, both builds included.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
+
+### P-026 The full-length §5 run of D-018: every frame of the four pairs, four scoring processes at a time
+
+- **Choice**
+  - Build the release `mirage_vmaf` in the main working tree at a clean HEAD, `3650f83`, as P-015 and P-016 did. `eval/consistency/acceptance-full/build.txt` records the commit, the clean working tree, two builds that had nothing to do, and the program's SHA-256.
+  - Run `eval/consistency/run_delta.sh` without `--frames` on the four pairs of D-018 with the defaults: plain FFmpeg, model vmaf_v0.6.1, scaler bilinear, 4 libvmaf threads, threshold 0.01 (D-019). With `--jobs 4`, four scoring processes run at a time, the two sides of two pairs (`acceptance-full/plain/`).
+  - The inputs are fetched from Apple's CDN during the run, as in every committed run (P-012, P-016); no local mirror.
+  - After committing the run, make `acceptance-full/checks.txt` from the clean tree, each command with its output: both sides at the 6 decimals of FFmpeg's log; the first 300 frames against `scalers-300/bilinear`, made by the same program with `--frames 300` and one process at a time; Mirage's scores against Phase 0's run of the player's analyzer at its 4 decimals; the conversions; the pairs' PTS; the checksums.
+- **Alternatives**
+  - `--jobs 1`, one scoring process at a time, as in every earlier committed run.
+  - A build in a clean worktree, as P-007 and P-022 did.
+  - A local mirror of the streams, scored once a run on one pair has shown that it scores as the URLs do.
+- **Rationale**
+  - How many processes run at once doesn't enter the scores: each side's libvmaf has its fixed 4 threads, and Mirage pairs frames in the order they are decoded and FFmpeg's libvmaf filter by their timestamps, neither by when they arrive; only the reports' wall times depend on the load. The run's first 300 frames have the scores of `scalers-300/bilinear`, made one process at a time (`checks.txt`, check 3).
+  - The program has the SHA-256 of the one behind `scalers-300/` and `models-300/`, which builds of commits in clean worktrees reproduced (`eval/build_check/macos-2026-10-23-6a6661f.txt`, "Built programs"; `eval/run_all/2026-10-23/builds/head/build.txt`), and the main working tree was clean and at the commit the run records, as in P-012, P-015 and P-016.
+  - D-018 names the streams. With a mirror, the report's inputs would be local files, and showing that a mirror scores as the URLs do takes a run on the URLs as well.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
+
+### P-027 The full-length run in eval/run_all.sh, and the pooling definitions over every frame
+
+- **Choice**
+  - `eval/run_all.py` gets two steps (`8aca01a`): `acceptance-full`, which reruns `eval/consistency/acceptance-full/plain` with the options of its `run.cmd.txt` and HEAD's `mirage_vmaf` and compares it with the committed run as the other `run_delta.sh` steps do; and `pooling-full`, which runs `eval/pooling/pooling.py` on that rerun and compares it with `eval/pooling/acceptance-full/`. Both run by default; `--skip-full` leaves them out, as `--skip-before` leaves out the runs made before D-016. `--jobs` stays 1 by default.
+  - `eval/pooling/acceptance-full/`: `pooling.py --delta-run eval/consistency/acceptance-full/plain`, made from the clean tree at `dfadf66` after the run was committed: P-018's measurement over every frame after D-016.
+- **Alternatives**
+  - Leave the full-length run out of `run_all.sh`, or rerun it only when an option asks for it.
+  - Add the full-length run as a second source of `pooling/bipbop16x9/` instead of a directory of its own.
+- **Rationale**
+  - `run_all.sh` reruns every committed Phase 1 measurement (P-024), and its test fails for a committed run without a step. The full-length run is the §5 acceptance output, the one run that most needs to be reproducible.
+  - Each side of each pair took longer than the whole `run_all.sh` run of 2026-10-23: from 1134.6 to 1396.7 s (the pairs' `delta.md` in `acceptance-full/plain/`), against 544.3 s (`eval/run_all/2026-10-23/run_all.md`). So rerunning the other steps alone should take one option, not a list of eleven steps.
+  - A directory of its own leaves `pooling/bipbop16x9/` as committed, and each pooling step reruns from the outputs of the steps it needs.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
+
+### P-028 The record of the unit test runs behind the Phase 1 PR description
+
+- **Choice**
+  - `eval/test_runs/macos-2026-10-23-8aca01a.txt`: from the clean main working tree at `8aca01a`, each command with its output and exit status: the changes to the C++ sources and CMake files since the build check at `6a6661f` (none), a debug build (nothing to do), whether the gitignored subtitle fixture is present, `mirage_tests '~[audio]'` in the form of `docs/BUILD.md` step 4 (a second run only if the first fails), and the four Python suites of `eval/`. The PR description quotes it.
+- **Alternatives**
+  - Paste the outputs into the PR description only.
+  - A new build check in a clean worktree (P-022), whose record has the unit tests too.
+- **Rationale**
+  - Hard rule 5 of the work order has a PR's description show the actual output of its tests, and as a report its numbers come from committed outputs (hard rule 2).
+  - The main working tree is where the measurements' programs were built. Its subtitle fixture, which `.gitignore` leaves out, lets that test pass there; the build check at `6a6661f`, whose C++ sources and CMake files are those of `8aca01a`, shows the one failure of a clean checkout (`docs/BUILD.md`, step 4).
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
 - **Status**: pending owner confirmation
