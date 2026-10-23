@@ -27,16 +27,23 @@ in this order:
   scalers-300            consistency/scalers-300/{bilinear,bicubic,lanczos}/ and
                          scaler_effect.*
   models-300             consistency/models-300/{vmaf_v0.6.1,...}/ and model_effect.*
+  defaults-300           consistency/defaults-300/plain/: the first 300 frames of
+                         the four pairs with the defaults after D-024 and D-027
   acceptance-full        consistency/acceptance-full/plain/: every frame of the
                          four pairs of D-018
   ffmpeg-scale-default   consistency/ffmpeg-scale-default/record.txt
   ffmpeg-libvmaf-filter  consistency/ffmpeg-libvmaf-filter/record.txt
   pooling                pooling/bipbop16x9/: eval/pooling/pooling.py on the
                          rerun of diag-after-300
+  pooling-defaults-300   pooling/defaults-300/: pooling.py --check-pooled on the
+                         rerun of defaults-300
   pooling-full           pooling/acceptance-full/: eval/pooling/pooling.py on
                          the rerun of acceptance-full
 
-Each run_delta.sh run gets the options its committed run.cmd.txt records.
+Each run_delta.sh run gets the options its committed run.cmd.txt records,
+the scaler included: defaults-300 was made without --scaler, with
+run_delta.sh's default since D-024, which its run.cmd.txt records, and the
+runs made before D-024 with bilinear, the default then.
 The runs made before D-016 (diag-before-300, color-cases-before,
 format-cases-before) use the mirage_vmaf of commit 83c8ed6, which converts
 no color; format-cases-after, made after D-016 and before D-022, uses that
@@ -194,12 +201,16 @@ STEPS = (
              for m in ("vmaf_v0.6.1", "vmaf_v0.6.1neg", "vmaf_4k_v0.6.1")] + [
              Run("file_vmaf_v0.6.1", delta_options(300, pairs=PAIRS_GEAR2,
                                                    model_file="{model_dir}/vmaf_v0.6.1.json"))]),
+    step("defaults-300", "delta", "head", committed="consistency/defaults-300", runs=[
+        Run("plain", delta_options(300, scaler="bicubic"))]),
     step("acceptance-full", "delta", "head", committed="consistency/acceptance-full", runs=[
         Run("plain", delta_options(None))]),
     step("ffmpeg-scale-default", "ffmpeg-record", committed="consistency/ffmpeg-scale-default"),
     step("ffmpeg-libvmaf-filter", "ffmpeg-record",
          committed="consistency/ffmpeg-libvmaf-filter"),
     step("pooling", "pooling", needs=["diag-after-300"], committed="pooling/bipbop16x9"),
+    step("pooling-defaults-300", "pooling", needs=["defaults-300"],
+         committed="pooling/defaults-300"),
     step("pooling-full", "pooling", needs=["acceptance-full"],
          committed="pooling/acceptance-full"),
 )
@@ -213,6 +224,8 @@ FULL_LENGTH = ("acceptance-full", "pooling-full")
 POOLING_SOURCES = {
     "pooling": ["--gui-report", "eval/baseline/bipbop16x9/report.vmaf.json",
                 "--delta-run", "{out}/consistency/diag-after-300/plain"],
+    "pooling-defaults-300": ["--delta-run", "{out}/consistency/defaults-300/plain",
+                             "--check-pooled"],
     "pooling-full": ["--delta-run", "{out}/consistency/acceptance-full/plain"],
 }
 

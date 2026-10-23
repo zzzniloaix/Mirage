@@ -157,6 +157,8 @@ class StepsAgainstTheCommittedRuns(unittest.TestCase):
         self.assertNotIn("color-cases-before", names(only=None, skip_before=True))
         self.assertEqual(names(only=["pooling-full"], skip_before=False),
                          ["acceptance-full", "pooling-full"])
+        self.assertEqual(names(only=["pooling-defaults-300"], skip_before=False),
+                         ["defaults-300", "pooling-defaults-300"])
         rest = names(only=None, skip_before=False, skip_full=True)
         self.assertEqual(rest, [n for n in ra.STEP_NAMES if n not in ra.FULL_LENGTH])
         self.assertIn("pooling", rest)
@@ -193,6 +195,12 @@ class StepsAgainstTheCommittedRuns(unittest.TestCase):
     def test_a_full_length_run_has_no_frame_limit(self):
         self.assertNotIn("--frames", ra.delta_options(None))
         self.assertEqual(ra.delta_options(300)[:2], ["--frames", "300"])
+
+    def test_the_pooling_check_of_d027_runs_on_defaults_300(self):
+        # pooling/defaults-300 was made with --check-pooled; the other pooling
+        # steps reproduce outputs made without it.
+        self.assertEqual([n for n, src in ra.POOLING_SOURCES.items() if "--check-pooled" in src],
+                         ["pooling-defaults-300"])
 
     def test_pooling_steps_read_the_reruns_of_the_steps_they_need(self):
         outs = {s.name: s.out for s in ra.STEPS}
