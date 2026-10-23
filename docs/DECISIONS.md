@@ -824,6 +824,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Rationale**
   - P-030 changed `src/` and `tests/`, so the program at the head is not the one the committed runs after D-016 were made with; rerunning every committed measurement with it shows whether the change moved any score, and the PR's test record has to be of the code it merges.
   - `--jobs` doesn't enter the scores (P-026), and with 4 the full-length step takes about as long as in P-027's rerun.
+- **Result** of the rerun (`eval/run_all/2026-10-23-fix/rerun_check.md`, `run_all.md`): every step ran, and everything compared is as committed. The program built from `9855319` has the SHA-256 of `eval/consistency/format-cases-after/build.txt`, and the one built from `83c8ed6` that of the runs before D-016. 2968.8 s of wall time, both builds included.
 - **Result** of the unit tests (`eval/test_runs/macos-2026-10-23-9855319.txt`): `mirage_tests '~[audio]'` passed at the first run, 90866 assertions in 244 test cases, and the four Python suites passed, 20, 85, 7 and 16 tests.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23

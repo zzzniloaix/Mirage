@@ -92,3 +92,12 @@ None of them needs the network. `tests/test_run_all.py` checks every step agains
 - Everything compared is as committed (`rerun_check.md`): every pair's verdict, all 53946 per-frame scores of every pair on Mirage's side at full precision, every libvmaf metric of FFmpeg's logs, and every pooling series.
 - The program it built from `e0beb49` has the SHA-256 that `consistency/acceptance-full/build.txt` records, `3633c43eaf4261e567ef2fb3a24d015e3e00b9a8ee354ddef88b6330aca4938c`.
 - It took 2707.1 s of wall time, the build included, of which 2614.8 s for `acceptance-full` (`run_all.md`).
+
+## The rerun after the review fixes, 2026-10-23
+
+`run_all/2026-10-23-fix/` keeps the record of `eval/run_all.sh <out_dir> --jobs 4`, made from a new clean worktree of `9855319` with no program given, the same files as above (P-032): every step, the reference format cases and the full-length ones included, with the `mirage_vmaf` that has P-030's warning.
+
+- Everything compared is as committed (`rerun_check.md`), in every step.
+- The program it built from `9855319` has the SHA-256 of `consistency/format-cases-after/build.txt`, `b225a60efd146d27fbb59335176324fa9529b1a86921f8814a1b64e34d162803`. It reproduces exactly the scores of the other runs made after D-016, which programs of other SHA-256 made: `420b8776…`, built at `5263061` (`diag-after-300`, `color-cases-after`), and `3633c43e…` (`scalers-300`, `models-300`, `acceptance-full`). The program it built from `83c8ed6` has the SHA-256 of `diag-before-300`, `color-cases-before` and `format-cases-before`.
+- It took 2968.8 s of wall time, both builds included, of which 2557.4 s for `acceptance-full` (`run_all.md`).
+
