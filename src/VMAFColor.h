@@ -6,11 +6,15 @@
 //
 //   [0:v]scale=W:H:flags=bilinear,format=yuv420p[d];[1:v]format=yuv420p[r];[d][r]libvmaf
 //
-// does it. The libvmaf filter makes its two inputs share one matrix and one
-// range, the reference's frames pass unconverted, and the scale filter scales
-// and converts the distorted frames to what was negotiated, in one
-// sws_scale_frame() call. FFmpeg's logs of each case are in
-// eval/consistency/color-cases-before/; eval/consistency/README.md sums them up.
+// does it when the reference's frames are yuv420p. The libvmaf filter makes
+// its two inputs share one matrix and one range, the reference's frames pass
+// unconverted, and the scale filter scales and converts the distorted frames
+// to what was negotiated, in one sws_scale_frame() call. FFmpeg's logs of
+// each case are in eval/consistency/color-cases-before/;
+// eval/consistency/README.md sums them up.
+//
+// A reference in another pixel format is a case this doesn't cover: see
+// converts_reference().
 
 extern "C" {
 #include <libavutil/pixfmt.h>
@@ -32,14 +36,25 @@ struct Tags {
 Tags tags_of(const AVFrame& frame);
 
 // The tags FFmpeg's graph gives the distorted frames at the output of their
-// scale filter, from both inputs' tags: the reference's matrix, unspecified
-// included, and the reference's range. When the reference has no range tag,
-// the graph keeps the distorted frames' range if that is limited or
-// unspecified, and picks unspecified for a full range.
+// scale filter, from both inputs' tags, for a yuv420p reference: the
+// reference's matrix, unspecified included, and the reference's range. When
+// the reference has no range tag, the graph keeps the distorted frames' range
+// if that is limited or unspecified, and picks unspecified for a full range.
 Tags target(const Tags& ref, const Tags& dis);
 
+// Whether FFmpeg's graph converts the reference's frames as well: when they
+// aren't yuv420p (10-bit, 4:2:2, 4:4:4, the yuvj420p of a full range H.264
+// stream), FFmpeg puts a scale filter of its own before the reference's
+// format filter. In every such case measured, FFmpeg then converts the
+// reference to the distorted frames' matrix and range and leaves the
+// distorted frames' alone, which the analyzer doesn't do, so its scores can
+// differ from FFmpeg's for such a reference (tests/test_vmaf_color.cpp;
+// docs/PHASE1_DECISIONS_PENDING.md).
+bool converts_reference(AVPixelFormat ref_format);
+
 // Whether libswscale converts from and to this matrix (sws_test_colorspace).
-// FFmpeg can't build the graph when either input has another one.
+// FFmpeg can't build the graph when either input has another one, the other
+// input's matrix being supported or the same (tests/test_vmaf_color.cpp).
 bool supported(AVColorSpace space);
 
 // What libswscale changes in the pixels when it converts `from` to `to`:

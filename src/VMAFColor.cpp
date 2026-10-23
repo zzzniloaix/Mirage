@@ -27,6 +27,12 @@ Tags target(const Tags& ref, const Tags& dis)
     return t;
 }
 
+bool converts_reference(AVPixelFormat ref_format)
+{
+    // The graph's format filter takes yuv420p only.
+    return ref_format != AV_PIX_FMT_YUV420P;
+}
+
 bool supported(AVColorSpace space)
 {
     return sws_test_colorspace(space, 0) > 0 && sws_test_colorspace(space, 1) > 0;

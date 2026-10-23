@@ -155,6 +155,29 @@ AVFrame* mirage_distorted(const AVFrame& dis, const AVFrame& ref, unsigned flags
     return out;
 }
 
+// `f`'s pixels and tags in another pixel format at its size. yuvj420p has
+// yuv420p's layout, so a yuvj420p frame only gets the name and full range.
+AVFrame* in_format(const AVFrame& f, AVPixelFormat fmt)
+{
+    AVFrame* out = av_frame_alloc();
+    if (fmt == AV_PIX_FMT_YUVJ420P) {
+        REQUIRE(av_frame_ref(out, &f) >= 0);
+        out->format = fmt;
+        out->color_range = kPc;
+        return out;
+    }
+    out->format = fmt;
+    out->width = f.width;
+    out->height = f.height;
+    REQUIRE(av_frame_copy_props(out, &f) >= 0);
+    REQUIRE(av_frame_get_buffer(out, 0) >= 0);
+    SwsContext* sws = sws_alloc_context();
+    sws->flags = SWS_BILINEAR;
+    REQUIRE(sws_scale_frame(sws, out, &f) >= 0);
+    sws_free_context(&sws);
+    return out;
+}
+
 // The rows of plane p that differ between two yuv420p frames of one size.
 int differing_rows(const AVFrame& a, const AVFrame& b, int p)
 {
@@ -374,7 +397,8 @@ TEST_CASE("vmafcolor: FFmpeg's graph refuses a matrix libswscale lacks", "[vmafc
         SKIP("this libavfilter has no libvmaf filter");
     const Tags ycgco{ AVCOL_SPC_YCGCO, kTv };
     const Tags bt709{ AVCOL_SPC_BT709, kTv };
-    for (const auto& [ref_tags, dis_tags] : { std::pair{ bt709, ycgco }, std::pair{ ycgco, bt709 } }) {
+    for (const auto& [ref_tags, dis_tags] : { std::pair{ bt709, ycgco }, std::pair{ ycgco, bt709 },
+                                              std::pair{ ycgco, ycgco } }) {
         INFO(name(ref_tags) << " vs " << name(dis_tags));
         AVFrame* dis = make_frame(64, 36, dis_tags);
         AVFrame* ref = make_frame(192, 108, ref_tags, 7);
@@ -383,4 +407,73 @@ TEST_CASE("vmafcolor: FFmpeg's graph refuses a matrix libswscale lacks", "[vmafc
         av_frame_free(&ref);
         av_frame_free(&dis);
     }
+}
+
+TEST_CASE("vmafcolor::converts_reference: FFmpeg's graph converts a reference that isn't yuv420p", "[vmafcolor]")
+{
+    if (!avfilter_get_by_name("libvmaf"))
+        SKIP("this libavfilter has no libvmaf filter");
+    const Tags dis_tags{ AVCOL_SPC_SMPTE170M, kTv };
+    AVFrame* dis = make_frame(64, 36, dis_tags);
+    AVFrame* ref420 = make_frame(192, 108, { AVCOL_SPC_BT709, kTv }, 7);
+
+    // A yuv420p reference: the distorted frame gets target()'s tags.
+    CHECK_FALSE(vmafcolor::converts_reference(AV_PIX_FMT_YUV420P));
+    AVFrame* got = ffmpeg_distorted(*dis, *ref420);
+    REQUIRE(got);
+    CHECK(name(vmafcolor::tags_of(*got)) == "bt709/tv");
+    CHECK(name(vmafcolor::tags_of(*got)) ==
+          name(vmafcolor::target(vmafcolor::tags_of(*ref420), dis_tags)));
+    av_frame_free(&got);
+
+    // Any other reference format: the distorted frame keeps its own tags,
+    // and FFmpeg converts the reference to them instead.
+    for (AVPixelFormat fmt : { AV_PIX_FMT_YUV420P10LE, AV_PIX_FMT_YUV422P, AV_PIX_FMT_YUV444P,
+                               AV_PIX_FMT_YUVJ420P }) {
+        INFO(av_get_pix_fmt_name(fmt));
+        CHECK(vmafcolor::converts_reference(fmt));
+        AVFrame* ref = in_format(*ref420, fmt);
+        AVFrame* out = ffmpeg_distorted(*dis, *ref);
+        REQUIRE(out);
+        CHECK(name(vmafcolor::tags_of(*out)) == name(dis_tags));
+        av_frame_free(&out);
+        av_frame_free(&ref);
+    }
+    av_frame_free(&ref420);
+    av_frame_free(&dis);
+}
+
+TEST_CASE("The analyzer's conversion of a yuvj420p reference makes it limited range", "[vmafcolor]")
+{
+    // VMAFAnalyzer converts the reference with sws_getContext() from the
+    // decoder's pixel format to yuv420p at the same size, with bilinear flags.
+    // libswscale takes a yuvj420p input as full range and yuv420p as limited.
+    AVFrame* src = make_frame(64, 36, { AVCOL_SPC_BT709, kTv });
+    src->data[0][0] = 0;
+    src->data[0][1] = 255;
+    for (AVPixelFormat fmt : { AV_PIX_FMT_YUVJ420P, AV_PIX_FMT_YUV420P }) {
+        INFO(av_get_pix_fmt_name(fmt));
+        AVFrame* out = av_frame_alloc();
+        out->format = AV_PIX_FMT_YUV420P;
+        out->width = 64;
+        out->height = 36;
+        REQUIRE(av_frame_get_buffer(out, 0) >= 0);
+        SwsContext* sws = nullptr;
+        {
+            const QuietLog quiet;   // libswscale's "deprecated pixel format used"
+            sws = sws_getContext(64, 36, fmt, 64, 36, AV_PIX_FMT_YUV420P, SWS_BILINEAR,
+                                 nullptr, nullptr, nullptr);
+            REQUIRE(sws);
+            sws_scale(sws, src->data, src->linesize, 0, 36, out->data, out->linesize);
+        }
+        if (fmt == AV_PIX_FMT_YUVJ420P) {
+            CHECK(out->data[0][0] == 16);
+            CHECK(out->data[0][1] == 235);
+        } else {
+            CHECK(differing_rows(*out, *src, 0) == 0);
+        }
+        av_frame_free(&out);
+        sws_freeContext(sws);
+    }
+    av_frame_free(&src);
 }
