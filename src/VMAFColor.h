@@ -9,8 +9,8 @@
 // does it. The libvmaf filter makes its two inputs share one matrix and one
 // range, the reference's frames pass unconverted, and the scale filter scales
 // and converts the distorted frames to what was negotiated, in one
-// sws_scale_frame() call. eval/consistency/README.md ("Color tag cases")
-// has FFmpeg's logs for each case.
+// sws_scale_frame() call. FFmpeg's logs of each case are in
+// eval/consistency/color-cases-before/; eval/consistency/README.md sums them up.
 
 extern "C" {
 #include <libavutil/pixfmt.h>
