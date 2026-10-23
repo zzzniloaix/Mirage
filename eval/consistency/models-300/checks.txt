@@ -3,7 +3,7 @@
 # 1. The repository when these checks and model_effect.* were made: HEAD and the working tree's state.
 
 $ git rev-parse HEAD && git status --porcelain && echo '(end of git status)'
-0f90acde72108814df94b8fc6d773770fb86f984
+35613dc7669b788e7bea81bc4b0a143a9d24f135
 (end of git status)
 
 # 2. model_effect.md and model_effect.json: how far each side's scores move from the vmaf_v0.6.1 run's (eval/consistency/compare_runs.py).

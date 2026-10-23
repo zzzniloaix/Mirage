@@ -25,16 +25,16 @@ From each run's own `delta.json` (\|delta\| = \|Mirage - FFmpeg\| per frame).
 
 ## How far Mirage's scores move from the vmaf_v0.6.1 run's
 
-| pair | run | frames compared | max \|shift\| (index) | mean shift | mean \|shift\| | pooled mean, base | pooled mean, run | pooled mean shift |
-|---|---|---|---|---|---|---|---|---|
-| gear2_vs_gear5 | vmaf_v0.6.1neg | 300 | 10.384560 (31) | -9.054533 | 9.054533 | 28.552935 | 19.498402 | -9.054533 |
-| gear2_vs_gear5 | vmaf_4k_v0.6.1 | 300 | 22.251285 (0) | 18.889440 | 18.889440 | 28.552935 | 47.442375 | 18.889440 |
-| gear2_vs_gear5 | file_vmaf_v0.6.1 | 300 | 0.000000 (0) | 0.000000 | 0.000000 | 28.552935 | 28.552935 | 0.000000 |
+| pair | run | frames compared | frames up / same / down | max \|shift\| (index) | mean shift | mean \|shift\| | pooled mean, base | pooled mean, run | pooled mean shift |
+|---|---|---|---|---|---|---|---|---|---|
+| gear2_vs_gear5 | vmaf_v0.6.1neg | 300 | 0 / 0 / 300 | 10.384560 (31) | -9.054533 | 9.054533 | 28.552935 | 19.498402 | -9.054533 |
+| gear2_vs_gear5 | vmaf_4k_v0.6.1 | 300 | 300 / 0 / 0 | 22.251285 (0) | 18.889440 | 18.889440 | 28.552935 | 47.442375 | 18.889440 |
+| gear2_vs_gear5 | file_vmaf_v0.6.1 | 300 | 0 / 300 / 0 | 0.000000 (0) | 0.000000 | 0.000000 | 28.552935 | 28.552935 | 0.000000 |
 
 ## How far FFmpeg's scores move from the vmaf_v0.6.1 run's
 
-| pair | run | frames compared | max \|shift\| (index) | mean shift | mean \|shift\| | pooled mean, base | pooled mean, run | pooled mean shift |
-|---|---|---|---|---|---|---|---|---|
-| gear2_vs_gear5 | vmaf_v0.6.1neg | 300 | 10.384559 (31) | -9.054533 | 9.054533 | 28.552935 | 19.498402 | -9.054533 |
-| gear2_vs_gear5 | vmaf_4k_v0.6.1 | 300 | 22.251285 (0) | 18.889440 | 18.889440 | 28.552935 | 47.442375 | 18.889440 |
-| gear2_vs_gear5 | file_vmaf_v0.6.1 | 300 | 0.000000 (0) | 0.000000 | 0.000000 | 28.552935 | 28.552935 | 0.000000 |
+| pair | run | frames compared | frames up / same / down | max \|shift\| (index) | mean shift | mean \|shift\| | pooled mean, base | pooled mean, run | pooled mean shift |
+|---|---|---|---|---|---|---|---|---|---|
+| gear2_vs_gear5 | vmaf_v0.6.1neg | 300 | 0 / 0 / 300 | 10.384559 (31) | -9.054533 | 9.054533 | 28.552935 | 19.498402 | -9.054533 |
+| gear2_vs_gear5 | vmaf_4k_v0.6.1 | 300 | 300 / 0 / 0 | 22.251285 (0) | 18.889440 | 18.889440 | 28.552935 | 47.442375 | 18.889440 |
+| gear2_vs_gear5 | file_vmaf_v0.6.1 | 300 | 0 / 300 / 0 | 0.000000 (0) | 0.000000 | 0.000000 | 28.552935 | 28.552935 | 0.000000 |
