@@ -1,27 +1,40 @@
-"""Synthetic clips for the color tag cases of docs/DECISIONS.md D-016.
+"""Synthetic clips for the color tag cases and the reference format cases
+of docs/DECISIONS.md D-016.
 
 D-016 has Mirage convert the distorted frames' color matrix and range the
 way FFmpeg's filter graph does, untagged streams included. This script
-makes the inputs that show what FFmpeg does: pairs of short clips whose
-pixels are the same in every case and whose color tags differ. Scoring
-them with run_delta.sh shows, in FFmpeg's verbose log, what its section 5
-filter graph negotiates for each case and converts, and how Mirage's
-scores compare.
+makes the inputs that show what FFmpeg does: pairs of short clips made
+from the same pattern, whose color tags, or pixel formats, differ.
+Scoring them with run_delta.sh shows, in FFmpeg's verbose log, what its
+section 5 filter graph negotiates for each case and converts, and how
+Mirage's scores compare.
 
-usage: python3 -I -B eval/consistency/color_cases.py <clips_dir> [--ffmpeg FFMPEG]
-                                                     [--ffprobe FFPROBE] [--frames N]
+usage: python3 -I -B eval/consistency/color_cases.py <clips_dir> [--set tags|formats]
+                                                     [--ffmpeg FFMPEG] [--ffprobe FFPROBE]
+                                                     [--frames N]
+
+Two sets of cases. --set tags, the default, is the color tag cases: every
+clip is 8-bit yuv420p, and only the tags differ. --set formats is the
+reference format cases: references in other pixel formats than yuv420p
+(10-bit, 4:2:2, 4:4:4, and the yuvj420p that FFmpeg's H.264 decoder gives
+for a full range stream), a few distorted inputs in those formats, and
+YCgCo on both inputs.
 
 Writes into <clips_dir>, a new or empty directory:
 
   ref_<tags>.mkv, dis_<tags>.mkv  the clips: FFmpeg's testsrc2 pattern, the
                        references at 1920x1080, the distorted inputs scaled
-                       to 640x360 (like bipbop's gear5 and gear2), yuv420p,
-                       uncompressed in Matroska, tagged with setparams
+                       to 640x360 (like bipbop's gear5 and gear2), tagged with
+                       setparams; 8-bit yuv420p uncompressed in Matroska,
+                       unless the name says otherwise after the role, as in
+                       ref_ffv1-yuv420p10le_bt709-tv.mkv (FFV1, lossless) or
+                       ref_libx264-yuvj420p_bt709-pc.mkv (lossless H.264)
   pairs.txt            the cases FFmpeg's graph scores, for run_delta.sh --pairs
   pairs_refused.txt    the cases FFmpeg's graph refuses to build
   clips.txt            for every clip: the command that made it, its stream
                        tags as ffprobe reads them back, and the MD5 of its
-                       decoded frames (the same for every clip of one size)
+                       decoded frames (the same for every clip of one size
+                       made from one pixel format)
 
 The pairs files name the clips by their paths; clips.txt shows <clips_dir>
 in their place and <ffmpeg> / <ffprobe> for the programs. Python 3
@@ -62,16 +75,28 @@ UNTAGGED = {"color_space": "unknown", "color_range": "unknown", "color_primaries
 PROBED_AS = {("color_transfer", "bt470bg"): "bt470bg", ("field_order", "tff"): "tb",
              ("color_range", "unknown"): "unknown", ("color_space", "unknown"): "unknown"}
 
-Clip = collections.namedtuple("Clip", "name size tags")   # tags: ((setparams option, value), ...)
+# tags: ((setparams option, value), ...); pix_fmt: the format the encoder is
+# given; codec: the encoder; probed: what ffprobe reads back besides the tags
+# and the pixel format, where the decoder differs, as ((field, value), ...).
+Clip = collections.namedtuple("Clip", "name size tags pix_fmt codec probed",
+                              defaults=("yuv420p", "rawvideo", ()))
 Case = collections.namedtuple("Case", "label ref dis about")
 
+# Further options of each encoder: FFV1 is lossless as it is, libx264 with a
+# quantizer of 0.
+CODEC_OPTIONS = {"rawvideo": [], "ffv1": [], "libx264": ["-qp", "0"]}
 
-def clip(role, tags):
+
+def clip(role, tags, pix_fmt="yuv420p", codec="rawvideo", probed=()):
     """A clip of `role` ("ref" or "dis") with setparams tags given as
-    "option=value" strings; it is named after them."""
+    "option=value" strings; it is named after them, and after its codec and
+    the pixel format it decodes to unless it is uncompressed yuv420p."""
     pairs = tuple(tuple(t.split("=", 1)) for t in tags)
-    name = f"{role}_" + "-".join(v for _, v in pairs)
-    return Clip(name, REF_SIZE if role == "ref" else DIS_SIZE, pairs)
+    kind = "" if (pix_fmt, codec) == ("yuv420p", "rawvideo") else \
+        f"{codec}-{dict(probed).get('pix_fmt', pix_fmt)}_"
+    name = f"{role}_{kind}" + "-".join(v for _, v in pairs)
+    return Clip(name, REF_SIZE if role == "ref" else DIS_SIZE, pairs, pix_fmt, codec,
+                tuple(probed))
 
 
 REF_709_TV = clip("ref", ["colorspace=bt709", "range=tv"])
@@ -142,6 +167,61 @@ REFUSED = (
     Case("u02_ycgco_vs_bt709", REF_YCGCO_TV, DIS_709_TV, "a YCgCo reference"),
 )
 
+# The reference format cases (--set formats). FFV1 and lossless H.264 keep
+# the pattern's pixels; FFmpeg's H.264 decoder gives a full range stream as
+# yuvj420p, and the chroma location left when the stream doesn't state one.
+H264_FULL = (("pix_fmt", "yuvj420p"), ("chroma_location", "left"))
+
+REF10_709_TV = clip("ref", ["colorspace=bt709", "range=tv"], "yuv420p10le", "ffv1")
+REF10_170M_TV = clip("ref", ["colorspace=smpte170m", "range=tv"], "yuv420p10le", "ffv1")
+# An FFV1 clip made with range=unknown reads back as limited range, so the
+# 10-bit reference without a matrix tag is tagged range=tv.
+REF10_NOMATRIX_TV = clip("ref", ["colorspace=unknown", "range=tv"], "yuv420p10le", "ffv1")
+REF422_709_TV = clip("ref", ["colorspace=bt709", "range=tv"], "yuv422p", "ffv1")
+REF444_709_TV = clip("ref", ["colorspace=bt709", "range=tv"], "yuv444p", "ffv1")
+REFJ_709_PC = clip("ref", ["colorspace=bt709", "range=pc"], "yuv420p", "libx264", H264_FULL)
+
+DIS10_170M_TV = clip("dis", ["colorspace=smpte170m", "range=tv"], "yuv420p10le", "ffv1")
+DISJ_709_PC = clip("dis", ["colorspace=bt709", "range=pc"], "yuv420p", "libx264", H264_FULL)
+
+FORMAT_CASES = (
+    Case("f01_10bit_bt709_vs_smpte170m", REF10_709_TV, DIS_170M_TV,
+         "a 10-bit reference, another matrix"),
+    Case("f02_10bit_smpte170m_vs_bt709", REF10_170M_TV, DIS_709_TV,
+         "a 10-bit BT.601 reference, a BT.709 distorted input"),
+    Case("f03_10bit_nomatrix_vs_bt709", REF10_NOMATRIX_TV, DIS_709_TV,
+         "a 10-bit reference without a matrix tag"),
+    Case("f04_10bit_bt709_vs_bt709", REF10_709_TV, DIS_709_TV,
+         "a 10-bit reference, the same tags"),
+    Case("f05_422_bt709_vs_smpte170m", REF422_709_TV, DIS_170M_TV,
+         "a 4:2:2 reference, another matrix"),
+    Case("f06_422_bt709_vs_bt709", REF422_709_TV, DIS_709_TV,
+         "a 4:2:2 reference, the same tags"),
+    Case("f07_444_bt709_vs_smpte170m", REF444_709_TV, DIS_170M_TV,
+         "a 4:4:4 reference, another matrix"),
+    Case("f08_444_bt709_vs_bt709", REF444_709_TV, DIS_709_TV,
+         "a 4:4:4 reference, the same tags"),
+    Case("j01_yuvj_pc_vs_tv", REFJ_709_PC, DIS_709_TV,
+         "a full range H.264 reference, decoded as yuvj420p; a limited range distorted input"),
+    Case("j02_yuvj_pc_vs_pc", REFJ_709_PC, DIS_709_PC,
+         "a full range H.264 reference, decoded as yuvj420p; a full range distorted input"),
+    Case("d01_bt709_vs_10bit_smpte170m", REF_709_TV, DIS10_170M_TV,
+         "a yuv420p reference, a 10-bit distorted input with another matrix"),
+    Case("d02_bt709tv_vs_yuvj_pc", REF_709_TV, DISJ_709_PC,
+         "a yuv420p reference, a full range H.264 distorted input, decoded as yuvj420p"),
+)
+
+FORMAT_REFUSED = (
+    Case("u03_ycgco_vs_ycgco", REF_YCGCO_TV, DIS_YCGCO_TV, "YCgCo on both inputs"),
+)
+
+# Each set: its cases, its refused cases, and how its files describe it.
+CaseSet = collections.namedtuple("CaseSet", "cases refused option what")
+SETS = {
+    "tags": CaseSet(CASES, REFUSED, "", "Color tag cases"),
+    "formats": CaseSet(FORMAT_CASES, FORMAT_REFUSED, " --set formats", "Reference format cases"),
+}
+
 
 def all_clips(cases=CASES + REFUSED):
     """Every clip the cases use, once each, references first, in case order."""
@@ -160,8 +240,8 @@ def make_command(ffmpeg, x, path, frames=DEFAULT_FRAMES):
     params = ":".join(f"{k}={v}" for k, v in x.tags)
     return [ffmpeg, "-hide_banner", "-nostdin", "-v", "error", "-f", "lavfi",
             "-i", f"testsrc2=size={w}x{h}:rate={RATE}", "-frames:v", str(frames),
-            "-vf", f"{chain}format=yuv420p,setparams={params}",
-            "-c:v", "rawvideo", "-f", "matroska", path]
+            "-vf", f"{chain}format={x.pix_fmt},setparams={params}",
+            "-c:v", x.codec, *CODEC_OPTIONS[x.codec], "-f", "matroska", path]
 
 
 def probe_command(ffprobe, path):
@@ -183,7 +263,8 @@ def expected_tags(x):
         for k, v in x.tags:
             if k == opt:
                 want[field] = PROBED_AS.get((field, v), v)
-    want.update(width=str(x.size[0]), height=str(x.size[1]), pix_fmt="yuv420p")
+    want.update(width=str(x.size[0]), height=str(x.size[1]), pix_fmt=x.pix_fmt)
+    want.update(x.probed)
     return want
 
 
@@ -236,6 +317,8 @@ def parse_args(argv):
         description="Make the synthetic clips and pairs files of the color tag cases "
                     "(docs/DECISIONS.md D-016) in CLIPS_DIR.")
     p.add_argument("clips_dir", help="a new or empty directory")
+    p.add_argument("--set", choices=sorted(SETS), default="tags",
+                   help="which cases (default: tags, the color tag cases)")
     p.add_argument("--ffmpeg", default=DEFAULT_FFMPEG, help=f"default: {DEFAULT_FFMPEG}")
     p.add_argument("--ffprobe", help="default: the ffprobe next to --ffmpeg")
     p.add_argument("--frames", type=int, default=DEFAULT_FRAMES,
@@ -256,13 +339,15 @@ def main(argv=None):
     os.makedirs(clips_dir, exist_ok=True)
     ffprobe = args.ffprobe or os.path.join(os.path.dirname(args.ffmpeg), "ffprobe")
     programs = {args.ffmpeg: "<ffmpeg>", ffprobe: "<ffprobe>"}
+    chosen = SETS[args.set]
+    clips = all_clips(chosen.cases + chosen.refused)
 
-    record = ["# The clips of eval/consistency/color_cases.py, made in <clips_dir>: for "
-              "each, the command that made it, its stream as <ffprobe> reads it back, and "
-              "the MD5 of its decoded frames.", ""]
-    problems, md5_by_size = [], {}
+    record = [f"# The clips of eval/consistency/color_cases.py{chosen.option}, made in "
+              "<clips_dir>: for each, the command that made it, its stream as <ffprobe> reads "
+              "it back, and the MD5 of its decoded frames.", ""]
+    problems, md5_by_kind = [], {}
     try:
-        for x in all_clips():
+        for x in clips:
             path = os.path.join(clips_dir, x.name + ".mkv")
             make = make_command(args.ffmpeg, x, path, args.frames)
             run(make)
@@ -271,28 +356,29 @@ def main(argv=None):
             problems += tag_problems(x, parse_probe(probed_text))
             md5 = md5_command(args.ffmpeg, path)
             digest = run(md5).strip()
-            md5_by_size.setdefault(x.size, set()).add(digest)
+            md5_by_kind.setdefault((x.size, x.pix_fmt), set()).add(digest)
             record += [f"## {x.name}.mkv", f"$ {shown(make, clips_dir, programs)}",
                        f"$ {shown(probe, clips_dir, programs)}", probed_text.rstrip(),
                        f"$ {shown(md5, clips_dir, programs)}", digest, ""]
     except (OSError, RuntimeError) as e:
         print(f"color_cases: {e}", file=sys.stderr)
         return 1
-    for size, digests in sorted(md5_by_size.items()):
+    for (size, pix_fmt), digests in sorted(md5_by_kind.items()):
         if len(digests) != 1:
-            problems.append(f"the {size[0]}x{size[1]} clips do not all have the same pixels")
+            problems.append(f"the {size[0]}x{size[1]} clips made from {pix_fmt} do not all "
+                            "have the same pixels")
 
     with open(os.path.join(clips_dir, "clips.txt"), "w", encoding="utf-8") as f:
         f.write("\n".join(record))
     with open(os.path.join(clips_dir, "pairs.txt"), "w", encoding="utf-8") as f:
-        f.write(pairs_text(CASES, clips_dir, "Color tag cases that FFmpeg's section 5 "
-                                             "graph scores (docs/DECISIONS.md D-016)."))
+        f.write(pairs_text(chosen.cases, clips_dir, f"{chosen.what} that FFmpeg's section 5 "
+                                                    "graph scores (docs/DECISIONS.md D-016)."))
     with open(os.path.join(clips_dir, "pairs_refused.txt"), "w", encoding="utf-8") as f:
-        f.write(pairs_text(REFUSED, clips_dir, "Color tag cases that FFmpeg's section 5 "
-                                               "graph refuses (docs/DECISIONS.md D-016)."))
+        f.write(pairs_text(chosen.refused, clips_dir, f"{chosen.what} that FFmpeg's section 5 "
+                                                      "graph refuses (docs/DECISIONS.md D-016)."))
     for x in problems:
         print(f"color_cases: {x}", file=sys.stderr)
-    print(f"color_cases: {len(all_clips())} clips, {len(CASES)} + {len(REFUSED)} cases "
+    print(f"color_cases: {len(clips)} clips, {len(chosen.cases)} + {len(chosen.refused)} cases "
           f"in {args.clips_dir}")
     return 1 if problems else 0
 
