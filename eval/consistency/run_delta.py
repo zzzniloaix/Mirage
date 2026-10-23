@@ -98,9 +98,9 @@ def parse_args(argv):
     p.add_argument("--pairs", default=DEFAULT_PAIRS, metavar="FILE",
                    help="pairs file, '<label> <reference> <distorted>' per line "
                         "(default: eval/consistency/pairs/bipbop16x9.txt)")
-    p.add_argument("--scaler", default="bilinear",
-                   help="FFmpeg's scale flags; must be the scaler mirage_vmaf uses "
-                        "(default: bilinear)")
+    p.add_argument("--scaler", default="bicubic",
+                   help="FFmpeg's scale flags, and mirage_vmaf's --scaler where it has one; "
+                        "must be the scaler mirage_vmaf uses (default: bicubic, D-024)")
     p.add_argument("--model", metavar="NAME",
                    help="libvmaf built-in model version (default: vmaf_v0.6.1)")
     p.add_argument("--model-file", metavar="FILE",

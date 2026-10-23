@@ -50,9 +50,16 @@ class RunDelta(unittest.TestCase):
                                                for label, ref, dis in rows))
         return path
 
-    def run_tool(self, pairs, *extra, env=None):
+    def run_tool(self, pairs, *extra, env=None, scaler="bilinear"):
+        """run_delta.main() on the stand-ins. Unless `scaler` is None, the run
+        is given --scaler `scaler` (before `extra`): mirage_vmaf's stand-in
+        without FAKE_MIRAGE_HAS_SCALER scores with the fixed bilinear scaler
+        of the programs before --scaler, so since D-024, which made bicubic
+        run_delta's default, a run of such a program names bilinear, as
+        eval/run_all.sh does for the runs made with one."""
         argv = [os.path.join(self.bin, "mirage_vmaf"), self.out, "--pairs", pairs,
-                "--ffmpeg", os.path.join(self.bin, "ffmpeg"), *extra]
+                "--ffmpeg", os.path.join(self.bin, "ffmpeg"),
+                *(["--scaler", scaler] if scaler else []), *extra]
         stdout, stderr = io.StringIO(), io.StringIO()
         with mock.patch.dict(os.environ, env or {}), contextlib.redirect_stdout(stdout), \
                 contextlib.redirect_stderr(stderr):
@@ -174,16 +181,42 @@ class RunDelta(unittest.TestCase):
 
     def test_scaler_is_checked_and_forwarded(self):
         pairs = self.pairs(("same", REF, SAME))
-        rc, _, _ = self.run_tool(pairs, "--frames", "2", "--scaler", "bicubic")
+        rc, _, _ = self.run_tool(pairs, "--frames", "2", scaler="lanczos")
+        self.assertEqual(rc, 1)
+        self.assertIn("SETTINGS MISMATCH: mirage_vmaf's report has scaler 'bilinear', "
+                      "FFmpeg's run 'lanczos'", self.report("same/delta.json")["fail_reasons"])
+        # A mirage_vmaf whose --help lists --scaler is given the scaler.
+        self.out = os.path.join(self.dir, "out2")
+        rc, _, err = self.run_tool(pairs, "--frames", "2", scaler="lanczos",
+                                   env={"FAKE_MIRAGE_HAS_SCALER": "1"})
+        self.assertEqual(rc, 0, err)
+        self.assertIn("--frames 2 --scaler lanczos >", self.read("same/cmd.txt"))
+        self.assertIn("scale=1920:1080:flags=lanczos,", self.read("same/cmd.txt"))
+        self.assertEqual(self.report("same/delta.json")["warnings"], [])
+
+    def test_the_default_scaler_is_bicubic_on_both_sides(self):
+        # D-024: without --scaler, FFmpeg's scale filter gets flags=bicubic, and a
+        # mirage_vmaf that takes --scaler gets --scaler bicubic.
+        pairs = self.pairs(("same", REF, SAME))
+        rc, _, err = self.run_tool(pairs, "--frames", "2", scaler=None,
+                                   env={"FAKE_MIRAGE_HAS_SCALER": "1"})
+        self.assertEqual(rc, 0, err)
+        cmd = self.read("same/cmd.txt")
+        self.assertIn("scale=1920:1080:flags=bicubic,format=yuv420p[d]", cmd)
+        self.assertIn("--frames 2 --scaler bicubic >", cmd)
+        self.assertIn(" --scaler bicubic ", self.read("run.cmd.txt"))
+        self.assertEqual(self.report()["parameters"]["scaler"], "bicubic")
+        r = self.report("same/delta.json")
+        self.assertEqual((r["mirage_vmaf"]["scaler"], r["warnings"]), ("bicubic", []))
+        self.assertEqual(r["ffmpeg_color"]["scale"][0]["flags"], "0x00000004")
+        # One without --scaler scores bilinear: the settings differ.
+        self.out = os.path.join(self.dir, "out2")
+        rc, _, _ = self.run_tool(pairs, "--frames", "2", scaler=None)
         self.assertEqual(rc, 1)
         self.assertIn("SETTINGS MISMATCH: mirage_vmaf's report has scaler 'bilinear', "
                       "FFmpeg's run 'bicubic'", self.report("same/delta.json")["fail_reasons"])
-        # A mirage_vmaf whose --help lists --scaler is given the scaler.
-        self.out = os.path.join(self.dir, "out2")
-        rc, _, err = self.run_tool(pairs, "--frames", "2", "--scaler", "bicubic",
-                                   env={"FAKE_MIRAGE_HAS_SCALER": "1"})
-        self.assertEqual(rc, 0, err)
-        self.assertIn("--frames 2 --scaler bicubic >", self.read("same/cmd.txt"))
+        self.assertNotIn("--scaler", self.read("same/cmd.txt").split("<mirage_vmaf>")[1]
+                         .split("\n")[0])
 
     def test_model_file_is_forwarded_and_checked(self):
         model = os.path.join(self.dir, "models", "my_model.json")

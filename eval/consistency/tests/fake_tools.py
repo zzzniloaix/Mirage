@@ -8,15 +8,19 @@ when it converts the distorted input's color space (its tag differs from
 the reference's and no setparams relabels it). Options of the distorted
 input: mirage_offset=X adds X to Mirage's scores; ffmpeg_extra_frame makes
 FFmpeg score one frame more than there are; mirage_fails makes mirage_vmaf
-exit with status 1 and no report. A fake input has 10 frames.
+exit with status 1 and no report. A fake input has 10 frames. FFmpeg's
+stand-in states the swscale flags of its graph's flags= in its scale
+filter's line.
 
-With FAKE_MIRAGE_HAS_SCALER=1 mirage_vmaf's stand-in takes --scaler, with
-FAKE_MIRAGE_HAS_MODEL=1 --model and --model-file, and reports the model as
-the current mirage_vmaf does (model_source, model_sha256, reference_mode).
-With FAKE_MIRAGE_HAS_D022=1 it also reports the FFmpeg libraries' versions
-(those of ffmpeg's stand-in), the distorted frames' conversion to the
-reference's color space, as ffmpeg's stand-in converts them, and no
-conversion of the reference.
+mirage_vmaf's stand-in scores with the fixed bilinear scaler of the
+programs before --scaler existed. With FAKE_MIRAGE_HAS_SCALER=1 it takes
+--scaler, bicubic unless given, as mirage_vmaf does since D-024; with
+FAKE_MIRAGE_HAS_MODEL=1 --model and --model-file, and it reports the model
+as the current mirage_vmaf does (model_source, model_sha256,
+reference_mode). With FAKE_MIRAGE_HAS_D022=1 it also reports the FFmpeg
+libraries' versions (those of ffmpeg's stand-in), the distorted frames'
+conversion to the reference's color space, as ffmpeg's stand-in converts
+them, and no conversion of the reference.
 """
 
 import hashlib
@@ -30,6 +34,9 @@ FRAMES = 10
 # The libraries ffmpeg's stand-in prints in -version, at run time.
 LIBRARIES = {"libavutil": "60.26.101", "libavcodec": "62.28.101", "libavformat": "62.12.101",
              "libavfilter": "11.14.101", "libswscale": "9.5.101"}
+
+# The swscale flags ffmpeg's stand-in states for its scale filter's flags=.
+SWS_FLAGS = {"bilinear": 0x2, "bicubic": 0x4, "lanczos": 0x200}
 
 
 def parse_input(url):
@@ -80,6 +87,7 @@ def ffmpeg(args):
                                                "harmonic_mean": 0.0}},
                    "aggregate_metrics": {}}, f, indent=2)
     w, h = (int(v) for v in re.search(r"scale=(\d+):(\d+)", graph).groups())
+    flags = SWS_FLAGS[re.search(r"scale=\d+:\d+:flags=(\w+)", graph).group(1)]
     err = sys.stderr
     for k, i in enumerate((dis, ref)):
         print(f"  Stream #{k}:0[0x0]: Video: h264 (Main), yuv420p(tv, {i['color_space']}), "
@@ -89,7 +97,7 @@ def ffmpeg(args):
               "range:tv alpha:unspecified", file=err)
     print(f"[Parsed_scale_1 @ 0x9] w:{dis['width']} h:{dis['height']} fmt:yuv420p csp:{csp} "
           f"range:tv sar:0/1 -> w:{w} h:{h} fmt:yuv420p csp:{ref['color_space']} range:tv "
-          "sar:0/1 flags:0x00000002", file=err)
+          f"sar:0/1 flags:0x{flags:08x}", file=err)
     return 0
 
 
@@ -134,7 +142,7 @@ def mirage_vmaf(args):
                              model_sha256=hashlib.sha256(f.read()).hexdigest())
     report = {"tool": "mirage_vmaf", "libvmaf_version": "3.0.0",
               "libvmaf_package_version": "3.1.0", **model,
-              "scaler": opts.get("--scaler", "bilinear") if has_scaler else "bilinear",
+              "scaler": opts.get("--scaler", "bicubic") if has_scaler else "bilinear",
               "n_threads": 4, "n_subsample": 1,
               "scored_as": {"width": ref["width"], "height": ref["height"],
                             "pix_fmt": "yuv420p", "bit_depth": 8},
