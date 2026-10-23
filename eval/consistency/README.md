@@ -136,7 +136,7 @@ So in these 300 frames, the whole difference between Mirage and FFmpeg on gear2 
 
 Limits:
 
-- Only the first 300 frames (P-012), and only the bilinear scaler on both sides; D-003's comparison of bilinear and bicubic needs a `mirage_vmaf` that takes a scaler.
+- Only the first 300 frames (P-012), and only the bilinear scaler on both sides; D-003's comparison of the scalers, with a `mirage_vmaf` that takes one, is in `scalers-300/`.
 - The inputs are Apple's streams as fetched during the runs; they aren't kept here.
 - These scores only compare the two tools, like Phase 0's (D-005). bipbop's rungs were rendered separately (D-011), so the scores say nothing about the rungs' quality.
 
@@ -230,3 +230,69 @@ Limits:
 - Only the first 300 frames. The committed §5 report covers every frame of the four rungs (D-018): MEASUREMENT PENDING.
 - Only the bilinear scaler on both sides (D-003), and the inputs as fetched during the run.
 - These scores only compare the two tools (D-005, D-011).
+
+### `scalers-300/`: the three scalers on both sides, first 300 frames (D-003, P-016)
+
+D-003 has bilinear and bicubic measured on both sides before the owner picks the default scaler. These are the plain runs of `diag-after-300/` once per scaler, `--scaler` going to both sides (FFmpeg's `flags=`, `mirage_vmaf --scaler`), with the `mirage_vmaf` that takes `--scaler` and `--model`, built at `8cc06a7c6939660e53097b948f6a78c068e8faee` from the clean main working tree (`build.txt`):
+
+```
+eval/consistency/run_delta.sh build/macos-release/mirage_vmaf <out>/bilinear --frames 300 --scaler bilinear
+eval/consistency/run_delta.sh build/macos-release/mirage_vmaf <out>/bicubic --frames 300 --scaler bicubic
+eval/consistency/run_delta.sh build/macos-release/mirage_vmaf <out>/lanczos --frames 300 --scaler lanczos
+python3 -I -B eval/consistency/compare_runs.py --base bilinear=eval/consistency/scalers-300/bilinear --run bicubic=eval/consistency/scalers-300/bicubic --run lanczos=eval/consistency/scalers-300/lanczos --out eval/consistency/scalers-300/scaler_effect
+```
+
+| File | Contents |
+|---|---|
+| `build.txt` | the build of `mirage_vmaf` right before the runs: HEAD, a clean working tree, the build's output, a second build with nothing to do, and its SHA-256, which every run's `environment.txt` repeats |
+| `bilinear/`, `bicubic/`, `lanczos/` | the three runs |
+| `scaler_effect.md`, `scaler_effect.json` | `compare_runs.py`: per pair, how far each side's per-frame scores move from the bilinear run's |
+| `checks.txt` | checks made on the runs afterwards, each command with its output |
+| `SHA256SUMS` | SHA-256 of `build.txt`, `checks.txt`, `scaler_effect.*` and the runs' own `SHA256SUMS` |
+
+From `scaler_effect.md`, Mirage's side (shift = the scaler's score minus bilinear's, per frame; 6 decimals):
+
+| pair | pooled mean, bilinear | pooled mean, bicubic | pooled mean, lanczos | mean shift, bicubic | mean shift, lanczos | max \|shift\|, bicubic (index) | max \|shift\|, lanczos (index) |
+|---|---|---|---|---|---|---|---|
+| gear4_vs_gear5 | 74.640607 | 84.258060 | 83.843581 | 9.617453 | 9.202973 | 10.070505 (240) | 10.105211 (240) |
+| gear3_vs_gear5 | 53.729092 | 64.843002 | 67.063929 | 11.113910 | 13.334836 | 12.066728 (30) | 14.121453 (30) |
+| gear2_vs_gear5 | 28.552935 | 36.817663 | 39.024426 | 8.264728 | 10.471491 | 8.804682 (101) | 11.215920 (101) |
+| gear1_vs_gear5 | 0.006117 | 6.781918 | 8.881025 | 6.775801 | 8.874908 | 9.142560 (41) | 11.607837 (41) |
+
+What they show:
+
+- **Mirage matches FFmpeg with every scaler.** All three runs pass on all four pairs, and every frame of every pair agrees at the 6 decimals of FFmpeg's log (`checks.txt`, check 3). FFmpeg's scale filter ran with the flags of the scaler asked for, those of swscale's `SWS_BILINEAR`, `SWS_BICUBIC` and `SWS_LANCZOS` (check 5).
+- **The default is unchanged.** The bilinear run has, on both sides, the scores of `diag-after-300/` at full precision on every frame (check 4).
+- **The scaler moves the scores a lot.** With bicubic and with lanczos no frame of any pair scores lower than with bilinear: every frame of gear4, gear3 and gear2 scores higher, and so does every frame of gear1 but 10 with bicubic and 9 with lanczos, which keep their score (`scaler_effect.md`, frames up / same / down). On average the scores rise by 6.775801 to 11.113910 points with bicubic and by 8.874908 to 13.334836 with lanczos, depending on the pair. FFmpeg's scores move the same way (the FFmpeg table of `scaler_effect.md`), so the scaler is no source of disagreement between the two tools, but it changes the scores themselves.
+
+Limits: the first 300 frames only; bipbop's rungs were rendered separately (D-011), so how much a scaler changes the scores of a ladder encoded from one source is not measured here (MEASUREMENT PENDING, after D-011's clips); the scores only compare settings and tools (D-005).
+
+### `models-300/`: the model option, gear2, first 300 frames (§1.1, P-016)
+
+Work order §1.1's acceptance: a change of model gives observably different scores, and the output carries the model identifier. One pair, gear2 against gear5 (`pairs/bipbop16x9_gear2.txt`), bilinear, with each built-in model the work order names and with a model file, the libvmaf package's `vmaf_v0.6.1.json`; the same `mirage_vmaf` as `scalers-300/` (`build.txt`):
+
+```
+eval/consistency/run_delta.sh build/macos-release/mirage_vmaf <out>/vmaf_v0.6.1 --frames 300 --pairs eval/consistency/pairs/bipbop16x9_gear2.txt --model vmaf_v0.6.1
+eval/consistency/run_delta.sh build/macos-release/mirage_vmaf <out>/vmaf_v0.6.1neg --frames 300 --pairs eval/consistency/pairs/bipbop16x9_gear2.txt --model vmaf_v0.6.1neg
+eval/consistency/run_delta.sh build/macos-release/mirage_vmaf <out>/vmaf_4k_v0.6.1 --frames 300 --pairs eval/consistency/pairs/bipbop16x9_gear2.txt --model vmaf_4k_v0.6.1
+eval/consistency/run_delta.sh build/macos-release/mirage_vmaf <out>/file_vmaf_v0.6.1 --frames 300 --pairs eval/consistency/pairs/bipbop16x9_gear2.txt --model-file /opt/homebrew/opt/libvmaf/share/libvmaf/model/vmaf_v0.6.1.json
+python3 -I -B eval/consistency/compare_runs.py --base vmaf_v0.6.1=eval/consistency/models-300/vmaf_v0.6.1 --run vmaf_v0.6.1neg=eval/consistency/models-300/vmaf_v0.6.1neg --run vmaf_4k_v0.6.1=eval/consistency/models-300/vmaf_4k_v0.6.1 --run file_vmaf_v0.6.1=eval/consistency/models-300/file_vmaf_v0.6.1 --out eval/consistency/models-300/model_effect
+```
+
+The files are laid out as in `scalers-300/`, with `model_effect.*` in place of `scaler_effect.*`. From `model_effect.md`, Mirage's side:
+
+| run | pooled mean | mean shift from vmaf_v0.6.1 | max \|shift\| (index) |
+|---|---|---|---|
+| vmaf_v0.6.1 | 28.552935 | | |
+| vmaf_v0.6.1neg | 19.498402 | -9.054533 | 10.384560 (31) |
+| vmaf_4k_v0.6.1 | 47.442375 | 18.889440 | 22.251285 (0) |
+| file_vmaf_v0.6.1 | 28.552935 | 0.000000 | 0.000000 (0) |
+
+What they show:
+
+- **Observably different scores.** With vmaf_v0.6.1neg every one of the 300 frames scores lower than with vmaf_v0.6.1, with vmaf_4k_v0.6.1 every frame scores higher (`model_effect.md`, frames up / same / down), on both sides alike.
+- **The model identifier.** Each `mirage_vmaf` report names its model: `model`, `model_source` (`built-in` or `file`), and for the file its SHA-256, the value `shasum -a 256` computes (`checks.txt`, check 4). FFmpeg's log for vmaf_v0.6.1neg has that model's features (names ending in `_egl_1`, check 5).
+- **Mirage matches FFmpeg with every model**: every frame of every run agrees at FFmpeg's 6 decimals (check 3).
+- **A model file works like the built-in model**: the run with the package's `vmaf_v0.6.1.json` keeps every score of the built-in vmaf_v0.6.1 on both sides, at full precision on Mirage's side and in every metric of FFmpeg's log (check 6), and the vmaf_v0.6.1 run has those of `scalers-300/bilinear` for gear2 (check 6).
+
+Limits: one pair, the first 300 frames; which model suits which content is not evaluated here.
