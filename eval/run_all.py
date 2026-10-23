@@ -14,10 +14,14 @@ in this order:
                          compared with eval/streams/fetched-2026-10-23/
   clips                  consistency/clips/: eval/consistency/color_cases.py,
                          compared with eval/consistency/color-cases-before/clips.txt
+  format-clips           consistency/format_clips/: color_cases.py --set formats,
+                         compared with eval/consistency/format-cases-before/clips.txt
   diag-before-300        consistency/diag-before-300/{plain,relabel}/
   color-cases-before     consistency/color-cases-before/{main,refused}/
+  format-cases-before    consistency/format-cases-before/{main,refused}/
   diag-after-300         consistency/diag-after-300/plain/
   color-cases-after      consistency/color-cases-after/{main,refused}/
+  format-cases-after     consistency/format-cases-after/{main,refused}/
   scalers-300            consistency/scalers-300/{bilinear,bicubic,lanczos}/ and
                          scaler_effect.*
   models-300             consistency/models-300/{vmaf_v0.6.1,...}/ and model_effect.*
@@ -31,9 +35,9 @@ in this order:
                          the rerun of acceptance-full
 
 Each run_delta.sh run gets the options its committed run.cmd.txt records.
-The runs made before D-016 (diag-before-300, color-cases-before) use the
-mirage_vmaf of commit 83c8ed6, which converts no color; all the others use
-the mirage_vmaf of the repository's HEAD. --skip-before leaves out the runs
+The runs made before D-016 (diag-before-300, color-cases-before,
+format-cases-before) use the mirage_vmaf of commit 83c8ed6, which converts
+no color; all the others use the mirage_vmaf of the repository's HEAD. --skip-before leaves out the runs
 made before D-016, --skip-full the two steps over every frame
 (acceptance-full, pooling-full). Unless --mirage-vmaf /
 --mirage-vmaf-before give one, each is built in a temporary worktree of
@@ -88,9 +92,10 @@ REPORT_VERSION = 1
 DEFAULT_FFMPEG = "/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg"   # docs/DECISIONS.md D-009
 DEFAULT_MODEL_DIR = "/opt/homebrew/opt/libvmaf/share/libvmaf/model"
 
-# The commit whose mirage_vmaf made the runs before D-016: stage 1 built it
-# at 83c8ed6, and diag-before-300/build.txt and color-cases-before/build.txt
-# check that it was unchanged when they ran.
+# The commit whose mirage_vmaf made the runs before D-016: it was built at
+# 83c8ed6, and diag-before-300/build.txt and color-cases-before/build.txt
+# check that it was unchanged when they ran; format-cases-before/build.txt
+# builds it in a worktree of 83c8ed6.
 BEFORE_D016 = "83c8ed6b497783cc6dd265637e7b2298399ba41a"
 
 BUILD_TIMEOUT = 3600      # seconds per configure or build
@@ -100,8 +105,8 @@ PAIRS = "eval/consistency/pairs/bipbop16x9.txt"
 PAIRS_GEAR2 = "eval/consistency/pairs/bipbop16x9_gear2.txt"
 
 # One run_delta.sh run of a step: its directory and options. In the options,
-# {clips} is the clips directory of the clips step and {model_dir} the libvmaf
-# model directory.
+# {clips} and {format_clips} are the clips directories of the clips and
+# format-clips steps, and {model_dir} the libvmaf model directory.
 Run = collections.namedtuple("Run", "name options")
 
 
@@ -115,18 +120,22 @@ def delta_options(frames, pairs=PAIRS, scaler="bilinear", model="vmaf_v0.6.1",
     return opts + (["--diagnostic-relabel"] if relabel else [])
 
 
-Step = collections.namedtuple("Step", "name kind binary runs needs committed out effect")
+Step = collections.namedtuple("Step", "name kind binary runs needs committed out effect options")
 
 
-def step(name, kind, binary=None, runs=(), needs=(), committed=None, out=None, effect=None):
+def step(name, kind, binary=None, runs=(), needs=(), committed=None, out=None, effect=None,
+         options=()):
+    """`options`: further arguments of a clips step's color_cases.py."""
     return Step(name, kind, binary, tuple(runs), tuple(needs), committed,
-                out or committed, effect)
+                out or committed, effect, tuple(options))
 
 
 STEPS = (
     step("streams", "streams", committed="streams/fetched-2026-10-23", out="streams/fetched"),
     step("clips", "clips", committed="consistency/color-cases-before/clips.txt",
          out="consistency/clips"),
+    step("format-clips", "clips", committed="consistency/format-cases-before/clips.txt",
+         out="consistency/format_clips", options=["--set", "formats"]),
     step("diag-before-300", "delta", "before", committed="consistency/diag-before-300", runs=[
         Run("plain", delta_options(300)),
         Run("relabel", delta_options(300, relabel=True))]),
@@ -134,12 +143,20 @@ STEPS = (
          committed="consistency/color-cases-before", runs=[
              Run("main", delta_options(10, pairs="{clips}/pairs.txt")),
              Run("refused", delta_options(10, pairs="{clips}/pairs_refused.txt"))]),
+    step("format-cases-before", "delta", "before", needs=["format-clips"],
+         committed="consistency/format-cases-before", runs=[
+             Run("main", delta_options(10, pairs="{format_clips}/pairs.txt")),
+             Run("refused", delta_options(10, pairs="{format_clips}/pairs_refused.txt"))]),
     step("diag-after-300", "delta", "head", committed="consistency/diag-after-300", runs=[
         Run("plain", delta_options(300))]),
     step("color-cases-after", "delta", "head", needs=["clips"],
          committed="consistency/color-cases-after", runs=[
              Run("main", delta_options(10, pairs="{clips}/pairs.txt")),
              Run("refused", delta_options(10, pairs="{clips}/pairs_refused.txt"))]),
+    step("format-cases-after", "delta", "head", needs=["format-clips"],
+         committed="consistency/format-cases-after", runs=[
+             Run("main", delta_options(10, pairs="{format_clips}/pairs.txt")),
+             Run("refused", delta_options(10, pairs="{format_clips}/pairs_refused.txt"))]),
     step("scalers-300", "delta", "head", committed="consistency/scalers-300",
          effect=("scaler_effect", "bilinear"), runs=[
              Run(s, delta_options(300, scaler=s)) for s in ("bilinear", "bicubic", "lanczos")]),
@@ -479,7 +496,9 @@ def python(script):
 
 def expand(options, r):
     clips = os.path.join(r.out, "consistency", "clips")
-    return [o.format(clips=clips, model_dir=r.args.model_dir) for o in options]
+    format_clips = os.path.join(r.out, "consistency", "format_clips")
+    return [o.format(clips=clips, format_clips=format_clips, model_dir=r.args.model_dir)
+            for o in options]
 
 
 def run_step(r, s, binaries):
@@ -492,7 +511,8 @@ def run_step(r, s, binaries):
         return c["exit_code"] == 0
     if s.kind == "clips":
         c = r.run(s.name, python("eval/consistency/color_cases.py")
-                  + [out, "--ffmpeg", r.ffmpeg, "--ffprobe", r.ffprobe], f"logs/{s.name}.log")
+                  + [out, *s.options, "--ffmpeg", r.ffmpeg, "--ffprobe", r.ffprobe],
+                  f"logs/{s.name}.log")
         return c["exit_code"] == 0
     if s.kind == "delta":
         prog = binaries.get(s.binary)
@@ -500,8 +520,11 @@ def run_step(r, s, binaries):
             print(f"[{s.name}] no mirage_vmaf for it: skipped", flush=True)
             return False
         ok = True
-        # The color tag cases' clips show as <tmp>/clips, as in the committed runs (P-013).
-        env = {"TMPDIR": os.path.join(r.out, "consistency")} if "clips" in s.needs else None
+        # The clips show as <tmp>/clips or <tmp>/format_clips, as in the committed
+        # runs (P-013, P-029).
+        clip_steps = {x.name for x in STEPS if x.kind == "clips"}
+        env = {"TMPDIR": os.path.join(r.out, "consistency")} if clip_steps & set(s.needs) \
+            else None
         for run in s.runs:
             argv = ["eval/consistency/run_delta.sh", prog,
                     os.path.join(out, run.name)] + expand(run.options, r) + [

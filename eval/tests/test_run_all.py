@@ -90,7 +90,8 @@ class StepsAgainstTheCommittedRuns(unittest.TestCase):
                 path = os.path.join(EVAL, s.committed, run.name, "run.cmd.txt")
                 with self.subTest(step=s.name, run=run.name):
                     expected = as_options(recorded_options(path))
-                    mine = [o.replace("{clips}", "<tmp>/clips") for o in run.options]
+                    mine = [o.replace("{clips}", "<tmp>/clips")
+                            .replace("{format_clips}", "<tmp>/format_clips") for o in run.options]
                     self.assertEqual(as_options(ra.expand(mine, fake)), expected)
 
     def test_every_committed_measurement_has_a_step(self):
@@ -135,6 +136,9 @@ class StepsAgainstTheCommittedRuns(unittest.TestCase):
                          ["diag-after-300", "pooling"])
         self.assertEqual(names(only=["color-cases-after"], skip_before=False),
                          ["clips", "color-cases-after"])
+        self.assertEqual(names(only=["format-cases-after"], skip_before=False),
+                         ["format-clips", "format-cases-after"])
+        self.assertNotIn("format-cases-before", names(only=None, skip_before=True))
         self.assertEqual(names(only=None, skip_before=False), list(ra.STEP_NAMES))
         self.assertNotIn("diag-before-300", names(only=None, skip_before=True))
         self.assertNotIn("color-cases-before", names(only=None, skip_before=True))
@@ -143,6 +147,16 @@ class StepsAgainstTheCommittedRuns(unittest.TestCase):
         rest = names(only=None, skip_before=False, skip_full=True)
         self.assertEqual(rest, [n for n in ra.STEP_NAMES if n not in ra.FULL_LENGTH])
         self.assertIn("pooling", rest)
+
+    def test_clips_steps_and_their_sets(self):
+        clips = {s.name: s for s in ra.STEPS if s.kind == "clips"}
+        self.assertEqual(set(clips), {"clips", "format-clips"})
+        self.assertEqual(clips["clips"].options, ())
+        self.assertEqual(clips["format-clips"].options, ("--set", "formats"))
+        fake = mock.Mock(out="/o", args=mock.Mock(model_dir="/m"))
+        self.assertEqual(ra.expand(["{clips}/pairs.txt", "{format_clips}/pairs.txt"], fake),
+                         ["/o/consistency/clips/pairs.txt",
+                          "/o/consistency/format_clips/pairs.txt"])
 
     def test_a_full_length_run_has_no_frame_limit(self):
         self.assertNotIn("--frames", ra.delta_options(None))
