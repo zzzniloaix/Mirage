@@ -793,3 +793,22 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
 - **Status**: pending owner confirmation
+
+### P-031 Repeated runs of the intermittent Demuxer test, at the commit Phase 1 started from and at the branch's head
+
+- **Choice**
+  - Build `mirage_tests` of `37472fd`, the first commit of Phase 1, whose code is `main`'s (`a102e80`), and of `855a71b`, the branch's head when the runs were made, after which no commit changes C++ code, each in a new worktree of its commit, debug preset, the `mirage_tests` target only, configured with the glad venv of `docs/BUILD.md` step 3 as Python. Run `Demuxer: seamless video and audio switches on a local file` alone, with the alarm of `docs/BUILD.md` step 4, from each worktree, one run at a time, the two builds alternating, while nothing else scores or builds on the machine. Record each run's exit status and wall time, each failed assertion with its expansion, both builds' SHA-256, the miniaudio commit each fetched, and that the test and `src/Demuxer.*` don't differ between the two commits.
+  - Two series: 150 runs of each build (`eval/test_runs/demuxer-switch-150-2026-10-23.txt`), then, because one failure in 150 at the head and none at the base couldn't tell the two builds apart, 500 more of each (`eval/test_runs/demuxer-switch-500-2026-10-23.txt`). Both are committed.
+- **Alternatives**
+  - No record, and the documents reduced to "reported as intermittent; no committed record".
+  - The whole suite repeated, or runs in the main working tree.
+  - One series only.
+- **Rationale**
+  - The documents said the test failed now and then on both commits, from runs whose outputs weren't committed; the owner's decision on the test needs a committed measurement.
+  - The test and `src/Demuxer.*` are the same at both commits, so a difference between the builds would point at what else they link or at timing, not at the test's code.
+  - Alternating the builds spreads any change in the machine's load over both; one run at a time, because the test writes its media file under a fixed name in the temporary directory.
+- **Result** (the two records): of 150 runs of each build, none failed at `37472fd` and 1 at `855a71b`; of 500 more of each, 5 and 3. Every failure is one assertion, at line 441 or 491 of `tests/test_demuxer_switch.cpp`, and both lines failed at both commits.
+- **Limits**: one machine and one kind of load. A few failures in some hundred runs only roughly bound a failure rate.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
