@@ -201,6 +201,44 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: owner (Jiayu Lin)
 - **Date**: 2026-10-23
 
+### D-016 Color matrix and range mismatches: convert like FFmpeg
+
+- **Decision**: when the distorted stream's color matrix or range differs from the reference's, Mirage converts the distorted frames to the reference's color matrix and range before scoring, as FFmpeg's filter graph does. Untagged streams are handled the way FFmpeg handles them. The agent reports what that means in practice for the owner to confirm.
+- **Alternatives**
+  - Keep scoring the decoded YUV values unchanged (the behavior until now; libvmaf's own `vmaf` tool does the same with raw files). The §5 comparison would then relabel FFmpeg's input with `setparams` so that FFmpeg skips its conversion, and document that step.
+  - Make it configurable, with a default chosen after more measurement.
+- **Rationale**: Mirage then matches a plain `ffmpeg -lavfi libvmaf` run without workarounds.
+- **Background**: on 2026-10-23 a scratch probe located the cause of the Phase 0 discrepancy. bipbop's 640x360 and 416x234 rungs are tagged `smpte170m` (BT.601), while the gear5 reference is tagged `bt709` (`eval/baseline/diagnostics/ffprobe_rungs.txt`). FFmpeg's verbose log shows its `scale` filter converting the distorted frames (`csp:smpte170m` → `csp:bt709`); Mirage didn't convert. The probe's outputs weren't committed, so its numbers aren't recorded here. The §5 work reproduces the effect with committed outputs (MEASUREMENT PENDING).
+- **Implication**: Mirage's scores change for every pair whose tags differ, such as bipbop's 640x360 and 416x234 rungs.
+- **Who**: owner (Jiayu Lin)
+- **Date**: 2026-10-23
+
+### D-017 Headless scoring through a separate mirage_vmaf tool
+
+- **Decision**: Mirage's scorer runs without the GUI through a separate small executable, `mirage_vmaf`, built from the same `VMAFAnalyzer.cpp`. The player isn't changed for this.
+- **Alternatives**: a `--vmaf-score <ref> <dis>` mode in the main `mirage` binary. It would have to branch before GLFW starts, because `main()` creates the window before it parses most flags.
+- **Rationale**: it leaves the player untouched, §6's bench / sweep modes can live there later, and the repository already has a standalone of this kind (`snapshot_diff`).
+- **Who**: owner (Jiayu Lin)
+- **Date**: 2026-10-23
+
+### D-018 Inputs of the committed §5 delta report
+
+- **Decision**: the committed §5 delta report covers the four video rungs of Apple bipbop 16x9 (1280x720, 960x540, 640x360, 416x234), each scored against gear5 (1920x1080), over every frame.
+- **Alternatives**
+  - The same rungs, first 300 frames only.
+  - Both: 300 frames while iterating, full length as the acceptance output.
+- **Rationale**: it matches the Phase 0 baseline and gives the most complete evidence.
+- **Who**: owner (Jiayu Lin)
+- **Date**: 2026-10-23
+
+### D-019 §5 pass threshold
+
+- **Decision**: a frame fails the §5 check if |Mirage − FFmpeg| > 0.01. The delta report also gives the maximum and mean per-frame |Δ| and the number of frames over the threshold, as the work order asks.
+- **Alternatives**: a stricter threshold, e.g. 0.001. That is measurable, because Mirage will write scores at full precision.
+- **Rationale**: it is the work order's §5 target.
+- **Who**: owner (Jiayu Lin)
+- **Date**: 2026-10-23
+
 ---
 
 ## Measurement / process choices (proposed by the agent, confirmed by the owner)
