@@ -38,9 +38,22 @@ redact() { sed "${subst[@]}"; }
 
 section() { printf '\n## %s\n\n' "$*"; }
 
+# The command line, with quotes where the shell would need them.
+show() {
+    local out='$' a
+    for a in "$@"; do
+        case $a in
+            *\'*) out="$out $(printf '%q' "$a")" ;;
+            '' | *[!A-Za-z0-9_./:=@%+,-]*) out="$out '$a'" ;;
+            *) out="$out $a" ;;
+        esac
+    done
+    echo "$out" | redact
+}
+
 # A command and its output.
 fact() {
-    echo "\$ $*" | redact
+    show "$@"
     "$@" 2>&1 | redact
     echo
 }
@@ -49,7 +62,7 @@ fact() {
 run() {
     local log=$1
     shift
-    echo "\$ $*" | redact
+    show "$@"
     "$@" > "$logs/$log" 2>&1
     local rc=$?
     echo "exit code: $rc (log: <scratch>/logs/$log)"
@@ -124,7 +137,7 @@ run build_debug_venv.log cmake --build --preset macos-debug
 
 section "Unit tests (debug build)"
 run tests_debug.log perl -e 'alarm 900; exec @ARGV' build/macos-debug/mirage_tests '~[audio]'
-grep -E -B 4 -A 3 'FAILED:' "$logs/tests_debug.log" | redact
+grep -E -B 6 -A 3 'FAILED:' "$logs/tests_debug.log" | redact
 tail -n 2 "$logs/tests_debug.log" | redact
 
 section "Built programs"
