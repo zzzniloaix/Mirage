@@ -64,6 +64,7 @@ int main(int argc, char** argv)
         .reference_mode          = "explicit-pair",
         .libvmaf_version         = vmaf_version(),
         .libvmaf_package_version = MIRAGE_LIBVMAF_PACKAGE_VERSION,
+        .ffmpeg_libraries        = vmaf_ffmpeg_libraries(),
         .frame_limit             = args.frames,
     };
     std::string err;

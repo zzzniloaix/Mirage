@@ -79,6 +79,11 @@ std::string to_json(const VMAFResult& r, const RunInfo& run)
     out += std::format("  \"reference_mode\": {},\n", quote(run.reference_mode));
     out += std::format("  \"libvmaf_version\": {},\n", quote(run.libvmaf_version));
     out += std::format("  \"libvmaf_package_version\": {},\n", quote(run.libvmaf_package_version));
+    out += "  \"ffmpeg_libraries\": {";
+    for (std::size_t i = 0; i < run.ffmpeg_libraries.size(); ++i)
+        out += std::format("{}{}: {}", i == 0 ? "" : ", ", quote(run.ffmpeg_libraries[i].name),
+                           quote(run.ffmpeg_libraries[i].version));
+    out += "},\n";
     out += std::format("  \"model\": {},\n", quote(s.model));
     out += std::format("  \"model_source\": {},\n", quote(s.model_source));
     out += std::format("  \"model_sha256\": {},\n",

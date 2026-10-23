@@ -8,6 +8,8 @@
 //   reference_mode         how the reference was chosen: "explicit-pair" when
 //                          the command line names both inputs
 //   libvmaf_version, libvmaf_package_version,
+//   ffmpeg_libraries { libavutil, libavcodec, libavformat, libswscale,
+//                      libavfilter }  each library's version at run time
 //   model                  built-in model version, or model file path as given
 //   model_source           "built-in" | "file"
 //   model_sha256           SHA-256 of the model file; null for a built-in model
@@ -41,6 +43,7 @@ struct RunInfo {
     std::string reference_mode;           // see the layout above
     std::string libvmaf_version;          // vmaf_version() at run time
     std::string libvmaf_package_version;  // found at configure time; "unknown" if not derivable
+    std::vector<VMAFLibraryVersion> ffmpeg_libraries;   // vmaf_ffmpeg_libraries() (D-021)
     unsigned    frame_limit = 0;          // --frames; 0 = none
 };
 

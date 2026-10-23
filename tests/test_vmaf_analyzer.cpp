@@ -24,11 +24,13 @@
 
 extern "C" {
 #include <libavcodec/avcodec.h>
+#include <libavfilter/avfilter.h>
 #include <libavformat/avformat.h>
 #include <libavutil/channel_layout.h>
 #include <libavutil/imgutils.h>
 #include <libavutil/mem.h>
 #include <libavutil/pixfmt.h>
+#include <libswscale/swscale.h>
 }
 
 namespace fs = std::filesystem;
@@ -209,6 +211,28 @@ bool wait_done(const VMAFAnalyzer& a)
 }
 
 } // namespace
+
+TEST_CASE("vmaf_ffmpeg_libraries: the FFmpeg libraries' versions at run time (D-021)", "[vmaf]")
+{
+    const std::vector<VMAFLibraryVersion> libs = vmaf_ffmpeg_libraries();
+    std::vector<std::string> names;
+    for (const VMAFLibraryVersion& l : libs) names.push_back(l.name);
+    CHECK(names == std::vector<std::string>{ "libavutil", "libavcodec", "libavformat", "libswscale",
+                                             "libavfilter" });
+    REQUIRE(libs.size() == 5);
+    const auto text = [](unsigned v) {
+        return std::format("{}.{}.{}", AV_VERSION_MAJOR(v), AV_VERSION_MINOR(v), AV_VERSION_MICRO(v));
+    };
+    CHECK(libs[0].version == text(avutil_version()));
+    CHECK(libs[1].version == text(avcodec_version()));
+    CHECK(libs[2].version == text(avformat_version()));
+    CHECK(libs[3].version == text(swscale_version()));
+    CHECK(libs[4].version == text(avfilter_version()));
+    // The libraries loaded have the major versions the build compiled against.
+    CHECK(libs[0].version.starts_with(std::format("{}.", LIBAVUTIL_VERSION_MAJOR)));
+    CHECK(libs[3].version.starts_with(std::format("{}.", LIBSWSCALE_VERSION_MAJOR)));
+    CHECK(libs[4].version.starts_with(std::format("{}.", LIBAVFILTER_VERSION_MAJOR)));
+}
 
 TEST_CASE("VMAFAnalyzer::analyze: frame limit, paired PTS, settings and inputs", "[vmaf]")
 {

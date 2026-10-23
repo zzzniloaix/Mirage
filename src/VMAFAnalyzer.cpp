@@ -15,7 +15,9 @@
 extern "C" {
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
+#include <libavfilter/avfilter.h>
 #include <libswscale/swscale.h>
+#include <libavutil/avutil.h>
 #include <libavutil/error.h>
 #include <libavutil/frame.h>
 #include <libavutil/pixdesc.h>
@@ -242,6 +244,19 @@ struct DecodeCtx {
 };
 
 }  // namespace
+
+// ── FFmpeg's versions ────────────────────────────────────────────────────────
+
+std::vector<VMAFLibraryVersion> vmaf_ffmpeg_libraries()
+{
+    const auto entry = [](const char* name, unsigned v) {
+        return VMAFLibraryVersion{ name, std::format("{}.{}.{}", AV_VERSION_MAJOR(v),
+                                                     AV_VERSION_MINOR(v), AV_VERSION_MICRO(v)) };
+    };
+    return { entry("libavutil", avutil_version()),     entry("libavcodec", avcodec_version()),
+             entry("libavformat", avformat_version()), entry("libswscale", swscale_version()),
+             entry("libavfilter", avfilter_version()) };
+}
 
 // ── analyze_pair ─────────────────────────────────────────────────────────────
 

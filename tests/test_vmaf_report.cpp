@@ -261,7 +261,11 @@ VMAFResult sample_result()
 
 const vmafreport::RunInfo kRun{
     .tool = "mirage_vmaf", .reference_mode = "explicit-pair", .libvmaf_version = "3.0.0",
-    .libvmaf_package_version = "3.1.0", .frame_limit = 30,
+    .libvmaf_package_version = "3.1.0",
+    .ffmpeg_libraries = { { "libavutil", "60.26.101" }, { "libavcodec", "62.28.101" },
+                          { "libavformat", "62.12.101" }, { "libswscale", "9.5.101" },
+                          { "libavfilter", "11.14.101" } },
+    .frame_limit = 30,
 };
 
 std::string read_file(const fs::path& p)
@@ -324,6 +328,14 @@ TEST_CASE("vmafreport::to_json: run settings and pooled scores", "[vmafreport]")
     CHECK(d["reference_mode"].str == "explicit-pair");
     CHECK(d["libvmaf_version"].str == "3.0.0");
     CHECK(d["libvmaf_package_version"].str == "3.1.0");
+    const Value& libs = d["ffmpeg_libraries"];
+    REQUIRE(libs.kind == Value::Kind::Object);
+    CHECK(libs.obj.size() == 5);
+    CHECK(libs["libavutil"].str == "60.26.101");
+    CHECK(libs["libavcodec"].str == "62.28.101");
+    CHECK(libs["libavformat"].str == "62.12.101");
+    CHECK(libs["libswscale"].str == "9.5.101");
+    CHECK(libs["libavfilter"].str == "11.14.101");
     CHECK(d["model"].str == "vmaf_v0.6.1");
     CHECK(d["model_source"].str == "built-in");
     CHECK(d["model_sha256"].kind == Value::Kind::Null);   // a built-in model has no file
@@ -501,8 +513,11 @@ TEST_CASE("vmafreport::to_json: no frame limit, no frames, NaN pooled scores", "
     vmafreport::RunInfo run = kRun;
     run.frame_limit = 0;
     run.libvmaf_package_version = "unknown";
+    run.ffmpeg_libraries.clear();
     const auto doc = parse(vmafreport::to_json(r, run));
     REQUIRE(doc);
+    CHECK((*doc)["ffmpeg_libraries"].kind == Value::Kind::Object);
+    CHECK((*doc)["ffmpeg_libraries"].obj.empty());
     CHECK((*doc)["frame_limit"].kind == Value::Kind::Null);
     CHECK((*doc)["frames_scored"].num == 0);
     CHECK((*doc)["frames"].kind == Value::Kind::Array);

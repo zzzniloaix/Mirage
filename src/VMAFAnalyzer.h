@@ -100,6 +100,23 @@ struct VMAFOptions {
     VMAFModelChoice model;
 };
 
+// One FFmpeg library and the version it reports at run time,
+// "major.minor.micro".
+struct VMAFLibraryVersion {
+    std::string name;      // "libavutil"
+    std::string version;   // "60.26.101"
+
+    bool operator==(const VMAFLibraryVersion&) const = default;
+};
+
+// The FFmpeg libraries behind the analyzer's scores, with their run-time
+// versions (avutil_version() and the like), in this order: libavutil,
+// libavcodec, libavformat, libswscale, libavfilter. libavformat and
+// libavcodec decode the inputs, libswscale converts the frames, and
+// src/VMAFColor.h follows libavfilter's negotiation; its rules are those of
+// FFmpeg 8.1.1 (DECISIONS.md D-021).
+std::vector<VMAFLibraryVersion> vmaf_ffmpeg_libraries();
+
 // Per-variant (or single-file) VMAF result.
 struct VMAFResult {
     std::string  ref_url;
