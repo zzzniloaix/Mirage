@@ -9,8 +9,13 @@ the reference's and no setparams relabels it). Options of the distorted
 input: mirage_offset=X adds X to Mirage's scores; ffmpeg_extra_frame makes
 FFmpeg score one frame more than there are; mirage_fails makes mirage_vmaf
 exit with status 1 and no report. A fake input has 10 frames.
+
+With FAKE_MIRAGE_HAS_SCALER=1 mirage_vmaf's stand-in takes --scaler, with
+FAKE_MIRAGE_HAS_MODEL=1 --model and --model-file, and reports the model as
+the current mirage_vmaf does (model_source, model_sha256, reference_mode).
 """
 
+import hashlib
 import json
 import os
 import re
@@ -79,12 +84,15 @@ def ffmpeg(args):
 
 def mirage_vmaf(args):
     has_scaler = os.environ.get("FAKE_MIRAGE_HAS_SCALER") == "1"
+    has_model = os.environ.get("FAKE_MIRAGE_HAS_MODEL") == "1"
     if "--help" in args:
         print("Usage: mirage_vmaf --ref <url|path> --dis <url|path> --out <report.json> "
               "[--frames N]\n\nOptions:\n  --ref <url|path>      reference\n"
               "  --dis <url|path>      distorted\n  --out <report.json>   report\n"
               "  --frames N            limit\n"
               + ("  --scaler NAME         scaler\n" if has_scaler else "")
+              + ("  --model NAME          model\n  --model-file <model.json>  model file\n"
+                 if has_model else "")
               + "  -h, --help            print this help and exit")
         return 0
     opts = dict(zip(args[::2], args[1::2]))
@@ -104,8 +112,16 @@ def mirage_vmaf(args):
                 "color_primaries": s["color_primaries"], "color_trc": "bt709",
                 "time_base": "1/90000", "ended": limit is None}
 
+    model = {"model": "vmaf_v0.6.1"}
+    if has_model:
+        model = {"reference_mode": "explicit-pair", "model": opts.get("--model", "vmaf_v0.6.1"),
+                 "model_source": "built-in", "model_sha256": None}
+        if "--model-file" in opts:
+            with open(opts["--model-file"], "rb") as f:
+                model.update(model=opts["--model-file"], model_source="file",
+                             model_sha256=hashlib.sha256(f.read()).hexdigest())
     report = {"tool": "mirage_vmaf", "libvmaf_version": "3.0.0",
-              "libvmaf_package_version": "3.1.0", "model": "vmaf_v0.6.1",
+              "libvmaf_package_version": "3.1.0", **model,
               "scaler": opts.get("--scaler", "bilinear") if has_scaler else "bilinear",
               "n_threads": 4, "n_subsample": 1,
               "scored_as": {"width": ref["width"], "height": ref["height"],

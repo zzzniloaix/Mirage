@@ -127,20 +127,33 @@ def relabel_filter(ref, dis):
 
 
 def filtergraph(width, height, scaler, model, threads, frames=None, relabel=None,
-                log_path="ffmpeg.json"):
+                log_path="ffmpeg.json", model_file=None):
     """FFmpeg's side of a pair: the filter graph of Phase 0's diagnostic
     comparison (eval/baseline/diagnostics/ffmpeg_libvmaf_gear2_vs_gear5_first300.cmd.txt)
     with the reference's size. Input 0 is the distorted video, input 1 the
     reference. With `frames`, trim passes only the first `frames` frames of
     each input on, so that libvmaf scores exactly that many pairs, and the
     last of them has no successor, as with mirage_vmaf --frames.
-    `relabel` (relabel_filter()) goes before the scale filter."""
+    `relabel` (relabel_filter()) goes before the scale filter. `model` is a
+    built-in model's version; `model_file`, a path filter_safe() accepts,
+    is a model file to load instead (model=path=)."""
     trim = f"trim=end_frame={frames}," if frames else ""
     tags = f"{relabel}," if relabel else ""
+    which = f"path={model_file}" if model_file else f"version={model}"
     return (f"[0:v]{trim}{tags}scale={width}:{height}:flags={scaler},format=yuv420p[d];"
             f"[1:v]{trim}format=yuv420p[r];"
-            f"[d][r]libvmaf=model=version={model}:n_threads={threads}"
+            f"[d][r]libvmaf=model={which}:n_threads={threads}"
             f":log_fmt=json:log_path={log_path}")
+
+
+# Characters with a meaning in a filter graph or its option lists, and white
+# space; a path given to filtergraph() as a value must have none of them.
+_GRAPH_SPECIAL = set(":\\'[],;=|%")
+
+
+def filter_safe(value):
+    """Whether `value` can stand as an option value in filtergraph() as it is."""
+    return bool(value) and not any(c in _GRAPH_SPECIAL or c.isspace() for c in value)
 
 
 def ffmpeg_command(ffmpeg, ref, dis, graph):
@@ -165,15 +178,19 @@ def help_options(help_text):
     return {m.group(1) for m in re.finditer(r"(?m)^[ \t]+(--[a-z][a-z0-9-]*)", help_text)}
 
 
-def forwarded_options(supported, scaler, model):
+def forwarded_options(supported, scaler, model, model_file=None):
     """The scoring settings passed on to mirage_vmaf, for those of them it
-    has an option for (`supported`, from help_options()). Without such an
-    option mirage_vmaf scores with its fixed setting, and the settings check
-    in evaluate_pair() compares that with what FFmpeg was given."""
+    has an option for (`supported`, from help_options()): the scaler, and
+    the built-in `model` or else the `model_file`. Without such an option
+    mirage_vmaf scores with its fixed setting, and the settings check in
+    evaluate_pair() compares that with what FFmpeg was given."""
     argv = []
     if "--scaler" in supported:
         argv += ["--scaler", scaler]
-    if "--model" in supported:
+    if model_file:
+        if "--model-file" in supported:
+            argv += ["--model-file", model_file]
+    elif "--model" in supported:
         argv += ["--model", model]
     return argv
 
@@ -442,14 +459,18 @@ def evaluate_pair(pair, params, sides):
 
     pair    Pair
     params  {"variant", "frames" (None = every frame), "threshold", "model",
-             "scaler", "threads"}
+             "scaler", "threads", "model_file"} where "model" is the built-in
+            model's version, or None when "model_file" ({"path", "sha256"},
+            else None or absent) names a model file
     sides   {"probe": {"ref": info or None, "dis": info or None, "errors": [...]},
              "relabel": setparams filter or None, "relabel_warnings": [...],
-             "mirage": {"run", "report", "error"}, "ffmpeg": {"run", "log", "error", "stderr"}}
+             "mirage": {"run", "report", "error"},
+             "ffmpeg": {"run", "log", "error", "stderr", "libvmaf_package_version"}}
             where a run is {"exit_code", "timed_out", "timeout_s", "error",
             "elapsed_s", ...} or None if the side was not run, report and log
-            are the parsed JSON outputs (None if missing), and stderr is
-            FFmpeg's verbose log.
+            are the parsed JSON outputs (None if missing), stderr is FFmpeg's
+            verbose log, and libvmaf_package_version that of the libvmaf
+            FFmpeg links (environment.txt).
 
     The pair passes only if both sides ran to completion, mirage_vmaf's
     settings are the ones FFmpeg was given, both scored the same number of
@@ -474,10 +495,17 @@ def evaluate_pair(pair, params, sides):
 
     # mirage_vmaf's settings against FFmpeg's.
     mirage_info = None
+    model_file = params.get("model_file")
     if rep is not None:
-        for key, want in (("model", params["model"]), ("scaler", params["scaler"]),
-                          ("n_threads", params["threads"]), ("n_subsample", 1),
-                          ("frame_limit", params["frames"])):
+        wanted = [("scaler", params["scaler"]), ("n_threads", params["threads"]),
+                  ("n_subsample", 1), ("frame_limit", params["frames"])]
+        if model_file:
+            wanted += [("model_source", "file"), ("model_sha256", model_file["sha256"])]
+        else:
+            wanted.insert(0, ("model", params["model"]))
+            if "model_source" in rep:   # a mirage_vmaf that has the model options
+                wanted.insert(1, ("model_source", "built-in"))
+        for key, want in wanted:
             if rep.get(key) != want:
                 fail.append(f"SETTINGS MISMATCH: mirage_vmaf's report has {key} "
                             f"{rep.get(key)!r}, FFmpeg's run {want!r}")
@@ -513,8 +541,9 @@ def evaluate_pair(pair, params, sides):
         mirage_info = {
             "exit_code": m_side["run"]["exit_code"],
             "elapsed_s": m_side["run"].get("elapsed_s"),
-            **{k: rep.get(k) for k in ("tool", "libvmaf_version", "libvmaf_package_version",
-                                       "model", "scaler", "n_threads", "n_subsample",
+            **{k: rep.get(k) for k in ("tool", "reference_mode", "libvmaf_version",
+                                       "libvmaf_package_version", "model", "model_source",
+                                       "model_sha256", "scaler", "n_threads", "n_subsample",
                                        "scored_as", "frame_limit", "frames_scored")},
             "ref_ended": (rep.get("ref") or {}).get("ended"),
             "dis_ended": (rep.get("dis") or {}).get("ended"),
@@ -531,7 +560,8 @@ def evaluate_pair(pair, params, sides):
     if log is not None:
         ffmpeg_info = {"exit_code": f_side["run"]["exit_code"],
                        "elapsed_s": f_side["run"].get("elapsed_s"),
-                       "libvmaf_version": log.get("version")}
+                       "libvmaf_version": log.get("version"),
+                       "libvmaf_package_version": f_side.get("libvmaf_package_version")}
         if rep is not None and log.get("version") != rep.get("libvmaf_version"):
             warn.append(f"libvmaf versions differ: mirage_vmaf {rep.get('libvmaf_version')!r}, "
                         f"FFmpeg {log.get('version')!r}")
@@ -746,6 +776,19 @@ def _conversion_line(c):
             + f"; {num(n)} pairs from index {num(first)}")
 
 
+def _model_text(m):
+    """The model of a mirage_vmaf report (or its summary), for the Markdown reports."""
+    if m.get("model_source") == "file":
+        return f"model file {m.get('model')} (sha256 {m.get('model_sha256')})"
+    return f"model {m.get('model')}" + (" (built-in)" if m.get("model_source") else "")
+
+
+def _params_model_text(p):
+    """The model FFmpeg was given, for the Markdown reports."""
+    f = p.get("model_file")
+    return f"model file {f['path']} (sha256 {f['sha256']})" if f else f"model {p['model']}"
+
+
 def pair_markdown(r):
     """The Markdown delta report of one pair."""
     lines = [f"# {r['pair']}: Mirage vs FFmpeg's libvmaf filter", ""]
@@ -778,6 +821,8 @@ def pair_markdown(r):
               f"| {num(d.get('mean_ffmpeg'))} | {num(d.get('mean_signed'))} |",
               f"| libvmaf version (run time) | {cell(m.get('libvmaf_version', '-'))} "
               f"| {cell(f.get('libvmaf_version', '-'))} | |",
+              f"| libvmaf package version | {cell(m.get('libvmaf_package_version') or '-')} "
+              f"| {cell(f.get('libvmaf_package_version') or '-')} | |",
               f"| exit status | {num(m.get('exit_code'))} | {num(f.get('exit_code'))} | |",
               f"| wall time, s | {num(m.get('elapsed_s'), 1)} | {num(f.get('elapsed_s'), 1)} | |"]
 
@@ -824,11 +869,14 @@ def pair_markdown(r):
             row.append(cell(f"{a}" if not mine or _tag(a) == _tag(b) else f"{a} / {b}"))
         lines.append(f"| {mk} | {row[0]} | {row[1]} |")
     if m:
-        lines += ["", f"mirage_vmaf: model {m.get('model')}, scaler {m.get('scaler')}, "
+        lines += ["", f"mirage_vmaf: {_model_text(m)}, scaler {m.get('scaler')}, "
                   f"n_threads {m.get('n_threads')}, n_subsample {m.get('n_subsample')}, "
-                  f"libvmaf package {m.get('libvmaf_package_version')}; reference PTS "
-                  f"{num(m.get('first_ref_pts'))} to {num(m.get('last_ref_pts'))} s; "
-                  f"pairs with different PTS: {m.get('pairs_with_different_pts')}."]
+                  f"libvmaf package {m.get('libvmaf_package_version')}"
+                  + (f", reference mode {m['reference_mode']}" if m.get("reference_mode")
+                     else "")
+                  + f"; reference PTS {num(m.get('first_ref_pts'))} to "
+                  f"{num(m.get('last_ref_pts'))} s; pairs with different PTS: "
+                  f"{m.get('pairs_with_different_pts')}."]
     if r["warnings"]:
         lines += ["", "Warnings:"] + [f"- {cell(w)}" for w in r["warnings"]]
     lines += ["", "The commands are in cmd.txt, the raw outputs next to this file "
@@ -850,9 +898,10 @@ def overall_markdown(o):
               f"- A frame fails if \\|delta\\| > {p['threshold']}, with delta = Mirage - FFmpeg "
               "(docs/DECISIONS.md D-019). A pair passes only if both sides ran to the end, "
               "used the same settings, scored the same number of frames and no frame fails.",
-              f"- Settings given to FFmpeg: model {p['model']}, scaler {p['scaler']}, "
+              f"- Settings given to FFmpeg: {_params_model_text(p)}, scaler {p['scaler']}, "
               f"n_threads {p['threads']}."]
     mv = o.get("mirage_vmaf") or {}
+    fv = o.get("ffmpeg_libvmaf") or {}
     env = o.get("environment") or {}
     git = o.get("git") or {}
     if mv:
@@ -860,8 +909,10 @@ def overall_markdown(o):
                      f"{mv.get('libvmaf_version')} at run time, package "
                      f"{mv.get('libvmaf_package_version')}.")
     if env:
-        lines.append(f"- FFmpeg: {env.get('ffmpeg_version')}; libvmaf package "
-                     f"{env.get('ffmpeg_libvmaf_package_version')}.")
+        lines.append(f"- FFmpeg: {env.get('ffmpeg_version')}; libvmaf "
+                     + (f"{fv.get('libvmaf_version')} at run time (its libvmaf logs), "
+                        if fv.get("libvmaf_version") is not None else "")
+                     + f"package {env.get('ffmpeg_libvmaf_package_version')}.")
         lines.append(f"- Machine: {env.get('os')}, {env.get('cpu')}.")
     if git:
         state = lambda clean: "clean" if clean else "NOT CLEAN"  # noqa: E731

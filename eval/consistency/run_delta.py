@@ -101,8 +101,12 @@ def parse_args(argv):
     p.add_argument("--scaler", default="bilinear",
                    help="FFmpeg's scale flags; must be the scaler mirage_vmaf uses "
                         "(default: bilinear)")
-    p.add_argument("--model", default="vmaf_v0.6.1",
+    p.add_argument("--model", metavar="NAME",
                    help="libvmaf built-in model version (default: vmaf_v0.6.1)")
+    p.add_argument("--model-file", metavar="FILE",
+                   help="a libvmaf model file (JSON) for both sides instead of a built-in "
+                        "model: model=path=FILE for FFmpeg, --model-file FILE for "
+                        "mirage_vmaf, which must report the file's SHA-256")
     p.add_argument("--threads", type=positive_int, default=4,
                    help="libvmaf threads on FFmpeg's side; must be mirage_vmaf's (default: 4)")
     p.add_argument("--threshold", type=non_negative, default=vd.DEFAULT_THRESHOLD,
@@ -119,7 +123,12 @@ def parse_args(argv):
     p.add_argument("--timeout", type=positive_int, default=DEFAULT_TIMEOUT, metavar="S",
                    help=f"seconds after which a scoring process is stopped "
                         f"(default: {DEFAULT_TIMEOUT})")
-    return p.parse_args(argv)
+    args = p.parse_args(argv)
+    if args.model and args.model_file:
+        p.error("--model and --model-file can't be given together")
+    if not args.model_file:
+        args.model = args.model or "vmaf_v0.6.1"
+    return args
 
 
 def program(path, what):
@@ -164,6 +173,19 @@ class Run:
             self.pairs = vd.parse_pairs(self.pairs_text)
         except (OSError, UnicodeDecodeError, ValueError) as e:
             raise SetupError(f"pairs file {args.pairs}: {e}") from None
+        # A model file goes into FFmpeg's filter graph by its absolute path.
+        self.model_file, self.model_file_sha256 = None, None
+        if args.model_file:
+            path = os.path.abspath(args.model_file)
+            if not vd.filter_safe(path):
+                raise SetupError(f"--model-file {args.model_file}: the path has a character "
+                                 "with a meaning in a filter graph (':', ',', ';', '=', "
+                                 "brackets, quotes, backslash, '|', '%' or white space)")
+            try:
+                self.model_file_sha256 = vd.sha256_file(path)
+            except OSError as e:
+                raise SetupError(f"--model-file {args.model_file}: {e}") from None
+            self.model_file = path
         home = os.path.expanduser("~")
         tmp = os.environ.get("TMPDIR") or "/tmp"
         self.redactor = vd.Redactor([(self.out, "<out_dir>"), (self.repo, "<repo>"),
@@ -182,6 +204,9 @@ class Run:
         self.needles += [(s, "the host name") for s in {host, host.split(".")[0]} if len(s) >= 3]
         self.redactions = {}
         self.lock = threading.Lock()
+        # Filled in by main() from the environment before the pairs are prepared.
+        self.mirage_options = set()
+        self.ffmpeg_libvmaf_package = None
 
     # Files in <out_dir>: always through these, so that nothing local is left.
     def redact(self, text):
@@ -410,7 +435,8 @@ def prepare_pair(run, pair, params):
     pdir = os.path.join(run.out, pair.label)
     os.makedirs(pdir)
     sides = {"probe": {"ref": None, "dis": None, "errors": []}, "relabel": None,
-             "relabel_warnings": [], "mirage": {"run": None}, "ffmpeg": {"run": None}}
+             "relabel_warnings": [], "mirage": {"run": None},
+             "ffmpeg": {"run": None, "libvmaf_package_version": run.ffmpeg_libvmaf_package}}
     lines = [f"# {pair.label}: the commands eval/consistency/run_delta.py ran, in "
              f"<out_dir>/{pair.label}. Their stderr logs are kept xz-compressed "
              "(*.stderr.log.xz), as are JSON outputs over 1 MiB (*.json.xz); empty "
@@ -443,13 +469,14 @@ def prepare_pair(run, pair, params):
 
     m_argv = vd.mirage_command(run.mirage, pair.ref, pair.dis, frames=a.frames,
                                options=vd.forwarded_options(run.mirage_options, a.scaler,
-                                                            a.model))
+                                                            a.model, run.model_file))
     lines.append(f"$ {vd.shell_line(m_argv, SHOWN['mirage'])} > mirage.stdout.txt "
                  "2> mirage.stderr.log")
     tasks = [("mirage", "mirage_vmaf", m_argv, "mirage.json")]
     if ref_probe:
         graph = vd.filtergraph(ref_probe["width"], ref_probe["height"], a.scaler, a.model,
-                               a.threads, frames=a.frames, relabel=sides["relabel"])
+                               a.threads, frames=a.frames, relabel=sides["relabel"],
+                               model_file=run.model_file)
         f_argv = vd.ffmpeg_command(run.ffmpeg, pair.ref, pair.dis, graph)
         lines.append(f"$ {vd.shell_line(f_argv, SHOWN['ffmpeg'])} > ffmpeg.stdout.txt "
                      "2> ffmpeg.stderr.log")
@@ -504,19 +531,24 @@ def main(argv=None):
 
     params = {"variant": vd.VARIANT_RELABEL if args.diagnostic_relabel else vd.VARIANT_PLAIN,
               "frames": args.frames, "threshold": args.threshold, "model": args.model,
-              "scaler": args.scaler, "threads": args.threads}
+              "scaler": args.scaler, "threads": args.threads,
+              "model_file": {"path": run.shown_path(run.model_file, "<model_file>"),
+                             "sha256": run.model_file_sha256} if run.model_file else None}
     env = Environment(run)
     started = utc_now()
     head_start, clean_start = env.git("start")
     env.capture_machine_and_programs()
     run.mirage_options = vd.help_options(env.help_text)
+    run.ffmpeg_libvmaf_package = env.fields.get("ffmpeg_libvmaf_package_version")
 
     shown_pairs = run.shown_path(args.pairs, "<pairs>")
     command = ["eval/consistency/run_delta.sh", SHOWN["mirage"], "<out_dir>"]
     if args.frames:
         command += ["--frames", str(args.frames)]
-    command += ["--jobs", str(args.jobs), "--pairs", shown_pairs, "--scaler", args.scaler,
-                "--model", args.model, "--threads", str(args.threads),
+    command += ["--jobs", str(args.jobs), "--pairs", shown_pairs, "--scaler", args.scaler]
+    command += (["--model-file", params["model_file"]["path"]] if run.model_file
+                else ["--model", args.model])
+    command += ["--threads", str(args.threads),
                 "--threshold", repr(args.threshold), "--ffmpeg", SHOWN["ffmpeg"],
                 "--ffprobe", SHOWN["ffprobe"], "--timeout", str(args.timeout)]
     if args.diagnostic_relabel:
@@ -552,6 +584,12 @@ def main(argv=None):
     for k in ("libvmaf_version", "libvmaf_package_version"):
         values = sorted({f[k] for f in fields if f.get(k) is not None})
         mirage_fields[k] = values[0] if len(values) == 1 else values or None
+    # FFmpeg's libvmaf: the version its logs give at run time (D-006), and the
+    # package version of the library it links.
+    versions = sorted({r["ffmpeg"]["libvmaf_version"] for r in reports
+                       if r["ffmpeg"] and r["ffmpeg"].get("libvmaf_version") is not None})
+    ffmpeg_libvmaf = {"libvmaf_version": versions[0] if len(versions) == 1 else versions or None,
+                      "libvmaf_package_version": run.ffmpeg_libvmaf_package}
     warnings = []
     if head_start != head_end:
         warnings.append(f"HEAD changed during the run: {head_start} -> {head_end}")
@@ -564,6 +602,7 @@ def main(argv=None):
                 "clean_start": clean_start, "clean_end": clean_end},
         "environment": env.fields,
         "mirage_vmaf": mirage_fields,
+        "ffmpeg_libvmaf": ffmpeg_libvmaf,
         "pairs_file": {"path": shown_pairs, "sha256": vd.sha256_file(args.pairs)},
         "warnings": warnings,
     })

@@ -185,6 +185,58 @@ class RunDelta(unittest.TestCase):
         self.assertEqual(rc, 0, err)
         self.assertIn("--frames 2 --scaler bicubic >", self.read("same/cmd.txt"))
 
+    def test_model_file_is_forwarded_and_checked(self):
+        model = os.path.join(self.dir, "models", "my_model.json")
+        os.mkdir(os.path.dirname(model))
+        with open(model, "w") as f:
+            f.write('{"model_dict": {}}\n')
+        with open(model, "rb") as f:
+            sha = hashlib.sha256(f.read()).hexdigest()
+        # The outputs show the temporary directory, where the file is, as <tmp>.
+        tmp = os.path.realpath(os.environ.get("TMPDIR") or "/tmp")
+        shown = "<tmp>/" + os.path.relpath(os.path.realpath(model), tmp)
+        pairs = self.pairs(("same", REF, SAME))
+        rc, _, err = self.run_tool(pairs, "--frames", "2", "--model-file", model,
+                                   env={"FAKE_MIRAGE_HAS_MODEL": "1"})
+        self.assertEqual(rc, 0, err)
+        self.check_files()
+        cmd = self.read("same/cmd.txt")
+        self.assertIn(f"libvmaf=model=path={shown}:n_threads=4", cmd)
+        self.assertIn(f"--frames 2 --model-file {shown} >", cmd)
+        o = self.report()
+        self.assertEqual(o["parameters"]["model_file"], {"path": shown, "sha256": sha})
+        self.assertIsNone(o["parameters"]["model"])
+        self.assertIn(f"--model-file {shown} --threads 4", self.read("run.cmd.txt"))
+        r = self.report("same/delta.json")
+        self.assertEqual((r["mirage_vmaf"]["model_source"], r["mirage_vmaf"]["model_sha256"]),
+                         ("file", sha))
+        self.assertEqual(r["mirage_vmaf"]["reference_mode"], "explicit-pair")
+        # A mirage_vmaf without --model-file keeps its built-in model: a mismatch.
+        self.out = os.path.join(self.dir, "out2")
+        rc, _, _ = self.run_tool(pairs, "--frames", "2", "--model-file", model)
+        self.assertEqual(rc, 1)
+        self.assertIn("SETTINGS MISMATCH: mirage_vmaf's report has model_source None, "
+                      "FFmpeg's run 'file'", self.report("same/delta.json")["fail_reasons"])
+
+    def test_model_options_are_checked(self):
+        pairs = self.pairs(("same", REF, SAME))
+        with self.assertRaises(SystemExit) as cm, \
+                contextlib.redirect_stderr(io.StringIO()):
+            self.run_tool(pairs, "--model", "vmaf_v0.6.1", "--model-file", "x.json")
+        self.assertEqual(cm.exception.code, 2)
+        rc, _, err = self.run_tool(pairs, "--model-file", os.path.join(self.dir, "a:b.json"))
+        self.assertEqual(rc, 2)
+        self.assertIn("a character with a meaning in a filter graph", err)
+        rc, _, err = self.run_tool(pairs, "--model-file", os.path.join(self.dir, "missing.json"))
+        self.assertEqual(rc, 2)
+        self.assertIn("missing.json", err)
+        # The default model, given to both sides when mirage_vmaf takes --model.
+        rc, _, err = self.run_tool(pairs, "--frames", "2", env={"FAKE_MIRAGE_HAS_MODEL": "1"})
+        self.assertEqual(rc, 0, err)
+        self.assertIn("--frames 2 --model vmaf_v0.6.1 >", self.read("same/cmd.txt"))
+        self.assertIn("libvmaf 3.0.0 at run time (its libvmaf logs), package unknown.",
+                      self.read("delta.md"))
+
     def test_large_json_outputs_are_compressed(self):
         with mock.patch.object(run_delta, "COMPRESS_JSON_ABOVE", 200):
             rc, _, err = self.run_tool(self.pairs(("same", REF, SAME)), "--frames", "5")

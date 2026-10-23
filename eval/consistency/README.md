@@ -6,8 +6,8 @@
 
 ```
 eval/consistency/run_delta.sh <mirage_vmaf> <out_dir> [--frames N] [--jobs J] [--pairs <file>]
-    [--scaler NAME] [--model NAME] [--threads N] [--threshold X] [--diagnostic-relabel]
-    [--ffmpeg <ffmpeg>] [--ffprobe <ffprobe>] [--timeout S]
+    [--scaler NAME] [--model NAME | --model-file FILE] [--threads N] [--threshold X]
+    [--diagnostic-relabel] [--ffmpeg <ffmpeg>] [--ffprobe <ffprobe>] [--timeout S]
 ```
 
 - `<mirage_vmaf>`: the program to check, such as `build/macos-release/mirage_vmaf`. For outputs that are to be committed, build it from a committed, clean tree: the run records the commit, whether the working tree was clean at its start and end, and the program's SHA-256.
@@ -17,14 +17,14 @@ eval/consistency/run_delta.sh <mirage_vmaf> <out_dir> [--frames N] [--jobs J] [-
 - Exit status: 0 every pair passed; 1 at least one pair failed (the reports say why); 2 bad arguments, or the run could not start; 3 an output still contains a local path or name after the placeholders, and must not be committed.
 - A pairs file has one `<label> <reference> <distorted>` per line; `#` starts a comment line. The label names the pair's directory.
 
-`--scaler`, `--model` and `--threads` set FFmpeg's side. `mirage_vmaf` is given `--scaler` and `--model` only if its `--help` lists them. The current one lists neither, so it scores with its fixed settings (bilinear, `vmaf_v0.6.1`, 4 threads), and a pair fails with `SETTINGS MISMATCH` when FFmpeg was given other settings.
+`--scaler`, `--model`, `--model-file` and `--threads` set FFmpeg's side: the `flags=` of its scale filter, the `model=version=NAME` or `model=path=FILE` of its libvmaf filter, and its `n_threads`. `mirage_vmaf` is given `--scaler`, `--model` and `--model-file` only if its `--help` lists them, as it does since commits `6a9aca2` (`--scaler`) and `44cd4b5` (`--model`, `--model-file`); one that lists none of them scores with its fixed settings (bilinear, `vmaf_v0.6.1`). Its 4 libvmaf threads are fixed. A pair fails with `SETTINGS MISMATCH` when `mirage_vmaf`'s report has other settings than FFmpeg was given; with `--model-file`, the report must give `model_source` `file` and the SHA-256 the tool computes of the file. The path of a model file may not contain characters that mean something in a filter graph, such as `:` or `,`, or white space.
 
 ## What it runs for each pair
 
 In `<out_dir>/<pair>/`, in this order (the exact commands are in that directory's `cmd.txt`):
 
 1. `ffprobe` on both inputs, for the reference's size (FFmpeg scales the distorted input to it) and both inputs' color tags.
-2. `mirage_vmaf --ref <reference> --dis <distorted> --out mirage.json [--frames N]`.
+2. `mirage_vmaf --ref <reference> --dis <distorted> --out mirage.json [--frames N]`, plus `--scaler`, and `--model` or `--model-file`, as above.
 3. FFmpeg's libvmaf filter, with the filter graph of Phase 0's diagnostic comparison (`eval/baseline/diagnostics/ffmpeg_libvmaf_gear2_vs_gear5_first300.cmd.txt`, P-005). With `--frames N`:
 
    ```
@@ -46,7 +46,7 @@ Frame i of `mirage_vmaf`'s report is compared with frame i of FFmpeg's libvmaf l
 - both sides scored the same number of frames, and more than none (a mismatch shows as `FRAME COUNT MISMATCH`);
 - no frame has |delta| greater than the threshold.
 
-The reports also give the largest and mean |delta|, the mean delta, the frames over the threshold, the frames with the largest |delta|, both sides' pooled mean and min as libvmaf computes them, how each side converted the distorted frames' color matrix and range (FFmpeg's scale filter lines, and the `dis_conversion` of `mirage_vmaf`'s report where it has one, D-016), and the warnings: checks that don't fail a pair, such as different libvmaf versions on the two sides, Mirage pairs whose two frames have different PTS, tags in FFmpeg's log that differ from ffprobe's, or a `dis_conversion` whose tags differ from those of FFmpeg's scale filter.
+The reports also give the largest and mean |delta|, the mean delta, the frames over the threshold, the frames with the largest |delta|, both sides' pooled mean and min as libvmaf computes them, both sides' libvmaf versions at run time and their package versions (D-006: `mirage_vmaf`'s from its report, FFmpeg's from its libvmaf log and from the library its libavfilter links), how each side converted the distorted frames' color matrix and range (FFmpeg's scale filter lines, and the `dis_conversion` of `mirage_vmaf`'s report where it has one, D-016), and the warnings: checks that don't fail a pair, such as different libvmaf versions on the two sides, Mirage pairs whose two frames have different PTS, tags in FFmpeg's log that differ from ffprobe's, or a `dis_conversion` whose tags differ from those of FFmpeg's scale filter.
 
 FFmpeg's side pairs frames by timestamp, Mirage's in the order they are decoded, so a comparison by position is only right while both sides pair the same frames; the PTS warning checks that from Mirage's side.
 

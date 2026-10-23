@@ -145,6 +145,20 @@ class Commands(unittest.TestCase):
                             "[d][r]libvmaf=model=version=vmaf_v0.6.1neg:n_threads=8"
                             ":log_fmt=json:log_path=ffmpeg.json")
 
+    def test_graph_with_a_model_file(self):
+        g = vd.filtergraph(1920, 1080, "lanczos", None, 4, model_file="/m/vmaf_v0.6.1neg.json")
+        self.assertEqual(g, "[0:v]scale=1920:1080:flags=lanczos,format=yuv420p[d];"
+                            "[1:v]format=yuv420p[r];"
+                            "[d][r]libvmaf=model=path=/m/vmaf_v0.6.1neg.json:n_threads=4"
+                            ":log_fmt=json:log_path=ffmpeg.json")
+
+    def test_filter_safe(self):
+        self.assertTrue(vd.filter_safe("/opt/homebrew/share/libvmaf/model/vmaf_v0.6.1.json"))
+        for bad in ("", "a:b", "a b", "a,b", "a;b", "a=b", "a[b]", "a'b", "a\\b", "a|b", "a%b",
+                    "a\tb"):
+            with self.subTest(bad=bad):
+                self.assertFalse(vd.filter_safe(bad))
+
     def test_ffmpeg_command(self):
         cmd = vd.ffmpeg_command("/x/ffmpeg", REF, DIS, "G")
         self.assertEqual(cmd, ["/x/ffmpeg", "-hide_banner", "-nostdin", "-nostats", "-v",
@@ -186,6 +200,11 @@ class Commands(unittest.TestCase):
         self.assertEqual(vd.forwarded_options({"--ref"}, "bicubic", "m"), [])
         self.assertEqual(vd.forwarded_options({"--scaler", "--model"}, "bicubic", "m"),
                          ["--scaler", "bicubic", "--model", "m"])
+        both = {"--scaler", "--model", "--model-file"}
+        self.assertEqual(vd.forwarded_options(both, "bilinear", None, "/m/x.json"),
+                         ["--scaler", "bilinear", "--model-file", "/m/x.json"])
+        # Without --model-file the file is not passed on, nor the default model instead.
+        self.assertEqual(vd.forwarded_options({"--model"}, "bilinear", None, "/m/x.json"), [])
 
 
 class Relabel(unittest.TestCase):
@@ -401,6 +420,49 @@ class EvaluatePair(unittest.TestCase):
         self.assertTrue(any(w.startswith("dis: mirage_vmaf's decoder has color_space")
                             for w in r["warnings"]))
 
+    def test_model_file_settings(self):
+        params = dict(PARAMS, model=None, model_file={"path": "/m/x.json", "sha256": "ab12"})
+        good = sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0], model="/m/x.json", model_source="file",
+                     model_sha256="ab12")
+        r = vd.evaluate_pair(PAIR, params, good)
+        self.assertEqual(r["status"], "PASS", r["fail_reasons"])
+        self.assertEqual(r["mirage_vmaf"]["model_sha256"], "ab12")
+        self.assertIn("mirage_vmaf: model file /m/x.json (sha256 ab12), scaler bilinear",
+                      vd.pair_markdown(r))
+        other = sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0], model="/m/x.json", model_source="file",
+                      model_sha256="cd34")
+        r = vd.evaluate_pair(PAIR, params, other)
+        self.assertIn("SETTINGS MISMATCH: mirage_vmaf's report has model_sha256 'cd34', "
+                      "FFmpeg's run 'ab12'", r["fail_reasons"])
+        # A mirage_vmaf without the model options scored with its built-in model.
+        r = vd.evaluate_pair(PAIR, params, sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0]))
+        self.assertIn("SETTINGS MISMATCH: mirage_vmaf's report has model_source None, "
+                      "FFmpeg's run 'file'", r["fail_reasons"])
+
+    def test_a_model_file_where_ffmpeg_had_a_built_in_model(self):
+        r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0], [1.0], model_source="file",
+                                                 model_sha256="ab12"))
+        self.assertIn("SETTINGS MISMATCH: mirage_vmaf's report has model_source 'file', "
+                      "FFmpeg's run 'built-in'", r["fail_reasons"])
+        ok = vd.evaluate_pair(PAIR, PARAMS, sides([1.0], [1.0], model_source="built-in",
+                                                  model_sha256=None,
+                                                  reference_mode="explicit-pair"))
+        self.assertEqual(ok["status"], "PASS", ok["fail_reasons"])
+        md = vd.pair_markdown(ok)
+        self.assertIn("mirage_vmaf: model vmaf_v0.6.1 (built-in), scaler bilinear", md)
+        self.assertIn("reference mode explicit-pair", md)
+
+    def test_both_libvmaf_versions_of_both_sides(self):
+        # D-006: the run time version and the package version, Mirage's and FFmpeg's.
+        s = sides([1.0], [1.0])
+        s["ffmpeg"]["libvmaf_package_version"] = "3.1.0"
+        r = vd.evaluate_pair(PAIR, PARAMS, s)
+        self.assertEqual(r["ffmpeg"]["libvmaf_version"], "3.0.0")
+        self.assertEqual(r["ffmpeg"]["libvmaf_package_version"], "3.1.0")
+        md = vd.pair_markdown(r)
+        self.assertIn("| libvmaf version (run time) | 3.0.0 | 3.0.0 | |", md)
+        self.assertIn("| libvmaf package version | 3.1.0 | 3.1.0 | |", md)
+
     def test_frames_scored_must_match_the_frames(self):
         r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0],
                                                  frames_scored=4))
@@ -484,6 +546,23 @@ class Reports(unittest.TestCase):
         self.assertIn("the working tree was clean at the start of the run and clean at its end",
                       md)
         json.loads(vd.to_json(o))
+
+    def test_overall_markdown_states_both_libvmaf_versions(self):
+        ok, _ = self.reports()
+        o = vd.overall_report(PARAMS, [ok], {
+            "environment": {"ffmpeg_version": "ffmpeg version 8.1.1",
+                            "ffmpeg_libvmaf_package_version": "3.1.0", "os": "o", "cpu": "c"},
+            "mirage_vmaf": {"sha256": "s", "libvmaf_version": "3.0.0",
+                            "libvmaf_package_version": "3.1.0"},
+            "ffmpeg_libvmaf": {"libvmaf_version": "3.0.0", "libvmaf_package_version": "3.1.0"}})
+        md = vd.overall_markdown(o)
+        self.assertIn("- mirage_vmaf: sha256 s; libvmaf 3.0.0 at run time, package 3.1.0.", md)
+        self.assertIn("- FFmpeg: ffmpeg version 8.1.1; libvmaf 3.0.0 at run time (its libvmaf "
+                      "logs), package 3.1.0.", md)
+        o = vd.overall_report(dict(PARAMS, model=None,
+                                   model_file={"path": "/m/x.json", "sha256": "ab12"}), [ok], {})
+        self.assertIn("- Settings given to FFmpeg: model file /m/x.json (sha256 ab12), scaler "
+                      "bilinear, n_threads 4.", vd.overall_markdown(o))
 
     def test_relabel_variant_is_labeled(self):
         ok, _ = self.reports()
