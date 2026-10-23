@@ -1462,6 +1462,9 @@ bool PlayerUI::draw_vmaf_results(const std::vector<VMAFResultEntry>& entries,
             if (!e.error.empty())
                 ImGui::TextColored(ImVec4(0.90f, 0.30f, 0.25f, 1.0f),
                                    "%s", e.label.c_str());
+            else if (!e.warning.empty())
+                ImGui::TextColored(ImVec4(0.90f, 0.75f, 0.20f, 1.0f),
+                                   "%s", e.label.c_str());
             else
                 ImGui::TextUnformatted(e.label.c_str());
 
@@ -1488,6 +1491,14 @@ bool PlayerUI::draw_vmaf_results(const std::vector<VMAFResultEntry>& entries,
             fmt_score(5, e.p5);
         }
         ImGui::EndTable();
+    }
+
+    // Scored, but too many frames failed to pair by timestamp (D-028).
+    for (const auto& e : entries) {
+        if (!e.error.empty() || e.warning.empty()) continue;
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.90f, 0.75f, 0.20f, 1.0f));
+        ImGui::TextWrapped("%s: %s", e.label.c_str(), e.warning.c_str());
+        ImGui::PopStyleColor();
     }
 
     // ── Per-frame graph for the first completed entry with per_frame data ─────

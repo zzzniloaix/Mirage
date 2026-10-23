@@ -921,9 +921,12 @@ void DebugHUD::draw_vmaf_panel(const std::vector<VMAFPanelEntry>& entries,
     const float line_sp = 4.0f  * scale;
     const float line_h  = char_h + line_sp;
 
-    // Height: title + (analyzing line or N entry lines) + mini-graph or progress bar
+    // Height: title + (analyzing line or N entry lines, and a line for each
+    // alignment warning) + mini-graph or progress bar
     const float graph_h  = 44.0f * scale;
-    const float n_lines  = static_cast<float>(std::max<int>(1, (int)entries.size()));
+    const int   n_warned = static_cast<int>(std::count_if(entries.begin(), entries.end(),
+        [](const VMAFPanelEntry& e) { return e.error.empty() && !e.warning.empty(); }));
+    const float n_lines  = static_cast<float>(std::max<int>(1, (int)entries.size()) + n_warned);
     const float panel_w  = 300.0f * scale;
     const float panel_h  = pad + line_h          // title
                          + line_h                 // status or progress
@@ -1002,6 +1005,14 @@ void DebugHUD::draw_vmaf_panel(const std::vector<VMAFPanelEntry>& entries,
             draw_text(stats, panel_x + pad + label_w, cy, r, g, b, scale, fb_w, fb_h);
         }
         cy += line_h;
+        // Scored, but too many frames failed to pair by timestamp (D-028):
+        // the warning under the entry, shortened as errors are.
+        if (e.error.empty() && !e.warning.empty()) {
+            std::string msg = e.label + ": " + e.warning;
+            if (msg.size() > 44) msg = msg.substr(0, 41) + "...";
+            draw_text(msg.c_str(), panel_x + pad, cy, 0.90f, 0.75f, 0.20f, scale, fb_w, fb_h);
+            cy += line_h;
+        }
     }
 
     // ── Mini per-frame graph (only for the first done entry with per_frame data) ──

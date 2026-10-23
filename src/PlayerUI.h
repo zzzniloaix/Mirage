@@ -148,6 +148,7 @@ public:
         bool        done    = false;
         std::string error;
         std::vector<double> per_frame;
+        std::string warning;   // too many frames failed to pair by timestamp (D-028)
     };
 
     // Draw the VMAF results ImGui window.  Call between begin_frame()/end_frame().
