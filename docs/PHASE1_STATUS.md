@@ -49,6 +49,7 @@ The checks made on it afterwards (`eval/consistency/acceptance-full/checks.txt`;
 - Every pair's two frames have the same PTS, and none lacks one (check 6), so comparing by position compared the same frames (P-009).
 - The first 300 frames have the scores of `eval/consistency/scalers-300/bilinear`, made by the same program with `--frames 300` and one process at a time (check 3).
 - The run was made at commit `3650f83` with a clean working tree at its start and end, with a `mirage_vmaf` whose SHA-256 builds of commits in clean worktrees reproduced (`build.txt`; P-026).
+- A rerun by `eval/run_all.sh`, with a `mirage_vmaf` it built from commit `e0beb49`, reproduced every verdict and every score of both sides exactly (`eval/run_all/2026-10-23-full/rerun_check.md`; P-027).
 
 **How it got there.** Phase 0 found Mirage scoring 640x360 higher than FFmpeg on every one of the first 300 frames, by 5.2798 on average (`eval/baseline/diagnostics/compare_first300.txt`: all 300 frames over 0.01, and the signed mean equal to the mean |delta|). The cause was FFmpeg's conversion of the distorted frames from the smpte170m color matrix to the reference's bt709, which Mirage didn't make (`eval/consistency/diag-before-300/`). Since D-016, Mirage converts the color matrix and range as FFmpeg's filter graph does (`src/VMAFColor.h`, P-014), and the two agree on every frame of the 300-frame runs and of 18 synthetic color tag cases (`eval/consistency/diag-after-300/`, `color-cases-after/`; `eval/consistency/README.md`).
 
@@ -99,7 +100,7 @@ The checks made on it afterwards (`eval/consistency/acceptance-full/checks.txt`;
 | Pinned dependencies with their versions recorded | partial: every version is recorded and the FetchContent dependencies are pinned; FFmpeg, libvmaf and GLFW come from Homebrew, which can't pin them | `docs/BUILD.md` "Versions", `CMakeLists.txt`, P-021; difference 4 |
 | Docker or Nix to reproduce the evaluation | pending | #11c |
 | Build instructions for Linux and macOS, Apple Silicon included | partial: macOS on Apple Silicon only | `docs/BUILD.md`; #11b, difference 5 |
-| `eval/run_all.sh`, one script that reruns the paper's numbers | done for the committed Phase 1 measurements; there are no paper numbers yet (D-005) | `eval/README.md`, P-024, P-027; difference 7 |
+| `eval/run_all.sh`, one script that reruns the paper's numbers | done for the committed Phase 1 measurements, the full-length §5 run included; its two committed runs found everything as committed. There are no paper numbers yet (D-005) | `eval/README.md`, `eval/run_all/2026-10-23/` and `2026-10-23-full/`, P-024, P-025, P-027; difference 7 |
 | `eval/streams.md` and a fetch script | partial: the bipbop and advanced Apple streams; the fetch keeps playlists, no media; DASH-IF and Unified Streaming streams not examined | `eval/streams.md`, P-023; difference 8 |
 | **Acceptance**: a clean machine builds by the README | partial: two builds in clean worktrees of committed HEADs on the machine of the measurements; on it the README's quick start stops at glad with the default Python, and `docs/BUILD.md`'s venv builds both presets | `eval/build_check/macos-2026-10-23-6a6661f.txt`, P-022; difference 6 |
 

@@ -64,7 +64,7 @@ eval/run_all.sh <out_dir>
 ```
 
 - It builds the `mirage_vmaf` of each committed run from its commit, reruns every committed Phase 1 measurement, and compares the outputs with the committed ones; `eval/README.md` says how. It needs the packages of step 1 and the network, not the venv of step 3.
-- Its run of 2026-10-23, from a clean tree at `e2169f5`, found everything as committed and took 544.3 s of wall time, both builds included (`eval/run_all/2026-10-23/rerun_check.md`, `run_all.md`).
+- Its run of 2026-10-23, from a clean tree at `e2169f5`, found everything as committed and took 544.3 s of wall time, both builds included (`eval/run_all/2026-10-23/rerun_check.md`, `run_all.md`). That was before the full-length §5 run was committed. `run_all.sh` reruns it since, as the step `acceptance-full`; its one rerun so far, with `pooling-full` and `--jobs 4`, found everything as committed and took 2707.1 s, the build included (`eval/run_all/2026-10-23-full/`). `--skip-full` leaves those two steps out.
 
 ## Versions
 

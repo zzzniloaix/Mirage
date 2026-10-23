@@ -81,3 +81,11 @@ None of them needs the network. `tests/test_run_all.py` checks every step agains
 - Every step ran, and everything compared is as committed (`rerun_check.md`).
 - Both programs it built have the SHA-256 of the program the committed runs name in their `build.txt`: the build of `83c8ed6` that of `diag-before-300` and `color-cases-before`, and the build of HEAD that of `scalers-300` and `models-300`. `diag-after-300` and `color-cases-after` were made with the build of `5263061`, before `--scaler` and `--model` existed; HEAD's build reproduces their scores exactly.
 - It took 544.3 s of wall time, both builds included (`run_all.md`).
+
+## The rerun of the full-length steps, 2026-10-23
+
+`run_all/2026-10-23-full/` keeps the record of `eval/run_all.sh <out_dir> --only pooling-full --jobs 4`, made from a clean worktree of `e0beb49` with no program given, the same files as above (P-027). It ran the two steps over every frame, `acceptance-full` and `pooling-full`.
+
+- Everything compared is as committed (`rerun_check.md`): every pair's verdict, all 53946 per-frame scores of every pair on Mirage's side at full precision, every libvmaf metric of FFmpeg's logs, and every pooling series.
+- The program it built from `e0beb49` has the SHA-256 that `consistency/acceptance-full/build.txt` records, `3633c43eaf4261e567ef2fb3a24d015e3e00b9a8ee354ddef88b6330aca4938c`.
+- It took 2707.1 s of wall time, the build included, of which 2614.8 s for `acceptance-full` (`run_all.md`).

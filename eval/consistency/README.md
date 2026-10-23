@@ -343,6 +343,7 @@ What they show:
 - **The first 300 frames as in the 300-frame runs.** They have the scores of `scalers-300/bilinear`, made by the same program with `--frames 300` and one process at a time, at full precision on Mirage's side and in every metric of FFmpeg's log, on every pair (check 3).
 - **Against Phase 0.** gear4 and gear3 keep every score of Phase 0's run of the player's analyzer at the 4 decimals it wrote; gear2 keeps none, and gear1 only the 5976 frames that score 0.0000 in both (check 4): D-016's change. Phase 0's analyzer had pooled means of 33.0648 (640x360) and 1.1455 (416x234) over these frames (`eval/baseline/bipbop16x9/summary.txt`), where Mirage now has FFmpeg's, 27.868640 and 0.000827.
 - **Wall time.** Each side of each pair took from 1134.6 to 1396.7 s, four processes running at a time (the pairs' `delta.md`); the run lasted from 13:42:05Z to 14:24:46Z on 2026-10-23 (`plain/delta.md`).
+- **Reproduced.** `eval/run_all.sh`'s step `acceptance-full` reran it with a `mirage_vmaf` it built from commit `e0beb49`, of the same SHA-256, and got every verdict and every score of both sides as committed (`eval/run_all/2026-10-23-full/rerun_check.md`).
 
 Limits:
 
