@@ -25,7 +25,9 @@
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#include <libavutil/channel_layout.h>
 #include <libavutil/imgutils.h>
+#include <libavutil/mem.h>
 #include <libavutil/pixfmt.h>
 }
 
@@ -146,6 +148,55 @@ std::string colored_dis_clip(const char* name, AVColorSpace space, ClipLook look
     return make_clip(name, 96, 54, 6, space, look);
 }
 
+// A Matroska file of 5 packets on one stream that FFmpeg opens but the
+// analyzer can't score: `video` false, a mono PCM track, so the file has no
+// video stream; true, an FFV1 stream whose extradata isn't an FFV1 header,
+// so its decoder fails to open.
+std::string make_unscorable(const char* name, bool video)
+{
+    const fs::path path = testtemp::path(name);
+    AVFormatContext* oc = nullptr;
+    REQUIRE(avformat_alloc_output_context2(&oc, nullptr, "matroska", path.c_str()) >= 0);
+    AVStream* st = avformat_new_stream(oc, nullptr);
+    const AVRational tb = video ? AVRational{ 1, kFps } : AVRational{ 1, 8000 };
+    if (video) {
+        st->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
+        st->codecpar->codec_id   = AV_CODEC_ID_FFV1;
+        st->codecpar->format     = AV_PIX_FMT_YUV420P;
+        st->codecpar->width      = 32;
+        st->codecpar->height     = 16;
+        st->codecpar->extradata  = static_cast<uint8_t*>(av_mallocz(16 + AV_INPUT_BUFFER_PADDING_SIZE));
+        std::fill_n(st->codecpar->extradata, 16, static_cast<uint8_t>(1));
+        st->codecpar->extradata_size = 16;
+    } else {
+        st->codecpar->codec_type  = AVMEDIA_TYPE_AUDIO;
+        st->codecpar->codec_id    = AV_CODEC_ID_PCM_S16LE;
+        st->codecpar->format      = AV_SAMPLE_FMT_S16;
+        st->codecpar->sample_rate = 8000;
+        av_channel_layout_default(&st->codecpar->ch_layout, 1);
+    }
+    st->time_base = tb;
+    REQUIRE(avio_open(&oc->pb, path.c_str(), AVIO_FLAG_WRITE) >= 0);
+    REQUIRE(avformat_write_header(oc, nullptr) >= 0);
+    const int64_t step = video ? 1 : 400;
+    for (int k = 0; k < 5; ++k) {
+        AVPacket* pkt = av_packet_alloc();
+        REQUIRE(av_new_packet(pkt, video ? 64 : 800) >= 0);
+        std::fill_n(pkt->data, pkt->size, static_cast<uint8_t>(0x55));
+        pkt->stream_index = 0;
+        pkt->pts = pkt->dts = k * step;
+        pkt->duration = step;
+        pkt->flags |= AV_PKT_FLAG_KEY;
+        av_packet_rescale_ts(pkt, tb, st->time_base);
+        REQUIRE(av_interleaved_write_frame(oc, pkt) >= 0);
+        av_packet_free(&pkt);
+    }
+    REQUIRE(av_write_trailer(oc) >= 0);
+    avio_closep(&oc->pb);
+    avformat_free_context(oc);
+    return path.string();
+}
+
 double ms(int k) { return static_cast<double>(k * 1000 / kFps) / 1000.0; }
 
 // Waits for a background analysis; false if it is still running after a minute.
@@ -263,6 +314,24 @@ TEST_CASE("VMAFAnalyzer::analyze: an input that cannot be opened is an error", "
 
     const VMAFResult d = VMAFAnalyzer::analyze(ref_clip(), missing);
     CHECK(d.error == "cannot open distorted: " + missing);
+}
+
+TEST_CASE("VMAFAnalyzer::analyze: an input without video, or whose decoder can't open, is an error", "[vmaf]")
+{
+    // Both open: the analyzer frees what it opened when it gives up (D-032).
+    const std::string audio = make_unscorable("mirage_test_vmaf_audio_only.mkv", false);
+    const std::string ffv1 = make_unscorable("mirage_test_vmaf_bad_ffv1.mkv", true);
+    for (const std::string& bad : { audio, ffv1 }) {
+        INFO(bad);
+        const VMAFResult r = VMAFAnalyzer::analyze(bad, dis_clip());
+        CHECK(r.done);
+        CHECK(r.error == "cannot open reference: " + bad);
+        CHECK(r.per_frame.empty());
+        const VMAFResult d = VMAFAnalyzer::analyze(ref_clip(), bad);
+        CHECK(d.done);
+        CHECK(d.error == "cannot open distorted: " + bad);
+        CHECK(d.per_frame.empty());
+    }
 }
 
 TEST_CASE("VMAFAnalyzer::start: scores like analyze() and records no PTS", "[vmaf]")

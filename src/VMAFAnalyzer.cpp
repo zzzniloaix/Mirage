@@ -87,6 +87,9 @@ void count_conversion(std::vector<VMAFColorConversion>& list,
 
 enum class DecodeState { Reading, Flushing, Done };
 
+// One input's demuxer and video decoder. It frees what it holds when it goes
+// out of scope, so an open() that fails halfway, after the input was opened,
+// leaks nothing (DECISIONS.md D-032).
 struct DecodeCtx {
     AVFormatContext* fmt_ctx   = nullptr;
     AVCodecContext*  codec_ctx = nullptr;
@@ -94,6 +97,11 @@ struct DecodeCtx {
     int              vid_idx   = -1;
     DecodeState      state     = DecodeState::Reading;
     int              error     = 0;   // FFmpeg error that ended decoding; 0 = clean EOF / not ended
+
+    DecodeCtx() = default;
+    ~DecodeCtx() { close(); }
+    DecodeCtx(const DecodeCtx&)            = delete;
+    DecodeCtx& operator=(const DecodeCtx&) = delete;
 
     [[nodiscard]] bool open(const std::string& url)
     {
@@ -227,10 +235,8 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
 
     if (!ref_ctx.open(result.ref_url))
         return fail("cannot open reference: " + result.ref_url);
-    if (!dis_ctx.open(result.dis_url)) {
-        ref_ctx.close();
+    if (!dis_ctx.open(result.dis_url))
         return fail("cannot open distorted: " + result.dis_url);
-    }
 
     const int ref_w = ref_ctx.width();
     const int ref_h = ref_ctx.height();
