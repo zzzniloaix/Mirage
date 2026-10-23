@@ -138,12 +138,34 @@ class StepsAgainstTheCommittedRuns(unittest.TestCase):
         self.assertEqual(names(only=None, skip_before=False), list(ra.STEP_NAMES))
         self.assertNotIn("diag-before-300", names(only=None, skip_before=True))
         self.assertNotIn("color-cases-before", names(only=None, skip_before=True))
+        self.assertEqual(names(only=["pooling-full"], skip_before=False),
+                         ["acceptance-full", "pooling-full"])
+        rest = names(only=None, skip_before=False, skip_full=True)
+        self.assertEqual(rest, [n for n in ra.STEP_NAMES if n not in ra.FULL_LENGTH])
+        self.assertIn("pooling", rest)
+
+    def test_a_full_length_run_has_no_frame_limit(self):
+        self.assertNotIn("--frames", ra.delta_options(None))
+        self.assertEqual(ra.delta_options(300)[:2], ["--frames", "300"])
+
+    def test_pooling_steps_read_the_reruns_of_the_steps_they_need(self):
+        outs = {s.name: s.out for s in ra.STEPS}
+        for s in ra.STEPS:
+            if s.kind != "pooling":
+                continue
+            with self.subTest(step=s.name):
+                reruns = [a.split("{out}/", 1)[1] for a in ra.POOLING_SOURCES[s.name]
+                          if a.startswith("{out}/")]
+                self.assertTrue(reruns)
+                for rel in reruns:
+                    self.assertTrue(any(rel.startswith(outs[n] + "/") for n in s.needs), rel)
 
     def test_only_rejects_unknown_steps(self):
         with mock.patch("sys.stderr"):
             self.assertRaises(SystemExit, ra.parse_args, ["out", "--only", "nonsense"])
         self.assertEqual(ra.parse_args(["out", "--only", "clips,pooling"]).only,
                          ["clips", "pooling"])
+        self.assertTrue(ra.parse_args(["out", "--skip-full"]).skip_full)
 
 
 class Redaction(unittest.TestCase):

@@ -16,8 +16,8 @@ The evaluation's scripts and their committed outputs. The numbers in this reposi
 
 ```
 eval/run_all.sh <out_dir> [--mirage-vmaf PROG] [--mirage-vmaf-before PROG] [--skip-before]
-    [--only STEP[,STEP...]] [--jobs J] [--ffmpeg PROG] [--ffprobe PROG] [--model-dir DIR]
-    [--work-dir DIR] [--no-compare]
+    [--skip-full] [--only STEP[,STEP...]] [--jobs J] [--ffmpeg PROG] [--ffprobe PROG]
+    [--model-dir DIR] [--work-dir DIR] [--no-compare]
 ```
 
 - `<out_dir>`: a new or empty directory outside the repository. The runs inside record the repository's commit and whether its working tree was clean, so run it from a clean tree when its outputs are to be cited.
@@ -36,12 +36,15 @@ The steps, in order; each writes under `<out_dir>` the path its committed counte
 | `color-cases-after` | `consistency/color-cases-after/` | HEAD's |
 | `scalers-300` | `consistency/scalers-300/`: three runs and `scaler_effect.*` | HEAD's |
 | `models-300` | `consistency/models-300/`: four runs and `model_effect.*` | HEAD's |
+| `acceptance-full` | `consistency/acceptance-full/`: every frame of the four pairs of D-018, the §5 report | HEAD's |
 | `ffmpeg-scale-default` | the commands of `consistency/ffmpeg-scale-default/checks.txt` | |
 | `ffmpeg-libvmaf-filter` | the commands of `consistency/ffmpeg-libvmaf-filter/checks.txt` | |
 | `pooling` | `pooling/bipbop16x9/`, on the rerun of `diag-after-300` | |
+| `pooling-full` | `pooling/acceptance-full/`, on the rerun of `acceptance-full` | |
 
 - Every `run_delta.sh` run gets the options of its committed `run.cmd.txt`. The runs made before D-016 need the program that didn't convert color yet, stage 1's build of `83c8ed6`; the others use HEAD's.
-- `--only` runs some steps, and the steps they need (`pooling` needs `diag-after-300`, the color cases need `clips`); `--skip-before` leaves out the two steps before D-016.
+- `--only` runs some steps, and the steps they need (`pooling` needs `diag-after-300`, `pooling-full` needs `acceptance-full`, the color cases need `clips`); `--skip-before` leaves out the two steps before D-016, and `--skip-full` the two over every frame, `acceptance-full` and `pooling-full` (P-027). Each side of each pair of `acceptance-full` took longer than the whole run of 2026-10-23 below (the wall times in `consistency/acceptance-full/plain/*/delta.md`).
+- `--jobs` is `run_delta.sh`'s: how many scoring processes run at once. The committed runs used 1, except `acceptance-full`, which used 4; its first 300 frames have the scores of `scalers-300/bilinear`, made by the same program one process at a time (`consistency/acceptance-full/checks.txt`, check 3).
 
 **What "as committed" means.** For each step, `rerun_check.md` says whether the rerun has:
 
@@ -72,7 +75,7 @@ None of them needs the network. `tests/test_run_all.py` checks every step agains
 
 ## The run of 2026-10-23
 
-`run_all/2026-10-23/` keeps the record of one run, made with no program given, from a clean tree at `e2169f5` (P-025): `run_all.md` and `run_all.json`, `rerun_check.md` and `rerun_check.json`, the builds' records and logs, and the output of every command. The rerun outputs themselves aren't kept; where they match the committed ones, which `rerun_check.md` says they all do, they would duplicate them.
+`run_all/2026-10-23/` keeps the record of one run, made with no program given, from a clean tree at `e2169f5` (P-025), before the full-length run was committed, so without `acceptance-full` and `pooling-full`: `run_all.md` and `run_all.json`, `rerun_check.md` and `rerun_check.json`, the builds' records and logs, and the output of every command. The rerun outputs themselves aren't kept; where they match the committed ones, which `rerun_check.md` says they all do, they would duplicate them.
 
 - Every step ran, and everything compared is as committed (`rerun_check.md`).
 - Both programs it built have the SHA-256 of the program the committed runs name in their `build.txt`: the build of `83c8ed6` that of `diag-before-300` and `color-cases-before`, and the build of HEAD that of `scalers-300` and `models-300`. `diag-after-300` and `color-cases-after` were made with the build of `5263061`, before `--scaler` and `--model` existed; HEAD's build reproduces their scores exactly.

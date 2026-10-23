@@ -2,9 +2,9 @@
 compares what it gets with the committed outputs.
 
 usage: eval/run_all.sh <out_dir> [--mirage-vmaf PROG] [--mirage-vmaf-before PROG]
-                       [--skip-before] [--only STEP[,STEP...]] [--jobs J]
-                       [--ffmpeg PROG] [--ffprobe PROG] [--model-dir DIR]
-                       [--work-dir DIR] [--no-compare]
+                       [--skip-before] [--skip-full] [--only STEP[,STEP...]]
+                       [--jobs J] [--ffmpeg PROG] [--ffprobe PROG]
+                       [--model-dir DIR] [--work-dir DIR] [--no-compare]
 
 <out_dir> is a new or empty directory outside the repository. Each step
 writes under <out_dir> the path its committed counterpart has under eval/,
@@ -21,15 +21,21 @@ in this order:
   scalers-300            consistency/scalers-300/{bilinear,bicubic,lanczos}/ and
                          scaler_effect.*
   models-300             consistency/models-300/{vmaf_v0.6.1,...}/ and model_effect.*
+  acceptance-full        consistency/acceptance-full/plain/: every frame of the
+                         four pairs of D-018
   ffmpeg-scale-default   consistency/ffmpeg-scale-default/record.txt
   ffmpeg-libvmaf-filter  consistency/ffmpeg-libvmaf-filter/record.txt
   pooling                pooling/bipbop16x9/: eval/pooling/pooling.py on the
                          rerun of diag-after-300
+  pooling-full           pooling/acceptance-full/: eval/pooling/pooling.py on
+                         the rerun of acceptance-full
 
 Each run_delta.sh run gets the options its committed run.cmd.txt records.
 The runs made before D-016 (diag-before-300, color-cases-before) use the
 mirage_vmaf of commit 83c8ed6, which converts no color; all the others use
-the mirage_vmaf of the repository's HEAD. Unless --mirage-vmaf /
+the mirage_vmaf of the repository's HEAD. --skip-before leaves out the runs
+made before D-016, --skip-full the two steps over every frame
+(acceptance-full, pooling-full). Unless --mirage-vmaf /
 --mirage-vmaf-before give one, each is built in a temporary worktree of
 its commit: `cmake --preset macos-release`, then only the mirage_vmaf
 target, which needs no glad venv (docs/BUILD.md, step 3).
@@ -101,7 +107,9 @@ Run = collections.namedtuple("Run", "name options")
 
 def delta_options(frames, pairs=PAIRS, scaler="bilinear", model="vmaf_v0.6.1",
                   model_file=None, relabel=False):
-    opts = ["--frames", str(frames), "--pairs", pairs, "--scaler", scaler]
+    """run_delta.sh's options; frames None for every frame."""
+    opts = [] if frames is None else ["--frames", str(frames)]
+    opts += ["--pairs", pairs, "--scaler", scaler]
     opts += ["--model-file", model_file] if model_file else ["--model", model]
     opts += ["--threads", "4", "--threshold", "0.01"]
     return opts + (["--diagnostic-relabel"] if relabel else [])
@@ -141,12 +149,27 @@ STEPS = (
              for m in ("vmaf_v0.6.1", "vmaf_v0.6.1neg", "vmaf_4k_v0.6.1")] + [
              Run("file_vmaf_v0.6.1", delta_options(300, pairs=PAIRS_GEAR2,
                                                    model_file="{model_dir}/vmaf_v0.6.1.json"))]),
+    step("acceptance-full", "delta", "head", committed="consistency/acceptance-full", runs=[
+        Run("plain", delta_options(None))]),
     step("ffmpeg-scale-default", "ffmpeg-record", committed="consistency/ffmpeg-scale-default"),
     step("ffmpeg-libvmaf-filter", "ffmpeg-record",
          committed="consistency/ffmpeg-libvmaf-filter"),
     step("pooling", "pooling", needs=["diag-after-300"], committed="pooling/bipbop16x9"),
+    step("pooling-full", "pooling", needs=["acceptance-full"],
+         committed="pooling/acceptance-full"),
 )
 STEP_NAMES = tuple(s.name for s in STEPS)
+
+# The steps over every frame of the four pairs, which --skip-full leaves out.
+FULL_LENGTH = ("acceptance-full", "pooling-full")
+
+# The sources of each pooling step, as eval/pooling/README.md gives its
+# command; {out} is <out_dir>, which holds the reruns of the steps it needs.
+POOLING_SOURCES = {
+    "pooling": ["--gui-report", "eval/baseline/bipbop16x9/report.vmaf.json",
+                "--delta-run", "{out}/consistency/diag-after-300/plain"],
+    "pooling-full": ["--delta-run", "{out}/consistency/acceptance-full/plain"],
+}
 
 # The commands of the FFmpeg records, as their committed checks.txt has them
 # for the default FFmpeg, by check number; {ffmpeg} is the FFmpeg and
@@ -248,11 +271,13 @@ def parse_only(text):
     return names
 
 
-def selected_steps(only, skip_before):
+def selected_steps(only, skip_before, skip_full=False):
     """The steps to run, in order: those asked for and the steps they need."""
     wanted = set(only or STEP_NAMES)
     if skip_before:
         wanted -= {s.name for s in STEPS if s.binary == "before"}
+    if skip_full:
+        wanted -= set(FULL_LENGTH)
     changed = True
     while changed:
         changed = False
@@ -280,10 +305,13 @@ def parse_args(argv):
                         f"{BEFORE_D016[:7]} in a temporary worktree)")
     p.add_argument("--skip-before", action="store_true",
                    help="leave out the runs made before D-016")
+    p.add_argument("--skip-full", action="store_true",
+                   help="leave out the steps over every frame: " + ", ".join(FULL_LENGTH))
     p.add_argument("--only", type=parse_only, metavar="STEP[,STEP...]",
                    help="run only these steps, and the steps they need")
     p.add_argument("--jobs", type=int, default=1, metavar="J",
-                   help="run_delta.sh's --jobs (default: 1, as in the committed runs)")
+                   help="run_delta.sh's --jobs (default: 1, as in the committed runs "
+                        "other than acceptance-full, which used 4)")
     p.add_argument("--ffmpeg", default=DEFAULT_FFMPEG,
                    help=f"FFmpeg with the libvmaf filter (default: {DEFAULT_FFMPEG})")
     p.add_argument("--ffprobe", help="ffprobe (default: the one next to --ffmpeg)")
@@ -509,9 +537,8 @@ def run_step(r, s, binaries):
         return ok
     if s.kind == "pooling":
         os.makedirs(out, exist_ok=True)
-        c = r.run(s.name, python("eval/pooling/pooling.py") + [
-            "--gui-report", "eval/baseline/bipbop16x9/report.vmaf.json",
-            "--delta-run", os.path.join(r.out, "consistency", "diag-after-300", "plain"),
+        sources = [a.format(out=r.out) for a in POOLING_SOURCES[s.name]]
+        c = r.run(s.name, python("eval/pooling/pooling.py") + sources + [
             "--out", os.path.join(out, "pooling")], f"logs/{s.name}.log")
         return c["exit_code"] == 0
     raise ValueError(s.kind)
@@ -833,7 +860,7 @@ def main(argv=None):
         return 2
     started, t0 = utc_now(), time.monotonic()
     head_start, clean_start = git_state()
-    steps = selected_steps(args.only, args.skip_before)
+    steps = selected_steps(args.only, args.skip_before, args.skip_full)
     binaries, built = {}, []
     needed = {s.binary for s in steps if s.binary}
     for name, given, commit, purpose in (
