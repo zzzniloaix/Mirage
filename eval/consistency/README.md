@@ -139,3 +139,94 @@ Limits:
 - Only the first 300 frames (P-012), and only the bilinear scaler on both sides; D-003's comparison of bilinear and bicubic needs a `mirage_vmaf` that takes a scaler.
 - The inputs are Apple's streams as fetched during the runs; they aren't kept here.
 - These scores only compare the two tools, like Phase 0's (D-005). bipbop's rungs were rendered separately (D-011), so the scores say nothing about the rungs' quality.
+
+### `color-cases-before/`, `color-cases-after/`: what FFmpeg's graph converts, and Mirage before and after D-016 (P-013, P-015)
+
+D-016 has Mirage convert the distorted frames' color matrix and range as FFmpeg's filter graph does, untagged streams included. These runs show what FFmpeg 8.1.1 does, on the synthetic clips of `color_cases.py` (10 frames each; `color-cases-before/clips.txt` records how each clip was made, its tags as ffprobe reads them back, and the MD5 of its decoded frames, the same for all clips of one size):
+
+```
+python3 -I -B eval/consistency/color_cases.py <tmp>/clips
+TMPDIR=<tmp> eval/consistency/run_delta.sh build/macos-release/mirage_vmaf <out>/main --pairs <tmp>/clips/pairs.txt --frames 10
+TMPDIR=<tmp> eval/consistency/run_delta.sh build/macos-release/mirage_vmaf <out>/refused --pairs <tmp>/clips/pairs_refused.txt --frames 10
+```
+
+| Directory | `mirage_vmaf` | Contents |
+|---|---|---|
+| `color-cases-before/` | built at `83c8ed6`, which converts no color; checked at `5e412a6` (`build.txt`) | `clips.txt`; `main/`, the 18 cases FFmpeg scores; `refused/`, the 2 it refuses; `checks.txt` |
+| `color-cases-after/` | the one of `diag-after-300/`, built at `5263061` (`build.txt`) | the same runs on the same clips; `checks.txt` |
+
+Per case, from each case's `ffmpeg_colorspace_lines.txt` and `delta.md` in `color-cases-before/main/`, and `color-cases-after/main/delta.md` (tags as color matrix/range, `unknown` = no tag; "via RGB" = swscale's note `YUV color matrix differs for YUV->YUV, using intermediate RGB to convert`):
+
+| case | reference | distorted | FFmpeg's scale filter, distorted frames | via RGB | before D-016 | max \|delta\| | frames over 0.01 | after D-016 | max \|delta\| |
+|---|---|---|---|---|---|---|---|---|---|
+| `m01_bt709_vs_smpte170m` | bt709/tv | smpte170m/tv | smpte170m/tv -> bt709/tv | yes | FAIL | 11.884643 | 10 | PASS | 0.000000 |
+| `m02_bt709_vs_bt709` | bt709/tv | bt709/tv | bt709/tv -> bt709/tv | no | PASS | 0.000000 | 0 | PASS | 0.000000 |
+| `m03_bt709_vs_untagged` | bt709/tv | unknown/unknown | unknown/unknown -> bt709/tv | yes | FAIL | 11.884643 | 10 | PASS | 0.000000 |
+| `m04_untagged_vs_bt709` | unknown/unknown | bt709/tv | bt709/tv -> unknown/tv | yes | FAIL | 26.462820 | 10 | PASS | 0.000000 |
+| `m05_untagged_vs_smpte170m` | unknown/unknown | smpte170m/tv | smpte170m/tv -> unknown/tv | no | PASS | 0.000000 | 0 | PASS | 0.000000 |
+| `m06_untagged_vs_untagged` | unknown/unknown | unknown/unknown | unknown/unknown -> unknown/unknown | no | PASS | 0.000000 | 0 | PASS | 0.000000 |
+| `m07_smpte170m_vs_bt470bg` | smpte170m/tv | bt470bg/tv | bt470bg/tv -> smpte170m/tv | no | PASS | 0.000000 | 0 | PASS | 0.000000 |
+| `m08_bt2020nc_vs_bt709` | bt2020nc/tv | bt709/tv | bt709/tv -> bt2020nc/tv | yes | FAIL | 3.971636 | 10 | PASS | 0.000000 |
+| `r01_tv_vs_pc` | bt709/tv | bt709/pc | bt709/pc -> bt709/tv | no | FAIL | 20.969975 | 10 | PASS | 0.000000 |
+| `r02_pc_vs_tv` | bt709/pc | bt709/tv | bt709/tv -> bt709/pc | no | FAIL | 22.748280 | 10 | PASS | 0.000000 |
+| `r03_norange_vs_pc` | bt709/unknown | bt709/pc | bt709/pc -> bt709/unknown | no | FAIL | 20.969975 | 10 | PASS | 0.000000 |
+| `r04_pc_vs_norange` | bt709/pc | bt709/unknown | bt709/unknown -> bt709/pc | no | FAIL | 22.748280 | 10 | PASS | 0.000000 |
+| `r05_norange_vs_tv` | bt709/unknown | bt709/tv | bt709/tv -> bt709/tv | no | PASS | 0.000000 | 0 | PASS | 0.000000 |
+| `r06_tv_vs_norange` | bt709/tv | bt709/unknown | bt709/unknown -> bt709/tv | no | PASS | 0.000000 | 0 | PASS | 0.000000 |
+| `x01_bt709tv_vs_smpte170mpc` | bt709/tv | smpte170m/pc | smpte170m/pc -> bt709/tv | yes | FAIL | 3.846347 | 10 | PASS | 0.000000 |
+| `x02_primaries_transfer` | bt709/tv | bt709/tv, primaries and transfer bt470bg | bt709/tv -> bt709/tv | no | PASS | 0.000000 | 0 | PASS | 0.000000 |
+| `x03_chroma_topleft` | bt709/tv | bt709/tv, chroma top-left | bt709/tv -> bt709/tv | no | PASS | 0.000000 | 0 | PASS | 0.000000 |
+| `x04_interlaced_tff` | bt709/tv | bt709/tv, interlaced | bt709/tv -> bt709/tv | no | PASS | 0.000000 | 0 | PASS | 0.000000 |
+
+In `refused/`, FFmpeg exits with status 178 for both YCgCo cases, with `Impossible to convert between the formats supported by the filter ...` (`u01_bt709_vs_ycgco/ffmpeg_colorspace_lines.txt`, and the same file for `u02`). Before D-016 `mirage_vmaf` scored both; after it, it exits with status 1 and names the matrix (`color-cases-after/checks.txt`, check 5).
+
+What "convert like FFmpeg" therefore means in FFmpeg 8.1.1, for the graph of the §5 comparison:
+
+- **Matrix**: the distorted frames are converted to the reference's matrix tag, whatever it is, a missing tag included (`m04`, `m05`: `-> unknown`).
+- **Range**: they are converted to the reference's range tag. When the reference has none, FFmpeg keeps the distorted frames' range if that is limited or missing (`r05`, `m06`) and picks none for a full range (`r03`).
+- **Missing tags in the pixels**: libswscale treats a missing matrix as BT.601's and a missing range as limited. So an untagged distorted input against a BT.709 reference is converted from BT.601 to BT.709 and scores as a smpte170m one does (FFmpeg's scores of `m03` are those of `m01`, `color-cases-before/checks.txt`, check 1), a BT.709 distorted input against an untagged reference is converted to BT.601 (`m04`), and a full range input against a reference without a range tag is converted to limited (`r03` scores as `r01`, and `r04` as `r02`, check 1).
+- **Tags that only rename**: smpte170m, bt470bg and a missing matrix have the same coefficients; between them only the tag changes, swscale converts no pixels, and the scores are those of no conversion (FFmpeg's scores of `m05` and `m07` are those of `m02`, check 1).
+- **Not converted**: the primaries and the transfer (the output keeps the distorted input's: `bt470bg/bt470bg` in `x02`'s output stream line, check 2), the chroma siting (`x03`'s output stream line has none) and interlacing (the scale filter scales interlaced frames as progressive). FFmpeg's scores of `x02`, `x03` and `x04` are those of `m02` (check 1).
+- **Refused**: a matrix libswscale has no coefficients for, such as YCgCo, on either input.
+
+The FFmpeg 8.1.1 sources (`ffmpeg-8.1.1.tar.xz` from ffmpeg.org, whose SHA-256 is the one in Homebrew's ffmpeg-full formula) explain the logs: the libvmaf filter declares no color properties, so libavfilter makes both its inputs and its output share one list of matrices and one of ranges (`libavfilter/formats.c`, `ff_default_query_formats`); a buffer source offers only its stream's matrix, and its range plus limited when it has none (`libavfilter/buffersrc.c`); where the shared list allows it, the scale filter's output keeps its input's range, else the list's first entry is taken (`libavfilter/avfiltergraph.c`, `reduce_formats`, `pick_format`); and the scale filter clears the frame's chroma location and interlaced flag, copies its properties to the output, sets the negotiated matrix and range and calls `sws_scale_frame()` (`libavfilter/vf_scale.c`, `scale_frame`). In libswscale, the coefficients come from `sws_getCoefficients()` (`libswscale/yuv2rgb.c`), and a YUV-to-YUV conversion between different coefficients goes through BGR24 at the smaller of the two frame sizes (`libswscale/utils.c`, `sws_setColorspaceDetails`).
+
+Mirage does the same (`src/VMAFColor.h`, P-014): its scores agree with FFmpeg's at the 6 decimals of FFmpeg's log on every frame of every case after D-016, its `dis_conversion` has the tags of FFmpeg's scale filter in every case, and it reports a matrix change exactly where FFmpeg's log has swscale's RGB note (`color-cases-after/checks.txt`, checks 2 and 3). `tests/test_vmaf_color.cpp` compares Mirage's converted frames with those of the same graph run through libavfilter, byte for byte, for the tags of these cases.
+
+Limits: synthetic 8-bit yuv420p clips at two sizes, 10 frames each, and only the libvmaf graph of the §5 comparison. The scores of these clips only compare the two tools.
+
+### `diag-after-300/`: the first 300 frames after D-016 (P-015)
+
+The plain run of `diag-before-300/` again, with the `mirage_vmaf` that converts color like FFmpeg, built at `5263061c3dfa7b3134763669443977b436ab1003` from the clean main working tree (`build.txt`):
+
+```
+eval/consistency/run_delta.sh build/macos-release/mirage_vmaf <out>/plain --frames 300
+```
+
+| File | Contents |
+|---|---|
+| `build.txt` | the build of `mirage_vmaf` right before the run: HEAD, a clean working tree, the build's output, a second build with nothing to do, and its SHA-256, which `plain/environment.txt` repeats |
+| `plain/` | the run, with plain FFmpeg: the §5 comparison |
+| `checks.txt` | checks made on the run afterwards, each command with its output |
+| `SHA256SUMS` | SHA-256 of `build.txt`, `checks.txt` and `plain/SHA256SUMS` |
+
+Before and after D-016, from `diag-before-300/plain/delta.md` and `diag-after-300/plain/delta.md` (|delta| = |Mirage − FFmpeg| per frame, 6 decimals; pooled means as libvmaf computes them):
+
+| pair | before | max \|delta\| | mean \|delta\| | frames over 0.01 | Mirage's pooled mean | after | max \|delta\| | mean \|delta\| | frames over 0.01 | Mirage's pooled mean | FFmpeg's pooled mean | conversion, both sides |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| gear4_vs_gear5 | PASS | 0.000000 | 0.000000 | 0 | 74.640607 | PASS | 0.000000 | 0.000000 | 0 | 74.640607 | 74.640607 | bt709 -> bt709 |
+| gear3_vs_gear5 | PASS | 0.000000 | 0.000000 | 0 | 53.729092 | PASS | 0.000000 | 0.000000 | 0 | 53.729092 | 53.729092 | bt709 -> bt709 |
+| gear2_vs_gear5 | FAIL | 5.674685 | 5.279836 | 300 | 33.832772 | PASS | 0.000000 | 0.000000 | 0 | 28.552935 | 28.552935 | smpte170m -> bt709 |
+| gear1_vs_gear5 | FAIL | 3.883766 | 1.878387 | 290 | 1.884503 | PASS | 0.000000 | 0.000000 | 0 | 0.006117 | 0.006117 | smpte170m -> bt709 |
+
+What they show:
+
+- All four pairs pass D-019 with plain FFmpeg. Written with the 6 decimals of FFmpeg's log, Mirage's score of every one of the 300 frames of every pair is FFmpeg's (`checks.txt`, check 1). Mirage's `dis_conversion` and FFmpeg's scale filter both convert gear2 and gear1 from smpte170m/tv to bt709/tv and change nothing for gear4 and gear3 (check 4, and the last two columns of `plain/delta.md`), with no warning.
+- For gear4 and gear3, Mirage's scores are those of the run before D-016 at full precision on all 300 frames (check 2): going through `sws_scale_frame()` changed nothing where the tags already match. For gear2 no frame keeps its score; for gear1, 10 frames do.
+- FFmpeg's side has every libvmaf metric of every frame equal to that of the run before D-016 (check 3), so the change is Mirage's alone. Mirage's pooled means of gear2 and gear1 are now FFmpeg's, 28.552935 and 0.006117, where they were 33.832772 and 1.884503.
+
+Limits:
+
+- Only the first 300 frames. The committed §5 report covers every frame of the four rungs (D-018): MEASUREMENT PENDING.
+- Only the bilinear scaler on both sides (D-003), and the inputs as fetched during the run.
+- These scores only compare the two tools (D-005, D-011).
