@@ -259,7 +259,7 @@ VMAFResult sample_result()
 }
 
 const vmafreport::RunInfo kRun{
-    .tool = "mirage_vmaf", .libvmaf_version = "3.0.0",
+    .tool = "mirage_vmaf", .reference_mode = "explicit-pair", .libvmaf_version = "3.0.0",
     .libvmaf_package_version = "3.1.0", .frame_limit = 30,
 };
 
@@ -320,6 +320,7 @@ TEST_CASE("vmafreport::to_json: run settings and pooled scores", "[vmafreport]")
     REQUIRE(doc);
     const Value& d = *doc;
     CHECK(d["tool"].str == "mirage_vmaf");
+    CHECK(d["reference_mode"].str == "explicit-pair");
     CHECK(d["libvmaf_version"].str == "3.0.0");
     CHECK(d["libvmaf_package_version"].str == "3.1.0");
     CHECK(d["model"].str == "vmaf_v0.6.1");

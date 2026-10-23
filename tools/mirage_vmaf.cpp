@@ -57,8 +57,11 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    // Both inputs come from the command line: the reference is neither picked
+    // from a ladder (top-rung) nor known to be the source (mezzanine).
     const vmafreport::RunInfo run{
         .tool                    = "mirage_vmaf",
+        .reference_mode          = "explicit-pair",
         .libvmaf_version         = vmaf_version(),
         .libvmaf_package_version = MIRAGE_LIBVMAF_PACKAGE_VERSION,
         .frame_limit             = args.frames,

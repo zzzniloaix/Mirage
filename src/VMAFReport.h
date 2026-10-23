@@ -4,7 +4,10 @@
 // libvmaf here so it can be unit-tested in mirage_tests.
 //
 // Layout (numbers at full precision; null for NaN or a missing value):
-//   tool, libvmaf_version, libvmaf_package_version,
+//   tool,
+//   reference_mode         how the reference was chosen: "explicit-pair" when
+//                          the command line names both inputs
+//   libvmaf_version, libvmaf_package_version,
 //   model                  built-in model version, or model file path as given
 //   model_source           "built-in" | "file"
 //   model_sha256           SHA-256 of the model file; null for a built-in model
@@ -31,6 +34,7 @@ namespace vmafreport {
 // What a report states beyond the analysis result.
 struct RunInfo {
     std::string tool;                     // program that wrote the report
+    std::string reference_mode;           // see the layout above
     std::string libvmaf_version;          // vmaf_version() at run time
     std::string libvmaf_package_version;  // found at configure time; "unknown" if not derivable
     unsigned    frame_limit = 0;          // --frames; 0 = none

@@ -68,6 +68,7 @@ std::string to_json(const VMAFResult& r, const RunInfo& run)
     const VMAFSettings& s = r.settings;
     std::string out = "{\n";
     out += std::format("  \"tool\": {},\n", quote(run.tool));
+    out += std::format("  \"reference_mode\": {},\n", quote(run.reference_mode));
     out += std::format("  \"libvmaf_version\": {},\n", quote(run.libvmaf_version));
     out += std::format("  \"libvmaf_package_version\": {},\n", quote(run.libvmaf_package_version));
     out += std::format("  \"model\": {},\n", quote(s.model));
