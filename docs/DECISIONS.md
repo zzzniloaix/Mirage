@@ -55,6 +55,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - Decide bicubic now (the suggestion in work order §1.3).
   - Decide bilinear now (the current code's behavior).
 - **Rationale**: the 5-point discrepancy measured in Phase 0 was obtained with bilinear on both sides, so it doesn't necessarily come from the scaler itself. Choosing a default before seeing the scaler's actual effect on scores would have no data behind it.
+- **Resolved by**: D-024 (2026-10-23), bicubic.
 - **Who**: owner (Jiayu Lin), adopting the agent's suggestion
 - **Date**: 2026-10-23
 
@@ -66,6 +67,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - During the §5 comparison the current settings (`vmaf_v0.6.1`, 8-bit YUV420P) stay, and the code isn't changed for the comparison.
 - **Alternatives**: decide each one now.
 - **Rationale**: all of these change scores. As with D-003, they are decided once there's measured data.
+- **Resolved by** (2026-10-23): D-025 (#4), D-026 (#5), D-027 (#6) and D-028 (#7). #8 stays with Phase 4.
 - **Who**: owner (Jiayu Lin), adopting the agent's suggestion
 - **Date**: 2026-10-23
 
@@ -119,6 +121,8 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - The Phase 0 baseline was run with ffmpeg-full.
   - It's consistent with D-008's GPL-3.0-or-later.
 - **Not decided**: the other two parts of #11 (whether glad's generated output is committed, and the scope of Linux support) are decided when §8 starts.
+- **Correction** (2026-10-23, D-032): the first alternative says that standardizing on `ffmpeg` would need a separately installed FFmpeg with libvmaf. On the machine of the measurements that isn't so: Homebrew's plain `ffmpeg` 8.1.1 there is built with `--enable-libvmaf` as well (`eval/baseline/environment.txt`, line 163, in the output of its `-buildconf`). The decision stands on its other reasons.
+- **Resolved by**: D-031 (2026-10-23), for the other two parts of #11.
 - **Who**: owner (Jiayu Lin)
 - **Date**: 2026-10-23
 
@@ -209,6 +213,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - Make it configurable, with a default chosen after more measurement.
 - **Rationale**: Mirage then matches a plain `ffmpeg -lavfi libvmaf` run without workarounds.
 - **Background**: on 2026-10-23 a scratch probe located the cause of the Phase 0 discrepancy. bipbop's 640x360 and 416x234 rungs are tagged `smpte170m` (BT.601), while the gear5 reference is tagged `bt709` (`eval/baseline/diagnostics/ffprobe_rungs.txt`). FFmpeg's verbose log shows its `scale` filter converting the distorted frames (`csp:smpte170m` → `csp:bt709`); Mirage didn't convert. The probe's outputs weren't committed, so its numbers aren't recorded here. The §5 work reproduces the effect with committed outputs (MEASUREMENT PENDING).
+- **Measured** (note added 2026-10-23, D-032): the committed runs reproduce the effect: before the conversion in `eval/consistency/diag-before-300/`, after it in `eval/consistency/diag-after-300/` and, over every frame, `eval/consistency/acceptance-full/`, with the color tag cases in `eval/consistency/color-cases-before/` and `color-cases-after/`. What D-016 means in practice is D-021 for a yuv420p reference and D-022 for other references.
 - **Implication**: Mirage's scores change for every pair whose tags differ, such as bipbop's 640x360 and 416x234 rungs.
 - **Who**: owner (Jiayu Lin)
 - **Date**: 2026-10-23
@@ -237,6 +242,153 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Alternatives**: a stricter threshold, e.g. 0.001. That is measurable, because Mirage will write scores at full precision.
 - **Rationale**: it is the work order's §5 target.
 - **Who**: owner (Jiayu Lin)
+- **Date**: 2026-10-23
+
+### D-020 Phase 1's open packages: the agent's recommendations adopted
+
+- **Decision**: the owner adopts every recommendation labeled as the agent's in `docs/PHASE1_DECISIONS_PENDING.md` as of `63b40e2`, and those of `docs/plans/frame-alignment.md`. The choices those recommendations left to the owner, #7's failure-rate definition, threshold and action, the owner made from the options the agent gave. D-021 to D-033 record each decision.
+- **Owner's words**: "Yea I see you have recommendations, then we can run with your recommendations"; for #7, "All failures", "1%" and "Warn".
+- **Not covered, still open**: the source clips and encoding parameters of D-011; D-008's question whether legal or the company's open-source process has to confirm the license; the player's own JSON export (difference 9 of the pending document, which had no firm recommendation).
+- **Alternatives**: deciding each package separately.
+- **Who**: owner (Jiayu Lin)
+- **Date**: 2026-10-23
+
+### D-021 D-016 in practice for a yuv420p reference: FFmpeg 8.1.1's rules, and a refusal for matrices libswscale can't convert
+
+- **Decision**
+  - For a yuv420p reference, D-016 means what the code does since `0444859` (option 1 of the package "D-016: untagged streams, and matrices libswscale can't convert"): the distorted frames get the reference's matrix and range tags, a missing tag included; when the reference has no range tag, they keep a limited or missing range and a full range becomes unspecified; in the pixels a missing matrix is taken as BT.601's and a missing range as limited; the primaries and the transfer are never converted, the chroma siting is dropped and interlaced frames are scaled as progressive.
+  - A pair in which either input has a matrix libswscale has no coefficients for, such as YCgCo, is refused, in `mirage_vmaf` and in the player, as FFmpeg refuses it (option (a)).
+  - `mirage_vmaf`'s report records the run-time versions of the FFmpeg libraries, libswscale and libavfilter among them, next to libvmaf's (D-006).
+  - After any FFmpeg upgrade, the color tag cases are run through the delta tool again before new scores are used.
+  - The paper states that an untagged input is taken as BT.601 with limited range.
+- **Alternatives**: converting nothing when either input lacks a tag, or making the handling of untagged inputs configurable; for a matrix libswscale lacks, scoring without converting and warning, as before D-016.
+- **Rationale**: D-016's rationale is matching a plain `ffmpeg -lavfi libvmaf` run. For yuv420p references the committed runs show Mirage doing so on every frame (`eval/consistency/color-cases-after/`, `diag-after-300/`, `acceptance-full/`), and FFmpeg gives no score to match for a pair it refuses (`eval/consistency/color-cases-before/refused/`, `format-cases-before/refused/`).
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-020)
+- **Date**: 2026-10-23
+
+### D-022 References that aren't yuv420p: convert the reference, as FFmpeg's graph does
+
+- **Decision**: when the reference's frames aren't yuv420p (10-bit, 4:2:2, 4:4:4, yuvj420p and the other formats FFmpeg's §5 graph has to convert), Mirage converts the reference to the distorted frames' color matrix and range, with `sws_scale_frame()` and the flags of the scale filter FFmpeg inserts for it (bicubic), and leaves the distorted frames' color as it is; the distorted frames are still scaled with the chosen scaler (D-024). With D-026, this conversion is also what brings a 10-bit reference to 8 bits. The acceptance test is the reference format cases (`eval/consistency/format-cases-before/`, `format-cases-after/`): after the change every case is expected to pass, `j01` with its scores from before D-016. Until it is implemented, P-030's warning stays.
+- **Alternatives**: following D-016's wording, converting the distorted frames and only keeping a yuvj420p reference's range; refusing such references; today's behavior with the warning.
+- **Rationale**: D-016's rationale is parity with plain FFmpeg, and for these references FFmpeg's graph converts the reference (`eval/consistency/format-cases-before/checks.txt`, check 2). Since D-016, Mirage's scores differ from FFmpeg's for every such reference whose tags differ from the distorted input's, and for a full range reference with the same tags (`eval/consistency/format-cases-after/main/delta.md`).
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-020)
+- **Date**: 2026-10-23
+
+### D-023 A frame exactly at the §5 threshold passes
+
+- **Decision**: D-019 stands: a frame fails if |Mirage − FFmpeg| > 0.01, so a frame at exactly 0.01 passes. The paper's method text states this boundary, which differs from the work order's "< 0.01".
+- **Alternatives**: failing a frame when |Mirage − FFmpeg| ≥ 0.01, as the work order words it.
+- **Rationale**: the two differ only for a frame at exactly 0.01.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-020)
+- **Date**: 2026-10-23
+
+### D-024 The default scaler is bicubic (#3)
+
+- **Decision**: bicubic scales the distorted frames to the reference's size by default, in the player and in `mirage_vmaf`, where `--scaler` keeps bilinear and lanczos as options. The §5 delta tool's default becomes bicubic as well, for both sides. This resolves D-003. The full-length §5 report of D-018 is made again with it; the bilinear report stays committed as the record it is. The paper states the scaler.
+- **Alternatives**: bilinear, the default until now and the setting of the committed §5 runs other than the scaler runs; lanczos.
+- **Rationale**: it is the work order's suggestion (§1.3) and what FFmpeg's scale filter uses when no scaler is named (`eval/consistency/ffmpeg-scale-default/checks.txt`), so the scores are what a reader gets from a plain `ffmpeg` command with a plain `scale` filter. Each of the three scalers passes §5 when both sides use it (`eval/consistency/scalers-300/checks.txt`, check 3), and no score so far is paper data (D-005). Against bilinear, bicubic raises the scores by 6.775801 to 11.113910 on average per pair over the first 300 frames (`eval/consistency/scalers-300/scaler_effect.md`).
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-020)
+- **Date**: 2026-10-23
+
+### D-025 The default model stays vmaf_v0.6.1 (#4)
+
+- **Decision**: libvmaf's built-in vmaf_v0.6.1 stays the default model. The other built-in models and model files stay options, recorded in each report (`--model`, `--model-file`). A model chosen from the reference's resolution may come later as an option, once the owner sets its resolution limit.
+- **Alternatives**: vmaf_v0.6.1neg; vmaf_4k_v0.6.1; a rule by resolution now.
+- **Rationale**: FFmpeg's libvmaf filter uses it unless told otherwise (`eval/consistency/ffmpeg-libvmaf-filter/checks.txt`), and every committed §5 run used it apart from the other models' runs in `eval/consistency/models-300/`.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-020)
+- **Date**: 2026-10-23
+
+### D-026 Frames are scored at 8 bits for now (#5)
+
+- **Decision**: every input stays converted to 8-bit yuv420p before scoring. Once D-011's ladders exist, a 10-bit SDR ladder is scored at 8 bits and at its own bit depth, on both sides, and the owner decides again with that measurement.
+- **Alternatives**: the inputs' own bit depth when both have more than 8 bits; configurable.
+- **Rationale**: FFmpeg's §5 graph scores at 8 bits as well (`format=yuv420p` on both inputs), and no ladder of 10-bit SDR rungs encoded from one source is at hand to measure the difference (MEASUREMENT PENDING). How a 10-bit reference reaches 8 bits is D-022's conversion.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-020)
+- **Date**: 2026-10-23
+
+### D-027 Pooling definitions (#6)
+
+- **Decision**
+  - Mean: libvmaf's pooled mean.
+  - Harmonic mean: libvmaf's (`VMAF_POOL_METHOD_HARMONIC_MEAN`), the shifted form `n / sum(1 / (x + 1)) - 1` that FFmpeg's log reports too.
+  - Minimum: libvmaf's, over every frame; the paper states that it is the first frame's score, whose motion features are 0. Also reported, under its own name: the minimum without the first frame.
+  - Percentiles p1, p5, p10, p25 and p50: computed by Mirage with linear interpolation (Hyndman and Fan's definition 7), in the analyzer that the player and `mirage_vmaf` share, so the player's p5 changes from `sorted[n * 5 / 100]` to this definition too.
+- **Alternatives**: for the percentiles, today's `sorted[floor(n * p / 100)]` or nearest rank; the plain harmonic mean, with a rule for frames at 0; the minimum over every frame only.
+- **Rationale**: the three percentile definitions differ by at most 0.000276 over every frame of the four pairs, and by up to 0.093440 over 300 frames (`eval/pooling/acceptance-full/pooling.md`, `eval/pooling/bipbop16x9/pooling.md`); with linear interpolation, the default of common analysis tools, readers recomputing the percentiles from the per-frame scores get the same values. libvmaf's harmonic mean is defined when frames score 0 and is what FFmpeg reports. libvmaf's minimum keeps parity with FFmpeg, and the minimum without the first frame is the one that says something about the encode.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-020)
+- **Date**: 2026-10-23
+
+### D-028 Frames are paired by timestamp (§1.4, #7)
+
+- **Decision**
+  - `docs/plans/frame-alignment.md` is approved (D-007), with its recommended choices:
+    - matching rule A, the reference's timeline, with the plan's tolerance of half the reference's frame duration;
+    - timestamps measured from each input's start, as `ffmpeg` does without `-copyts`;
+    - for a frame-rate mismatch, scoring on the coarser of the two grids (option (b));
+    - at a discontinuity, pairing stops and the rest of the input counts as failed (option (a)), until D-011's ladders show what real discontinuities look like;
+    - a new libvmaf context after each gap, so that no motion feature spans one;
+    - the report's `alignment` fields and the list of failures as the plan proposes, ahead of §7's schema;
+    - the §5 delta tool compares the two sides by timestamp.
+  - #7, chosen by the owner from the options given:
+    - the failure rate is failed / (paired + failed), counting unmatched reference frames, extra and duplicate distorted frames and frames without a timestamp;
+    - the threshold is 1%, the work order's suggestion;
+    - above it the pair is still scored, with a warning in the report, on stderr and in the player's VMAF panel, and `mirage_vmaf` exits with status 0.
+  - Failures are always counted and listed.
+- **Alternatives**: rule B (FFmpeg's framesync rule), or A with B's pairing reported next to it; absolute timestamps; options (a) or (c) for frame-rate mismatches; (b), (c) or (d) for discontinuities; motion across gaps, or stand-in frames; for #7, unmatched reference frames over all reference frames, a threshold of 0.1% or any failure, and refusing or flagging the report above the threshold.
+- **Rationale**: rule A follows the reference variant's timeline, which §3.1 uses for attribution, and never scores a pair whose frames don't match; where it differs from FFmpeg's rule B, the delta tool reports the difference instead of hiding it. The work order rules out silent scores; with a warning every score stays available and the failures are visible.
+- **Who**: owner (Jiayu Lin): the plan's choices adopting the agent's recommendation (D-020); #7's definition, threshold and action chosen by the owner
+- **Date**: 2026-10-23
+
+### D-029 Reference modes in mirage_vmaf (§1.2)
+
+- **Decision**
+  - `explicit-pair` stays the `reference_mode` of a pair given on the command line; §7's enumeration gains it when the schema is written.
+  - `mirage_vmaf` gets ladder scoring as the §1.2 package designs it: top-rung by default (D-002), a mezzanine optionally; each video playlist scored once; entries without video skipped and listed as skipped; one failed rung fails the run, as P-006 does for a pair; one report per reference mode, with a `pairs` list, so that the two modes never share a report.
+  - §1.2's acceptance, both modes on one ladder with the difference documented, waits for D-011's clips.
+- **Alternatives**: another name, or letting the user declare `top-rung` or `mezzanine` for a pair; ladder scoring that mirrors the player's `start_manifest`, every entry with its errors recorded; ladder scoring deferred to Phase 2.
+- **Rationale**: a pair given on the command line is neither of §7's two modes; the design keeps the two modes' results apart and gives a failed rung the exit status a failed pair has.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-020)
+- **Date**: 2026-10-23
+
+### D-030 A config file for mirage_vmaf
+
+- **Decision**: `mirage_vmaf --config FILE` reads settings as `name = value` lines with the long options' names, through the same option table as the command line, which overrides the file; the report records the file's path and SHA-256 next to the effective settings. The eval tooling is exempt from the work order's config-file constraint: each run's `run.cmd.txt` records every option.
+- **Alternatives**: JSON; TOML, which needs a parser the repository doesn't have; a config file for the eval tooling as well.
+- **Rationale**: no new dependency, and nothing can be set in one place but not the other.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-020)
+- **Date**: 2026-10-23
+
+### D-031 The rest of the build strategy (§8, #11), the README and vcpkg.json
+
+- **Decision**
+  - #11a: glad's generated OpenGL loader, three files, is committed, for example under `third_party/glad/`, and built as a plain static library, with a script that regenerates it with glad 2.0.8 in the pinned venv and compares the bytes, and with its license terms (WTFPL or CC0-1.0, and Apache-2.0) stated next to it. The player's build then runs no Python.
+  - #11b: headless Linux. `mirage_vmaf`, `mirage_tests` and the eval tooling build and run on Linux; the player stays macOS-only. A CMake option configures without the player's dependencies, with a Linux preset, Linux instructions in `docs/BUILD.md` and a §5 run on Linux.
+  - #11c: a Docker image for Linux: a base image pinned by digest; FFmpeg 8.1.1 and libvmaf built from release sources checked by SHA-256, at the versions of the committed measurements; `mirage_vmaf` built from the repository; `eval/run_all.sh` as its command. Whether its scores equal those measured on Apple Silicon is its first measurement.
+  - `README.md`: its build part becomes a short pointer to `docs/BUILD.md`, and its other stale facts are corrected from the repository's files and committed records.
+  - The root `vcpkg.json`, which the build doesn't use, is removed.
+- **Alternatives**: generating glad at build time as now, or pinning its environment; macOS only, or full Linux support with the player; a Nix flake, both, or neither; correcting the README in place, or leaving it; keeping `vcpkg.json`, or making it a pinned second route.
+- **Rationale**: the glad step is the only build step that failed in either build check, and its output is the same in every build so far (`eval/build_check/macos-2026-10-23-6a6661f.txt`); every committed score comes from `mirage_vmaf` and the eval tooling, which need only FFmpeg and libvmaf; Homebrew can't install the measured versions, and a container can; the build steps belong in one place that the build checks verify.
+- **Known limit**: the machine of the measurements has no container runtime, so the image and the Linux build can be written there but not run; their runs are MEASUREMENT PENDING until one is available.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-020)
+- **Date**: 2026-10-23
+
+### D-032 Smaller Phase 1 items
+
+- **Decision**
+  - The subtitle test writes its SRT fixture to a temporary file at run time, as the other media tests generate their inputs; a change to the test only.
+  - For the intermittent `Demuxer: seamless video and audio switches on a local file`, the agent writes a plan to find out whether the test's timing or the track switch is at fault (D-007); nothing on the decode path changes before the owner approves it.
+  - Two findings of the review are fixed before merge: the analyzer's leak when an input opens but has no video stream or its decoder fails to open, and the tests' fixed file names in the shared temporary directory. The other low findings are left for later.
+  - The committed delta runs keep FFmpeg's verbose logs raw, the CDN servers' public addresses included.
+  - The paper's method text states that the §5 tool adds `scale=W:H:flags=<scaler>` to FFmpeg's distorted input, since FFmpeg's libvmaf filter refuses inputs of different sizes (difference 3 of the pending document).
+  - D-009 gets a correction note and D-016 a note citing the committed runs, as D-001 has its correction.
+- **Alternatives**: as the packages list them.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-020)
+- **Date**: 2026-10-23
+
+### D-033 The process choices P-006 to P-032 are confirmed
+
+- **Decision**: the agent's measurement and process choices P-006 to P-032 are confirmed as their entries state them.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-020)
 - **Date**: 2026-10-23
 
 ---
@@ -336,7 +488,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - The analyzer's new features (frame limit, PTS, input parameters, how inputs ended) need tests that run the analyzer.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-23, D-033)
 
 ### P-007 The build check behind docs/BUILD.md
 
@@ -353,7 +505,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Limits**: the check reuses this machine's Homebrew packages, so it isn't the clean-machine build that §8's acceptance asks for. The player's GUI isn't started.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-23, D-033)
 
 ### P-008 FFmpeg's side of the §5 delta tool
 
@@ -375,7 +527,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - ffprobe doesn't depend on the program being checked.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-23, D-033)
 
 ### P-009 How the delta tool compares, and when a pair passes
 
@@ -395,7 +547,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - The threshold rule is D-019's. The work order states the target as a per-frame difference "< 0.01"; the two differ only for a frame at exactly 0.01.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-23, D-033)
 
 ### P-010 The delta tool's diagnostic relabel variant
 
@@ -410,7 +562,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - ffprobe's tags are the stream parameters, the same values as Phase 0's `ffprobe_rungs.txt` and `mirage_vmaf`'s input fields (P-006). The report warns if FFmpeg's filter graph inputs show other tags.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-23, D-033)
 
 ### P-011 What a delta run records
 
@@ -432,7 +584,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - The search catches anything the placeholders miss, such as a path an input or a program prints.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-23, D-033)
 
 ### P-012 The diagnosis before D-016: first 300 frames, plain and relabeled
 
@@ -450,7 +602,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - The main working tree was clean and at HEAD, and ninja's no-op shows the binary is up to date with it, so the outputs rest on a committed, clean tree, as P-001's did, without fetching every dependency again for a worktree.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-23, D-033)
 
 ### P-013 The color tag cases: synthetic clips, scored before and after D-016
 
@@ -470,7 +622,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Limits**: 8-bit yuv420p at two sizes only, the libvmaf graph of the §5 comparison only, and FFmpeg 8.1.1 only; another FFmpeg version may negotiate differently.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-23, D-033)
 
 ### P-014 How Mirage converts the distorted frames (D-016)
 
@@ -494,7 +646,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - One thread keeps the GUI's background analysis light, and the comparison test shows the bytes do not depend on it.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation. What this means for untagged streams, and the refusal, are the owner's to confirm under D-016.
+- **Status**: confirmed by the owner (2026-10-23, D-033); D-021 confirms the untagged rule and the refusal
 
 ### P-015 The checks after D-016: 300 frames of four rungs, plain, and the color tag cases again
 
@@ -513,7 +665,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - A difference in the conversions shows in the scores anyway; the warning names its likely cause.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-23, D-033)
 
 ### P-016 The scaler and model measurements: 300 frames, both sides, one setting changed at a time
 
@@ -537,7 +689,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Limits**: bipbop's rungs were rendered separately (D-011), so the size of a scaler's or model's effect on a ladder encoded from one source isn't measured here.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-23, D-033)
 
 ### P-017 How mirage_vmaf takes the scaler and the model, and what its report says about them
 
@@ -560,7 +712,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - Work order §1.2 asks every output for a `reference_mode`. Its two values describe how a ladder's reference is chosen; for a pair given by hand neither is known. The work order's §7 lists only `mezzanine` and `top-rung`, which is a difference the owner decides.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-23, D-033)
 
 ### P-018 The pooling measurement: candidate definitions on per-frame scores already committed
 
@@ -577,7 +729,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - Any new pooled value in the report would pick a definition, which is #6.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-23, D-033)
 
 ### P-019 Not yet in mirage_vmaf: ladder scoring and a config file
 
@@ -590,7 +742,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - The config file's format is the owner's to choose (`docs/PHASE1_DECISIONS_PENDING.md`).
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-23, D-033); D-029 and D-030 decide the ladder scoring and the config file
 
 ### P-020 The LICENSE text, and where it was checked
 
@@ -607,7 +759,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - Notices in every source file touch every file of the player, and the work order asks only for the license file; that is left to the owner.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation. Whether legal or the company's open-source process has to confirm the license remains D-008's open question.
+- **Status**: confirmed by the owner (2026-10-23, D-033). Whether legal or the company's open-source process has to confirm the license remains D-008's open question.
 
 ### P-021 How the FetchContent dependencies and the glad venv are pinned
 
@@ -628,7 +780,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - With MarkupSafe named, the venv has exactly the packages of both build checks.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-23, D-033)
 
 ### P-022 The §8 build check: the clean worktree of 6a6661f, and what it stands for
 
@@ -644,7 +796,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Limits**: one machine, with its Homebrew packages, Xcode Command Line Tools and network; the player's window wasn't opened.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-23, D-033)
 
 ### P-023 The stream list and its fetch: playlists only, no media kept
 
@@ -664,7 +816,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - A stream nobody examined has no committed property to list.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-23, D-033)
 
 ### P-024 eval/run_all.sh: what it reruns, with which program, and what "as committed" means
 
@@ -685,7 +837,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - Comparing at full precision shows whether the rerun reproduces the committed outputs exactly, not only within D-019's threshold.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-23, D-033)
 
 ### P-025 The verification run of eval/run_all.sh, and what of it is committed
 
@@ -702,7 +854,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Result** (`eval/run_all/2026-10-23/rerun_check.md`, `run_all.md`): every step ran and everything compared is as committed. The program built from `83c8ed6` has the SHA-256 that the `build.txt` of `diag-before-300` and `color-cases-before` records, and the one built from HEAD that of `scalers-300` and `models-300`. 544.3 s of wall time, both builds included.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-23, D-033)
 
 ### P-026 The full-length §5 run of D-018: every frame of the four pairs, four scoring processes at a time
 
@@ -721,7 +873,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - D-018 names the streams. With a mirror, the report's inputs would be local files, and showing that a mirror scores as the URLs do takes a run on the URLs as well.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-23, D-033)
 
 ### P-027 The full-length run in eval/run_all.sh, and the pooling definitions over every frame
 
@@ -739,7 +891,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Result** (`eval/run_all/2026-10-23-full/rerun_check.md`, `run_all.md`): one run, `eval/run_all.sh <out_dir> --only pooling-full --jobs 4` from a clean worktree of `e0beb49`, which built HEAD's `mirage_vmaf` itself, found everything of both steps as committed: every verdict, Mirage's per-frame scores at full precision, every libvmaf metric of FFmpeg's logs and every pooling series. The program had the SHA-256 of `acceptance-full/build.txt`. 2707.1 s of wall time, the build included.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-23, D-033)
 
 ### P-028 The record of the unit test runs behind the Phase 1 PR description
 
@@ -753,7 +905,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - The main working tree is where the measurements' programs were built. Its subtitle fixture, which `.gitignore` leaves out, lets that test pass there; the build check at `6a6661f`, whose C++ sources and CMake files are those of `8aca01a`, shows the one failure of a clean checkout (`docs/BUILD.md`, step 4).
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-23, D-033)
 
 ### P-029 The reference format cases: references that aren't yuv420p, scored before and after D-016
 
@@ -773,7 +925,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Limits**: synthetic clips, 10 frames, and the §5 graph of FFmpeg 8.1.1 only; the formats and tags above only.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-23, D-033)
 
 ### P-030 A warning for a reference that isn't yuv420p, and a corrected --help
 
@@ -792,7 +944,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - The help text has to say what the program does.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-23, D-033); D-022 replaces the warning with FFmpeg's conversion of the reference once that is implemented
 
 ### P-031 Repeated runs of the intermittent Demuxer test, at the commit Phase 1 started from and at the branch's head
 
@@ -811,7 +963,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Limits**: one machine and one kind of load. A few failures in some hundred runs only roughly bound a failure rate.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-23, D-033)
 
 ### P-032 The records after the code changes of the review fixes: the unit tests, and a rerun of every measurement
 
@@ -828,4 +980,4 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Result** of the unit tests (`eval/test_runs/macos-2026-10-23-9855319.txt`): `mirage_tests '~[audio]'` passed at the first run, 90866 assertions in 244 test cases, and the four Python suites passed, 20, 85, 7 and 16 tests.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-23, D-033)
