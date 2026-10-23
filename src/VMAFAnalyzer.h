@@ -1,5 +1,7 @@
 #pragma once
 
+#include "VMAFPool.h"
+
 #include <string>
 #include <string_view>
 #include <optional>
@@ -125,9 +127,12 @@ struct VMAFResult {
     int          width     = 0;
     int          height    = 0;
     int64_t      bandwidth = 0;  // bits/sec from manifest; 0 for single-file mode
+    // pooled.mean, .min and .p5 once scored, for the player's VMAF panel and
+    // write_json; -1 until then.
     double       vmaf_mean = -1.0;
     double       vmaf_min  = -1.0;
     double       vmaf_p5   = -1.0;   // 5th-percentile score
+    VMAFPooled   pooled;             // every pooled value (DECISIONS.md D-027); NaN until scored
     std::vector<double> per_frame;   // per-frame scores; empty until done
     bool         done  = false;
     std::string  error;              // non-empty on failure

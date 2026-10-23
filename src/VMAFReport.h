@@ -25,7 +25,12 @@
 //   warnings [ text ]      what can make the scores differ from FFmpeg's
 //                          (VMAFResult::warnings); empty when nothing is known
 //   frame_limit (null = none), frames_scored,
-//   pooled { mean, min }                             libvmaf's vmaf_score_pooled
+//   pooled { mean, harmonic_mean, min, min_without_first_frame,
+//            p1, p5, p10, p25, p50 }   VMAFResult::pooled (src/VMAFPool.h): the
+//                                      mean, harmonic mean and min as libvmaf
+//                                      pools them, the min of frames 1 on
+//                                      (null for one frame), and percentiles
+//                                      by linear interpolation
 //   ref / dis { url, width, height, pix_fmt, color_space, color_range,
 //               color_primaries, color_trc, time_base, ended }
 //   frames [ { index, ref_pts, dis_pts, vmaf } ]      PTS in seconds

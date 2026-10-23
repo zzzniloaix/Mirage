@@ -523,17 +523,14 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
             if (int r = vmaf_score_at_index(vmaf, model, &result.per_frame[i], i); r < 0)
                 score_failed("vmaf_score_at_index", r);
 
-        if (int r = vmaf_score_pooled(vmaf, model, VMAF_POOL_METHOD_MEAN,
-                                      &result.vmaf_mean, 0, frame_idx - 1); r < 0)
-            score_failed("vmaf_score_pooled (mean)", r);
-        if (int r = vmaf_score_pooled(vmaf, model, VMAF_POOL_METHOD_MIN,
-                                      &result.vmaf_min, 0, frame_idx - 1); r < 0)
-            score_failed("vmaf_score_pooled (min)", r);
-
-        // 5th-percentile (manual — no pooling method in libvmaf for percentiles)
-        auto sorted = result.per_frame;
-        std::sort(sorted.begin(), sorted.end());
-        result.vmaf_p5 = sorted[sorted.size() * 5 / 100];
+        // Pooled from the per-frame scores, with libvmaf's formulas for the
+        // mean, the harmonic mean and the minimum, so that a pair scored in
+        // one libvmaf context gets vmaf_score_pooled()'s values and one
+        // scored in several still pools as one run (src/VMAFPool.h).
+        result.pooled    = vmafpool::pool(result.per_frame);
+        result.vmaf_mean = result.pooled.mean;
+        result.vmaf_min  = result.pooled.min;
+        result.vmaf_p5   = result.pooled.p5;
 
         logger::info("VMAFAnalyzer: {} frames  mean={:.2f}  min={:.2f}  p5={:.2f}  [{}]",
                      frame_idx, result.vmaf_mean, result.vmaf_min, result.vmaf_p5,

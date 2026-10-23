@@ -299,6 +299,38 @@ TEST_CASE("VMAFAnalyzer::analyze: without a limit both inputs are read to the en
     CHECK(part.ref_pts.empty());   // record_pts off
 }
 
+TEST_CASE("VMAFAnalyzer::analyze: the pooled values of D-027, from the per-frame scores", "[vmaf]")
+{
+    const std::string dis = colored_dis_clip("mirage_test_vmaf_colored_170m.mkv", AVCOL_SPC_SMPTE170M);
+    const VMAFResult r = VMAFAnalyzer::analyze(colored_ref_clip(), dis);
+    REQUIRE(r.error.empty());
+    REQUIRE(r.per_frame.size() == 6);
+
+    const VMAFPooled want = vmafpool::pool(r.per_frame);
+    CHECK(r.pooled.mean == want.mean);
+    CHECK(r.pooled.harmonic_mean == want.harmonic_mean);
+    CHECK(r.pooled.min == want.min);
+    CHECK(r.pooled.min_without_first_frame == want.min_without_first_frame);
+    CHECK(r.pooled.p1 == want.p1);
+    CHECK(r.pooled.p5 == want.p5);
+    CHECK(r.pooled.p10 == want.p10);
+    CHECK(r.pooled.p25 == want.p25);
+    CHECK(r.pooled.p50 == want.p50);
+    // The player's panel and write_json show three of them.
+    CHECK(r.vmaf_mean == r.pooled.mean);
+    CHECK(r.vmaf_min == r.pooled.min);
+    CHECK(r.vmaf_p5 == r.pooled.p5);
+
+    // p5 by linear interpolation: h = 5 * 5 / 100 = 0.25, a quarter of the way
+    // from the lowest score to the next, where the analyzer took
+    // sorted[6 * 5 / 100], the lowest, before D-027.
+    std::vector<double> sorted = r.per_frame;
+    std::sort(sorted.begin(), sorted.end());
+    REQUIRE(sorted[1] > sorted[0]);
+    CHECK(r.vmaf_p5 == sorted[0] + 0.25 * (sorted[1] - sorted[0]));
+    CHECK(r.vmaf_p5 > sorted[0]);
+}
+
 TEST_CASE("VMAFAnalyzer::analyze: the last pair of a limited run has no successor", "[vmaf]")
 {
     // libvmaf's motion2 feature at frame i is min(motion i, motion i+1), so

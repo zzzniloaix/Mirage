@@ -100,8 +100,13 @@ std::string to_json(const VMAFResult& r, const RunInfo& run)
     out += std::format("  \"frame_limit\": {},\n",
                        run.frame_limit > 0 ? std::to_string(run.frame_limit) : "null");
     out += std::format("  \"frames_scored\": {},\n", r.per_frame.size());
-    out += std::format("  \"pooled\": {{\"mean\": {}, \"min\": {}}},\n",
-                       number(r.vmaf_mean), number(r.vmaf_min));
+    const VMAFPooled& p = r.pooled;
+    out += std::format("  \"pooled\": {{\"mean\": {}, \"harmonic_mean\": {}, \"min\": {}, "
+                       "\"min_without_first_frame\": {}, \"p1\": {}, \"p5\": {}, \"p10\": {}, "
+                       "\"p25\": {}, \"p50\": {}}},\n",
+                       number(p.mean), number(p.harmonic_mean), number(p.min),
+                       number(p.min_without_first_frame), number(p.p1), number(p.p5),
+                       number(p.p10), number(p.p25), number(p.p50));
     out += std::format("  \"ref\": {},\n", input_json(r.ref_url, r.ref_info));
     out += std::format("  \"dis\": {},\n", input_json(r.dis_url, r.dis_info));
     out += "  \"frames\": [";

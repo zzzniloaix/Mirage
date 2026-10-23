@@ -239,8 +239,10 @@ VMAFResult sample_result()
     r.dis_url   = "dir with \"quotes\"\\and\ttab/caf\xc3\xa9.ts";
     r.width     = 1920;
     r.height    = 1080;
-    r.vmaf_mean = 12.345678901234567;
-    r.vmaf_min  = 0.1 + 0.2;   // 0.30000000000000004: needs all 17 digits
+    r.pooled    = { .mean = 12.345678901234567, .harmonic_mean = 9.87654321,
+                    .min = 0.1 + 0.2,   // 0.30000000000000004: needs all 17 digits
+                    .min_without_first_frame = 1.0 / 3.0,
+                    .p1 = 0.5, .p5 = 1.25, .p10 = 2.0, .p25 = 50.0, .p50 = 99.875 };
     r.per_frame = { 0.1 + 0.2, 100.0, 1.0 / 3.0 };
     r.done      = true;
     r.settings  = { .model = "vmaf_v0.6.1", .model_source = "built-in", .scaler = "bilinear",
@@ -318,7 +320,7 @@ TEST_CASE("vmafreport::incomplete: a complete run, and each reason it is not", "
 
 // ── to_json ───────────────────────────────────────────────────────────────────
 
-TEST_CASE("vmafreport::to_json: run settings and pooled scores", "[vmafreport]")
+TEST_CASE("vmafreport::to_json: run settings and pooled values", "[vmafreport]")
 {
     const std::string text = vmafreport::to_json(sample_result(), kRun);
     const auto doc = parse(text);
@@ -348,8 +350,18 @@ TEST_CASE("vmafreport::to_json: run settings and pooled scores", "[vmafreport]")
     CHECK(d["scored_as"]["bit_depth"].num == 8);
     CHECK(d["frame_limit"].num == 30);
     CHECK(d["frames_scored"].num == 3);
-    CHECK(d["pooled"]["mean"].num == 12.345678901234567);   // full precision
-    CHECK(d["pooled"]["min"].num == 0.1 + 0.2);
+    const Value& pooled = d["pooled"];
+    REQUIRE(pooled.kind == Value::Kind::Object);
+    CHECK(pooled.obj.size() == 9);
+    CHECK(pooled["mean"].num == 12.345678901234567);   // full precision
+    CHECK(pooled["harmonic_mean"].num == 9.87654321);
+    CHECK(pooled["min"].num == 0.1 + 0.2);
+    CHECK(pooled["min_without_first_frame"].num == 1.0 / 3.0);
+    CHECK(pooled["p1"].num == 0.5);
+    CHECK(pooled["p5"].num == 1.25);
+    CHECK(pooled["p10"].num == 2.0);
+    CHECK(pooled["p25"].num == 50.0);
+    CHECK(pooled["p50"].num == 99.875);
 }
 
 TEST_CASE("vmafreport::to_json: a model file and another scaler", "[vmafreport]")
@@ -503,13 +515,13 @@ TEST_CASE("vmafreport::to_json: random scores survive the round trip exactly", "
     CHECK(frames.arr[499]["ref_pts"].kind == Value::Kind::Null);   // no PTS recorded that far
 }
 
-TEST_CASE("vmafreport::to_json: no frame limit, no frames, NaN pooled scores", "[vmafreport]")
+TEST_CASE("vmafreport::to_json: no frame limit, no frames, NaN pooled values", "[vmafreport]")
 {
     VMAFResult r = sample_result();
     r.per_frame.clear();
     r.ref_pts.clear();
     r.dis_pts.clear();
-    r.vmaf_mean = std::numeric_limits<double>::quiet_NaN();
+    r.pooled = VMAFPooled{};   // all NaN
     vmafreport::RunInfo run = kRun;
     run.frame_limit = 0;
     run.libvmaf_package_version = "unknown";
@@ -522,7 +534,12 @@ TEST_CASE("vmafreport::to_json: no frame limit, no frames, NaN pooled scores", "
     CHECK((*doc)["frames_scored"].num == 0);
     CHECK((*doc)["frames"].kind == Value::Kind::Array);
     CHECK((*doc)["frames"].arr.empty());
-    CHECK((*doc)["pooled"]["mean"].kind == Value::Kind::Null);
+    for (const char* key : { "mean", "harmonic_mean", "min", "min_without_first_frame", "p1", "p5",
+                             "p10", "p25", "p50" }) {
+        INFO(key);
+        CHECK((*doc)["pooled"].has(key));
+        CHECK((*doc)["pooled"][key].kind == Value::Kind::Null);
+    }
     CHECK((*doc)["libvmaf_package_version"].str == "unknown");
 }
 
