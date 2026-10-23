@@ -117,6 +117,8 @@ class ParsePairs(unittest.TestCase):
         for p in pairs:
             self.assertEqual(p.ref, base + "gear5/prog_index.m3u8")
             self.assertEqual(p.dis, base + p.label[:5] + "/prog_index.m3u8")
+        with open(os.path.join(os.path.dirname(HERE), "pairs", "bipbop16x9_gear2.txt")) as f:
+            self.assertEqual(vd.parse_pairs(f.read()), [pairs[2]])
 
 
 class Commands(unittest.TestCase):
