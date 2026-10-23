@@ -81,3 +81,46 @@ python3 -I -B -m unittest discover -s eval/consistency/tests -v
 ```
 
 `tests/test_vmafdelta.py` covers the delta math, the commands, the parsing of FFmpeg's log and the reports. `tests/test_run_delta.py` runs the whole tool with stand-ins for `mirage_vmaf`, `ffmpeg` and `ffprobe` (`tests/fake_tools.py`), without network.
+
+## Committed runs
+
+### `diag-before-300/`: the diagnosis before D-016, first 300 frames (P-012)
+
+Two runs over the first 300 frame pairs of the four pairs of D-018, with the `mirage_vmaf` that doesn't convert color yet, at commit `ff98a1320b7f258a0856c3c8ba341b63c750d85a`:
+
+```
+eval/consistency/run_delta.sh build/macos-release/mirage_vmaf <out>/plain --frames 300
+eval/consistency/run_delta.sh build/macos-release/mirage_vmaf <out>/relabel --frames 300 --diagnostic-relabel
+```
+
+| File | Contents |
+|---|---|
+| `build.txt` | the `mirage_vmaf` of both runs, checked right before them: HEAD, a clean working tree, no change under `src`, `tools`, `tests` or the CMake files since stage 1 built it at `83c8ed6`, `ninja: no work to do`, and its SHA-256, which both runs' `environment.txt` repeat |
+| `plain/` | the run with plain FFmpeg, the §5 comparison |
+| `relabel/` | the run with `--diagnostic-relabel` |
+| `checks.txt` | checks made on both runs afterwards, each command with its output: against Phase 0's outputs, at FFmpeg's 6 decimals, the frames of gear1 that pass, and the checksums |
+| `SHA256SUMS` | SHA-256 of `build.txt`, `checks.txt` and the two runs' own `SHA256SUMS` |
+
+Results, from `plain/delta.md` and `relabel/delta.md` (|delta| = |Mirage − FFmpeg| per frame, 6 decimals):
+
+| pair | plain | max \|delta\| | mean \|delta\| | frames over 0.01 | FFmpeg's scale, distorted color space | relabel | max \|delta\| | frames over 0.01 |
+|---|---|---|---|---|---|---|---|---|
+| gear4_vs_gear5 | PASS | 0.000000 | 0.000000 | 0 | bt709 -> bt709 | PASS | 0.000000 | 0 |
+| gear3_vs_gear5 | PASS | 0.000000 | 0.000000 | 0 | bt709 -> bt709 | PASS | 0.000000 | 0 |
+| gear2_vs_gear5 | FAIL | 5.674685 | 5.279836 | 300 | smpte170m -> bt709 | PASS | 0.000000 | 0 |
+| gear1_vs_gear5 | FAIL | 3.883766 | 1.878387 | 290 | smpte170m -> bt709 | PASS | 0.000000 | 0 |
+
+What they show:
+
+- **Plain FFmpeg.** The two pairs whose distorted rung has the reference's color tags (gear4 and gear3, bt709 like gear5) pass: written with the 6 decimals of FFmpeg's log, Mirage's score of every frame is FFmpeg's (`checks.txt`, check 3), and FFmpeg's scale filter converts nothing but the size. The two pairs whose distorted rung is tagged smpte170m fail, gear2 on all 300 frames and gear1 on 290. In both, the mean delta equals the mean |delta| (`plain/gear2_vs_gear5/delta.json`, `plain/gear1_vs_gear5/delta.json`), so Mirage's score is never below FFmpeg's. The 10 gear1 frames within the threshold, index 0, 30, ..., 270, score 0 on both sides (check 4). The pooled means of gear2 are 33.832772 (Mirage) and 28.552935 (FFmpeg), those of gear1 1.884503 and 0.006117 (`plain/delta.md`).
+- **What FFmpeg converts.** For gear2 and gear1, FFmpeg's verbose log (`plain/gear2_vs_gear5/ffmpeg_colorspace_lines.txt`, and the same file for gear1) shows the filter graph's distorted input as `csp:smpte170m`, the scale filter converting it `csp:smpte170m range:tv -> ... csp:bt709 range:tv`, and swscale's note `YUV color matrix differs for YUV->YUV, using intermediate RGB to convert`. The output stream is tagged `yuv420p(tv, bt709/smpte170m/bt709, progressive)`: the color matrix tag is now the reference's, while the primaries (smpte170m) and transfer (bt709) tags are still the distorted input's. For gear4 and gear3 the scale line has `csp:bt709` on both sides, and swscale has no note.
+- **The relabel run.** With `setparams=colorspace=bt709` before FFmpeg's scale for gear2 and gear1 (of the two tags the relabel looks at, only `color_space` differs from gear5's; `color_range` is `tv` for every rung, `ffprobe_*.json`), all four pairs pass, and every frame of every pair agrees to FFmpeg's 6 decimals (check 3). The scale lines of gear2 and gear1 then read `csp:bt709 -> csp:bt709`, without swscale's note (`relabel/*/ffmpeg_colorspace_lines.txt`). FFmpeg's pooled means of gear2 and gear1 become Mirage's, 33.832772 and 1.884503 (`relabel/delta.md`). For gear4 and gear3 nothing is relabeled, and the results are the plain run's.
+- **Against Phase 0.** FFmpeg's side of the plain run has every libvmaf metric of all 300 frames of gear2 and gear1 equal to Phase 0's FFmpeg diagnostic (check 1), although Phase 0 stopped FFmpeg with `-frames:v 300` and these runs use `trim` (P-008). `mirage_vmaf`'s scores equal those of Phase 0's run of the player's analyzer at the 4 decimals that run wrote, on all 300 frames of each rung (check 2). The plain run's gear2 and gear1 figures agree with `eval/baseline/diagnostics/compare_first300.txt` (max |delta| 5.6747 and 3.8838, mean |delta| 5.2798 and 1.8784, 300 and 290 frames over 0.01) at those 4 decimals.
+
+So in these 300 frames, the whole difference between Mirage and FFmpeg on gear2 and gear1 comes with FFmpeg's conversion of the distorted frames from the smpte170m matrix to the reference's bt709 matrix, which Mirage doesn't make: without it, the two agree to the precision of FFmpeg's log. D-016 has Mirage convert as FFmpeg does. The §5 report itself, over every frame of the four rungs (D-018), comes after D-016 is implemented: MEASUREMENT PENDING.
+
+Limits:
+
+- Only the first 300 frames (P-012), and only the bilinear scaler on both sides; D-003's comparison of bilinear and bicubic needs a `mirage_vmaf` that takes a scaler.
+- The inputs are Apple's streams as fetched during the runs; they aren't kept here.
+- These scores only compare the two tools, like Phase 0's (D-005). bipbop's rungs were rendered separately (D-011), so the scores say nothing about the rungs' quality.

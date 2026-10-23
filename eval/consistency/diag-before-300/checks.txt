@@ -1,0 +1,67 @@
+# Checks on the runs in this directory, made after them from <repo>: each command, then its output.
+
+# 1. FFmpeg's side of the plain run against Phase 0's FFmpeg diagnostic (P-005), same rungs and frames: frames, and frames with every libvmaf metric equal.
+$ python3 -I -c 'import json, sys
+a, b = (json.load(open(p))["frames"] for p in sys.argv[1:])
+print(len(a), "and", len(b), "frames;", sum(x["metrics"] == y["metrics"] for x, y in zip(a, b)), "with every metric equal")' eval/consistency/diag-before-300/plain/gear2_vs_gear5/ffmpeg.json eval/baseline/diagnostics/ffmpeg_libvmaf_gear2_vs_gear5_first300.json
+300 and 300 frames; 300 with every metric equal
+
+$ python3 -I -c 'import json, sys
+a, b = (json.load(open(p))["frames"] for p in sys.argv[1:])
+print(len(a), "and", len(b), "frames;", sum(x["metrics"] == y["metrics"] for x, y in zip(a, b)), "with every metric equal")' eval/consistency/diag-before-300/plain/gear1_vs_gear5/ffmpeg.json eval/baseline/diagnostics/ffmpeg_libvmaf_gear1_vs_gear5_first300.json
+300 and 300 frames; 300 with every metric equal
+
+# 2. mirage_vmaf's scores in the plain run against the first 300 per-frame scores of Phase 0's run of the player's analyzer, which wrote 4 decimals.
+$ python3 -I -c 'import json, sys
+old = {r["dis"]: r["per_frame"] for r in json.load(open(sys.argv[1]))["results"] if "per_frame" in r}
+for path in sys.argv[2:]:
+    m = json.load(open(path))["frames"]
+    p = old[json.load(open(path))["dis"]["url"]]
+    same = [f["index"] for f, v in zip(m, p) if format(f["vmaf"], ".4f") == format(v, ".4f")]
+    print(path, len(m), "frames;", len(same), "equal to Phase 0 at 4 decimals; the others:", sorted(set(range(len(m))) - set(same)))' eval/baseline/bipbop16x9/report.vmaf.json eval/consistency/diag-before-300/plain/*/mirage.json
+eval/consistency/diag-before-300/plain/gear1_vs_gear5/mirage.json 300 frames; 300 equal to Phase 0 at 4 decimals; the others: []
+eval/consistency/diag-before-300/plain/gear2_vs_gear5/mirage.json 300 frames; 300 equal to Phase 0 at 4 decimals; the others: []
+eval/consistency/diag-before-300/plain/gear3_vs_gear5/mirage.json 300 frames; 300 equal to Phase 0 at 4 decimals; the others: []
+eval/consistency/diag-before-300/plain/gear4_vs_gear5/mirage.json 300 frames; 300 equal to Phase 0 at 4 decimals; the others: []
+
+# 3. Every pair of both runs: frame pairs on each side, and frames whose Mirage score, written with the 6 decimals of FFmpeg's log, is FFmpeg's.
+$ python3 -I -c 'import json, sys
+for d in sys.argv[1:]:
+    m = json.load(open(d + "/mirage.json"))["frames"]
+    f = json.load(open(d + "/ffmpeg.json"))["frames"]
+    same = sum(format(a["vmaf"], ".6f") == format(b["metrics"]["vmaf"], ".6f") for a, b in zip(m, f))
+    print(d, len(m), len(f), same)' eval/consistency/diag-before-300/plain/*_vs_gear5 eval/consistency/diag-before-300/relabel/*_vs_gear5
+eval/consistency/diag-before-300/plain/gear1_vs_gear5 300 300 10
+eval/consistency/diag-before-300/plain/gear2_vs_gear5 300 300 0
+eval/consistency/diag-before-300/plain/gear3_vs_gear5 300 300 300
+eval/consistency/diag-before-300/plain/gear4_vs_gear5 300 300 300
+eval/consistency/diag-before-300/relabel/gear1_vs_gear5 300 300 300
+eval/consistency/diag-before-300/relabel/gear2_vs_gear5 300 300 300
+eval/consistency/diag-before-300/relabel/gear3_vs_gear5 300 300 300
+eval/consistency/diag-before-300/relabel/gear4_vs_gear5 300 300 300
+
+# 4. The gear1 frames of the plain run within the threshold: index, Mirage, FFmpeg.
+$ python3 -I -c 'import json, sys
+m = json.load(open(sys.argv[1] + "/mirage.json"))["frames"]
+f = json.load(open(sys.argv[1] + "/ffmpeg.json"))["frames"]
+for a, b in zip(m, f):
+    if abs(a["vmaf"] - b["metrics"]["vmaf"]) <= 0.01:
+        print(a["index"], a["vmaf"], b["metrics"]["vmaf"])' eval/consistency/diag-before-300/plain/gear1_vs_gear5
+0 0 0.0
+30 0 0.0
+60 0 0.0
+90 0 0.0
+120 0 0.0
+150 0 0.0
+180 0 0.0
+210 0 0.0
+240 0 0.0
+270 0 0.0
+
+# 5. The checksums of both runs.
+$ (cd eval/consistency/diag-before-300/plain && shasum -a 256 -c SHA256SUMS | grep -c ': OK$'; shasum -a 256 -c SHA256SUMS | grep -v ': OK$')
+49
+
+$ (cd eval/consistency/diag-before-300/relabel && shasum -a 256 -c SHA256SUMS | grep -c ': OK$'; shasum -a 256 -c SHA256SUMS | grep -v ': OK$')
+49
+

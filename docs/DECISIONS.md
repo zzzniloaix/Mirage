@@ -433,3 +433,21 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
 - **Status**: pending owner confirmation
+
+### P-012 The diagnosis before D-016: first 300 frames, plain and relabeled
+
+- **Choice**
+  - Before Mirage converts color (D-016), run `eval/consistency/run_delta.sh --frames 300` twice on the four pairs of D-018: plain, and with `--diagnostic-relabel` (P-010). The outputs are in `eval/consistency/diag-before-300/plain/` and `relabel/`, with `build.txt` and `checks.txt` beside them.
+  - The `mirage_vmaf` is the release build in the main working tree, at commit `ff98a13`, after `cmake --build --preset macos-release --target mirage_vmaf` reported no work to do. Its sources haven't changed since `83c8ed6`, where stage 1 built it (`build.txt`).
+  - One scoring process at a time, with the inputs fetched from Apple's CDN in each run rather than from a local copy.
+- **Alternatives**
+  - Every frame now, which is D-018's input for the committed report. Phase 0's full-length run of the existing scorer over the ladder took 3172.96 s of wall time (`eval/baseline/bipbop16x9/time_l.txt`), with FFmpeg's side on top of that.
+  - Fewer frames, such as 30.
+  - A build in a clean worktree, as P-001 did.
+- **Rationale**
+  - 300 frames are the range of Phase 0's diagnostic comparison (P-005), so both sides could be checked against Phase 0's outputs (`checks.txt`). At 30000/1001 fps they run into the second segment (P-005).
+  - Short enough to rerun while D-016 is implemented. The committed §5 report remains the full-length one of D-018, after D-016.
+  - The main working tree was clean and at HEAD, and ninja's no-op shows the binary is up to date with it, so the outputs rest on a committed, clean tree, as P-001's did, without fetching every dependency again for a worktree.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
