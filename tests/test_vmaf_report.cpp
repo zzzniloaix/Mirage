@@ -242,8 +242,8 @@ VMAFResult sample_result()
     r.vmaf_min  = 0.1 + 0.2;   // 0.30000000000000004: needs all 17 digits
     r.per_frame = { 0.1 + 0.2, 100.0, 1.0 / 3.0 };
     r.done      = true;
-    r.settings  = { .model = "vmaf_v0.6.1", .scaler = "bilinear", .pix_fmt = "yuv420p",
-                    .bit_depth = 8, .n_threads = 4, .n_subsample = 1 };
+    r.settings  = { .model = "vmaf_v0.6.1", .model_source = "built-in", .scaler = "bilinear",
+                    .pix_fmt = "yuv420p", .bit_depth = 8, .n_threads = 4, .n_subsample = 1 };
     r.ref_info  = input(1920, 1080, "bt709");
     r.dis_info  = input(960, 540, "smpte170m");
     r.dis_info.ended = true;
@@ -323,6 +323,8 @@ TEST_CASE("vmafreport::to_json: run settings and pooled scores", "[vmafreport]")
     CHECK(d["libvmaf_version"].str == "3.0.0");
     CHECK(d["libvmaf_package_version"].str == "3.1.0");
     CHECK(d["model"].str == "vmaf_v0.6.1");
+    CHECK(d["model_source"].str == "built-in");
+    CHECK(d["model_sha256"].kind == Value::Kind::Null);   // a built-in model has no file
     CHECK(d["scaler"].str == "bilinear");
     CHECK(d["n_threads"].num == 4);
     CHECK(d["n_subsample"].num == 1);
@@ -334,6 +336,21 @@ TEST_CASE("vmafreport::to_json: run settings and pooled scores", "[vmafreport]")
     CHECK(d["frames_scored"].num == 3);
     CHECK(d["pooled"]["mean"].num == 12.345678901234567);   // full precision
     CHECK(d["pooled"]["min"].num == 0.1 + 0.2);
+}
+
+TEST_CASE("vmafreport::to_json: a model file and another scaler", "[vmafreport]")
+{
+    VMAFResult r = sample_result();
+    r.settings.model        = "models/my \"model\".json";
+    r.settings.model_source = "file";
+    r.settings.model_sha256 = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
+    r.settings.scaler       = "lanczos";
+    const auto doc = parse(vmafreport::to_json(r, kRun));
+    REQUIRE(doc);
+    CHECK((*doc)["model"].str == "models/my \"model\".json");
+    CHECK((*doc)["model_source"].str == "file");
+    CHECK((*doc)["model_sha256"].str == r.settings.model_sha256);
+    CHECK((*doc)["scaler"].str == "lanczos");
 }
 
 TEST_CASE("vmafreport::to_json: inputs, escaped strings included", "[vmafreport]")

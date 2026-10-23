@@ -71,6 +71,9 @@ std::string to_json(const VMAFResult& r, const RunInfo& run)
     out += std::format("  \"libvmaf_version\": {},\n", quote(run.libvmaf_version));
     out += std::format("  \"libvmaf_package_version\": {},\n", quote(run.libvmaf_package_version));
     out += std::format("  \"model\": {},\n", quote(s.model));
+    out += std::format("  \"model_source\": {},\n", quote(s.model_source));
+    out += std::format("  \"model_sha256\": {},\n",
+                       s.model_sha256.empty() ? "null" : quote(s.model_sha256));
     out += std::format("  \"scaler\": {},\n", quote(s.scaler));
     out += std::format("  \"n_threads\": {},\n", s.n_threads);
     out += std::format("  \"n_subsample\": {},\n", s.n_subsample);

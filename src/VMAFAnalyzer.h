@@ -36,10 +36,21 @@ constexpr std::optional<VMAFScaler> vmaf_scaler_named(std::string_view name)
     return std::nullopt;
 }
 
+// The libvmaf model the pairs are scored with (work order section 1.1): one
+// of the linked libvmaf's built-in models, by version, or a model file.
+// vmaf_v0.6.1 is what the analyzer uses unless told otherwise; the default
+// is the owner's to decide (DECISIONS.md D-004).
+struct VMAFModelChoice {
+    std::string version = "vmaf_v0.6.1";   // built-in model; used when `path` is empty
+    std::string path;                      // a libvmaf model file (JSON) instead
+};
+
 // The scoring settings an analysis used. Every result records them so that
 // a report can state what produced its scores.
 struct VMAFSettings {
-    std::string model;            // libvmaf built-in model version
+    std::string model;            // the built-in model's version, or the model file's path as given
+    std::string model_source;     // "built-in" or "file"
+    std::string model_sha256;     // SHA-256 of the model file, lowercase hex; empty for a built-in model
     std::string scaler;           // swscale algorithm that scales the distorted frames to the reference size
     std::string pix_fmt;          // format both inputs are converted to before scoring
     int         bit_depth   = 0;  // bits per sample handed to libvmaf
@@ -83,9 +94,10 @@ struct VMAFColorConversion {
 // Settings, limits and extra recording for one pair. Default-constructed it
 // is what start() and start_manifest() use.
 struct VMAFOptions {
-    unsigned   max_frames = 0;       // stop after this many frame pairs; 0 = until an input ends
-    bool       record_pts = false;   // fill VMAFResult::ref_pts / dis_pts
-    VMAFScaler scaler     = VMAFScaler::Bilinear;   // scales the distorted frames
+    unsigned        max_frames = 0;       // stop after this many frame pairs; 0 = until an input ends
+    bool            record_pts = false;   // fill VMAFResult::ref_pts / dis_pts
+    VMAFScaler      scaler     = VMAFScaler::Bilinear;   // scales the distorted frames
+    VMAFModelChoice model;
 };
 
 // Per-variant (or single-file) VMAF result.

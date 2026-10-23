@@ -1,4 +1,5 @@
 #include "VMAFAnalyzer.h"
+#include "FileHash.h"
 #include "ManifestParser.h"
 #include "Logger.h"
 #include "VMAFColor.h"
@@ -28,7 +29,6 @@ extern "C" {
 namespace {
 
 // Scoring settings applied to every pair (recorded in VMAFResult::settings).
-constexpr const char*   kModelVersion  = "vmaf_v0.6.1";
 // The reference keeps its size; only its pixel format is converted, with
 // these flags, whatever scaler the distorted frames get.
 constexpr int           kRefScaleFlags = SWS_BILINEAR;
@@ -238,13 +238,15 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
     result.height = ref_h;
     result.ref_info = ref_ctx.info();
     result.dis_info = dis_ctx.info();
+    const bool model_file = !opts.model.path.empty();
     result.settings = {
-        .model       = kModelVersion,
-        .scaler      = std::string(vmaf_scaler_name(opts.scaler)),
-        .pix_fmt     = name_or_unknown(av_get_pix_fmt_name(kScorePixFmt)),
-        .bit_depth   = static_cast<int>(kScoreBpc),
-        .n_threads   = static_cast<int>(kThreads),
-        .n_subsample = static_cast<int>(kSubsample),
+        .model        = model_file ? opts.model.path : opts.model.version,
+        .model_source = model_file ? "file" : "built-in",
+        .scaler       = std::string(vmaf_scaler_name(opts.scaler)),
+        .pix_fmt      = name_or_unknown(av_get_pix_fmt_name(kScorePixFmt)),
+        .bit_depth    = static_cast<int>(kScoreBpc),
+        .n_threads    = static_cast<int>(kThreads),
+        .n_subsample  = static_cast<int>(kSubsample),
     };
 
     // The reference is only brought to YUV420P, at its own size.
@@ -300,10 +302,25 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
         return fail("vmaf_init failed");
     }
 
+    // A model file is identified in the report by its SHA-256, read right
+    // before libvmaf reads the file.
     VmafModelConfig model_cfg { .name = "vmaf", .flags = VMAF_MODEL_FLAGS_DEFAULT };
-    if (vmaf_model_load(&model, &model_cfg, kModelVersion) < 0) {
+    if (model_file) {
+        std::string err;
+        result.settings.model_sha256 = filehash::sha256_file(opts.model.path, err);
+        if (result.settings.model_sha256.empty()) {
+            cleanup();
+            return fail(std::format("cannot read the model file {}: {}", opts.model.path, err));
+        }
+        if (vmaf_model_load_from_path(&model, &model_cfg, opts.model.path.c_str()) < 0) {
+            cleanup();
+            return fail(std::format("vmaf_model_load_from_path failed: libvmaf cannot load "
+                                    "the model file {}", opts.model.path));
+        }
+    } else if (vmaf_model_load(&model, &model_cfg, opts.model.version.c_str()) < 0) {
         cleanup();
-        return fail(std::format("vmaf_model_load failed — is {}.json installed?", kModelVersion));
+        return fail(std::format("vmaf_model_load failed: this libvmaf has no built-in model {}",
+                                opts.model.version));
     }
 
     if (vmaf_use_features_from_model(vmaf, model) < 0) {

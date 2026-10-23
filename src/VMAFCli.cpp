@@ -6,6 +6,7 @@
 #include <limits>
 #include <optional>
 #include <system_error>
+#include <utility>
 
 namespace vmafcli {
 
@@ -51,7 +52,17 @@ const std::array kOptions = {
     Option{ "--frames", "N", "score only the first N frame pairs (N >= 1)", false, set_frames },
     Option{ "--scaler", "NAME", "scales the distorted frames: bilinear (default), bicubic or lanczos",
             false, set_scaler },
+    Option{ "--model", "NAME", "libvmaf built-in model: vmaf_v0.6.1 (default), vmaf_v0.6.1neg, "
+            "vmaf_4k_v0.6.1, ...", false,
+            [](Args& a, std::string_view v) { a.model.version = v; return std::string(); } },
+    Option{ "--model-file", "<model.json>", "libvmaf model file, instead of a built-in model", false,
+            [](Args& a, std::string_view v) { a.model.path = v; return std::string(); } },
 };
+
+// Options that can't be given together.
+const std::array<std::pair<std::string_view, std::string_view>, 1> kExclusive = {{
+    { "--model", "--model-file" },
+}};
 
 bool is_help(std::string_view a) { return a == "-h" || a == "--help"; }
 
@@ -60,6 +71,11 @@ const Option* find_option(std::string_view name)
     for (const Option& o : kOptions)
         if (o.name == name) return &o;
     return nullptr;
+}
+
+std::size_t index_of(std::string_view name)
+{
+    return static_cast<std::size_t>(find_option(name) - kOptions.data());
 }
 
 } // namespace
@@ -92,6 +108,9 @@ std::string parse(const std::vector<std::string_view>& argv, Args& out)
     for (std::size_t k = 0; k < kOptions.size(); ++k)
         if (kOptions[k].required && !seen[k])
             return std::format("missing {} {}", kOptions[k].name, kOptions[k].value);
+    for (const auto& [a, b] : kExclusive)
+        if (seen[index_of(a)] && seen[index_of(b)])
+            return std::format("{} and {} can't be given together", a, b);
 
     out = std::move(args);
     return {};
@@ -104,9 +123,9 @@ std::string usage()
     for (const Option& o : kOptions) {
         const std::string spec = std::format("{} {}", o.name, o.value);
         synopsis += o.required ? std::format(" {}", spec) : std::format(" [{}]", spec);
-        options  += std::format("  {:<22}{}\n", spec, o.help);
+        options  += std::format("  {:<27}{}\n", spec, o.help);
     }
-    options += std::format("  {:<22}{}\n", "-h, --help", "print this help and exit");
+    options += std::format("  {:<27}{}\n", "-h, --help", "print this help and exit");
 
     return std::format(
         "Usage: {}\n"
@@ -126,9 +145,11 @@ std::string usage()
         "filter scales with flags=NAME. Its color matrix and range are converted as\n"
         "FFmpeg 8.1.1's libvmaf filter graph converts them: to the reference's, with\n"
         "FFmpeg's rules for missing tags. The reference frame keeps its size and\n"
-        "color. Pairs are scored with libvmaf's built-in vmaf_v0.6.1 model on 4\n"
-        "threads. An input whose color matrix swscale can't convert is not scored,\n"
-        "as FFmpeg doesn't score it.\n"
+        "color. Pairs are scored on 4 libvmaf threads with the model --model or\n"
+        "--model-file names: libvmaf's built-in vmaf_v0.6.1 unless given, as\n"
+        "FFmpeg's libvmaf filter scores with model=version=NAME or model=path=FILE.\n"
+        "An input whose color matrix swscale can't convert is not scored, as FFmpeg\n"
+        "doesn't score it.\n"
         "\n"
         "With --frames N the last pair can score differently from the same pair in a\n"
         "longer run, because libvmaf's motion2 feature for a frame also uses the next\n"
@@ -136,7 +157,8 @@ std::string usage()
         "\n"
         "The report records the libvmaf version the library reports at run time and\n"
         "the libvmaf package version found when the build was configured, these\n"
-        "settings, both inputs' stream parameters, how the distorted frames' color\n"
+        "settings (a model file by its path as given and the SHA-256 of its\n"
+        "contents), both inputs' stream parameters, how the distorted frames' color\n"
         "tags were converted (dis_conversion), libvmaf's pooled mean and min, and\n"
         "for every frame pair its index, the reference and distorted PTS in seconds\n"
         "and the score, all at full precision.\n"

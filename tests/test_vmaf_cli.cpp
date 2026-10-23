@@ -74,6 +74,33 @@ TEST_CASE("vmafcli::parse: --scaler", "[vmafcli]")
                    "--scaler needs a non-empty value"));
 }
 
+TEST_CASE("vmafcli::parse: --model and --model-file", "[vmafcli]")
+{
+    vmafcli::Args a;
+    REQUIRE(run({ "--ref", "a", "--dis", "b", "--out", "c" }, a).empty());
+    CHECK(a.model.version == "vmaf_v0.6.1");   // the analyzer's model unless told otherwise
+    CHECK(a.model.path.empty());
+
+    vmafcli::Args b;
+    REQUIRE(run({ "--ref", "a", "--dis", "b", "--out", "c", "--model", "vmaf_v0.6.1neg" }, b).empty());
+    CHECK(b.model.version == "vmaf_v0.6.1neg");
+    CHECK(b.model.path.empty());
+
+    vmafcli::Args c;
+    REQUIRE(run({ "--model-file", "models/custom v2.json", "--ref", "a", "--dis", "b", "--out", "c" },
+                c).empty());
+    CHECK(c.model.path == "models/custom v2.json");
+
+    vmafcli::Args d;
+    CHECK(contains(run({ "--ref", "a", "--dis", "b", "--out", "c", "--model", "vmaf_v0.6.1",
+                         "--model-file", "m.json" }, d),
+                   "--model and --model-file can't be given together"));
+    CHECK(contains(run({ "--ref", "a", "--dis", "b", "--out", "c", "--model-file", "" }, d),
+                   "--model-file needs a non-empty value"));
+    CHECK(contains(run({ "--ref", "a", "--dis", "b", "--out", "c", "--model" }, d),
+                   "--model needs a value"));
+}
+
 TEST_CASE("vmafcli::parse: -h / --help wins over everything else", "[vmafcli]")
 {
     vmafcli::Args a;
@@ -114,8 +141,9 @@ TEST_CASE("vmafcli::usage: lists every option", "[vmafcli]")
 {
     const std::string u = vmafcli::usage();
     CHECK(u.starts_with("Usage: mirage_vmaf --ref <url|path> --dis <url|path> --out <report.json> "
-                        "[--frames N] [--scaler NAME]\n"));
-    for (std::string_view opt : { "--ref", "--dis", "--out", "--frames", "--scaler", "-h, --help" }) {
+                        "[--frames N] [--scaler NAME] [--model NAME] [--model-file <model.json>]\n"));
+    for (std::string_view opt : { "--ref", "--dis", "--out", "--frames", "--scaler", "--model",
+                                  "--model-file", "-h, --help" }) {
         INFO(opt);
         CHECK(contains(u, opt));
     }

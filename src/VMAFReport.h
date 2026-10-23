@@ -5,7 +5,10 @@
 //
 // Layout (numbers at full precision; null for NaN or a missing value):
 //   tool, libvmaf_version, libvmaf_package_version,
-//   model, scaler, n_threads, n_subsample,
+//   model                  built-in model version, or model file path as given
+//   model_source           "built-in" | "file"
+//   model_sha256           SHA-256 of the model file; null for a built-in model
+//   scaler, n_threads, n_subsample,
 //   scored_as { width, height, pix_fmt, bit_depth }   what libvmaf was given
 //   dis_conversion [ { from { color_space, color_range },
 //                      to { color_space, color_range },

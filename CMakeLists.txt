@@ -38,6 +38,11 @@ foreach(_vmaf_lib IN LISTS VMAF_LINK_LIBRARIES)
 endforeach()
 message(STATUS "libvmaf package version: ${MIRAGE_LIBVMAF_PACKAGE_VERSION}")
 
+# Where the libvmaf package keeps its model files; mirage_tests loads one
+# through mirage_vmaf's --model-file path, and skips that test without it.
+pkg_get_variable(MIRAGE_LIBVMAF_PREFIX libvmaf prefix)
+set(MIRAGE_LIBVMAF_MODEL_DIR "${MIRAGE_LIBVMAF_PREFIX}/share/libvmaf/model")
+
 # GLAD2 — generates a minimal OpenGL 4.1 Core loader at configure time
 include(FetchContent)
 FetchContent_Declare(glad
@@ -135,6 +140,7 @@ add_executable(mirage
     src/PlayerUI.cpp
     src/VMAFAnalyzer.cpp
     src/VMAFColor.cpp
+    src/FileHash.cpp
     src/ScrubDecoder.cpp
     src/SubtitleDecoder.cpp
     src/SubtitleSelect.cpp
@@ -187,6 +193,7 @@ add_executable(mirage_vmaf
     tools/mirage_vmaf.cpp
     src/VMAFAnalyzer.cpp
     src/VMAFColor.cpp
+    src/FileHash.cpp
     src/VMAFCli.cpp
     src/VMAFReport.cpp
     src/JsonText.cpp
@@ -234,6 +241,7 @@ add_executable(mirage_tests
     tests/test_vmaf_report.cpp
     tests/test_vmaf_analyzer.cpp
     tests/test_vmaf_color.cpp
+    tests/test_file_hash.cpp
     src/Demuxer.cpp
     src/NetworkLogger.cpp
     src/NetDescribe.cpp
@@ -262,6 +270,7 @@ add_executable(mirage_tests
     src/VMAFReport.cpp
     src/VMAFAnalyzer.cpp
     src/VMAFColor.cpp
+    src/FileHash.cpp
 )
 
 target_include_directories(mirage_tests PRIVATE
@@ -275,6 +284,10 @@ target_link_libraries(mirage_tests PRIVATE
     PkgConfig::FFMPEG
     PkgConfig::VMAF
     pugixml
+)
+
+target_compile_definitions(mirage_tests PRIVATE
+    MIRAGE_LIBVMAF_MODEL_DIR="${MIRAGE_LIBVMAF_MODEL_DIR}"
 )
 
 # Small standalone: pixel-diff two PNGs via stb_image, used by

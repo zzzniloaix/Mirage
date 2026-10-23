@@ -6,6 +6,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include "FileHash.h"
 #include "ManifestParser.h"
 #include "VMAFAnalyzer.h"
 
@@ -382,6 +383,87 @@ TEST_CASE("VMAFAnalyzer::analyze: the scaler of the distorted frames, recorded i
     CHECK(bilinear.per_frame == def.per_frame);   // the default is bilinear
     CHECK(bicubic.per_frame != bilinear.per_frame);
     CHECK(lanczos.per_frame != bicubic.per_frame);
+}
+
+TEST_CASE("VMAFAnalyzer::analyze: built-in models, recorded in the settings", "[vmaf]")
+{
+    const std::string dis = colored_dis_clip("mirage_test_vmaf_colored_709.mkv", AVCOL_SPC_BT709);
+    const VMAFResult def = VMAFAnalyzer::analyze(colored_ref_clip(), dis);
+    const VMAFResult v061 =
+        VMAFAnalyzer::analyze(colored_ref_clip(), dis, { .model = { .version = "vmaf_v0.6.1" } });
+    const VMAFResult neg =
+        VMAFAnalyzer::analyze(colored_ref_clip(), dis, { .model = { .version = "vmaf_v0.6.1neg" } });
+    const VMAFResult k4 =
+        VMAFAnalyzer::analyze(colored_ref_clip(), dis, { .model = { .version = "vmaf_4k_v0.6.1" } });
+    for (const VMAFResult* r : { &def, &v061, &neg, &k4 }) {
+        REQUIRE(r->error.empty());
+        REQUIRE(r->per_frame.size() == 6);
+        CHECK(r->settings.model_source == "built-in");
+        CHECK(r->settings.model_sha256.empty());
+    }
+    CHECK(def.settings.model == "vmaf_v0.6.1");
+    CHECK(v061.settings.model == "vmaf_v0.6.1");
+    CHECK(neg.settings.model == "vmaf_v0.6.1neg");
+    CHECK(k4.settings.model == "vmaf_4k_v0.6.1");
+    CHECK(v061.per_frame == def.per_frame);   // the default is vmaf_v0.6.1
+    CHECK(neg.per_frame != def.per_frame);
+    CHECK(k4.per_frame != def.per_frame);
+}
+
+TEST_CASE("VMAFAnalyzer::analyze: a model file, identified by its SHA-256", "[vmaf]")
+{
+    const fs::path file = fs::path(MIRAGE_LIBVMAF_MODEL_DIR) / "vmaf_v0.6.1neg.json";
+    if (!fs::exists(file)) SKIP("no libvmaf model file at " << file.string());
+    // A copy with one more newline at its end: other bytes, the same model.
+    const fs::path copy = fs::temp_directory_path() / "mirage_test_vmaf_model_copy.json";
+    {
+        std::ifstream in(file, std::ios::binary);
+        std::ofstream out(copy, std::ios::binary | std::ios::trunc);
+        out << in.rdbuf() << '\n';
+    }
+    const std::string dis = colored_dis_clip("mirage_test_vmaf_colored_709.mkv", AVCOL_SPC_BT709);
+    const VMAFResult a = VMAFAnalyzer::analyze(colored_ref_clip(), dis,
+                                               { .model = { .path = file.string() } });
+    const VMAFResult b = VMAFAnalyzer::analyze(colored_ref_clip(), dis,
+                                               { .model = { .path = copy.string() } });
+    REQUIRE(a.error.empty());
+    REQUIRE(b.error.empty());
+    REQUIRE(a.per_frame.size() == 6);
+    CHECK(a.settings.model == file.string());
+    CHECK(a.settings.model_source == "file");
+    std::string err;
+    CHECK(a.settings.model_sha256 == filehash::sha256_file(file.string(), err));
+    CHECK(b.settings.model_sha256 == filehash::sha256_file(copy.string(), err));
+    CHECK(a.settings.model_sha256 != b.settings.model_sha256);
+    CHECK(a.per_frame == b.per_frame);
+    CHECK(a.per_frame != VMAFAnalyzer::analyze(colored_ref_clip(), dis).per_frame);
+    fs::remove(copy);
+}
+
+TEST_CASE("VMAFAnalyzer::analyze: a model libvmaf can't load is an error", "[vmaf]")
+{
+    const VMAFResult unknown = VMAFAnalyzer::analyze(ref_clip(), dis_clip(),
+                                                     { .model = { .version = "vmaf_v0.0.0" } });
+    CHECK(unknown.done);
+    CHECK(unknown.error == "vmaf_model_load failed: this libvmaf has no built-in model vmaf_v0.0.0");
+    CHECK(unknown.per_frame.empty());
+
+    const fs::path missing = fs::temp_directory_path() / "mirage_test_vmaf_no_model.json";
+    fs::remove(missing);
+    const VMAFResult gone = VMAFAnalyzer::analyze(ref_clip(), dis_clip(),
+                                                  { .model = { .path = missing.string() } });
+    CHECK(gone.error.starts_with("cannot read the model file " + missing.string() + ": "));
+    CHECK(gone.per_frame.empty());
+
+    const fs::path junk = fs::temp_directory_path() / "mirage_test_vmaf_not_a_model.json";
+    std::ofstream(junk) << "not a model\n";
+    const VMAFResult bad = VMAFAnalyzer::analyze(ref_clip(), dis_clip(),
+                                                 { .model = { .path = junk.string() } });
+    CHECK(bad.error == "vmaf_model_load_from_path failed: libvmaf cannot load the model file " +
+                       junk.string());
+    CHECK(bad.settings.model_source == "file");
+    CHECK(bad.settings.model_sha256 == filehash::sha256_hex("not a model\n"));   // hashed before loading
+    fs::remove(junk);
 }
 
 TEST_CASE("VMAFAnalyzer::analyze: converts a full range distorted input to the reference's range", "[vmaf]")
