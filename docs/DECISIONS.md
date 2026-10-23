@@ -311,3 +311,29 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: agent
 - **Date**: 2026-10-21
 - **Status**: confirmed by the owner (2026-10-23). This step is **not** the §5 implementation. §5's check tool, parameters and thresholds are still the owner's to decide.
+
+### P-006 What mirage_vmaf records, and when it writes no report
+
+- **Choice**
+  - **PTS**: each paired frame's `best_effort_timestamp`, in seconds (`ts × num / den` with the stream's time base, which the report also gives), as the stream has it, not shifted to start at 0. `null` when the frame has none.
+  - **Input parameters** (size, `pix_fmt`, color space, range, primaries, transfer): the decoder's values right after opening, the stream parameters ffprobe also shows, under FFmpeg's names. Not those of the first decoded frame.
+  - **Pooled values**: only libvmaf's pooled mean and min, as the analyzer computes them today. The analyzer's p5 stays out of the report while its definition is open (#6); every per-frame score is in the report.
+  - **No report, and exit status 1**, when an input can't be opened, an input stops on a read or decode error instead of reaching its end, no pair is scored, or a libvmaf call fails while scoring. Until now the analyzer took a read or decode error for the end of the input, and a failed score stayed 0. The report is written to a temporary file next to `--out` and renamed over it once complete.
+  - **FFmpeg's log level** in `mirage_vmaf`: warnings and errors only. That drops FFmpeg's informational lines, such as the "Opening … for reading" line for every HLS segment.
+  - The libvmaf package version is read at configure time, as the stage's task asked. The commit is recorded by the eval tooling when it runs, not by `mirage_vmaf`.
+  - `mirage_tests` links libvmaf and runs the analyzer on clips it generates.
+- **Alternatives**
+  - PTS: the frame's `pts`.
+  - Input parameters: the first decoded frame's values, or both.
+  - Failures: write a report with an error field, or report whatever was scored, as the analyzer did before.
+  - Package version: read at run time from the library that was actually loaded (`dladdr()` and `realpath()`), which can't go stale when libvmaf is upgraded without a new configure.
+  - Keep `mirage_tests` free of libvmaf and test only the helpers.
+- **Rationale**
+  - `best_effort_timestamp` is the decoder's timestamp for the frame. It is the frame's `pts` unless FFmpeg's heuristics find the stream's `pts` unreliable.
+  - The decoder's values exist even when decoding fails, and can be compared with `eval/baseline/diagnostics/ffprobe_rungs.txt`. If a stream's frames ever carry other tags than its parameters, the report needs the frames' values too; D-016's conversion is where that would show.
+  - With these rules a report exists only for a complete run, so later tooling can't take a truncated run for a full one.
+  - A commit read when the tooling runs can't go stale the way a value fixed at configure time can.
+  - The analyzer's new features (frame limit, PTS, input parameters, how inputs ended) need tests that run the analyzer.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
