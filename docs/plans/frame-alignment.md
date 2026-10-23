@@ -2,7 +2,7 @@
 
 - **Status**: a plan for the owner to approve (D-007). Nothing in it is implemented.
 - **Open owner decisions it depends on**: #7, the frame-alignment failure threshold and whether exceeding it warns or refuses (D-004), and the choices listed in "Decisions this plan needs" below. Where this plan names a choice, it is a proposal, and the agent's recommendations are marked as such.
-- **Written by**: the agent (Claude), from the code at the commit that adds this file and from the FFmpeg 8.1.1 sources (`ffmpeg-8.1.1.tar.xz` from ffmpeg.org, whose SHA-256 is the one in Homebrew's ffmpeg-full formula; P-013). Statements about FFmpeg below come from reading those sources, not from runs; the tests in "Tests" turn them into committed measurements.
+- **Sources**: the code at the commit that adds this file, and the FFmpeg 8.1.1 sources (`ffmpeg-8.1.1.tar.xz` from ffmpeg.org, whose SHA-256 is the one in Homebrew's ffmpeg-full formula; P-013). Statements about FFmpeg below come from reading those sources, not from runs; the tests in "Tests" turn them into committed measurements.
 
 ## What the work order asks
 
