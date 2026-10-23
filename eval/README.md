@@ -11,6 +11,7 @@ The evaluation's scripts and their committed outputs. The numbers in this reposi
 | `streams.md`, `streams/` | the public test streams, and the script that fetches their playlists |
 | `run_all.sh`, `run_all.py`, `tests/` | one command that reruns every committed Phase 1 measurement and compares its outputs with the committed ones |
 | `run_all/` | the records of `run_all.sh` runs |
+| `test_runs/` | records of the unit test suites run at a commit, which the PR descriptions quote (`test_runs/README.md`) |
 
 ## Rerunning every measurement: run_all.sh
 
