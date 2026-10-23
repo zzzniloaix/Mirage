@@ -148,6 +148,49 @@
 - **谁**：owner（Jiayu Lin）
 - **日期**：2026-10-23
 
+### D-012 改写全部历史，提交邮箱统一为 GitHub noreply 地址
+
+- **决策**
+  - 所有提交的作者 / 提交者邮箱改为 `217987193+zzzniloaix@users.noreply.github.com`，并强推 `main` 与 `fix/high-speed-playback`。
+  - 本仓库以后的提交也用这个地址（仓库级 git 配置）。
+- **备选**：只改以后的提交，已推送的历史不动。
+- **理由**：不在公开历史里暴露个人邮箱。仓库 2026-04-03 起公开，2026-10-23 改为私有，投稿时还要重新公开。
+- **影响**
+  - 所有提交的 SHA 都变了。已推送的 25 个提交逐个核对过 tree hash，文件树没有任何变化。
+  - 新旧对照：基线提交 `a4e02895d2d9c51c620e6c140f5566944c80ec71` → `1bab7a3104cf9149300eafd3d3deb7ae4a9c6f69`，tree `61765e415978c5a9735a3a6a3e245c52d0e6be99` 不变。差距报告、本日志（P-001、D-010）以及 `eval/` 原始输出里的 `a4e0289` 都指这个提交。原始输出保持原样，不改成新 SHA。
+  - `vmaf/phase-0` 的 7 个提交同时按 D-013、D-014 改写，文件树因此有变化。
+- **谁**：owner（Jiayu Lin）
+- **日期**：2026-10-23
+
+### D-013 工作单不放进仓库
+
+- **决策**：工作单（`mirage-vmaf-spec-agent.md`，"Mirage VMAF Subsystem — Agent Work Order"）只保存在 owner 本地，不入库。之前放在 `docs/spec/` 下的副本已从 `vmaf/phase-0` 的全部历史中移除。仓库里的文档按标题和文件名引用它。
+- **备选**
+  - 删去不宜公开的段落后入库，并注明删改过。
+  - 原样入库。
+- **理由**：工作单含有 owner 的个人信息，不适合放进将要公开的仓库。
+- **谁**：owner（Jiayu Lin）
+- **日期**：2026-10-23
+
+### D-014 Phase 0 原始输出中的本机信息打码
+
+- **决策**：`eval/baseline/` 和差距报告里的本机信息换成占位符，其余内容不变。
+  - `<worktree>`：Phase 0 编译基线用的干净 worktree 路径（P-001）。
+  - `<repo>`：本仓库在 owner 机器上的路径。
+  - `<tmp>`：系统按用户生成的临时目录。
+  - `<hostname>`：机器名（`uname -a` 的输出）。
+  - `run_baseline.sh` 里写死的临时目录改为读环境变量 `SCRATCH`。
+  - 差距报告第 9 条删去了一个不应公开的主机名。
+- **涉及文件**：`environment.txt`、`code_facts.txt`、`run_baseline.sh`、`diagnostics/ffmpeg_libvmaf_gear1_vs_gear5_first300.cmd.txt`、`diagnostics/ffmpeg_libvmaf_gear2_vs_gear5_first300.cmd.txt`、`docs/VMAF_GAP_REPORT.md`。分数、日志和其他输出都没有改动。
+- **校验和**：`diagnostics/SHA256SUMS` 只更新了两个 cmd 文件的行，其余各行逐字节不变。改写后两个目录的 `shasum -a 256 -c` 全部通过。
+  - `ffmpeg_libvmaf_gear1_vs_gear5_first300.cmd.txt`：`92ae786fad941303c5a0128c7a4cda0d14948e039f628663def57e3adbcae66f`（打码前）→ `555e64e875918da3a237b6f790b579d049acfe05158566c50f7a024bab197b3e`
+  - `ffmpeg_libvmaf_gear2_vs_gear5_first300.cmd.txt`：`13001dca0964b86eb7651cfa171649d15b4a27f4d2ec47ca1fc6ff6af14bd318`（打码前）→ `2050a5d83277c54a5bd386326cc272dddc50bf3fe47073d0c5bd144f3b9ce939`
+- **原件**：未打码的原件保存在 owner 本地的私有备份里，不入库。
+- **备选**：原样保留。
+- **理由**：机器名和本机路径与复现无关，不应进入公开仓库。
+- **谁**：owner（Jiayu Lin）
+- **日期**：2026-10-23
+
 ---
 
 ## 测量 / 流程选择（agent，待 owner 确认）

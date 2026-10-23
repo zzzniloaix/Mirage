@@ -2,7 +2,7 @@
 
 - 日期：2026-10-21
 - 依据工作单：`mirage-vmaf-spec-agent.md`
-- 勘察对象：commit `a4e02895d2d9c51c620e6c140f5566944c80ec71`（分支 `fix/high-speed-playback` 的 HEAD）
+- 勘察对象：commit `a4e02895d2d9c51c620e6c140f5566944c80ec71`（分支 `fix/high-speed-playback` 的 HEAD）。2026-10-23 改写历史后，这个提交是 `1bab7a3104cf9149300eafd3d3deb7ae4a9c6f69`，文件树 `61765e415978c5a9735a3a6a3e245c52d0e6be99` 不变（见 `docs/DECISIONS.md` D-012）
 - 撰写：agent（Claude），由 owner 审阅
 
 **范围说明**
@@ -194,7 +194,7 @@
 **需要 owner 决定（可能还需公司法务）**
 - Mirage 自身采用什么许可证。CFP 举的例子是 GPLv2、LGPLv2、BSD。
 - 选定的许可证与"链接 GPLv3+ 的 FFmpeg 构建"之间如何兼容，二进制分发时适用什么条款。
-- 仓库的 `origin` 是 github.com 上的 `zzzniloaix/Mirage`（SSH 别名 `github-zzzniloaix` 解析到 `github.com`，2026-10-23 用 `ssh -G` 核对）。初稿写成了公司 GitHub，有误，已更正。仓库是否公开、作为开源项目发布是否需要走公司的流程，由 owner 确认。
+- 仓库的 `origin` 是 github.com 上的 `zzzniloaix/Mirage`（SSH 别名 `github-zzzniloaix` 解析到 `github.com`，2026-10-23 用 `ssh -G` 核对）。初稿写成了公司 GitHub，有误，已更正。仓库 2026-04-03 起公开，2026-10-23 改为私有，投稿前需要重新公开。作为开源项目发布是否需要走公司的流程，由 owner 确认。
 
 ## 10. 工作单 §1–§8 逐节状态
 

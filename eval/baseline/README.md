@@ -8,7 +8,7 @@
 
 | 项 | 值 | 出处 |
 |---|---|---|
-| 代码 | commit `a4e02895d2d9c51c620e6c140f5566944c80ec71`。在 `git worktree add --detach` 出来的干净目录里用 `cmake --preset macos-release` 编译 | `environment.txt`、`code_facts.txt` |
+| 代码 | commit `a4e02895d2d9c51c620e6c140f5566944c80ec71`（2026-10-23 改写历史后，这个提交是 `1bab7a3104cf9149300eafd3d3deb7ae4a9c6f69`，文件树 `61765e415978c5a9735a3a6a3e245c52d0e6be99` 不变（见 `docs/DECISIONS.md` D-012））。在 `git worktree add --detach` 出来的干净目录里用 `cmake --preset macos-release` 编译 | `environment.txt`、`code_facts.txt` |
 | 链接的库 | ffmpeg-full 8.1.1 的 `libavformat` / `libavcodec` / `libswscale`；libvmaf（Homebrew 包 3.1.0，库自报 3.0.0）；GLFW 3.4 | `environment.txt`（`otool -L`、`brew list`、`vmaf_version()`） |
 | 机器 | Apple M3 Pro，macOS 26.2 | `environment.txt` |
 | ladder | `https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8` | `inputs/`（抓取的 master 与两份 variant 播放列表，抓取时间见 `inputs/fetched_utc.txt`） |
