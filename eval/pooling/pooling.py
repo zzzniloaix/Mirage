@@ -352,8 +352,9 @@ def fmt(v, digits):
 
 
 def full(v):
-    """A number in full: the shortest text that reads back as the same double."""
-    return "-" if v is None else repr(v)
+    """A number in full: the shortest text that reads back as the same double
+    (0 in a report, which JSON writes without a fraction, as 0.0)."""
+    return "-" if v is None else repr(float(v))
 
 
 def markdown(r):
