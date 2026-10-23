@@ -522,7 +522,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - D-003: `run_delta.sh --frames 300` on the four pairs of D-018, plain FFmpeg, once with each scaler of work order §1.3, `--scaler bilinear`, `bicubic` and `lanczos`, which `run_delta.sh` gives both sides (`eval/consistency/scalers-300/`). Lanczos is included because the work order lists it and it costs one more run of the same kind.
   - Work order §1.1: the same on one pair, gear2 against gear5 (`pairs/bipbop16x9_gear2.txt`), bilinear, once with each built-in model the work order names, `--model vmaf_v0.6.1`, `vmaf_v0.6.1neg` and `vmaf_4k_v0.6.1`, and once with `--model-file` and the libvmaf package's `vmaf_v0.6.1.json` (`eval/consistency/models-300/`).
   - Commit the runs, then make the comparisons and checks from the clean tree: `compare_runs.py` against the bilinear run and against the vmaf_v0.6.1 run (`scaler_effect.*`, `model_effect.*`), and `checks.txt` in each directory, each command with its output.
-  - One check run of FFmpeg's scale filter without `flags=`, on FFmpeg's own test pattern, for which scaler it then uses (`eval/consistency/ffmpeg-scale-default/checks.txt`).
+  - One check run of FFmpeg's scale filter without `flags=`, on FFmpeg's own test pattern, for which scaler it then uses (`eval/consistency/ffmpeg-scale-default/checks.txt`); and FFmpeg's description of its libvmaf filter, with a run on inputs of different sizes (`eval/consistency/ffmpeg-libvmaf-filter/checks.txt`).
   - The inputs are fetched from Apple's CDN in every run, as in P-012; no local mirror.
 - **Alternatives**
   - Every frame, D-018's length, for the scaler runs.

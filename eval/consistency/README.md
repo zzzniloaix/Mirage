@@ -80,7 +80,19 @@ With `--diagnostic-relabel`, FFmpeg's distorted input gets the reference's `colo
 python3 -I -B -m unittest discover -s eval/consistency/tests -v
 ```
 
-`tests/test_vmafdelta.py` covers the delta math, the commands, the parsing of FFmpeg's log and the reports. `tests/test_run_delta.py` runs the whole tool with stand-ins for `mirage_vmaf`, `ffmpeg` and `ffprobe` (`tests/fake_tools.py`), without network. `tests/test_color_cases.py` covers `color_cases.py` without running FFmpeg.
+`tests/test_vmafdelta.py` covers the delta math, the commands, the parsing of FFmpeg's log and the reports. `tests/test_run_delta.py` runs the whole tool with stand-ins for `mirage_vmaf`, `ffmpeg` and `ffprobe` (`tests/fake_tools.py`), without network. `tests/test_color_cases.py` covers `color_cases.py` without running FFmpeg, and `tests/test_compare_runs.py` covers `compare_runs.py` on run directories it writes itself.
+
+## Comparing runs
+
+`compare_runs.py` shows how far the scores of runs over the same pairs move away from those of a base run, on each side, for runs that differ in one setting, such as the scaler (D-003) or the model (D-004):
+
+```
+python3 -I -B eval/consistency/compare_runs.py --base LABEL=DIR --run LABEL=DIR [--run LABEL=DIR ...] --out PREFIX
+```
+
+- It writes `PREFIX.md` and `PREFIX.json`: per pair and run, each run's own verdict (Mirage against FFmpeg, from its `delta.json`), and on Mirage's side and on FFmpeg's the per-frame shift (the run's score minus the base run's) over the frames both scored, as its largest size and where it is, its mean, its mean size, and how many frames went up, stayed and went down, with both runs' pooled means.
+- It lists the parameters in which the runs differ, and warns when they come from different builds of `mirage_vmaf`, commits or FFmpeg versions, scored other frames, or lack a pair. Run directories are shown relative to the directory of `PREFIX`.
+- Exit status: 0 the reports were written; 1 a run directory or one of its files is missing or unreadable; 2 bad arguments.
 
 ## Color tag cases (D-016)
 
@@ -296,3 +308,10 @@ What they show:
 - **A model file works like the built-in model**: the run with the package's `vmaf_v0.6.1.json` keeps every score of the built-in vmaf_v0.6.1 on both sides, at full precision on Mirage's side and in every metric of FFmpeg's log (check 6), and the vmaf_v0.6.1 run has those of `scalers-300/bilinear` for gear2 (check 6).
 
 Limits: one pair, the first 300 frames; which model suits which content is not evaluated here.
+
+### `ffmpeg-scale-default/`, `ffmpeg-libvmaf-filter/`: what the FFmpeg of these runs does by default (P-016)
+
+Two records, each a `checks.txt` with the commands and their output, made from a clean tree with the `ffmpeg` of `run_delta.sh` and FFmpeg's own test pattern (no network):
+
+- `ffmpeg-scale-default/`: the scale filter given no `flags=` runs with the flags of `flags=bicubic`, not those of `flags=bilinear` (check 3). The runs above all give `flags=` explicitly.
+- `ffmpeg-libvmaf-filter/`: the libvmaf filter's options and defaults as `ffmpeg -h filter=libvmaf` prints them, among them the default model `version=vmaf_v0.6.1` and the framesync options that pair its two inputs by timestamp (check 3; `docs/plans/frame-alignment.md`), and the filter refusing two inputs of different sizes when no scale filter brings them to one (check 4).
