@@ -3,7 +3,9 @@
 // ImGui. Writes a JSON report (src/VMAFReport.h). See --help.
 //
 // Exit codes:
-//   0 — report written
+//   0 — report written, also when more frames than the threshold allows
+//       failed to pair by timestamp: that is a warning, on stderr and in the
+//       report (DECISIONS.md D-028)
 //   1 — the analysis failed or was incomplete, or the report could not be
 //       written; no report is left at --out
 //   2 — bad arguments, or a --config file that can't be read or has an error
@@ -60,6 +62,10 @@ int main(int argc, char** argv)
         args.ref, args.dis,
         { .max_frames = args.frames, .record_pts = true, .scaler = args.scaler,
           .model = args.model });
+    // Too many frames that failed to pair by timestamp: the pair is still
+    // scored and reported, with this warning (DECISIONS.md D-028).
+    if (!r.alignment.warning.empty())
+        std::fprintf(stderr, "mirage_vmaf: warning: %s\n", r.alignment.warning.c_str());
     if (const std::string why = vmafreport::incomplete(r); !why.empty()) {
         std::fprintf(stderr, "mirage_vmaf: %s\n", why.c_str());
         return 1;

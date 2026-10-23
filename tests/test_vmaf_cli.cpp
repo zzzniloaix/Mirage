@@ -168,6 +168,8 @@ TEST_CASE("vmafcli::usage: lists every option", "[vmafcli]")
     }
     CHECK(contains(u, "Exit status"));
     CHECK(contains(u, "Config file: --config FILE"));
+    CHECK(contains(u, "Pairing: "));   // by timestamp (D-028)
+    CHECK_FALSE(contains(u, "in the order the decoders output them"));
 }
 
 // ── --config (D-030) ──────────────────────────────────────────────────────────
