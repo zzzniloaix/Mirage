@@ -120,6 +120,10 @@ struct VMAFResult {
     VMAFInputInfo dis_info;
     std::string   score_error;       // first libvmaf call that failed while scoring; empty = none
     std::vector<VMAFColorConversion> dis_conversions;
+    // What can make these scores differ from those of FFmpeg's section 5
+    // graph although the analysis succeeded, such as a reference that isn't
+    // yuv420p (vmafcolor::converts_reference). Empty = nothing known.
+    std::vector<std::string> warnings;
     // With VMAFOptions::record_pts: the best-effort PTS (seconds) of the
     // reference and distorted frame scored at each index of per_frame.
     // NaN = the frame had no timestamp.

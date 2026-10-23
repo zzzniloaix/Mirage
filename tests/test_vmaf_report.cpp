@@ -408,6 +408,24 @@ TEST_CASE("vmafreport::to_json: the distorted frames' color conversions", "[vmaf
     CHECK((*empty)["dis_conversion"].arr.empty());
 }
 
+TEST_CASE("vmafreport::to_json: warnings", "[vmafreport]")
+{
+    const auto none = parse(vmafreport::to_json(sample_result(), kRun));
+    REQUIRE(none);
+    CHECK((*none)["warnings"].kind == Value::Kind::Array);
+    CHECK((*none)["warnings"].arr.empty());
+
+    VMAFResult r = sample_result();
+    r.warnings = { "the reference's frames are yuv422p, not yuv420p", "a \"quoted\"\tline" };
+    const auto doc = parse(vmafreport::to_json(r, kRun));
+    REQUIRE(doc);
+    const Value& w = (*doc)["warnings"];
+    REQUIRE(w.kind == Value::Kind::Array);
+    REQUIRE(w.arr.size() == 2);
+    CHECK(w.arr[0].str == r.warnings[0]);
+    CHECK(w.arr[1].str == r.warnings[1]);   // escaped and read back intact
+}
+
 TEST_CASE("vmafreport::to_json: one entry per frame pair, full precision", "[vmafreport]")
 {
     const VMAFResult r = sample_result();

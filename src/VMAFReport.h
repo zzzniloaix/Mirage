@@ -18,6 +18,8 @@
 //                      matrix_changed, range_changed,
 //                      first_index, pairs } ]       the distorted frames' color
 //                                                    conversions (VMAFColorConversion)
+//   warnings [ text ]      what can make the scores differ from FFmpeg's
+//                          (VMAFResult::warnings); empty when nothing is known
 //   frame_limit (null = none), frames_scored,
 //   pooled { mean, min }                             libvmaf's vmaf_score_pooled
 //   ref / dis { url, width, height, pix_fmt, color_space, color_range,

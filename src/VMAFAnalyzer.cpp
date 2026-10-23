@@ -249,7 +249,19 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
         .n_subsample  = static_cast<int>(kSubsample),
     };
 
-    // The reference is only brought to YUV420P, at its own size.
+    // The reference is only brought to YUV420P, at its own size. FFmpeg's
+    // graph converts a reference in another format to the distorted input's
+    // color instead, which is not done here: say so.
+    if (vmafcolor::converts_reference(ref_ctx.pix_fmt())) {
+        result.warnings.push_back(std::format(
+            "the reference's frames are {}, not {}: FFmpeg's section 5 graph then converts "
+            "the reference to the distorted input's color matrix and range, where Mirage "
+            "converts the distorted frames to the reference's, so the scores can differ from "
+            "FFmpeg's (docs/PHASE1_DECISIONS_PENDING.md)",
+            name_or_unknown(av_get_pix_fmt_name(ref_ctx.pix_fmt())),
+            name_or_unknown(av_get_pix_fmt_name(kScorePixFmt))));
+        logger::warn("VMAFAnalyzer: {}", result.warnings.back());
+    }
     SwsContext* ref_sws = sws_getContext(
         ref_ctx.width(), ref_ctx.height(), ref_ctx.pix_fmt(),
         ref_w, ref_h, kScorePixFmt,

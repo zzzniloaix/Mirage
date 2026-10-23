@@ -37,25 +37,28 @@ constexpr int kFps = 25;   // Matroska stores milliseconds: frame k is at k * 40
 // What else a clip of make_clip() has besides its size, length and matrix.
 struct ClipLook {
     bool          uneven = false;   // the ramp moves 4 and 1 steps in turn, not 3
-    bool          colored = false;  // chroma gradients instead of gray
+    bool          colored = false;  // chroma gradients instead of gray; yuv420p only
     AVColorRange  range = AVCOL_RANGE_MPEG;
     AVFieldOrder  field_order = AV_FIELD_UNKNOWN;
+    AVPixelFormat pix_fmt = AV_PIX_FMT_YUV420P;   // or another 8-bit planar YUV format
 };
 
-// A clip of `frames` frames of w x h yuv420p: a diagonal ramp that moves
-// every frame, so libvmaf's motion feature has something to measure, in gray
-// unless `look.colored`; a matrix conversion leaves gray's luma alone.
+// A clip of `frames` frames of w x h yuv420p (or look.pix_fmt): a diagonal
+// ramp that moves every frame, so libvmaf's motion feature has something to
+// measure, in gray unless `look.colored`; a matrix conversion leaves gray's
+// luma alone.
 std::string make_clip(const char* name, int w, int h, int frames, AVColorSpace space,
                       const ClipLook& look = {})
 {
+    REQUIRE((!look.colored || look.pix_fmt == AV_PIX_FMT_YUV420P));
     const fs::path path = fs::temp_directory_path() / name;
     AVFormatContext* oc = nullptr;
     REQUIRE(avformat_alloc_output_context2(&oc, nullptr, "matroska", path.c_str()) >= 0);
     AVStream* st = avformat_new_stream(oc, nullptr);
     st->codecpar->codec_type  = AVMEDIA_TYPE_VIDEO;
     st->codecpar->codec_id    = AV_CODEC_ID_RAWVIDEO;
-    st->codecpar->codec_tag   = avcodec_pix_fmt_to_codec_tag(AV_PIX_FMT_YUV420P);   // "I420"
-    st->codecpar->format      = AV_PIX_FMT_YUV420P;
+    st->codecpar->codec_tag   = avcodec_pix_fmt_to_codec_tag(look.pix_fmt);   // "I420" for yuv420p
+    st->codecpar->format      = look.pix_fmt;
     st->codecpar->width       = w;
     st->codecpar->height      = h;
     st->codecpar->color_space = space;
@@ -66,7 +69,7 @@ std::string make_clip(const char* name, int w, int h, int frames, AVColorSpace s
     REQUIRE(avio_open(&oc->pb, path.c_str(), AVIO_FLAG_WRITE) >= 0);
     REQUIRE(avformat_write_header(oc, nullptr) >= 0);
 
-    const int size = av_image_get_buffer_size(AV_PIX_FMT_YUV420P, w, h, 1);
+    const int size = av_image_get_buffer_size(look.pix_fmt, w, h, 1);
     for (int k = 0; k < frames; ++k) {
         const int shift = look.uneven ? (k / 2) * 5 + (k % 2) * 4 : 3 * k;
         AVPacket* pkt = av_packet_alloc();
@@ -521,4 +524,22 @@ TEST_CASE("VMAFAnalyzer::analyze: a matrix libswscale does not convert is an err
 
     const VMAFResult ref = VMAFAnalyzer::analyze(ycgco, colored_ref_clip());
     CHECK(ref.error.find("the reference has the color matrix ycgco") != std::string::npos);
+}
+
+TEST_CASE("VMAFAnalyzer::analyze: a reference that isn't yuv420p is scored with a warning", "[vmaf]")
+{
+    // FFmpeg's section 5 graph converts such a reference itself, which the
+    // analyzer doesn't (vmafcolor::converts_reference).
+    static const std::string ref422 = make_clip("mirage_test_vmaf_ref422.mkv", 192, 108, 6,
+                                                AVCOL_SPC_BT709, { .pix_fmt = AV_PIX_FMT_YUV422P });
+    const VMAFResult r = VMAFAnalyzer::analyze(ref422, dis_clip());
+    REQUIRE(r.error.empty());
+    CHECK(r.ref_info.pix_fmt == "yuv422p");
+    CHECK(r.per_frame.size() == 6);
+    REQUIRE(r.warnings.size() == 1);
+    CHECK(r.warnings[0].starts_with("the reference's frames are yuv422p, not yuv420p: FFmpeg's "
+                                    "section 5 graph then converts the reference"));
+
+    // A yuv420p reference has none.
+    CHECK(VMAFAnalyzer::analyze(ref_clip(), dis_clip(), { .max_frames = 2 }).warnings.empty());
 }
