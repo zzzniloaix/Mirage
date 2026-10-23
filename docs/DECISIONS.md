@@ -1152,3 +1152,18 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
 - **Status**: pending owner confirmation
+
+### P-042 The rerun of the committed measurements after D-024, D-027 and D-030, and what of it is committed
+
+- **Choice**
+  - One run of `eval/run_all.sh --skip-full --jobs 4` with no program given, so that it built all three programs from their commits, from a new clean worktree of `0496b21`, the commit after this round's changes to the code, the eval tooling and the committed runs, with its output directory and `TMPDIR` outside the repository. After `0496b21` only documents change.
+  - Committed in `eval/run_all/2026-10-23-d027/` as P-037's record is: `run_all.md` and `.json`, `rerun_check.md` and `.json`, the three builds' `build.txt` and logs, and the output of every command, with a `SHA256SUMS`.
+- **Alternatives**
+  - Every step, the two over every frame included, as P-032 did.
+  - `--only` the steps this round's changes touch.
+- **Rationale**
+  - Rerun with the settings they recorded, the committed runs must keep every score: a rerun of every step but the two over every frame shows that for the programs at hand. Its `pooling` step also compares the pooled mean and min of HEAD's reports, which the analyzer pools itself since D-027, with those that the program of `diag-after-300` took from `vmaf_score_pooled()`, since `pooling.py` records them. The steps over every frame are left to the full-length report with bicubic that D-024 asks for.
+- **Result** (`eval/run_all/2026-10-23-d027/rerun_check.md`, `run_all.md`): every step ran, and everything compared is as committed, `defaults-300` and `pooling-defaults-300` included. The program built from `0496b21` has the SHA-256 of `eval/consistency/defaults-300/build.txt`, the one built from `d993686` that of `format-cases-after/build.txt`, and the one built from `83c8ed6` that of the runs before D-016. 529.5 s of wall time, the three builds included.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
