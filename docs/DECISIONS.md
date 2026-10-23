@@ -95,6 +95,59 @@
 - **谁**：owner（Jiayu Lin），采纳 agent 的建议
 - **日期**：2026-10-23
 
+### D-008 Mirage 采用 GPL-3.0-or-later
+
+- **决策**：Mirage 的许可证是 GPL-3.0-or-later。LICENSE 文件在 Phase 1 的 §8 部分加入。
+- **备选**
+  - GPL-2.0-or-later（CFP 举的例子是 GPLv2；与 GPLv3 的 FFmpeg 组合分发时按 GPLv3 生效）。
+  - BSD / MIT（源码宽松，但带 ffmpeg-full 的二进制整体仍是 GPLv3）。
+  - 等法务或公司开源流程的结论再定。
+  - GPLv2-only 不可选：与链接的 GPLv3 FFmpeg 构建不兼容。
+- **理由**：Mirage 链接的 ffmpeg-full 8.1.1 是 GPL-3.0-or-later（`--enable-gpl --enable-version3`，见差距报告第 9 条），选同一许可证，源码与二进制分发的条款最简单。
+- **未完成**：是否需要法务或公司开源流程确认，由 owner 自行核实。
+- **谁**：owner（Jiayu Lin）
+- **日期**：2026-10-23
+
+### D-009 FFmpeg 统一为 ffmpeg-full
+
+- **决策**：构建统一使用 Homebrew 的 ffmpeg-full。`CMakePresets.json` 已经指向它，README / CLAUDE.md 中的 `brew install ffmpeg` 在 Phase 1 的 §8 部分改正。
+- **备选**
+  - 统一为 `ffmpeg`：改 preset 跟 README。§5 对比还需另装带 libvmaf 的 FFmpeg，并要重跑基线。
+  - 推迟到 §8 再定。
+- **理由**
+  - ffmpeg-full 带 libvmaf 滤镜，§5 对比要用。
+  - Phase 0 基线就是用 ffmpeg-full 跑的。
+  - 与 D-008 的 GPL-3.0-or-later 一致。
+- **未决定**：#11 的另外两部分（glad 生成结果是否入库、Linux 支持范围）在 §8 开工时决定。
+- **谁**：owner（Jiayu Lin）
+- **日期**：2026-10-23
+
+### D-010 先把 fix/high-speed-playback 合入 main，VMAF 工作 PR 到 main
+
+- **决策**
+  - 把 `fix/high-speed-playback`（`a4e0289`）快进合入 `main`。
+  - VMAF 各 phase 的分支都 PR 到 `main`。`vmaf/phase-0` 本来就基于 `a4e0289`，不需要 rebase。
+  - FairPlay 改动留在本地分支 `feat/fairplay-drm`，不推送（owner 2026-10-22 的指示）。
+- **备选**
+  - PR 到 `fix/high-speed-playback`，`main` 保持不动。
+  - 开一个长期的 vmaf 分支，投稿前再合入 `main`。
+- **理由**：`main` 落后 `a4e0289` 6 个提交，可以快进。VMAF 的 PR 以 `main` 为目标，diff 里就只有 VMAF 的改动。
+- **谁**：owner（Jiayu Lin）
+- **日期**：2026-10-23
+
+### D-011 evaluation 用自己编码的 ladder
+
+- **决策**：evaluation 用公开源片自己编码 HLS ladder，源片即 mezzanine。编码脚本和参数进 `eval/`。具体源片与编码参数在开始编码时再由 owner 定。
+- **备选**
+  - 挑选现成的公开流（DASH-IF、Unified Streaming demo 等）：拿不到 mezzanine，流也可能变动或下线。
+  - 两种都用：自编 ladder 做绝对质量与 §3 归因测试，公开流做适用性演示。
+- **理由**
+  - 各档出自同一源片，满足 D-002（默认 top-rung 参考）的前提，也能跑 mezzanine 模式。
+  - 可控、可复现，还能有意做出丢帧、discontinuity 等测试用例。
+  - Phase 0 用的 bipbop 16x9 各档是分别渲染的，不适合衡量质量（见差距报告"现状基线"）。
+- **谁**：owner（Jiayu Lin）
+- **日期**：2026-10-23
+
 ---
 
 ## 测量 / 流程选择（agent，待 owner 确认）
