@@ -22,7 +22,9 @@ inline const std::filesystem::path& dir()
         std::filesystem::path path;
         Dir()
         {
-            std::string name = (std::filesystem::temp_directory_path() / "mirage_tests.XXXXXX").string();
+            const std::filesystem::path pattern =
+                std::filesystem::temp_directory_path() / "mirage_tests.XXXXXX";
+            std::string name = pattern.string();
             if (!mkdtemp(name.data()))
                 throw std::runtime_error("cannot create a temporary directory from " + name);
             path = name;
