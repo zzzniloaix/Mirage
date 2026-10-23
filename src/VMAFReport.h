@@ -10,6 +10,9 @@
 //   libvmaf_version, libvmaf_package_version,
 //   ffmpeg_libraries { libavutil, libavcodec, libavformat, libswscale,
 //                      libavfilter }  each library's version at run time
+//   config_file { path, sha256 }   the --config file the settings were read
+//                          from (D-030), by its path as given and the SHA-256 of
+//                          its contents; null without one
 //   model                  built-in model version, or model file path as given
 //   model_source           "built-in" | "file"
 //   model_sha256           SHA-256 of the model file; null for a built-in model
@@ -49,6 +52,8 @@ struct RunInfo {
     std::string libvmaf_version;          // vmaf_version() at run time
     std::string libvmaf_package_version;  // found at configure time; "unknown" if not derivable
     std::vector<VMAFLibraryVersion> ffmpeg_libraries;   // vmaf_ffmpeg_libraries() (D-021)
+    std::string config_path;              // --config as given; empty = no config file
+    std::string config_sha256;            // SHA-256 of the config file's contents
     unsigned    frame_limit = 0;          // --frames; 0 = none
 };
 

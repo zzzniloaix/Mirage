@@ -1,10 +1,15 @@
 #include "VMAFCli.h"
 
 #include <array>
+#include <cerrno>
 #include <charconv>
+#include <cstring>
+#include <filesystem>
 #include <format>
+#include <fstream>
 #include <limits>
 #include <optional>
+#include <sstream>
 #include <system_error>
 #include <utility>
 
@@ -12,14 +17,15 @@ namespace vmafcli {
 
 namespace {
 
-// One option that takes a value. A new option is one more row here: parse()
-// and usage() both work from this table.
+// One option that takes a value. A new option is one more row here: parse(),
+// the config file and usage() all work from this table.
 struct Option {
-    std::string_view name;      // "--ref"
+    std::string_view name;      // "--ref"; "ref" in a config file
     std::string_view value;     // placeholder shown in the help, "<url|path>"
     std::string_view help;
     bool             required;
-    // Stores `v` in `a`; returns what is wrong with it, or "".
+    // Stores `v` in `a`; returns what is wrong with it, or "", in words that
+    // follow the option's name ("wants a whole number ...").
     std::string (*set)(Args& a, std::string_view v);
 };
 
@@ -28,7 +34,7 @@ std::string set_frames(Args& a, std::string_view v)
     unsigned n = 0;
     const auto [end, ec] = std::from_chars(v.data(), v.data() + v.size(), n);
     if (ec != std::errc() || end != v.data() + v.size() || n == 0)
-        return std::format("--frames wants a whole number from 1 to {}, not '{}'",
+        return std::format("wants a whole number from 1 to {}, not '{}'",
                            std::numeric_limits<unsigned>::max(), v);
     a.frames = n;
     return {};
@@ -37,10 +43,12 @@ std::string set_frames(Args& a, std::string_view v)
 std::string set_scaler(Args& a, std::string_view v)
 {
     const std::optional<VMAFScaler> s = vmaf_scaler_named(v);
-    if (!s) return std::format("--scaler wants bilinear, bicubic or lanczos, not '{}'", v);
+    if (!s) return std::format("wants bilinear, bicubic or lanczos, not '{}'", v);
     a.scaler = *s;
     return {};
 }
+
+constexpr std::string_view kConfig = "--config";   // the one option a config file can't set
 
 const std::array kOptions = {
     Option{ "--ref", "<url|path>", "reference video: a file or any URL FFmpeg opens", true,
@@ -57,9 +65,12 @@ const std::array kOptions = {
             [](Args& a, std::string_view v) { a.model.version = v; return std::string(); } },
     Option{ "--model-file", "<model.json>", "libvmaf model file, instead of a built-in model", false,
             [](Args& a, std::string_view v) { a.model.path = v; return std::string(); } },
+    Option{ kConfig, "<file>", "read settings from a file of name = value lines first (see below)",
+            false, [](Args& a, std::string_view v) { a.config = v; return std::string(); } },
 };
 
-// Options that can't be given together.
+// Options that can't be given together. Each pair sets one thing, so in a
+// config file and on the command line it counts as one setting.
 const std::array<std::pair<std::string_view, std::string_view>, 1> kExclusive = {{
     { "--model", "--model-file" },
 }};
@@ -78,9 +89,98 @@ std::size_t index_of(std::string_view name)
     return static_cast<std::size_t>(find_option(name) - kOptions.data());
 }
 
+// The option's name in a config file: without the leading "--".
+std::string_view file_name(const Option& o) { return o.name.substr(2); }
+
+// The options `k` excludes, and `k` itself.
+std::vector<std::size_t> setting_of(std::size_t k)
+{
+    std::vector<std::size_t> out{ k };
+    for (const auto& [a, b] : kExclusive) {
+        if (index_of(a) == k) out.push_back(index_of(b));
+        if (index_of(b) == k) out.push_back(index_of(a));
+    }
+    return out;
+}
+
+std::string_view trimmed(std::string_view s)
+{
+    const auto first = s.find_first_not_of(" \t");
+    if (first == std::string_view::npos) return {};
+    return s.substr(first, s.find_last_not_of(" \t") - first + 1);
+}
+
+// One setting of a config file.
+struct FileSetting {
+    std::size_t      option;   // index into kOptions
+    std::string_view value;    // into the file's text
+    std::size_t      line;     // from 1
+};
+
+// The settings of a config file's text, each value checked as its option
+// checks it; "" or "line N: what is wrong".
+std::string read_settings(std::string_view text, std::vector<FileSetting>& out)
+{
+    if (text.starts_with("\xEF\xBB\xBF")) text.remove_prefix(3);   // a UTF-8 byte order mark
+    std::array<std::size_t, kOptions.size()> line_of{};             // 0 = not set yet
+    std::size_t line = 0;
+    while (!text.empty()) {
+        const std::size_t eol = text.find('\n');
+        std::string_view raw = text.substr(0, eol);
+        text.remove_prefix(eol == std::string_view::npos ? text.size() : eol + 1);
+        ++line;
+        if (raw.ends_with('\r')) raw.remove_suffix(1);
+        const std::string_view entry = trimmed(raw);
+        if (entry.empty() || entry.starts_with('#')) continue;
+
+        const std::size_t eq = entry.find('=');
+        if (eq == std::string_view::npos)
+            return std::format("line {}: expected name = value, not '{}'", line, entry);
+        const std::string_view name  = trimmed(entry.substr(0, eq));
+        const std::string_view value = trimmed(entry.substr(eq + 1));
+        if (name.empty()) return std::format("line {}: no name before '='", line);
+        if (name.starts_with('-'))
+            return std::format("line {}: unknown setting '{}' (names are written without --)",
+                               line, name);
+        const Option* opt = find_option(std::format("--{}", name));
+        if (!opt) return std::format("line {}: unknown setting '{}'", line, name);
+        if (opt->name == kConfig)
+            return std::format("line {}: {} can't be set in a config file", line, name);
+        const std::size_t k = static_cast<std::size_t>(opt - kOptions.data());
+        if (line_of[k])
+            return std::format("line {}: {} is set more than once (first on line {})", line, name,
+                               line_of[k]);
+        line_of[k] = line;
+        if (value.empty()) return std::format("line {}: {} needs a non-empty value", line, name);
+        Args check;
+        if (std::string err = opt->set(check, value); !err.empty())
+            return std::format("line {}: {} {}", line, name, err);
+        out.push_back({ k, value, line });
+    }
+    for (const auto& [a, b] : kExclusive)
+        if (line_of[index_of(a)] && line_of[index_of(b)])
+            return std::format("{} (line {}) and {} (line {}) can't both be set",
+                               file_name(*find_option(a)), line_of[index_of(a)],
+                               file_name(*find_option(b)), line_of[index_of(b)]);
+    return {};
+}
+
 } // namespace
 
-std::string parse(const std::vector<std::string_view>& argv, Args& out)
+ConfigFile read_config(const std::string& path)
+{
+    std::error_code ec;
+    if (std::filesystem::is_directory(path, ec)) return { {}, "it is a directory" };
+    std::ifstream f(path, std::ios::binary);
+    if (!f) return { {}, std::strerror(errno) };
+    std::ostringstream text;
+    text << f.rdbuf();
+    if (f.bad()) return { {}, "a read error" };
+    return { text.str(), {} };
+}
+
+std::string parse(const std::vector<std::string_view>& argv, Args& out,
+                  const std::function<ConfigFile(const std::string&)>& load)
 {
     for (std::string_view a : argv) {
         if (is_help(a)) {
@@ -91,25 +191,44 @@ std::string parse(const std::vector<std::string_view>& argv, Args& out)
     }
 
     Args args;
-    std::array<bool, kOptions.size()> seen{};
+    std::array<bool, kOptions.size()> on_line{};   // given on the command line
     for (std::size_t i = 0; i < argv.size(); ++i) {
         const Option* opt = find_option(argv[i]);
         if (!opt) return std::format("unknown argument '{}'", argv[i]);
         const std::size_t k = static_cast<std::size_t>(opt - kOptions.data());
-        if (seen[k]) return std::format("{} is given more than once", opt->name);
-        seen[k] = true;
+        if (on_line[k]) return std::format("{} is given more than once", opt->name);
+        on_line[k] = true;
         // A value that is itself an option means the real value is missing.
         if (i + 1 >= argv.size() || find_option(argv[i + 1]))
             return std::format("{} needs a value: {} {}", opt->name, opt->name, opt->value);
         const std::string_view v = argv[++i];
         if (v.empty()) return std::format("{} needs a non-empty value", opt->name);
-        if (std::string err = opt->set(args, v); !err.empty()) return err;
+        if (std::string err = opt->set(args, v); !err.empty())
+            return std::format("{} {}", opt->name, err);
     }
+
+    // The config file's settings, but those the command line gives.
+    std::array<bool, kOptions.size()> in_file{};
+    if (on_line[index_of(kConfig)]) {
+        const ConfigFile file = load(args.config);
+        if (!file.error.empty())
+            return std::format("cannot read the config file {}: {}", args.config, file.error);
+        std::vector<FileSetting> settings;
+        if (std::string err = read_settings(file.text, settings); !err.empty())
+            return std::format("config file {}, {}", args.config, err);
+        for (const FileSetting& s : settings) {
+            in_file[s.option] = true;
+            bool replaced = false;
+            for (std::size_t k : setting_of(s.option)) replaced = replaced || on_line[k];
+            if (!replaced) kOptions[s.option].set(args, s.value);   // checked by read_settings
+        }
+    }
+
     for (std::size_t k = 0; k < kOptions.size(); ++k)
-        if (kOptions[k].required && !seen[k])
+        if (kOptions[k].required && !on_line[k] && !in_file[k])
             return std::format("missing {} {}", kOptions[k].name, kOptions[k].value);
     for (const auto& [a, b] : kExclusive)
-        if (seen[index_of(a)] && seen[index_of(b)])
+        if (on_line[index_of(a)] && on_line[index_of(b)])
             return std::format("{} and {} can't be given together", a, b);
 
     out = std::move(args);
@@ -161,17 +280,29 @@ std::string usage()
         "longer run, because libvmaf's motion2 feature for a frame also uses the next\n"
         "frame. A run compared with this one has to stop at the same frame.\n"
         "\n"
+        "Config file: --config FILE reads settings before the command line, one per\n"
+        "line as name = value, where name is a long option's name without the\n"
+        "leading --, such as scaler = lanczos, and value is the rest of the line\n"
+        "without the white space around it, as it is: no quotes, no escapes, no\n"
+        "comment after it. Blank lines and lines starting with # are skipped. Every\n"
+        "option but --config can be set there, once, and is checked as on the\n"
+        "command line; --ref, --dis and --out can come from either. An option on\n"
+        "the command line replaces the file's setting, and --model and --model-file\n"
+        "replace each other, since both set the model. Relative paths are taken\n"
+        "from the current directory, as on the command line.\n"
+        "\n"
         "The report records the reference mode (explicit-pair: --ref names the\n"
         "reference), the libvmaf version the library reports at run time and\n"
         "the libvmaf package version found when the build was configured, the\n"
         "versions of the FFmpeg libraries at run time (libavutil, libavcodec,\n"
-        "libavformat, libswscale, libavfilter), these settings (a model file by its\n"
-        "path as given and the SHA-256 of its contents), both inputs' stream\n"
-        "parameters, how the distorted frames' and the reference's color tags were\n"
-        "converted (dis_conversion, ref_conversion), what can make the scores\n"
-        "differ from FFmpeg's (warnings), the pooled values, and for every frame\n"
-        "pair its index, the reference and distorted PTS in seconds and the score,\n"
-        "all at full precision.\n"
+        "libavformat, libswscale, libavfilter), these settings (a model file, and\n"
+        "a --config file, each by its path as given and the SHA-256 of its\n"
+        "contents), both inputs' stream parameters, how the distorted frames' and\n"
+        "the reference's color tags were converted (dis_conversion,\n"
+        "ref_conversion), what can make the scores differ from FFmpeg's\n"
+        "(warnings), the pooled values, and for every frame pair its index, the\n"
+        "reference and distorted PTS in seconds and the score, all at full\n"
+        "precision.\n"
         "\n"
         "Pooled values: the mean, the harmonic mean (n / sum(1 / (x + 1)) - 1) and\n"
         "the minimum, each as libvmaf pools the per-frame scores and FFmpeg's\n"
@@ -181,7 +312,8 @@ std::string usage()
         "definition 7).\n"
         "\n"
         "Exit status: 0 the report was written; 1 the analysis or the write failed\n"
-        "(no report is left behind); 2 bad arguments.\n",
+        "(no report is left behind); 2 bad arguments, or a config file that can't\n"
+        "be read or has an error.\n",
         synopsis, options);
 }
 

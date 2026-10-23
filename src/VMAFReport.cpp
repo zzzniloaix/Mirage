@@ -84,6 +84,11 @@ std::string to_json(const VMAFResult& r, const RunInfo& run)
         out += std::format("{}{}: {}", i == 0 ? "" : ", ", quote(run.ffmpeg_libraries[i].name),
                            quote(run.ffmpeg_libraries[i].version));
     out += "},\n";
+    out += std::format("  \"config_file\": {},\n",
+                       run.config_path.empty()
+                           ? std::string("null")
+                           : std::format("{{\"path\": {}, \"sha256\": {}}}",
+                                         quote(run.config_path), quote(run.config_sha256)));
     out += std::format("  \"model\": {},\n", quote(s.model));
     out += std::format("  \"model_source\": {},\n", quote(s.model_source));
     out += std::format("  \"model_sha256\": {},\n",

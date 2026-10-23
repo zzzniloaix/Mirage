@@ -6,8 +6,9 @@
 //   0 — report written
 //   1 — the analysis failed or was incomplete, or the report could not be
 //       written; no report is left at --out
-//   2 — bad arguments
+//   2 — bad arguments, or a --config file that can't be read or has an error
 
+#include "FileHash.h"
 #include "VMAFAnalyzer.h"
 #include "VMAFCli.h"
 #include "VMAFReport.h"
@@ -32,8 +33,15 @@ extern "C" {
 int main(int argc, char** argv)
 {
     vmafcli::Args args;
+    // The SHA-256 of the --config file's contents, of the bytes parse() reads.
+    std::string config_sha256;
+    const auto load_config = [&](const std::string& path) {
+        vmafcli::ConfigFile file = vmafcli::read_config(path);
+        if (file.error.empty()) config_sha256 = filehash::sha256_hex(file.text);
+        return file;
+    };
     const std::vector<std::string_view> argl(argv + 1, argv + argc);
-    if (const std::string err = vmafcli::parse(argl, args); !err.empty()) {
+    if (const std::string err = vmafcli::parse(argl, args, load_config); !err.empty()) {
         const std::string usage = vmafcli::usage();
         std::fprintf(stderr, "mirage_vmaf: %s\n%sRun mirage_vmaf --help for details.\n",
                      err.c_str(), usage.substr(0, usage.find('\n') + 1).c_str());
@@ -57,14 +65,17 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    // Both inputs come from the command line: the reference is neither picked
-    // from a ladder (top-rung) nor known to be the source (mezzanine).
+    // Both inputs are named, on the command line or in its config file: the
+    // reference is neither picked from a ladder (top-rung) nor known to be
+    // the source (mezzanine).
     const vmafreport::RunInfo run{
         .tool                    = "mirage_vmaf",
         .reference_mode          = "explicit-pair",
         .libvmaf_version         = vmaf_version(),
         .libvmaf_package_version = MIRAGE_LIBVMAF_PACKAGE_VERSION,
         .ffmpeg_libraries        = vmaf_ffmpeg_libraries(),
+        .config_path             = args.config,
+        .config_sha256           = config_sha256,
         .frame_limit             = args.frames,
     };
     std::string err;

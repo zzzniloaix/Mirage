@@ -364,6 +364,25 @@ TEST_CASE("vmafreport::to_json: run settings and pooled values", "[vmafreport]")
     CHECK(pooled["p50"].num == 99.875);
 }
 
+TEST_CASE("vmafreport::to_json: the config file (D-030)", "[vmafreport]")
+{
+    const auto none = parse(vmafreport::to_json(sample_result(), kRun));
+    REQUIRE(none);
+    CHECK(none->has("config_file"));
+    CHECK((*none)["config_file"].kind == Value::Kind::Null);
+
+    vmafreport::RunInfo run = kRun;
+    run.config_path   = "configs/run \"1\".cfg";
+    run.config_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+    const auto doc = parse(vmafreport::to_json(sample_result(), run));
+    REQUIRE(doc);
+    const Value& c = (*doc)["config_file"];
+    REQUIRE(c.kind == Value::Kind::Object);
+    CHECK(c.obj.size() == 2);
+    CHECK(c["path"].str == run.config_path);   // as given, escaped and read back intact
+    CHECK(c["sha256"].str == run.config_sha256);
+}
+
 TEST_CASE("vmafreport::to_json: a model file and another scaler", "[vmafreport]")
 {
     VMAFResult r = sample_result();
