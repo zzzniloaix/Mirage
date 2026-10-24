@@ -32,9 +32,9 @@ docker run --rm -v <out>:/out mirage-eval /out --skip-full --jobs 4
 | What | Pin | Where the pin comes from |
 |---|---|---|
 | Base image | `debian:trixie-20261020-slim@sha256:62bd423aeee912639ca8ee681c2b762cb3e25137e0a92b20be455898a9f034ad`, an image index: Docker picks the image of the host's platform | `base-image.txt`: the digest the registry gave for the tags `trixie-20261020-slim`, `trixie-slim` and `13-slim`, and the platforms in it |
-| FFmpeg | 8.1.1: `https://ffmpeg.org/releases/ffmpeg-8.1.1.tar.xz`, SHA-256 `b6863adde98898f42602017462871b5f6333e65aec803fdd7a6308639c52edf3` | the `url` and `sha256` of the ffmpeg-full 8.1.1 formula as installed on the machine of the measurements |
-| libvmaf | 3.1.0 (its library reports 3.0.0, D-006): `https://github.com/Netflix/vmaf/archive/refs/tags/v3.1.0.tar.gz`, SHA-256 `80090e29d7fd0db472ddc663513f5be89bc936815e62b767e630c1d627279fe2` | the libvmaf 3.1.0 formula, likewise |
-| x264 | the commit `b35605ace3ddf7c1a5d67a2eb553f034aef41d55` of `https://code.videolan.org/videolan/x264.git`, checked after checkout | the x264 r3222 formula, likewise; Homebrew pins it by that commit, not by a tarball |
+| FFmpeg | 8.1.1: `https://ffmpeg.org/releases/ffmpeg-8.1.1.tar.xz`, SHA-256 `b6863adde98898f42602017462871b5f6333e65aec803fdd7a6308639c52edf3` | the `url` and `sha256` of the ffmpeg-full 8.1.1 formula as installed on the machine of the measurements (`eval/build_check/macos-2026-10-24-5ae44a4.txt`, "The sources of the installed ffmpeg-full, libvmaf and x264") |
+| libvmaf | 3.1.0 (its library reports 3.0.0, D-006): `https://github.com/Netflix/vmaf/archive/refs/tags/v3.1.0.tar.gz`, SHA-256 `80090e29d7fd0db472ddc663513f5be89bc936815e62b767e630c1d627279fe2` | the libvmaf 3.1.0 formula, likewise; ffmpeg-full's libraries link this libvmaf (the same section) |
+| x264 | the commit `b35605ace3ddf7c1a5d67a2eb553f034aef41d55` of `https://code.videolan.org/videolan/x264.git`, checked after checkout | the x264 r3222 formula, likewise; Homebrew pins it by that commit, not by a tarball, and ffmpeg-full's libraries link this x264 (the same section) |
 | `mirage_vmaf`, `mirage_tests` | the cloned commit, `linux-release` preset (`MIRAGE_HEADLESS`), with the FetchContent dependencies `CMakeLists.txt` pins | the repository |
 | Debian's packages | not pinned: what Debian's archive has when the image is built | the image lists them in `/usr/local/share/mirage-image/packages.txt` |
 

@@ -1,6 +1,6 @@
 # glad's OpenGL loader
 
-The OpenGL 4.1 core profile loader the player uses: its OpenGL code includes `<glad/gl.h>` (`src/main.cpp`, `src/VideoRenderer.h` and others). glad 2.0.8 generated these files, and they are committed so that the build runs no Python (`docs/DECISIONS.md` D-031). `CMakeLists.txt` builds `src/gl.c` as the static library `glad_gl_core_41`, as glad's own CMake function did; `mirage_vmaf` and `mirage_tests` don't use it.
+The OpenGL 4.1 core profile loader the player uses: its OpenGL code includes `<glad/gl.h>` (`src/main.cpp`, `src/VideoRenderer.h` and others). glad 2.0.8 generated these files, and they are committed so that the build runs no Python (`docs/DECISIONS.md` D-031). `CMakeLists.txt` builds `src/gl.c` as the static library `glad_gl_core_41`, as glad's own CMake function did; `mirage_vmaf` and `mirage_tests` don't use it, and the headless configuration leaves it out.
 
 | File | Bytes | SHA-256 |
 |---|---|---|
@@ -8,7 +8,7 @@ The OpenGL 4.1 core profile loader the player uses: its OpenGL code includes `<g
 | `include/glad/gl.h` | 872844 | `8f2f478178ca52184df72159043528b5779e8e737d66c7fbdc9d455d523d38ea` |
 | `src/gl.c` | 623188 | `a80f95deb20c0880ad14cf8d79e73e42c0e9edc2f4eff5822c3561dd99a7b792` |
 
-These are the files the build generated before they were committed: the build check at `6a6661f` records these sizes and SHA-256s for the files its release and debug builds generated, identical in both (`eval/build_check/macos-2026-10-23-6a6661f.txt`, "Generated glad files, release vs debug"), and P-003 found them identical to the main working tree's.
+These are the files the build generated before they were committed: the build check at `6a6661f` records these sizes and SHA-256s for the files its release and debug builds generated, identical in both (`eval/build_check/macos-2026-10-23-6a6661f.txt`, "Generated glad files, release vs debug"), and P-003 found them identical to the main working tree's. The build check at `5ae44a4` records the same for the committed files, and `regenerate.sh` generating them again with these bytes (`eval/build_check/macos-2026-10-24-5ae44a4.txt`, "glad's committed loader").
 
 ## How they were generated
 
@@ -26,7 +26,7 @@ python -m glad --out-path <dir> --api gl:core=4.1 --reproducible c
 third_party/glad/regenerate.sh <python3.13> <scratch>
 ```
 
-It creates a venv in `<scratch>` from the given Python 3.13 with `jinja2==3.1.6` and `markupsafe==3.0.4`, the venv `docs/BUILD.md` described for the build before D-031; clones glad, checks that `v2.0.8` still names the commit above and checks it out; generates the three files with the arguments above; and compares their bytes with the files here. Exit status 0: all three are identical; 1: a file differs or is missing; 2: bad arguments, or a step failed. It needs the network (PyPI and GitHub).
+It creates a venv in `<scratch>` from the given Python 3.13 with `jinja2==3.1.6` and `markupsafe==3.0.4`, the venv `docs/BUILD.md` described for the build before D-031; clones glad, checks that `v2.0.8` still names the commit above and checks it out; generates the three files with the arguments above; and compares their bytes with the files here. Exit status 0: all three are identical; 1: a file differs or is missing; 2: bad arguments, or a step failed. It needs the network (PyPI and GitHub). The build check runs it (`eval/build_check/README.md`).
 
 To change the loader (another OpenGL version, another glad), change the arguments or the commit in the script, regenerate, copy the generated files here, and update this table and `docs/BUILD.md`.
 
