@@ -43,15 +43,15 @@ message(STATUS "libvmaf package version: ${MIRAGE_LIBVMAF_PACKAGE_VERSION}")
 pkg_get_variable(MIRAGE_LIBVMAF_PREFIX libvmaf prefix)
 set(MIRAGE_LIBVMAF_MODEL_DIR "${MIRAGE_LIBVMAF_PREFIX}/share/libvmaf/model")
 
-# GLAD2 — generates a minimal OpenGL 4.1 Core loader at configure time
+# GLAD2 — the OpenGL 4.1 Core loader glad 2.0.8 generated, committed under
+# third_party/glad (DECISIONS.md D-031) and built as glad's own CMake function
+# built it, so the build runs no Python. third_party/glad/README.md says how
+# it was generated and how to regenerate it.
+add_library(glad_gl_core_41 STATIC third_party/glad/src/gl.c)
+target_include_directories(glad_gl_core_41 PUBLIC third_party/glad/include)
+target_link_libraries(glad_gl_core_41 PUBLIC ${CMAKE_DL_LIBS})
+
 include(FetchContent)
-FetchContent_Declare(glad
-    GIT_REPOSITORY https://github.com/Dav1dde/glad.git
-    GIT_TAG        v2.0.8
-    SOURCE_SUBDIR  cmake
-)
-FetchContent_MakeAvailable(glad)
-glad_add_library(glad_gl_core_41 STATIC REPRODUCIBLE API gl:core=4.1)
 
 # miniaudio and stb used to follow their master branch. Both are pinned to the
 # commit the Phase 0 baseline build fetched (eval/baseline/environment.txt);
