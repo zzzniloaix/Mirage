@@ -34,3 +34,4 @@ Local paths in the record are replaced by placeholders: `<worktree>`, `<scratch>
 | `run_build_check.sh` | the script |
 | `macos-2026-10-23.txt` | its output for the run of 2026-10-23 at `647dfbf`, made by the script as it was at that commit |
 | `macos-2026-10-23-6a6661f.txt` | its output for the run of 2026-10-23 at `6a6661f`, after miniaudio and stb were pinned: the check of the section 8 build (`docs/DECISIONS.md` P-022) |
+| `macos-2026-10-24-5ae44a4.txt` | its output for the run of 2026-10-24 at `5ae44a4`, after glad's loader was committed and the headless configuration added (D-031): the check of the build without Python, with the headless preset (`docs/DECISIONS.md` P-058) |
