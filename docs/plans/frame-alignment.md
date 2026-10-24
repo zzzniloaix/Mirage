@@ -1,7 +1,7 @@
 # Plan: pairing frames by timestamp (work order §1.4)
 
-- **Status**: a plan for the owner to approve (D-007). Nothing in it is implemented.
-- **Open owner decisions it depends on**: #7, the frame-alignment failure threshold and whether exceeding it warns or refuses (D-004), and the choices listed in "Decisions this plan needs" below. Where this plan names a choice, it is a proposal, and the agent's recommendations are marked as such.
+- **Status**: approved by the owner with its recommended choices, #7 decided as well (`docs/DECISIONS.md` D-028, 2026-10-23). Implemented in the analyzer that the player and `mirage_vmaf` share (`src/VMAFAlign.h`, `src/VMAFAnalyzer.cpp`; P-043 to P-045); the values D-028 leaves open are listed in `docs/PHASE1_DECISIONS_PENDING.md`, "Open after D-020". Not built yet: the delta tool's comparison by timestamp and the delta runs on synthetic clips. The rest of this file is the plan as it was approved; "What happens today" describes the code before D-028.
+- **Owner decisions it depended on**, decided by D-028: #7, the frame-alignment failure threshold and whether exceeding it warns or refuses (D-004), and the choices listed in "Decisions this plan needs" below. Where this plan names a choice, it is a proposal, and the agent's recommendations are marked as such.
 - **Sources**: the code at the commit that adds this file, and the FFmpeg 8.1.1 sources (`ffmpeg-8.1.1.tar.xz` from ffmpeg.org, whose SHA-256 is the one in Homebrew's ffmpeg-full formula; P-013). Statements about FFmpeg below come from reading those sources, not from runs; the tests in "Tests" turn them into committed measurements.
 
 ## What the work order asks

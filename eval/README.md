@@ -119,3 +119,11 @@ None of them needs the network. `tests/test_run_all.py` checks every step agains
 - Everything compared is as committed (`rerun_check.md`), in every step. Its `pooling` step shows that HEAD's `mirage_vmaf`, which pools the per-frame scores itself since D-027, reports the pooled mean and min that the program of `diag-after-300` took from libvmaf's `vmaf_score_pooled()`: `pooling.py` records both, and they compare as committed.
 - The program it built from `0496b21` has the SHA-256 of `consistency/defaults-300/build.txt`, `85535c5c0ea56865816a71ea9aef837753e0a995d4892be51b863943f6854c5f`. The one built from `d993686` has the SHA-256 of `consistency/format-cases-after/build.txt`, and the one built from `83c8ed6` that of the runs before D-016.
 - It took 529.5 s of wall time, the three builds included (`run_all.md`).
+
+## The rerun after D-028's pairing by timestamp, 2026-10-23
+
+`run_all/2026-10-23-d028/` keeps the record of `eval/run_all.sh <out_dir> --skip-full --jobs 4`, made from a new clean worktree of `713431b` with no program given, the same files as above (P-046): every step but the two over every frame, with the three programs built from their commits.
+
+- Everything compared is as committed (`rerun_check.md`), in every step: HEAD's `mirage_vmaf`, which pairs frames by timestamp since D-028, gives every run it reran the committed verdicts and per-frame scores.
+- The program it built from `713431b` has the SHA-256 `7fb455e9e1349c85e25afe54d5fd47d714c463ecebea1b03b84ca1b594d27741`, which no committed run's `build.txt` names. It reproduces exactly the scores of the runs made by the builds `420b8776…` (`diag-after-300`, `color-cases-after`), `2220ce3a…` (`format-cases-d022`), `3633c43e…` (`scalers-300`, `models-300`) and `85535c5c…` (`defaults-300`). The one built from `d993686` has the SHA-256 of `consistency/format-cases-after/build.txt`, and the one built from `83c8ed6` that of the runs before D-016.
+- It took 520.5 s of wall time, the three builds included (`run_all.md`).

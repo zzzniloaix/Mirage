@@ -206,6 +206,8 @@ HDR content (PQ or HLG transfer) is a further question: the models above are SDR
 
 ## #7 Frame alignment, and approval of the plan (§1.4, D-007)
 
+**Decided**: D-028, the plan with its recommended choices, and for #7 every failure counted, a threshold of 1% and a warning. **Done** in the analyzer that the player and `mirage_vmaf` share (`src/VMAFAlign.h`, `src/VMAFAnalyzer.cpp`; P-043 to P-045): pairing by rule A with a tolerance of half the reference's frame duration, times from each input's start, the coarser grid for a frame-rate mismatch, pairing stopped at the first discontinuity, a new libvmaf context after each gap, the counts and the list of failures in the report (`alignment`), and the warning above 1% in the report, on stderr and in the player's VMAF panels. The committed 300-frame and synthetic runs, whose frames line up, keep their pairs and scores (`eval/run_all/2026-10-23-d028/`; P-046). The §1.4 acceptance, a stream with a frame dropped on purpose, is a test of the analyzer (`tests/test_vmaf_analyzer.cpp`); a committed run of `mirage_vmaf` on such a stream, and a committed record of the test run, are MEASUREMENT PENDING. Not built yet: the delta tool's comparison by timestamp. What implementing D-028 left open is in "Open after D-020" below. The rest of this package describes the code before D-028.
+
 The plan is `docs/plans/frame-alignment.md`. It asks for approval of pairing by timestamp in the analyzer that the GUI and `mirage_vmaf` share (D-007), and lists the choices it needs: the matching rule (the reference's timeline, or FFmpeg's framesync rule, whose defaults are in `eval/consistency/ffmpeg-libvmaf-filter/checks.txt`), the timestamp origin, frame-rate mismatches, discontinuities, what a gap does to libvmaf's motion feature, the report's fields, and #7 itself: the failure-rate definition, the threshold (the work order suggests 1%) and whether exceeding it warns or refuses. The plan ends with the agent's recommendation. Nothing of it is implemented; its acceptance test, the work order's stream with dropped frames, is part of the plan.
 
 ## §1.2 Reference modes
@@ -434,6 +436,8 @@ For a yuv420p reference without a range tag, distorted frames tagged limited in 
 
 **Today.** `min_without_first_frame`, the name `eval/pooling/pooling.py` gives it: the smallest score of frames 1 to n − 1 of the pair, `null` for a pair of one frame. Every run so far scored each pair in one libvmaf context, and over every frame of the four pairs frame 0 is the only frame whose `integer_motion2` is 0 (`eval/pooling/README.md`, on `acceptance-full/`).
 
+Since D-028's implementation the report lists the libvmaf contexts of a pair (`alignment.vmaf_contexts`, P-044); the first pair of each has no motion to a frame before it. `min_without_first_frame` still leaves out only the pair's frame 0. In the committed runs the frames of each pair line up (for the full length, `eval/consistency/acceptance-full/checks.txt`, check 6), and the rerun after D-028 reproduced the per-frame scores of those it covers (`eval/run_all/2026-10-23-d028/`, P-046).
+
 **Options.**
 
 1. As today.
@@ -458,8 +462,34 @@ For a yuv420p reference without a range tag, distorted frames tagged limited in 
 
 **Agent's recommendation.** As today: nothing a command line can say is written differently in the file, and a file with an error doesn't run.
 
+### D-028: the values its pairing leaves open (P-043, P-044)
+
+**Question.** D-028 fixes the rule, the tolerance, the timestamp origin, options (b) and (a), the restarted libvmaf contexts, the report's fields and #7. Which of the values it leaves open should hold?
+
+**Today** (`src/VMAFAlign.h`; tests in `tests/test_vmaf_align.cpp` and `tests/test_vmaf_analyzer.cpp`):
+
+- **Frame rates**: `av_guess_frame_rate()`, the rate `ffmpeg` gives its filter graph for a stream. A reference without one ends the analysis with an error, as do time bases with no common one within 2^40 ticks per second; a distorted input without one is taken to have the reference's.
+- **The tolerance** includes its bound. Each frame of the grid input takes the nearest frame of the other input within it, the earlier of two equally near.
+- **The coarser grid**: frame rates compared exactly. A frame of the finer input that pairs with nothing fails only as the nearest to a point of the grid that no frame of the grid input takes, nearer than the tolerance; the others are off the grid, counted and not failures, and a frame halfway between two points counts for neither.
+- **Discontinuities**: a timestamp that goes back at all, or forward by more than 10 s, the default of `ffmpeg`'s `dts_delta_threshold`. `ffmpeg` itself takes a backward step for a discontinuity only beyond 0.1 s.
+- **#7's boundary**: a failure rate of exactly 1% doesn't warn, as D-023's boundary passes a frame exactly at 0.01.
+- **Without a container start time**, times count from the input's first timestamped frame, as the plan says; `ffmpeg` then shifts nothing.
+- **Both inputs are read to their ends**, unless the frame limit stops the run, so that the rest of the longer input is counted. Before D-028 the pairing stopped at the shorter input's end.
+- **The report** has, beyond the plan's fields, the grid, each input's frame rate and start, the frames that failed once pairing stopped (`after_discontinuity`), the discontinuity limit, the frames off the grid, the libvmaf contexts, and each pair's frame positions in their inputs.
+- **No option sets them**: like libvmaf's threads, these values are fixed in the code, so neither `mirage_vmaf`'s command line nor its config file has them; the report records them.
+
+**Options.** As today; any of the alternatives of P-043 and P-044; or some of the values as options, each one more row of `mirage_vmaf`'s option table and so in the config file as well (D-030).
+
+**Agent's recommendation.** As today: each value is FFmpeg's where FFmpeg has one and the plan's otherwise, and the tests pin each.
+
+### D-028's timestamp origin and a clip cut with its timestamps kept (for information)
+
+With times measured from each input's start (D-028), a clip cut from the reference with its timestamps kept, in a container that holds only its video, starts at its first frame and pairs from there: each frame with the reference frame as many frames earlier in the picture as were cut, as `ffmpeg` without `-copyts` pairs it, and only the reference frames left over at the end fail. With an earlier container start, such as an audio track from 0, the cut frames show as unmatched reference frames instead. The test "a later start, measured from each input's start" (`tests/test_vmaf_analyzer.cpp`) has both. With absolute timestamps, D-028's alternative, the cut clip would pair with the reference frames of its pictures.
+
 ### Smaller choices
 
+- P-045: the analyzer tests of D-028 on generated clips, Matroska with uncompressed frames at chosen timestamps and an MPEG-TS clip coded with FFmpeg's MPEG-2 encoder; three earlier tests changed.
+- P-046: the rerun of the committed measurements after D-028.
 - P-038: the bicubic default in one place, the analyzer's, which `mirage_vmaf`'s command line takes; `run_delta.sh`'s default for both sides, with the scaler always given to a `mirage_vmaf` that has `--scaler`; every rerun of `eval/run_all.sh` naming its scaler, model and threads; the command blocks of earlier runs in `eval/consistency/README.md` left as they were run, with a note.
 - P-039: the pooled values computed from the per-frame scores with libvmaf's sums in frame order and the percentile arithmetic of `pooling.py` (compiled without fused multiply-add); the harmonic mean in the delta reports; `pooling.py --check-pooled`.
 - P-041: the 300-frame run with the defaults, made without `--scaler`, and its checks, the direct runs of `mirage_vmaf` among them; `eval/run_all.sh`'s steps for it.
