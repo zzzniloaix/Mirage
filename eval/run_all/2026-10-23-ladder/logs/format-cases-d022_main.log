@@ -1,0 +1,37 @@
+f01_10bit_bt709_vs_smpte170m: FFmpeg exit 0 after 0.4 s
+f02_10bit_smpte170m_vs_bt709: FFmpeg exit 0 after 0.4 s
+f01_10bit_bt709_vs_smpte170m: mirage_vmaf exit 0 after 0.5 s
+f02_10bit_smpte170m_vs_bt709: mirage_vmaf exit 0 after 0.6 s
+f03_10bit_nomatrix_vs_bt709: FFmpeg exit 0 after 0.4 s
+f04_10bit_bt709_vs_bt709: FFmpeg exit 0 after 0.3 s
+f03_10bit_nomatrix_vs_bt709: mirage_vmaf exit 0 after 0.6 s
+f04_10bit_bt709_vs_bt709: mirage_vmaf exit 0 after 0.5 s
+f05_422_bt709_vs_smpte170m: mirage_vmaf exit 0 after 0.3 s
+f05_422_bt709_vs_smpte170m: FFmpeg exit 0 after 0.3 s
+f06_422_bt709_vs_bt709: mirage_vmaf exit 0 after 0.3 s
+f06_422_bt709_vs_bt709: FFmpeg exit 0 after 0.4 s
+f07_444_bt709_vs_smpte170m: FFmpeg exit 0 after 0.4 s
+f07_444_bt709_vs_smpte170m: mirage_vmaf exit 0 after 0.5 s
+f08_444_bt709_vs_bt709: mirage_vmaf exit 0 after 0.4 s
+f08_444_bt709_vs_bt709: FFmpeg exit 0 after 0.3 s
+j01_yuvj_pc_vs_tv: mirage_vmaf exit 0 after 0.4 s
+j01_yuvj_pc_vs_tv: FFmpeg exit 0 after 0.4 s
+j02_yuvj_pc_vs_pc: mirage_vmaf exit 0 after 0.4 s
+j02_yuvj_pc_vs_pc: FFmpeg exit 0 after 0.4 s
+d01_bt709_vs_10bit_smpte170m: mirage_vmaf exit 0 after 0.3 s
+d01_bt709_vs_10bit_smpte170m: FFmpeg exit 0 after 0.3 s
+d02_bt709tv_vs_yuvj_pc: mirage_vmaf exit 0 after 0.3 s
+d02_bt709tv_vs_yuvj_pc: FFmpeg exit 0 after 0.3 s
+f01_10bit_bt709_vs_smpte170m: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+f02_10bit_smpte170m_vs_bt709: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+f03_10bit_nomatrix_vs_bt709: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+f04_10bit_bt709_vs_bt709: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+f05_422_bt709_vs_smpte170m: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+f06_422_bt709_vs_bt709: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+f07_444_bt709_vs_smpte170m: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+f08_444_bt709_vs_bt709: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+j01_yuvj_pc_vs_tv: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+j02_yuvj_pc_vs_pc: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+d01_bt709_vs_10bit_smpte170m: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+d02_bt709tv_vs_yuvj_pc: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+overall: PASS; reports in <out_dir>/consistency/format-cases-d022/main/delta.md
