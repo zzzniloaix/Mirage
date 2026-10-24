@@ -327,10 +327,13 @@ TEST_CASE("HLS master → variant playlist: FFmpeg structure, open_variant check
     const AVCodecParameters* par = fc->streams[vstream]->codecpar;
     const ffopen::VariantInput in{ mp.variants()[0].url, static_cast<int>(par->codec_id), par->width, par->height };
 
+    // vc's interrupt callback keeps a pointer to the token, which must outlive
+    // it (FfOpen.h): a named token, not a temporary that ends with the call.
     std::stop_source ss;
+    const std::stop_token token = ss.get_token();
     AVFormatContext* vc = nullptr;
     int vidx = -1;
-    REQUIRE(ffopen::open_variant(&vc, &vidx, in, ss.get_token(), NetInitiator::Other) == 0);
+    REQUIRE(ffopen::open_variant(&vc, &vidx, in, token, NetInitiator::Other) == 0);
     REQUIRE(vc);
     REQUIRE(vidx >= 0);
     CHECK(vc->streams[vidx]->codecpar->width == 64);
