@@ -60,6 +60,8 @@ struct VMAFSettings {
     int         bit_depth   = 0;  // bits per sample handed to libvmaf
     int         n_threads   = 0;  // libvmaf worker threads
     int         n_subsample = 0;  // libvmaf scores every n-th frame
+
+    bool operator==(const VMAFSettings&) const = default;
 };
 
 // One input of a scored pair as the analyzer's decoder saw it. The stream

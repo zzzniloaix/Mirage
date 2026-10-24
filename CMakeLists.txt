@@ -255,6 +255,7 @@ add_executable(mirage_tests
     tests/test_vmaf_align.cpp
     tests/test_vmaf_analyzer.cpp
     tests/test_vmaf_color.cpp
+    tests/test_vmaf_ladder.cpp
     tests/test_vmaf_pool.cpp
     tests/test_file_hash.cpp
     src/Demuxer.cpp
@@ -286,6 +287,7 @@ add_executable(mirage_tests
     src/VMAFAlign.cpp
     src/VMAFAnalyzer.cpp
     src/VMAFColor.cpp
+    src/VMAFLadder.cpp
     src/VMAFPool.cpp
     src/FileHash.cpp
 )
