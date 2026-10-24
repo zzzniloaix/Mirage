@@ -1335,3 +1335,73 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
 - **Status**: pending owner confirmation
+
+### P-050 How D-029's ladder scoring is implemented in mirage_vmaf, and the values it leaves open
+
+- **Choice**
+  - **Where.** `src/VMAFLadder.h` (`vmafladder`), built into `mirage_vmaf` and `mirage_tests`, not the player. It reads master playlists itself and resolves their URIs with `hls::absolute_uri()` of `src/HlsMaster.h`, which needs only the standard library; the player's `ManifestParser` would bring pugixml and the player's network logger into `mirage_vmaf`. `mirage_vmaf --ladder <master> [--mezzanine <video>] --out <report>` runs it (`tools/mirage_vmaf.cpp`); the player's ladder analysis (`start_manifest()`) is left as it was.
+  - **Reading the master.** With FFmpeg's avio and its default options, as the analyzer opens its inputs, from a file or any URL FFmpeg opens; stopped as soon as the text doesn't start with `#EXTM3U`. Its first line has to be `#EXTM3U`, as FFmpeg's hls demuxer requires (`libavformat/hls.c` of FFmpeg 8.1.1). Its entries are its `EXT-X-STREAM-INF` tags, each with the URI line after it, blank lines, comments and other tags between them allowed, as the hls demuxer pairs them; each line is taken without the white space around it and each tag's attributes are read as `eval/streams/fetch_streams.py` reads them. I-frame playlists and `EXT-X-MEDIA` renditions are no entries. A master with an entry without a `BANDWIDTH`, or with one that isn't digits only or is above 2^63 − 1 (RFC 8216's decimal-integer goes up to 2^64 − 1), an entry without a URI line, a URI line without an entry (a media playlist), or a URI the next point doesn't resolve is refused: `mirage_vmaf` writes no report and exits with status 1.
+  - **URIs** are resolved against the URL the master was read from after HTTP redirects, which is what the hls demuxer resolves against: for http(s), by `hls::absolute_uri()`, which takes relative paths, absolute paths and http(s) URLs and refuses dot segments, `//host` references, query- or fragment-only references and other schemes; for a local master, by joining the URI to the master's directory, a URI with a scheme or an absolute path taken as it is.
+  - **Video.** An entry has video when it has a `RESOLUTION`, or a `CODECS` entry whose sample entry name is a video codec's (`avc1`, `avc3`, `hvc1`, `hev1`, `dvh1`, `dvhe`, `av01`, `vp09`, `vp08`, `mp4v`): the rule and the list of `fetch_streams.py`, whose committed records say which entries of the repository's streams have video (`eval/streams/fetched-2026-10-23/`). Entries without video are skipped without being opened and listed in the report with the reason `no video`, also one that names a video playlist.
+  - **Each video playlist once.** Entries whose resolved URLs are the same string name one playlist, scored once; each pair lists the video entries that name it, and the top rung's are the reference's.
+  - **The top rung** is the playlist of the video entry with the highest `BANDWIDTH`; of two or more such entries that name different playlists, the first in the master's order, with a warning in the report and on stderr, where `mirage_vmaf` prints it when the run ends.
+  - **The pairs** are in the master's order of their first entry. Top-rung mode: every video playlist but the top rung's, against it; an error when there is no other. Mezzanine mode, `--mezzanine`: every video playlist, the top rung's included, against the video `--mezzanine` names. One run has one reference mode and writes one report; both modes on one ladder are two runs.
+  - **Scoring.** One pair after another with the run's settings, each with `VMAFAnalyzer::analyze()`, as a pair given with `--ref` and `--dis`: each pair opens and decodes its two inputs anew, the reference included, and `--frames N` limits each pair. The pairing warning of a pair (D-028) goes to stderr with the pair's number, and the run still exits with status 0. The first pair whose analysis is incomplete, by P-006's rules, ends the run: no report, exit status 1, and the error names the pair; so does a pair scored with other settings than the first, which only a model file changed during the run can cause, since the report gives the settings once.
+  - **The report** (`src/VMAFReport.h`, `ladder_to_json()`): the settings and libraries once; the master as given, the URL it was read from and the SHA-256 of its bytes; its entries with their index, line, URI, resolved URL, `BANDWIDTH`, `AVERAGE-BANDWIDTH`, `RESOLUTION`, `CODECS` and `FRAME-RATE` as the master gives them (`null` when absent) and whether they have video; the reference with its entries; the skipped entries; the plan's warnings; and `pairs`, each with its index, its entries and the keys of a pair's report that are a pair's own, written by the same code. A pair's report keeps its layout.
+  - **The command line.** The inputs are one of two forms: `--ref` and `--dis`, or `--ladder` with an optional `--mezzanine`. Options of both forms in one place are an error; an option of one form on the command line leaves out the config file's settings of the other (D-030); `--out` is needed by both; `--help` shows a synopsis per form and a "Ladder" paragraph.
+- **Alternatives**
+  - The player's `ManifestParser`; probing each entry with FFmpeg for a video stream instead of reading its attributes; skipping the entries whose inputs fail to open.
+  - For a missing `BANDWIDTH`, taking 0, as FFmpeg's hls demuxer and the player's parser do; for a bad one, its leading digits, as the demuxer's `atoi()` does.
+  - For equal highest bandwidths: refusing the master, or a tie-break by `AVERAGE-BANDWIDTH` or resolution.
+  - The pairs in descending `BANDWIDTH`, as `start_manifest()` scores them.
+  - Both modes in one run, writing two reports.
+  - Scoring every pair and listing every failure before exiting; decoding the reference once for all pairs, which is §2's orchestration.
+- **Rationale**
+  - D-029 fixes the design; where it is silent the rules are FFmpeg's (the first line, how URIs pair with entries, the base after redirects) or the repository's (`fetch_streams.py`'s rule for video), so that the same master gives the same video entries in the committed stream records and in a ladder run.
+  - A master the tool can't read without guessing is refused: `BANDWIDTH` decides the top rung, and taking 0 for a missing one could make another rung the reference without a word.
+  - The first among equals is the order the master gives them; the warning keeps that choice visible.
+  - With P-006 and D-029 a failed pair leaves no report, so the pairs after it would only take time.
+  - `mirage_vmaf` stays free of the player's parser, pugixml and network logger, which D-031's headless build leaves out.
+- **Limits**: HLS master playlists only, no DASH; `EXT-X-MEDIA` video renditions and I-frame playlists aren't scored; one pair at a time, the reference decoded again for each.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
+
+### P-051 The ladder check: ladder mode on the bipbop master against the pairs scored one by one, first 300 frames
+
+- **Choice**
+  - **The tool.** `eval/consistency/ladder_check.py` runs `mirage_vmaf --ladder <master>` and, with the same settings, `mirage_vmaf --ref <reference> --dis <distorted>` on each pair of a pairs file. It passes when every pair of the ladder report has, value for value, the keys of its own report that are a pair's (`scored_as`, `dis_conversion`, `ref_conversion`, `warnings`, `frames_scored`, `pooled`, `alignment`, `ref`, `dis`, `frames`); both reports have the same settings and libraries; the ladder scored exactly the pairs of the pairs file, each once; and its report accounts for every entry of the master once. It records its runs as `run_delta.sh` does (P-011). Its tests use `mirage_vmaf`'s stand-in, which takes `--ladder` and can be made to score a ladder's pair otherwise than on its own (`eval/consistency/tests/test_ladder_check.py`).
+  - **The run.** Build the release `mirage_vmaf` in a new worktree of `7fbaa8c`, the commit after this round's changes to the code and the tool, release preset, the `mirage_vmaf` target only (`eval/consistency/ladder-300/build.txt`). From that worktree, run `ladder_check.py` on bipbop 16x9's master and the pairs of D-018 (`pairs/bipbop16x9.txt`), with `--frames 300`, bicubic and vmaf_v0.6.1 named, one process at a time (`ladder-300/top-rung/`). `checks.txt` afterwards from the clean tree at `f983bac`.
+  - **`eval/run_all.sh`**: a new kind of step, `ladder`, reruns `ladder_check.py` with the options of its `run.cmd.txt` and HEAD's program. It compares the check's verdict, the ladder report's master and plan, and every per-frame score of the ladder's pairs and of the pairs scored one by one with the committed run's. The step is `ladder-300`.
+  - An earlier run of the same kind, from a clean worktree of `382a85d`, isn't cited: the code changed after it (`7fbaa8c`: the last line of a ladder run, and the error when a pair's settings differ from the first's).
+- **Alternatives**
+  - Comparing the ladder's scores with the committed reports of `defaults-300/` only, without scoring the pairs again; that is check 7 of `checks.txt`, and it rests on another program.
+  - A delta run in ladder mode, with FFmpeg's side.
+  - Every frame; a mezzanine run, for which there is no ladder with a mezzanine yet (D-011).
+- **Rationale**
+  - The same program in the same run, on the same inputs, is what shows that ladder mode scores a pair as a pair given on its own. `defaults-300/` adds that those scores are FFmpeg's (its §5 run passes), so ladder mode needs no §5 run of its own.
+  - 300 frames are the range of `defaults-300/`, which the run is compared with frame by frame.
+  - bipbop's master has the entries D-029 is about: five video playlists and an audio-only entry.
+- **Result** (`eval/consistency/ladder-300/checks.txt`):
+  - The master `mirage_vmaf` read has the SHA-256 of the copy in `eval/streams/fetched-2026-10-23/`, and each of its six entries the URL, `BANDWIDTH` and video flag of that record (check 3).
+  - The reference is gear5, entry 4. gear1 to gear4, entries 0 to 3, are scored against it, one pair each. gear0, entry 5, is skipped as `no video`. No warning (check 4).
+  - The check passes: every pair of the ladder has every compared value of its own report, all 300 frames' scores, PTS and positions the same at full precision (checks 5 and 6).
+  - Every per-frame score of the four ladder pairs is that of `defaults-300/` at full precision and, written with 6 decimals, FFmpeg's there (check 7).
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
+
+### P-052 The rerun of the committed measurements after D-029's ladder scoring, and what of it is committed
+
+- **Choice**
+  - D-029 adds ladder scoring to `mirage_vmaf`'s command line and a report for ladder runs; a pair given with `--ref` and `--dis` is scored and reported as before. So `eval/run_all.sh` reruns the committed runs with the programs and the options it gave them before (P-034, P-046, P-049): the runs made after D-016 with HEAD's program and the options their `run.cmd.txt` records, `format-cases-after` with the program of `d993686`, `align-cases-before` with that of `e8b867f`, and the runs before D-016 with that of `83c8ed6`. It adds the step `ladder-300` (P-051), with HEAD's program.
+  - One run of `eval/run_all.sh --skip-full --jobs 4` with no program given, so that it built all four programs from their commits, from a new clean worktree of `d340b32`, the commit after the ladder check's run and its checks, with its output directory and `TMPDIR` outside the repository. After `d340b32` the code changes in comments only (`e73272c` in a test, `93deef6` in two headers); the other commits are documents and the record. Committed in `eval/run_all/2026-10-23-ladder/` as P-049's record is.
+- **Alternatives**
+  - Every step, the two over every frame included.
+  - `--only ladder-300`.
+- **Rationale**
+  - HEAD's program reproducing every committed run is what shows that the new command line and report moved no score of a pair given on its own, and the rerun of `ladder-300` shows that the ladder check reproduces. The steps over every frame are left to the full-length report with bicubic that D-024 asks for, as in P-042, P-046 and P-049.
+- **Result** (`eval/run_all/2026-10-23-ladder/rerun_check.md`, `run_all.md`): all 21 steps ran, and everything compared is as committed, `ladder-300` included: its verdict, the ladder report's master and plan, and every per-frame score of the ladder's pairs and of the pairs scored one by one. The program built from `d340b32` has the SHA-256 of `eval/consistency/ladder-300/build.txt`, `eab1651cc09237fce5451fd1de0c236c2d589b2d3b2d2848065b675e8e35a4c7`; it reproduces the scores of the other runs it reran that were made after D-016, made by the builds `420b8776…`, `2220ce3a…`, `3633c43e…`, `85535c5c…` and `7fb455e9…`. The one built from `e8b867f` has the SHA-256 of `align-cases-before/build.txt`, `85535c5c…`; the one built from `d993686` that of `format-cases-after/build.txt`; and the one built from `83c8ed6` that of the runs before D-016. 670.0 s of wall time, the four builds included.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
