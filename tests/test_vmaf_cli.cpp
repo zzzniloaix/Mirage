@@ -174,6 +174,10 @@ TEST_CASE("vmafcli::usage: lists every option", "[vmafcli]")
     CHECK(contains(u, "Config file: --config FILE"));
     CHECK(contains(u, "Pairing: "));   // by timestamp (D-028)
     CHECK(contains(u, "Ladder: --ladder reads an HLS master playlist"));   // D-029
+    // Which masters --ladder refuses, and their exit status.
+    CHECK(contains(u, "A master playlist is refused when its"));
+    CHECK(contains(u, "so is a master with nothing to"));
+    CHECK(contains(u, "couldn't be read or was refused"));
     CHECK_FALSE(contains(u, "in the order the decoders output them"));
 }
 

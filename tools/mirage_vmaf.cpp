@@ -9,9 +9,9 @@
 //       failed to pair by timestamp: that is a warning, on stderr and in the
 //       report (DECISIONS.md D-028)
 //   1 — the analysis failed or was incomplete, with --ladder the master
-//       playlist couldn't be read or one pair's analysis failed or was
-//       incomplete (D-029), or the report could not be written; no report is
-//       left at --out
+//       playlist couldn't be read or was refused (src/VMAFLadder.h), or one
+//       pair's analysis failed or was incomplete (D-029), or the report could
+//       not be written; no report is left at --out
 //   2 — bad arguments, or a --config file that can't be read or has an error
 
 #include "FileHash.h"
