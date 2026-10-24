@@ -5,6 +5,7 @@ The public streams the evaluation has used or considered (work order §8), with 
 - `eval/baseline/inputs/`: the masters of both Apple streams and two bipbop playlists, as Phase 0 fetched them on 2026-10-21 (`fetched_utc.txt`), with their HTTP headers;
 - `eval/baseline/diagnostics/ffprobe_rungs.txt`: Phase 0's ffprobe of each bipbop video rung;
 - `eval/streams/fetched-2026-10-23/`: a fetch of 2026-10-23 by `eval/streams/fetch_streams.py --probe` (below; `docs/DECISIONS.md` P-023): every playlist the two masters' `EXT-X-STREAM-INF` entries name, what they say, and ffprobe's parameters of each video playlist's first video stream. Its `streams.md` has the full tables.
+- `eval/streams/d011-candidates-2026-10-24.txt`: candidate source clips for D-011's ladders, examined without downloading them (below; P-061).
 
 ## Used: Apple bipbop 16x9 (HLS)
 
@@ -68,7 +69,7 @@ Master playlist: <https://devstreaming-cdn.apple.com/videos/streaming/examples/i
 
 ## The evaluation's own ladders (D-011)
 
-The evaluation encodes its own HLS ladders from public source clips, which serve as the mezzanine (D-011). The owner chooses the clips and the encoding parameters when encoding starts; until then there is nothing to list (MEASUREMENT PENDING).
+The evaluation encodes its own HLS ladders from public source clips, which serve as the mezzanine (D-011). The owner chooses the clips and the encoding parameters when encoding starts. On 2026-10-24 eight candidate clips from four sources were examined without downloading them: the license statements of their official pages, their download URLs, sizes and checksums or entity tags, and their properties from their headers (`eval/streams/d011-candidates-2026-10-24.txt`; `docs/DECISIONS.md` P-061). `docs/PHASE1_DECISIONS_PENDING.md`, "D-011", sums them up for the owner. None of them is chosen, and no committed run uses one.
 
 ## Generated inputs
 
