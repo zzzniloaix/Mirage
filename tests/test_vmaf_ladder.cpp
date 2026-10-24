@@ -161,10 +161,10 @@ std::string make_rung(const fs::path& dir, int w, int h, int frames = 12)
     return (dir / "index.m3u8").string();
 }
 
-// A synthetic ladder under testtemp::dir()/<name>: rungs low (96x54), mid
-// (128x72, listed twice, with two audio groups) and top (192x108), the top
-// rung in the middle of the master, and an audio-only entry whose playlist
-// doesn't exist, since it is never opened.
+// A synthetic ladder in testtemp::dir()/mirage_test_ladder, made once: rungs
+// low (96x54), mid (128x72, listed twice, with two audio groups) and top
+// (192x108), the top rung in the middle of the master, and an audio-only
+// entry whose playlist doesn't exist, since it is never opened.
 struct Ladder {
     fs::path    dir;
     std::string master, low, mid, top;
