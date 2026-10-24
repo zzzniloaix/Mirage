@@ -1,0 +1,2 @@
+# ladder: the command eval/consistency/ladder_check.py ran, in <out_dir>/ladder. Its stderr log is kept xz-compressed (mirage.stderr.log.xz), as is a report over 1 MiB (mirage.json.xz).
+$ <mirage_vmaf> --ladder https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8 --out mirage.json --frames 300 --scaler bicubic --model vmaf_v0.6.1 > mirage.stdout.txt 2> mirage.stderr.log

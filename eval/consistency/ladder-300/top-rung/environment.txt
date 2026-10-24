@@ -1,0 +1,37 @@
+# Environment of an eval/consistency/ladder_check.py run. <mirage_vmaf> is the program below; <out_dir>, <repo>, <home> and <tmp> stand for local paths.
+<mirage_vmaf> = build/macos-release/mirage_vmaf
+
+$ git -C <repo> rev-parse HEAD
+7fbaa8c56cf830471e9dc6ec802619a8390a072c
+
+$ git -C <repo> status --porcelain   (start of the run)
+(no output: the working tree is clean)
+
+$ sw_vers
+ProductName:		macOS
+ProductVersion:		26.2
+BuildVersion:		25C56
+
+$ sysctl -n machdep.cpu.brand_string
+Apple M3 Pro
+
+$ uname -srm
+Darwin 25.2.0 arm64
+
+$ python3 -I (the interpreter running ladder_check.py)
+3.14.7 (main, Aug  5 2026, 10:29:49) [Clang 21.0.0 (clang-2100.1.1.101)]
+
+$ <mirage_vmaf>
+path: build/macos-release/mirage_vmaf
+sha256: eab1651cc09237fce5451fd1de0c236c2d589b2d3b2d2848065b675e8e35a4c7
+size: 409928 bytes
+libvmaf: /opt/homebrew/opt/libvmaf/lib/libvmaf.3.dylib
+real path: /opt/homebrew/Cellar/libvmaf/3.1.0/lib/libvmaf.3.dylib
+--help, first line: Usage: mirage_vmaf --ref <url|path> --dis <url|path> --out <report.json> [--frames N] [--scaler NAME] [--model NAME] [--model-file <model.json>] [--config <file>]
+
+$ git -C <repo> rev-parse HEAD
+7fbaa8c56cf830471e9dc6ec802619a8390a072c
+
+$ git -C <repo> status --porcelain   (end of the run)
+(no output: the working tree is clean)
+
