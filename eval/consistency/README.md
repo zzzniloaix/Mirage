@@ -2,6 +2,8 @@
 
 `run_delta.sh` compares Mirage's per-frame VMAF scores with those of FFmpeg's libvmaf filter, over the same frames of the same inputs, and writes a delta report per pair and for the whole run (work order §5; `docs/DECISIONS.md` D-017 to D-019). Mirage's side is `mirage_vmaf` (D-017). FFmpeg's side is the `ffmpeg` program of ffmpeg-full (D-009), used here only as the reference to check against.
 
+`ladder_check.py` checks `mirage_vmaf --ladder` (D-029) against the same pairs scored one by one, without FFmpeg ("Ladder check" below).
+
 `eval/run_all.sh` reruns every committed run below and compares it with the committed outputs (`eval/README.md`).
 
 ## Running it
@@ -603,7 +605,7 @@ What they show:
 - **Each pair as it scores on its own.** Each of the four pairs of the ladder report has every key of its own report that is a pair's, value for value: all 300 per-frame scores at full precision, the PTS and frame positions, the pooled values, the alignment and the conversions. Both reports have the same settings and libraries (`top-rung/check.md`; `checks.txt`, checks 5 and 6).
 - **The scores of `defaults-300/`.** Every per-frame score of the four ladder pairs is that of `defaults-300/` at full precision; that run used the same defaults, with the program of `02ebed5`. Written with 6 decimals, every score is also FFmpeg's in that run (check 7). So on these pairs ladder mode gives FFmpeg's scores, as `defaults-300/`'s §5 run shows for the pairs given one by one.
 
-Limits: top-rung mode only. Mezzanine mode, and §1.2's acceptance, both modes on one ladder, need a ladder with a mezzanine: D-011's self-encoded ladders (MEASUREMENT PENDING). bipbop's rungs were rendered separately (D-011), so these scores compare the modes and the tools, not the rungs' quality (D-005).
+Limits: top-rung mode only. Mezzanine mode, and §1.2's acceptance, both modes on one ladder, need a ladder with a mezzanine: D-011's self-encoded ladders (MEASUREMENT PENDING). bipbop's rungs were rendered separately (D-011), so these scores compare ladder mode with the same pairs given one by one, and with FFmpeg, not the rungs' quality (D-005). `eval/run_all.sh` reran the check and found it as committed (`eval/run_all/2026-10-23-ladder/`; P-052).
 
 ### `ffmpeg-scale-default/`, `ffmpeg-libvmaf-filter/`: what the FFmpeg of these runs does by default (P-016)
 
