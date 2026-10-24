@@ -1,0 +1,30 @@
+# Docker Hub's registry API, queried with curl: the index each tag names
+
+$ docker/query_base_image.sh library/debian trixie-20261020-slim trixie-slim 13-slim
+
+$ date -u +%Y-%m-%dT%H:%M:%SZ
+2026-10-24T14:11:34Z
+
+library/debian:trixie-20261020-slim
+  Docker-Content-Digest: sha256:62bd423aeee912639ca8ee681c2b762cb3e25137e0a92b20be455898a9f034ad
+  Content-Type:          application/vnd.oci.image.index.v1+json
+  sha256 of the body:    sha256:62bd423aeee912639ca8ee681c2b762cb3e25137e0a92b20be455898a9f034ad
+library/debian:trixie-slim
+  Docker-Content-Digest: sha256:62bd423aeee912639ca8ee681c2b762cb3e25137e0a92b20be455898a9f034ad
+  Content-Type:          application/vnd.oci.image.index.v1+json
+  sha256 of the body:    sha256:62bd423aeee912639ca8ee681c2b762cb3e25137e0a92b20be455898a9f034ad
+library/debian:13-slim
+  Docker-Content-Digest: sha256:62bd423aeee912639ca8ee681c2b762cb3e25137e0a92b20be455898a9f034ad
+  Content-Type:          application/vnd.oci.image.index.v1+json
+  sha256 of the body:    sha256:62bd423aeee912639ca8ee681c2b762cb3e25137e0a92b20be455898a9f034ad
+
+The platforms of library/debian:trixie-20261020-slim's index (architecture/variant, manifest digest,
+and the index's version and created annotations for each):
+  linux/amd64      sha256:4876fdea29cac1a33a3195f1eb1952feb1fca7dd6dd00be3e2f1879cf20d34d2  trixie-slim  2026-10-20T00:00:00Z
+  linux/arm/v5     sha256:462ae6374df6896fd8195faccbe2fc1b116cf214a576e9c65243566a6b5ecdcd  trixie-slim  2026-10-20T00:00:00Z
+  linux/arm/v7     sha256:f74f791baf8bae278425162d1dbca1918f2409b4ad62409ab436122f58c08023  trixie-slim  2026-10-20T00:00:00Z
+  linux/arm64/v8   sha256:a66b19aa552f595b4ab276c6b4f9b24fa4546632c5ecd88cccdced4a6866323a  trixie-slim  2026-10-20T00:00:00Z
+  linux/386        sha256:549d769bc5dc9d67f7bb2f18a597a380d2585612b902ecb7899b3bd45226a7ff  trixie-slim  2026-10-20T00:00:00Z
+  linux/ppc64le    sha256:6dfd0e94e73a05d4b1d4f5ec5156f50ab9872fced032c69ea57156dd6bbbaedd  trixie-slim  2026-10-20T00:00:00Z
+  linux/riscv64    sha256:c7834293247f8b5a554f70384d152462c9df8113a0b04958375c0e5660f0eb75  trixie-slim  2026-10-20T00:00:00Z
+  linux/s390x      sha256:9eca2a0e53d4d1ce9daf5ca1965895e8a8126840191bb1d59ae6fa08d1e32e0f  trixie-slim  2026-10-20T00:00:00Z
