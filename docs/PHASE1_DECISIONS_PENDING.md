@@ -257,6 +257,8 @@ The work order asks for every configurable item as a command line option and in 
 
 ## #11 The rest of the build strategy (§8, D-009)
 
+**Decided**: D-031, the agent's recommendations below: #11a option 2, #11b option 2, #11c option 1. **Done**: glad's generated loader is committed in `third_party/glad/` and built as a plain static library, with `regenerate.sh` and its license terms, so the build runs no Python (P-053); `MIRAGE_HEADLESS` and the presets `macos-headless` and `linux-release`, with Linux instructions in `docs/BUILD.md` (P-054); a Dockerfile in `docker/` (P-055); the build check at `5ae44a4` shows the macOS side (`eval/build_check/macos-2026-10-24-5ae44a4.txt`, P-058). Not built: the Linux preset, the §5 run on Linux that D-031 asks for, and the Docker image, for want of a Linux host or container runtime (MEASUREMENT PENDING). What D-031 leaves open is in "Open after D-020" below. The rest of this package describes the build before D-031.
+
 D-009 standardized FFmpeg on ffmpeg-full and left two parts of #11 open: whether glad's generated output is committed, and the scope of Linux support. The work order's §8 also asks for a Docker or Nix environment to reproduce the evaluation, which needs both answers. Nothing of this is implemented. What the §8 work that needed no decision did is in `docs/BUILD.md`, `eval/streams.md` and `eval/README.md`; the process choices behind it are P-020 to P-025 in `docs/DECISIONS.md`.
 
 ### #11a Is glad's generated output committed?
@@ -314,6 +316,8 @@ Nothing has been built or run on Linux, so whether the code compiles there, whic
 
 ## README.md beyond the brew line
 
+**Decided**: D-031, option 2. **Done** (P-056): the README's build part is a pointer to `docs/BUILD.md`, and the parts listed below are corrected from the repository's files; the controls, the thread model and the license section are as they were. The rest of this package describes the README before D-031.
+
 **Question.** The §8 work changed `README.md` only where it had to: the brew line now installs ffmpeg-full (D-009), a note points to `docs/BUILD.md`, and a License section states GPL-3.0-or-later (D-008). Other parts describe an older state of the repository. Should they be brought up to date, and how?
 
 **What differs from the repository today.**
@@ -340,7 +344,7 @@ Nothing has been built or run on Linux, so whether the code compiles there, whic
 - **D-009's alternatives.** D-009 says that standardizing on `ffmpeg` would need a separately installed FFmpeg with libvmaf, but Homebrew's `ffmpeg` 8.1.1 on the machine of the measurements was built with `--enable-libvmaf` as well (`eval/baseline/environment.txt`, line 163). The decision stands on its other reasons. D-009 is the owner's entry and wasn't edited; options: a correction note, as D-001 has; leave it.
 - **Server addresses in the committed logs.** The delta runs keep FFmpeg's verbose logs, xz-compressed, and these include FFmpeg's TCP connection lines with the IP addresses of Apple's CDN servers: public addresses, not local information, so the runs' privacy scan doesn't flag them (P-011). Options: keep the logs as FFmpeg wrote them; filter the network lines out of the stored logs, which would then no longer be raw; lower the log level of FFmpeg's network layer only. **Agent's recommendation**: keep them raw.
 - **D-008's open question**: whether legal or the company's open-source process has to confirm GPL-3.0-or-later before the repository is made public again. `LICENSE` is committed as D-008 decided (P-020). This is the owner's to check.
-- **`vcpkg.json`.** The repository's root `vcpkg.json` lists FFmpeg and GLFW, without libvmaf or versions, and the build doesn't use it (`docs/VMAF_GAP_REPORT.md`, "Specific gaps for §8"); `docs/BUILD.md` doesn't mention it. Options: remove it; make it a second, pinned way to get the dependencies, libvmaf included, together with #11b and #11c; leave it. **Agent's recommendation**: remove it, unless #11b or #11c chooses vcpkg.
+- **`vcpkg.json`.** The repository's root `vcpkg.json` lists FFmpeg and GLFW, without libvmaf or versions, and the build doesn't use it (`docs/VMAF_GAP_REPORT.md`, "Specific gaps for §8"); `docs/BUILD.md` doesn't mention it. Options: remove it; make it a second, pinned way to get the dependencies, libvmaf included, together with #11b and #11c; leave it. **Agent's recommendation**: remove it, unless #11b or #11c chooses vcpkg. **Decided**: D-031. **Done**: removed (`20d551c`, P-056).
 
 ## Process choices to confirm
 
@@ -383,9 +387,9 @@ Reported, not edited:
 1. §1.3 gives §5 passing as the reason for bicubic; §5 passes with all three scalers (#3).
 2. §7's `reference_mode` has only `mezzanine` and `top-rung`; `mirage_vmaf` writes `explicit-pair` (§1.2 above).
 3. §5's command, `ffmpeg -i <distorted> -i <reference> -lavfi libvmaf=model=<same>`, has no scale filter, and FFmpeg's libvmaf filter refuses inputs of different sizes (`input width must match`, `eval/consistency/ffmpeg-libvmaf-filter/checks.txt`, check 4). The §5 tool adds `scale=W:H:flags=<scaler>` to the distorted input, as Phase 0's diagnostic did (P-005, P-008).
-4. §8 asks for FFmpeg 8.x, libvmaf 3.x, OpenGL 4.1, miniaudio and GLFW to be pinned, with their exact versions recorded. The versions are recorded (`docs/BUILD.md`, "Versions"), miniaudio is pinned by commit, and the generated loader fixes OpenGL at 4.1 core; FFmpeg, libvmaf and GLFW come from Homebrew, which can't pin them (#11c).
-5. §8 asks for build instructions for Linux and macOS, Apple Silicon included. Only macOS on Apple Silicon is documented and checked (#11b).
-6. §8's acceptance is a clean machine building as the README says. On the machine of the build checks, the release preset stops at glad with the default Python, and the README's quick start (`macos-debug`) runs the same glad step; the README now points to `docs/BUILD.md`, whose steps build both presets; and the check ran in a clean worktree, not on a clean machine (P-022).
+4. §8 asks for FFmpeg 8.x, libvmaf 3.x, OpenGL 4.1, miniaudio and GLFW to be pinned, with their exact versions recorded. The versions are recorded (`docs/BUILD.md`, "Versions"), miniaudio is pinned by commit, and the generated loader fixes OpenGL at 4.1 core; FFmpeg, libvmaf and GLFW come from Homebrew, which can't pin them (#11c). Since D-031 the Docker image pins FFmpeg 8.1.1, libvmaf 3.1.0 and x264 by SHA-256 or commit, but not Debian's packages, and it hasn't been built (`docker/README.md`).
+5. §8 asks for build instructions for Linux and macOS, Apple Silicon included. Only macOS on Apple Silicon is documented and checked (#11b). Since D-031 `docs/BUILD.md` has Linux instructions for `mirage_vmaf` and the unit tests, without the player, which haven't been built on Linux (P-054).
+6. §8's acceptance is a clean machine building as the README says. On the machine of the build checks, the release preset stops at glad with the default Python, and the README's quick start (`macos-debug`) runs the same glad step; the README now points to `docs/BUILD.md`, whose steps build both presets; and the check ran in a clean worktree, not on a clean machine (P-022). Since D-031 the README's build part points to `docs/BUILD.md`, and in the check at `5ae44a4`, again in a clean worktree, both presets and the headless preset built with no Python involved (`eval/build_check/macos-2026-10-24-5ae44a4.txt`, P-058).
 7. §8 has `eval/run_all.sh` rerun all the paper's numbers and figures. There are none yet (D-005), so it reruns the committed Phase 1 measurements (P-024).
 8. §8 asks for `eval/streams.md` with a fetch script, and lists DASH-IF test vectors and Unified Streaming demo streams. `eval/streams/fetch_streams.py` fetches the playlists and probes the streams but keeps no media (P-023), and the DASH-IF and Unified Streaming streams were not examined (`eval/streams.md`).
 9. §1.1 to §1.3 ask the output to carry the libvmaf version and the model identifier, the `reference_mode` and the scaler. `mirage_vmaf`'s report does (`src/VMAFReport.h`). The player's own JSON export (`VMAFAnalyzer::write_json` in `src/VMAFAnalyzer.cpp`) still has its Phase 0 layout, which a test pins, without any of them, and the player has no scaler or model option. Options: give `write_json` those fields; have the player write `mirage_vmaf`'s report format; leave the player's export until §7's schema.
@@ -557,8 +561,78 @@ The plan's "What FFmpeg does" (`docs/plans/frame-alignment.md`) says, from the s
 
 The player's VMAF ladder analysis (`VMAFAnalyzer::start_manifest()`, from the "Manifest Variants" menu and `--vmaf`) is as before: every `EXT-X-STREAM-INF` entry but the one of the highest `BANDWIDTH` is scored against it, audio-only entries and entries that repeat a playlist included, in descending `BANDWIDTH`, a failed entry recorded as an error, without a mezzanine mode (`docs/VMAF_GAP_REPORT.md`, item 4). D-029 gives `mirage_vmaf` its own rules and chose not to mirror the player. Whether the player should follow `mirage_vmaf`'s rules is the owner's choice, a change to the player (D-007 if it touches its decode path), and is not made here.
 
+### D-031: the license texts next to glad's loader (P-053)
+
+**Question.** D-031 has the license terms of glad's committed loader stated next to it. Should the license texts be committed as well, and how do the terms sit with GPL-3.0-or-later?
+
+**Today.** `third_party/glad/README.md` states the terms: the SPDX line of `gl.h` and `gl.c`, `(WTFPL OR CC0-1.0) AND Apache-2.0`, where the Apache-2.0 part is for what comes from the Khronos specification (glad's README); the Khronos Group's notice at the top of `khrplatform.h`; and glad's `LICENSE` at the pinned commit, for the generator and the Khronos files it ships. No license text is copied into the repository.
+
+**Options.**
+
+1. As today.
+2. glad's `LICENSE` file next to the generated files.
+3. The texts of Apache-2.0, and of WTFPL or CC0-1.0, next to them.
+
+**Agent's recommendation.** None of the agent's own: this belongs with D-008's open question, whether legal or the company's open-source process has to confirm the license, whose answer decides what the files need next to them.
+
+### D-031: the headless configuration's details (P-054)
+
+**Question.** D-031 fixes a CMake option without the player's dependencies, a Linux preset and Linux instructions. Should the details it leaves open hold?
+
+**Today** (`CMakeLists.txt`, `CMakePresets.json`, `docs/BUILD.md` steps 3 and 6):
+
+- The option is `MIRAGE_HEADLESS`, off by default. On, it leaves out OpenGL, GLFW, glad, Dear ImGui and nativefiledialog-extended, and also stb and the player's snapshot check (`snapshot_diff`, `pathb_regression`), which only the player uses; it builds `mirage_vmaf` and all of `mirage_tests`.
+- A third macOS preset, `macos-headless`, so that the headless configuration is built and checked on macOS with ffmpeg-full; its `mirage_vmaf` is identical to the release preset's (`eval/build_check/macos-2026-10-24-5ae44a4.txt`).
+- One Linux preset, `linux-release`, Release only, offered only on a Linux host, with no `PKG_CONFIG_PATH`.
+- `eval/run_all.sh` is unchanged. On Linux it builds the older commits' programs with their `macos-release` preset, as on macOS, which needs the player's configure-time dependencies there.
+
+**Options.** As today; any of P-054's alternatives: the name `MIRAGE_BUILD_PLAYER`; stb and `snapshot_diff` kept in the headless configuration; only the VMAF tests; a Linux debug preset; no `macos-headless` preset.
+
+**Agent's recommendation.** As today: the option leaves out exactly what only the player uses, and each preset is a configuration a step of `docs/BUILD.md` gives.
+
+### D-031: the Docker image's details (P-055)
+
+**Question.** D-031 fixes a base image pinned by digest, FFmpeg 8.1.1 and libvmaf built from release sources checked by SHA-256 at the measured versions, `mirage_vmaf` built from the repository, and `eval/run_all.sh` as the command. Should the details it leaves open hold?
+
+**Today** (`docker/Dockerfile`, `docker/README.md`; not built, MEASUREMENT PENDING):
+
+- The base image is Debian 13 slim of 2026-10-20, by the digest of its image index (`docker/base-image.txt`).
+- FFmpeg has the configure options of Homebrew's ffmpeg-full formula for what the evaluation uses (GPL version 3, GnuTLS, libvmaf, libx264), without the formula's other external libraries, its macOS options and `ffplay`; libvmaf the formula's meson options and its model files.
+- x264 is the commit of Homebrew's x264 formula r3222, the H.264 encoder of the reference format clips.
+- Debian's packages are not pinned; the image lists the versions it installed.
+- The build context is the repository's `.git` alone, cloned with `--single-branch`: the image holds the commit checked out where it is built, with its branch's history and a clean working tree.
+- The image has the development files of OpenGL, GLFW and GTK 3, which the older commits whose programs `run_all.sh` builds need to configure.
+- Its entry point is `run_all.sh` with the image's `mirage_vmaf`, FFmpeg and model directory, `/out` its default output directory; it runs as root.
+
+**Options.** As today; any of P-055's alternatives: Ubuntu 24.04 or another base; Debian's packages from `snapshot.debian.org` at the base image's date, or each pinned by version; all of the formula's external libraries; Debian's libx264; the older programs built into the image, or an image without the steps that need them; a user other than root.
+
+**Agent's recommendation.** As today, adding Debian's packages from `snapshot.debian.org` at the base image's date once a container runtime can show that the image builds: the compilers and libraries would then be pinned as the base image is.
+
+### D-006 outside Homebrew: the libvmaf package version on Linux (P-054, P-055)
+
+**Question.** D-006 has the reports record libvmaf's package version next to its run-time version. The package version is read from a Homebrew Cellar path: by `CMakeLists.txt` for `mirage_vmaf`'s reports, and by `eval/consistency/run_delta.py` for the libvmaf of FFmpeg's libvmaf filter. Outside Homebrew, on Linux and in the Docker image, both give `unknown`. What should they record there?
+
+**Options.**
+
+1. As today: `unknown`, with the run-time version as on macOS.
+2. A CMake cache variable a build sets where the library's path names no version, which the Dockerfile would set to 3.1.0, the release it builds, and the same as an option of `run_delta.py`.
+3. libvmaf's pkg-config version: it is the run-time version (3.0.0 for the package 3.1.0, D-006), so it would add nothing.
+
+**Agent's recommendation.** Option 2: whoever builds libvmaf knows the release, and D-006 asks for both versions.
+
+### CLAUDE.md's build notes (for information)
+
+`CLAUDE.md` still says that glad2 and miniaudio are fetched at configure time, and has a note on installing jinja2 for glad. Since D-031 glad isn't fetched and the build runs no Python. The file is the owner's and wasn't edited.
+
+### Dear ImGui's loader define (for information)
+
+`CMakeLists.txt` gives `imgui_impl` the define `IMGUI_IMPL_OPENGL_LOADER_GLAD2`, with a comment that glad is the loader of Dear ImGui's OpenGL 3 backend. The backend of the pinned Dear ImGui, v1.91.9, has used a loader of its own since 2021 (the changelog at the top of its `backends/imgui_impl_opengl3.cpp`), so the define has no effect. The line was left as it was.
+
 ### Smaller choices
 
+- P-056: the README after D-031, its build part a pointer to `docs/BUILD.md` and its stale facts corrected; `vcpkg.json` removed after a search showed nothing using it.
+- P-057: a fix to a test of the player's HLS helpers, which read packets through a context whose interrupt callback kept a pointer to a stop token that no longer existed; the test only, the code under test unchanged.
+- P-058: the build check at `5ae44a4`, after D-031's build changes, and its record (`eval/build_check/macos-2026-10-24-5ae44a4.txt`).
 - P-051: the ladder check, `eval/consistency/ladder_check.py`, which compares `mirage_vmaf --ladder` with the same pairs scored one by one; its run on bipbop's master over the first 300 frames (`eval/consistency/ladder-300/`) and its step in `eval/run_all.sh`.
 - P-052: the rerun of the committed measurements after D-029, from a clean worktree of `d340b32`, which found everything as committed, `ladder-300` included (`eval/run_all/2026-10-23-ladder/`).
 - P-045: the analyzer tests of D-028 on generated clips, Matroska with uncompressed frames at chosen timestamps and an MPEG-TS clip coded with FFmpeg's MPEG-2 encoder; three earlier tests changed.
