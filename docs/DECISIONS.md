@@ -1270,3 +1270,68 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
 - **Status**: pending owner confirmation
+
+### P-047 How the §5 delta tool compares the two sides by timestamp (D-028)
+
+- **Choice**
+  - **FFmpeg's pairs from its log.** FFmpeg's graph gets `showinfo=checksum=0` at the end of both inputs' chains and after libvmaf (`vmafdelta.SHOWINFO`, `filtergraph()`): filters that change no frame and log each frame's pts in its link's time base. The tool runs FFmpeg 8.1.1's framesync rule on the frames of the two chains (`framesync_events()`, from `libavfilter/framesync.c` and `vf_libvmaf.c`): in time order each input's frames become its current frame; each distorted frame is scored with the current reference frame, the one at or before its time, none before the reference's first frame, the reference's last once it has ended; once the distorted input has ended, each later reference frame is scored against the last distorted frame. Times are compared in the time base framesync picks (`av_gcd_q()`). The events must be the frames libvmaf passed on, and those with a reference frame as many as the frames of FFmpeg's libvmaf log; otherwise the pair fails ("FFmpeg's pairs could not be established from its log") and no scores are compared.
+  - **Times** from each input's start: FFmpeg's as `ffmpeg` shifts each input, by the start its log gives (`Input #N ... start:`); `mirage_vmaf`'s PTS less the starts of its report's `alignment`, or, for a report without one (from before D-028), less FFmpeg's starts rescaled as `ffmpeg` rescales them. Both are compared exactly, as fractions of their time bases.
+  - **The same pair**: a pair of each side with the same reference frame and the same distorted frame, by their positions in the inputs (`ref_index`, `dis_index`; for a report from before D-028, which paired in decode order, the pair's index for both), each matched once, in Mirage's order. Its two frames must have the same times on both sides.
+  - **The verdict**: besides P-009's checks, a pair passes only if FFmpeg's pairs are established, both sides scored the same pairs (`PAIRING MISMATCH` otherwise, after `FRAME COUNT MISMATCH` where the numbers differ), at the same timestamps (`TIMESTAMP MISMATCH`), more than none, and no pair both scored has |delta| > the threshold (D-019). The scores are compared over the pairs both scored; the reports name each compared pair by Mirage's pair index and FFmpeg's frame number.
+  - **What each side counted as failed, never hidden**: the report's `alignment`, and "Pairing by timestamp" in its `delta.md`, give both sides' pairing in counts: the pairs; per input, the frames in no pair and in several; the pairs whose two frames are further apart than the tolerance, half the reference's frame duration from the report's alignment, else from ffprobe's `r_frame_rate`; `mirage_vmaf`'s failures by reason, its failure rate and libvmaf contexts; FFmpeg's distorted frames passed on unscored, the pairs a reference frame made after the distorted input ended, and the timestamp discontinuities `ffmpeg` corrected. Then the pairs only one side scored, the pairs both scored at other timestamps, and every frame that the two sides pair with other frames, or that `mirage_vmaf` counts as failed, which FFmpeg never does, with what each side does with it: at most 1000 of each listed in `delta.json`, 20 in `delta.md`, all counted. Such frames, and corrected discontinuities, are warnings; they don't fail a pair whose pairs and scores agree.
+  - P-009's warning about `mirage_vmaf` pairs whose two frames have different PTS is dropped: the comparison settles which frames each side paired, and the report keeps the count.
+- **Alternatives**
+  - `showinfo` after libvmaf only, as the plan has it: it gives each event's time, but not whether the event was scored (distorted frames before the reference's first are passed on unscored), nor its reference frame, nor the distorted frame of an event made after the distorted input ended.
+  - Pairs matched by their timestamps only: a duplicated timestamp is ambiguous, and `ffmpeg`'s corrected timestamps (MPEG-TS, HLS) make pairs of the same frames look different. Or by positions only, without the timestamps.
+  - Failing a pair on the differences in failure accounting as well; or only warning when the pairs differ.
+  - FFmpeg's `metadata` filter printing to separate files, which would keep the verbose log as it was.
+  - The comparison by position as a fallback when FFmpeg's pairs can't be established.
+- **Rationale**
+  - D-028 and the plan's "Where the code changes": the delta tool compares by timestamp, a pair passes only if both sides scored the same timestamps, and the differences in what each side counted as failed are reported.
+  - Positions identify the frames exactly, so a pair both scored is scored on the same pictures; the timestamps check that both sides measure time alike.
+  - Reconstructing framesync's events from both chains, checked against what libvmaf passed on and scored, is what FFmpeg's log can tell without changing FFmpeg's pairing; a reconstruction that doesn't match fails the pair rather than comparing pairs that aren't known.
+  - `showinfo` is FFmpeg's own frame logger and leaves the evidence in the raw verbose log (D-032). The cost is a longer log: two lines per frame for each of the three filters.
+- **Limits**: framesync's rule as FFmpeg 8.1.1 has it under its default options; a filter graph that `ffmpeg` configures more than once fails the reconstruction.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
+
+### P-048 The alignment cases, scored before and after D-028, and the §1.4 acceptance in them
+
+- **Choice**
+  - `eval/consistency/align_cases.py` makes the cases of the work order's §1.4 and of the plan's "Tests" from `color_cases.py`'s pattern, the first 10 pictures at 30000/1001 fps, references at 1920x1080 and distorted inputs at 640x360, 8-bit yuv420p, all tagged bt709/tv, with FFmpeg's `select`, `loop`, `setpts` and `fps` filters: a dropped distorted frame (§1.4's acceptance stream), a dropped reference frame, a duplicated timestamp, half the frame rate, a later start in a video-only container and with an audio track from 0, and MPEG-TS timestamps that restart midway; and two controls, frames that line up, and the same frames with millisecond (Matroska) reference timestamps against 90 kHz (MPEG-TS) distorted ones. Matroska with uncompressed frames; MPEG-TS with FFmpeg's MPEG-2 encoder, every frame a key frame at a fixed quantizer, the restart written as two files one after the other, the second's first packets marked as discontinuous. The script checks each frame's picture by its MD5 and its timestamp, and records the clips (`clips.txt`).
+  - The runs: from a new clean worktree of `d9b1f51`, the clips made once there, `run_delta.sh` over every frame with bicubic, vmaf_v0.6.1, 4 threads and the threshold 0.01 named; with the `mirage_vmaf` of `e8b867f`, the last commit before D-028 that changed the code `mirage_vmaf` is built from, built in a new worktree (`eval/consistency/align-cases-before/`), and with that of `d9b1f51`, built in the run's worktree (`align-cases-d028/`). `checks.txt` of each afterwards from the clean tree at `d45372d`.
+  - §1.4's acceptance as committed evidence: the run of `a01_dropped_distorted` in `align-cases-d028/`, `mirage_vmaf`'s report with the failed frame, its warning in the report and on stderr and its exit status, every pair's PTS and the scores against the control's, beside the same stream before D-028 (`align-cases-d028/checks.txt`, check 4; `align-cases-before/checks.txt`, checks 4 and 5).
+- **Alternatives**
+  - The six kinds of case only, one later start, and a forward jump in Matroska, which `ffmpeg` doesn't correct, as the discontinuity.
+  - Clips made with libav* as the analyzer tests make theirs (P-045), or a bipbop rung with frames removed.
+  - The program of `02ebed5` or `0496b21` for the run before D-028: the code is that of `e8b867f`, and their builds have its SHA-256 (`eval/consistency/defaults-300/build.txt`, `eval/run_all/2026-10-23-d027/`).
+  - A run of `mirage_vmaf` alone on the dropped-frame stream for §1.4.
+- **Rationale**
+  - These are the plan's delta runs on synthetic clips, "made with FFmpeg's `select`, `setpts` and `fps` filters and scored by both sides, committed like `color-cases-before/`".
+  - One pattern and one full clip per size and container make each frame's MD5 name its picture, so every pair of the reports can be read as two pictures.
+  - The controls separate what the alignment changes from what the clips' coding does: `a08` came out of making `a07`, whose Matroska reference against MPEG-TS distorted frames showed FFmpeg pairing frames with the reference frame before; the two later starts are those of the analyzer test (P-045) and of `docs/PHASE1_DECISIONS_PENDING.md`, "D-028's timestamp origin and a clip cut with its timestamps kept".
+  - In a delta run the acceptance stream shows both sides: `mirage_vmaf`'s report of the failure and FFmpeg's scores of the same frames.
+- **Result** (`eval/consistency/README.md`, "`align-cases-before/`, `align-cases-d028/`"): the clips are as intended. Since D-028, `mirage_vmaf` reports §1.4's dropped frame instead of a wrong score: the reference's frame 5 as unmatched, a failure rate of 0.1 with the warning, exit status 0, every pair's two frames at the same PTS, and the scores of the control away from the gap; before D-028 it scored the 4 pairs after the gap one picture apart, 22.609365 to 24.440811, without a warning. Of the 9 cases, the control `a00` passes with both programs, and `a06` (a later start in a container from 0) passes since D-028 only, its 3 unmatched reference frames reported; every other case fails, and its reports show where FFmpeg's rule B and Mirage's rule A pair other frames, or where pairs both scored differ through libvmaf's motion features. Once the distorted input has ended, FFmpeg goes on scoring each later reference frame against the last distorted frame, which the plan's reading of the sources missed; FFmpeg's side is the same in both runs.
+- **Limits**: synthetic clips of 10 frames, one container per case and one case of each kind; FFmpeg 8.1.1 only. The scores only compare the two tools.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
+
+### P-049 How eval/run_all.sh reruns the committed runs after the comparison by timestamp, and the rerun
+
+- **Choice**
+  - Every `run_delta.sh` step is rerun with HEAD's delta tool, which compares the two sides by timestamp since D-028 (P-047); the runs made before it, with the comparison by position, are judged by the new comparison too. No option keeps the old comparison: where both sides pair the same frames in order, the new comparison compares the same scores, and the rerun shows whether every committed verdict holds.
+  - The programs stay as before (P-034, P-046), with one more row in `PROGRAMS` for the alignment cases before D-028: `before-d028`, the commit `e8b867f` that `align-cases-before/build.txt` names (`BEFORE_D028`, `--mirage-vmaf-before-d028`). New steps: `align-clips` (`align_cases.py`, compared with `align-cases-before/clips.txt`; a clips step now names its script), `align-cases-before` with that program and `align-cases-d028` with HEAD's, each with the options of its `run.cmd.txt`.
+  - One run of `eval/run_all.sh --skip-full --jobs 4` with no program given, so that it built all four programs from their commits, from a new clean worktree of `4eeb539`, the commit after the alignment runs' checks, with its output directory and `TMPDIR` outside the repository. After `4eeb539` only documents and the record change. Committed in `eval/run_all/2026-10-23-align/` as P-046's record is.
+- **Alternatives**
+  - An option of `run_delta.sh` for the comparison by position, given to the reruns of the runs made before D-028.
+  - Rerunning each run with the delta tool of the commit that made it.
+  - Every step, the two over every frame included.
+- **Rationale**
+  - Rerunning the committed runs with the head's tool, the settings they recorded named, is what shows that the new comparison moves no verdict and the `showinfo` filters no score of FFmpeg's.
+  - The steps over every frame are left to the full-length report with bicubic that D-024 asks for, as in P-042 and P-046.
+- **Result** (`eval/run_all/2026-10-23-align/rerun_check.md`, `run_all.md`): all 20 steps ran, and everything compared is as committed: every verdict, Mirage's per-frame scores at full precision and every libvmaf metric of FFmpeg's logs, in the 300-frame runs, the synthetic color tag, reference format and alignment cases, the clips' records, the FFmpeg records and the pooling steps. The program built from `4eeb539` has the SHA-256 of `eval/consistency/align-cases-d028/build.txt`, `7fb455e9…`; the one built from `e8b867f` that of `align-cases-before/build.txt`, `85535c5c…`; the one built from `d993686` that of `format-cases-after/build.txt`; and the one built from `83c8ed6` that of the runs before D-016. 620.4 s of wall time, the four builds included.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
