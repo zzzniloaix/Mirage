@@ -67,8 +67,9 @@ before D-016, --skip-full the two steps over every frame (acceptance-full,
 pooling-full). Unless --mirage-vmaf, --mirage-vmaf-before,
 --mirage-vmaf-before-d022 or --mirage-vmaf-before-d028 give one, each is
 built in a temporary worktree of its commit: `cmake --preset macos-release`,
-then only the mirage_vmaf target, which needs no glad venv (docs/BUILD.md,
-step 3).
+then only the mirage_vmaf target. That target never needed glad's loader,
+which the commits before D-031 generated with Python, so no glad venv; since
+D-031 the build runs no Python at all (docs/BUILD.md).
 
 Then it compares, step by step, the rerun with the committed outputs: the
 per-frame scores of both sides of every pair (Mirage's at full precision,
