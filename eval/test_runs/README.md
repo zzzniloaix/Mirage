@@ -31,4 +31,4 @@ Local paths appear as `<repo>`, `<home>`, `<tmp>` and `<scratch>`.
 - Each of the 1300 runs took from 0.96 to 1.11 s of wall time (the records' last sections).
 - The second series built both commits anew, in other worktrees; the SHA-256 of each build differs between the two series.
 
-So the test fails intermittently at the commit Phase 1 started from as well. The runs don't show whether the test's timing or the track switch is at fault (`docs/PHASE1_DECISIONS_PENDING.md`, "Smaller items found in Phase 1").
+So the test fails intermittently at the commit Phase 1 started from as well. The runs don't show whether the test's timing or the track switch is at fault (`docs/PHASE1_DECISIONS_PENDING.md`, "Smaller items found in Phase 1"); `docs/plans/demuxer-switch-test.md` is the plan D-032 asked for to find out, for the owner's approval.
