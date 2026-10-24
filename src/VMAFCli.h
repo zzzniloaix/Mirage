@@ -13,9 +13,13 @@
 
 namespace vmafcli {
 
+// A run scores one pair, --ref and --dis, or a ladder, --ladder with an
+// optional --mezzanine (DECISIONS.md D-029; src/VMAFLadder.h).
 struct Args {
     std::string ref;            // --ref: reference, a path or any URL FFmpeg opens
     std::string dis;            // --dis: distorted
+    std::string ladder;         // --ladder: an HLS master playlist whose video playlists are scored
+    std::string mezzanine;      // --mezzanine: with --ladder, the reference instead of the top rung
     std::string out;            // --out: where the JSON report goes
     unsigned    frames = 0;     // --frames: score only the first N pairs; 0 = all
     VMAFScaler  scaler = VMAFOptions{}.scaler;   // --scaler: scales the distorted frames
@@ -40,6 +44,10 @@ ConfigFile read_config(const std::string& path);
 // error, named with its line. -h / --help anywhere wins over everything
 // else. A model name is not checked here: libvmaf says which it has.
 //
+// The inputs are one of two forms: a pair, --ref and --dis, or a ladder,
+// --ladder and, optionally, --mezzanine. Options of both forms can't be given
+// in one place; --out is needed by both.
+//
 // --config FILE reads settings from FILE, through `load`: one `name = value`
 // per line, `name` a long option's name without the leading "--" (all but
 // config), `value` the rest of the line, both without the white space around
@@ -47,7 +55,9 @@ ConfigFile read_config(const std::string& path);
 // whose first character other than white space is '#' are skipped. Each
 // setting is set once and checked as its option is. An option given on the
 // command line replaces the file's setting; --model and --model-file are one
-// setting, the model, so either replaces either.
+// setting, the model, so either replaces either; and an option of one form
+// of the inputs on the command line leaves out the file's settings of the
+// other form.
 std::string parse(const std::vector<std::string_view>& argv, Args& out,
                   const std::function<ConfigFile(const std::string&)>& load = read_config);
 

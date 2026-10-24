@@ -4,6 +4,7 @@
 #include "VMAFCli.h"
 
 #include <filesystem>
+#include <format>
 #include <fstream>
 #include <map>
 #include <string>
@@ -160,16 +161,104 @@ TEST_CASE("vmafcli::usage: lists every option", "[vmafcli]")
     const std::string u = vmafcli::usage();
     CHECK(u.starts_with("Usage: mirage_vmaf --ref <url|path> --dis <url|path> --out <report.json> "
                         "[--frames N] [--scaler NAME] [--model NAME] [--model-file <model.json>] "
-                        "[--config <file>]\n"));
-    for (std::string_view opt : { "--ref", "--dis", "--out", "--frames", "--scaler", "--model",
-                                  "--model-file", "--config", "-h, --help" }) {
+                        "[--config <file>]\n"
+                        "       mirage_vmaf --ladder <url|path> [--mezzanine <url|path>] "
+                        "--out <report.json> [--frames N] [--scaler NAME] [--model NAME] "
+                        "[--model-file <model.json>] [--config <file>]\n\n"));
+    for (std::string_view opt : { "--ref", "--dis", "--ladder", "--mezzanine", "--out", "--frames",
+                                  "--scaler", "--model", "--model-file", "--config", "-h, --help" }) {
         INFO(opt);
-        CHECK(contains(u, opt));
+        CHECK(contains(u, std::format("\n  {} ", opt)));   // a row of the options' list
     }
     CHECK(contains(u, "Exit status"));
     CHECK(contains(u, "Config file: --config FILE"));
     CHECK(contains(u, "Pairing: "));   // by timestamp (D-028)
+    CHECK(contains(u, "Ladder: --ladder reads an HLS master playlist"));   // D-029
     CHECK_FALSE(contains(u, "in the order the decoders output them"));
+}
+
+// ── --ladder and --mezzanine (D-029) ──────────────────────────────────────────
+
+TEST_CASE("vmafcli::parse: a ladder instead of a pair", "[vmafcli]")
+{
+    vmafcli::Args a;
+    REQUIRE(run({ "--ladder", "https://h/master.m3u8", "--out", "r.json" }, a).empty());
+    CHECK(a.ladder == "https://h/master.m3u8");
+    CHECK(a.mezzanine.empty());   // top-rung, the default (D-002)
+    CHECK(a.ref.empty());
+    CHECK(a.dis.empty());
+    CHECK(a.out == "r.json");
+
+    vmafcli::Args b;
+    REQUIRE(run({ "--mezzanine", "src.mov", "--frames", "300", "--ladder", "m.m3u8", "--out", "o" },
+                b).empty());
+    CHECK(b.ladder == "m.m3u8");
+    CHECK(b.mezzanine == "src.mov");
+    CHECK(b.frames == 300);
+
+    vmafcli::Args c;
+    CHECK(run({ "--ladder", "m.m3u8" }, c) == "missing --out <report.json>");
+    CHECK(run({ "--mezzanine", "src.mov", "--out", "o" }, c) == "missing --ladder <url|path>");
+    CHECK(run({ "--out", "o" }, c) == "missing --ref <url|path>");   // a pair, unless --ladder
+    CHECK(contains(run({ "--ladder", "", "--out", "o" }, c), "--ladder needs a non-empty value"));
+}
+
+TEST_CASE("vmafcli::parse: a pair and a ladder can't be given together", "[vmafcli]")
+{
+    vmafcli::Args a;
+    CHECK(run({ "--ref", "a", "--dis", "b", "--ladder", "m", "--out", "o" }, a) ==
+          "--ref and --ladder can't be given together");
+    CHECK(run({ "--dis", "b", "--mezzanine", "s", "--out", "o" }, a) ==
+          "--dis and --mezzanine can't be given together");
+    CHECK(run({ "--ladder", "m", "--ref", "a", "--out", "o" }, a) ==
+          "--ref and --ladder can't be given together");   // named in the table's order
+}
+
+TEST_CASE("vmafcli::parse: --ladder and --mezzanine in a config file", "[vmafcli]")
+{
+    const std::map<std::string, std::string> files = {
+        { "ladder.cfg", "ladder = https://h/master.m3u8\nmezzanine = src.mov\nout = o.json\n" },
+        { "pair.cfg", "ref = r.mp4\ndis = d.mp4\nout = o.json\nscaler = lanczos\n" },
+        { "mezzanine.cfg", "mezzanine = src.mov\nout = o.json\n" },
+        { "both.cfg", "out = o.json\n\ndis = d.mp4\nladder = m.m3u8\nref = r.mp4\n" },
+    };
+    vmafcli::Args a;
+    REQUIRE(run({ "--config", "ladder.cfg" }, a, files).empty());
+    CHECK(a.ladder == "https://h/master.m3u8");
+    CHECK(a.mezzanine == "src.mov");
+    CHECK(a.out == "o.json");
+
+    // A pair on the command line leaves the file's ladder out, and a ladder
+    // on the command line the file's pair.
+    vmafcli::Args b;
+    REQUIRE(run({ "--config", "ladder.cfg", "--ref", "x", "--dis", "y" }, b, files).empty());
+    CHECK(b.ref == "x");
+    CHECK(b.ladder.empty());
+    CHECK(b.mezzanine.empty());
+    CHECK(b.out == "o.json");   // the file's other settings stay
+
+    vmafcli::Args c;
+    REQUIRE(run({ "--config", "pair.cfg", "--ladder", "m.m3u8" }, c, files).empty());
+    CHECK(c.ladder == "m.m3u8");
+    CHECK(c.ref.empty());
+    CHECK(c.dis.empty());
+    CHECK(c.scaler == VMAFScaler::Lanczos);
+
+    // The file's mezzanine with the command line's ladder; or without one.
+    vmafcli::Args d;
+    REQUIRE(run({ "--config", "mezzanine.cfg", "--ladder", "m.m3u8" }, d, files).empty());
+    CHECK(d.ladder == "m.m3u8");
+    CHECK(d.mezzanine == "src.mov");
+    vmafcli::Args e;
+    REQUIRE(run({ "--config", "mezzanine.cfg", "--ref", "r", "--dis", "d" }, e, files).empty());
+    CHECK(e.mezzanine.empty());
+    CHECK(run({ "--config", "mezzanine.cfg" }, e, files) == "missing --ladder <url|path>");
+
+    // Both forms in the file: the first setting of each, by line.
+    CHECK(run({ "--config", "both.cfg" }, e, files) ==
+          "config file both.cfg, dis (line 3) and ladder (line 4) can't both be set");
+    CHECK(run({ "--config", "both.cfg", "--ladder", "x" }, e, files) ==
+          "config file both.cfg, dis (line 3) and ladder (line 4) can't both be set");
 }
 
 // ── --config (D-030) ──────────────────────────────────────────────────────────

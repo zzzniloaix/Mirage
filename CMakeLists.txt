@@ -199,14 +199,18 @@ endif()
 set_source_files_properties(src/VMAFPool.cpp PROPERTIES COMPILE_OPTIONS "-ffp-contract=off")
 
 # mirage_vmaf: the player's VMAF analyzer without a window, GL or ImGui
-# (DECISIONS.md D-017). Links FFmpeg and libvmaf only.
+# (DECISIONS.md D-017). Links FFmpeg and libvmaf only. Its ladder scoring
+# (D-029) reads master playlists itself, with HlsMaster's URI resolution,
+# not through the player's ManifestParser and its network logger.
 add_executable(mirage_vmaf
     tools/mirage_vmaf.cpp
     src/VMAFAlign.cpp
     src/VMAFAnalyzer.cpp
     src/VMAFColor.cpp
+    src/VMAFLadder.cpp
     src/VMAFPool.cpp
     src/FileHash.cpp
+    src/HlsMaster.cpp
     src/VMAFCli.cpp
     src/VMAFReport.cpp
     src/JsonText.cpp

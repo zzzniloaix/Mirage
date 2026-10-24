@@ -17,13 +17,18 @@ namespace vmafcli {
 
 namespace {
 
+// Which form of the inputs an option belongs to: a pair or a ladder
+// (D-029); Any for the options of both.
+enum class Form { Any, Pair, Ladder };
+
 // One option that takes a value. A new option is one more row here: parse(),
 // the config file and usage() all work from this table.
 struct Option {
     std::string_view name;      // "--ref"; "ref" in a config file
     std::string_view value;     // placeholder shown in the help, "<url|path>"
     std::string_view help;
-    bool             required;
+    Form             form;
+    bool             required;  // in its form
     // Stores `v` in `a`; returns what is wrong with it, or "", in words that
     // follow the option's name ("wants a whole number ...").
     std::string (*set)(Args& a, std::string_view v);
@@ -51,22 +56,31 @@ std::string set_scaler(Args& a, std::string_view v)
 constexpr std::string_view kConfig = "--config";   // the one option a config file can't set
 
 const std::array kOptions = {
-    Option{ "--ref", "<url|path>", "reference video: a file or any URL FFmpeg opens", true,
-            [](Args& a, std::string_view v) { a.ref = v; return std::string(); } },
-    Option{ "--dis", "<url|path>", "distorted video, scored against the reference", true,
-            [](Args& a, std::string_view v) { a.dis = v; return std::string(); } },
-    Option{ "--out", "<report.json>", "report to write; written only when the run succeeds", true,
-            [](Args& a, std::string_view v) { a.out = v; return std::string(); } },
-    Option{ "--frames", "N", "score only the first N frame pairs (N >= 1)", false, set_frames },
+    Option{ "--ref", "<url|path>", "reference video: a file or any URL FFmpeg opens", Form::Pair,
+            true, [](Args& a, std::string_view v) { a.ref = v; return std::string(); } },
+    Option{ "--dis", "<url|path>", "distorted video, scored against the reference", Form::Pair,
+            true, [](Args& a, std::string_view v) { a.dis = v; return std::string(); } },
+    Option{ "--ladder", "<url|path>", "HLS master playlist: score each of its video playlists, "
+            "against the top rung (see Ladder below)", Form::Ladder, true,
+            [](Args& a, std::string_view v) { a.ladder = v; return std::string(); } },
+    Option{ "--mezzanine", "<url|path>", "with --ladder: score every video playlist against this "
+            "video instead", Form::Ladder, false,
+            [](Args& a, std::string_view v) { a.mezzanine = v; return std::string(); } },
+    Option{ "--out", "<report.json>", "report to write; written only when the run succeeds",
+            Form::Any, true, [](Args& a, std::string_view v) { a.out = v; return std::string(); } },
+    Option{ "--frames", "N", "score only the first N frame pairs (N >= 1), of each pair with "
+            "--ladder", Form::Any, false, set_frames },
     Option{ "--scaler", "NAME", "scales the distorted frames: bilinear, bicubic (default) or lanczos",
-            false, set_scaler },
+            Form::Any, false, set_scaler },
     Option{ "--model", "NAME", "libvmaf built-in model: vmaf_v0.6.1 (default), vmaf_v0.6.1neg, "
-            "vmaf_4k_v0.6.1, ...", false,
+            "vmaf_4k_v0.6.1, ...", Form::Any, false,
             [](Args& a, std::string_view v) { a.model.version = v; return std::string(); } },
-    Option{ "--model-file", "<model.json>", "libvmaf model file, instead of a built-in model", false,
+    Option{ "--model-file", "<model.json>", "libvmaf model file, instead of a built-in model",
+            Form::Any, false,
             [](Args& a, std::string_view v) { a.model.path = v; return std::string(); } },
     Option{ kConfig, "<file>", "read settings from a file of name = value lines first (see below)",
-            false, [](Args& a, std::string_view v) { a.config = v; return std::string(); } },
+            Form::Any, false,
+            [](Args& a, std::string_view v) { a.config = v; return std::string(); } },
 };
 
 // Options that can't be given together. Each pair sets one thing, so in a
@@ -101,6 +115,25 @@ std::vector<std::size_t> setting_of(std::size_t k)
         if (index_of(b) == k) out.push_back(index_of(a));
     }
     return out;
+}
+
+// The first option of each form that `given` marks, by table order; null
+// where there is none.
+struct FormsGiven {
+    const Option* pair   = nullptr;
+    const Option* ladder = nullptr;
+};
+
+template <class Given>
+FormsGiven forms_given(const Given& given)
+{
+    FormsGiven f;
+    for (std::size_t k = 0; k < kOptions.size(); ++k) {
+        if (!given[k]) continue;
+        if (kOptions[k].form == Form::Pair && !f.pair) f.pair = &kOptions[k];
+        if (kOptions[k].form == Form::Ladder && !f.ladder) f.ladder = &kOptions[k];
+    }
+    return f;
 }
 
 std::string_view trimmed(std::string_view s)
@@ -162,6 +195,24 @@ std::string read_settings(std::string_view text, std::vector<FileSetting>& out)
             return std::format("{} (line {}) and {} (line {}) can't both be set",
                                file_name(*find_option(a)), line_of[index_of(a)],
                                file_name(*find_option(b)), line_of[index_of(b)]);
+    // Inputs of both forms: the first setting of each form, by its line.
+    std::size_t first_pair = 0, first_ladder = 0;
+    for (std::size_t k = 0; k < kOptions.size(); ++k) {
+        if (!line_of[k] || kOptions[k].form == Form::Any) continue;
+        std::size_t& first = kOptions[k].form == Form::Pair ? first_pair : first_ladder;
+        if (!first || line_of[k] < first) first = line_of[k];
+    }
+    if (first_pair && first_ladder) {
+        const auto set_on = [&](std::size_t l) {
+            for (std::size_t k = 0; k < kOptions.size(); ++k)
+                if (line_of[k] == l) return file_name(kOptions[k]);
+            return std::string_view();
+        };
+        const std::size_t a = std::min(first_pair, first_ladder);
+        const std::size_t b = std::max(first_pair, first_ladder);
+        return std::format("{} (line {}) and {} (line {}) can't both be set", set_on(a), a,
+                           set_on(b), b);
+    }
     return {};
 }
 
@@ -207,8 +258,18 @@ std::string parse(const std::vector<std::string_view>& argv, Args& out,
             return std::format("{} {}", opt->name, err);
     }
 
-    // The config file's settings, but those the command line gives.
-    std::array<bool, kOptions.size()> in_file{};
+    // The inputs: a pair or a ladder, not both in one place.
+    const FormsGiven line_forms = forms_given(on_line);
+    if (line_forms.pair && line_forms.ladder)
+        return std::format("{} and {} can't be given together", line_forms.pair->name,
+                           line_forms.ladder->name);
+    const Form line_form = line_forms.ladder ? Form::Ladder
+                           : line_forms.pair ? Form::Pair
+                                             : Form::Any;
+
+    // The config file's settings, but those the command line gives, and those
+    // of the other form of the inputs than the command line's.
+    std::array<bool, kOptions.size()> applied{};
     if (on_line[index_of(kConfig)]) {
         const ConfigFile file = load(args.config);
         if (!file.error.empty())
@@ -217,16 +278,23 @@ std::string parse(const std::vector<std::string_view>& argv, Args& out,
         if (std::string err = read_settings(file.text, settings); !err.empty())
             return std::format("config file {}, {}", args.config, err);
         for (const FileSetting& s : settings) {
-            in_file[s.option] = true;
-            bool replaced = false;
+            const Form f = kOptions[s.option].form;
+            bool replaced = line_form != Form::Any && f != Form::Any && f != line_form;
             for (std::size_t k : setting_of(s.option)) replaced = replaced || on_line[k];
-            if (!replaced) kOptions[s.option].set(args, s.value);   // checked by read_settings
+            if (replaced) continue;
+            kOptions[s.option].set(args, s.value);   // checked by read_settings
+            applied[s.option] = true;
         }
     }
 
-    for (std::size_t k = 0; k < kOptions.size(); ++k)
-        if (kOptions[k].required && !on_line[k] && !in_file[k])
-            return std::format("missing {} {}", kOptions[k].name, kOptions[k].value);
+    std::array<bool, kOptions.size()> given{};
+    for (std::size_t k = 0; k < kOptions.size(); ++k) given[k] = on_line[k] || applied[k];
+    const Form form = forms_given(given).ladder ? Form::Ladder : Form::Pair;
+    for (std::size_t k = 0; k < kOptions.size(); ++k) {
+        const Option& o = kOptions[k];
+        if (o.required && (o.form == Form::Any || o.form == form) && !given[k])
+            return std::format("missing {} {}", o.name, o.value);
+    }
     for (const auto& [a, b] : kExclusive)
         if (on_line[index_of(a)] && on_line[index_of(b)])
             return std::format("{} and {} can't be given together", a, b);
@@ -237,21 +305,29 @@ std::string parse(const std::vector<std::string_view>& argv, Args& out,
 
 std::string usage()
 {
-    std::string synopsis = "mirage_vmaf";
+    // One synopsis per form of the inputs.
+    const auto synopsis = [](Form form) {
+        std::string out = "mirage_vmaf";
+        for (const Option& o : kOptions) {
+            if (o.form != Form::Any && o.form != form) continue;
+            const std::string spec = std::format("{} {}", o.name, o.value);
+            out += o.required ? std::format(" {}", spec) : std::format(" [{}]", spec);
+        }
+        return out;
+    };
     std::string options;
-    for (const Option& o : kOptions) {
-        const std::string spec = std::format("{} {}", o.name, o.value);
-        synopsis += o.required ? std::format(" {}", spec) : std::format(" [{}]", spec);
-        options  += std::format("  {:<27}{}\n", spec, o.help);
-    }
+    for (const Option& o : kOptions)
+        options += std::format("  {:<27}{}\n", std::format("{} {}", o.name, o.value), o.help);
     options += std::format("  {:<27}{}\n", "-h, --help", "print this help and exit");
 
     return std::format(
         "Usage: {}\n"
+        "       {}\n"
         "\n"
         "Scores a distorted video against a reference with Mirage's VMAF analyzer\n"
         "(the scorer behind the player's VMAF panel), without opening a window, and\n"
-        "writes a JSON report.\n"
+        "writes a JSON report; with --ladder, every video playlist of an HLS master\n"
+        "playlist, one after another (see Ladder below).\n"
         "\n"
         "Options:\n"
         "{}"
@@ -298,16 +374,35 @@ std::string usage()
         "longer run, because libvmaf's motion2 feature for a frame also uses the next\n"
         "frame. A run compared with this one has to stop at the same frame.\n"
         "\n"
+        "Ladder: --ladder reads an HLS master playlist, a file or any URL FFmpeg\n"
+        "opens, and scores its video playlists one after another, each as a pair\n"
+        "given with --ref and --dis is scored. Its entries are its EXT-X-STREAM-INF\n"
+        "tags, each with the URI line after it, resolved against where the master\n"
+        "was read from, after HTTP redirects. An entry has video when it has a\n"
+        "RESOLUTION, or a video codec in CODECS (avc1, avc3, hvc1, hev1, dvh1, dvhe,\n"
+        "av01, vp09, vp08, mp4v); the others are skipped, and the report lists them.\n"
+        "Entries that name the same playlist are scored once. The reference is the\n"
+        "top rung, the playlist of the entry with the highest BANDWIDTH, the first in\n"
+        "the master among equals, with a warning when they name other playlists, and\n"
+        "every other video playlist is scored against it (reference mode top-rung).\n"
+        "With --mezzanine the reference is that video instead, and every video\n"
+        "playlist, the top rung's included, is scored against it (reference mode\n"
+        "mezzanine). --frames limits each pair. A pair that can't be scored stops the\n"
+        "run, which then writes no report.\n"
+        "\n"
         "Config file: --config FILE reads settings before the command line, one per\n"
         "line as name = value, where name is a long option's name without the\n"
         "leading --, such as scaler = lanczos, and value is the rest of the line\n"
         "without the white space around it, as it is: no quotes, no escapes, no\n"
         "comment after it. Blank lines and lines starting with # are skipped. Every\n"
         "option but --config can be set there, once, and is checked as on the\n"
-        "command line; --ref, --dis and --out can come from either. An option on\n"
-        "the command line replaces the file's setting, and --model and --model-file\n"
-        "replace each other, since both set the model. Relative paths are taken\n"
-        "from the current directory, as on the command line.\n"
+        "command line; --ref, --dis, --ladder, --mezzanine and --out can come from\n"
+        "either. An option on the command line replaces the file's setting, and\n"
+        "--model and --model-file replace each other, since both set the model;\n"
+        "the inputs are either a pair, --ref and --dis, or a ladder, --ladder and\n"
+        "--mezzanine, and those of one on the command line leave out the file's of\n"
+        "the other. Relative paths are taken from the current directory, as on the\n"
+        "command line.\n"
         "\n"
         "The report records the reference mode (explicit-pair: --ref names the\n"
         "reference), the libvmaf version the library reports at run time and\n"
@@ -323,7 +418,12 @@ std::string usage()
         "frame that failed, with its input, position, PTS and reason), and for every\n"
         "frame pair its index, the positions of its two frames in their inputs, the\n"
         "reference and distorted PTS in seconds and the score, all at full\n"
-        "precision.\n"
+        "precision. With --ladder the report has the reference mode, top-rung or\n"
+        "mezzanine, one per report, and the settings once; the master playlist, as\n"
+        "given, where it was read from, its SHA-256 and its entries with their\n"
+        "attributes; the reference, the skipped entries and the warnings about the\n"
+        "top rung; and a list of pairs, each with the entries that name its\n"
+        "playlist and the fields above that are a pair's own.\n"
         "\n"
         "Pooled values: the mean, the harmonic mean (n / sum(1 / (x + 1)) - 1) and\n"
         "the minimum, each as libvmaf pools the per-frame scores and FFmpeg's\n"
@@ -333,9 +433,11 @@ std::string usage()
         "definition 7).\n"
         "\n"
         "Exit status: 0 the report was written, a warning about the pairing\n"
-        "included; 1 the analysis or the write failed (no report is left behind);\n"
-        "2 bad arguments, or a config file that can't be read or has an error.\n",
-        synopsis, options);
+        "included; 1 the analysis or the write failed, or with --ladder the master\n"
+        "playlist couldn't be read or a pair couldn't be scored (no report is left\n"
+        "behind); 2 bad arguments, or a config file that can't be read or has an\n"
+        "error.\n",
+        synopsis(Form::Pair), synopsis(Form::Ladder), options);
 }
 
 } // namespace vmafcli
