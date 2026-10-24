@@ -17,13 +17,14 @@ The evaluation's scripts and their committed outputs. The numbers in this reposi
 
 ```
 eval/run_all.sh <out_dir> [--mirage-vmaf PROG] [--mirage-vmaf-before PROG]
-    [--mirage-vmaf-before-d022 PROG] [--skip-before] [--skip-full] [--only STEP[,STEP...]]
+    [--mirage-vmaf-before-d022 PROG] [--mirage-vmaf-before-d028 PROG]
+    [--skip-before] [--skip-full] [--only STEP[,STEP...]]
     [--jobs J] [--ffmpeg PROG] [--ffprobe PROG] [--model-dir DIR] [--work-dir DIR] [--no-compare]
 ```
 
 - `<out_dir>`: a new or empty directory outside the repository. The runs inside record the repository's commit and whether its working tree was clean, so run it from a clean tree when its outputs are to be cited.
 - It needs what `docs/BUILD.md` installs, without the glad venv, and the network: the streams come from Apple's CDN, and the builds fetch their dependencies from GitHub.
-- Without `--mirage-vmaf`, `--mirage-vmaf-before` and `--mirage-vmaf-before-d022`, it builds the programs the steps need itself, each in a temporary worktree of its commit (`cmake --preset macos-release`, then only the `mirage_vmaf` target), and keeps them in `<out_dir>/builds/`.
+- Without `--mirage-vmaf`, `--mirage-vmaf-before`, `--mirage-vmaf-before-d022` and `--mirage-vmaf-before-d028`, it builds the programs the steps need itself, each in a temporary worktree of its commit (`cmake --preset macos-release`, then only the `mirage_vmaf` target), and keeps them in `<out_dir>/builds/`.
 
 The steps, in order; each writes under `<out_dir>` the path its committed counterpart has under `eval/` (P-024):
 
@@ -32,6 +33,7 @@ The steps, in order; each writes under `<out_dir>` the path its committed counte
 | `streams` | `streams/fetch_streams.py --probe`, against `streams/fetched-2026-10-23/` | |
 | `clips` | `consistency/color_cases.py`, against `consistency/color-cases-before/clips.txt` | |
 | `format-clips` | `consistency/color_cases.py --set formats`, against `consistency/format-cases-before/clips.txt` | |
+| `align-clips` | `consistency/align_cases.py`, against `consistency/align-cases-before/clips.txt` | |
 | `diag-before-300` | `consistency/diag-before-300/`: plain and relabel | `83c8ed6`'s |
 | `color-cases-before` | `consistency/color-cases-before/`: the scored and the refused cases | `83c8ed6`'s |
 | `format-cases-before` | `consistency/format-cases-before/`: the scored and the refused cases | `83c8ed6`'s |
@@ -42,6 +44,8 @@ The steps, in order; each writes under `<out_dir>` the path its committed counte
 | `scalers-300` | `consistency/scalers-300/`: three runs and `scaler_effect.*` | HEAD's |
 | `models-300` | `consistency/models-300/`: four runs and `model_effect.*` | HEAD's |
 | `defaults-300` | `consistency/defaults-300/`: the first 300 frames of the four pairs with the defaults of D-024 and D-027 | HEAD's |
+| `align-cases-before` | `consistency/align-cases-before/`: the alignment cases | `e8b867f`'s |
+| `align-cases-d028` | `consistency/align-cases-d028/`: the alignment cases | HEAD's |
 | `acceptance-full` | `consistency/acceptance-full/`: every frame of the four pairs of D-018, the §5 report | HEAD's |
 | `ffmpeg-scale-default` | the commands of `consistency/ffmpeg-scale-default/checks.txt` | |
 | `ffmpeg-libvmaf-filter` | the commands of `consistency/ffmpeg-libvmaf-filter/checks.txt` | |
@@ -49,8 +53,8 @@ The steps, in order; each writes under `<out_dir>` the path its committed counte
 | `pooling-defaults-300` | `pooling/defaults-300/`, `--check-pooled` on the rerun of `defaults-300` | |
 | `pooling-full` | `pooling/acceptance-full/`, on the rerun of `acceptance-full` | |
 
-- Every `run_delta.sh` run gets the options of its committed `run.cmd.txt`, the scaler, the model and the threads always named, which a test checks: since D-024 `run_delta.sh`'s default scaler is bicubic, and the runs made before it with bilinear, the default then, are rerun with bilinear (P-038). The runs made before D-016 need the program that didn't convert color yet, the build of `83c8ed6`; `format-cases-after`, made after D-016 and before D-022, the build of `d993686`, which doesn't convert a reference that isn't yuv420p (P-034); the others use HEAD's.
-- `--only` runs some steps, and the steps they need (`pooling` needs `diag-after-300`, `pooling-defaults-300` needs `defaults-300`, `pooling-full` needs `acceptance-full`, the color tag cases need `clips` and the three runs of the reference format cases `format-clips`); `--skip-before` leaves out the three steps before D-016, and `--skip-full` the two over every frame, `acceptance-full` and `pooling-full` (P-027). Each side of each pair of `acceptance-full` took longer than the whole run of 2026-10-23 below (the wall times in `consistency/acceptance-full/plain/*/delta.md`).
+- Every `run_delta.sh` run gets the options of its committed `run.cmd.txt`, the scaler, the model and the threads always named, which a test checks: since D-024 `run_delta.sh`'s default scaler is bicubic, and the runs made before it with bilinear, the default then, are rerun with bilinear (P-038). The runs made before D-016 need the program that didn't convert color yet, the build of `83c8ed6`; `format-cases-after`, made after D-016 and before D-022, the build of `d993686`, which doesn't convert a reference that isn't yuv420p (P-034); `align-cases-before`, the build of `e8b867f`, which pairs the inputs' frames in decode order, before D-028 (P-049); the others use HEAD's. Whichever program a run checks, HEAD's delta tool compares it with FFmpeg, by timestamp since D-028 (P-047): the runs made before D-028 are rerun with that comparison too (P-049).
+- `--only` runs some steps, and the steps they need (`pooling` needs `diag-after-300`, `pooling-defaults-300` needs `defaults-300`, `pooling-full` needs `acceptance-full`, the color tag cases need `clips`, the three runs of the reference format cases `format-clips` and the two of the alignment cases `align-clips`); `--skip-before` leaves out the three steps before D-016, and `--skip-full` the two over every frame, `acceptance-full` and `pooling-full` (P-027). Each side of each pair of `acceptance-full` took longer than the whole run of 2026-10-23 below (the wall times in `consistency/acceptance-full/plain/*/delta.md`).
 - `--jobs` is `run_delta.sh`'s: how many scoring processes run at once. The committed runs used 1, except `acceptance-full`, which used 4; its first 300 frames have the scores of `scalers-300/bilinear`, made by the same program one process at a time (`consistency/acceptance-full/checks.txt`, check 3).
 
 **What "as committed" means.** For each step, `rerun_check.md` says whether the rerun has:
@@ -58,7 +62,7 @@ The steps, in order; each writes under `<out_dir>` the path its committed counte
 - for every run and pair, the committed verdict, Mirage's per-frame scores at full precision and every libvmaf metric of every frame of FFmpeg's log;
 - the numbers of `compare_runs.py`'s summary (its `settings` aside, which name a model file by its path) and of `pooling.py`'s series;
 - the committed bytes of every playlist and the committed parameters of every probed video stream;
-- the committed `clips.txt`: each clip's command, tags and pixel checksum;
+- the committed `clips.txt`: each clip's command, tags and pixel checksum, or, for the alignment cases, each clip's commands, streams, frame timestamps and frame checksums;
 - the committed output of each command of the FFmpeg records (heap addresses in FFmpeg's error lines aside).
 
 It also gives each program's SHA-256 next to the one in the committed runs' `build.txt`.
@@ -127,3 +131,11 @@ None of them needs the network. `tests/test_run_all.py` checks every step agains
 - Everything compared is as committed (`rerun_check.md`), in every step: HEAD's `mirage_vmaf`, which pairs frames by timestamp since D-028, gives every run it reran the committed verdicts and per-frame scores.
 - The program it built from `713431b` has the SHA-256 `7fb455e9e1349c85e25afe54d5fd47d714c463ecebea1b03b84ca1b594d27741`, which no committed run's `build.txt` names. It reproduces exactly the scores of the runs made by the builds `420b8776…` (`diag-after-300`, `color-cases-after`), `2220ce3a…` (`format-cases-d022`), `3633c43e…` (`scalers-300`, `models-300`) and `85535c5c…` (`defaults-300`). The one built from `d993686` has the SHA-256 of `consistency/format-cases-after/build.txt`, and the one built from `83c8ed6` that of the runs before D-016.
 - It took 520.5 s of wall time, the three builds included (`run_all.md`).
+
+## The rerun after the delta tool's comparison by timestamp, 2026-10-23
+
+`run_all/2026-10-23-align/` keeps the record of `eval/run_all.sh <out_dir> --skip-full --jobs 4`, made from a new clean worktree of `4eeb539` with no program given, the same files as above (P-049): every step but the two over every frame, the alignment cases' three included, with the four programs built from their commits and every `run_delta.sh` run compared by the delta tool's comparison by timestamp (D-028, P-047).
+
+- Everything compared is as committed (`rerun_check.md`), in every step: the runs made before the comparison by timestamp keep their verdicts and scores with it.
+- The program it built from `4eeb539` has the SHA-256 of `consistency/align-cases-d028/build.txt`, `7fb455e9e1349c85e25afe54d5fd47d714c463ecebea1b03b84ca1b594d27741`, which reproduces the scores of the other runs made after D-016 but `format-cases-after`, as in the rerun of `2026-10-23-d028/`. The one built from `e8b867f` has the SHA-256 of `consistency/align-cases-before/build.txt` and `consistency/defaults-300/build.txt`, `85535c5c…`; the one built from `d993686` that of `consistency/format-cases-after/build.txt`, and the one built from `83c8ed6` that of the runs before D-016.
+- It took 620.4 s of wall time, the four builds included (`run_all.md`).

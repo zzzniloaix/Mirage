@@ -206,7 +206,7 @@ HDR content (PQ or HLG transfer) is a further question: the models above are SDR
 
 ## #7 Frame alignment, and approval of the plan (§1.4, D-007)
 
-**Decided**: D-028, the plan with its recommended choices, and for #7 every failure counted, a threshold of 1% and a warning. **Done** in the analyzer that the player and `mirage_vmaf` share (`src/VMAFAlign.h`, `src/VMAFAnalyzer.cpp`; P-043 to P-045): pairing by rule A with a tolerance of half the reference's frame duration, times from each input's start, the coarser grid for a frame-rate mismatch, pairing stopped at the first discontinuity, a new libvmaf context after each gap, the counts and the list of failures in the report (`alignment`), and the warning above 1% in the report, on stderr and in the player's VMAF panels. The committed 300-frame and synthetic runs, whose frames line up, keep their pairs and scores (`eval/run_all/2026-10-23-d028/`; P-046). The §1.4 acceptance, a stream with a frame dropped on purpose, is a test of the analyzer (`tests/test_vmaf_analyzer.cpp`); a committed run of `mirage_vmaf` on such a stream, and a committed record of the test run, are MEASUREMENT PENDING. Not built yet: the delta tool's comparison by timestamp. What implementing D-028 left open is in "Open after D-020" below. The rest of this package describes the code before D-028.
+**Decided**: D-028, the plan with its recommended choices, and for #7 every failure counted, a threshold of 1% and a warning. **Done** in the analyzer that the player and `mirage_vmaf` share (`src/VMAFAlign.h`, `src/VMAFAnalyzer.cpp`; P-043 to P-045): pairing by rule A with a tolerance of half the reference's frame duration, times from each input's start, the coarser grid for a frame-rate mismatch, pairing stopped at the first discontinuity, a new libvmaf context after each gap, the counts and the list of failures in the report (`alignment`), and the warning above 1% in the report, on stderr and in the player's VMAF panels. The committed 300-frame and synthetic runs, whose frames line up, keep their pairs and scores (`eval/run_all/2026-10-23-d028/`; P-046). The §1.4 acceptance, a stream with a frame dropped on purpose, is a test of the analyzer (`tests/test_vmaf_analyzer.cpp`) and a committed delta run: on that stream `mirage_vmaf` reports the failed frame and warns, every pair's two frames at the same PTS, where before D-028 it scored the pairs after the gap one picture apart without a warning (`eval/consistency/align-cases-d028/checks.txt`, check 4; `align-cases-before/`; P-048); a committed record of the unit test run is MEASUREMENT PENDING. The §5 delta tool compares the two sides' pairs by their frames and timestamps, FFmpeg's from `showinfo` filters in its graph, and reports what each side counted as failed (P-047); the alignment cases are scored by both tools before and after D-028 (P-048). What implementing D-028 left open is in "Open after D-020" below. The rest of this package describes the code before D-028.
 
 The plan is `docs/plans/frame-alignment.md`. It asks for approval of pairing by timestamp in the analyzer that the GUI and `mirage_vmaf` share (D-007), and lists the choices it needs: the matching rule (the reference's timeline, or FFmpeg's framesync rule, whose defaults are in `eval/consistency/ffmpeg-libvmaf-filter/checks.txt`), the timestamp origin, frame-rate mismatches, discontinuities, what a gap does to libvmaf's motion feature, the report's fields, and #7 itself: the failure-rate definition, the threshold (the work order suggests 1%) and whether exceeding it warns or refuses. The plan ends with the agent's recommendation. Nothing of it is implemented; its acceptance test, the work order's stream with dropped frames, is part of the plan.
 
@@ -389,6 +389,7 @@ Reported, not edited:
 9. §1.1 to §1.3 ask the output to carry the libvmaf version and the model identifier, the `reference_mode` and the scaler. `mirage_vmaf`'s report does (`src/VMAFReport.h`). The player's own JSON export (`VMAFAnalyzer::write_json` in `src/VMAFAnalyzer.cpp`) still has its Phase 0 layout, which a test pins, without any of them, and the player has no scaler or model option. Options: give `write_json` those fields; have the player write `mirage_vmaf`'s report format; leave the player's export until §7's schema.
 10. §5's target is a per-frame difference "< 0.01"; D-019 passes a frame at exactly 0.01 (D-019 above).
 11. §5's target, under 0.01 per frame with the default configuration, is met for yuv420p references, and not for every reference in another pixel format: not where its tags differ from the distorted input's, nor for the full range yuvj420p reference with the same tags. The reason is the color conversion, which §5 asks the documents to state ("D-016: references that aren't yuv420p" above; `eval/consistency/README.md`). Since D-022 it is met in every reference format case as well (`eval/consistency/format-cases-d022/`), with the scaler of the committed runs, bilinear.
+12. §5's target is not met for inputs whose frames don't line up: of the 9 synthetic alignment cases 2 pass, the control whose frames line up and the later start in a container that starts at 0, in which both sides pair the same frames with the same scores (`eval/consistency/align-cases-d028/`). The reason is frame alignment, which §5 names: D-028's rule A, its new libvmaf context after a gap and its pairing stopped at a discontinuity differ from FFmpeg's framesync ("What the alignment cases show" below; `eval/consistency/README.md`).
 
 ## Open after D-020: what implementing the decisions left open
 
@@ -486,10 +487,54 @@ Since D-028's implementation the report lists the libvmaf contexts of a pair (`a
 
 With times measured from each input's start (D-028), a clip cut from the reference with its timestamps kept, in a container that holds only its video, starts at its first frame and pairs from there: each frame with the reference frame as many frames earlier in the picture as were cut, as `ffmpeg` without `-copyts` pairs it, and only the reference frames left over at the end fail. With an earlier container start, such as an audio track from 0, the cut frames show as unmatched reference frames instead. The test "a later start, measured from each input's start" (`tests/test_vmaf_analyzer.cpp`) has both. With absolute timestamps, D-028's alternative, the cut clip would pair with the reference frames of its pictures.
 
+### The delta tool's comparison by timestamp (P-047)
+
+**Question.** D-028 has the §5 delta tool compare the two sides by timestamp, a pair passing only if both sides scored the same timestamps, and the differences in what each side counted as failed reported. Which of the details it leaves open should hold?
+
+**Today** (`eval/consistency/vmafdelta.py`; tests in `eval/consistency/tests/`):
+
+- FFmpeg's pairs come from three `showinfo` filters in its graph and FFmpeg 8.1.1's framesync rule; where they aren't the frames libvmaf passed on and scored, the pair fails and no scores are compared.
+- A pair of one side is a pair of the other when it has the same frames, by their positions in the inputs, and both frames must have the same timestamps on both sides: pairs of the same frames whose timestamps `ffmpeg` corrected fail as `TIMESTAMP MISMATCH` (`a07_restart` in `eval/consistency/align-cases-before/`).
+- Every frame the two sides treat differently, `mirage_vmaf`'s failures included, is listed and warned about; it fails the pair only through its pairs or its scores.
+- The pairs further apart than the tolerance are counted with half the reference's frame duration from `mirage_vmaf`'s alignment, or from ffprobe's `r_frame_rate` for a report without one.
+- P-009's warning about `mirage_vmaf` pairs of two different PTS is gone; the comparison settles it.
+- FFmpeg's verbose log has two lines more per frame for each of the three filters.
+
+**Options.** As today; pairs matched by their timestamps only; failing a pair on the differences in failure accounting too; the comparison by position as a fallback where FFmpeg's pairs can't be established; FFmpeg's `metadata` filter writing the frames to separate files, which would leave the verbose log as it was.
+
+**Agent's recommendation.** As today: the positions name the frames exactly, so a pair both sides scored is scored on the same pictures, and a pairing the tool can't establish fails rather than passing pairs nobody knows.
+
+### What the alignment cases show where the two rules differ (P-048)
+
+**Question.** Where the inputs' frames don't line up, Mirage's pairing (D-028) and FFmpeg's libvmaf filter score other pairs, so §5 fails there by design (difference 12). The runs show where (`eval/consistency/align-cases-d028/`; `eval/consistency/README.md`, "`align-cases-before/`, `align-cases-d028/`"):
+
+1. FFmpeg scores pairs of frames of different times where Mirage counts failures: a distorted frame with the reference frame before it when a reference frame is missing (`a02`), both frames under a duplicated timestamp (`a03`), and, once the distorted input has ended, each later reference frame against the last distorted frame (`a04`, `a05`).
+2. With a Matroska reference, whose timestamps are milliseconds, against a 90 kHz MPEG-TS distorted input whose frames line up, FFmpeg's framesync pairs 4 of the 10 distorted frames with the reference frame before theirs, whose rounded time is later (`a08`). Framesync has an option for the nearest frame, `ts_sync_mode=nearest` (`eval/consistency/ffmpeg-libvmaf-filter/checks.txt`, check 3), which the §5 graph doesn't set.
+3. After a gap Mirage starts a new libvmaf context (D-028), where FFmpeg's motion features span the gap, so the pair after the gap scores differently (`a01`).
+4. `ffmpeg` corrects MPEG-TS timestamps that restart and pairs every frame, where Mirage stops pairing (D-028's option (a); `a07`).
+5. With a later start in a container that starts with its video, both sides measure from each input's start and pair the frames three pictures apart (`a05`); in a container that starts at 0 both pair the same frames, and the pair passes with Mirage's unmatched frames reported (`a06`).
+
+Should §5 stay as it is for such inputs?
+
+**Options.**
+
+1. As today: the §5 comparison is FFmpeg's plain graph; for inputs whose frames don't line up the reports show the differences, and the paper states that parity holds where the frames line up.
+2. Options in FFmpeg's graph that make it pair more as rule A does, such as `ts_sync_mode=nearest` for (2); the comparison would then no longer be a plain `ffmpeg -lavfi libvmaf` run.
+3. Mirage following FFmpeg in some of them, such as `ffmpeg`'s correction of timestamp jumps for (4), the plan's option (c); this changes D-028.
+
+**Agent's recommendation.** Option 1 now, and (4) decided again with D-011's ladders, as D-028 foresees for discontinuities.
+
+For D-011, whose clips and encoding parameters stay the owner's: (2) shows that a reference and distorted inputs whose timestamps have different time bases can make FFmpeg's side pair other frames although the frames line up.
+
+### FFmpeg at the end of the distorted input, against the plan's reading (for information)
+
+The plan's "What FFmpeg does" (`docs/plans/frame-alignment.md`) says, from the sources, that scoring ends with the distorted input. The runs show that once the distorted input has ended, FFmpeg's libvmaf filter scores each later reference frame against the last distorted frame (`a04`, `a05` in `eval/consistency/align-cases-d028/`): framesync keeps the distorted input's last frame, and its end hands the events to the reference (`libavfilter/framesync.c`). The plan's status line says so; its text is left as it was approved.
+
 ### Smaller choices
 
 - P-045: the analyzer tests of D-028 on generated clips, Matroska with uncompressed frames at chosen timestamps and an MPEG-TS clip coded with FFmpeg's MPEG-2 encoder; three earlier tests changed.
 - P-046: the rerun of the committed measurements after D-028.
+- P-049: every committed run rerun with the delta tool's comparison by timestamp, no option keeping the comparison by position; the program of `e8b867f` for the alignment cases before D-028, and their three steps in `eval/run_all.sh`; the rerun from a clean worktree of `4eeb539`, which found everything as committed (`eval/run_all/2026-10-23-align/`).
 - P-038: the bicubic default in one place, the analyzer's, which `mirage_vmaf`'s command line takes; `run_delta.sh`'s default for both sides, with the scaler always given to a `mirage_vmaf` that has `--scaler`; every rerun of `eval/run_all.sh` naming its scaler, model and threads; the command blocks of earlier runs in `eval/consistency/README.md` left as they were run, with a note.
 - P-039: the pooled values computed from the per-frame scores with libvmaf's sums in frame order and the percentile arithmetic of `pooling.py` (compiled without fused multiply-add); the harmonic mean in the delta reports; `pooling.py --check-pooled`.
 - P-041: the 300-frame run with the defaults, made without `--scaler`, and its checks, the direct runs of `mirage_vmaf` among them; `eval/run_all.sh`'s steps for it.
