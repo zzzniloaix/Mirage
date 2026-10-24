@@ -1,0 +1,36 @@
+{
+  "tool": "mirage_vmaf",
+  "reference_mode": "explicit-pair",
+  "libvmaf_version": "3.0.0",
+  "libvmaf_package_version": "3.1.0",
+  "ffmpeg_libraries": {"libavutil": "60.26.101", "libavcodec": "62.28.101", "libavformat": "62.12.101", "libswscale": "9.5.101", "libavfilter": "11.14.101"},
+  "config_file": null,
+  "model": "vmaf_v0.6.1",
+  "model_source": "built-in",
+  "model_sha256": null,
+  "scaler": "bicubic",
+  "n_threads": 4,
+  "n_subsample": 1,
+  "scored_as": {"width": 1920, "height": 1080, "pix_fmt": "yuv420p", "bit_depth": 8},
+  "dis_conversion": [
+    {"from": {"color_space": "bt709", "color_range": "tv"}, "to": {"color_space": "bt709", "color_range": "tv"}, "matrix_changed": false, "range_changed": false, "first_index": 0, "pairs": 9}
+  ],
+  "ref_conversion": [],
+  "warnings": [],
+  "frame_limit": null,
+  "frames_scored": 9,
+  "pooled": {"mean": 51.89275267663478, "harmonic_mean": 38.409070744493306, "min": 22.973227196471097, "min_without_first_frame": 22.973227196471097, "p1": 22.98357629857967, "p5": 23.024972707013962, "p10": 23.07671821755683, "p25": 24.062306722064523, "p50": 72.68777672835482},
+  "ref": {"url": "<tmp>/align_clips/ref_drop5.mkv", "width": 1920, "height": 1080, "pix_fmt": "yuv420p", "color_space": "bt709", "color_range": "tv", "color_primaries": "unknown", "color_trc": "unknown", "time_base": "1/1000", "ended": true},
+  "dis": {"url": "<tmp>/align_clips/dis.mkv", "width": 640, "height": 360, "pix_fmt": "yuv420p", "color_space": "bt709", "color_range": "tv", "color_primaries": "unknown", "color_trc": "unknown", "time_base": "1/1000", "ended": false},
+  "frames": [
+    {"index": 0, "ref_pts": 0, "dis_pts": 0, "vmaf": 72.68777672835482},
+    {"index": 1, "ref_pts": 0.033, "dis_pts": 0.033, "vmaf": 74.77789802017037},
+    {"index": 2, "ref_pts": 0.067, "dis_pts": 0.067, "vmaf": 74.94005632463738},
+    {"index": 3, "ref_pts": 0.1, "dis_pts": 0.1, "vmaf": 74.91278468178199},
+    {"index": 4, "ref_pts": 0.133, "dis_pts": 0.133, "vmaf": 74.9322319648982},
+    {"index": 5, "ref_pts": 0.2, "dis_pts": 0.167, "vmaf": 22.973227196471097},
+    {"index": 6, "ref_pts": 0.234, "dis_pts": 0.2, "vmaf": 23.102590972828263},
+    {"index": 7, "ref_pts": 0.267, "dis_pts": 0.234, "vmaf": 24.062306722064523},
+    {"index": 8, "ref_pts": 0.3, "dis_pts": 0.267, "vmaf": 24.645901478506268}
+  ]
+}
