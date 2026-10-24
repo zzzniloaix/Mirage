@@ -1,9 +1,11 @@
 #pragma once
 
-// JSON report of one scored pair, as written by mirage_vmaf. No FFmpeg /
+// JSON reports as written by mirage_vmaf: one scored pair (to_json), or the
+// pairs of a ladder run in one reference mode (ladder_to_json). No FFmpeg /
 // libvmaf here so it can be unit-tested in mirage_tests.
 //
-// Layout (numbers at full precision; null for NaN or a missing value):
+// Layout of a pair's report (numbers at full precision; null for NaN or a
+// missing value):
 //   tool,
 //   reference_mode         how the reference was chosen: "explicit-pair" when
 //                          the command line names both inputs
@@ -49,8 +51,35 @@
 //   frames [ { index, ref_index, dis_index, ref_pts, dis_pts, vmaf } ]
 //                          index: the pair's; ref_index, dis_index: its frames'
 //                          positions in their inputs; PTS in seconds
+//
+// Layout of a ladder run's report (DECISIONS.md D-029, src/VMAFLadder.h), one
+// reference mode per report:
+//   tool, reference_mode ("top-rung" | "mezzanine"), libvmaf_version,
+//   libvmaf_package_version, ffmpeg_libraries, config_file, model,
+//   model_source, model_sha256, scaler, n_threads, n_subsample, frame_limit
+//                          as in a pair's report, once for every pair
+//   ladder { url, location, sha256,     the master playlist as given, where
+//                                       it was read from, and its SHA-256
+//            entries [ { index, line, uri, url, bandwidth, average_bandwidth,
+//                        resolution, codecs, frame_rate, video } ] }
+//                          its EXT-X-STREAM-INF entries: their attributes as
+//                          the master gives them (null when absent), each URI
+//                          resolved (url), and whether the entry has video
+//   reference { url, entries [ index ] }   the reference: the top rung and
+//                          the entries naming it, or the mezzanine as given
+//                          and no entry
+//   skipped [ { entry, reason } ]   entries not scored: those without video
+//   warnings [ text ]      about the plan, such as a second playlist with the
+//                          top rung's BANDWIDTH
+//   pairs [ { index, entries [ index ],  the video entries naming its
+//                                        distorted playlist
+//             scored_as, dis_conversion, ref_conversion, warnings,
+//             frames_scored, pooled, alignment, ref, dis, frames } ]
+//                          each with the keys of a pair's report that are its
+//                          own, as a pair given with --ref and --dis has them
 
 #include "VMAFAnalyzer.h"
+#include "VMAFLadder.h"
 
 #include <string>
 #include <string_view>
@@ -76,6 +105,10 @@ std::string incomplete(const VMAFResult& r);
 
 // The report for `r`, which must hold a finished analysis.
 std::string to_json(const VMAFResult& r, const RunInfo& run);
+
+// The report of a complete ladder run (vmafladder::Result::error empty). Its
+// reference mode is the plan's; run.reference_mode isn't used.
+std::string ladder_to_json(const vmafladder::Result& ladder, const RunInfo& run);
 
 // Writes `text` to `path` through a temporary file next to it that is renamed
 // over `path` only once everything was written and closed, so a failed write

@@ -644,6 +644,162 @@ TEST_CASE("vmafreport::to_json: no frame limit, no frames, NaN pooled values", "
     CHECK((*doc)["libvmaf_package_version"].str == "unknown");
 }
 
+// ── ladder_to_json (D-029) ────────────────────────────────────────────────────
+
+namespace {
+
+bool same(const Value& a, const Value& b)
+{
+    if (a.kind != b.kind || a.b != b.b || a.str != b.str || a.arr.size() != b.arr.size() ||
+        a.obj.size() != b.obj.size())
+        return false;
+    if (a.kind == Value::Kind::Number && a.num != b.num) return false;
+    for (std::size_t i = 0; i < a.arr.size(); ++i)
+        if (!same(a.arr[i], b.arr[i])) return false;
+    for (const auto& [k, v] : a.obj)
+        if (!b.has(k) || !same(v, b[k])) return false;
+    return true;
+}
+
+// A ladder run of two pairs and a skipped entry, as vmafladder::score() leaves it.
+vmafladder::Result sample_ladder()
+{
+    vmafladder::Result l;
+    l.ladder           = "https://example.com/hls/master.m3u8";
+    l.fetched.location = "https://cdn.example.com/hls/master.m3u8";
+    l.fetched.sha256   = "2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae";
+    l.master.entries = {
+        { .index = 0, .line = 3, .uri = "low/p.m3u8", .url = "https://cdn.example.com/hls/low/p.m3u8",
+          .bandwidth = 300000, .resolution = "640x360", .codecs = "avc1.4d401e,mp4a.40.2",
+          .video = true },
+        { .index = 1, .line = 5, .uri = "top/p.m3u8", .url = "https://cdn.example.com/hls/top/p.m3u8",
+          .bandwidth = 900000, .average_bandwidth = "850000", .resolution = "1920x1080",
+          .frame_rate = "29.970", .video = true },
+        { .index = 2, .line = 7, .uri = "a/p.m3u8", .url = "https://cdn.example.com/hls/a/p.m3u8",
+          .bandwidth = 64000, .codecs = "mp4a.40.2", .video = false },
+        { .index = 3, .line = 9, .uri = "mid/p.m3u8", .url = "https://cdn.example.com/hls/mid/p.m3u8",
+          .bandwidth = 600000, .resolution = "960x540", .video = true },
+    };
+    l.plan.reference_mode    = "top-rung";
+    l.plan.reference_url     = "https://cdn.example.com/hls/top/p.m3u8";
+    l.plan.reference_entries = { 1 };
+    l.plan.pairs   = { { "https://cdn.example.com/hls/low/p.m3u8", { 0 } },
+                       { "https://cdn.example.com/hls/mid/p.m3u8", { 3 } } };
+    l.plan.skipped = { { 2, "no video" } };
+    VMAFResult low = sample_result();
+    low.ref_url = l.plan.reference_url;
+    low.dis_url = l.plan.pairs[0].url;
+    VMAFResult mid = low;
+    mid.dis_url   = l.plan.pairs[1].url;
+    mid.per_frame = { 70.25, 71.5, 72.0 };
+    mid.warnings  = { "a \"quoted\" warning" };
+    l.results = { low, mid };
+    return l;
+}
+
+} // namespace
+
+TEST_CASE("vmafreport::ladder_to_json: the run, the master and the plan", "[vmafreport]")
+{
+    const vmafladder::Result l = sample_ladder();
+    vmafreport::RunInfo run = kRun;
+    run.reference_mode = "explicit-pair";   // not used: the plan's mode is
+    run.config_path    = "ladder.cfg";
+    run.config_sha256  = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+    const auto doc = parse(vmafreport::ladder_to_json(l, run));
+    REQUIRE(doc);
+    const Value& d = *doc;
+    CHECK(d["tool"].str == "mirage_vmaf");
+    CHECK(d["reference_mode"].str == "top-rung");
+    CHECK(d["libvmaf_version"].str == "3.0.0");
+    CHECK(d["ffmpeg_libraries"]["libswscale"].str == "9.5.101");
+    CHECK(d["config_file"]["path"].str == "ladder.cfg");
+    CHECK(d["model"].str == "vmaf_v0.6.1");   // the pairs' settings, once
+    CHECK(d["model_source"].str == "built-in");
+    CHECK(d["model_sha256"].kind == Value::Kind::Null);
+    CHECK(d["scaler"].str == "bilinear");
+    CHECK(d["n_threads"].num == 4);
+    CHECK(d["n_subsample"].num == 1);
+    CHECK(d["frame_limit"].num == 30);
+    for (const char* key : { "frames", "pooled", "alignment", "ref", "dis", "scored_as" }) {
+        INFO(key);
+        CHECK_FALSE(d.has(key));   // a pair's own keys are in its entry of pairs
+    }
+
+    const Value& ladder = d["ladder"];
+    CHECK(ladder["url"].str == l.ladder);
+    CHECK(ladder["location"].str == l.fetched.location);
+    CHECK(ladder["sha256"].str == l.fetched.sha256);
+    const Value& entries = ladder["entries"];
+    REQUIRE(entries.arr.size() == 4);
+    const Value& top = entries.arr[1];
+    CHECK(top["index"].num == 1);
+    CHECK(top["line"].num == 5);
+    CHECK(top["uri"].str == "top/p.m3u8");
+    CHECK(top["url"].str == "https://cdn.example.com/hls/top/p.m3u8");
+    CHECK(top["bandwidth"].num == 900000);
+    CHECK(top["average_bandwidth"].str == "850000");
+    CHECK(top["resolution"].str == "1920x1080");
+    CHECK(top["codecs"].kind == Value::Kind::Null);   // absent
+    CHECK(top["frame_rate"].str == "29.970");
+    CHECK(top["video"].b);
+    CHECK(entries.arr[2]["resolution"].kind == Value::Kind::Null);
+    CHECK_FALSE(entries.arr[2]["video"].b);
+
+    CHECK(d["reference"]["url"].str == l.plan.reference_url);
+    REQUIRE(d["reference"]["entries"].arr.size() == 1);
+    CHECK(d["reference"]["entries"].arr[0].num == 1);
+    REQUIRE(d["skipped"].arr.size() == 1);
+    CHECK(d["skipped"].arr[0]["entry"].num == 2);
+    CHECK(d["skipped"].arr[0]["reason"].str == "no video");
+    CHECK(d["warnings"].kind == Value::Kind::Array);
+    CHECK(d["warnings"].arr.empty());
+
+    // Mezzanine mode: the mezzanine as given, no entry; the plan's warnings.
+    vmafladder::Result m = l;
+    m.plan.reference_mode    = "mezzanine";
+    m.plan.reference_url     = "source \"cut\".mov";
+    m.plan.reference_entries = {};
+    m.plan.warnings          = { "entries 1 and 3 both have the highest BANDWIDTH" };
+    const auto mz = parse(vmafreport::ladder_to_json(m, run));
+    REQUIRE(mz);
+    CHECK((*mz)["reference_mode"].str == "mezzanine");
+    CHECK((*mz)["reference"]["url"].str == m.plan.reference_url);
+    CHECK((*mz)["reference"]["entries"].arr.empty());
+    REQUIRE((*mz)["warnings"].arr.size() == 1);
+    CHECK((*mz)["warnings"].arr[0].str == m.plan.warnings[0]);
+}
+
+TEST_CASE("vmafreport::ladder_to_json: each pair has the keys of its own pair's report", "[vmafreport]")
+{
+    const vmafladder::Result l = sample_ladder();
+    const auto doc = parse(vmafreport::ladder_to_json(l, kRun));
+    REQUIRE(doc);
+    const Value& pairs = (*doc)["pairs"];
+    REQUIRE(pairs.arr.size() == 2);
+    const std::vector<std::string> own = { "scored_as", "dis_conversion", "ref_conversion",
+                                           "warnings", "frames_scored", "pooled", "alignment",
+                                           "ref", "dis", "frames" };
+    for (std::size_t k = 0; k < 2; ++k) {
+        INFO(k);
+        const Value& p = pairs.arr[k];
+        CHECK(p["index"].num == static_cast<double>(k));
+        CHECK(p.obj.size() == own.size() + 2);   // and index, entries
+        const auto alone = parse(vmafreport::to_json(l.results[k], kRun));
+        REQUIRE(alone);
+        for (const std::string& key : own) {
+            INFO(key);
+            REQUIRE(p.has(key));
+            CHECK(same(p[key], (*alone)[key]));
+        }
+    }
+    CHECK(pairs.arr[0]["entries"].arr.size() == 1);
+    CHECK(pairs.arr[1]["entries"].arr[0].num == 3);
+    CHECK(pairs.arr[1]["frames"].arr[2]["vmaf"].num == 72.0);
+    CHECK(pairs.arr[1]["warnings"].arr[0].str == "a \"quoted\" warning");
+    CHECK(pairs.arr[0]["dis"]["url"].str == "https://cdn.example.com/hls/low/p.m3u8");
+}
+
 TEST_CASE("JSON reader used by these tests rejects invalid documents", "[vmafreport]")
 {
     CHECK(parse(R"({"a": 1})"));
