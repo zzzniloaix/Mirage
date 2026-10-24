@@ -23,8 +23,9 @@ eval/run_all.sh <out_dir> [--mirage-vmaf PROG] [--mirage-vmaf-before PROG]
 ```
 
 - `<out_dir>`: a new or empty directory outside the repository. The runs inside record the repository's commit and whether its working tree was clean, so run it from a clean tree when its outputs are to be cited.
-- It needs what `docs/BUILD.md` installs, without the glad venv, and the network: the streams come from Apple's CDN, and the builds fetch their dependencies from GitHub.
+- It needs what `docs/BUILD.md` installs, and the network: the streams come from Apple's CDN, and the builds fetch their dependencies from GitHub. Building HEAD runs no Python, since glad's loader is committed (D-031). The commits before it configure glad, which looks for a Python interpreter, but their `mirage_vmaf` target doesn't need glad's loader, so no glad venv is needed.
 - Without `--mirage-vmaf`, `--mirage-vmaf-before`, `--mirage-vmaf-before-d022` and `--mirage-vmaf-before-d028`, it builds the programs the steps need itself, each in a temporary worktree of its commit (`cmake --preset macos-release`, then only the `mirage_vmaf` target), and keeps them in `<out_dir>/builds/`.
+- **On Linux**, which nothing has been run on yet (MEASUREMENT PENDING): give it the program of the Linux build, `--mirage-vmaf build/linux-release/mirage_vmaf`, and FFmpeg and libvmaf's model directory with `--ffmpeg` and `--model-dir`, whose defaults are Homebrew's paths (`docs/BUILD.md`, step 6). It builds the other programs from their commits with their `macos-release` preset as on macOS; those commits' `CMakeLists.txt` configure the player too, so they need the player's configure-time dependencies. The Docker image of `docker/README.md` has them and runs `run_all.sh` this way as its command; it has not been built.
 
 The steps, in order; each writes under `<out_dir>` the path its committed counterpart has under `eval/` (P-024):
 
@@ -73,7 +74,7 @@ It also gives each program's SHA-256 next to the one in the committed runs' `bui
 
 **Exit status.** 0: every step ran and everything compared is as committed. 1: a step failed or something differs; `rerun_check.md` says what. 2: bad arguments, or the run could not start.
 
-**Not part of it.** The `checks.txt` files of the committed run directories, which compare committed outputs with each other, and the build checks of `build_check/`, which need their own empty directory and Python 3.13 and build everything.
+**Not part of it.** The `checks.txt` files of the committed run directories, which compare committed outputs with each other, and the build checks of `build_check/`, which need their own empty directory, build everything, and regenerate glad's loader with Python 3.13.
 
 ## Tests
 
