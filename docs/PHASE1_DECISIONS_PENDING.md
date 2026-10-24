@@ -499,6 +499,7 @@ With times measured from each input's start (D-028), a clip cut from the referen
 - The pairs further apart than the tolerance are counted with half the reference's frame duration from `mirage_vmaf`'s alignment, or from ffprobe's `r_frame_rate` for a report without one.
 - P-009's warning about `mirage_vmaf` pairs of two different PTS is gone; the comparison settles it.
 - FFmpeg's verbose log has two lines more per frame for each of the three filters.
+- With `--frames N`, FFmpeg's `trim` passes the first N frames of each input on (P-008), where `mirage_vmaf` scores N pairs (P-044). Where the inputs' frames line up the two are the same frames; where they don't, they can be other frames, and the comparison then reports the pairs only one side scored. The alignment runs score every frame.
 
 **Options.** As today; pairs matched by their timestamps only; failing a pair on the differences in failure accounting too; the comparison by position as a fallback where FFmpeg's pairs can't be established; FFmpeg's `metadata` filter writing the frames to separate files, which would leave the verbose log as it was.
 
