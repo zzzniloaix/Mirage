@@ -212,6 +212,8 @@ The plan is `docs/plans/frame-alignment.md`. It asks for approval of pairing by 
 
 ## §1.2 Reference modes
 
+**Decided**: D-029, the agent's recommendation below, with `explicit-pair` kept for a pair given on the command line. **Done** (P-050): `mirage_vmaf --ladder <master>` scores each video playlist of an HLS master playlist once, against the top rung (D-002), or with `--mezzanine` against that video; entries without video are skipped and listed; a pair that can't be scored fails the run, which then writes no report; one run writes one report, of one reference mode, with a `pairs` list. On bipbop's master, over the first 300 frames, each pair of the ladder report has every value of the same pair scored on its own, and the audio-only entry is listed as skipped (`eval/consistency/ladder-300/checks.txt`, checks 3 to 7; P-051). §1.2's acceptance, both modes on one ladder, waits for D-011's clips (MEASUREMENT PENDING). What implementing D-029 left open is in "Open after D-020" below. The rest of this package describes the code before D-029.
+
 - **`reference_mode` of `mirage_vmaf`**: `explicit-pair`, because the command line names both inputs (P-017). The work order's §7 lists only `mezzanine` and `top-rung`; confirm the name, or choose another, such as letting the user declare one of the two.
 - **Ladder scoring in `mirage_vmaf`** (top rung by default per D-002, a mezzanine optionally) is not built (P-019). It needs the owner's or §2's choices: which `EXT-X-STREAM-INF` entries are scored (audio-only entries, entries that share a video playlist, equal bandwidths), what a failed rung does to the run and its exit status given P-006, and how one report holds several pairs while keeping the two modes apart before §7's schema. **Agent's recommendation**: score each video playlist once, skip entries without video and list them as skipped, let one failed rung fail the run as P-006 does for a pair, and write one report per reference mode with a `pairs` list, so that mode A and mode B never share a report.
 - **§1.2's acceptance**, both modes on one ladder with the difference documented, needs a ladder with a mezzanine: D-011's source clips (MEASUREMENT PENDING).
@@ -222,7 +224,7 @@ The plan is `docs/plans/frame-alignment.md`. It asks for approval of pairing by 
 
 **What waits for them.**
 
-- §1.2's acceptance: both reference modes on one ladder (above).
+- §1.2's acceptance: both reference modes on one ladder (above). Since D-029 `mirage_vmaf --ladder` scores a ladder in either mode (P-050), and `eval/consistency/ladder_check.py` checks a ladder run against the same pairs scored one by one (P-051); the acceptance needs a ladder with its mezzanine.
 - How much the scaler and the model change the scores of a ladder encoded from one source (#3, #4): `scalers-300/` and `models-300/` measure bipbop's rungs, which were rendered separately.
 - #5's measurement, which needs a 10-bit SDR ladder.
 - §1.4's tests with dropped and duplicated frames and discontinuities, which can be cut from such a ladder (`docs/plans/frame-alignment.md`).
@@ -236,7 +238,7 @@ The plan is `docs/plans/frame-alignment.md`. It asks for approval of pairing by 
 
 No candidate clip was examined in Phase 1 (`eval/streams.md`, MEASUREMENT PENDING).
 
-**Agent's recommendation.** Choose the clips before the ladder mode of §1.2 is built, so that its acceptance can run on them; a 10-bit SDR source would also serve #5.
+**Agent's recommendation.** Choose the clips, so that §1.2's acceptance can run on them now that the ladder mode is built (D-029); a 10-bit SDR source would also serve #5.
 
 ## The config file (the work order's engineering constraints)
 
@@ -390,6 +392,7 @@ Reported, not edited:
 10. §5's target is a per-frame difference "< 0.01"; D-019 passes a frame at exactly 0.01 (D-019 above).
 11. §5's target, under 0.01 per frame with the default configuration, is met for yuv420p references, and not for every reference in another pixel format: not where its tags differ from the distorted input's, nor for the full range yuvj420p reference with the same tags. The reason is the color conversion, which §5 asks the documents to state ("D-016: references that aren't yuv420p" above; `eval/consistency/README.md`). Since D-022 it is met in every reference format case as well (`eval/consistency/format-cases-d022/`), with the scaler of the committed runs, bilinear.
 12. §5's target is not met for inputs whose frames don't line up: of the 9 synthetic alignment cases 2 pass, the control whose frames line up and the later start in a container that starts at 0, in which both sides pair the same frames with the same scores (`eval/consistency/align-cases-d028/`). The reason is frame alignment, which §5 names: D-028's rule A, its new libvmaf context after a gap and its pairing stopped at a discontinuity differ from FFmpeg's framesync ("What the alignment cases show" below; `eval/consistency/README.md`).
+13. §7's schema lists a ladder's scores as `ladder [ { variant_uri, bandwidth, resolution, codecs, frames [ { pts, vmaf } ], pooled { ... }, alignment { ... } } ]`. `mirage_vmaf`'s ladder report has the master's entries, with their attributes, under `ladder`, and the scores under `pairs`, one per video playlist, each with the entries that name it, its frames, pooled values and alignment (D-029; `src/VMAFReport.h`). The schema is §7's work, in Phase 5.
 
 ## Open after D-020: what implementing the decisions left open
 
@@ -531,8 +534,32 @@ For D-011, whose clips and encoding parameters stay the owner's: (2) shows that 
 
 The plan's "What FFmpeg does" (`docs/plans/frame-alignment.md`) says, from the sources, that scoring ends with the distorted input. The runs show that once the distorted input has ended, FFmpeg's libvmaf filter scores each later reference frame against the last distorted frame (`a04`, `a05` in `eval/consistency/align-cases-d028/`): framesync keeps the distorted input's last frame, and its end hands the events to the reference (`libavfilter/framesync.c`). The plan's status line says so; its text is left as it was approved.
 
+### D-029: the values its ladder scoring leaves open (P-050)
+
+**Question.** D-029 fixes the design of ladder scoring in `mirage_vmaf`: top-rung by default, a mezzanine optionally; each video playlist scored once; entries without video skipped and listed as skipped; one failed pair fails the run; one report per reference mode, with a pairs list. Which of the details it leaves open should hold?
+
+**Today** (`src/VMAFLadder.h`; tests in `tests/test_vmaf_ladder.cpp`, `test_vmaf_cli.cpp` and `test_vmaf_report.cpp`):
+
+- **What has video**: an entry with a `RESOLUTION`, or with a video codec's sample entry in `CODECS` (`avc1`, `avc3`, `hvc1`, `hev1`, `dvh1`, `dvhe`, `av01`, `vp09`, `vp08`, `mp4v`), the rule of `eval/streams/fetch_streams.py`; read from the master, without opening the entry. An entry without video is skipped also when it names a video playlist.
+- **The top rung**: the playlist of the video entry with the highest `BANDWIDTH`; of equals that name different playlists, the first in the master, with a warning in the report, and on stderr when the run ends.
+- **A master read strictly**: the first line `#EXTM3U`, every entry with a `BANDWIDTH` of digits only, up to 2^63 − 1, and a URI line, no URI line without an entry, every URI resolvable (for http(s), relative and absolute paths and http(s) URLs; not dot segments, `//host` references, query- or fragment-only references or other schemes). Anything else ends the run without a report, exit status 1. FFmpeg's hls demuxer and the player take a missing `BANDWIDTH` as 0.
+- **The order of the pairs**: the master's, by each playlist's first entry; the player's `start_manifest()` scores in descending `BANDWIDTH`.
+- **One mode per run**: `--mezzanine` replaces the top rung as the reference and scores the top rung's playlist too; both modes on one ladder are two runs, two reports.
+- **The first failed pair stops the run**, since no report follows it; each pair decodes the reference again.
+- **The command line**: `--ladder` and `--mezzanine` exclude `--ref` and `--dis` in one place; in a config file and on the command line, the command line's form leaves out the file's other form.
+
+**Options.** As today; any of the alternatives of P-050: probing each entry for video instead of reading its attributes, taking a missing `BANDWIDTH` as 0, refusing a master with equal highest bandwidths, ordering the pairs by `BANDWIDTH`, both modes in one run, scoring every pair before failing.
+
+**Agent's recommendation.** As today: the rules are FFmpeg's where FFmpeg reads the master and the repository's where it already decides what has video, and a master the tool would have to guess about is refused rather than scored with a reference nobody chose.
+
+### The player's ladder analysis against mirage_vmaf's (for information)
+
+The player's VMAF ladder analysis (`VMAFAnalyzer::start_manifest()`, from the "Manifest Variants" menu and `--vmaf`) is as before: every `EXT-X-STREAM-INF` entry but the one of the highest `BANDWIDTH` is scored against it, audio-only entries and entries that repeat a playlist included, in descending `BANDWIDTH`, a failed entry recorded as an error, without a mezzanine mode (`docs/VMAF_GAP_REPORT.md`, item 4). D-029 gives `mirage_vmaf` its own rules and chose not to mirror the player. Whether the player should follow `mirage_vmaf`'s rules is the owner's choice, a change to the player (D-007 if it touches its decode path), and is not made here.
+
 ### Smaller choices
 
+- P-051: the ladder check, `eval/consistency/ladder_check.py`, which compares `mirage_vmaf --ladder` with the same pairs scored one by one; its run on bipbop's master over the first 300 frames (`eval/consistency/ladder-300/`) and its step in `eval/run_all.sh`.
+- P-052: the rerun of the committed measurements after D-029, from a clean worktree of `d340b32`, which found everything as committed, `ladder-300` included (`eval/run_all/2026-10-23-ladder/`).
 - P-045: the analyzer tests of D-028 on generated clips, Matroska with uncompressed frames at chosen timestamps and an MPEG-TS clip coded with FFmpeg's MPEG-2 encoder; three earlier tests changed.
 - P-046: the rerun of the committed measurements after D-028.
 - P-049: every committed run rerun with the delta tool's comparison by timestamp, no option keeping the comparison by position; the program of `e8b867f` for the alignment cases before D-028, and their three steps in `eval/run_all.sh`; the rerun from a clean worktree of `4eeb539`, which found everything as committed (`eval/run_all/2026-10-23-align/`).
