@@ -1407,3 +1407,115 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
 - **Status**: pending owner confirmation
+
+### P-053 How D-031's #11a is implemented: glad's loader committed, its regeneration, its license terms
+
+- **Choice**
+  - **The files.** `third_party/glad/` holds `include/KHR/khrplatform.h`, `include/glad/gl.h` and `src/gl.c` as `third_party/glad/regenerate.sh` generated them, with the sizes and SHA-256s that the build check at `6a6661f` records for the files its release and debug builds generated (`eval/build_check/macos-2026-10-23-6a6661f.txt`, "Generated glad files, release vs debug"; `third_party/glad/README.md`).
+  - **The library.** `add_library(glad_gl_core_41 STATIC third_party/glad/src/gl.c)` with the include directory and `${CMAKE_DL_LIBS}` public, which is what glad 2.0.8's `glad_add_library()` made of the same files for a static library (its `cmake/GladConfig.cmake`: no compile definition but for a shared library). The target keeps its name, so nothing that links it changes. glad is no longer fetched.
+  - **The script.** `regenerate.sh <python3.13> <scratch>` creates a venv from the given interpreter with `jinja2==3.1.6` and `markupsafe==3.0.4`, the venv of `docs/BUILD.md` before D-031 (P-003, P-021); clones glad, checks that its tag `v2.0.8` still names `73db193f853e2ee079bf3ca8a64aa2eaf6459043`, the commit the build fetched (`macos-2026-10-23-6a6661f.txt`, "Dependencies fetched at configure time"), and checks that commit out; runs `python -m glad --out-path <dir> --api gl:core=4.1 --reproducible c` in glad's source directory, the command `glad_add_library()` ran (its `args.txt`); and compares each file's bytes with the committed one: exit status 0 when all three are identical, 1 when one differs or is missing, 2 when a step fails. The build check runs it (P-058).
+  - **The license terms**, in `third_party/glad/README.md`: the SPDX line of `gl.h` and `gl.c`, `(WTFPL OR CC0-1.0) AND Apache-2.0`; glad's README on the generated code, quoted; that `khrplatform.h` carries the Khronos Group's notice at its top; and glad's `LICENSE` at the commit above for the generator and the Khronos files. No license text is copied. How the terms sit with GPL-3.0-or-later, and whether the texts belong next to the files, are left with D-008's open question.
+  - **No Python.** With glad gone from FetchContent nothing calls `find_package(Python)`: Catch2 looks for Python only when it is the top-level project (its `CMakeLists.txt`), and the other dependencies' CMake files don't. The build check shows every line naming Python in each configuration's configure log, CMake cache and Ninja file (P-058).
+- **Alternatives**
+  - Another directory, such as `src/glad/`; another target name.
+  - glad from PyPI (`glad2==2.0.8`) for the regeneration, rather than the git tag's commit the build fetched; the PyPI packages checked by hash (`pip --require-hashes`).
+  - glad's `LICENSE` copied next to the files, or the texts of WTFPL, CC0-1.0 and Apache-2.0.
+  - Regeneration as a CMake option that fetches glad again.
+- **Rationale**
+  - The committed files are the bytes every recorded build generated, and the script shows that the pinned generator still makes them; a moved tag would fail its commit check.
+  - Keeping the target as glad made it keeps the rest of the build as it was.
+  - The terms are stated as the files and glad state them; what they require next to a GPL-3.0-or-later program is the legal question D-008 leaves open.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-24
+- **Status**: pending owner confirmation
+
+### P-054 How D-031's #11b is implemented: MIRAGE_HEADLESS, the presets, the Linux instructions
+
+- **Choice**
+  - **The option** `MIRAGE_HEADLESS`, off by default. On, CMake configures neither the player nor what only the player uses: OpenGL, GLFW, glad, stb, Dear ImGui, nativefiledialog-extended, and the snapshot check's `snapshot_diff` and `pathb_regression`; FetchContent fetches miniaudio, pugixml and Catch2. It builds `mirage_vmaf` and all of `mirage_tests`: that target links Catch2, FFmpeg, libvmaf and pugixml only, and none of its sources includes a header of OpenGL, GLFW, glad, Dear ImGui, nativefiledialog-extended or stb, directly or through another header. Off, the build is as before, with the player's dependencies grouped in one block of `CMakeLists.txt`.
+  - **The presets.** `macos-headless`: `macos-release` (Ninja, Release, ffmpeg-full's pkg-config directory) with the option on, in `build/macos-headless/`, the configuration the build check verifies on macOS. `linux-release`: Ninja, Release, the option on, in `build/linux-release/`, no `PKG_CONFIG_PATH`, and a condition that offers it only on a Linux host, so on macOS it can't pick up Homebrew's plain `ffmpeg` through pkg-config's default path. No Linux debug preset.
+  - **The Linux instructions** (`docs/BUILD.md`, step 6): what the headless build needs, read from `CMakeLists.txt` and the sources; the commands; `eval/run_all.sh` given the Linux build's program, FFmpeg and the model directory; marked as not built on Linux (MEASUREMENT PENDING).
+  - **`eval/run_all.sh` is unchanged.** On Linux it builds the programs of the older commits as on macOS, with their `macos-release` preset, whose Homebrew `PKG_CONFIG_PATH` entry doesn't exist there. Those commits' `CMakeLists.txt` configure the player, so they need OpenGL, GLFW and GTK 3 (nativefiledialog-extended's Linux backend) development files and a Python 3 interpreter (glad's configure step) to configure; the Docker image has them (P-055).
+- **Alternatives**
+  - The option as `MIRAGE_BUILD_PLAYER`, on by default; the player left out automatically on hosts other than macOS.
+  - stb and `snapshot_diff` kept in the headless configuration: they don't need the player's dependencies, but only the player's snapshot check uses them.
+  - Only the VMAF tests in the headless configuration.
+  - A Linux debug preset; a Linux preset with a `PKG_CONFIG_PATH`; the macOS presets limited to macOS hosts.
+  - The macOS check through `-DMIRAGE_HEADLESS=ON` given to another preset, without a preset of its own.
+  - A rule in `run_all.py` for building the older commits on Linux; they have no headless option, so it would still need their configure-time dependencies.
+- **Rationale**
+  - D-031's #11b: `mirage_vmaf`, `mirage_tests` and the eval tooling on Linux, the player macOS-only, and a CMake option without the player's dependencies.
+  - A preset makes the macOS check of the headless configuration a step anyone can repeat with the FFmpeg of the other macOS presets, and its `mirage_vmaf` is byte for byte the release preset's (P-058).
+- **Limits**: nothing has been built on Linux.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-24
+- **Status**: pending owner confirmation
+
+### P-055 How D-031's #11c is implemented: the Dockerfile, not built
+
+- **Choice**
+  - **The base image**: Debian 13, `debian:trixie-20261020-slim@sha256:62bd423aeee912639ca8ee681c2b762cb3e25137e0a92b20be455898a9f034ad`, the image index Docker Hub's registry API named for the tags `trixie-20261020-slim`, `trixie-slim` and `13-slim` on 2026-10-24 (`docker/base-image.txt`, made by `docker/query_base_image.sh`). The index holds an image per platform, and Docker picks the host's.
+  - **The sources**: FFmpeg 8.1.1 from ffmpeg.org and libvmaf 3.1.0 from GitHub's archive of its tag, each checked with `sha256sum` against the SHA-256 of the formula installed on the machine of the measurements; x264 at the git commit of the installed x264 r3222 formula, checked after the checkout (`eval/build_check/macos-2026-10-24-5ae44a4.txt`, "The sources of the installed ffmpeg-full, libvmaf and x264"). Each is configured as its formula configures it: x264 with the formula's options; libvmaf with `meson setup build libvmaf` and the options of Homebrew's `std_meson_args`, its model directory installed under `share/libvmaf/model`, and the build stopped unless libvmaf's configuration has its built-in models, for which libvmaf's build needs `xxd`; FFmpeg with the formula's options for what the evaluation uses, `--enable-shared --enable-pthreads --enable-version3 --enable-gpl --enable-gnutls --enable-libvmaf --enable-libx264`, and `--disable-doc`, without the formula's other external libraries, its macOS options and `ffplay`.
+  - **The repository**: the build context is the `.git` directory alone (`.dockerignore`); a first stage clones it with `git clone --no-local --single-branch`, and the image gets that clone: the commit checked out in the context, its branch's history, a clean working tree, and none of the context's other branches or untracked files.
+  - **The programs**: `mirage_vmaf` and `mirage_tests` with the `linux-release` preset.
+  - **Debian's packages** come from Debian's archive as it is when the image is built, not pinned; the image lists their versions in `/usr/local/share/mirage-image/packages.txt`. Besides the build tools: git, Python 3, `xxd`, the development files of GnuTLS, zlib and bzip2, and those of OpenGL, GLFW and GTK 3, which the older commits' `CMakeLists.txt` need to configure (P-054).
+  - **The command**: `ENTRYPOINT` `eval/run_all.sh --mirage-vmaf build/linux-release/mirage_vmaf --ffmpeg /usr/local/bin/ffmpeg --model-dir /usr/local/share/libvmaf/model`, `CMD` `/out`, an empty directory mounted from the host; `run_all.sh` builds the older programs itself. It runs as root.
+  - **Not built**: the machine has no container runtime (D-031's known limit). The Dockerfile's header, `docker/README.md`, `docs/BUILD.md` and `eval/README.md` say so.
+- **Alternatives**
+  - Ubuntu 24.04, or another date of Debian 13.
+  - Debian's packages from `snapshot.debian.org` at the base image's date, or each pinned by version.
+  - Debian's own libx264.
+  - FFmpeg with all the formula's external libraries.
+  - A copy of the context's working tree instead of a clone of its `.git`; all its branches.
+  - The older programs built into the image, or the image's command leaving out the steps that need them.
+  - A user other than root.
+- **Rationale**
+  - D-031's #11c: a base image pinned by digest, FFmpeg 8.1.1 and libvmaf built from release sources checked by SHA-256 at the versions of the measurements, `mirage_vmaf` built from the repository, `eval/run_all.sh` as the command.
+  - The installed formulae are the sources the measured libraries were built from; Homebrew's current formulae name newer versions ("installed vs current stable" in the same record).
+  - The formula's options for the parts the evaluation uses keep the image's FFmpeg like the measured one where the scores and the clips depend on it, without the libraries nothing of the evaluation calls.
+  - A clone of a commit gives `run_all.sh`'s records a clean tree and a commit to cite.
+  - Without the older commits' configure-time dependencies `run_all.sh` couldn't build their programs.
+- **Limits**: not built or run, so whether it builds, and whether its scores equal those measured on Apple Silicon, are MEASUREMENT PENDING; Debian's packages are not pinned; in the image the libvmaf package version of D-006 is `unknown` (`docker/README.md`).
+- **Who**: agent (Claude)
+- **Date**: 2026-10-24
+- **Status**: pending owner confirmation
+
+### P-056 The README after D-031, and vcpkg.json removed
+
+- **Choice**
+  - `README.md`: the quick start, the release build and the test section give way to a pointer to `docs/BUILD.md`, with a note on the headless, Linux and Docker builds and that the last two aren't built; the run commands stay, with `mirage_vmaf --help` added.
+  - Corrected from the repository's files: the tests (`mirage_tests`, `docs/BUILD.md` step 4, instead of 34 `ctest` tests of `NetworkLogger` and `ManifestParser`); the project tree (`tools/`, `third_party/glad/`, `docs/`, `eval/`, `docker/`, the VMAF sources, `Clock.h` instead of `Clock.cpp/h`, the four presets, `mirage_tests` instead of two test files); the common issues (no jinja2 issue since the build runs no Python; ffmpeg-full's pkg-config directory, which Homebrew doesn't link into its prefix; built-in models loaded by version and model files by `mirage_vmaf --model-file`, instead of a model path in `VMAFAnalyzer.cpp` and `LIBVMAF_MODEL_PATH`); the development workflow's test command. The FetchContent list, the first configure's time and the linker warning went with the build part.
+  - Left as they were: the controls, the VMAF menu, the thread model and the license section, which need the player running to check, or which no file contradicts. The thread model lists fewer threads than the code starts (subtitle, playlist and network report threads among them); it doesn't say it lists all.
+  - `vcpkg.json` removed: no reference to vcpkg or to a toolchain file in `CMakeLists.txt`, `CMakePresets.json`, the scripts, `src/`, `tests/` or `tools/` (`git grep`). It is still named in the original plan (`plan/`), in the gap report and in two committed `build.txt` files, which stay as they are.
+- **Alternatives**: a three-line quick start kept in the README; the thread model completed from the code.
+- **Rationale**: D-031: one place for the build steps, which the build checks verify, and a README whose facts match the repository.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-24
+- **Status**: pending owner confirmation
+
+### P-057 A test fixed: a stop token that outlives the context it guards
+
+- **Choice**: `tests/test_hls_variants.cpp`, test case `HLS master → variant playlist: FFmpeg structure, open_variant checks, same timeline`, passed `ss.get_token()`, a temporary, to `ffopen::open_variant` and then read packets from the context it opened. The context's interrupt callback keeps a pointer to the token, which `src/FfOpen.h` requires to outlive the context, so after the call the callback read a token that no longer existed. The token is now a named variable (`a0d69fc`). The test only; `src/FfOpen.*` and the player's helper decoders, which pass tokens that outlive their contexts, are unchanged. It came up while the headless configuration, a release build, was tried in scratch, whose runs aren't committed; no committed record ran a release build's tests before the build check at `5ae44a4`, which runs the fixed test in the debug and the headless build (P-058).
+- **Alternatives**: leaving the test as it was, as a failure of release builds only; running the headless build's tests from a debug build; `open_input` keeping its own copy of the token, a change to code the player's helper decoders use (D-007).
+- **Rationale**: the test broke the contract of the function it tests, and the tests of the headless configuration are part of D-031's Linux build; the code under test does what its header says.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-24
+- **Status**: pending owner confirmation
+
+### P-058 The build check at 5ae44a4, after D-031's build changes
+
+- **Choice**
+  - `eval/build_check/run_build_check.sh` (P-007, P-022) changed with D-031: the release, debug and headless presets configured and built with nothing more than `docs/BUILD.md` gives, no glad venv; every line naming Python in each configuration's configure log, CMake cache and Ninja file; the unit tests of the debug and the headless build; the SHA-256 of the three builds' `mirage_vmaf` and whether the release and headless ones are identical; the committed glad files and a run of `third_party/glad/regenerate.sh` with the given Python 3.13; and the `url` and `sha256`, or git `revision`, of the installed ffmpeg-full, libvmaf and x264 formulae, with the x264 and libvmaf that ffmpeg-full's libraries link, which `docker/Dockerfile` pins. Its listing of the FetchContent dependencies reads declarations inside an `if()` block too.
+  - One run, from a clean worktree of `5ae44a4`, the commit after the script's change and after every change to the build of this round; its output committed verbatim as `eval/build_check/macos-2026-10-24-5ae44a4.txt`. After `5ae44a4` the build changed in no file: the commits after it are documents, the record and a docstring of `eval/run_all.py`.
+- **Alternatives**: the venv steps kept as well; the Python suites of `eval/` in the check too; a build of the commit before this round for a comparison of `mirage_vmaf`.
+- **Rationale**: the record backs every statement of `docs/BUILD.md` about the build after D-031, as P-007 has it.
+- **Result** (`eval/build_check/macos-2026-10-24-5ae44a4.txt`):
+  - The release, debug and headless presets configured and built with exit status 0, and no line of the nine files names Python ("Python in the configure and the build").
+  - The headless configuration fetched miniaudio, pugixml and Catch2 only, built `mirage_vmaf` and `mirage_tests` and neither `mirage` nor `snapshot_diff`, and its `mirage_vmaf` is identical to the release preset's, SHA-256 `9f04085f73440a9c9969f9bf6a86767eaf9ade89ae8ca393f8b6c99bb78b9b06`, which no committed measurement's `build.txt` names.
+  - Every unit test passed in the debug build and in the headless build: 311 test cases each, with 111765 and 111752 assertions; the subtitle test of D-032 passed in a clean checkout.
+  - `regenerate.sh` made glad's three files again with the bytes of the committed ones; the six FetchContent dependencies are at the commits the check at `6a6661f` fetched; CMake offers `macos-debug`, `macos-release` and `macos-headless` on the machine, not `linux-release`.
+  - The installed formulae name the sources the Dockerfile pins: `ffmpeg-8.1.1.tar.xz` with SHA-256 `b6863adde98898f42602017462871b5f6333e65aec803fdd7a6308639c52edf3`, libvmaf's `v3.1.0.tar.gz` with `80090e29d7fd0db472ddc663513f5be89bc936815e62b767e630c1d627279fe2`, and x264's commit `b35605ace3ddf7c1a5d67a2eb553f034aef41d55` (r3222).
+- **Limits**: one machine with its Homebrew packages, as P-022's; the player's window wasn't opened; neither the Linux preset nor the Docker image was built.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-24
+- **Status**: pending owner confirmation
