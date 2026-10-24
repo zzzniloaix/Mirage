@@ -9,8 +9,8 @@
 // mezzanine optionally; each video playlist scored once; entries without
 // video skipped and listed as skipped; one failed pair fails the run; one
 // report per reference mode, with a pairs list (src/VMAFReport.h). Where it
-// leaves a value open, the value here is the agent's choice, named below,
-// pending the owner's confirmation (DECISIONS.md P-050).
+// leaves a value open, the value here is the one named below, recorded for
+// the owner's confirmation in DECISIONS.md P-050.
 //
 // - Entries. The master's EXT-X-STREAM-INF tags, each with the URI line that
 //   follows it, blank lines, comments and other tags between them allowed,

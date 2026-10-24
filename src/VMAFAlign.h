@@ -11,8 +11,8 @@
 // sequences alone (tests/test_vmaf_align.cpp).
 //
 // The rules. Where D-028 and the plan leave a value open, the value here is
-// the agent's choice, named below, pending the owner's confirmation
-// (DECISIONS.md P-043).
+// the one named below, recorded for the owner's confirmation in
+// DECISIONS.md P-043.
 //
 // - Times. A frame's timestamp is in its input's time base, measured from the
 //   input's start, Clock::start: the container's start time, as `ffmpeg`
