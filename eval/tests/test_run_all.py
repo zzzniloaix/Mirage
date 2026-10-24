@@ -25,20 +25,29 @@ sys.path.insert(0, EVAL)
 import run_all as ra  # noqa: E402
 
 FAKE_TOOLS = os.path.join(EVAL, "consistency", "tests", "fake_tools.py")
-RECORDED_ONLY = {"--jobs", "--ffmpeg", "--ffprobe", "--timeout"}
+
+# Per kind of step: the start of its committed run.cmd.txt's command, and the
+# options run_all.py sets from its own arguments rather than the step's.
+COMMANDS = {
+    "delta": (["eval/consistency/run_delta.sh", "<mirage_vmaf>", "<out_dir>"],
+              {"--jobs", "--ffmpeg", "--ffprobe", "--timeout"}),
+    "ladder": (["python3", "-I", "-B", "eval/consistency/ladder_check.py", "<mirage_vmaf>",
+                "<out_dir>"], {"--jobs", "--timeout"}),
+}
 
 
-def recorded_options(path):
+def recorded_options(path, kind="delta"):
     """The options of a committed run.cmd.txt, without those run_all.py sets
     from its own arguments."""
+    start, recorded_only = COMMANDS[kind]
     with open(path, encoding="utf-8") as f:
         line = [x for x in f if x.startswith("$ ")][-1]
     argv = shlex.split(line[2:])
-    assert argv[:3] == ["eval/consistency/run_delta.sh", "<mirage_vmaf>", "<out_dir>"], argv
-    out, rest = [], argv[3:]
+    assert argv[:len(start)] == start, argv
+    out, rest = [], argv[len(start):]
     while rest:
         a = rest.pop(0)
-        if a in RECORDED_ONLY:
+        if a in recorded_only:
             rest.pop(0)
         elif a.startswith("--") and rest and not rest[0].startswith("--"):
             out += [a, rest.pop(0)]
@@ -85,11 +94,12 @@ def delta_run(root, statuses, scores=(1.0, 2.0, 3.0), compress=False):
 class StepsAgainstTheCommittedRuns(unittest.TestCase):
     def test_every_delta_run_has_the_options_of_its_run_cmd(self):
         fake = mock.Mock(out="/x", args=mock.Mock(model_dir=ra.DEFAULT_MODEL_DIR))
+        self.assertEqual({s.kind for s in ra.STEPS if s.runs}, set(COMMANDS))
         for s in ra.STEPS:
             for run in s.runs:
                 path = os.path.join(EVAL, s.committed, run.name, "run.cmd.txt")
                 with self.subTest(step=s.name, run=run.name):
-                    expected = as_options(recorded_options(path))
+                    expected = as_options(recorded_options(path, s.kind))
                     mine = [o.replace("{clips}", "<tmp>/clips")
                             .replace("{format_clips}", "<tmp>/format_clips")
                             .replace("{align_clips}", "<tmp>/align_clips") for o in run.options]
@@ -97,14 +107,16 @@ class StepsAgainstTheCommittedRuns(unittest.TestCase):
 
     def test_every_delta_run_names_its_scaler_and_model(self):
         # run_delta.sh's defaults can change, as its scaler did with D-024; a
-        # rerun that named no scaler or model would get the new default.
+        # rerun that named no scaler or model would get the new default. The
+        # ladder check gives no threads: mirage_vmaf's are fixed.
         for s in ra.STEPS:
             for run in s.runs:
                 with self.subTest(step=s.name, run=run.name):
                     opts = as_options(run.options)
                     self.assertIn("--scaler", opts)
                     self.assertTrue("--model" in opts or "--model-file" in opts)
-                    self.assertIn("--threads", opts)
+                    if s.kind == "delta":
+                        self.assertIn("--threads", opts)
 
     def test_every_committed_measurement_has_a_step(self):
         covered = {os.path.join(s.committed, run.name) for s in ra.STEPS for run in s.runs}
@@ -162,6 +174,7 @@ class StepsAgainstTheCommittedRuns(unittest.TestCase):
                          ["acceptance-full", "pooling-full"])
         self.assertEqual(names(only=["pooling-defaults-300"], skip_before=False),
                          ["defaults-300", "pooling-defaults-300"])
+        self.assertEqual(names(only=["ladder-300"], skip_before=False), ["ladder-300"])
         rest = names(only=None, skip_before=False, skip_full=True)
         self.assertEqual(rest, [n for n in ra.STEP_NAMES if n not in ra.FULL_LENGTH])
         self.assertIn("pooling", rest)
@@ -171,7 +184,7 @@ class StepsAgainstTheCommittedRuns(unittest.TestCase):
         # from a fixed commit; the head's runs name the commit they were made at.
         programs = {name: (option, commit) for name, option, commit, _ in ra.PROGRAMS}
         for s in ra.STEPS:
-            if s.kind != "delta":
+            if s.kind not in ("delta", "ladder"):
                 continue
             with self.subTest(step=s.name):
                 self.assertIn(s.binary, programs)
@@ -207,6 +220,20 @@ class StepsAgainstTheCommittedRuns(unittest.TestCase):
     def test_a_full_length_run_has_no_frame_limit(self):
         self.assertNotIn("--frames", ra.delta_options(None))
         self.assertEqual(ra.delta_options(300)[:2], ["--frames", "300"])
+        self.assertNotIn("--frames", ra.ladder_options(None))
+        self.assertEqual(as_options(ra.ladder_options(300))["--frames"], "300")
+
+    def test_the_ladder_check_runs_on_the_bipbop_master(self):
+        # The master of the pairs of D-018 (eval/streams/streams.txt), against
+        # those pairs scored one by one (D-029).
+        (s,) = [s for s in ra.STEPS if s.kind == "ladder"]
+        self.assertEqual((s.name, s.binary, [r.name for r in s.runs]),
+                         ("ladder-300", "head", ["top-rung"]))
+        opts = as_options(s.runs[0].options)
+        self.assertEqual(opts["--pairs"], ra.PAIRS)
+        with open(os.path.join(EVAL, "streams", "streams.txt"), encoding="utf-8") as f:
+            self.assertIn(opts["--ladder"], f.read())
+        self.assertNotIn("--mezzanine", opts)
 
     def test_the_pooling_check_of_d027_runs_on_defaults_300(self):
         # pooling/defaults-300 was made with --check-pooled; the other pooling
@@ -292,6 +319,60 @@ class Comparisons(unittest.TestCase):
         c = ra.compare_delta_run(self.new, self.old)
         self.assertFalse(c["identical"])
         self.assertEqual(c["pairs"][0]["mirage"]["committed"], "present")
+
+    def ladder_run(self, root, statuses=None, scores=(1.0, 2.0)):
+        """A ladder_check.py output directory: two ladder pairs, each also
+        scored on its own."""
+        statuses = statuses or {"a": "SAME", "b": "SAME"}
+        write_json(os.path.join(root, "check.json"), {
+            "status": "PASS" if all(s == "SAME" for s in statuses.values()) else "FAIL",
+            "pairs": [{"pair": p, "status": s} for p, s in statuses.items()]})
+        frames = [{"index": i, "vmaf": v} for i, v in enumerate(scores)]
+        write_json(os.path.join(root, "ladder", "mirage.json"), {
+            "reference_mode": "top-rung", "ladder": {"sha256": "1", "entries": [{"index": 0}]},
+            "reference": {"url": "r", "entries": [0]}, "skipped": [], "warnings": [],
+            "pairs": [{"index": k, "entries": [k + 1], "frames": frames}
+                      for k in range(len(statuses))]})
+        for p in statuses:
+            write_json(os.path.join(root, p, "mirage.json"), {"frames": frames})
+
+    def test_identical_and_differing_ladder_runs(self):
+        self.ladder_run(self.new)
+        self.ladder_run(self.old)
+        c = ra.compare_ladder_run(self.new, self.old)
+        self.assertTrue(c["identical"], c)
+        self.assertEqual([p["pair"] for p in c["pairs"]],
+                         ["ladder pair 0 (entries 1)", "ladder pair 1 (entries 2)", "a", "b"])
+        self.assertIsNone(c["pairs"][0]["ffmpeg"])
+
+        shutil.rmtree(self.new)
+        self.ladder_run(self.new, scores=(1.0, 2.5))
+        c = ra.compare_ladder_run(self.new, self.old)
+        self.assertFalse(c["identical"])
+        self.assertEqual(c["pairs"][0]["mirage"]["largest_difference"], 0.5)
+        self.assertEqual(c["pairs"][2]["mirage"]["differing"], 1)
+
+        shutil.rmtree(self.new)
+        self.ladder_run(self.new, {"a": "SAME", "b": "DIFFERS"})
+        c = ra.compare_ladder_run(self.new, self.old)
+        self.assertFalse(c["identical"])
+        self.assertEqual(c["status"], {"rerun": "FAIL", "committed": "PASS"})
+
+        # Another master, or another plan.
+        shutil.rmtree(self.new)
+        self.ladder_run(self.new)
+        report = os.path.join(self.new, "ladder", "mirage.json")
+        with open(report) as f:
+            data = json.load(f)
+        data["skipped"] = [{"entry": 3, "reason": "no video"}]
+        write_json(report, data)
+        c = ra.compare_ladder_run(self.new, self.old)
+        self.assertEqual(c["plan_differs"], ["skipped"])
+        self.assertFalse(c["identical"])
+
+        shutil.rmtree(self.new)
+        self.assertEqual(ra.compare_ladder_run(self.new, self.old)["problem"],
+                         "check.json is missing from the rerun")
 
     def test_effect_ignores_settings_only(self):
         pairs = [{"pair": "a", "base": {"settings": {"model": "/x/m.json"}, "pooled_mean": 1},
@@ -383,12 +464,14 @@ class WholeRun(unittest.TestCase):
                               committed="consistency/diag-after-300",
                               runs=[ra.Run("plain", ra.delta_options(5, pairs=pairs))]),)
 
-    def main(self, out, *extra):
+    def main(self, out, *extra, steps=None, env=None):
+        steps = steps or self.steps
         argv = [out, "--mirage-vmaf", os.path.join(self.bin, "mirage_vmaf"),
                 "--ffmpeg", os.path.join(self.bin, "ffmpeg"), "--work-dir",
                 os.path.join(self.dir, "work"), *extra]
-        with mock.patch.object(ra, "STEPS", self.steps), \
-                mock.patch.object(ra, "STEP_NAMES", ("diag-after-300",)), \
+        with mock.patch.object(ra, "STEPS", steps), \
+                mock.patch.object(ra, "STEP_NAMES", tuple(s.name for s in steps)), \
+                mock.patch.dict(os.environ, env or {}), \
                 contextlib.redirect_stdout(io.StringIO()), \
                 contextlib.redirect_stderr(io.StringIO()):
             return ra.main(argv)
@@ -434,6 +517,44 @@ class WholeRun(unittest.TestCase):
             md = f.read()
         self.assertIn("NOT everything is as committed", md)
         self.assertIn("1 differ, largest 0.250000", md)
+
+    def test_a_ladder_step(self):
+        # mirage_vmaf's stand-in with --ladder, as the program since D-029.
+        env = {f"FAKE_MIRAGE_HAS_{x}": "1"
+               for x in ("SCALER", "MODEL", "D022", "D027", "D028", "LADDER")}
+        master = os.path.join(self.dir, "master.m3u8")
+        with open(master, "w") as f:
+            f.write("#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=900,RESOLUTION=1920x1080\n"
+                    "fake:1920x1080:bt709\n#EXT-X-STREAM-INF:BANDWIDTH=300,RESOLUTION=640x360\n"
+                    "fake:640x360:smpte170m\n#EXT-X-STREAM-INF:BANDWIDTH=40,CODECS=\"mp4a.40.2\"\n"
+                    "fake:0x0:none\n")
+        pairs = os.path.join(self.dir, "ladder_pairs.txt")
+        with open(pairs, "w") as f:
+            f.write("low fake:1920x1080:bt709 fake:640x360:smpte170m\n")
+        steps = (ra.step("ladder-300", "ladder", "head", committed="consistency/ladder-300",
+                         runs=[ra.Run("top-rung", ra.ladder_options(5, ladder=master,
+                                                                    pairs=pairs))]),)
+        first = os.path.join(self.dir, "first")
+        self.assertEqual(self.main(first, "--no-compare", steps=steps, env=env), 0)
+        with open(os.path.join(first, "consistency", "ladder-300", "top-rung",
+                               "check.json")) as f:
+            check = json.load(f)
+        self.assertEqual(check["status"], "PASS", check["problems"])
+        with open(os.path.join(first, "run_all.json")) as f:
+            run = json.load(f)
+        self.assertEqual([c["exit_code"] for c in run["commands"]], [0])
+        self.assertIn("eval/consistency/ladder_check.py <tmp>/", run["commands"][0]["command"])
+
+        second = os.path.join(self.dir, "second")
+        self.assertEqual(self.main(second, "--committed", first, steps=steps, env=env), 0)
+        with open(os.path.join(second, "rerun_check.json")) as f:
+            rerun = json.load(f)
+        self.assertTrue(rerun["identical"])
+        with open(os.path.join(second, "rerun_check.md")) as f:
+            md = f.read()
+        self.assertIn("| top-rung | ladder pair 0 (entries 1) | scored / scored | 5 / 5 | yes | - | - |",
+                      md)
+        self.assertIn("| top-rung | low | SAME / SAME | 5 / 5 | yes | - | - |", md)
 
     def test_out_dir_inside_the_repository_is_refused(self):
         with mock.patch("sys.stderr"):

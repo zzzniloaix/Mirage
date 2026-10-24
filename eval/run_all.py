@@ -31,6 +31,10 @@ in this order:
   models-300             consistency/models-300/{vmaf_v0.6.1,...}/ and model_effect.*
   defaults-300           consistency/defaults-300/plain/: the first 300 frames of
                          the four pairs with the defaults after D-024 and D-027
+  ladder-300             consistency/ladder-300/top-rung/: eval/consistency/
+                         ladder_check.py, mirage_vmaf --ladder on the bipbop
+                         master against the four pairs scored one by one, first
+                         300 frames (D-029)
   align-cases-before     consistency/align-cases-before/main/: the alignment cases
                          with a mirage_vmaf from before D-028
   align-cases-d028       consistency/align-cases-d028/main/: the alignment cases
@@ -68,8 +72,10 @@ step 3).
 
 Then it compares, step by step, the rerun with the committed outputs: the
 per-frame scores of both sides of every pair (Mirage's at full precision,
-every libvmaf metric of FFmpeg's log) and each pair's verdict; the
-numbers of compare_runs.py and pooling.py; the playlists and stream
+every libvmaf metric of FFmpeg's log) and each pair's verdict; for the
+ladder check, its verdict, the ladder report's master and plan, and every
+per-frame score of the ladder's pairs and of the pairs scored one by one;
+the numbers of compare_runs.py and pooling.py; the playlists and stream
 parameters; the clips' tags and pixel checksums; and the FFmpeg records'
 outputs. It writes:
 
@@ -148,6 +154,8 @@ STEP_TIMEOUT = 6 * 3600   # seconds per measurement command
 
 PAIRS = "eval/consistency/pairs/bipbop16x9.txt"
 PAIRS_GEAR2 = "eval/consistency/pairs/bipbop16x9_gear2.txt"
+LADDER = ("https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/"
+          "bipbop_16x9_variant.m3u8")
 
 # One run_delta.sh run of a step: its directory and options. In the options,
 # {clips}, {format_clips} and {align_clips} are the clips directories of the
@@ -168,6 +176,14 @@ def delta_options(frames, pairs=PAIRS, scaler="bilinear", model="vmaf_v0.6.1",
     opts += ["--model-file", model_file] if model_file else ["--model", model]
     opts += ["--threads", "4", "--threshold", "0.01"]
     return opts + (["--diagnostic-relabel"] if relabel else [])
+
+
+def ladder_options(frames, ladder=LADDER, pairs=PAIRS, scaler="bicubic", model="vmaf_v0.6.1"):
+    """ladder_check.py's options; frames None for every frame. The scaler and
+    the model are always given, as for run_delta.sh (delta_options)."""
+    opts = ["--ladder", ladder, "--pairs", pairs]
+    opts += [] if frames is None else ["--frames", str(frames)]
+    return opts + ["--scaler", scaler, "--model", model]
 
 
 Step = collections.namedtuple("Step",
@@ -227,6 +243,8 @@ STEPS = (
                                                    model_file="{model_dir}/vmaf_v0.6.1.json"))]),
     step("defaults-300", "delta", "head", committed="consistency/defaults-300", runs=[
         Run("plain", delta_options(300, scaler="bicubic"))]),
+    step("ladder-300", "ladder", "head", committed="consistency/ladder-300", runs=[
+        Run("top-rung", ladder_options(300))]),
     step("align-cases-before", "delta", "before-d028", needs=["align-clips"],
          committed="consistency/align-cases-before", runs=[
              Run("main", delta_options(None, pairs="{align_clips}/pairs.txt", scaler="bicubic"))]),
@@ -618,6 +636,19 @@ def run_step(r, s, binaries):
                       f"logs/{s.name}_{prefix}.log")
             ok = c["exit_code"] == 0
         return ok
+    if s.kind == "ladder":
+        prog = binaries.get(s.binary)
+        if not prog:
+            print(f"[{s.name}] no mirage_vmaf for it: skipped", flush=True)
+            return False
+        ok = True
+        for run in s.runs:
+            argv = python("eval/consistency/ladder_check.py") + [
+                prog, os.path.join(out, run.name)] + expand(run.options, r) + [
+                "--jobs", str(r.args.jobs)]
+            c = r.run(s.name, argv, f"logs/{s.name}_{run.name}.log")
+            ok = ok and c["exit_code"] in (0, 1)
+        return ok
     if s.kind == "ffmpeg-record":
         os.makedirs(out, exist_ok=True)
         include = os.path.join(os.path.dirname(os.path.dirname(r.ffmpeg)), "include")
@@ -718,6 +749,55 @@ def compare_delta_run(new_dir, old_dir):
             "pairs": pairs, "extra_pairs": extra,
             "identical": (new.get("status") == old.get("status") and not extra
                           and all(p["identical"] for p in pairs))}
+
+
+# The keys of a ladder report that say what the master and the plan were.
+LADDER_PLAN = ("reference_mode", "ladder", "reference", "skipped", "warnings")
+
+
+def compare_ladder_run(new_dir, old_dir):
+    """A ladder_check.py run: its verdict, the ladder report's master and
+    plan, and the per-frame scores of the ladder's pairs and of the pairs
+    scored one by one."""
+    new, old = read_json(os.path.join(new_dir, "check.json")), \
+        read_json(os.path.join(old_dir, "check.json"))
+    if new is None or old is None:
+        return {"identical": False, "problem": "check.json is missing from the "
+                + ("rerun" if new is None else "committed run")}
+    nl = read_json(os.path.join(new_dir, "ladder", "mirage.json")) or {}
+    ol = read_json(os.path.join(old_dir, "ladder", "mirage.json")) or {}
+    plan_differs = [k for k in LADDER_PLAN if nl.get(k) != ol.get(k)]
+    pairs = []
+    new_pairs = nl.get("pairs") or []
+    for k, op in enumerate(ol.get("pairs") or []):
+        np = new_pairs[k] if k < len(new_pairs) else {}
+        a = [f.get("vmaf") for f in np.get("frames") or []]
+        b = [f.get("vmaf") for f in op.get("frames") or []]
+        _, differ, largest = compare_values(a, b)
+        m = {"rerun": len(a) if np else None, "committed": len(b), "differing": differ,
+             "largest_difference": largest,
+             "identical": bool(np) and len(a) == len(b) and differ == 0}
+        entries = ", ".join(str(e) for e in op.get("entries") or [])
+        pairs.append({"pair": f"ladder pair {k} (entries {entries})",
+                      "status": {"rerun": "scored" if np else None, "committed": "scored"},
+                      "mirage": m, "ffmpeg": None,
+                      "identical": m["identical"] and np.get("entries") == op.get("entries")})
+    new_checks = {x["pair"]: x for x in new.get("pairs") or []}
+    for oc in old.get("pairs") or []:
+        nc = new_checks.get(oc["pair"])
+        m = compare_pair(os.path.join(new_dir, oc["pair"]),
+                         os.path.join(old_dir, oc["pair"]))["mirage"]
+        pairs.append({"pair": oc["pair"],
+                      "status": {"rerun": nc and nc.get("status"), "committed": oc.get("status")},
+                      "mirage": m, "ffmpeg": None,
+                      "identical": nc is not None and nc.get("status") == oc.get("status")
+                      and m["identical"]})
+    extra = len(new_pairs) - len(ol.get("pairs") or []) + len(
+        set(new_checks) - {x["pair"] for x in old.get("pairs") or []})
+    return {"status": {"rerun": new.get("status"), "committed": old.get("status")},
+            "plan_differs": plan_differs, "pairs": pairs,
+            "identical": (new.get("status") == old.get("status") and not plan_differs
+                          and extra == 0 and all(p["identical"] for p in pairs))}
 
 
 def compare_effect(new_path, old_path):
@@ -840,6 +920,12 @@ def compare_step(r, s):
             ok = ok and rec["effect"]["identical"]
         rec["identical"] = ok
         return rec
+    if s.kind == "ladder":
+        runs = {run.name: compare_ladder_run(os.path.join(new, run.name),
+                                             os.path.join(old, run.name)) for run in s.runs}
+        return {"what": "the check's verdict, the ladder report's master and plan, and every "
+                        "per-frame score of the ladder's pairs and of the pairs scored one by one",
+                "runs": runs, "identical": all(v["identical"] for v in runs.values())}
     if s.kind == "ffmpeg-record":
         return {"what": "the output of each command of checks.txt after check 1",
                 **compare_ffmpeg_record(os.path.join(new, "record.txt"),
@@ -909,17 +995,23 @@ def check_markdown(report):
             if run.get("problem"):
                 lines.append(f"| {name} | | {run['problem']} | | | | |")
                 continue
+            if run.get("plan_differs"):
+                lines.append(f"| {name} | the ladder's {', '.join(run['plan_differs'])} | "
+                             "DIFFER | | | | |")
             for p in run["pairs"]:
                 m, f = p.get("mirage") or {}, p.get("ffmpeg") or {}
+                no_ffmpeg = "ffmpeg" in p and p["ffmpeg"] is None   # the ladder check's pairs
+                ffmpeg = " | - | -" if no_ffmpeg else (
+                    f" | {f.get('rerun')} / {f.get('committed')} | {yes(f.get('identical'))}"
+                    + ("" if f.get("identical") or f.get("differing") is None else
+                       f" ({f['differing']} differ)"))
                 lines.append(
                     f"| {name} | {p['pair']} | {p['status']['rerun']} / "
                     f"{p['status']['committed']} | {m.get('rerun')} / {m.get('committed')} | "
                     f"{yes(m.get('identical'))}"
                     + ("" if m.get("identical") or m.get("differing") is None else
                        f" ({m['differing']} differ, largest {vd.num(m['largest_difference'])})")
-                    + f" | {f.get('rerun')} / {f.get('committed')} | {yes(f.get('identical'))}"
-                    + ("" if f.get("identical") or f.get("differing") is None else
-                       f" ({f['differing']} differ)") + " |")
+                    + ffmpeg + " |")
         if c.get("effect"):
             e = c["effect"]
             lines += ["", f"{s['effect_name']}: " + ("the same as committed"
