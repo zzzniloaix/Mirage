@@ -4,7 +4,7 @@ Work order §1.5 asks for `mean`, `harmonic_mean`, `min` and `p1` / `p5` / `p10`
 
 - the mean, the harmonic mean, `n / sum(1 / (x + 1)) - 1`, and the minimum as libvmaf pools them; the minimum without the first frame under its own name; and p1, p5, p10, p25 and p50 by linear interpolation, Hyndman and Fan's definition 7, the **linear** definition below.
 
-Since then `mirage_vmaf`'s report gives all of them (`pooled`, `src/VMAFReport.h`), and the player's p5 is the interpolated one. The analyzer computes them from the per-frame scores (`src/VMAFPool.h`; P-039): the mean, harmonic mean and minimum with libvmaf's formulas, summed frame by frame in index order as libvmaf sums them, so that they are `vmaf_score_pooled()`'s values to the last bit for the scores of one libvmaf context (`tests/test_vmaf_pool.cpp`), and the percentiles with the arithmetic of `pooling.py`'s linear definition. With `--check-pooled`, `pooling.py` computes the same values and checks them against those of `mirage_vmaf`'s reports (`defaults-300/` below).
+Since then `mirage_vmaf`'s report gives all of them (`pooled`, `src/VMAFReport.h`), and the player's p5 is the interpolated one. The analyzer computes them from the per-frame scores (`src/VMAFPool.h`; P-039): the mean, harmonic mean and minimum with libvmaf's formulas, summed frame by frame in index order as libvmaf sums them, so that they are `vmaf_score_pooled()`'s values to the last bit for the scores of one libvmaf context (`tests/test_vmaf_pool.cpp`), and the percentiles with the arithmetic of `pooling.py`'s linear definition. With `--check-pooled`, `pooling.py` computes the same values and checks them against those of `mirage_vmaf`'s reports (`defaults-300/` and `defaults-full/` below).
 
 ## Running it
 
@@ -71,3 +71,19 @@ What `pooling.md` shows:
 - **Every pooled value of every report is `pooling.py`'s.** For each of the four pairs, the mean, harmonic mean, minimum, minimum without the first frame and p1, p5, p10, p25 and p50 of `mirage_vmaf`'s report equal the values `pooling.py` computes from the report's per-frame scores by `POOLED_D027`, at full precision ("The pooled values of D-027" in `pooling.md`, which writes both in full).
 - The other checks hold as on the earlier sources: libvmaf's harmonic mean in FFmpeg's logs is the shifted form at the log's 6 decimals, and each recorded minimum is the series' minimum ("Checks").
 - The comparisons with libvmaf's `vmaf_score_pooled()` and FFmpeg's log are `eval/consistency/defaults-300/checks.txt`, checks 5 and 6.
+
+## `defaults-full/`: every frame with the defaults (D-024, D-027, P-059)
+
+```
+python3 -I -B eval/pooling/pooling.py --delta-run eval/consistency/defaults-full/plain --check-pooled --out eval/pooling/defaults-full/pooling
+```
+
+One source, in `pooling.md` (made at commit `8e61d95`, working tree clean; P-059): both sides of every frame of the four pairs of the full-length §5 report with the defaults (`eval/consistency/defaults-full/plain`), 53946 frames per pair, bicubic, with a `mirage_vmaf` that reports the pooled values of D-027.
+
+What `pooling.md` shows:
+
+- **Every pooled value of every report is `pooling.py`'s**, at full precision, as on the first 300 frames ("The pooled values of D-027").
+- **The minimum is the first frame's score.** In every series of both sides the first index at the minimum is 0. For gear4, gear3 and gear2 the first frame is the only frame at the minimum, and without it the minima are 82.494129 (index 8480), 60.167983 (52920) and 25.172073 (7860), where the minima are 79.613837, 56.844534 and 23.488692. gear1's minimum is 0, which 1799 of its 53946 frames score, the minimum without the first frame too (index 30). In FFmpeg's logs the first frame's `integer_motion2` and `integer_motion` are 0, and in every pair it is the only frame with `integer_motion2` 0.
+- **Percentile definitions.** The three definitions differ by at most 0.001160 (gear2, p1) on these series, where they differ by at most 0.000276 on the series with bilinear (`acceptance-full/` above).
+- **Harmonic mean.** For all four pairs, libvmaf's harmonic mean in FFmpeg's log equals the shifted form at the log's 6 decimals, e.g. 35.705189 for gear2, where the plain form gives 35.701575. For gear1 the plain form is undefined, with 1799 frames at 0; the shifted form is 4.785794.
+- The comparison with FFmpeg's log is `eval/consistency/defaults-full/checks.txt`, check 9.

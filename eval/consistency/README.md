@@ -496,7 +496,7 @@ What they show:
   | gear2_vs_gear5 | 36.817663 | 36.714504 | 23.488692 | 27.360344 | 27.561856 | 35.380422 | 35.852451 | 36.424216 | 37.065727 |
   | gear1_vs_gear5 | 6.781918 | 5.439755 | 0.000000 | 0.000000 | 0.000000 | 5.408971 | 5.735876 | 6.252579 | 7.062059 |
 
-Limits: the first 300 frames only; the full-length report with bicubic (D-024) is MEASUREMENT PENDING. bipbop's rungs were rendered separately (D-011), so the scores compare the tools and the settings, not the rungs' quality (D-005).
+Limits: the first 300 frames only; the full-length report with the defaults is `defaults-full/` below. bipbop's rungs were rendered separately (D-011), so the scores compare the tools and the settings, not the rungs' quality (D-005).
 
 ### `acceptance-full/`: the §5 report, every frame of the four pairs (D-018, P-026)
 
@@ -535,8 +535,60 @@ What they show:
 Limits:
 
 - bipbop 16x9's rungs were rendered separately, so these scores compare the two tools, not the rungs' quality (D-005, D-011).
-- Only the defaults of its day, bilinear and vmaf_v0.6.1 (D-003, D-004). D-024 made bicubic the default, and has this report made again with it; that run is MEASUREMENT PENDING, and this one stays committed as the record it is. The other scalers and models are measured over 300 frames (`scalers-300/`, `models-300/`), and the defaults of D-024 over 300 frames in `defaults-300/`.
+- Only the defaults of its day, bilinear and vmaf_v0.6.1 (D-003, D-004). D-024 made bicubic the default, and has this report made again with it: that run is `defaults-full/` below, and this one stays committed as the record it is. The other scalers and models are measured over 300 frames (`scalers-300/`, `models-300/`), and the defaults of D-024 over 300 frames in `defaults-300/`.
 - 8-bit yuv420p inputs only, fetched from Apple's CDN during the run.
+
+### `defaults-full/`: the §5 report with the defaults, every frame of the four pairs (D-018, D-024, P-059)
+
+The full-length report of D-018 made again with the defaults, as D-024 asks: every frame of the four pairs, plain FFmpeg, without `--scaler` or `--model`, so with `run_delta.sh`'s defaults since D-024 and D-025 on both sides (bicubic, vmaf_v0.6.1, 4 libvmaf threads, threshold 0.01), four scoring processes at a time, and a `mirage_vmaf` that converts as D-021 and D-022 say, pools as D-027 says and pairs by timestamp as D-028 says, built in a new worktree of `a5b3cc53dc51b2e5a5b3ac0efb57d3534eb31c3c` (`build.txt`), from which the run was made:
+
+```
+eval/consistency/run_delta.sh build/macos-release/mirage_vmaf <out>/plain --jobs 4
+```
+
+| File | Contents |
+|---|---|
+| `build.txt` | the build of `mirage_vmaf` in the new worktree: its commit and clean state, the configure, the build's output, a second build with nothing to do, and its SHA-256, which `plain/environment.txt` repeats |
+| `plain/` | the run, with plain FFmpeg: the §5 comparison. Every pair's `mirage.json` and `ffmpeg.json` are over 1 MiB, so they are kept as `mirage.json.xz` and `ffmpeg.json.xz` |
+| `checks.txt` | checks made on the run afterwards, each command with its output |
+| `SHA256SUMS` | SHA-256 of `build.txt`, `checks.txt` and `plain/SHA256SUMS` |
+
+`eval/pooling/defaults-full/` is `eval/pooling/pooling.py --check-pooled` on this run (`eval/pooling/README.md`).
+
+From `plain/delta.md` (|delta| = |Mirage − FFmpeg| per pair both sides scored, 6 decimals):
+
+| pair | status | frame pairs (Mirage / FFmpeg) | pairs both scored / only Mirage / only FFmpeg | max \|delta\| | mean \|delta\| | frames over 0.01 | pooled mean, Mirage | pooled mean, FFmpeg | conversion, both sides |
+|---|---|---|---|---|---|---|---|---|---|
+| gear4_vs_gear5 | PASS | 53946 / 53946 | 53946 / 0 / 0 | 0.000000 | 0.000000 | 0 | 84.215790 | 84.215790 | bt709 -> bt709 |
+| gear3_vs_gear5 | PASS | 53946 / 53946 | 53946 / 0 / 0 | 0.000000 | 0.000000 | 0 | 64.205911 | 64.205911 | bt709 -> bt709 |
+| gear2_vs_gear5 | PASS | 53946 / 53946 | 53946 / 0 / 0 | 0.000000 | 0.000000 | 0 | 35.811040 | 35.811040 | smpte170m -> bt709 |
+| gear1_vs_gear5 | PASS | 53946 / 53946 | 53946 / 0 / 0 | 0.000000 | 0.000000 | 0 | 5.863899 | 5.863899 | smpte170m -> bt709 |
+
+What they show:
+
+- **§5 passes over every frame with the defaults.** Both sides scored the same 53946 pairs of every pair at the same timestamps, and written with the 6 decimals of FFmpeg's log, Mirage's score of every frame is FFmpeg's (`checks.txt`, check 4). The run and its pairs have no warning, and the working tree was clean at its start and end (check 13; `plain/delta.md`).
+- **The defaults on both sides.** `run.cmd.txt` records the scaler and model `run_delta.sh` used, bicubic and vmaf_v0.6.1; each pair's `mirage_vmaf` got `--scaler bicubic --model vmaf_v0.6.1`, and FFmpeg's scale filter `flags=bicubic`, which it logs as `flags:0x00000004` (check 3). Each report has the scaler, the built-in model, 4 threads and no subsampling, scoring at 8-bit yuv420p at 1920x1080, libvmaf 3.0.0 at run time from the package 3.1.0, and the FFmpeg libraries' run-time versions (check 2). Without trim filters, FFmpeg names the distorted input's scale filter `Parsed_scale_0`.
+- **The pairing by timestamp (D-028).** Every `mirage_vmaf` pair has the reference and distorted frames of its own position, both with the same PTS, from 10 s to 1809.9666333333332 s, and each input starts at 10 s by its container, as FFmpeg's log says too, with no timestamp corrected (checks 4 and 5). Each report's alignment: rule A, a tolerance of 0.016683333333333335 s, the reference's grid, 53946 pairs, no failure, a failure rate of 0 and one libvmaf context (check 6).
+- **The conversions.** Both tools convert gear2 and gear1 from smpte170m/tv to bt709/tv and change nothing for gear4 and gear3; no reference is converted (check 7).
+- **The first 300 frames as in `defaults-300/`.** Frames 0 to 299 have the scores of `defaults-300/`, made with `--frames 300` and one process at a time, at full precision on Mirage's side and in every metric of FFmpeg's log (check 8).
+- **The pooled values of D-027.** Each report's mean, minimum and harmonic mean are those of FFmpeg's libvmaf log at its 6 decimals (check 9), and all nine values those `pooling.py` computes from the report's per-frame scores, at full precision (check 10). From `plain/*/mirage.json.xz`, written with 6 decimals (check 9):
+
+  | pair | mean | harmonic mean | min | min without the first frame | p1 | p5 | p10 | p25 | p50 |
+  |---|---|---|---|---|---|---|---|---|---|
+  | gear4_vs_gear5 | 84.215790 | 84.213049 | 79.613837 | 82.494129 | 83.087109 | 83.403003 | 83.581955 | 83.882525 | 84.230064 |
+  | gear3_vs_gear5 | 64.205911 | 64.194902 | 56.844534 | 60.167983 | 61.216593 | 62.826456 | 63.221833 | 63.754915 | 64.281113 |
+  | gear2_vs_gear5 | 35.811040 | 35.705189 | 23.488692 | 25.172073 | 26.861827 | 33.982522 | 34.621018 | 35.353215 | 36.064785 |
+  | gear1_vs_gear5 | 5.863899 | 4.785794 | 0.000000 | 0.000000 | 0.000000 | 4.010176 | 4.601259 | 5.340558 | 6.043055 |
+
+- **Against the report with bilinear** (`acceptance-full/`, made by the program of `3650f83`): no frame scores lower; every frame of gear4, gear3 and gear2 scores higher, and 52147 of gear1's, its other 1799 the same; on average the scores rise by 9.652583 (gear4), 10.983899 (gear3), 7.942400 (gear2) and 5.863072 (gear1) (check 11). The two runs differ in the program as well as the scaler; on frames 0 to 298 each has the scores of the `scalers-300/` run of its scaler, which one program made (check 8 here; `defaults-300/checks.txt`, check 3; `acceptance-full/checks.txt`, check 3).
+- **FFmpeg's verbose log with the `showinfo` filters** of the comparison by timestamp (P-047): from 91659880 to 92092360 bytes per pair, 1877848 to 1903556 bytes as committed, xz-compressed, with a line for each of the 53946 frames from each of the three filters (check 12).
+- **Wall time.** Each side of each pair took from 1250.509 to 1282.152 s, four processes running at a time (check 13); the run lasted from 14:40:10Z to 15:23:15Z on 2026-10-24 (`plain/delta.md`).
+- **Reproduced.** `eval/run_all.sh`'s steps `defaults-full` and `pooling-defaults-full` rerun it with the head's program and compare it with these outputs (`eval/README.md`); their first rerun is P-060's (MEASUREMENT PENDING until its record is committed).
+
+Limits:
+
+- bipbop 16x9's rungs were rendered separately, so these scores compare the two tools and the settings, not the rungs' quality (D-005, D-011).
+- 8-bit yuv420p inputs only, fetched from Apple's CDN during the run; every reference is yuv420p, so D-022's conversion of the reference doesn't apply.
 
 ### `align-cases-before/`, `align-cases-d028/`: frames that don't line up, before and after D-028 (P-048)
 
