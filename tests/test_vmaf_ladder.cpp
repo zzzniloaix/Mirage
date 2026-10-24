@@ -629,3 +629,28 @@ TEST_CASE("vmafladder::score: a pair that can't be scored ends the run", "[ladde
                                      (dir / "media.m3u8").string()));
     fs::remove_all(dir);
 }
+
+TEST_CASE("vmafladder::score: a model file that changes during the run ends it", "[ladder][vmaf]")
+{
+    const fs::path file = fs::path(MIRAGE_LIBVMAF_MODEL_DIR) / "vmaf_v0.6.1.json";
+    if (!fs::exists(file)) SKIP("no libvmaf model file at " << file.string());
+    const Ladder& l = ladder();
+    const fs::path copy = testtemp::path("mirage_test_ladder_model.json");
+    fs::copy_file(file, copy, fs::copy_options::overwrite_existing);
+    // After the first pair, the file gets one more newline: other bytes, the
+    // same model, so the second pair's settings name another SHA-256.
+    const vmafladder::Result r = vmafladder::score(
+        l.master, "", { .model = { .path = copy.string() } },
+        [&](std::size_t k, std::size_t, const VMAFResult&) {
+            if (k == 0) std::ofstream(copy, std::ios::binary | std::ios::app) << '\n';
+        });
+    REQUIRE(r.results.size() == 2);
+    const std::string before = r.results[0].settings.model_sha256;
+    const std::string after  = r.results[1].settings.model_sha256;
+    CHECK(before != after);
+    CHECK(r.error == std::format("pair 2 of 2 was scored with other settings than pair 1, model {} "
+                                 "with the SHA-256 {} against {}: did the model file change "
+                                 "during the run?",
+                                 copy.string(), after, before));
+    fs::remove(copy);
+}

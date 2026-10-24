@@ -251,8 +251,9 @@ Plan plan(const Master& master, const std::string& mezzanine)
         else p.pairs.push_back({ e.url, { e.index } });
     }
     if (p.pairs.empty())
-        p.error = std::format("the only video playlist of the master is the top rung (entries {}): "
+        p.error = std::format("the only video playlist of the master is the top rung ({} {}): "
                               "there is nothing to score against it",
+                              p.reference_entries.size() == 1 ? "entry" : "entries",
                               entry_list(p.reference_entries));
     return p;
 }
@@ -321,10 +322,11 @@ Result score(const std::string& ladder, const std::string& mezzanine, const VMAF
             return out;
         }
         if (r.settings != out.results.front().settings) {
-            out.error = std::format("pair {} of {} was scored with other settings than pair 1 "
-                                    "(model {} {}, scaler {}): did the model file change?",
+            out.error = std::format("pair {} of {} was scored with other settings than pair 1, "
+                                    "model {} with the SHA-256 {} against {}: did the model file "
+                                    "change during the run?",
                                     k + 1, n, r.settings.model, r.settings.model_sha256,
-                                    r.settings.scaler);
+                                    out.results.front().settings.model_sha256);
             return out;
         }
         if (on_pair) on_pair(k, n, r);

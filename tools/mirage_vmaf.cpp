@@ -67,10 +67,12 @@ int score_ladder(const vmafcli::Args& args, const VMAFOptions& opts, vmafreport:
         std::fprintf(stderr, "mirage_vmaf: %s\n", err.c_str());
         return 1;
     }
-    std::printf("mirage_vmaf: %zu pairs of the ladder scored against %s (%s), %zu entries "
-                "skipped, report written to %s\n",
-                ladder.results.size(), ladder.plan.reference_url.c_str(),
-                ladder.plan.reference_mode.c_str(), ladder.plan.skipped.size(), args.out.c_str());
+    const std::size_t pairs = ladder.results.size(), skipped = ladder.plan.skipped.size();
+    std::printf("mirage_vmaf: %zu %s of the ladder scored against %s (%s), %zu %s skipped, "
+                "report written to %s\n",
+                pairs, pairs == 1 ? "pair" : "pairs", ladder.plan.reference_url.c_str(),
+                ladder.plan.reference_mode.c_str(), skipped, skipped == 1 ? "entry" : "entries",
+                args.out.c_str());
     return 0;
 }
 
