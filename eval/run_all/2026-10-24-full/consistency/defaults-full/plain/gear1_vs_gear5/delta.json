@@ -1,0 +1,7008 @@
+{
+  "report_version": 1,
+  "pair": "gear1_vs_gear5",
+  "reference": "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear5/prog_index.m3u8",
+  "distorted": "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear1/prog_index.m3u8",
+  "variant": "plain",
+  "status": "FAIL",
+  "fail_reasons": [
+    "FRAME COUNT MISMATCH: Mirage scored 28525 frame pairs, FFmpeg 28704; only the 28440 pairs both scored are compared",
+    "PAIRING MISMATCH: 85 of Mirage's 28525 pairs are not among FFmpeg's, and 264 of FFmpeg's 28704 not among Mirage's (the same pair: the same reference and distorted frames); only the pairs both scored are compared",
+    "2 of 28440 frames have |delta| > 0.01"
+  ],
+  "warnings": [
+    "mirage_vmaf: 1.37% of the frames failed to pair by timestamp (395 of 28920: 1 unmatched reference, 46 extra distorted, 348 after a discontinuity), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 28525 frame pairs that paired",
+    "the two sides' pairing treats 566 frames differently, Mirage's failures included (the pair's delta.md, \"Pairing by timestamp\")"
+  ],
+  "threshold": 0.01,
+  "frame_limit": null,
+  "frames": {
+    "mirage": 28525,
+    "ffmpeg": 28704,
+    "compared": 28440,
+    "counts_match": false
+  },
+  "delta": {
+    "compared": 28440,
+    "max_abs": 2.46878726369442,
+    "max_abs_index": 28439,
+    "mean_abs": 0.00010614783854828246,
+    "mean_signed": 0.0001059091717967325,
+    "over_threshold": 2,
+    "over_threshold_ranges": [
+      [
+        28438,
+        28439
+      ]
+    ],
+    "worst": [
+      {
+        "index": 28439,
+        "ffmpeg_index": 28439,
+        "mirage": 5.55834826369442,
+        "ffmpeg": 3.089561,
+        "delta": 2.46878726369442
+      },
+      {
+        "index": 28438,
+        "ffmpeg_index": 28438,
+        "mirage": 5.536519688864601,
+        "ffmpeg": 4.993359,
+        "delta": 0.5431606888646012
+      },
+      {
+        "index": 16635,
+        "ffmpeg_index": 16635,
+        "mirage": 6.441875500013045,
+        "ffmpeg": 6.441876,
+        "delta": -4.999869549493496e-07
+      },
+      {
+        "index": 1519,
+        "ffmpeg_index": 1519,
+        "mirage": 5.891100499986752,
+        "ffmpeg": 5.8911,
+        "delta": 4.999867524446699e-07
+      },
+      {
+        "index": 13482,
+        "ffmpeg_index": 13482,
+        "mirage": 6.523037500059444,
+        "ffmpeg": 6.523038,
+        "delta": -4.999405556205261e-07
+      }
+    ],
+    "mean_mirage": 6.044193086633119,
+    "mean_ffmpeg": 6.044087177461322
+  },
+  "alignment": {
+    "compared_by": "the same reference and distorted frames (their positions in the inputs), at the same timestamps (seconds from each input's start)",
+    "tolerance": 0.016683333333333335,
+    "tolerance_from": "the reference's frame rate in mirage_vmaf's alignment",
+    "mirage": {
+      "pairs": 28525,
+      "reference_in_several_pairs": 0,
+      "distorted_in_several_pairs": 0,
+      "pairs_beyond_tolerance": 0,
+      "rule": "reference-timeline",
+      "grid": "reference",
+      "failed": 395,
+      "failure_rate": 0.013658367911479945,
+      "threshold": 0.01,
+      "exceeded": true,
+      "unmatched_reference": 1,
+      "extra_distorted": 46,
+      "duplicate_distorted": 0,
+      "no_timestamp": 0,
+      "after_discontinuity": 348,
+      "discontinuities": 1,
+      "off_grid_reference": 0,
+      "off_grid_distorted": 0,
+      "vmaf_contexts": 1,
+      "reference_in_no_pair": 66,
+      "distorted_in_no_pair": 329,
+      "start": {
+        "reference": 10.0,
+        "distorted": 10.0
+      },
+      "start_from": {
+        "reference": "the report's alignment, start_from container",
+        "distorted": "the report's alignment, start_from container"
+      }
+    },
+    "ffmpeg": {
+      "pairs": 28704,
+      "reference_in_several_pairs": 1,
+      "distorted_in_several_pairs": 0,
+      "pairs_beyond_tolerance": 264,
+      "reference_in_no_pair": 0,
+      "distorted_in_no_pair": 0,
+      "unscored": 0,
+      "by_reference": 0,
+      "rule": "framesync: each distorted frame with the reference frame at or before its time; the last frame of an input that has ended repeated",
+      "start": {
+        "reference": 10.0,
+        "distorted": 10.0
+      },
+      "time_base": {
+        "reference": "1/90000",
+        "distorted": "1/90000",
+        "framesync": "1/90000"
+      },
+      "frames": {
+        "reference": 28440,
+        "distorted": 28704
+      },
+      "corrections": 0
+    },
+    "pairs": {
+      "both": 28440,
+      "only_mirage": 85,
+      "only_ffmpeg": 264,
+      "other_times": 0
+    },
+    "only_mirage": [
+      {
+        "index": 28440,
+        "ref": 28440,
+        "dis": 28440,
+        "ref_time": 948.9489444444445,
+        "dis_time": 948.9489444444445
+      },
+      {
+        "index": 28441,
+        "ref": 28441,
+        "dis": 28441,
+        "ref_time": 948.9823111111111,
+        "dis_time": 948.9823111111111
+      },
+      {
+        "index": 28442,
+        "ref": 28442,
+        "dis": 28442,
+        "ref_time": 949.0156777777778,
+        "dis_time": 949.0156777777778
+      },
+      {
+        "index": 28443,
+        "ref": 28443,
+        "dis": 28443,
+        "ref_time": 949.0490444444445,
+        "dis_time": 949.0490444444445
+      },
+      {
+        "index": 28444,
+        "ref": 28444,
+        "dis": 28444,
+        "ref_time": 949.0824111111111,
+        "dis_time": 949.0824111111111
+      },
+      {
+        "index": 28445,
+        "ref": 28445,
+        "dis": 28445,
+        "ref_time": 949.1157777777778,
+        "dis_time": 949.1157777777778
+      },
+      {
+        "index": 28446,
+        "ref": 28446,
+        "dis": 28446,
+        "ref_time": 949.1491444444445,
+        "dis_time": 949.1491444444445
+      },
+      {
+        "index": 28447,
+        "ref": 28447,
+        "dis": 28447,
+        "ref_time": 949.1825111111111,
+        "dis_time": 949.1825111111111
+      },
+      {
+        "index": 28448,
+        "ref": 28448,
+        "dis": 28448,
+        "ref_time": 949.2158777777778,
+        "dis_time": 949.2158777777778
+      },
+      {
+        "index": 28449,
+        "ref": 28449,
+        "dis": 28449,
+        "ref_time": 949.2492444444445,
+        "dis_time": 949.2492444444445
+      },
+      {
+        "index": 28450,
+        "ref": 28450,
+        "dis": 28450,
+        "ref_time": 949.2826111111111,
+        "dis_time": 949.2826111111111
+      },
+      {
+        "index": 28451,
+        "ref": 28451,
+        "dis": 28451,
+        "ref_time": 949.3159777777778,
+        "dis_time": 949.3159777777778
+      },
+      {
+        "index": 28452,
+        "ref": 28452,
+        "dis": 28452,
+        "ref_time": 949.3493444444445,
+        "dis_time": 949.3493444444445
+      },
+      {
+        "index": 28453,
+        "ref": 28453,
+        "dis": 28453,
+        "ref_time": 949.3827111111111,
+        "dis_time": 949.3827111111111
+      },
+      {
+        "index": 28454,
+        "ref": 28454,
+        "dis": 28454,
+        "ref_time": 949.4160777777778,
+        "dis_time": 949.4160777777778
+      },
+      {
+        "index": 28455,
+        "ref": 28455,
+        "dis": 28455,
+        "ref_time": 949.4494444444445,
+        "dis_time": 949.4494444444445
+      },
+      {
+        "index": 28456,
+        "ref": 28456,
+        "dis": 28456,
+        "ref_time": 949.4828111111111,
+        "dis_time": 949.4828111111111
+      },
+      {
+        "index": 28457,
+        "ref": 28457,
+        "dis": 28457,
+        "ref_time": 949.5161777777778,
+        "dis_time": 949.5161777777778
+      },
+      {
+        "index": 28458,
+        "ref": 28458,
+        "dis": 28458,
+        "ref_time": 949.5495444444445,
+        "dis_time": 949.5495444444445
+      },
+      {
+        "index": 28459,
+        "ref": 28459,
+        "dis": 28459,
+        "ref_time": 949.5829111111111,
+        "dis_time": 949.5829111111111
+      },
+      {
+        "index": 28460,
+        "ref": 28460,
+        "dis": 28460,
+        "ref_time": 949.6162777777778,
+        "dis_time": 949.6162777777778
+      },
+      {
+        "index": 28461,
+        "ref": 28461,
+        "dis": 28461,
+        "ref_time": 949.6496444444444,
+        "dis_time": 949.6496444444444
+      },
+      {
+        "index": 28462,
+        "ref": 28462,
+        "dis": 28462,
+        "ref_time": 949.6830111111111,
+        "dis_time": 949.6830111111111
+      },
+      {
+        "index": 28463,
+        "ref": 28463,
+        "dis": 28463,
+        "ref_time": 949.7163777777778,
+        "dis_time": 949.7163777777778
+      },
+      {
+        "index": 28464,
+        "ref": 28464,
+        "dis": 28464,
+        "ref_time": 949.7497444444444,
+        "dis_time": 949.7497444444444
+      },
+      {
+        "index": 28465,
+        "ref": 28465,
+        "dis": 28465,
+        "ref_time": 949.7831111111111,
+        "dis_time": 949.7831111111111
+      },
+      {
+        "index": 28466,
+        "ref": 28466,
+        "dis": 28466,
+        "ref_time": 949.8164777777778,
+        "dis_time": 949.8164777777778
+      },
+      {
+        "index": 28467,
+        "ref": 28467,
+        "dis": 28467,
+        "ref_time": 949.8498444444444,
+        "dis_time": 949.8498444444444
+      },
+      {
+        "index": 28468,
+        "ref": 28468,
+        "dis": 28468,
+        "ref_time": 949.8832111111111,
+        "dis_time": 949.8832111111111
+      },
+      {
+        "index": 28469,
+        "ref": 28469,
+        "dis": 28469,
+        "ref_time": 949.9165777777778,
+        "dis_time": 949.9165777777778
+      },
+      {
+        "index": 28470,
+        "ref": 28470,
+        "dis": 28470,
+        "ref_time": 949.9499444444444,
+        "dis_time": 949.9499444444444
+      },
+      {
+        "index": 28471,
+        "ref": 28471,
+        "dis": 28471,
+        "ref_time": 949.9833111111111,
+        "dis_time": 949.9833111111111
+      },
+      {
+        "index": 28472,
+        "ref": 28472,
+        "dis": 28472,
+        "ref_time": 950.0166888888889,
+        "dis_time": 950.0166888888889
+      },
+      {
+        "index": 28473,
+        "ref": 28473,
+        "dis": 28473,
+        "ref_time": 950.0500555555556,
+        "dis_time": 950.0500555555556
+      },
+      {
+        "index": 28474,
+        "ref": 28474,
+        "dis": 28474,
+        "ref_time": 950.0834222222222,
+        "dis_time": 950.0834222222222
+      },
+      {
+        "index": 28475,
+        "ref": 28475,
+        "dis": 28475,
+        "ref_time": 950.1167888888889,
+        "dis_time": 950.1167888888889
+      },
+      {
+        "index": 28476,
+        "ref": 28476,
+        "dis": 28476,
+        "ref_time": 950.1501555555556,
+        "dis_time": 950.1501555555556
+      },
+      {
+        "index": 28477,
+        "ref": 28477,
+        "dis": 28477,
+        "ref_time": 950.1835222222222,
+        "dis_time": 950.1835222222222
+      },
+      {
+        "index": 28478,
+        "ref": 28478,
+        "dis": 28478,
+        "ref_time": 950.2168888888889,
+        "dis_time": 950.2168888888889
+      },
+      {
+        "index": 28479,
+        "ref": 28479,
+        "dis": 28479,
+        "ref_time": 950.2502555555556,
+        "dis_time": 950.2502555555556
+      },
+      {
+        "index": 28480,
+        "ref": 28480,
+        "dis": 28480,
+        "ref_time": 950.2836222222222,
+        "dis_time": 950.2836222222222
+      },
+      {
+        "index": 28481,
+        "ref": 28481,
+        "dis": 28481,
+        "ref_time": 950.3169888888889,
+        "dis_time": 950.3169888888889
+      },
+      {
+        "index": 28482,
+        "ref": 28482,
+        "dis": 28482,
+        "ref_time": 950.3503555555556,
+        "dis_time": 950.3503555555556
+      },
+      {
+        "index": 28483,
+        "ref": 28483,
+        "dis": 28483,
+        "ref_time": 950.3837222222222,
+        "dis_time": 950.3837222222222
+      },
+      {
+        "index": 28484,
+        "ref": 28484,
+        "dis": 28484,
+        "ref_time": 950.4170888888889,
+        "dis_time": 950.4170888888889
+      },
+      {
+        "index": 28485,
+        "ref": 28485,
+        "dis": 28485,
+        "ref_time": 950.4504555555555,
+        "dis_time": 950.4504555555555
+      },
+      {
+        "index": 28486,
+        "ref": 28486,
+        "dis": 28486,
+        "ref_time": 950.4838222222222,
+        "dis_time": 950.4838222222222
+      },
+      {
+        "index": 28487,
+        "ref": 28487,
+        "dis": 28487,
+        "ref_time": 950.5171888888889,
+        "dis_time": 950.5171888888889
+      },
+      {
+        "index": 28488,
+        "ref": 28488,
+        "dis": 28488,
+        "ref_time": 950.5505555555555,
+        "dis_time": 950.5505555555555
+      },
+      {
+        "index": 28489,
+        "ref": 28489,
+        "dis": 28489,
+        "ref_time": 950.5839222222222,
+        "dis_time": 950.5839222222222
+      },
+      {
+        "index": 28490,
+        "ref": 28490,
+        "dis": 28490,
+        "ref_time": 950.6172888888889,
+        "dis_time": 950.6172888888889
+      },
+      {
+        "index": 28491,
+        "ref": 28491,
+        "dis": 28491,
+        "ref_time": 950.6506555555555,
+        "dis_time": 950.6506555555555
+      },
+      {
+        "index": 28492,
+        "ref": 28492,
+        "dis": 28492,
+        "ref_time": 950.6840222222222,
+        "dis_time": 950.6840222222222
+      },
+      {
+        "index": 28493,
+        "ref": 28493,
+        "dis": 28493,
+        "ref_time": 950.7173888888889,
+        "dis_time": 950.7173888888889
+      },
+      {
+        "index": 28494,
+        "ref": 28494,
+        "dis": 28494,
+        "ref_time": 950.7507555555555,
+        "dis_time": 950.7507555555555
+      },
+      {
+        "index": 28495,
+        "ref": 28495,
+        "dis": 28495,
+        "ref_time": 950.7841222222222,
+        "dis_time": 950.7841222222222
+      },
+      {
+        "index": 28496,
+        "ref": 28496,
+        "dis": 28496,
+        "ref_time": 950.8174888888889,
+        "dis_time": 950.8174888888889
+      },
+      {
+        "index": 28497,
+        "ref": 28497,
+        "dis": 28497,
+        "ref_time": 950.8508555555555,
+        "dis_time": 950.8508555555555
+      },
+      {
+        "index": 28498,
+        "ref": 28498,
+        "dis": 28498,
+        "ref_time": 950.8842222222222,
+        "dis_time": 950.8842222222222
+      },
+      {
+        "index": 28499,
+        "ref": 28499,
+        "dis": 28499,
+        "ref_time": 950.9175888888889,
+        "dis_time": 950.9175888888889
+      },
+      {
+        "index": 28500,
+        "ref": 28500,
+        "dis": 28500,
+        "ref_time": 950.9509555555555,
+        "dis_time": 950.9509555555555
+      },
+      {
+        "index": 28501,
+        "ref": 28501,
+        "dis": 28501,
+        "ref_time": 950.9843222222222,
+        "dis_time": 950.9843222222222
+      },
+      {
+        "index": 28502,
+        "ref": 28502,
+        "dis": 28502,
+        "ref_time": 951.0176888888889,
+        "dis_time": 951.0176888888889
+      },
+      {
+        "index": 28503,
+        "ref": 28503,
+        "dis": 28503,
+        "ref_time": 951.0510555555555,
+        "dis_time": 951.0510555555555
+      },
+      {
+        "index": 28504,
+        "ref": 28504,
+        "dis": 28504,
+        "ref_time": 951.0844222222222,
+        "dis_time": 951.0844222222222
+      },
+      {
+        "index": 28505,
+        "ref": 28505,
+        "dis": 28505,
+        "ref_time": 951.1177888888889,
+        "dis_time": 951.1177888888889
+      },
+      {
+        "index": 28506,
+        "ref": 28506,
+        "dis": 28506,
+        "ref_time": 951.1511555555555,
+        "dis_time": 951.1511555555555
+      },
+      {
+        "index": 28507,
+        "ref": 28507,
+        "dis": 28507,
+        "ref_time": 951.1845222222222,
+        "dis_time": 951.1845222222222
+      },
+      {
+        "index": 28508,
+        "ref": 28508,
+        "dis": 28508,
+        "ref_time": 951.2178888888889,
+        "dis_time": 951.2178888888889
+      },
+      {
+        "index": 28509,
+        "ref": 28509,
+        "dis": 28509,
+        "ref_time": 951.2512555555555,
+        "dis_time": 951.2512555555555
+      },
+      {
+        "index": 28510,
+        "ref": 28510,
+        "dis": 28510,
+        "ref_time": 951.2846222222222,
+        "dis_time": 951.2846222222222
+      },
+      {
+        "index": 28511,
+        "ref": 28511,
+        "dis": 28511,
+        "ref_time": 951.3179888888889,
+        "dis_time": 951.3179888888889
+      },
+      {
+        "index": 28512,
+        "ref": 28512,
+        "dis": 28512,
+        "ref_time": 951.3513555555555,
+        "dis_time": 951.3513555555555
+      },
+      {
+        "index": 28513,
+        "ref": 28513,
+        "dis": 28513,
+        "ref_time": 951.3847222222222,
+        "dis_time": 951.3847222222222
+      },
+      {
+        "index": 28514,
+        "ref": 28514,
+        "dis": 28514,
+        "ref_time": 951.4180888888889,
+        "dis_time": 951.4180888888889
+      },
+      {
+        "index": 28515,
+        "ref": 28515,
+        "dis": 28515,
+        "ref_time": 951.4514555555555,
+        "dis_time": 951.4514555555555
+      },
+      {
+        "index": 28516,
+        "ref": 28516,
+        "dis": 28516,
+        "ref_time": 951.4848222222222,
+        "dis_time": 951.4848222222222
+      },
+      {
+        "index": 28517,
+        "ref": 28517,
+        "dis": 28517,
+        "ref_time": 951.5181888888889,
+        "dis_time": 951.5181888888889
+      },
+      {
+        "index": 28518,
+        "ref": 28518,
+        "dis": 28518,
+        "ref_time": 951.5515555555555,
+        "dis_time": 951.5515555555555
+      },
+      {
+        "index": 28519,
+        "ref": 28519,
+        "dis": 28519,
+        "ref_time": 951.5849222222222,
+        "dis_time": 951.5849222222222
+      },
+      {
+        "index": 28520,
+        "ref": 28520,
+        "dis": 28520,
+        "ref_time": 951.6182888888889,
+        "dis_time": 951.6182888888889
+      },
+      {
+        "index": 28521,
+        "ref": 28521,
+        "dis": 28521,
+        "ref_time": 951.6516555555555,
+        "dis_time": 951.6516555555555
+      },
+      {
+        "index": 28522,
+        "ref": 28522,
+        "dis": 28522,
+        "ref_time": 951.6850222222222,
+        "dis_time": 951.6850222222222
+      },
+      {
+        "index": 28523,
+        "ref": 28523,
+        "dis": 28523,
+        "ref_time": 951.7183888888889,
+        "dis_time": 951.7183888888889
+      },
+      {
+        "index": 28524,
+        "ref": 28524,
+        "dis": 28524,
+        "ref_time": 951.7517555555555,
+        "dis_time": 951.7517555555555
+      }
+    ],
+    "only_ffmpeg": [
+      {
+        "frame": 28440,
+        "ref": 28439,
+        "dis": 28440,
+        "ref_time": 948.9155777777778,
+        "dis_time": 948.9489444444445,
+        "by_reference": false
+      },
+      {
+        "frame": 28441,
+        "ref": 28439,
+        "dis": 28441,
+        "ref_time": 948.9155777777778,
+        "dis_time": 948.9823111111111,
+        "by_reference": false
+      },
+      {
+        "frame": 28442,
+        "ref": 28439,
+        "dis": 28442,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.0156777777778,
+        "by_reference": false
+      },
+      {
+        "frame": 28443,
+        "ref": 28439,
+        "dis": 28443,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.0490444444445,
+        "by_reference": false
+      },
+      {
+        "frame": 28444,
+        "ref": 28439,
+        "dis": 28444,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.0824111111111,
+        "by_reference": false
+      },
+      {
+        "frame": 28445,
+        "ref": 28439,
+        "dis": 28445,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.1157777777778,
+        "by_reference": false
+      },
+      {
+        "frame": 28446,
+        "ref": 28439,
+        "dis": 28446,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.1491444444445,
+        "by_reference": false
+      },
+      {
+        "frame": 28447,
+        "ref": 28439,
+        "dis": 28447,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.1825111111111,
+        "by_reference": false
+      },
+      {
+        "frame": 28448,
+        "ref": 28439,
+        "dis": 28448,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.2158777777778,
+        "by_reference": false
+      },
+      {
+        "frame": 28449,
+        "ref": 28439,
+        "dis": 28449,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.2492444444445,
+        "by_reference": false
+      },
+      {
+        "frame": 28450,
+        "ref": 28439,
+        "dis": 28450,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.2826111111111,
+        "by_reference": false
+      },
+      {
+        "frame": 28451,
+        "ref": 28439,
+        "dis": 28451,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.3159777777778,
+        "by_reference": false
+      },
+      {
+        "frame": 28452,
+        "ref": 28439,
+        "dis": 28452,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.3493444444445,
+        "by_reference": false
+      },
+      {
+        "frame": 28453,
+        "ref": 28439,
+        "dis": 28453,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.3827111111111,
+        "by_reference": false
+      },
+      {
+        "frame": 28454,
+        "ref": 28439,
+        "dis": 28454,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.4160777777778,
+        "by_reference": false
+      },
+      {
+        "frame": 28455,
+        "ref": 28439,
+        "dis": 28455,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.4494444444445,
+        "by_reference": false
+      },
+      {
+        "frame": 28456,
+        "ref": 28439,
+        "dis": 28456,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.4828111111111,
+        "by_reference": false
+      },
+      {
+        "frame": 28457,
+        "ref": 28439,
+        "dis": 28457,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.5161777777778,
+        "by_reference": false
+      },
+      {
+        "frame": 28458,
+        "ref": 28439,
+        "dis": 28458,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.5495444444445,
+        "by_reference": false
+      },
+      {
+        "frame": 28459,
+        "ref": 28439,
+        "dis": 28459,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.5829111111111,
+        "by_reference": false
+      },
+      {
+        "frame": 28460,
+        "ref": 28439,
+        "dis": 28460,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.6162777777778,
+        "by_reference": false
+      },
+      {
+        "frame": 28461,
+        "ref": 28439,
+        "dis": 28461,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.6496444444444,
+        "by_reference": false
+      },
+      {
+        "frame": 28462,
+        "ref": 28439,
+        "dis": 28462,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.6830111111111,
+        "by_reference": false
+      },
+      {
+        "frame": 28463,
+        "ref": 28439,
+        "dis": 28463,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.7163777777778,
+        "by_reference": false
+      },
+      {
+        "frame": 28464,
+        "ref": 28439,
+        "dis": 28464,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.7497444444444,
+        "by_reference": false
+      },
+      {
+        "frame": 28465,
+        "ref": 28439,
+        "dis": 28465,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.7831111111111,
+        "by_reference": false
+      },
+      {
+        "frame": 28466,
+        "ref": 28439,
+        "dis": 28466,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.8164777777778,
+        "by_reference": false
+      },
+      {
+        "frame": 28467,
+        "ref": 28439,
+        "dis": 28467,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.8498444444444,
+        "by_reference": false
+      },
+      {
+        "frame": 28468,
+        "ref": 28439,
+        "dis": 28468,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.8832111111111,
+        "by_reference": false
+      },
+      {
+        "frame": 28469,
+        "ref": 28439,
+        "dis": 28469,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.9165777777778,
+        "by_reference": false
+      },
+      {
+        "frame": 28470,
+        "ref": 28439,
+        "dis": 28470,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.9499444444444,
+        "by_reference": false
+      },
+      {
+        "frame": 28471,
+        "ref": 28439,
+        "dis": 28471,
+        "ref_time": 948.9155777777778,
+        "dis_time": 949.9833111111111,
+        "by_reference": false
+      },
+      {
+        "frame": 28472,
+        "ref": 28439,
+        "dis": 28472,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.0166888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28473,
+        "ref": 28439,
+        "dis": 28473,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.0500555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28474,
+        "ref": 28439,
+        "dis": 28474,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.0834222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28475,
+        "ref": 28439,
+        "dis": 28475,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.1167888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28476,
+        "ref": 28439,
+        "dis": 28476,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.1501555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28477,
+        "ref": 28439,
+        "dis": 28477,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.1835222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28478,
+        "ref": 28439,
+        "dis": 28478,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.2168888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28479,
+        "ref": 28439,
+        "dis": 28479,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.2502555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28480,
+        "ref": 28439,
+        "dis": 28480,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.2836222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28481,
+        "ref": 28439,
+        "dis": 28481,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.3169888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28482,
+        "ref": 28439,
+        "dis": 28482,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.3503555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28483,
+        "ref": 28439,
+        "dis": 28483,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.3837222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28484,
+        "ref": 28439,
+        "dis": 28484,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.4170888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28485,
+        "ref": 28439,
+        "dis": 28485,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.4504555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28486,
+        "ref": 28439,
+        "dis": 28486,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.4838222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28487,
+        "ref": 28439,
+        "dis": 28487,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.5171888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28488,
+        "ref": 28439,
+        "dis": 28488,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.5505555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28489,
+        "ref": 28439,
+        "dis": 28489,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.5839222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28490,
+        "ref": 28439,
+        "dis": 28490,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.6172888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28491,
+        "ref": 28439,
+        "dis": 28491,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.6506555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28492,
+        "ref": 28439,
+        "dis": 28492,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.6840222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28493,
+        "ref": 28439,
+        "dis": 28493,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.7173888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28494,
+        "ref": 28439,
+        "dis": 28494,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.7507555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28495,
+        "ref": 28439,
+        "dis": 28495,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.7841222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28496,
+        "ref": 28439,
+        "dis": 28496,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.8174888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28497,
+        "ref": 28439,
+        "dis": 28497,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.8508555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28498,
+        "ref": 28439,
+        "dis": 28498,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.8842222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28499,
+        "ref": 28439,
+        "dis": 28499,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.9175888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28500,
+        "ref": 28439,
+        "dis": 28500,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.9509555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28501,
+        "ref": 28439,
+        "dis": 28501,
+        "ref_time": 948.9155777777778,
+        "dis_time": 950.9843222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28502,
+        "ref": 28439,
+        "dis": 28502,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.0176888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28503,
+        "ref": 28439,
+        "dis": 28503,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.0510555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28504,
+        "ref": 28439,
+        "dis": 28504,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.0844222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28505,
+        "ref": 28439,
+        "dis": 28505,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.1177888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28506,
+        "ref": 28439,
+        "dis": 28506,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.1511555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28507,
+        "ref": 28439,
+        "dis": 28507,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.1845222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28508,
+        "ref": 28439,
+        "dis": 28508,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.2178888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28509,
+        "ref": 28439,
+        "dis": 28509,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.2512555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28510,
+        "ref": 28439,
+        "dis": 28510,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.2846222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28511,
+        "ref": 28439,
+        "dis": 28511,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.3179888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28512,
+        "ref": 28439,
+        "dis": 28512,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.3513555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28513,
+        "ref": 28439,
+        "dis": 28513,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.3847222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28514,
+        "ref": 28439,
+        "dis": 28514,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.4180888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28515,
+        "ref": 28439,
+        "dis": 28515,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.4514555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28516,
+        "ref": 28439,
+        "dis": 28516,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.4848222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28517,
+        "ref": 28439,
+        "dis": 28517,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.5181888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28518,
+        "ref": 28439,
+        "dis": 28518,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.5515555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28519,
+        "ref": 28439,
+        "dis": 28519,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.5849222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28520,
+        "ref": 28439,
+        "dis": 28520,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.6182888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28521,
+        "ref": 28439,
+        "dis": 28521,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.6516555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28522,
+        "ref": 28439,
+        "dis": 28522,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.6850222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28523,
+        "ref": 28439,
+        "dis": 28523,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.7183888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28524,
+        "ref": 28439,
+        "dis": 28524,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.7517555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28525,
+        "ref": 28439,
+        "dis": 28525,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.7851222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28526,
+        "ref": 28439,
+        "dis": 28526,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.8184888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28527,
+        "ref": 28439,
+        "dis": 28527,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.8518555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28528,
+        "ref": 28439,
+        "dis": 28528,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.8852222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28529,
+        "ref": 28439,
+        "dis": 28529,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.9185888888888,
+        "by_reference": false
+      },
+      {
+        "frame": 28530,
+        "ref": 28439,
+        "dis": 28530,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.9519555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28531,
+        "ref": 28439,
+        "dis": 28531,
+        "ref_time": 948.9155777777778,
+        "dis_time": 951.9853222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28532,
+        "ref": 28439,
+        "dis": 28532,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.0186888888888,
+        "by_reference": false
+      },
+      {
+        "frame": 28533,
+        "ref": 28439,
+        "dis": 28533,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.0520555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28534,
+        "ref": 28439,
+        "dis": 28534,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.0854222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28535,
+        "ref": 28439,
+        "dis": 28535,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.1187888888888,
+        "by_reference": false
+      },
+      {
+        "frame": 28536,
+        "ref": 28439,
+        "dis": 28536,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.1521555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28537,
+        "ref": 28439,
+        "dis": 28537,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.1855222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28538,
+        "ref": 28439,
+        "dis": 28538,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.2188888888888,
+        "by_reference": false
+      },
+      {
+        "frame": 28539,
+        "ref": 28439,
+        "dis": 28539,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.2522555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28540,
+        "ref": 28439,
+        "dis": 28540,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.2856222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28541,
+        "ref": 28439,
+        "dis": 28541,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.3189888888888,
+        "by_reference": false
+      },
+      {
+        "frame": 28542,
+        "ref": 28439,
+        "dis": 28542,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.3523555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28543,
+        "ref": 28439,
+        "dis": 28543,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.3857222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28544,
+        "ref": 28439,
+        "dis": 28544,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.4190888888888,
+        "by_reference": false
+      },
+      {
+        "frame": 28545,
+        "ref": 28439,
+        "dis": 28545,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.4524555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28546,
+        "ref": 28439,
+        "dis": 28546,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.4858222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28547,
+        "ref": 28439,
+        "dis": 28547,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.5191888888888,
+        "by_reference": false
+      },
+      {
+        "frame": 28548,
+        "ref": 28439,
+        "dis": 28548,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.5525555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28549,
+        "ref": 28439,
+        "dis": 28549,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.5859222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28550,
+        "ref": 28439,
+        "dis": 28550,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.619288888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28551,
+        "ref": 28439,
+        "dis": 28551,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.6526555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28552,
+        "ref": 28439,
+        "dis": 28552,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.6860222222223,
+        "by_reference": false
+      },
+      {
+        "frame": 28553,
+        "ref": 28439,
+        "dis": 28553,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.719388888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28554,
+        "ref": 28439,
+        "dis": 28554,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.7527555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28555,
+        "ref": 28439,
+        "dis": 28555,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.7861222222223,
+        "by_reference": false
+      },
+      {
+        "frame": 28556,
+        "ref": 28439,
+        "dis": 28556,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.8194888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28557,
+        "ref": 28439,
+        "dis": 28557,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.8528555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28558,
+        "ref": 28439,
+        "dis": 28558,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.8862222222223,
+        "by_reference": false
+      },
+      {
+        "frame": 28559,
+        "ref": 28439,
+        "dis": 28559,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.9195888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28560,
+        "ref": 28439,
+        "dis": 28560,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.9529555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28561,
+        "ref": 28439,
+        "dis": 28561,
+        "ref_time": 948.9155777777778,
+        "dis_time": 952.9863222222223,
+        "by_reference": false
+      },
+      {
+        "frame": 28562,
+        "ref": 28439,
+        "dis": 28562,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.0196888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28563,
+        "ref": 28439,
+        "dis": 28563,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.0530555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28564,
+        "ref": 28439,
+        "dis": 28564,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.0864222222223,
+        "by_reference": false
+      },
+      {
+        "frame": 28565,
+        "ref": 28439,
+        "dis": 28565,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.1197888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28566,
+        "ref": 28439,
+        "dis": 28566,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.1531555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28567,
+        "ref": 28439,
+        "dis": 28567,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.1865222222223,
+        "by_reference": false
+      },
+      {
+        "frame": 28568,
+        "ref": 28439,
+        "dis": 28568,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.2198888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28569,
+        "ref": 28439,
+        "dis": 28569,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.2532555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28570,
+        "ref": 28439,
+        "dis": 28570,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.2866222222223,
+        "by_reference": false
+      },
+      {
+        "frame": 28571,
+        "ref": 28439,
+        "dis": 28571,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.3199888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28572,
+        "ref": 28439,
+        "dis": 28572,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.3533555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28573,
+        "ref": 28439,
+        "dis": 28573,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.3867222222223,
+        "by_reference": false
+      },
+      {
+        "frame": 28574,
+        "ref": 28439,
+        "dis": 28574,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.4200888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28575,
+        "ref": 28439,
+        "dis": 28575,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.4534555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28576,
+        "ref": 28439,
+        "dis": 28576,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.4868222222223,
+        "by_reference": false
+      },
+      {
+        "frame": 28577,
+        "ref": 28439,
+        "dis": 28577,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.5201888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28578,
+        "ref": 28439,
+        "dis": 28578,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.5535555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28579,
+        "ref": 28439,
+        "dis": 28579,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.5869222222223,
+        "by_reference": false
+      },
+      {
+        "frame": 28580,
+        "ref": 28439,
+        "dis": 28580,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.6202888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28581,
+        "ref": 28439,
+        "dis": 28581,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.6536555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28582,
+        "ref": 28439,
+        "dis": 28582,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.6870222222223,
+        "by_reference": false
+      },
+      {
+        "frame": 28583,
+        "ref": 28439,
+        "dis": 28583,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.7203888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28584,
+        "ref": 28439,
+        "dis": 28584,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.7537555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28585,
+        "ref": 28439,
+        "dis": 28585,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.7871222222223,
+        "by_reference": false
+      },
+      {
+        "frame": 28586,
+        "ref": 28439,
+        "dis": 28586,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.8204888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28587,
+        "ref": 28439,
+        "dis": 28587,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.8538555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28588,
+        "ref": 28439,
+        "dis": 28588,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.8872222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28589,
+        "ref": 28439,
+        "dis": 28589,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.9205888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28590,
+        "ref": 28439,
+        "dis": 28590,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.9539555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28591,
+        "ref": 28439,
+        "dis": 28591,
+        "ref_time": 948.9155777777778,
+        "dis_time": 953.9873222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28592,
+        "ref": 28439,
+        "dis": 28592,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.0206888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28593,
+        "ref": 28439,
+        "dis": 28593,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.0540555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28594,
+        "ref": 28439,
+        "dis": 28594,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.0874222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28595,
+        "ref": 28439,
+        "dis": 28595,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.1207888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28596,
+        "ref": 28439,
+        "dis": 28596,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.1541555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28597,
+        "ref": 28439,
+        "dis": 28597,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.1875222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28598,
+        "ref": 28439,
+        "dis": 28598,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.2208888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28599,
+        "ref": 28439,
+        "dis": 28599,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.2542555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28600,
+        "ref": 28439,
+        "dis": 28600,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.2876222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28601,
+        "ref": 28439,
+        "dis": 28601,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.3209888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28602,
+        "ref": 28439,
+        "dis": 28602,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.3543555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28603,
+        "ref": 28439,
+        "dis": 28603,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.3877222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28604,
+        "ref": 28439,
+        "dis": 28604,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.4210888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28605,
+        "ref": 28439,
+        "dis": 28605,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.4544555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28606,
+        "ref": 28439,
+        "dis": 28606,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.4878222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28607,
+        "ref": 28439,
+        "dis": 28607,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.5211888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28608,
+        "ref": 28439,
+        "dis": 28608,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.5545555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28609,
+        "ref": 28439,
+        "dis": 28609,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.5879222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28610,
+        "ref": 28439,
+        "dis": 28610,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.6212888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28611,
+        "ref": 28439,
+        "dis": 28611,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.6546555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28612,
+        "ref": 28439,
+        "dis": 28612,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.6880222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28613,
+        "ref": 28439,
+        "dis": 28613,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.7213888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28614,
+        "ref": 28439,
+        "dis": 28614,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.7547555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28615,
+        "ref": 28439,
+        "dis": 28615,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.7881222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28616,
+        "ref": 28439,
+        "dis": 28616,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.8214888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28617,
+        "ref": 28439,
+        "dis": 28617,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.8548555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28618,
+        "ref": 28439,
+        "dis": 28618,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.8882222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28619,
+        "ref": 28439,
+        "dis": 28619,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.9215888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28620,
+        "ref": 28439,
+        "dis": 28620,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.9549555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28621,
+        "ref": 28439,
+        "dis": 28621,
+        "ref_time": 948.9155777777778,
+        "dis_time": 954.9883222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28622,
+        "ref": 28439,
+        "dis": 28622,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.0216888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28623,
+        "ref": 28439,
+        "dis": 28623,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.0550555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28624,
+        "ref": 28439,
+        "dis": 28624,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.0884222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28625,
+        "ref": 28439,
+        "dis": 28625,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.1217888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28626,
+        "ref": 28439,
+        "dis": 28626,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.1551555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28627,
+        "ref": 28439,
+        "dis": 28627,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.1885222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28628,
+        "ref": 28439,
+        "dis": 28628,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.2218888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28629,
+        "ref": 28439,
+        "dis": 28629,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.2552555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28630,
+        "ref": 28439,
+        "dis": 28630,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.2886222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28631,
+        "ref": 28439,
+        "dis": 28631,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.3219888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28632,
+        "ref": 28439,
+        "dis": 28632,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.3553555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28633,
+        "ref": 28439,
+        "dis": 28633,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.3887222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28634,
+        "ref": 28439,
+        "dis": 28634,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.4220888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28635,
+        "ref": 28439,
+        "dis": 28635,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.4554555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28636,
+        "ref": 28439,
+        "dis": 28636,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.4888222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28637,
+        "ref": 28439,
+        "dis": 28637,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.5221888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28638,
+        "ref": 28439,
+        "dis": 28638,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.5555555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28639,
+        "ref": 28439,
+        "dis": 28639,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.5889222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28640,
+        "ref": 28439,
+        "dis": 28640,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.6222888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28641,
+        "ref": 28439,
+        "dis": 28641,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.6556555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28642,
+        "ref": 28439,
+        "dis": 28642,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.6890222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28643,
+        "ref": 28439,
+        "dis": 28643,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.7223888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28644,
+        "ref": 28439,
+        "dis": 28644,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.7557555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28645,
+        "ref": 28439,
+        "dis": 28645,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.7891222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28646,
+        "ref": 28439,
+        "dis": 28646,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.8224888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28647,
+        "ref": 28439,
+        "dis": 28647,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.8558555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28648,
+        "ref": 28439,
+        "dis": 28648,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.8892222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28649,
+        "ref": 28439,
+        "dis": 28649,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.9225888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28650,
+        "ref": 28439,
+        "dis": 28650,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.9559555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28651,
+        "ref": 28439,
+        "dis": 28651,
+        "ref_time": 948.9155777777778,
+        "dis_time": 955.9893222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28652,
+        "ref": 28439,
+        "dis": 28652,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.0226888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28653,
+        "ref": 28439,
+        "dis": 28653,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.0560555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28654,
+        "ref": 28439,
+        "dis": 28654,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.0894222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28655,
+        "ref": 28439,
+        "dis": 28655,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.1227888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28656,
+        "ref": 28439,
+        "dis": 28656,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.1561555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28657,
+        "ref": 28439,
+        "dis": 28657,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.1895222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28658,
+        "ref": 28439,
+        "dis": 28658,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.2228888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28659,
+        "ref": 28439,
+        "dis": 28659,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.2562555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28660,
+        "ref": 28439,
+        "dis": 28660,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.2896222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28661,
+        "ref": 28439,
+        "dis": 28661,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.3229888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28662,
+        "ref": 28439,
+        "dis": 28662,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.3563555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28663,
+        "ref": 28439,
+        "dis": 28663,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.3897222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28664,
+        "ref": 28439,
+        "dis": 28664,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.4230888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28665,
+        "ref": 28439,
+        "dis": 28665,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.4564555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28666,
+        "ref": 28439,
+        "dis": 28666,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.4898222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28667,
+        "ref": 28439,
+        "dis": 28667,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.5231888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28668,
+        "ref": 28439,
+        "dis": 28668,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.5565555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28669,
+        "ref": 28439,
+        "dis": 28669,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.5899222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28670,
+        "ref": 28439,
+        "dis": 28670,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.6232888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28671,
+        "ref": 28439,
+        "dis": 28671,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.6566555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28672,
+        "ref": 28439,
+        "dis": 28672,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.6900222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28673,
+        "ref": 28439,
+        "dis": 28673,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.7233888888888,
+        "by_reference": false
+      },
+      {
+        "frame": 28674,
+        "ref": 28439,
+        "dis": 28674,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.7567555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28675,
+        "ref": 28439,
+        "dis": 28675,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.7901222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28676,
+        "ref": 28439,
+        "dis": 28676,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.8234888888888,
+        "by_reference": false
+      },
+      {
+        "frame": 28677,
+        "ref": 28439,
+        "dis": 28677,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.8568555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28678,
+        "ref": 28439,
+        "dis": 28678,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.8902222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28679,
+        "ref": 28439,
+        "dis": 28679,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.9235888888888,
+        "by_reference": false
+      },
+      {
+        "frame": 28680,
+        "ref": 28439,
+        "dis": 28680,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.9569555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28681,
+        "ref": 28439,
+        "dis": 28681,
+        "ref_time": 948.9155777777778,
+        "dis_time": 956.9903222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28682,
+        "ref": 28439,
+        "dis": 28682,
+        "ref_time": 948.9155777777778,
+        "dis_time": 957.0236888888888,
+        "by_reference": false
+      },
+      {
+        "frame": 28683,
+        "ref": 28439,
+        "dis": 28683,
+        "ref_time": 948.9155777777778,
+        "dis_time": 957.0570555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28684,
+        "ref": 28439,
+        "dis": 28684,
+        "ref_time": 948.9155777777778,
+        "dis_time": 957.0904222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28685,
+        "ref": 28439,
+        "dis": 28685,
+        "ref_time": 948.9155777777778,
+        "dis_time": 957.1237888888888,
+        "by_reference": false
+      },
+      {
+        "frame": 28686,
+        "ref": 28439,
+        "dis": 28686,
+        "ref_time": 948.9155777777778,
+        "dis_time": 957.1571555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28687,
+        "ref": 28439,
+        "dis": 28687,
+        "ref_time": 948.9155777777778,
+        "dis_time": 957.1905222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28688,
+        "ref": 28439,
+        "dis": 28688,
+        "ref_time": 948.9155777777778,
+        "dis_time": 957.2238888888888,
+        "by_reference": false
+      },
+      {
+        "frame": 28689,
+        "ref": 28439,
+        "dis": 28689,
+        "ref_time": 948.9155777777778,
+        "dis_time": 957.2572555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28690,
+        "ref": 28439,
+        "dis": 28690,
+        "ref_time": 948.9155777777778,
+        "dis_time": 957.2906222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28691,
+        "ref": 28439,
+        "dis": 28691,
+        "ref_time": 948.9155777777778,
+        "dis_time": 957.3239888888888,
+        "by_reference": false
+      },
+      {
+        "frame": 28692,
+        "ref": 28439,
+        "dis": 28692,
+        "ref_time": 948.9155777777778,
+        "dis_time": 957.3573555555555,
+        "by_reference": false
+      },
+      {
+        "frame": 28693,
+        "ref": 28439,
+        "dis": 28693,
+        "ref_time": 948.9155777777778,
+        "dis_time": 957.3907222222222,
+        "by_reference": false
+      },
+      {
+        "frame": 28694,
+        "ref": 28439,
+        "dis": 28694,
+        "ref_time": 948.9155777777778,
+        "dis_time": 957.4240888888888,
+        "by_reference": false
+      },
+      {
+        "frame": 28695,
+        "ref": 28439,
+        "dis": 28695,
+        "ref_time": 948.9155777777778,
+        "dis_time": 957.4574555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28696,
+        "ref": 28439,
+        "dis": 28696,
+        "ref_time": 948.9155777777778,
+        "dis_time": 957.4908222222223,
+        "by_reference": false
+      },
+      {
+        "frame": 28697,
+        "ref": 28439,
+        "dis": 28697,
+        "ref_time": 948.9155777777778,
+        "dis_time": 957.524188888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28698,
+        "ref": 28439,
+        "dis": 28698,
+        "ref_time": 948.9155777777778,
+        "dis_time": 957.5575555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28699,
+        "ref": 28439,
+        "dis": 28699,
+        "ref_time": 948.9155777777778,
+        "dis_time": 957.5909222222223,
+        "by_reference": false
+      },
+      {
+        "frame": 28700,
+        "ref": 28439,
+        "dis": 28700,
+        "ref_time": 948.9155777777778,
+        "dis_time": 957.6242888888889,
+        "by_reference": false
+      },
+      {
+        "frame": 28701,
+        "ref": 28439,
+        "dis": 28701,
+        "ref_time": 948.9155777777778,
+        "dis_time": 957.6576555555556,
+        "by_reference": false
+      },
+      {
+        "frame": 28702,
+        "ref": 28439,
+        "dis": 28702,
+        "ref_time": 948.9155777777778,
+        "dis_time": 957.6910222222223,
+        "by_reference": false
+      },
+      {
+        "frame": 28703,
+        "ref": 28439,
+        "dis": 28703,
+        "ref_time": 948.9155777777778,
+        "dis_time": 957.7577555555556,
+        "by_reference": false
+      }
+    ],
+    "other_times": [],
+    "frames_treated_differently": 566,
+    "frames": [
+      {
+        "input": "reference",
+        "index": 28439,
+        "time": 948.9155777777778,
+        "mirage": "paired with distorted 28439",
+        "ffmpeg": "paired with distorted 28439, 28440, 28441, 28442, 28443, 28444, 28445, 28446, 28447, 28448, 28449, 28450, 28451, 28452, 28453, 28454, 28455, 28456, 28457, 28458, 28459, 28460, 28461, 28462, 28463, 28464, 28465, 28466, 28467, 28468, 28469, 28470, 28471, 28472, 28473, 28474, 28475, 28476, 28477, 28478, 28479, 28480, 28481, 28482, 28483, 28484, 28485, 28486, 28487, 28488, 28489, 28490, 28491, 28492, 28493, 28494, 28495, 28496, 28497, 28498, 28499, 28500, 28501, 28502, 28503, 28504, 28505, 28506, 28507, 28508, 28509, 28510, 28511, 28512, 28513, 28514, 28515, 28516, 28517, 28518, 28519, 28520, 28521, 28522, 28523, 28524, 28525, 28526, 28527, 28528, 28529, 28530, 28531, 28532, 28533, 28534, 28535, 28536, 28537, 28538, 28539, 28540, 28541, 28542, 28543, 28544, 28545, 28546, 28547, 28548, 28549, 28550, 28551, 28552, 28553, 28554, 28555, 28556, 28557, 28558, 28559, 28560, 28561, 28562, 28563, 28564, 28565, 28566, 28567, 28568, 28569, 28570, 28571, 28572, 28573, 28574, 28575, 28576, 28577, 28578, 28579, 28580, 28581, 28582, 28583, 28584, 28585, 28586, 28587, 28588, 28589, 28590, 28591, 28592, 28593, 28594, 28595, 28596, 28597, 28598, 28599, 28600, 28601, 28602, 28603, 28604, 28605, 28606, 28607, 28608, 28609, 28610, 28611, 28612, 28613, 28614, 28615, 28616, 28617, 28618, 28619, 28620, 28621, 28622, 28623, 28624, 28625, 28626, 28627, 28628, 28629, 28630, 28631, 28632, 28633, 28634, 28635, 28636, 28637, 28638, 28639, 28640, 28641, 28642, 28643, 28644, 28645, 28646, 28647, 28648, 28649, 28650, 28651, 28652, 28653, 28654, 28655, 28656, 28657, 28658, 28659, 28660, 28661, 28662, 28663, 28664, 28665, 28666, 28667, 28668, 28669, 28670, 28671, 28672, 28673, 28674, 28675, 28676, 28677, 28678, 28679, 28680, 28681, 28682, 28683, 28684, 28685, 28686, 28687, 28688, 28689, 28690, 28691, 28692, 28693, 28694, 28695, 28696, 28697, 28698, 28699, 28700, 28701, 28702, 28703 (in 265 pairs)"
+      },
+      {
+        "input": "reference",
+        "index": 28440,
+        "time": null,
+        "mirage": "paired with distorted 28440",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28441,
+        "time": null,
+        "mirage": "paired with distorted 28441",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28442,
+        "time": null,
+        "mirage": "paired with distorted 28442",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28443,
+        "time": null,
+        "mirage": "paired with distorted 28443",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28444,
+        "time": null,
+        "mirage": "paired with distorted 28444",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28445,
+        "time": null,
+        "mirage": "paired with distorted 28445",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28446,
+        "time": null,
+        "mirage": "paired with distorted 28446",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28447,
+        "time": null,
+        "mirage": "paired with distorted 28447",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28448,
+        "time": null,
+        "mirage": "paired with distorted 28448",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28449,
+        "time": null,
+        "mirage": "paired with distorted 28449",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28450,
+        "time": null,
+        "mirage": "paired with distorted 28450",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28451,
+        "time": null,
+        "mirage": "paired with distorted 28451",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28452,
+        "time": null,
+        "mirage": "paired with distorted 28452",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28453,
+        "time": null,
+        "mirage": "paired with distorted 28453",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28454,
+        "time": null,
+        "mirage": "paired with distorted 28454",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28455,
+        "time": null,
+        "mirage": "paired with distorted 28455",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28456,
+        "time": null,
+        "mirage": "paired with distorted 28456",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28457,
+        "time": null,
+        "mirage": "paired with distorted 28457",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28458,
+        "time": null,
+        "mirage": "paired with distorted 28458",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28459,
+        "time": null,
+        "mirage": "paired with distorted 28459",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28460,
+        "time": null,
+        "mirage": "paired with distorted 28460",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28461,
+        "time": null,
+        "mirage": "paired with distorted 28461",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28462,
+        "time": null,
+        "mirage": "paired with distorted 28462",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28463,
+        "time": null,
+        "mirage": "paired with distorted 28463",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28464,
+        "time": null,
+        "mirage": "paired with distorted 28464",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28465,
+        "time": null,
+        "mirage": "paired with distorted 28465",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28466,
+        "time": null,
+        "mirage": "paired with distorted 28466",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28467,
+        "time": null,
+        "mirage": "paired with distorted 28467",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28468,
+        "time": null,
+        "mirage": "paired with distorted 28468",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28469,
+        "time": null,
+        "mirage": "paired with distorted 28469",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28470,
+        "time": null,
+        "mirage": "paired with distorted 28470",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28471,
+        "time": null,
+        "mirage": "paired with distorted 28471",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28472,
+        "time": null,
+        "mirage": "paired with distorted 28472",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28473,
+        "time": null,
+        "mirage": "paired with distorted 28473",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28474,
+        "time": null,
+        "mirage": "paired with distorted 28474",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28475,
+        "time": null,
+        "mirage": "paired with distorted 28475",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28476,
+        "time": null,
+        "mirage": "paired with distorted 28476",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28477,
+        "time": null,
+        "mirage": "paired with distorted 28477",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28478,
+        "time": null,
+        "mirage": "paired with distorted 28478",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28479,
+        "time": null,
+        "mirage": "paired with distorted 28479",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28480,
+        "time": null,
+        "mirage": "paired with distorted 28480",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28481,
+        "time": null,
+        "mirage": "paired with distorted 28481",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28482,
+        "time": null,
+        "mirage": "paired with distorted 28482",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28483,
+        "time": null,
+        "mirage": "paired with distorted 28483",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28484,
+        "time": null,
+        "mirage": "paired with distorted 28484",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28485,
+        "time": null,
+        "mirage": "paired with distorted 28485",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28486,
+        "time": null,
+        "mirage": "paired with distorted 28486",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28487,
+        "time": null,
+        "mirage": "paired with distorted 28487",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28488,
+        "time": null,
+        "mirage": "paired with distorted 28488",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28489,
+        "time": null,
+        "mirage": "paired with distorted 28489",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28490,
+        "time": null,
+        "mirage": "paired with distorted 28490",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28491,
+        "time": null,
+        "mirage": "paired with distorted 28491",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28492,
+        "time": null,
+        "mirage": "paired with distorted 28492",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28493,
+        "time": null,
+        "mirage": "paired with distorted 28493",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28494,
+        "time": null,
+        "mirage": "paired with distorted 28494",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28495,
+        "time": null,
+        "mirage": "paired with distorted 28495",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28496,
+        "time": null,
+        "mirage": "paired with distorted 28496",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28497,
+        "time": null,
+        "mirage": "paired with distorted 28497",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28498,
+        "time": null,
+        "mirage": "paired with distorted 28498",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28499,
+        "time": null,
+        "mirage": "paired with distorted 28499",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28500,
+        "time": null,
+        "mirage": "paired with distorted 28500",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28501,
+        "time": null,
+        "mirage": "paired with distorted 28501",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28502,
+        "time": null,
+        "mirage": "paired with distorted 28502",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28503,
+        "time": null,
+        "mirage": "paired with distorted 28503",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28504,
+        "time": null,
+        "mirage": "paired with distorted 28504",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28505,
+        "time": null,
+        "mirage": "paired with distorted 28505",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28506,
+        "time": null,
+        "mirage": "paired with distorted 28506",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28507,
+        "time": null,
+        "mirage": "paired with distorted 28507",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28508,
+        "time": null,
+        "mirage": "paired with distorted 28508",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28509,
+        "time": null,
+        "mirage": "paired with distorted 28509",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28510,
+        "time": null,
+        "mirage": "paired with distorted 28510",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28511,
+        "time": null,
+        "mirage": "paired with distorted 28511",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28512,
+        "time": null,
+        "mirage": "paired with distorted 28512",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28513,
+        "time": null,
+        "mirage": "paired with distorted 28513",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28514,
+        "time": null,
+        "mirage": "paired with distorted 28514",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28515,
+        "time": null,
+        "mirage": "paired with distorted 28515",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28516,
+        "time": null,
+        "mirage": "paired with distorted 28516",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28517,
+        "time": null,
+        "mirage": "paired with distorted 28517",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28518,
+        "time": null,
+        "mirage": "paired with distorted 28518",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28519,
+        "time": null,
+        "mirage": "paired with distorted 28519",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28520,
+        "time": null,
+        "mirage": "paired with distorted 28520",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28521,
+        "time": null,
+        "mirage": "paired with distorted 28521",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28522,
+        "time": null,
+        "mirage": "paired with distorted 28522",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28523,
+        "time": null,
+        "mirage": "paired with distorted 28523",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28524,
+        "time": null,
+        "mirage": "paired with distorted 28524",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28525,
+        "time": 957.7911222222223,
+        "mirage": "failed: unmatched_reference",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28526,
+        "time": 951.8184888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28527,
+        "time": 957.8244888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28528,
+        "time": 957.8578555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28529,
+        "time": 957.8912222222223,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28530,
+        "time": 957.9245888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28531,
+        "time": 957.9579555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28532,
+        "time": 957.9913222222223,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28533,
+        "time": 958.0246888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28534,
+        "time": 958.0580555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28535,
+        "time": 958.0914222222223,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28536,
+        "time": 958.1247888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28537,
+        "time": 958.1581555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28538,
+        "time": 958.1915222222223,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28539,
+        "time": 958.2248888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28540,
+        "time": 958.2582555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28541,
+        "time": 958.2916222222223,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28542,
+        "time": 958.3249888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28543,
+        "time": 958.3583555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28544,
+        "time": 958.3917222222223,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28545,
+        "time": 958.4250888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28546,
+        "time": 958.4584555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28547,
+        "time": 958.4918222222223,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28548,
+        "time": 958.5251888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28549,
+        "time": 958.5585555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28550,
+        "time": 958.5919222222223,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28551,
+        "time": 958.6252888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28552,
+        "time": 958.6586555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28553,
+        "time": 958.6920222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28554,
+        "time": 958.7253888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28555,
+        "time": 958.7587555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28556,
+        "time": 958.7921222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28557,
+        "time": 958.8254888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28558,
+        "time": 958.8588555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28559,
+        "time": 958.8922222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28560,
+        "time": 958.9255888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28561,
+        "time": 958.9589555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28562,
+        "time": 958.9923222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28563,
+        "time": 959.0256888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28564,
+        "time": 959.0590555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28565,
+        "time": 959.0924222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28566,
+        "time": 959.1257888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28567,
+        "time": 959.1591555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28568,
+        "time": 959.1925222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28569,
+        "time": 959.2258888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28570,
+        "time": 959.2592555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28571,
+        "time": 959.2926222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28572,
+        "time": 959.3259888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28573,
+        "time": 959.3593555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28574,
+        "time": 959.3927222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28575,
+        "time": 959.4260888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28576,
+        "time": 959.4594555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28577,
+        "time": 959.4928222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28578,
+        "time": 959.5261888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28579,
+        "time": 959.5595555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28580,
+        "time": 959.5929222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28581,
+        "time": 959.6262888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28582,
+        "time": 959.6596555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28583,
+        "time": 959.6930222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28584,
+        "time": 959.7263888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28585,
+        "time": 959.7597555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28586,
+        "time": 959.7931222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28587,
+        "time": 959.8264888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28588,
+        "time": 959.8598555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28589,
+        "time": 959.8932222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "reference",
+        "index": 28590,
+        "time": 959.9599555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28440,
+        "time": 948.9489444444445,
+        "mirage": "paired with reference 28440",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28441,
+        "time": 948.9823111111111,
+        "mirage": "paired with reference 28441",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28442,
+        "time": 949.0156777777778,
+        "mirage": "paired with reference 28442",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28443,
+        "time": 949.0490444444445,
+        "mirage": "paired with reference 28443",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28444,
+        "time": 949.0824111111111,
+        "mirage": "paired with reference 28444",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28445,
+        "time": 949.1157777777778,
+        "mirage": "paired with reference 28445",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28446,
+        "time": 949.1491444444445,
+        "mirage": "paired with reference 28446",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28447,
+        "time": 949.1825111111111,
+        "mirage": "paired with reference 28447",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28448,
+        "time": 949.2158777777778,
+        "mirage": "paired with reference 28448",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28449,
+        "time": 949.2492444444445,
+        "mirage": "paired with reference 28449",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28450,
+        "time": 949.2826111111111,
+        "mirage": "paired with reference 28450",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28451,
+        "time": 949.3159777777778,
+        "mirage": "paired with reference 28451",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28452,
+        "time": 949.3493444444445,
+        "mirage": "paired with reference 28452",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28453,
+        "time": 949.3827111111111,
+        "mirage": "paired with reference 28453",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28454,
+        "time": 949.4160777777778,
+        "mirage": "paired with reference 28454",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28455,
+        "time": 949.4494444444445,
+        "mirage": "paired with reference 28455",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28456,
+        "time": 949.4828111111111,
+        "mirage": "paired with reference 28456",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28457,
+        "time": 949.5161777777778,
+        "mirage": "paired with reference 28457",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28458,
+        "time": 949.5495444444445,
+        "mirage": "paired with reference 28458",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28459,
+        "time": 949.5829111111111,
+        "mirage": "paired with reference 28459",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28460,
+        "time": 949.6162777777778,
+        "mirage": "paired with reference 28460",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28461,
+        "time": 949.6496444444444,
+        "mirage": "paired with reference 28461",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28462,
+        "time": 949.6830111111111,
+        "mirage": "paired with reference 28462",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28463,
+        "time": 949.7163777777778,
+        "mirage": "paired with reference 28463",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28464,
+        "time": 949.7497444444444,
+        "mirage": "paired with reference 28464",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28465,
+        "time": 949.7831111111111,
+        "mirage": "paired with reference 28465",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28466,
+        "time": 949.8164777777778,
+        "mirage": "paired with reference 28466",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28467,
+        "time": 949.8498444444444,
+        "mirage": "paired with reference 28467",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28468,
+        "time": 949.8832111111111,
+        "mirage": "paired with reference 28468",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28469,
+        "time": 949.9165777777778,
+        "mirage": "paired with reference 28469",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28470,
+        "time": 949.9499444444444,
+        "mirage": "paired with reference 28470",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28471,
+        "time": 949.9833111111111,
+        "mirage": "paired with reference 28471",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28472,
+        "time": 950.0166888888889,
+        "mirage": "paired with reference 28472",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28473,
+        "time": 950.0500555555556,
+        "mirage": "paired with reference 28473",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28474,
+        "time": 950.0834222222222,
+        "mirage": "paired with reference 28474",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28475,
+        "time": 950.1167888888889,
+        "mirage": "paired with reference 28475",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28476,
+        "time": 950.1501555555556,
+        "mirage": "paired with reference 28476",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28477,
+        "time": 950.1835222222222,
+        "mirage": "paired with reference 28477",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28478,
+        "time": 950.2168888888889,
+        "mirage": "paired with reference 28478",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28479,
+        "time": 950.2502555555556,
+        "mirage": "paired with reference 28479",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28480,
+        "time": 950.2836222222222,
+        "mirage": "paired with reference 28480",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28481,
+        "time": 950.3169888888889,
+        "mirage": "paired with reference 28481",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28482,
+        "time": 950.3503555555556,
+        "mirage": "paired with reference 28482",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28483,
+        "time": 950.3837222222222,
+        "mirage": "paired with reference 28483",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28484,
+        "time": 950.4170888888889,
+        "mirage": "paired with reference 28484",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28485,
+        "time": 950.4504555555555,
+        "mirage": "paired with reference 28485",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28486,
+        "time": 950.4838222222222,
+        "mirage": "paired with reference 28486",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28487,
+        "time": 950.5171888888889,
+        "mirage": "paired with reference 28487",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28488,
+        "time": 950.5505555555555,
+        "mirage": "paired with reference 28488",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28489,
+        "time": 950.5839222222222,
+        "mirage": "paired with reference 28489",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28490,
+        "time": 950.6172888888889,
+        "mirage": "paired with reference 28490",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28491,
+        "time": 950.6506555555555,
+        "mirage": "paired with reference 28491",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28492,
+        "time": 950.6840222222222,
+        "mirage": "paired with reference 28492",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28493,
+        "time": 950.7173888888889,
+        "mirage": "paired with reference 28493",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28494,
+        "time": 950.7507555555555,
+        "mirage": "paired with reference 28494",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28495,
+        "time": 950.7841222222222,
+        "mirage": "paired with reference 28495",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28496,
+        "time": 950.8174888888889,
+        "mirage": "paired with reference 28496",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28497,
+        "time": 950.8508555555555,
+        "mirage": "paired with reference 28497",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28498,
+        "time": 950.8842222222222,
+        "mirage": "paired with reference 28498",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28499,
+        "time": 950.9175888888889,
+        "mirage": "paired with reference 28499",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28500,
+        "time": 950.9509555555555,
+        "mirage": "paired with reference 28500",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28501,
+        "time": 950.9843222222222,
+        "mirage": "paired with reference 28501",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28502,
+        "time": 951.0176888888889,
+        "mirage": "paired with reference 28502",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28503,
+        "time": 951.0510555555555,
+        "mirage": "paired with reference 28503",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28504,
+        "time": 951.0844222222222,
+        "mirage": "paired with reference 28504",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28505,
+        "time": 951.1177888888889,
+        "mirage": "paired with reference 28505",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28506,
+        "time": 951.1511555555555,
+        "mirage": "paired with reference 28506",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28507,
+        "time": 951.1845222222222,
+        "mirage": "paired with reference 28507",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28508,
+        "time": 951.2178888888889,
+        "mirage": "paired with reference 28508",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28509,
+        "time": 951.2512555555555,
+        "mirage": "paired with reference 28509",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28510,
+        "time": 951.2846222222222,
+        "mirage": "paired with reference 28510",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28511,
+        "time": 951.3179888888889,
+        "mirage": "paired with reference 28511",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28512,
+        "time": 951.3513555555555,
+        "mirage": "paired with reference 28512",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28513,
+        "time": 951.3847222222222,
+        "mirage": "paired with reference 28513",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28514,
+        "time": 951.4180888888889,
+        "mirage": "paired with reference 28514",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28515,
+        "time": 951.4514555555555,
+        "mirage": "paired with reference 28515",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28516,
+        "time": 951.4848222222222,
+        "mirage": "paired with reference 28516",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28517,
+        "time": 951.5181888888889,
+        "mirage": "paired with reference 28517",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28518,
+        "time": 951.5515555555555,
+        "mirage": "paired with reference 28518",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28519,
+        "time": 951.5849222222222,
+        "mirage": "paired with reference 28519",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28520,
+        "time": 951.6182888888889,
+        "mirage": "paired with reference 28520",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28521,
+        "time": 951.6516555555555,
+        "mirage": "paired with reference 28521",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28522,
+        "time": 951.6850222222222,
+        "mirage": "paired with reference 28522",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28523,
+        "time": 951.7183888888889,
+        "mirage": "paired with reference 28523",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28524,
+        "time": 951.7517555555555,
+        "mirage": "paired with reference 28524",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28525,
+        "time": 951.7851222222222,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28526,
+        "time": 951.8184888888889,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28527,
+        "time": 951.8518555555555,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28528,
+        "time": 951.8852222222222,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28529,
+        "time": 951.9185888888888,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28530,
+        "time": 951.9519555555555,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28531,
+        "time": 951.9853222222222,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28532,
+        "time": 952.0186888888888,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28533,
+        "time": 952.0520555555555,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28534,
+        "time": 952.0854222222222,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28535,
+        "time": 952.1187888888888,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28536,
+        "time": 952.1521555555555,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28537,
+        "time": 952.1855222222222,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28538,
+        "time": 952.2188888888888,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28539,
+        "time": 952.2522555555555,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28540,
+        "time": 952.2856222222222,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28541,
+        "time": 952.3189888888888,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28542,
+        "time": 952.3523555555555,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28543,
+        "time": 952.3857222222222,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28544,
+        "time": 952.4190888888888,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28545,
+        "time": 952.4524555555555,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28546,
+        "time": 952.4858222222222,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28547,
+        "time": 952.5191888888888,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28548,
+        "time": 952.5525555555555,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28549,
+        "time": 952.5859222222222,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28550,
+        "time": 952.619288888889,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28551,
+        "time": 952.6526555555556,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28552,
+        "time": 952.6860222222223,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28553,
+        "time": 952.719388888889,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28554,
+        "time": 952.7527555555556,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28555,
+        "time": 952.7861222222223,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28556,
+        "time": 952.8194888888889,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28557,
+        "time": 952.8528555555556,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28558,
+        "time": 952.8862222222223,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28559,
+        "time": 952.9195888888889,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28560,
+        "time": 952.9529555555556,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28561,
+        "time": 952.9863222222223,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28562,
+        "time": 953.0196888888889,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28563,
+        "time": 953.0530555555556,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28564,
+        "time": 953.0864222222223,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28565,
+        "time": 953.1197888888889,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28566,
+        "time": 953.1531555555556,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28567,
+        "time": 953.1865222222223,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28568,
+        "time": 953.2198888888889,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28569,
+        "time": 953.2532555555556,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28570,
+        "time": 953.2866222222223,
+        "mirage": "failed: extra_distorted",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28571,
+        "time": 953.3199888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28572,
+        "time": 953.3533555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28573,
+        "time": 953.3867222222223,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28574,
+        "time": 953.4200888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28575,
+        "time": 953.4534555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28576,
+        "time": 953.4868222222223,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28577,
+        "time": 953.5201888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28578,
+        "time": 953.5535555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28579,
+        "time": 953.5869222222223,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28580,
+        "time": 953.6202888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28581,
+        "time": 953.6536555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28582,
+        "time": 953.6870222222223,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28583,
+        "time": 953.7203888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28584,
+        "time": 953.7537555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28585,
+        "time": 953.7871222222223,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28586,
+        "time": 953.8204888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28587,
+        "time": 953.8538555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28588,
+        "time": 953.8872222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28589,
+        "time": 953.9205888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28590,
+        "time": 953.9539555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28591,
+        "time": 953.9873222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28592,
+        "time": 954.0206888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28593,
+        "time": 954.0540555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28594,
+        "time": 954.0874222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28595,
+        "time": 954.1207888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28596,
+        "time": 954.1541555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28597,
+        "time": 954.1875222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28598,
+        "time": 954.2208888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28599,
+        "time": 954.2542555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28600,
+        "time": 954.2876222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28601,
+        "time": 954.3209888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28602,
+        "time": 954.3543555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28603,
+        "time": 954.3877222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28604,
+        "time": 954.4210888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28605,
+        "time": 954.4544555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28606,
+        "time": 954.4878222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28607,
+        "time": 954.5211888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28608,
+        "time": 954.5545555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28609,
+        "time": 954.5879222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28610,
+        "time": 954.6212888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28611,
+        "time": 954.6546555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28612,
+        "time": 954.6880222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28613,
+        "time": 954.7213888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28614,
+        "time": 954.7547555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28615,
+        "time": 954.7881222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28616,
+        "time": 954.8214888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28617,
+        "time": 954.8548555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28618,
+        "time": 954.8882222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28619,
+        "time": 954.9215888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28620,
+        "time": 954.9549555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28621,
+        "time": 954.9883222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28622,
+        "time": 955.0216888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28623,
+        "time": 955.0550555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28624,
+        "time": 955.0884222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28625,
+        "time": 955.1217888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28626,
+        "time": 955.1551555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28627,
+        "time": 955.1885222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28628,
+        "time": 955.2218888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28629,
+        "time": 955.2552555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28630,
+        "time": 955.2886222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28631,
+        "time": 955.3219888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28632,
+        "time": 955.3553555555555,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28633,
+        "time": 955.3887222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28634,
+        "time": 955.4220888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28635,
+        "time": 955.4554555555555,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28636,
+        "time": 955.4888222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28637,
+        "time": 955.5221888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28638,
+        "time": 955.5555555555555,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28639,
+        "time": 955.5889222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28640,
+        "time": 955.6222888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28641,
+        "time": 955.6556555555555,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28642,
+        "time": 955.6890222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28643,
+        "time": 955.7223888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28644,
+        "time": 955.7557555555555,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28645,
+        "time": 955.7891222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28646,
+        "time": 955.8224888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28647,
+        "time": 955.8558555555555,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28648,
+        "time": 955.8892222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28649,
+        "time": 955.9225888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28650,
+        "time": 955.9559555555555,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28651,
+        "time": 955.9893222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28652,
+        "time": 956.0226888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28653,
+        "time": 956.0560555555555,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28654,
+        "time": 956.0894222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28655,
+        "time": 956.1227888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28656,
+        "time": 956.1561555555555,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28657,
+        "time": 956.1895222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28658,
+        "time": 956.2228888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28659,
+        "time": 956.2562555555555,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28660,
+        "time": 956.2896222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28661,
+        "time": 956.3229888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28662,
+        "time": 956.3563555555555,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28663,
+        "time": 956.3897222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28664,
+        "time": 956.4230888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28665,
+        "time": 956.4564555555555,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28666,
+        "time": 956.4898222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28667,
+        "time": 956.5231888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28668,
+        "time": 956.5565555555555,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28669,
+        "time": 956.5899222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28670,
+        "time": 956.6232888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28671,
+        "time": 956.6566555555555,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28672,
+        "time": 956.6900222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28673,
+        "time": 956.7233888888888,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28674,
+        "time": 956.7567555555555,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28675,
+        "time": 956.7901222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28676,
+        "time": 956.8234888888888,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28677,
+        "time": 956.8568555555555,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28678,
+        "time": 956.8902222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28679,
+        "time": 956.9235888888888,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28680,
+        "time": 956.9569555555555,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28681,
+        "time": 956.9903222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28682,
+        "time": 957.0236888888888,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28683,
+        "time": 957.0570555555555,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28684,
+        "time": 957.0904222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28685,
+        "time": 957.1237888888888,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28686,
+        "time": 957.1571555555555,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28687,
+        "time": 957.1905222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28688,
+        "time": 957.2238888888888,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28689,
+        "time": 957.2572555555555,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28690,
+        "time": 957.2906222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28691,
+        "time": 957.3239888888888,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28692,
+        "time": 957.3573555555555,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28693,
+        "time": 957.3907222222222,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28694,
+        "time": 957.4240888888888,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28695,
+        "time": 957.4574555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28696,
+        "time": 957.4908222222223,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28697,
+        "time": 957.524188888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28698,
+        "time": 957.5575555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28699,
+        "time": 957.5909222222223,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28700,
+        "time": 957.6242888888889,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28701,
+        "time": 957.6576555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28702,
+        "time": 957.6910222222223,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28703,
+        "time": 957.7577555555556,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "paired with reference 28439"
+      },
+      {
+        "input": "distorted",
+        "index": 28704,
+        "time": 962.7294,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28705,
+        "time": 962.7627666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28706,
+        "time": 962.7961333333334,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28707,
+        "time": 962.8295,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28708,
+        "time": 962.8628666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28709,
+        "time": 962.8962333333334,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28710,
+        "time": 962.9296,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28711,
+        "time": 962.9629666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28712,
+        "time": 962.9963333333334,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28713,
+        "time": 963.0297,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28714,
+        "time": 963.0630666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28715,
+        "time": 963.0964333333334,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28716,
+        "time": 963.1298,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28717,
+        "time": 963.1631666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28718,
+        "time": 963.1965333333334,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28719,
+        "time": 963.2299,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28720,
+        "time": 963.2632666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28721,
+        "time": 963.2966333333334,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28722,
+        "time": 963.33,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28723,
+        "time": 963.3633666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28724,
+        "time": 963.3967333333334,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28725,
+        "time": 963.4301,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28726,
+        "time": 963.4634666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28727,
+        "time": 963.4968333333334,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28728,
+        "time": 963.5302,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28729,
+        "time": 963.5635666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28730,
+        "time": 963.5969333333334,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28731,
+        "time": 963.6303,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28732,
+        "time": 963.6636666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28733,
+        "time": 963.6970333333334,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28734,
+        "time": 963.7304,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28735,
+        "time": 963.7637666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28736,
+        "time": 963.7971333333334,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28737,
+        "time": 963.8305,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28738,
+        "time": 963.8638666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28739,
+        "time": 963.8972333333334,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28740,
+        "time": 963.9306,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28741,
+        "time": 963.9639666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28742,
+        "time": 963.9973333333334,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28743,
+        "time": 964.0307,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28744,
+        "time": 964.0640666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28745,
+        "time": 964.0974333333334,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28746,
+        "time": 964.1308,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28747,
+        "time": 964.1641666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28748,
+        "time": 964.1975333333334,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28749,
+        "time": 964.2309,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28750,
+        "time": 964.2642666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28751,
+        "time": 964.2976333333334,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28752,
+        "time": 964.331,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28753,
+        "time": 964.3643666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28754,
+        "time": 964.3977333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28755,
+        "time": 964.4311,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28756,
+        "time": 964.4644666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28757,
+        "time": 964.4978333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28758,
+        "time": 964.5312,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28759,
+        "time": 964.5645666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28760,
+        "time": 964.5979333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28761,
+        "time": 964.6313,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28762,
+        "time": 964.6646666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28763,
+        "time": 964.6980333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28764,
+        "time": 964.7314,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28765,
+        "time": 964.7647666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28766,
+        "time": 964.7981333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28767,
+        "time": 964.8315,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28768,
+        "time": 964.8648666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28769,
+        "time": 964.8982333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28770,
+        "time": 964.9316,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28771,
+        "time": 964.9649666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28772,
+        "time": 964.9983333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28773,
+        "time": 965.0317,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28774,
+        "time": 965.0650666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28775,
+        "time": 965.0984333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28776,
+        "time": 965.1318,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28777,
+        "time": 965.1651666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28778,
+        "time": 965.1985333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28779,
+        "time": 965.2319,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28780,
+        "time": 965.2652666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28781,
+        "time": 965.2986333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28782,
+        "time": 965.332,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28783,
+        "time": 965.3653666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28784,
+        "time": 965.3987333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28785,
+        "time": 965.4321,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28786,
+        "time": 965.4654666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28787,
+        "time": 965.4988333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28788,
+        "time": 965.5322,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28789,
+        "time": 965.5655666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28790,
+        "time": 965.5989333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28791,
+        "time": 965.6323,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28792,
+        "time": 965.6656666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28793,
+        "time": 965.6990333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28794,
+        "time": 965.7324,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28795,
+        "time": 965.7657666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28796,
+        "time": 965.7991333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28797,
+        "time": 965.8325,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28798,
+        "time": 965.8658666666666,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28799,
+        "time": 965.8992333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28800,
+        "time": 965.9326,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28801,
+        "time": 965.9659666666666,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28802,
+        "time": 965.9993333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28803,
+        "time": 966.0327,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28804,
+        "time": 966.0660666666666,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28805,
+        "time": 966.0994333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28806,
+        "time": 966.1328,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28807,
+        "time": 966.1661666666666,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28808,
+        "time": 966.1995333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28809,
+        "time": 966.2329,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28810,
+        "time": 966.2662666666666,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28811,
+        "time": 966.2996333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28812,
+        "time": 966.333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28813,
+        "time": 966.3663666666666,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28814,
+        "time": 966.3997333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28815,
+        "time": 966.4331,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28816,
+        "time": 966.4664666666666,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28817,
+        "time": 966.4998333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28818,
+        "time": 966.5332,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28819,
+        "time": 966.5665666666666,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28820,
+        "time": 966.5999333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28821,
+        "time": 966.6333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28822,
+        "time": 966.6666666666666,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28823,
+        "time": 966.7000333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28824,
+        "time": 966.7334,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28825,
+        "time": 966.7667666666666,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28826,
+        "time": 966.8001333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28827,
+        "time": 966.8335,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28828,
+        "time": 966.8668666666666,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28829,
+        "time": 966.9002333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28830,
+        "time": 966.9336,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28831,
+        "time": 966.9669666666666,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28832,
+        "time": 967.0003333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28833,
+        "time": 967.0337,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28834,
+        "time": 967.0670666666666,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28835,
+        "time": 967.1004333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28836,
+        "time": 967.1338,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28837,
+        "time": 967.1671666666666,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28838,
+        "time": 967.2005333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28839,
+        "time": 967.2339,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28840,
+        "time": 967.2672666666666,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28841,
+        "time": 967.3006333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28842,
+        "time": 967.334,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28843,
+        "time": 967.3673666666666,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28844,
+        "time": 967.4007333333333,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28845,
+        "time": 967.4341,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28846,
+        "time": 967.4674666666666,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28847,
+        "time": 967.5008333333334,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28848,
+        "time": 967.5342,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28849,
+        "time": 967.5675666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28850,
+        "time": 967.6009333333334,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28851,
+        "time": 967.6343,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28852,
+        "time": 967.6676666666667,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      },
+      {
+        "input": "distorted",
+        "index": 28853,
+        "time": 967.7010333333334,
+        "mirage": "failed: after_discontinuity",
+        "ffmpeg": "not among its frames"
+      }
+    ]
+  },
+  "pooled": {
+    "mirage": {
+      "mean": 6.043395615270262,
+      "min": 0,
+      "harmonic_mean": 4.919686980485429
+    },
+    "ffmpeg": {
+      "mean": 5.988805,
+      "min": 0.0,
+      "harmonic_mean": 4.668739
+    },
+    "difference": {
+      "mean": 0.054590615270261544,
+      "min": 0.0,
+      "harmonic_mean": 0.2509479804854289
+    }
+  },
+  "relabel": null,
+  "ffmpeg_color": {
+    "graph_inputs": [
+      {
+        "input": 0,
+        "stream": 1,
+        "color_space": "smpte170m",
+        "color_range": "tv"
+      },
+      {
+        "input": 1,
+        "stream": 1,
+        "color_space": "bt709",
+        "color_range": "tv"
+      }
+    ],
+    "scale": [
+      {
+        "filter": "Parsed_scale_0",
+        "in": {
+          "width": 416,
+          "height": 234,
+          "pix_fmt": "yuv420p",
+          "color_space": "smpte170m",
+          "color_range": "tv"
+        },
+        "out": {
+          "width": 1920,
+          "height": 1080,
+          "pix_fmt": "yuv420p",
+          "color_space": "bt709",
+          "color_range": "tv"
+        },
+        "flags": "0x00000004"
+      }
+    ],
+    "conversions": [
+      "Parsed_scale_0: color_space smpte170m -> bt709"
+    ]
+  },
+  "mirage_color": {
+    "dis_conversion": [
+      {
+        "from": {
+          "color_space": "smpte170m",
+          "color_range": "tv"
+        },
+        "to": {
+          "color_space": "bt709",
+          "color_range": "tv"
+        },
+        "matrix_changed": true,
+        "range_changed": false,
+        "first_index": 0,
+        "pairs": 28525
+      }
+    ],
+    "ref_conversion": []
+  },
+  "inputs": {
+    "ref": {
+      "ffprobe": {
+        "codec_name": "h264",
+        "width": 1920,
+        "height": 1080,
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_range": "tv",
+        "color_primaries": "bt709",
+        "color_transfer": "bt709",
+        "time_base": "1/90000",
+        "r_frame_rate": "30000/1001",
+        "avg_frame_rate": "30000/1001",
+        "start_time": "10.000000"
+      },
+      "mirage_vmaf": {
+        "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear5/prog_index.m3u8",
+        "width": 1920,
+        "height": 1080,
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_range": "tv",
+        "color_primaries": "bt709",
+        "color_trc": "bt709",
+        "time_base": "1/90000",
+        "ended": true
+      }
+    },
+    "dis": {
+      "ffprobe": {
+        "codec_name": "h264",
+        "width": 416,
+        "height": 234,
+        "pix_fmt": "yuv420p",
+        "color_space": "smpte170m",
+        "color_range": "tv",
+        "color_primaries": "smpte170m",
+        "color_transfer": "bt709",
+        "time_base": "1/90000",
+        "r_frame_rate": "30000/1001",
+        "avg_frame_rate": "30000/1001",
+        "start_time": "10.000000"
+      },
+      "mirage_vmaf": {
+        "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear1/prog_index.m3u8",
+        "width": 416,
+        "height": 234,
+        "pix_fmt": "yuv420p",
+        "color_space": "smpte170m",
+        "color_range": "tv",
+        "color_primaries": "smpte170m",
+        "color_trc": "bt709",
+        "time_base": "1/90000",
+        "ended": true
+      }
+    }
+  },
+  "mirage_vmaf": {
+    "exit_code": 0,
+    "elapsed_s": 756.01,
+    "tool": "mirage_vmaf",
+    "reference_mode": "explicit-pair",
+    "libvmaf_version": "3.0.0",
+    "libvmaf_package_version": "3.1.0",
+    "ffmpeg_libraries": {
+      "libavutil": "60.26.101",
+      "libavcodec": "62.28.101",
+      "libavformat": "62.12.101",
+      "libswscale": "9.5.101",
+      "libavfilter": "11.14.101"
+    },
+    "model": "vmaf_v0.6.1",
+    "model_source": "built-in",
+    "model_sha256": null,
+    "scaler": "bicubic",
+    "n_threads": 4,
+    "n_subsample": 1,
+    "scored_as": {
+      "width": 1920,
+      "height": 1080,
+      "pix_fmt": "yuv420p",
+      "bit_depth": 8
+    },
+    "frame_limit": null,
+    "frames_scored": 28525,
+    "ref_ended": true,
+    "dis_ended": true,
+    "first_ref_pts": 10.0,
+    "last_ref_pts": 961.7517555555555,
+    "pairs_with_different_pts": 0,
+    "warnings": [
+      "1.37% of the frames failed to pair by timestamp (395 of 28920: 1 unmatched reference, 46 extra distorted, 348 after a discontinuity), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 28525 frame pairs that paired"
+    ]
+  },
+  "ffmpeg": {
+    "exit_code": 0,
+    "elapsed_s": 726.054,
+    "libvmaf_version": "3.0.0",
+    "libvmaf_package_version": "3.1.0",
+    "ffmpeg_libraries": {
+      "libavutil": "60.26.101",
+      "libavcodec": "62.28.101",
+      "libavformat": "62.12.101",
+      "libavdevice": "62.3.101",
+      "libavfilter": "11.14.101",
+      "libswscale": "9.5.101",
+      "libswresample": "6.3.101"
+    }
+  }
+}
