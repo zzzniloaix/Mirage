@@ -127,9 +127,10 @@ class RunDelta(unittest.TestCase):
                       "> mirage.stdout.txt 2> mirage.stderr.log", cmd)
         self.assertIn("$ <ffmpeg> -hide_banner -nostdin -nostats -v verbose -i "
                       f"{OTHER} -i {REF} -an -lavfi '[0:v]trim=end_frame=4,scale=1920:1080:"
-                      "flags=bilinear,format=yuv420p[d];[1:v]trim=end_frame=4,format=yuv420p[r];"
-                      "[d][r]libvmaf=model=version=vmaf_v0.6.1:n_threads=4:log_fmt=json:"
-                      "log_path=ffmpeg.json' -f null - > ffmpeg.stdout.txt 2> ffmpeg.stderr.log",
+                      "flags=bilinear,format=yuv420p,showinfo=checksum=0[d];[1:v]trim=end_frame=4,"
+                      "format=yuv420p,showinfo=checksum=0[r];[d][r]libvmaf=model=version="
+                      "vmaf_v0.6.1:n_threads=4:log_fmt=json:log_path=ffmpeg.json,"
+                      "showinfo=checksum=0' -f null - > ffmpeg.stdout.txt 2> ffmpeg.stderr.log",
                       cmd)
         self.assertIn("$ eval/consistency/run_delta.sh <mirage_vmaf> <out_dir> --frames 4 "
                       "--jobs 2 --pairs <tmp>", self.read("run.cmd.txt"))
@@ -160,15 +161,58 @@ class RunDelta(unittest.TestCase):
         self.assertIn("Variant: DIAGNOSTIC, not the section 5 comparison", self.read("delta.md"))
 
     def test_every_frame_and_a_count_mismatch(self):
-        rc, _, _ = self.run_tool(self.pairs(("extra", REF, SAME + ":ffmpeg_extra_frame")))
+        # A distorted input one frame longer: FFmpeg scores its last frame against the
+        # reference's last; a mirage_vmaf from before D-028 stops at the shorter input's end.
+        rc, _, _ = self.run_tool(self.pairs(("extra", REF, SAME + ":frames=11")))
         self.assertEqual(rc, 1)
         r = self.report("extra/delta.json")
         self.assertEqual(r["frames"]["mirage"], 10)   # the stand-ins' length
         self.assertEqual(r["frames"]["ffmpeg"], 11)
         self.assertTrue(r["fail_reasons"][0].startswith("FRAME COUNT MISMATCH"))
+        self.assertTrue(r["fail_reasons"][1].startswith("PAIRING MISMATCH: 0 of Mirage's 10 pairs "
+                                                        "are not among FFmpeg's, and 1 of "
+                                                        "FFmpeg's 11"))
+        self.assertEqual(r["alignment"]["only_ffmpeg"][0]["ref"], 9)
         self.assertNotIn("trim", self.read("extra/cmd.txt"))
         self.assertNotIn("--frames", self.read("extra/cmd.txt"))
-        self.assertIn("| extra | FAIL | 10 / 11 **MISMATCH** |", self.read("delta.md"))
+        self.assertIn("| extra | FAIL | 10 / 11 **MISMATCH** | 10 / 0 / 1 | - |",
+                      self.read("delta.md"))
+
+    def test_pairs_are_compared_by_timestamp(self):
+        # D-028: the distorted input without its frame 5. FFmpeg pairs each distorted
+        # frame with the reference frame of its time, and so does a mirage_vmaf since
+        # D-028, which counts the reference's frame 5 as failed.
+        pairs = self.pairs(("dropped", REF, SAME + ":drop=5"))
+        rc, _, err = self.run_tool(pairs, env={"FAKE_MIRAGE_HAS_D028": "1"})
+        self.assertEqual(rc, 0, err)
+        self.check_files()
+        r = self.report("dropped/delta.json")
+        self.assertEqual((r["status"], r["frames"]["compared"]), ("PASS", 9))
+        a = r["alignment"]
+        self.assertEqual(a["pairs"], {"both": 9, "only_mirage": 0, "only_ffmpeg": 0,
+                                      "other_times": 0})
+        self.assertEqual(a["frames"], [{"input": "reference", "index": 5, "time": 1 / 6,
+                                        "mirage": "failed: unmatched_reference",
+                                        "ffmpeg": "in no pair"}])
+        self.assertEqual(r["warnings"], [
+            "mirage_vmaf: 10.00% of the frames failed to pair by timestamp",
+            "the two sides' pairing treats 1 frame differently, Mirage's failures included (the "
+            "pair's delta.md, \"Pairing by timestamp\")"])
+        md = self.read("dropped/delta.md")
+        self.assertIn("| reference | 5 | 0.166667 | failed: unmatched_reference | in no pair |", md)
+        self.assertIn("| dropped | PASS | 9 / 9 | 9 / 0 / 0 | 1 (0.100000) |",
+                      self.read("delta.md"))
+        # A mirage_vmaf from before D-028 pairs in decode order: frames of other times.
+        self.out = os.path.join(self.dir, "out2")
+        rc, _, _ = self.run_tool(pairs)
+        self.assertEqual(rc, 1)
+        r = self.report("dropped/delta.json")
+        self.assertEqual(r["fail_reasons"][0], (
+            "PAIRING MISMATCH: 4 of Mirage's 9 pairs are not among FFmpeg's, and 4 of FFmpeg's 9 "
+            "not among Mirage's (the same pair: the same reference and distorted frames); only "
+            "the pairs both scored are compared"))
+        self.assertEqual(r["alignment"]["mirage"]["pairs_beyond_tolerance"], 4)
+        self.assertEqual(r["alignment"]["ffmpeg"]["pairs_beyond_tolerance"], 0)
 
     def test_small_offsets_and_the_threshold(self):
         pairs = self.pairs(("off", REF, SAME + ":mirage_offset=0.02"))
@@ -202,7 +246,7 @@ class RunDelta(unittest.TestCase):
                                    env={"FAKE_MIRAGE_HAS_SCALER": "1"})
         self.assertEqual(rc, 0, err)
         cmd = self.read("same/cmd.txt")
-        self.assertIn("scale=1920:1080:flags=bicubic,format=yuv420p[d]", cmd)
+        self.assertIn("scale=1920:1080:flags=bicubic,format=yuv420p,showinfo=checksum=0[d]", cmd)
         self.assertIn("--frames 2 --scaler bicubic >", cmd)
         self.assertIn(" --scaler bicubic ", self.read("run.cmd.txt"))
         self.assertEqual(self.report()["parameters"]["scaler"], "bicubic")

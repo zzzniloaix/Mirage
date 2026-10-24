@@ -2,7 +2,9 @@
 
 For every pair of a pairs file, runs mirage_vmaf and FFmpeg's libvmaf filter
 on the same two inputs, over the same frames, with the same model, scaler
-and number of libvmaf threads, and compares the scores frame by frame. It
+and number of libvmaf threads, matches the two sides' frame pairs by their
+frames and timestamps (D-028; FFmpeg's from the showinfo filters of its
+graph, vmafdelta.ffmpeg_pairing), and compares the scores pair by pair. It
 writes into <out_dir>:
 
   run.cmd.txt, pairs.txt    this run's command line and the pairs it read
