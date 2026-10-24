@@ -95,7 +95,7 @@ With `--diagnostic-relabel`, FFmpeg's distorted input gets the reference's `colo
 python3 -I -B -m unittest discover -s eval/consistency/tests -v
 ```
 
-`tests/test_vmafdelta.py` covers the delta math, the commands, the parsing of FFmpeg's log, the pairing of both sides and its comparison, and the reports. `tests/test_run_delta.py` runs the whole tool with stand-ins for `mirage_vmaf`, `ffmpeg` and `ffprobe` (`tests/fake_tools.py`), without network; FFmpeg's stand-in pairs frames by framesync's rule and logs them as the `showinfo` filters do, `mirage_vmaf`'s pairs them as the programs before and since D-028 do. `tests/test_color_cases.py` and `tests/test_align_cases.py` cover `color_cases.py` and `align_cases.py` without running FFmpeg, and `tests/test_compare_runs.py` covers `compare_runs.py` on run directories it writes itself.
+`tests/test_vmafdelta.py` covers the delta math, the commands, the parsing of FFmpeg's log, the pairing of both sides and its comparison, and the reports. `tests/test_run_delta.py` runs the whole tool with stand-ins for `mirage_vmaf`, `ffmpeg` and `ffprobe` (`tests/fake_tools.py`), without network; FFmpeg's stand-in pairs frames by framesync's rule and logs them as the `showinfo` filters do, `mirage_vmaf`'s pairs them as the programs before and since D-028 do. `tests/test_color_cases.py` and `tests/test_align_cases.py` cover `color_cases.py` and `align_cases.py` without running FFmpeg, `tests/test_compare_runs.py` covers `compare_runs.py` on run directories it writes itself, and `tests/test_ladder_check.py` covers `ladder_check.py`'s comparison and whole runs with `mirage_vmaf`'s stand-in, which takes `--ladder` as the program does since D-029.
 
 ## Comparing runs
 
@@ -152,6 +152,25 @@ python3 -I -B eval/consistency/align_cases.py <clips_dir> [--ffmpeg <ffmpeg>] [-
 - `<clips_dir>/clips.txt` records, for every clip, the commands that made it, its streams as ffprobe reads them back, each frame's pts in its stream's time base as ffprobe gives it (the demuxer's, without `ffmpeg`'s corrections), each decoded frame's MD5 (`framemd5`, whose own timestamps are `ffmpeg`'s, in the encoder's time base), and the frames as checked, `picture@slot`: the pattern's picture each frame shows, and the frame slot whose time it has.
 - The script checks each frame's picture, by its MD5 against the clip that holds all ten pictures at that size and in that container, and its timestamp: in Matroska its slot's time in milliseconds, in MPEG-TS 3003 ticks a slot from the clip's first frame. The duplicate is made with `loop=loop=1:size=1:start=6`, which repeats picture 5: FFmpeg 8.1.1's loop filter compares its start with its input's frame count, which already counts the frame it is given (`libavfilter/f_loop.c`, `filter_frame`); the MD5s check the pictures.
 - Exit status: 0 the clips are as intended; 1 a program failed or a clip is not as intended; 2 bad arguments.
+
+## Ladder check (D-029)
+
+`ladder_check.py` checks `mirage_vmaf --ladder` (D-029, `src/VMAFLadder.h`, P-050) against the same pairs scored one by one. It is not a §5 comparison: FFmpeg doesn't take part; the §5 runs of the same pairs given one by one are delta runs, such as `defaults-300/` below.
+
+```
+python3 -I -B eval/consistency/ladder_check.py <mirage_vmaf> <out_dir> [--ladder URL] [--mezzanine URL]
+    [--pairs <file>] [--frames N] [--scaler NAME] [--model NAME | --model-file FILE] [--jobs J] [--timeout S]
+```
+
+- It runs `mirage_vmaf --ladder <master> --out mirage.json` in `<out_dir>/ladder/` and, with the same settings, `mirage_vmaf --ref <reference> --dis <distorted> --out mirage.json` for each pair of the pairs file in `<out_dir>/<pair>/`; with `--mezzanine` the ladder run gets it too, and the pairs file's references must be that string. Every run gets `--scaler` and `--model` or `--model-file`, and `--frames` when given.
+- Defaults: bipbop 16x9's master, the pairs of D-018 (`pairs/bipbop16x9.txt`), every frame, bicubic, vmaf_v0.6.1, one process at a time, and a limit of 6 hours per process.
+- A run passes when
+  - every pair of the ladder report has, value for value, the keys of its own report that are a pair's: `scored_as`, `dis_conversion`, `ref_conversion`, `warnings`, `frames_scored`, `pooled`, `alignment`, `ref`, `dis` and `frames`, so every per-frame score at full precision and every frame's timestamps and positions;
+  - the ladder report and each pair's report have the same `tool`, libvmaf and FFmpeg library versions, `config_file`, model, scaler, threads, subsampling and frame limit, and the pair's report is an `explicit-pair` report;
+  - the ladder scored exactly the pairs of the pairs file, each once, matched by their reference's and distorted input's URLs as the reports give them;
+  - the ladder report accounts for every entry of the master once: as the reference's, one pair's, or skipped.
+- It writes `run.cmd.txt`, `pairs.txt` and `environment.txt` as `run_delta.sh` does; each run's directory with its `cmd.txt`, `mirage.json` (`mirage.json.xz` over 1 MiB), `mirage.stdout.txt` and `mirage.stderr.log.xz`; `check.md` and `check.json`: the verdict, each pair's comparison, and the master's entries with what became of each, the reference, the ladder's pairs and its warnings; and `SHA256SUMS`. Local paths are replaced and searched for as in `run_delta.sh` (P-011).
+- Exit status: 0 every pair of the ladder has its own report's values; 1 a pair differs, is missing, is scored twice or is extra, an entry isn't accounted for once, or a run failed (`check.md` says which); 2 bad arguments, or the run could not start; 3 an output still contains a local path or name, and must not be committed.
 
 ## Committed runs
 
@@ -561,6 +580,30 @@ What they show:
 - **FFmpeg's side doesn't depend on the program checked**: every libvmaf metric of every frame is the same in both runs (`align-cases-d028/checks.txt`, check 7).
 
 Limits: synthetic clips of 10 frames, one container per case and one case of each kind; FFmpeg 8.1.1 only. The scores of these clips only compare the two tools.
+
+### `ladder-300/`: ladder mode on the bipbop master, first 300 frames (D-029, P-051)
+
+`mirage_vmaf --ladder` on bipbop 16x9's master playlist, in top-rung mode, against the four pairs of D-018 scored one by one by the same program, over the first 300 frames with the defaults named, bicubic and vmaf_v0.6.1. The run is `ladder_check.py` (above), from a new worktree of `7fbaa8c56cf830471e9dc6ec802619a8390a072c` with the `mirage_vmaf` built there (`build.txt`):
+
+```
+python3 -I -B eval/consistency/ladder_check.py build/macos-release/mirage_vmaf <out>/top-rung --frames 300 --scaler bicubic --model vmaf_v0.6.1 --jobs 1
+```
+
+| File | Contents |
+|---|---|
+| `build.txt` | the build of `mirage_vmaf` in the new worktree: its commit and clean state, the configure, the build's output, a second build with nothing to do, and its SHA-256, which `top-rung/environment.txt` repeats |
+| `top-rung/` | the run: the ladder run in `ladder/`, each pair scored on its own in `<pair>/`, `check.md` and `check.json` |
+| `checks.txt` | checks made on the run afterwards, each command with its output |
+| `SHA256SUMS` | SHA-256 of `build.txt`, `checks.txt` and `top-rung/SHA256SUMS` |
+
+What they show:
+
+- **What ladder mode read.** The master has six entries. What `mirage_vmaf` read has the SHA-256 of the copy `eval/streams/fetch_streams.py` fetched (`eval/streams/fetched-2026-10-23/`), and each entry's resolved URL, `BANDWIDTH` and video flag are those of that record (`checks.txt`, check 3).
+- **What it planned** (check 4). The reference is gear5, entry 4, whose `BANDWIDTH`, 1924009, is the highest. gear1 to gear4, entries 0 to 3, are scored against it, one pair each, in the master's order. gear0, entry 5, with `CODECS` `mp4a.40.2` and no `RESOLUTION`, is skipped with the reason `no video`; ladder mode doesn't open such entries (P-050). The report has no warning.
+- **Each pair as it scores on its own.** Each of the four pairs of the ladder report has every key of its own report that is a pair's, value for value: all 300 per-frame scores at full precision, the PTS and frame positions, the pooled values, the alignment and the conversions. Both reports have the same settings and libraries (`top-rung/check.md`; `checks.txt`, checks 5 and 6).
+- **The scores of `defaults-300/`.** Every per-frame score of the four ladder pairs is that of `defaults-300/` at full precision; that run used the same defaults, with the program of `02ebed5`. Written with 6 decimals, every score is also FFmpeg's in that run (check 7). So on these pairs ladder mode gives FFmpeg's scores, as `defaults-300/`'s §5 run shows for the pairs given one by one.
+
+Limits: top-rung mode only. Mezzanine mode, and §1.2's acceptance, both modes on one ladder, need a ladder with a mezzanine: D-011's self-encoded ladders (MEASUREMENT PENDING). bipbop's rungs were rendered separately (D-011), so these scores compare the modes and the tools, not the rungs' quality (D-005).
 
 ### `ffmpeg-scale-default/`, `ffmpeg-libvmaf-filter/`: what the FFmpeg of these runs does by default (P-016)
 
