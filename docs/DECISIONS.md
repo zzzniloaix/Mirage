@@ -1519,3 +1519,58 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: agent (Claude)
 - **Date**: 2026-10-24
 - **Status**: pending owner confirmation
+
+### P-059 The full-length §5 report with the defaults of D-022, D-024, D-025, D-027 and D-028
+
+- **Choice**
+  - Build the release `mirage_vmaf` in a new worktree of `a5b3cc5`, the branch's head when the run started, release preset, the `mirage_vmaf` target only (`eval/consistency/defaults-full/build.txt`). After `5ae44a4` only documents, records and a docstring of `eval/run_all.py` had changed (P-058), and the program has the SHA-256 of the release and headless builds of the build check at `5ae44a4`, `9f04085f…`.
+  - From that worktree, run `eval/consistency/run_delta.sh` without `--frames`, `--scaler` or `--model` on the four pairs of D-018, `--jobs 4`: so with the delta tool's defaults since D-024 and D-025 on both sides, bicubic and vmaf_v0.6.1, 4 libvmaf threads and the threshold 0.01 (`eval/consistency/defaults-full/plain/`; its `run.cmd.txt` records the effective settings, as P-041 notes). The inputs are read from Apple's CDN, as in every committed run.
+  - After committing the run: `pooling.py --delta-run eval/consistency/defaults-full/plain --check-pooled` from the clean tree at `8e61d95` (`eval/pooling/defaults-full/`); the steps `defaults-full`, with the head's program and bicubic named, and `pooling-defaults-full` in `eval/run_all.sh`, which `--skip-full` leaves out with the two earlier steps over every frame (`54fa9a2`); and `checks.txt` from the clean tree at `54fa9a2`, each command with its output.
+  - The full-length report with bilinear, `eval/consistency/acceptance-full/`, stays committed as the record it is (D-024).
+- **Alternatives**
+  - `--scaler bicubic` and `--model vmaf_v0.6.1` named in the run.
+  - `--jobs 1`, one scoring process at a time.
+  - A build in the main working tree, as P-026 did.
+- **Rationale**
+  - D-024 asks for the full-length report of D-018 made again with bicubic. A run that names no scaler or model shows the defaults themselves, as `defaults-300` did (P-041).
+  - `--jobs` doesn't enter the scores (P-026); with 4 the run takes about as long as `acceptance-full`, and check 8 compares its first 300 frames with `defaults-300`, made one process at a time.
+  - A new worktree ties the program to its commit (P-034, P-041).
+- **Result** (`eval/consistency/defaults-full/checks.txt`): every pair passes (check 13). In each pair both sides scored the same 53946 pairs at the same timestamps and every score agrees at the 6 decimals of FFmpeg's log, a largest |delta| of 0.000000 (checks 4 and 13). Both sides used bicubic and vmaf_v0.6.1 without naming them (check 3). `mirage_vmaf` paired every frame, with no failure and one libvmaf context per pair (checks 5 and 6), and its conversions are FFmpeg's, gear2 and gear1 from smpte170m to bt709 (check 7). Frames 0 to 299 have the scores of `defaults-300` on both sides (check 8). The nine pooled values of each report are those `pooling.py` computes at full precision, and its mean, minimum and harmonic mean FFmpeg's at 6 decimals (checks 9 and 10; `eval/pooling/defaults-full/pooling.md`). Against `acceptance-full` no frame scores lower, and the scores rise by 5.863072 to 10.983899 on average per pair (check 11). With the three `showinfo` filters of P-047, FFmpeg's verbose log of a pair holds 91659880 to 92092360 bytes, 1877848 to 1903556 bytes compressed (check 12). Each side of each pair took 1250.509 to 1282.152 s (check 13).
+- **Who**: agent (Claude)
+- **Date**: 2026-10-24
+- **Status**: pending owner confirmation
+
+### P-060 The records at the end of the second round of Phase 1: the unit tests, and a rerun of every step
+
+- **Choice**
+  - The unit test record of P-028 and P-032 again, from the clean main working tree at `12715a6`, whose code and tests are those of `54fa9a2`, the last commit of this round that changes code or tests (`eval/test_runs/macos-2026-10-24-12715a6.txt`). It shows the changes to the C++ sources, CMake files and scripts since the build check at `5ae44a4`; instead of whether the subtitle fixture is present, that no source or test names its directory any more (D-032); and it runs the Python suites with `TMPDIR` in a scratch directory outside the repository.
+  - `eval/run_all.sh` with no program given and `--jobs 4`, every step, the four over every frame included, from a new clean worktree of `61241e2`, the commit after the test record, with its output directory and `TMPDIR` outside the repository; its record is committed as P-032's is (`eval/run_all/2026-10-24-full/`).
+- **Alternatives**
+  - `--skip-full`, as the reruns of this round before it (P-037, P-042, P-046, P-049, P-052).
+  - The unit tests in a clean worktree, as the build check runs them (P-058).
+- **Rationale**
+  - The PR's test record has to be of the code it merges (P-032).
+  - The steps over every frame were last rerun with the program and the delta tool of `9855319` (P-032). Since then D-022, D-024, D-027, D-028 and D-029 changed the program and the delta tool, and the reruns left those steps to the full-length report with bicubic; the rerun of `acceptance-full` with the head's program and delta tool shows whether any of it moved a score of the bilinear report, and the rerun of `defaults-full` that the new report reproduces.
+- **Result** of the unit tests (`eval/test_runs/macos-2026-10-24-12715a6.txt`): `mirage_tests '~[audio]'` passed at the first run, 111752 assertions in 311 test cases, and the four Python suites passed, 27, 132, 11 and 16 tests.
+- **Result** of the rerun: MEASUREMENT PENDING until its record is committed.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-24
+- **Status**: pending owner confirmation
+
+### P-061 Information for D-011: candidate source clips, examined without downloading them
+
+- **Choice**
+  - Eight public clips from four sources as candidates for D-011's mezzanines, each with a Creative Commons license on an official page and a stable download address: Netflix's El Fuente sequences "Boat" and "Food Market" (4096x2160, 10-bit 4:2:0, in Netflix's open content bucket and in Xiph.org's test media collection), the 10-bit SDR source D-026's measurement needs; three SDR sequences of SVT's Natural Complexity suite (3840x2160 at 50 fps, 12-bit 4:4:4 JPEG 2000, lossless); and Xiph.org's YUV4MPEG2 copies of three Blender Foundation films, the Sintel trailer, Big Buck Bunny and Elephants Dream (1920x1080 at 24 fps, 8-bit 4:2:0).
+  - `eval/streams/d011-candidates-2026-10-24.txt`, made from the clean tree at `61241e2`, each command with its output: the sentences of each official page that name a license, before any reader comments; the bucket's listing and its license file; the copyright files Xiph.org keeps next to its copies of El Fuente; SVT's FTP listing and SHA-256 list; ffprobe of three SVT files over FTP; each YUV4MPEG2 file's header line, and its frame count from its size, read from its first and last bytes; each file's HTTP headers. No clip was downloaded.
+  - The summary goes into `docs/PHASE1_DECISIONS_PENDING.md`, "D-011", with no recommendation: the clips and the encoding parameters are the owner's (D-011).
+- **Alternatives**
+  - Other sources: Netflix's other titles, Xiph.org's other test sequences, EBU or ITU test material under other terms; the DASH-IF and Unified Streaming streams that the work order's §8 names, which are streams without a mezzanine.
+  - Downloading the clips, to decode their pictures and checksum them.
+  - The pages read through a summarizing fetch rather than as their own text.
+- **Rationale**
+  - The license terms have to come from the official pages, and the properties without downloading tens of gigabytes; a record of commands and their outputs is what the pending document's numbers rest on.
+  - A YUV4MPEG2 header gives the size, frame rate, chroma format and bit depth exactly, and its frame count follows from the file's size; ffprobe can't read an xz-compressed file without decompressing it from the start.
+- **Limits**: what the pages and files said on 2026-10-24. For El Fuente, Netflix's page and its bucket's license file name the Creative Commons Attribution 4.0 license, where the copyright files of 2015 at Xiph.org name Attribution-NonCommercial-NoDerivatives 4.0; which terms hold is not settled here. The El Fuente files of Netflix's bucket and of Xiph.org have the same sizes but weren't compared byte for byte. The SVT sequences' color range is not tagged and their transfer is unknown to ffprobe; the YUV4MPEG2 files carry no color tags at all.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-24
+- **Status**: pending owner confirmation
