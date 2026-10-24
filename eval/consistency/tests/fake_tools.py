@@ -35,6 +35,16 @@ frame; with FAKE_MIRAGE_HAS_D028=1 it pairs frames of the same time only
 (rule A), counts the others as failed and reports the alignment, and each
 pair's frame positions. FFmpeg's stand-in logs libvmaf's pooled mean and
 harmonic mean at the 6 decimals of FFmpeg's log.
+
+With FAKE_MIRAGE_HAS_LADDER=1 mirage_vmaf's stand-in also takes --ladder
+FILE and --mezzanine, as mirage_vmaf does since D-029: FILE is a master
+playlist whose URI lines are fake inputs. An entry has video when it has a
+RESOLUTION or an avc1 codec; the top rung is the first video entry of the
+highest BANDWIDTH; each video playlist is scored once, against the top rung
+or the mezzanine, as a pair given with --ref and --dis is, and the report
+has the ladder report's layout (src/VMAFReport.h). A distorted input's
+option ladder_offset=X adds X to the scores of its frames in a ladder run
+only, the bug the ladder check is for; mirage_fails fails the run.
 """
 
 import hashlib
@@ -180,16 +190,84 @@ def rule_a(ref_t, dis_t, limit):
     return pairs, failures
 
 
+# The keys of a pair's report that a ladder report's pair has (src/VMAFReport.h).
+PAIR_KEYS = ("scored_as", "dis_conversion", "ref_conversion", "warnings", "frames_scored",
+             "pooled", "alignment", "ref", "dis", "frames")
+ATTRIBUTE = re.compile(r'([A-Z0-9-]+)=("[^"]*"|[^",]*)')
+
+
+def ladder(opts):
+    """mirage_vmaf --ladder: the pairs of a master playlist of fake inputs."""
+    with open(opts["--ladder"], encoding="utf-8") as f:
+        text = f.read()
+    entries, pending = [], None
+    for raw in text.splitlines():
+        line = raw.strip()
+        if line.startswith("#EXT-X-STREAM-INF:"):
+            pending = {k: v.strip('"') for k, v in ATTRIBUTE.findall(line.split(":", 1)[1])}
+        elif line and not line.startswith("#") and pending is not None:
+            entries.append((pending, line))
+            pending = None
+    video = [i for i, (a, _) in enumerate(entries)
+             if "RESOLUTION" in a or "avc1" in [c.strip().split(".")[0]
+                                                 for c in a.get("CODECS", "").split(",")]]
+    mezzanine = opts.get("--mezzanine")
+    top = max(video, key=lambda i: (int(entries[i][0]["BANDWIDTH"]), -i))
+    reference = mezzanine or entries[top][1]
+    pairs = []
+    for i in video:
+        uri = entries[i][1]
+        if not mezzanine and uri == reference:
+            continue
+        found = [p for p in pairs if p[0] == uri]
+        if found:
+            found[0][1].append(i)
+        else:
+            pairs.append((uri, [i]))
+    reports = []
+    for uri, _ in pairs:
+        report = pair_report(opts, reference, uri)
+        if report is None:
+            return 1
+        offset = float(parse_input(uri)["opts"].get("ladder_offset", 0))
+        for f in report["frames"]:
+            f["vmaf"] += offset
+        reports.append(report)
+    out = {k: v for k, v in reports[0].items() if k not in PAIR_KEYS}
+    out["reference_mode"] = "mezzanine" if mezzanine else "top-rung"
+    out["ladder"] = {
+        "url": opts["--ladder"], "location": opts["--ladder"],
+        "sha256": hashlib.sha256(text.encode()).hexdigest(),
+        "entries": [{"index": i, "line": None, "uri": uri, "url": uri,
+                     "bandwidth": int(a["BANDWIDTH"]), "average_bandwidth": None,
+                     "resolution": a.get("RESOLUTION"), "codecs": a.get("CODECS"),
+                     "frame_rate": None, "video": i in video}
+                    for i, (a, uri) in enumerate(entries)]}
+    out["reference"] = {"url": reference, "entries": [] if mezzanine else
+                        [i for i in video if entries[i][1] == reference]}
+    out["skipped"] = [{"entry": i, "reason": "no video"} for i in range(len(entries))
+                      if i not in video]
+    out["warnings"] = []
+    out["pairs"] = [{"index": k, "entries": idx, **{key: r[key] for key in PAIR_KEYS if key in r}}
+                    for k, ((_, idx), r) in enumerate(zip(pairs, reports))]
+    with open(opts["--out"], "w") as f:
+        json.dump(out, f, indent=2)
+    print(f"mirage_vmaf: {len(pairs)} pairs of the ladder scored, report written to "
+          f"{opts['--out']}")
+    return 0
+
+
 def mirage_vmaf(args):
     has_scaler = os.environ.get("FAKE_MIRAGE_HAS_SCALER") == "1"
     has_model = os.environ.get("FAKE_MIRAGE_HAS_MODEL") == "1"
-    has_d022 = os.environ.get("FAKE_MIRAGE_HAS_D022") == "1"
-    has_d027 = os.environ.get("FAKE_MIRAGE_HAS_D027") == "1"
-    has_d028 = os.environ.get("FAKE_MIRAGE_HAS_D028") == "1"
+    has_ladder = os.environ.get("FAKE_MIRAGE_HAS_LADDER") == "1"
     if "--help" in args:
         print("Usage: mirage_vmaf --ref <url|path> --dis <url|path> --out <report.json> "
               "[--frames N]\n\nOptions:\n  --ref <url|path>      reference\n"
-              "  --dis <url|path>      distorted\n  --out <report.json>   report\n"
+              "  --dis <url|path>      distorted\n"
+              + ("  --ladder <url|path>   master playlist\n"
+                 "  --mezzanine <url|path>  mezzanine\n" if has_ladder else "")
+              + "  --out <report.json>   report\n"
               "  --frames N            limit\n"
               + ("  --scaler NAME         scaler\n" if has_scaler else "")
               + ("  --model NAME          model\n  --model-file <model.json>  model file\n"
@@ -197,10 +275,29 @@ def mirage_vmaf(args):
               + "  -h, --help            print this help and exit")
         return 0
     opts = dict(zip(args[::2], args[1::2]))
-    ref, dis = parse_input(opts["--ref"]), parse_input(opts["--dis"])
     print("fake mirage_vmaf: a warning", file=sys.stderr)
-    if "mirage_fails" in dis["opts"]:
+    if has_ladder and "--ladder" in opts:
+        return ladder(opts)
+    report = pair_report(opts, opts["--ref"], opts["--dis"])
+    if report is None:
         return 1
+    with open(opts["--out"], "w") as f:
+        json.dump(report, f, indent=2)
+    print(f"mirage_vmaf: {report['frames_scored']} frame pairs scored, report written to "
+          f"{opts['--out']}")
+    return 0
+
+
+def pair_report(opts, ref_url, dis_url):
+    """The report of mirage_vmaf's stand-in for one pair; None when it fails."""
+    has_model = os.environ.get("FAKE_MIRAGE_HAS_MODEL") == "1"
+    has_scaler = os.environ.get("FAKE_MIRAGE_HAS_SCALER") == "1"
+    has_d022 = os.environ.get("FAKE_MIRAGE_HAS_D022") == "1"
+    has_d027 = os.environ.get("FAKE_MIRAGE_HAS_D027") == "1"
+    has_d028 = os.environ.get("FAKE_MIRAGE_HAS_D028") == "1"
+    ref, dis = parse_input(ref_url), parse_input(dis_url)
+    if "mirage_fails" in dis["opts"]:
+        return None
     limit = int(opts["--frames"]) if "--frames" in opts else None
     ref_t, dis_t = frame_times(ref), frame_times(dis)
     if has_d028:
@@ -270,10 +367,7 @@ def mirage_vmaf(args):
                              "matrix_changed": dis["color_space"] != ref["color_space"],
                              "range_changed": False, "first_index": 0, "pairs": n}],
             ref_conversion=[])
-    with open(opts["--out"], "w") as f:
-        json.dump(report, f, indent=2)
-    print(f"mirage_vmaf: {n} frame pairs scored, report written to {opts['--out']}")
-    return 0
+    return report
 
 
 if __name__ == "__main__":
