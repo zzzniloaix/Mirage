@@ -1290,7 +1290,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - D-028 and the plan's "Where the code changes": the delta tool compares by timestamp, a pair passes only if both sides scored the same timestamps, and the differences in what each side counted as failed are reported.
   - Positions identify the frames exactly, so a pair both scored is scored on the same pictures; the timestamps check that both sides measure time alike.
   - Reconstructing framesync's events from both chains, checked against what libvmaf passed on and scored, is what FFmpeg's log can tell without changing FFmpeg's pairing; a reconstruction that doesn't match fails the pair rather than comparing pairs that aren't known.
-  - `showinfo` is FFmpeg's own frame logger and leaves the evidence in the raw verbose log (D-032). The cost is a longer log: two lines per frame for each of the three filters.
+  - `showinfo` is FFmpeg's own frame logger and leaves the evidence in the raw verbose log (D-032). The cost is a longer log: for each frame and each of the three filters, a line with its timestamp, one with its color tags, and one for each item of side data the frame carries.
 - **Limits**: framesync's rule as FFmpeg 8.1.1 has it under its default options; a filter graph that `ffmpeg` configures more than once fails the reconstruction.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
