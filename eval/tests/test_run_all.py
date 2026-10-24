@@ -91,7 +91,8 @@ class StepsAgainstTheCommittedRuns(unittest.TestCase):
                 with self.subTest(step=s.name, run=run.name):
                     expected = as_options(recorded_options(path))
                     mine = [o.replace("{clips}", "<tmp>/clips")
-                            .replace("{format_clips}", "<tmp>/format_clips") for o in run.options]
+                            .replace("{format_clips}", "<tmp>/format_clips")
+                            .replace("{align_clips}", "<tmp>/align_clips") for o in run.options]
                     self.assertEqual(as_options(ra.expand(mine, fake)), expected)
 
     def test_every_delta_run_names_its_scaler_and_model(self):
@@ -151,6 +152,8 @@ class StepsAgainstTheCommittedRuns(unittest.TestCase):
                          ["format-clips", "format-cases-after"])
         self.assertEqual(names(only=["format-cases-d022"], skip_before=False),
                          ["format-clips", "format-cases-d022"])
+        self.assertEqual(names(only=["align-cases-before", "align-cases-d028"], skip_before=True),
+                         ["align-clips", "align-cases-before", "align-cases-d028"])
         self.assertNotIn("format-cases-before", names(only=None, skip_before=True))
         self.assertEqual(names(only=None, skip_before=False), list(ra.STEP_NAMES))
         self.assertNotIn("diag-before-300", names(only=None, skip_before=True))
@@ -181,16 +184,25 @@ class StepsAgainstTheCommittedRuns(unittest.TestCase):
                          ["format-cases-after"])
         self.assertEqual(ra.parse_args(["out", "--mirage-vmaf-before-d022", "p"])
                          .mirage_vmaf_before_d022, "p")
+        self.assertEqual([s.name for s in ra.STEPS if s.binary == "before-d028"],
+                         ["align-cases-before"])
+        self.assertEqual(ra.parse_args(["out", "--mirage-vmaf-before-d028", "p"])
+                         .mirage_vmaf_before_d028, "p")
 
     def test_clips_steps_and_their_sets(self):
         clips = {s.name: s for s in ra.STEPS if s.kind == "clips"}
-        self.assertEqual(set(clips), {"clips", "format-clips"})
+        self.assertEqual(set(clips), {"clips", "format-clips", "align-clips"})
         self.assertEqual(clips["clips"].options, ())
         self.assertEqual(clips["format-clips"].options, ("--set", "formats"))
+        self.assertEqual({s.script for s in clips.values()},
+                         {"eval/consistency/color_cases.py", "eval/consistency/align_cases.py"})
+        self.assertEqual(clips["align-clips"].script, "eval/consistency/align_cases.py")
         fake = mock.Mock(out="/o", args=mock.Mock(model_dir="/m"))
-        self.assertEqual(ra.expand(["{clips}/pairs.txt", "{format_clips}/pairs.txt"], fake),
+        self.assertEqual(ra.expand(["{clips}/pairs.txt", "{format_clips}/pairs.txt",
+                                    "{align_clips}/pairs.txt"], fake),
                          ["/o/consistency/clips/pairs.txt",
-                          "/o/consistency/format_clips/pairs.txt"])
+                          "/o/consistency/format_clips/pairs.txt",
+                          "/o/consistency/align_clips/pairs.txt"])
 
     def test_a_full_length_run_has_no_frame_limit(self):
         self.assertNotIn("--frames", ra.delta_options(None))

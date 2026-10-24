@@ -2,7 +2,7 @@
 compares what it gets with the committed outputs.
 
 usage: eval/run_all.sh <out_dir> [--mirage-vmaf PROG] [--mirage-vmaf-before PROG]
-                       [--mirage-vmaf-before-d022 PROG]
+                       [--mirage-vmaf-before-d022 PROG] [--mirage-vmaf-before-d028 PROG]
                        [--skip-before] [--skip-full] [--only STEP[,STEP...]]
                        [--jobs J] [--ffmpeg PROG] [--ffprobe PROG]
                        [--model-dir DIR] [--work-dir DIR] [--no-compare]
@@ -17,6 +17,8 @@ in this order:
                          compared with eval/consistency/color-cases-before/clips.txt
   format-clips           consistency/format_clips/: color_cases.py --set formats,
                          compared with eval/consistency/format-cases-before/clips.txt
+  align-clips            consistency/align_clips/: eval/consistency/align_cases.py,
+                         compared with eval/consistency/align-cases-before/clips.txt
   diag-before-300        consistency/diag-before-300/{plain,relabel}/
   color-cases-before     consistency/color-cases-before/{main,refused}/
   format-cases-before    consistency/format-cases-before/{main,refused}/
@@ -29,6 +31,10 @@ in this order:
   models-300             consistency/models-300/{vmaf_v0.6.1,...}/ and model_effect.*
   defaults-300           consistency/defaults-300/plain/: the first 300 frames of
                          the four pairs with the defaults after D-024 and D-027
+  align-cases-before     consistency/align-cases-before/main/: the alignment cases
+                         with a mirage_vmaf from before D-028
+  align-cases-d028       consistency/align-cases-d028/main/: the alignment cases
+                         with the head's, which pairs by timestamp
   acceptance-full        consistency/acceptance-full/plain/: every frame of the
                          four pairs of D-018
   ffmpeg-scale-default   consistency/ffmpeg-scale-default/record.txt
@@ -48,13 +54,17 @@ The runs made before D-016 (diag-before-300, color-cases-before,
 format-cases-before) use the mirage_vmaf of commit 83c8ed6, which converts
 no color; format-cases-after, made after D-016 and before D-022, uses that
 of commit d993686, which doesn't convert a reference that isn't yuv420p;
-all the others use the mirage_vmaf of the repository's HEAD. --skip-before
-leaves out the runs made before D-016, --skip-full the two steps over every
-frame (acceptance-full, pooling-full). Unless --mirage-vmaf,
---mirage-vmaf-before or --mirage-vmaf-before-d022 give one, each is built in
-a temporary worktree of its commit: `cmake --preset macos-release`, then
-only the mirage_vmaf target, which needs no glad venv (docs/BUILD.md, step
-3).
+align-cases-before uses that of commit e8b867f, which pairs frames in
+decode order (before D-028); all the others use the mirage_vmaf of the
+repository's HEAD. Every run_delta.sh run, whichever program it checks, is
+compared by the delta tool of the repository's HEAD, which compares the two
+sides by timestamp since D-028. --skip-before leaves out the runs made
+before D-016, --skip-full the two steps over every frame (acceptance-full,
+pooling-full). Unless --mirage-vmaf, --mirage-vmaf-before,
+--mirage-vmaf-before-d022 or --mirage-vmaf-before-d028 give one, each is
+built in a temporary worktree of its commit: `cmake --preset macos-release`,
+then only the mirage_vmaf target, which needs no glad venv (docs/BUILD.md,
+step 3).
 
 Then it compares, step by step, the rerun with the committed outputs: the
 per-frame scores of both sides of every pair (Mirage's at full precision,
@@ -115,14 +125,22 @@ BEFORE_D016 = "83c8ed6b497783cc6dd265637e7b2298399ba41a"
 # yuv420p since D-022, which changes the scores of most of those cases.
 BEFORE_D022 = "d993686add8b2af709e1200437e9d643aed26238"
 
+# The last commit before D-028 that changed the code mirage_vmaf is built
+# from: its mirage_vmaf pairs the inputs' frames in decode order, and made
+# align-cases-before (its build.txt), whose cases the head pairs by timestamp.
+BEFORE_D028 = "e8b867fc371ccca2a099e941eeaf808a96b078dc"
+
 # The programs the steps use, by the name of a step's `binary`: the option
 # that gives one, the commit to build otherwise (None: the repository's
 # HEAD), and what it is for.
 PROGRAMS = (
-    ("head", "--mirage-vmaf", None, "every run made after D-016 except format-cases-after"),
+    ("head", "--mirage-vmaf", None,
+     "every run made after D-016 but format-cases-after and align-cases-before"),
     ("before", "--mirage-vmaf-before", BEFORE_D016, "the runs made before D-016"),
     ("before-d022", "--mirage-vmaf-before-d022", BEFORE_D022,
      "format-cases-after, made after D-016 and before D-022"),
+    ("before-d028", "--mirage-vmaf-before-d028", BEFORE_D028,
+     "align-cases-before, made before D-028"),
 )
 
 BUILD_TIMEOUT = 3600      # seconds per configure or build
@@ -132,8 +150,9 @@ PAIRS = "eval/consistency/pairs/bipbop16x9.txt"
 PAIRS_GEAR2 = "eval/consistency/pairs/bipbop16x9_gear2.txt"
 
 # One run_delta.sh run of a step: its directory and options. In the options,
-# {clips} and {format_clips} are the clips directories of the clips and
-# format-clips steps, and {model_dir} the libvmaf model directory.
+# {clips}, {format_clips} and {align_clips} are the clips directories of the
+# clips, format-clips and align-clips steps, and {model_dir} the libvmaf
+# model directory.
 Run = collections.namedtuple("Run", "name options")
 
 
@@ -151,14 +170,17 @@ def delta_options(frames, pairs=PAIRS, scaler="bilinear", model="vmaf_v0.6.1",
     return opts + (["--diagnostic-relabel"] if relabel else [])
 
 
-Step = collections.namedtuple("Step", "name kind binary runs needs committed out effect options")
+Step = collections.namedtuple("Step",
+                              "name kind binary runs needs committed out effect options script")
+
+COLOR_CASES = "eval/consistency/color_cases.py"
 
 
 def step(name, kind, binary=None, runs=(), needs=(), committed=None, out=None, effect=None,
-         options=()):
-    """`options`: further arguments of a clips step's color_cases.py."""
+         options=(), script=COLOR_CASES):
+    """`script` and `options`: a clips step's script and its further arguments."""
     return Step(name, kind, binary, tuple(runs), tuple(needs), committed,
-                out or committed, effect, tuple(options))
+                out or committed, effect, tuple(options), script)
 
 
 STEPS = (
@@ -167,6 +189,8 @@ STEPS = (
          out="consistency/clips"),
     step("format-clips", "clips", committed="consistency/format-cases-before/clips.txt",
          out="consistency/format_clips", options=["--set", "formats"]),
+    step("align-clips", "clips", committed="consistency/align-cases-before/clips.txt",
+         out="consistency/align_clips", script="eval/consistency/align_cases.py"),
     step("diag-before-300", "delta", "before", committed="consistency/diag-before-300", runs=[
         Run("plain", delta_options(300)),
         Run("relabel", delta_options(300, relabel=True))]),
@@ -203,6 +227,12 @@ STEPS = (
                                                    model_file="{model_dir}/vmaf_v0.6.1.json"))]),
     step("defaults-300", "delta", "head", committed="consistency/defaults-300", runs=[
         Run("plain", delta_options(300, scaler="bicubic"))]),
+    step("align-cases-before", "delta", "before-d028", needs=["align-clips"],
+         committed="consistency/align-cases-before", runs=[
+             Run("main", delta_options(None, pairs="{align_clips}/pairs.txt", scaler="bicubic"))]),
+    step("align-cases-d028", "delta", "head", needs=["align-clips"],
+         committed="consistency/align-cases-d028", runs=[
+             Run("main", delta_options(None, pairs="{align_clips}/pairs.txt", scaler="bicubic"))]),
     step("acceptance-full", "delta", "head", committed="consistency/acceptance-full", runs=[
         Run("plain", delta_options(None))]),
     step("ffmpeg-scale-default", "ffmpeg-record", committed="consistency/ffmpeg-scale-default"),
@@ -364,6 +394,9 @@ def parse_args(argv):
     p.add_argument("--mirage-vmaf-before-d022", metavar="PROG",
                    help="the mirage_vmaf for format-cases-after, made before D-022 (default: "
                         f"build commit {BEFORE_D022[:7]} in a temporary worktree)")
+    p.add_argument("--mirage-vmaf-before-d028", metavar="PROG",
+                   help="the mirage_vmaf for align-cases-before, made before D-028 (default: "
+                        f"build commit {BEFORE_D028[:7]} in a temporary worktree)")
     p.add_argument("--skip-before", action="store_true",
                    help="leave out the runs made before D-016")
     p.add_argument("--skip-full", action="store_true",
@@ -539,10 +572,9 @@ def python(script):
 
 
 def expand(options, r):
-    clips = os.path.join(r.out, "consistency", "clips")
-    format_clips = os.path.join(r.out, "consistency", "format_clips")
-    return [o.format(clips=clips, format_clips=format_clips, model_dir=r.args.model_dir)
-            for o in options]
+    clips = {name: os.path.join(r.out, "consistency", name)
+             for name in ("clips", "format_clips", "align_clips")}
+    return [o.format(model_dir=r.args.model_dir, **clips) for o in options]
 
 
 def run_step(r, s, binaries):
@@ -554,7 +586,7 @@ def run_step(r, s, binaries):
                   + [out, "--probe", "--ffprobe", r.ffprobe], f"logs/{s.name}.log")
         return c["exit_code"] == 0
     if s.kind == "clips":
-        c = r.run(s.name, python("eval/consistency/color_cases.py")
+        c = r.run(s.name, python(s.script)
                   + [out, *s.options, "--ffmpeg", r.ffmpeg, "--ffprobe", r.ffprobe],
                   f"logs/{s.name}.log")
         return c["exit_code"] == 0
@@ -564,8 +596,8 @@ def run_step(r, s, binaries):
             print(f"[{s.name}] no mirage_vmaf for it: skipped", flush=True)
             return False
         ok = True
-        # The clips show as <tmp>/clips or <tmp>/format_clips, as in the committed
-        # runs (P-013, P-029).
+        # The clips show as <tmp>/clips, <tmp>/format_clips or <tmp>/align_clips, as
+        # in the committed runs (P-013, P-029, P-048).
         clip_steps = {x.name for x in STEPS if x.kind == "clips"}
         env = {"TMPDIR": os.path.join(r.out, "consistency")} if clip_steps & set(s.needs) \
             else None
