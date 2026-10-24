@@ -40,7 +40,10 @@ in this order:
   align-cases-d028       consistency/align-cases-d028/main/: the alignment cases
                          with the head's, which pairs by timestamp
   acceptance-full        consistency/acceptance-full/plain/: every frame of the
-                         four pairs of D-018
+                         four pairs of D-018, bilinear (the default until D-024)
+  defaults-full          consistency/defaults-full/plain/: every frame of the
+                         four pairs of D-018 with the defaults of D-022, D-024,
+                         D-025, D-027 and D-028
   ffmpeg-scale-default   consistency/ffmpeg-scale-default/record.txt
   ffmpeg-libvmaf-filter  consistency/ffmpeg-libvmaf-filter/record.txt
   pooling                pooling/bipbop16x9/: eval/pooling/pooling.py on the
@@ -49,11 +52,13 @@ in this order:
                          rerun of defaults-300
   pooling-full           pooling/acceptance-full/: eval/pooling/pooling.py on
                          the rerun of acceptance-full
+  pooling-defaults-full  pooling/defaults-full/: pooling.py --check-pooled on the
+                         rerun of defaults-full
 
 Each run_delta.sh run gets the options its committed run.cmd.txt records,
-the scaler included: defaults-300 was made without --scaler, with
-run_delta.sh's default since D-024, which its run.cmd.txt records, and the
-runs made before D-024 with bilinear, the default then.
+the scaler included: defaults-300 and defaults-full were made without
+--scaler, with run_delta.sh's default since D-024, which their run.cmd.txt
+records, and the runs made before D-024 with bilinear, the default then.
 The runs made before D-016 (diag-before-300, color-cases-before,
 format-cases-before) use the mirage_vmaf of commit 83c8ed6, which converts
 no color; format-cases-after, made after D-016 and before D-022, uses that
@@ -63,13 +68,13 @@ decode order (before D-028); all the others use the mirage_vmaf of the
 repository's HEAD. Every run_delta.sh run, whichever program it checks, is
 compared by the delta tool of the repository's HEAD, which compares the two
 sides by timestamp since D-028. --skip-before leaves out the runs made
-before D-016, --skip-full the two steps over every frame (acceptance-full,
-pooling-full). Unless --mirage-vmaf, --mirage-vmaf-before,
---mirage-vmaf-before-d022 or --mirage-vmaf-before-d028 give one, each is
-built in a temporary worktree of its commit: `cmake --preset macos-release`,
-then only the mirage_vmaf target. That target never needed glad's loader,
-which the commits before D-031 generated with Python, so no glad venv; since
-D-031 the build runs no Python at all (docs/BUILD.md).
+before D-016, --skip-full the four steps over every frame (acceptance-full,
+defaults-full, pooling-full, pooling-defaults-full). Unless --mirage-vmaf,
+--mirage-vmaf-before, --mirage-vmaf-before-d022 or --mirage-vmaf-before-d028
+give one, each is built in a temporary worktree of its commit: `cmake
+--preset macos-release`, then only the mirage_vmaf target. That target never
+needed glad's loader, which the commits before D-031 generated with Python,
+so no glad venv; since D-031 the build runs no Python at all (docs/BUILD.md).
 
 Then it compares, step by step, the rerun with the committed outputs: the
 per-frame scores of both sides of every pair (Mirage's at full precision,
@@ -254,6 +259,8 @@ STEPS = (
              Run("main", delta_options(None, pairs="{align_clips}/pairs.txt", scaler="bicubic"))]),
     step("acceptance-full", "delta", "head", committed="consistency/acceptance-full", runs=[
         Run("plain", delta_options(None))]),
+    step("defaults-full", "delta", "head", committed="consistency/defaults-full", runs=[
+        Run("plain", delta_options(None, scaler="bicubic"))]),
     step("ffmpeg-scale-default", "ffmpeg-record", committed="consistency/ffmpeg-scale-default"),
     step("ffmpeg-libvmaf-filter", "ffmpeg-record",
          committed="consistency/ffmpeg-libvmaf-filter"),
@@ -262,11 +269,13 @@ STEPS = (
          committed="pooling/defaults-300"),
     step("pooling-full", "pooling", needs=["acceptance-full"],
          committed="pooling/acceptance-full"),
+    step("pooling-defaults-full", "pooling", needs=["defaults-full"],
+         committed="pooling/defaults-full"),
 )
 STEP_NAMES = tuple(s.name for s in STEPS)
 
 # The steps over every frame of the four pairs, which --skip-full leaves out.
-FULL_LENGTH = ("acceptance-full", "pooling-full")
+FULL_LENGTH = ("acceptance-full", "defaults-full", "pooling-full", "pooling-defaults-full")
 
 # The sources of each pooling step, as eval/pooling/README.md gives its
 # command; {out} is <out_dir>, which holds the reruns of the steps it needs.
@@ -276,6 +285,8 @@ POOLING_SOURCES = {
     "pooling-defaults-300": ["--delta-run", "{out}/consistency/defaults-300/plain",
                              "--check-pooled"],
     "pooling-full": ["--delta-run", "{out}/consistency/acceptance-full/plain"],
+    "pooling-defaults-full": ["--delta-run", "{out}/consistency/defaults-full/plain",
+                              "--check-pooled"],
 }
 
 # The commands of the FFmpeg records, as their committed checks.txt has them
@@ -424,7 +435,7 @@ def parse_args(argv):
                    help="run only these steps, and the steps they need")
     p.add_argument("--jobs", type=int, default=1, metavar="J",
                    help="run_delta.sh's --jobs (default: 1, as in the committed runs "
-                        "other than acceptance-full, which used 4)")
+                        "other than acceptance-full and defaults-full, which used 4)")
     p.add_argument("--ffmpeg", default=DEFAULT_FFMPEG,
                    help=f"FFmpeg with the libvmaf filter (default: {DEFAULT_FFMPEG})")
     p.add_argument("--ffprobe", help="ffprobe (default: the one next to --ffmpeg)")

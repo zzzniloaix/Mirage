@@ -172,6 +172,8 @@ class StepsAgainstTheCommittedRuns(unittest.TestCase):
         self.assertNotIn("color-cases-before", names(only=None, skip_before=True))
         self.assertEqual(names(only=["pooling-full"], skip_before=False),
                          ["acceptance-full", "pooling-full"])
+        self.assertEqual(names(only=["pooling-defaults-full"], skip_before=False),
+                         ["defaults-full", "pooling-defaults-full"])
         self.assertEqual(names(only=["pooling-defaults-300"], skip_before=False),
                          ["defaults-300", "pooling-defaults-300"])
         self.assertEqual(names(only=["ladder-300"], skip_before=False), ["ladder-300"])
@@ -235,11 +237,25 @@ class StepsAgainstTheCommittedRuns(unittest.TestCase):
             self.assertIn(opts["--ladder"], f.read())
         self.assertNotIn("--mezzanine", opts)
 
-    def test_the_pooling_check_of_d027_runs_on_defaults_300(self):
-        # pooling/defaults-300 was made with --check-pooled; the other pooling
-        # steps reproduce outputs made without it.
+    def test_the_pooling_check_of_d027_runs_on_the_runs_with_the_defaults(self):
+        # pooling/defaults-300 and pooling/defaults-full were made with
+        # --check-pooled; the other pooling steps reproduce outputs made without it.
         self.assertEqual([n for n, src in ra.POOLING_SOURCES.items() if "--check-pooled" in src],
-                         ["pooling-defaults-300"])
+                         ["pooling-defaults-300", "pooling-defaults-full"])
+
+    def test_skip_full_leaves_out_every_step_over_every_frame_of_the_four_pairs(self):
+        # A delta step without --frames on the pairs of D-018, and the pooling
+        # steps that need one, take as long as a full-length run.
+        full = set()
+        for s in ra.STEPS:
+            if s.kind == "delta" and any(
+                    "--frames" not in r.options
+                    and as_options(r.options).get("--pairs") == ra.PAIRS for r in s.runs):
+                full.add(s.name)
+        full |= {s.name for s in ra.STEPS if s.kind == "pooling" and set(s.needs) & full}
+        self.assertEqual(full, set(ra.FULL_LENGTH))
+        self.assertEqual(full, {"acceptance-full", "defaults-full", "pooling-full",
+                                "pooling-defaults-full"})
 
     def test_pooling_steps_read_the_reruns_of_the_steps_they_need(self):
         outs = {s.name: s.out for s in ra.STEPS}
