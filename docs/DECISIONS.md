@@ -1351,6 +1351,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - **The command line.** The inputs are one of two forms: `--ref` and `--dis`, or `--ladder` with an optional `--mezzanine`. Options of both forms in one place are an error; an option of one form on the command line leaves out the config file's settings of the other (D-030); `--out` is needed by both; `--help` shows a synopsis per form and a "Ladder" paragraph.
 - **Alternatives**
   - The player's `ManifestParser`; probing each entry with FFmpeg for a video stream instead of reading its attributes; skipping the entries whose inputs fail to open.
+  - `EXT-X-MEDIA` video renditions scored as well, each as a video playlist of its own.
   - For a missing `BANDWIDTH`, taking 0, as FFmpeg's hls demuxer and the player's parser do; for a bad one, its leading digits, as the demuxer's `atoi()` does.
   - For equal highest bandwidths: refusing the master, or a tie-break by `AVERAGE-BANDWIDTH` or resolution.
   - The pairs in descending `BANDWIDTH`, as `start_manifest()` scores them.
@@ -1358,6 +1359,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - Scoring every pair and listing every failure before exiting; decoding the reference once for all pairs, which is §2's orchestration.
 - **Rationale**
   - D-029 fixes the design; where it is silent the rules are FFmpeg's (the first line, how URIs pair with entries, the base after redirects) or the repository's (`fetch_streams.py`'s rule for video), so that the same master gives the same video entries in the committed stream records and in a ladder run.
+  - D-029's "each video playlist" is read as the playlists of the `EXT-X-STREAM-INF` entries, the entries whose scoring the §1.2 package asked about (`docs/PHASE1_DECISIONS_PENDING.md`).
   - A master the tool can't read without guessing is refused: `BANDWIDTH` decides the top rung, and taking 0 for a missing one could make another rung the reference without a word.
   - The first among equals is the order the master gives them; the warning keeps that choice visible.
   - With P-006 and D-029 a failed pair leaves no report, so the pairs after it would only take time.
