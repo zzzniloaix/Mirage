@@ -1167,3 +1167,106 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
 - **Status**: pending owner confirmation
+
+### P-043 How D-028's pairing by timestamp is implemented, and the values it leaves open
+
+- **Choice**
+  - **A pure module.** `vmafalign::Aligner` (`src/VMAFAlign.h`) is told each input's decoded frames in the order its decoder outputs them, with their `best_effort_timestamp` (P-006), and says step by step what the analyzer does: decode a frame of one input, score the frames at the heads of both queues as a pair, or take a head frame off its queue unscored. It has no FFmpeg type but `AVRational` and is unit-tested on timestamp sequences, among them every case of the plan's "Tests" (`tests/test_vmaf_align.cpp`).
+  - **Times.** A frame's timestamp minus its input's start, as D-028 has it: the container's `start_time`, rescaled to the stream's time base with `av_rescale_q()` as `ffmpeg` rescales the offset it shifts an input by without `-copyts` (`fftools/ffmpeg_demux.c` of FFmpeg 8.1.1, `ts_offset`); without a container start time, the input's first timestamped frame, as the plan says. Times are compared exactly, as whole ticks of 1/L, L the least common multiple of the denominators of both time bases, the reference's frame duration and the grid input's, the tolerance and 10 s; when L would exceed 2^40, the analysis ends with an error.
+  - **The frame rate** of each input: `av_guess_frame_rate()`, the rate `ffmpeg` gives its filter graph for a stream when its command line sets none (`fftools/ffmpeg_demux.c`). A reference without one ends the analysis with an error, since D-028's tolerance is half the reference's frame duration; a distorted input without one is taken to have the reference's.
+  - **Rule A.** A reference frame and a distorted frame pair when their times differ by at most the tolerance, the bound included. In time order, each frame of the grid input takes the nearest frame of the other input within the tolerance that is neither paired nor dropped, the earlier of two equally near; a frame at or after the grid frame's time is taken at once.
+  - **The coarser grid** (option (b)). The two frame rates are compared exactly (`av_cmp_q()`): a distorted input at a lower rate is the grid, otherwise the reference is. A frame of the other input that pairs with nothing fails only when it stands for a frame missing from the grid: for each point of the grid that no frame of the grid input takes (between two consecutive grid frames a and b, a + k·d for k = 1 to round((b − a) / d) − 1; before the first and after the last grid frame, steps of d; d the grid input's frame duration), the nearest such frame nearer to it than the tolerance. The others are off the grid: counted (`off_grid_reference`, `off_grid_distorted`), not failures. A frame halfway between two points counts for neither, so the in-between frames of an input at exactly twice the other's rate are off the grid, also past the other input's last frame. A frame that repeats the timestamp of its input's frame before it is never off the grid: it is a duplicate distorted frame, or an unmatched reference frame. With equal rates every distorted frame that pairs with nothing fails, as in the plan's rule A.
+  - **Discontinuities** (option (a)). A timestamp lower than that of its input's previous timestamped frame, or higher by more than 10 s, the default of `ffmpeg`'s `dts_delta_threshold` (`fftools/ffmpeg_opt.c`); an equal one is a duplicate. From the first, in either input, every frame of either input that isn't paired or counted yet, those still to come included, counts as `after_discontinuity`, and both inputs are decoded to their ends to count them. Later discontinuities are counted too.
+  - **Frames without a timestamp** fail (`no_timestamp`) when they reach the head of their queue.
+  - **#7.** The failure rate is failed / (paired + failed), failed the sum of `unmatched_reference`, `extra_distorted`, `duplicate_distorted`, `no_timestamp` and `after_discontinuity`, and undefined (`null`) when both are 0. It exceeds the threshold of 1% (`vmafalign::kFailureThreshold`) when it is higher than 0.01; a rate of exactly 0.01 doesn't warn.
+  - **libvmaf contexts.** A pair before which a reference frame that counts as a failure was dropped since the previous pair starts a new libvmaf context. Reference frames off the grid start none.
+- **Alternatives**
+  - The frame rate from the stream's `avg_frame_rate`, which the analyzer's progress estimate uses, or its `r_frame_rate`; from the frames' durations, or from the first timestamps.
+  - Without a container start time, no shift at all, which is what `ffmpeg` does then.
+  - A tolerance without its bound; the nearest frame chosen over both inputs at once rather than for each grid frame in turn.
+  - Frame rates taken as equal within a margin; every frame of the finer input that pairs with nothing a failure, as plain rule A has it; the grid's points counted from each input's start rather than from the grid input's frames.
+  - `ffmpeg`'s whole discontinuity rule, which takes a backward step for one only beyond 0.1 s; another forward limit.
+  - A warning at a failure rate of exactly 1%.
+  - Pairing in decode order for a reference without a frame rate.
+- **Rationale**
+  - Where D-028 and the plan leave a value open, it is the one FFmpeg uses: the frame rate `ffmpeg` gives its filter graph, its rounding of the start offset, its discontinuity threshold.
+  - Exact comparison makes equal times in different time bases compare equal, and decides a frame at the tolerance's bound without floating point (the tests "inputs with other time bases and origins that line up" and "the nearest frame within the tolerance, and ties").
+  - Taking a frame at or after the grid frame at once pairs inputs whose frames line up frame by frame without decoding a frame more than pairing in decode order did, so a run with `--frames` reads the frames it read before (the test "equal streams pair frame for frame, without decoding ahead").
+  - Option (b) counts only frames missing from the coarser grid as failures, and the halfway rule keeps an input at exactly twice the other's rate free of them (the double-rate tests).
+  - The plan has a timestamp that goes backwards be a discontinuity; `ffmpeg`'s 0.1 s margin is for packets' decoding timestamps before decoding, where the aligner gets decoded frames in presentation order.
+  - D-019 and D-023 let a frame exactly at the §5 threshold pass; the same boundary here.
+  - An error rather than a pairing D-028 doesn't define: without the reference's frame rate there is no tolerance, and without a common time base no exact comparison. FFmpeg 8.1.1's `avformat_find_stream_info()` falls back to the inverse of the stream's time base when it finds no other rate (`libavformat/demux.c`), so `av_guess_frame_rate()` (`libavformat/avformat.c`) is expected to give one for every video stream; read from the sources, not measured.
+- **Limits**: an input of variable frame rate is paired with its nominal rate's tolerance and grid; a picture repeated under a new timestamp is scored, as the plan says.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
+
+### P-044 The analysis with the pairing: queues, libvmaf contexts, reading to the ends, the warning and the report
+
+- **Choice**
+  - `analyze_pair`, which the player's `start()` and `start_manifest()` and `mirage_vmaf` share, keeps the decoded frames the aligner holds in one queue per input and does what the aligner says (`src/VMAFAnalyzer.cpp`). The aligner looks at most one frame ahead in an input and decides on the frames at the heads, so each queue holds a frame or two; no input is decoded ahead on another thread.
+  - Both inputs are read to their ends unless the frame limit stops the run, so that the frames of the longer input past the shorter's end are counted, as unmatched reference frames or extra distorted frames. Before D-028 pairing stopped at the shorter input's end and the rest of the other wasn't read; the test of that changes.
+  - A new libvmaf context is `vmaf_init()` and `vmaf_use_features_from_model()` with the model already loaded. The context before it is flushed and its pairs' scores read with `vmaf_score_at_index()` before it is closed; each context counts its pictures from 0. The pooled values are computed from all the pairs' scores in pair order (P-039).
+  - `--frames N` and `VMAFOptions::max_frames` count pairs.
+  - Above the threshold the warning text is `VMAFResult::alignment.warning` and joins `VMAFResult::warnings`. `mirage_vmaf` prints it on stderr, `mirage_vmaf: warning: ...`, writes the report with it among the report's `warnings` and exits with status 0. In the player, the compact VMAF panel shows it under the pair's row, shortened as it shortens errors, and the VMAF results window shows it in full under its table, the pair's label in yellow. The warnings about pixel formats stay out of the player, as before (P-033).
+  - The report (`src/VMAFReport.h`) gets `alignment` after `pooled`: the plan's `rule`, `tolerance`, `timestamp_origin`, `paired`, `unmatched_reference`, `extra_distorted`, `duplicate_distorted`, `no_timestamp`, `discontinuities`, `failed`, `failure_rate`, `threshold`, `exceeded` and `failures`, each with its input, position in that input, PTS in seconds and reason; and beyond them `grid`, each input's `frame_rate`, `start` and `start_from`, `after_discontinuity`, `discontinuity_jump` (the 10 s of P-043), `off_grid_reference`, `off_grid_distorted` and `vmaf_contexts`. Each pair of `frames` gains `ref_index` and `dis_index`, its frames' positions in their inputs. PTS stay as the streams have them (P-006). `write_json`'s layout doesn't change (difference 9).
+  - `mirage_vmaf --help` gets a paragraph on the pairing.
+- **Alternatives**
+  - Each input decoded on its own thread, with queues bounded by a number of frames, as the plan's wording allows.
+  - Pairing stopped at the shorter input's end as before, the rest not counted.
+  - Times relative to each input's start in the report.
+  - Every warning of `warnings` in the player's panels; the warning in the report's `alignment` object as well.
+- **Rationale**
+  - A loop that decodes what the aligner asks for needs no thread and no bound of its own: the aligner decides on the frames it has, with one frame of look-ahead.
+  - D-028 counts every unmatched reference frame and every extra distorted frame, those past the other input's end included, and always counts and lists the failures; that needs the rest of the longer input.
+  - Every value that decides which frames fail is in the report, as the work order's §7 asks of every setting that changes scores: the tolerance, the threshold and the discontinuity limit. The pairing has no option: like libvmaf's threads, its values are fixed in the code, so neither the command line nor the config file sets them.
+  - The fields beyond the plan's say what option (b), option (a) and the restarted contexts did: which grid, what was skipped without failing, what failed once pairing stopped, and which pairs start a context and so have no motion to a frame before them (OD-5). The frame positions place each pair and each failure in its input.
+  - D-028 asks for the warning in the report, on stderr and in the player's VMAF panel, with exit status 0; P-033 kept the other warnings out of the player.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
+
+### P-045 The analyzer tests of D-028 on generated clips, the §1.4 acceptance among them
+
+- **Choice**
+  - `tests/test_vmaf_analyzer.cpp` generates its clips at run time, in P-036's directory: Matroska clips of uncompressed frames at given timestamps, each frame showing the tests' moving ramp as it is at its own time, so that a frame dropped, repeated or retimed leaves the other frames as `dis_clip()` has them; and an MPEG-TS clip of 12 frames, coded by FFmpeg's own MPEG-2 encoder with every frame a key frame, written as two TS files one after the other, the second restarting its timestamps at 0 and marking its first packets as discontinuous (the muxer's `initial_discontinuity`).
+  - The cases:
+    - the work order's stream with a frame dropped on purpose, frame 5 of 12 (§1.4's acceptance): the failed frame is reported, with its input, position, PTS and reason; every pair's two frames have the same timestamp; the failure rate is above the threshold and warns; a new libvmaf context starts after the gap; and the pairs away from the gap score exactly as the full clip's do against the same reference;
+    - a duplicated timestamp, whose pairs score as the full clip's;
+    - half the frame rate, scored on its grid without a failure;
+    - double the frame rate, whose pairs and scores are the full clip's;
+    - a later start: a clip cut with its timestamps kept, which pairs from its own start as `ffmpeg` pairs it, so with reference frames three frames earlier in the picture; and the same frames with an audio track from 0, whose first three reference frames are unmatched;
+    - MPEG-TS timestamps that restart midway, at which pairing stops, the rest of both inputs failed;
+    - inputs whose frames line up, which keep their pairs; and the player's analysis, `start()`, with the warning.
+  - Three tests change: the shorter input's now expects the reference read to its end and its last four frames unmatched; the D-022 test and the unverified format test use inputs of equal length, so that their warnings are only those they test.
+- **Alternatives**
+  - Clips made by the `ffmpeg` program's `select`, `setpts` and `fps` filters, which the plan has for delta runs scored by both tools.
+  - Cuts of D-011's ladders, whose clips aren't chosen yet.
+  - Committed fixture files.
+  - H.264 in the MPEG-TS clip.
+- **Rationale**
+  - Mirage's C++ uses library APIs only; generated clips need no fixture and no network, and uncompressed frames keep every picture exact, so scores compare with `==`.
+  - MPEG-TS carries no uncompressed video that FFmpeg reads back; the MPEG-2 encoder is FFmpeg's own and in every build, where libx264 is an option of the build.
+  - The cut clip shows what D-028's timestamp origin means for a clip cut with its timestamps kept.
+- **Limits**: synthetic clips of 12 frames at 25 fps, one container per case. The delta runs on synthetic clips, scored by both tools, belong with the delta tool's comparison by timestamp and are not made here.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
+
+### P-046 The rerun of the committed measurements after D-028's pairing, and how eval/run_all.sh treats the runs it changes
+
+- **Choice**
+  - The analyzer's pairing by timestamp changes what HEAD's `mirage_vmaf` does with inputs whose frames don't line up. In the committed runs the frames of each pair line up, so `eval/run_all.sh` keeps rerunning the runs made after D-016 with HEAD's program and the options their `run.cmd.txt` records, `format-cases-after` with the program of `d993686` and the runs before D-016 with that of `83c8ed6` (P-034, P-038): no step and no program changes, and the pairing has no option to pass.
+  - One run of `eval/run_all.sh --skip-full --jobs 4` with no program given, so that it built all three programs from their commits, from a new clean worktree of `713431b`, the commit after this round's changes to the code, with its output directory and `TMPDIR` outside the repository. After `713431b` only documents and the record change.
+  - Committed in `eval/run_all/2026-10-23-d028/` as P-042's record is: `run_all.md` and `.json`, `rerun_check.md` and `.json`, the three builds' `build.txt` and logs, and the output of every command, with a `SHA256SUMS`.
+  - An earlier run of the same kind, from a clean worktree of `8f20f46`, before the report gained `discontinuity_jump` (`713431b`), isn't cited: the code changed after it.
+- **Alternatives**
+  - A program row for the code before D-028, such as the program of `0496b21` that made `defaults-300`, so that the runs are rerun with a program that pairs in decode order.
+  - Every step, the two over every frame included, as P-032 did.
+- **Rationale**
+  - HEAD's program reproducing the runs is what shows that the pairing moved no score where frames line up; a program from before D-028 would show nothing about the new pairing.
+  - The steps over every frame are left to the full-length report with bicubic that D-024 asks for, as in P-042.
+- **Result** (`eval/run_all/2026-10-23-d028/rerun_check.md`, `run_all.md`): every step ran, and everything compared is as committed: every verdict, Mirage's per-frame scores at full precision and every libvmaf metric of FFmpeg's logs, in the 300-frame runs and in the synthetic color tag and reference format cases. The program built from `713431b` has the SHA-256 `7fb455e9e1349c85e25afe54d5fd47d714c463ecebea1b03b84ca1b594d27741`, which no committed run's `build.txt` names; it reproduces the scores of runs made by four other builds, `420b8776…`, `2220ce3a…`, `3633c43e…` and `85535c5c…`. The one built from `d993686` has the SHA-256 of `format-cases-after/build.txt`, and the one built from `83c8ed6` that of the runs before D-016. 520.5 s of wall time, the three builds included.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-23
+- **Status**: pending owner confirmation
