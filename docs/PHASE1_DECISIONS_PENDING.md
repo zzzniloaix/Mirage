@@ -1,6 +1,6 @@
 # Phase 1: decisions pending for the owner
 
-What is still open for the owner after the decisions of 2026-10-23 (`docs/DECISIONS.md` D-020 to D-033) and their implementation: the questions D-020 left open, the plan D-032 asked for, what implementing the decisions left open, the agent's measurement and process choices P-033 to P-061, and the differences between the work order and the implementation (hard rule 4). The decisions are the owner's (hard rule 3 of the work order); every recommendation below is labeled as the agent's. Every number comes from a committed output, named next to it; where there is none, it says MEASUREMENT PENDING. The state of each section of Phase 1 is in `docs/PHASE1_STATUS.md`, and the statements the paper's method text has to make, with their evidence, in `docs/PAPER_METHOD_NOTES.md`.
+What is still open for the owner after the decisions of 2026-10-23 (`docs/DECISIONS.md` D-020 to D-033) and their implementation: the questions D-020 left open, the plan D-032 asked for, what implementing the decisions left open, the agent's measurement and process choices P-033 to P-062, and the differences between the work order and the implementation (hard rule 4). The decisions are the owner's (hard rule 3 of the work order); every recommendation below is labeled as the agent's. Every number comes from a committed output, named next to it; where there is none, it says MEASUREMENT PENDING. The state of each section of Phase 1 is in `docs/PHASE1_STATUS.md`, and the statements the paper's method text has to make, with their evidence, in `docs/PAPER_METHOD_NOTES.md`.
 
 The packages decided on 2026-10-23 are kept at the end, in "Decided on 2026-10-23 (D-020 to D-033)", with the text they had when they were decided, as the record of their options, and a note at the start of each on what was decided and where the work is.
 
@@ -290,6 +290,32 @@ The player's VMAF ladder analysis (`VMAFAnalyzer::start_manifest()`, from the "M
 
 **Agent's recommendation.** Option 2: whoever builds libvmaf knows the release, and D-006 asks for both versions.
 
+### A network read without a time limit (P-062)
+
+**What happened.** In the rerun of every step at `61241e2` the machine went to sleep with its lid closed while the last two pairs of `defaults-full` were being scored, and their inputs lost Apple's CDN (`eval/run_all/2026-10-24-full/README.md`, `power_log.txt`). Three of the four scoring processes of those pairs logged TLS reads that timed out and a host name that didn't resolve, skipped the segments they couldn't open and ran to their ends. The fourth, the `mirage_vmaf` of `gear2_vs_gear5`, logged no error and made no progress after the machine woke, until the workflow stopped it (P-062).
+
+**Today.**
+
+- The analyzer opens each input with `avformat_open_input()` without options and without an interrupt callback (`DecodeCtx::open` in `src/VMAFAnalyzer.cpp`), and `src/VMAFLadder.cpp` reads a master playlist with `avio_open2()` without options.
+- FFmpeg 8.1.1's TCP protocol limits a connection attempt to 5 s by default, but not a read or a write: its `timeout` option defaults to none, the `rw_timeout` of every protocol to 0, which is none, and TCP keepalive is off (`libavformat/tcp.c`, `avio.c` and `network.c` of the 8.1.1 sources). A read on a connection that stays open without data then waits until an interrupt callback stops it.
+- The player's own inputs have limits: `src/FfOpen.cpp` sets `timeout` and `rw_timeout` to 5 s; `src/Demuxer.cpp` sets 5 s and 8 s, HTTP reconnects, an interrupt callback and the hls demuxer's `seg_max_retry` of 10, so that a segment that fails to open is tried again before it is skipped (FFmpeg's default skips it at once).
+- The player's VMAF analysis is the same analyzer. By the code, its `cancel()` requests a stop, which the analysis checks between frames, and waits for the worker thread, so a cancel during such a read waits as long as the read.
+- The §5 tool stops a scoring process after 6 h (`run_delta.py --timeout`, `DEFAULT_TIMEOUT`). The `ffmpeg` command of the §5 check sets no I/O limit either.
+- When segments are skipped, D-028's pairing shows it: in `gear1_vs_gear5` of that rerun, `mirage_vmaf` counted 395 of 28920 frames as failed, 348 of them after a discontinuity, and warned (`eval/run_all/2026-10-24-full/consistency/defaults-full/plain/gear1_vs_gear5/mirage.stdout.txt`).
+
+**Question.** Should the analyzer limit its network reads, for `mirage_vmaf` and the player's analysis, and how?
+
+**Options.**
+
+1. As today: no limit in the analyzer; the §5 tool's 6 h per process.
+2. The analyzer sets `timeout` and `rw_timeout` on network inputs to the values of `src/FfOpen.cpp`, 5 s, and gives each input an interrupt callback on its stop token, so that a read that waits longer fails and a cancel interrupts a read; `src/VMAFLadder.cpp` sets the same limits for the master. A read that fails then makes the hls demuxer skip the segment, as in `gear1_vs_gear5` above.
+3. Option 2 with the reconnect and `seg_max_retry` options of `src/Demuxer.cpp`, so that a short loss of the network is waited out on Mirage's side; FFmpeg's side of the §5 check would still skip the segment.
+4. Option 2 or 3 with the limit as an option of `mirage_vmaf` and its config file (D-030), recorded in the report.
+
+A limit changes no score of a run whose reads succeed. Where a read fails, the pair's frames differ from those of an uninterrupted run, and the §5 check fails the pair, as it does today when a segment can't be opened.
+
+**Agent's recommendation.** Option 2, with the player's values: it turns a stall into a failure that the report and the §5 check show, and makes the player's cancel prompt. It changes the analyzer the player shares, so it waits for the owner (D-007).
+
 ### CLAUDE.md's build notes (for information)
 
 `CLAUDE.md` still says that glad2 and miniaudio are fetched at configure time, and has a note on installing jinja2 for glad. Since D-031 glad isn't fetched and the build runs no Python. The file is the owner's and wasn't edited.
@@ -302,9 +328,9 @@ The player's VMAF ladder analysis (`VMAFAnalyzer::start_manifest()`, from the "M
 
 D-024's full-length §5 report with bicubic passes over every frame of the four pairs (`eval/consistency/defaults-full/`, P-059). D-027's rationale gives how far the three percentile definitions differ from runs with bilinear: at most 0.000276 over every frame and 0.093440 over 300 frames. With the defaults they differ by at most 0.001160 over every frame and 0.083044 over 300 frames, gear2's p1 in both (`eval/pooling/defaults-full/pooling.md`, `eval/pooling/defaults-300/pooling.md`). With the defaults too the minimum is the first frame's score in every series over every frame (`eval/pooling/defaults-full/pooling.md`). D-027 is the owner's and unchanged.
 
-## The agent's process choices to confirm: P-033 to P-061
+## The agent's process choices to confirm: P-033 to P-062
 
-D-033 confirmed P-006 to P-032 (listed in the decided section below). The measurement and process choices made in implementing D-020 to D-033 are P-033 to P-061 in `docs/DECISIONS.md`, each pending the owner's confirmation; where one leaves a question open, the question is above. The alternatives worth a look, as each entry lists them:
+D-033 confirmed P-006 to P-032 (listed in the decided section below). The measurement and process choices made in implementing D-020 to D-033 are P-033 to P-062 in `docs/DECISIONS.md`, each pending the owner's confirmation; where one leaves a question open, the question is above. The alternatives worth a look, as each entry lists them:
 
 | Entries | What | Alternatives worth a look | Open question above |
 |---|---|---|---|
@@ -333,6 +359,7 @@ D-033 confirmed P-006 to P-032 (listed in the decided section below). The measur
 | P-059 | the full-length §5 report with the defaults, its pooling check, its `run_all.sh` steps and checks | the scaler and model named in the run; `--jobs 1` | |
 | P-060 | the records at the end of the round: the unit tests at `12715a6`, and a rerun of every step of `eval/run_all.sh` | `--skip-full`; the unit tests in a clean worktree | |
 | P-061 | information for D-011: eight candidate clips examined without downloading them | other sources; downloading the clips | "D-011" |
+| P-062 | the rerun of every step at `61241e2`, which the machine's sleep cut short: its record with the failed run's reports, logs and the machine's sleep and wake events; the stalled process stopped; its two unfinished steps rerun on their own | the whole rerun again; only the usual files of the record; the stalled process left to the 6 h limit | "A network read without a time limit" |
 
 **Agent's recommendation**: confirm them all, with the open questions above decided as recommended there.
 
@@ -682,7 +709,7 @@ Nothing has been built or run on Linux, so whether the code compiles there, whic
 
 ### Process choices P-006 to P-032
 
-**Decided**: D-033 confirmed P-006 to P-032 as their entries state them. The choices made in implementing D-020 to D-033 are P-033 to P-061 ("The agent's process choices to confirm" above). The rest of this package is the list as it was.
+**Decided**: D-033 confirmed P-006 to P-032 as their entries state them. The choices made in implementing D-020 to D-033 are P-033 to P-062 ("The agent's process choices to confirm" above). The rest of this package is the list as it was.
 
 P-006 to P-032 in `docs/DECISIONS.md` are the agent's measurement and process choices of Phase 1, each pending the owner's confirmation. The alternatives the agent pointed out for each, as its entry lists them:
 
