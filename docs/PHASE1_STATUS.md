@@ -44,7 +44,7 @@ What the work order asks for, and where it is:
 
 The checks made on it afterwards (`eval/consistency/defaults-full/checks.txt`; `eval/consistency/README.md`, "`defaults-full/`"):
 
-- Both sides got bicubic and vmaf_v0.6.1 without naming them, and FFmpeg's scale filter states the swscale flags of bicubic (check 3).
+- Both sides got bicubic and vmaf_v0.6.1, `run_delta.sh`'s defaults, which it passes to both sides and `run.cmd.txt` records with every other option, and FFmpeg's scale filter states the swscale flags of bicubic (check 3). Which options the command line gave is in no committed output of this run (P-064); `mirage_vmaf`'s own default shows in its direct runs given no `--scaler` (`eval/consistency/defaults-300/checks.txt`, check 4).
 - Both tools scored the same 53946 pairs of every pair at the same timestamps, each `mirage_vmaf` pair the reference and distorted frames of its own position, and written with the 6 decimals of FFmpeg's log, Mirage's score of every frame is FFmpeg's (checks 4 and 5).
 - `mirage_vmaf` paired every frame by timestamp, with no failure, one libvmaf context per pair and no warning (check 6).
 - Both tools convert gear2 and gear1 from smpte170m/tv to bt709/tv and change nothing for gear4 and gear3; no reference is converted (check 7).
@@ -100,7 +100,7 @@ The checks made on it afterwards (`eval/consistency/acceptance-full/checks.txt`;
 
 - `mirage_vmaf --scaler bilinear|bicubic|lanczos`, and the report's `scaler` (P-017). Without it the scaler is bicubic since D-024, in `mirage_vmaf` and in the player's analysis, and `run_delta.sh` gives both sides bicubic unless told otherwise (P-038).
 - **Measured** (`eval/consistency/scalers-300/`, first 300 frames of the four pairs, each scaler on both sides): Mirage matches FFmpeg with each of the three (`checks.txt`, check 3), and the scaler moves the scores: against bilinear, the mean shift per pair is 6.775801 to 11.113910 with bicubic and 8.874908 to 13.334836 with lanczos, and no frame scores lower (`scaler_effect.md`).
-- **The default**, over the first 300 frames of the four pairs (`eval/consistency/defaults-300/checks.txt`; P-041): `run_delta.sh` without `--scaler` gave both sides bicubic, and the scores are those of `scalers-300/bicubic` on every frame (checks 2 and 3); `mirage_vmaf` without `--scaler`, run on its own, scores every frame as the run did (check 4).
+- **The default**, over the first 300 frames of the four pairs (`eval/consistency/defaults-300/checks.txt`; P-041): `run_delta.sh`'s default gave both sides bicubic, and the scores are those of `scalers-300/bicubic` on every frame (checks 2 and 3; the run's `run.cmd.txt` names the scaler, as it names every option, P-064); `mirage_vmaf` given no `--scaler`, run on its own, scores every frame as the run did (check 4).
 - The work order suggests bicubic so that §5 passes; §5 passes with each of the three (difference 1).
 - **Over every frame** with the defaults, both sides scaled with bicubic and every pair passes (`eval/consistency/defaults-full/checks.txt`, checks 3 and 13; P-059).
 - **Remaining**: the player has no scaler option, and its JSON export doesn't state the scaler (difference 9, open).

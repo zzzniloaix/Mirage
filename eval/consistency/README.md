@@ -176,7 +176,7 @@ python3 -I -B eval/consistency/ladder_check.py <mirage_vmaf> <out_dir> [--ladder
 
 ## Committed runs
 
-The command blocks below are the commands as they were run. Until D-024, `run_delta.sh`'s default scaler was bilinear, so the blocks of runs made before it that name no scaler ran with bilinear on both sides; each run's `run.cmd.txt` records every option, the scaler included, and `eval/run_all.sh` gives each rerun those options (P-038). Until D-028, the delta tool compared the two sides by position, without the `showinfo` filters in FFmpeg's graph; `eval/run_all.sh` reruns every run with the comparison by timestamp (P-049).
+The command blocks below are the commands as the agent gave them. A run's `run.cmd.txt` has every option the run had, the defaults included, and, since P-064, a line with the options its command line gave; so for the runs made before P-064, which options a block leaves out rests on the agent's account, not on a committed output. Until D-024, `run_delta.sh`'s default scaler was bilinear, so the blocks of runs made before it that name no scaler ran with bilinear on both sides; each run's `run.cmd.txt` records every option, the scaler included, and `eval/run_all.sh` gives each rerun those options (P-038). Until D-028, the delta tool compared the two sides by position, without the `showinfo` filters in FFmpeg's graph; `eval/run_all.sh` reruns every run with the comparison by timestamp (P-049).
 
 ### `diag-before-300/`: the diagnosis before D-016, first 300 frames (P-012)
 
@@ -473,6 +473,8 @@ The bicubic run of `scalers-300/` again, made without `--scaler`, so with `run_d
 eval/consistency/run_delta.sh build/macos-release/mirage_vmaf <out>/plain --frames 300 --jobs 1
 ```
 
+Its `run.cmd.txt` has `--scaler bicubic --model vmaf_v0.6.1`, the settings the run had, as it has every option; that the command gave no scaler is the agent's account (P-064). `mirage_vmaf`'s own default is shown by the direct runs of check 4, given no `--scaler`.
+
 | File | Contents |
 |---|---|
 | `build.txt` | the build of `mirage_vmaf` in the new worktree: its commit and clean state, the configure, the build's output, a second build with nothing to do, and its SHA-256, which `plain/environment.txt` repeats |
@@ -545,6 +547,8 @@ The full-length report of D-018 made again with the defaults, as D-024 asks: eve
 ```
 eval/consistency/run_delta.sh build/macos-release/mirage_vmaf <out>/plain --jobs 4
 ```
+
+Its `run.cmd.txt` has `--scaler bicubic --model vmaf_v0.6.1`, the settings the run had, as it has every option; that the command gave neither is the agent's account (P-064), which `checks.txt`, check 3, states in its heading.
 
 | File | Contents |
 |---|---|
