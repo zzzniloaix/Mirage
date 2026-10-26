@@ -21,6 +21,7 @@
 #include <sstream>
 #include <string>
 #include <thread>
+#include <tuple>
 #include <vector>
 
 extern "C" {
@@ -28,8 +29,10 @@ extern "C" {
 #include <libavfilter/avfilter.h>
 #include <libavformat/avformat.h>
 #include <libavutil/channel_layout.h>
+#include <libavutil/common.h>
 #include <libavutil/imgutils.h>
 #include <libavutil/mem.h>
+#include <libavutil/pixdesc.h>
 #include <libavutil/pixfmt.h>
 #include <libswscale/swscale.h>
 }
@@ -378,6 +381,87 @@ std::string make_ts_restart_clip(const char* name, int w, int h, int frames, int
     return path.string();
 }
 
+// An MPEG-TS clip of `frames` frames of the ramp at 25 fps in `format`,
+// MPEG-2 coded with every frame a key frame and BT.709 tags, in one stream
+// whose timestamps go on: frames 0 to change - 1 are w x h, the others
+// w2 x h2, as in a stream whose resolution changes midway. The low-delay
+// flag keeps FFmpeg's decoder from dropping the frame before the change.
+std::string make_ts_resize_clip(const char* name, AVPixelFormat format, int frames, int change,
+                                int w, int h, int w2, int h2)
+{
+    const AVCodec* codec = avcodec_find_encoder(AV_CODEC_ID_MPEG2VIDEO);
+    REQUIRE(codec);
+    const AVPixFmtDescriptor* desc = av_pix_fmt_desc_get(format);
+    REQUIRE(desc);
+    std::vector<AVPacket*> packets;
+    AVCodecParameters* par = avcodec_parameters_alloc();
+    for (const auto& [from, to, ew, eh] : { std::tuple{ 0, change, w, h },
+                                            std::tuple{ change, frames, w2, h2 } }) {
+        if (from == to) continue;
+        AVCodecContext* enc = avcodec_alloc_context3(codec);
+        enc->width          = ew;
+        enc->height         = eh;
+        enc->pix_fmt        = format;
+        enc->time_base      = { 1, kFps };
+        enc->framerate      = { kFps, 1 };
+        enc->gop_size       = 1;
+        enc->max_b_frames   = 0;
+        enc->flags         |= AV_CODEC_FLAG_QSCALE | AV_CODEC_FLAG_LOW_DELAY;
+        enc->global_quality = FF_QP2LAMBDA * 2;
+        enc->colorspace     = AVCOL_SPC_BT709;
+        enc->color_range    = AVCOL_RANGE_MPEG;
+        REQUIRE(avcodec_open2(enc, codec, nullptr) >= 0);
+        if (from == 0) REQUIRE(avcodec_parameters_from_context(par, enc) >= 0);
+        const auto drain = [&] {
+            for (AVPacket* pkt = av_packet_alloc(); avcodec_receive_packet(enc, pkt) == 0;
+                 pkt = av_packet_alloc())
+                packets.push_back(pkt);
+        };
+        AVFrame* f = av_frame_alloc();
+        f->format = format;
+        f->width  = ew;
+        f->height = eh;
+        REQUIRE(av_frame_get_buffer(f, 0) >= 0);
+        const int cw = AV_CEIL_RSHIFT(ew, desc->log2_chroma_w);
+        const int ch = AV_CEIL_RSHIFT(eh, desc->log2_chroma_h);
+        for (int k = from; k < to; ++k) {
+            REQUIRE(av_frame_make_writable(f) >= 0);
+            fill_ramp_at(f->data[0], f->linesize[0], ew, eh, 40 * k);
+            for (int p = 1; p < 3; ++p)
+                for (int row = 0; row < ch; ++row)
+                    std::fill_n(f->data[p] + row * f->linesize[p], cw, static_cast<uint8_t>(128));
+            f->pts = k;
+            REQUIRE(avcodec_send_frame(enc, f) >= 0);
+            drain();
+        }
+        REQUIRE(avcodec_send_frame(enc, nullptr) >= 0);
+        drain();
+        av_frame_free(&f);
+        avcodec_free_context(&enc);
+    }
+    REQUIRE(static_cast<int>(packets.size()) == frames);
+
+    const fs::path path = testtemp::path(name);
+    AVFormatContext* oc = nullptr;
+    REQUIRE(avformat_alloc_output_context2(&oc, nullptr, "mpegts", path.c_str()) >= 0);
+    AVStream* st = avformat_new_stream(oc, nullptr);
+    REQUIRE(avcodec_parameters_copy(st->codecpar, par) >= 0);
+    st->time_base = { 1, 90000 };
+    REQUIRE(avio_open(&oc->pb, path.c_str(), AVIO_FLAG_WRITE) >= 0);
+    REQUIRE(avformat_write_header(oc, nullptr) >= 0);
+    for (AVPacket*& pkt : packets) {
+        pkt->stream_index = 0;
+        av_packet_rescale_ts(pkt, { 1, kFps }, st->time_base);
+        REQUIRE(av_interleaved_write_frame(oc, pkt) >= 0);
+        av_packet_free(&pkt);
+    }
+    REQUIRE(av_write_trailer(oc) >= 0);
+    avio_closep(&oc->pb);
+    avformat_free_context(oc);
+    avcodec_parameters_free(&par);
+    return path.string();
+}
+
 // Waits for a background analysis; false if it is still running after a minute.
 bool wait_done(const VMAFAnalyzer& a)
 {
@@ -576,6 +660,45 @@ TEST_CASE("VMAFAnalyzer::analyze: an input without video, or whose decoder can't
         CHECK(d.error == "cannot open distorted: " + bad);
         CHECK(d.per_frame.empty());
     }
+}
+
+TEST_CASE("VMAFAnalyzer::analyze: a reference whose frames change size is an error", "[vmaf]")
+{
+    // The pairs are scored at the reference's size, and FFmpeg's libvmaf
+    // filter refuses inputs of different sizes (DECISIONS.md P-063): a
+    // yuv420p reference, copied as it is, and one in another pixel format,
+    // converted (D-022), alike.
+    const std::string dis =
+        make_ts_resize_clip("mirage_test_vmaf_resize_dis.ts", AV_PIX_FMT_YUV420P, 12, 12, 96, 54, 96, 54);
+    for (const AVPixelFormat format : { AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV422P }) {
+        const std::string name = std::format("mirage_test_vmaf_resize_ref_{}.ts", av_get_pix_fmt_name(format));
+        INFO(name);
+        const std::string ref = make_ts_resize_clip(name.c_str(), format, 12, 6, 192, 108, 128, 72);
+        const VMAFResult r = VMAFAnalyzer::analyze(ref, dis);
+        CHECK(r.done);
+        CHECK(r.error == "the reference's frames change size, from 192x108 to 128x72 at its frame 6: "
+                         "a reference is scored at one size, as FFmpeg's libvmaf filter takes inputs "
+                         "of one size only");
+        CHECK(r.per_frame.empty());
+
+        // The frames before the change score as they did.
+        const VMAFResult part = VMAFAnalyzer::analyze(ref, dis, { .max_frames = 6 });
+        REQUIRE(part.error.empty());
+        CHECK(part.per_frame.size() == 6);
+        CHECK(part.width == 192);
+        CHECK(part.height == 108);
+    }
+
+    // A distorted input whose frames change size is scaled frame by frame to
+    // the reference's size, as before.
+    const std::string ref =
+        make_ts_resize_clip("mirage_test_vmaf_resize_ref.ts", AV_PIX_FMT_YUV420P, 12, 12, 192, 108, 192, 108);
+    const std::string resized =
+        make_ts_resize_clip("mirage_test_vmaf_resize_dis2.ts", AV_PIX_FMT_YUV420P, 12, 6, 96, 54, 128, 72);
+    const VMAFResult d = VMAFAnalyzer::analyze(ref, resized);
+    REQUIRE(d.error.empty());
+    CHECK(d.per_frame.size() == 12);
+    CHECK(d.alignment.failed == 0);
 }
 
 TEST_CASE("VMAFAnalyzer::start: scores like analyze() and records no PTS", "[vmaf]")

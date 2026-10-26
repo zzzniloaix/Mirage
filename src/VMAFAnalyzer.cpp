@@ -528,14 +528,27 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
 
     // Converts both frames of a pair and gives them to libvmaf; frees them.
     // False when a frame could not be converted (convert_error says why).
-    auto score_pair = [&](AVFrame* ref_frame, AVFrame* dis_frame) {
+    // `ref_index` is the reference frame's position in its input.
+    auto score_pair = [&](AVFrame* ref_frame, AVFrame* dis_frame, int64_t ref_index) {
         // Both frames → YUV420P @ ref_w × ref_h, in the color matrix and
         // range FFmpeg's graph negotiates for the two (src/VMAFColor.h).
         const vmafcolor::Input ref_in = vmafcolor::input_of(*ref_frame);
         const vmafcolor::Input dis_in = vmafcolor::input_of(*dis_frame);
         AVFrame* ref_conv   = nullptr;   // the reference converted, when it isn't yuv420p
         AVFrame* dis_scaled = nullptr;
-        if (!vmafcolor::supported(ref_in.tags.space) || !vmafcolor::supported(dis_in.tags.space)) {
+        if (ref_frame->width != ref_w || ref_frame->height != ref_h) {
+            // The pairs are scored at the size the reference's decoder had
+            // when it was opened, and FFmpeg's libvmaf filter refuses inputs
+            // of different sizes, so a reference whose size changes isn't
+            // scored; recorded for the owner's confirmation in DECISIONS.md
+            // P-063.
+            convert_error = std::format(
+                "the reference's frames change size, from {}x{} to {}x{} at its frame {}: a "
+                "reference is scored at one size, as FFmpeg's libvmaf filter takes inputs of "
+                "one size only",
+                ref_w, ref_h, ref_frame->width, ref_frame->height, ref_index);
+        } else if (!vmafcolor::supported(ref_in.tags.space) ||
+                   !vmafcolor::supported(dis_in.tags.space)) {
             const bool ref_bad = !vmafcolor::supported(ref_in.tags.space);
             convert_error = std::format(
                 "the {} has the color matrix {}, which FFmpeg's scale filter does not "
@@ -561,7 +574,7 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
             if (!vmafcolor::verified(ref_in.format)) warn(unverified("reference", ref_in.format));
         } else {
             sws_scale(ref_sws,
-                      ref_frame->data, ref_frame->linesize, 0, ref_ctx.height(),
+                      ref_frame->data, ref_frame->linesize, 0, ref_h,
                       ref_scaled->data, ref_scaled->linesize);
             const vmafcolor::Tags to = vmafcolor::target(ref_in.tags, dis_in.tags);
             if (int r = convert_into(dis_sws, *dis_frame, ref_w, ref_h, to, dis_scaled); r < 0)
@@ -669,7 +682,7 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
             result.ref_index.push_back(step.ref_index);
             result.dis_index.push_back(step.dis_index);
         }
-        if (!score_pair(ref_frame, dis_frame)) break;
+        if (!score_pair(ref_frame, dis_frame, step.ref_index)) break;
 
         float pair_frac = std::min(static_cast<float>(frame_idx) /
                                    static_cast<float>(total_est), 0.99f);
