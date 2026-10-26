@@ -19,8 +19,8 @@ One behavior of the implementation departs from the wording of an owner's decisi
 
 **Options.**
 
-1. FFmpeg's negotiation, as today: plain FFmpeg and Mirage agree for these inputs.
-2. D-022's wording: convert only the reference, to the distorted frames' tags as they are, with a rule for distorted frames that aren't YCbCr. Plain FFmpeg would then disagree for these inputs, and §5 would fail there.
+1. FFmpeg's negotiation, as today: libavfilter's tags and, for the formats the test checks, the bytes libavfilter's graph gives libvmaf.
+2. D-022's wording: convert only the reference, to the distorted frames' tags as they are, with a rule for distorted frames that aren't YCbCr. Mirage would then convert these inputs otherwise than plain FFmpeg, and §5 would be expected to fail for them (not measured).
 3. Refuse such pairs, as pairs with a matrix libswscale can't convert are refused (D-021).
 
 **Agent's recommendation.** Option 1: D-022's rationale is parity with a plain `ffmpeg -lavfi libvmaf` run, and its wording describes the committed cases, in which the two give the same. Whichever the owner chooses, a committed delta run of cases (a) and (b) would then show what both tools do with such inputs (MEASUREMENT PENDING).
