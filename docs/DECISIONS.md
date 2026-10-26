@@ -1775,3 +1775,39 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: agent (Claude)
 - **Date**: 2026-10-26
 - **Status**: confirmed by the owner (2026-10-26, D-041)
+
+### P-067 How D-043 to D-048 are implemented: the pool, the memory limit and the end of a run
+
+- **Choice**
+  - `vmafladder::score()` runs `min(jobs, pairs)` workers; each takes the next pair in the plan's order and scores it with `VMAFAnalyzer::analyze()` and the run's options, which now takes a stop token. The default size is `vmafproc::default_jobs()`: `hw.physicalcpu` minus one on macOS, the distinct (package, core) pairs of `/sys/devices/system/cpu/cpu*/topology` minus one on Linux, at least 1 (`src/VMAFProcess.h`). `--jobs` takes 1 to 256.
+  - The memory limit: before a worker starts a pair while others run, it reads the process's resident memory (`task_info`'s resident size on macOS, `/proc/self/statm` on Linux) and starts it only if that plus the memory gained since the run began, divided by the pairs running, stays under the limit; otherwise it waits, reading again every 20 ms. With no pair running a pair always starts. A pair running alone over the limit gets one warning, checked every 50 ms and when it ends. The report's peak resident memory is `getrusage`'s `ru_maxrss` at the end. `--memory-limit` takes a whole number of bytes, or of KiB, MiB, GiB or TiB with K, M, G or T.
+  - The end: a stop requested on the run's token, which SIGINT and SIGTERM request in `mirage_vmaf`, or the first pair whose analysis is incomplete or whose settings aren't those of the first pair to complete, stops the pairs running and starts no other. A pair cut short by the stop is "stopped", one never started "not started"; the run is "failed" when a pair failed, else "cancelled" when a pair isn't complete, else "complete". The report lists the complete pairs, each with its start and end in seconds from the run's start, then the others with their state, and the pool's fields; `mirage_vmaf` writes it in all three cases and exits with 1 unless the run is complete.
+  - The player's analysis is unchanged (D-043).
+- **Alternatives**: a fixed queue of pairs per worker; a memory estimate per pair from the inputs' frame sizes (D-045's alternative); a sampled peak instead of `ru_maxrss`; no upper bound on `--jobs`.
+- **Rationale**: each follows its decision with the least machinery: the plan's order keeps the report the same at every size; the admission rule measures the memory the limit is about, and needs no model of a pair's memory; `ru_maxrss` is the system's own peak, which `/usr/bin/time -l` reports too.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-26
+- **Status**: pending owner confirmation
+
+### P-068 How D-046 is implemented: the discontinuity sequences come from the timestamps
+
+- **Choice**: a discontinuity, as D-028's rule finds it in an input (a timestamp that goes back, or forward by more than 10 s), starts the input's next discontinuity sequence, whose times are measured from that frame; the k-th sequences of the two inputs are paired by D-028's rules, a sequence only one input has pairs with nothing, and each sequence after the first starts a new libvmaf context (`src/VMAFAlign.h`). The playlists' `EXT-X-DISCONTINUITY` tags aren't read: FFmpeg's hls demuxer doesn't say which segment a frame came from, so a tag can't place a sequence's start in the frames the analyzer gets, and M5 shows that where the timestamps go on across a tag, the frames pair without one (`eval/phase2-survey/m5/record.txt`).
+- **This departs from D-046's wording**, which takes the sequences "from the playlists' `EXT-X-DISCONTINUITY` tags where there are any, else from the timestamp jumps". In a ladder whose rungs all jump at the same tags, as M5's streams do, the two agree; they would differ where a tag's timestamps jump in one rung and go on in another, or where timestamps jump without a tag. Provisional until the owner decides.
+- **Alternatives**: reading each media playlist's tags and placing each sequence by the playlist's durations before it; counting the tags and warning when the timestamps' jumps don't match them.
+- **Result**: with the release `mirage_vmaf` of `f988091`, M5's streams pair every frame where both rungs' timestamps start again or jump 60 s ahead, 60 pairs and no failure (`eval/phase2-survey/m5-d046/record.txt`). The committed alignment case `a07_restart`, whose distorted input alone restarts, keeps its pairs and scores; its 10 failures are now 5 unmatched reference and 5 extra distorted frames, not 10 after a discontinuity (from the code; its rerun is the next `eval/run_all.sh` run's).
+- **Who**: agent (Claude)
+- **Date**: 2026-10-26
+- **Status**: pending owner confirmation
+
+### P-069 Phase 2's measurements so far: the machine, M5, and the local copy of the acceptance ladder
+
+- **Choice**
+  - M1, the machine's cores and memory, as `sysctl` gives them (`eval/phase2-survey/machine.txt`).
+  - M5, `eval/phase2-survey/m5_discontinuities.py`: two rungs, 1920x1080 and 640x360, two periods of 30 frames from FFmpeg's `testsrc2` and `testsrc`, MPEG-2 in MPEG-TS with every frame a key frame; an `EXT-X-DISCONTINUITY` whose timestamps start again, start 60 s later, or go on, and rungs whose segments differ; each frame's timestamp through FFmpeg's hls demuxer (ffprobe), and `mirage_vmaf`'s alignment of each pair, before D-046 (`m5/record.txt`, the release program of `e5a34ea`) and after it (`m5-d046/record.txt`, of `f988091`).
+  - D-049's local copy: `eval/streams/local_copy.py` keeps the master of Apple's advanced sample and its 8 video playlists cut after their first 2 segments, with an `EXT-X-ENDLIST`, enough for the first 300 frame pairs of each pair at 30 or 60 fps, the media outside the repository and their SHA-256s in `eval/streams/local-advanced-2026-10-26/`.
+  - The acceptance's check, `eval/ladder/pool_check.py`: the ladder at several pool sizes, each run's report, output and `/usr/bin/time -l`, and every pair compared at full precision.
+- **Alternatives**: M5's streams from a real packager; a copy of every segment; comparing only the pooled values.
+- **Rationale**: the smallest inputs that show the behavior each measurement is about, from FFmpeg alone, as the earlier synthetic cases are made.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-26
+- **Status**: pending owner confirmation
