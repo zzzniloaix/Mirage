@@ -391,6 +391,75 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-020)
 - **Date**: 2026-10-23
 
+### D-034 What implementing D-020 to D-033 left open: the agent's recommendations adopted
+
+- **Decision**: the owner adopts every recommendation labeled as the agent's in `docs/PHASE1_DECISIONS_PENDING.md` as of `b2d2824`, as D-020 adopted those of `63b40e2`. D-035 to D-041 record each decision.
+- **Owner's words**: "yea just go with the recommendations", in answer to the agent's summary of the open items and its recommendations.
+- **Not covered, still open**: D-011's source clips and encoding parameters, for which the agent's recommendation is that the owner choose them; D-008's question whether legal or the company's open-source process has to confirm the license, which has no recommendation, and with it the license texts next to glad's loader (P-053).
+- **Alternatives**: deciding each item separately.
+- **Who**: owner (Jiayu Lin)
+- **Date**: 2026-10-26
+
+### D-035 D-022 where FFmpeg changes the distorted frames' color: FFmpeg's negotiation
+
+- **Decision**: where D-022's wording and FFmpeg 8.1.1's negotiation differ, for a distorted input without a range tag, or not in plain YUV, against a reference that isn't yuv420p, Mirage follows FFmpeg's negotiation, as the code does since `22e2874` (option 1 of "D-022's wording and FFmpeg's negotiation"). A committed delta run of both kinds of input shows what the two tools do with them.
+- **Alternatives**: D-022's wording, with a rule for distorted frames that aren't YCbCr; refusing such pairs.
+- **Rationale**: D-022's rationale is parity with a plain `ffmpeg -lavfi libvmaf` run, and its wording describes the committed cases, in which the two agree.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-034)
+- **Date**: 2026-10-26
+
+### D-036 Network reads with a time limit in the analyzer
+
+- **Decision**: the analyzer that `mirage_vmaf` and the player share sets FFmpeg's `timeout` and `rw_timeout` to 5 s on network inputs, the values of `src/FfOpen.cpp`, and gives each input an interrupt callback on its stop token, so that a read that waits longer fails and a cancel interrupts a read; `src/VMAFLadder.cpp` reads a master playlist with the same limits (option 2 of "A network read without a time limit").
+- **Alternatives**: no limit, as before; the player's reconnect and segment retry options as well; the limit as an option of `mirage_vmaf` and its config file.
+- **Rationale**: a read that waits longer becomes a failure that the report and the §5 check show, instead of a process that waits until the §5 tool's 6 h limit (P-062, P-065), and the player's cancel interrupts a read. A limit changes no score of a run whose reads succeed.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-034)
+- **Date**: 2026-10-26
+
+### D-037 The minimum without the first frame, and a second minimum without the first pair of every libvmaf context
+
+- **Decision**: the report keeps D-027's minimum without the first frame, and adds, under a name of its own, the minimum without the first pair of every libvmaf context; for a pair scored in one context the two are the same (option 4 of "D-027: the minimum without the first frame").
+- **Alternatives**: D-027's value only; another name for it; the first pair of every context left out instead.
+- **Rationale**: in `eval/consistency/align-cases-d028/main/a01_dropped_distorted/` D-027's value is the score of the first pair of the second context, which has no motion to a frame before it; the second value carries D-027's reason, a minimum that says something about the encode, to every such pair.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-034)
+- **Date**: 2026-10-26
+
+### D-038 D-006 outside Homebrew: the libvmaf package version from the build
+
+- **Decision**: where the library's path names no version, a build gives the libvmaf package version as a CMake cache variable, which the Dockerfile sets to the release it builds, and `run_delta.py` takes the same as an option for FFmpeg's side (option 2 of "D-006 outside Homebrew").
+- **Alternatives**: `unknown`, with the run-time version, as before; pkg-config's version, which is the run-time version.
+- **Rationale**: whoever builds libvmaf knows the release, and D-006 asks for both versions.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-034)
+- **Date**: 2026-10-26
+
+### D-039 The plan for the intermittent Demuxer test is approved
+
+- **Decision**: experiments 1 to 3 of `docs/plans/demuxer-switch-test.md` run on the machine of the measurements, as the plan describes them; experiment 4, scripted runs of the player, only if experiments 1 or 2 point at the switch.
+- **Rationale**: the experiments change no code under `src/`; what they show decides whether the test or `Demuxer` would change, each by a later decision.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-034)
+- **Date**: 2026-10-26
+
+### D-040 Items kept as they are
+
+- **Decision**: these stay as the code and the documents have them, each the agent's recommendation in `docs/PHASE1_DECISIONS_PENDING.md`:
+  - the warning for frames in a pixel format outside `vmafcolor::verified_formats()` (option 1 of "The warning that remains of P-030");
+  - a reference whose frames change size ends the analysis with an error (option 1 of "A reference whose frames change size", P-063);
+  - what a config file accepts (D-030; P-040);
+  - the values D-028's pairing leaves open (P-043, P-044) and the delta tool's comparison by timestamp (P-047);
+  - §5 as FFmpeg's plain graph where the inputs' frames don't line up (option 1 of "What the alignment cases show where the two rules differ"), with the timestamp jumps of case (4) decided again with D-011's ladders;
+  - the values D-029's ladder scoring leaves open (P-050);
+  - the headless configuration and the Docker image as they are (P-054, P-055), Debian's packages to be pinned from `snapshot.debian.org` once a container runtime shows that the image builds;
+  - the player's own JSON export until §7's schema (difference 9);
+  - the commit messages that state a wrong count or rest on no record, left as they are and disclosed in `docs/AI_CONTRIBUTIONS.md`.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-034)
+- **Date**: 2026-10-26
+
+### D-041 The process choices P-033 to P-065 are confirmed
+
+- **Decision**: the agent's measurement and process choices P-033 to P-065 are confirmed as their entries state them.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-034)
+- **Date**: 2026-10-26
+
 ---
 
 ## Measurement / process choices (proposed by the agent, confirmed by the owner)
@@ -1003,7 +1072,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Limits**: the rule is FFmpeg 8.1.1's; synthetic frames in the test, and the committed runs' clips (P-034).
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation; the behavior for the two kinds of distorted input under "Where FFmpeg's negotiation and D-022's wording part" departs from D-022's wording and is provisional until the owner decides it
+- **Status**: confirmed by the owner (2026-10-26, D-041); the behavior for the two kinds of distorted input under "Where FFmpeg's negotiation and D-022's wording part", which departs from D-022's wording, is decided by D-035
 
 ### P-034 The reference format cases after D-022, and how eval/run_all.sh reruns all three runs of them
 
@@ -1020,7 +1089,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Result** (`eval/consistency/format-cases-d022/checks.txt`): the clips are those of `format-cases-before` (check 2); every case of `main/` passes, every frame agreeing at the 6 decimals of FFmpeg's log (check 4); `j01` has its scores from before D-016 at full precision on all 10 frames (check 5); every report's `ref_conversion` has the tags of FFmpeg's `auto_scale_0` and its `dis_conversion` those of `Parsed_scale_1` (checks 3 and 6), and the delta reports have no warning (check 8); FFmpeg's side has every libvmaf metric of every frame of both earlier runs (check 7); both programs refuse YCgCo on both inputs (check 9).
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-035 The FFmpeg libraries' versions in mirage_vmaf's report (D-021)
 
@@ -1035,7 +1104,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - Both sides link the same Homebrew libraries on the machine of the measurements, and a difference elsewhere is what the warning is for.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-036 D-032's fixes in the tests and the analyzer
 
@@ -1052,7 +1121,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - A destructor covers early returns added later as well.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-037 The rerun of the committed measurements after D-021, D-022 and D-032, and what of it is committed
 
@@ -1067,7 +1136,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Result** (`eval/run_all/2026-10-23-d022/rerun_check.md`, `run_all.md`): every step ran, and everything compared is as committed. The program built from `5135d58` has the SHA-256 of `eval/consistency/format-cases-d022/build.txt`, the one built from `d993686` that of `format-cases-after/build.txt`, and the one built from `83c8ed6` that of the runs before D-016. 521.0 s of wall time, the three builds included.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-038 How D-024 is implemented, and how the runs made with bilinear stay reproducible
 
@@ -1087,7 +1156,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - The command blocks are records of how the runs were made, and each run's `run.cmd.txt` has its full command.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-039 How D-027 is implemented: the pooled values from the per-frame scores
 
@@ -1111,7 +1180,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - The name says what the value is; with one frame no frame is left.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-040 How D-030 is implemented: what a config file accepts, and how the command line replaces it
 
@@ -1133,7 +1202,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - Hashing the bytes that were parsed makes the recorded SHA-256 that of the settings the run used.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-041 The run with the defaults of D-024 and D-027, and the cross-check of its pooled values
 
@@ -1151,7 +1220,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Result** (`eval/consistency/defaults-300/checks.txt`): every pair passes, every frame agreeing at the 6 decimals of FFmpeg's log, with no warning (check 8). Both sides used bicubic: `mirage_vmaf` was given `--scaler bicubic`, FFmpeg's scale filter `flags=bicubic` and states `flags:0x00000004` (check 2). Mirage's per-frame scores and FFmpeg's every libvmaf metric are those of `scalers-300/bicubic` on all 300 frames of every pair (check 3). The direct runs without `--scaler`, and the run with a config file, report bicubic and score all 300 frames as the run did; the config file's SHA-256 in the report is the one `shasum` computes (check 4). The reports' pooled mean and min equal those of `scalers-300/bicubic` at full precision (check 5); their mean, min and harmonic mean those of FFmpeg's log at 6 decimals (check 6); and all nine pooled values those `pooling.py` computes, at full precision (check 7; `eval/pooling/defaults-300/pooling.md`).
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-042 The rerun of the committed measurements after D-024, D-027 and D-030, and what of it is committed
 
@@ -1166,7 +1235,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Result** (`eval/run_all/2026-10-23-d027/rerun_check.md`, `run_all.md`): every step ran, and everything compared is as committed, `defaults-300` and `pooling-defaults-300` included. The program built from `0496b21` has the SHA-256 of `eval/consistency/defaults-300/build.txt`, the one built from `d993686` that of `format-cases-after/build.txt`, and the one built from `83c8ed6` that of the runs before D-016. 529.5 s of wall time, the three builds included.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-043 How D-028's pairing by timestamp is implemented, and the values it leaves open
 
@@ -1199,7 +1268,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Limits**: an input of variable frame rate is paired with its nominal rate's tolerance and grid; a picture repeated under a new timestamp is scored, as the plan says.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-044 The analysis with the pairing: queues, libvmaf contexts, reading to the ends, the warning and the report
 
@@ -1224,7 +1293,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - D-028 asks for the warning in the report, on stderr and in the player's VMAF panel, with exit status 0; P-033 kept the other warnings out of the player.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-045 The analyzer tests of D-028 on generated clips, the §1.4 acceptance among them
 
@@ -1251,7 +1320,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Limits**: synthetic clips of 12 frames at 25 fps, one container per case. The delta runs on synthetic clips, scored by both tools, belong with the delta tool's comparison by timestamp and are not made here.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-046 The rerun of the committed measurements after D-028's pairing, and how eval/run_all.sh treats the runs it changes
 
@@ -1269,7 +1338,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Result** (`eval/run_all/2026-10-23-d028/rerun_check.md`, `run_all.md`): every step ran, and everything compared is as committed: every verdict, Mirage's per-frame scores at full precision and every libvmaf metric of FFmpeg's logs, in the 300-frame runs and in the synthetic color tag and reference format cases. The program built from `713431b` has the SHA-256 `7fb455e9e1349c85e25afe54d5fd47d714c463ecebea1b03b84ca1b594d27741`, which no committed run's `build.txt` names; it reproduces the scores of runs made by four other builds, `420b8776…`, `2220ce3a…`, `3633c43e…` and `85535c5c…`. The one built from `d993686` has the SHA-256 of `format-cases-after/build.txt`, and the one built from `83c8ed6` that of the runs before D-016. 520.5 s of wall time, the three builds included.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-047 How the §5 delta tool compares the two sides by timestamp (D-028)
 
@@ -1294,7 +1363,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Limits**: framesync's rule as FFmpeg 8.1.1 has it under its default options; a filter graph that `ffmpeg` configures more than once fails the reconstruction.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-048 The alignment cases, scored before and after D-028, and the §1.4 acceptance in them
 
@@ -1316,7 +1385,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Limits**: synthetic clips of 10 frames, one container per case and one case of each kind; FFmpeg 8.1.1 only. The scores only compare the two tools.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-049 How eval/run_all.sh reruns the committed runs after the comparison by timestamp, and the rerun
 
@@ -1334,7 +1403,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Result** (`eval/run_all/2026-10-23-align/rerun_check.md`, `run_all.md`): all 20 steps ran, and everything compared is as committed: every verdict, Mirage's per-frame scores at full precision and every libvmaf metric of FFmpeg's logs, in the 300-frame runs, the synthetic color tag, reference format and alignment cases, the clips' records, the FFmpeg records and the pooling steps. The program built from `4eeb539` has the SHA-256 of `eval/consistency/align-cases-d028/build.txt`, `7fb455e9…`; the one built from `e8b867f` that of `align-cases-before/build.txt`, `85535c5c…`; the one built from `d993686` that of `format-cases-after/build.txt`; and the one built from `83c8ed6` that of the runs before D-016. 620.4 s of wall time, the four builds included.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-050 How D-029's ladder scoring is implemented in mirage_vmaf, and the values it leaves open
 
@@ -1367,7 +1436,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Limits**: HLS master playlists only, no DASH; `EXT-X-MEDIA` video renditions and I-frame playlists aren't scored; one pair at a time, the reference decoded again for each.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-051 The ladder check: ladder mode on the bipbop master against the pairs scored one by one, first 300 frames
 
@@ -1391,7 +1460,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - Every per-frame score of the four ladder pairs is that of `defaults-300/` at full precision and, written with 6 decimals, FFmpeg's there (check 7).
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-052 The rerun of the committed measurements after D-029's ladder scoring, and what of it is committed
 
@@ -1406,7 +1475,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Result** (`eval/run_all/2026-10-23-ladder/rerun_check.md`, `run_all.md`): all 21 steps ran, and everything compared is as committed, `ladder-300` included: its verdict, the ladder report's master and plan, and every per-frame score of the ladder's pairs and of the pairs scored one by one. The program built from `d340b32` has the SHA-256 of `eval/consistency/ladder-300/build.txt`, `eab1651cc09237fce5451fd1de0c236c2d589b2d3b2d2848065b675e8e35a4c7`; it reproduces the scores of the other runs it reran that were made after D-016, made by the builds `420b8776…`, `2220ce3a…`, `3633c43e…`, `85535c5c…` and `7fb455e9…`. The one built from `e8b867f` has the SHA-256 of `align-cases-before/build.txt`, `85535c5c…`; the one built from `d993686` that of `format-cases-after/build.txt`; and the one built from `83c8ed6` that of the runs before D-016. 670.0 s of wall time, the four builds included.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-053 How D-031's #11a is implemented: glad's loader committed, its regeneration, its license terms
 
@@ -1427,7 +1496,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - The terms are stated as the files and glad state them; what they require next to a GPL-3.0-or-later program is the legal question D-008 leaves open.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-24
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-054 How D-031's #11b is implemented: MIRAGE_HEADLESS, the presets, the Linux instructions
 
@@ -1449,7 +1518,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Limits**: nothing has been built on Linux.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-24
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-055 How D-031's #11c is implemented: the Dockerfile, not built
 
@@ -1478,7 +1547,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Limits**: not built or run, so whether it builds, and whether its scores equal those measured on Apple Silicon, are MEASUREMENT PENDING; Debian's packages are not pinned; in the image the libvmaf package version of D-006 is `unknown` (`docker/README.md`).
 - **Who**: agent (Claude)
 - **Date**: 2026-10-24
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-056 The README after D-031, and vcpkg.json removed
 
@@ -1491,7 +1560,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Rationale**: D-031: one place for the build steps, which the build checks verify, and a README whose facts match the repository.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-24
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-057 A test fixed: a stop token that outlives the context it guards
 
@@ -1500,7 +1569,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Rationale**: the test broke the contract of the function it tests, and the tests of the headless configuration are part of D-031's Linux build; the code under test does what its header says.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-24
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-058 The build check at 5ae44a4, after D-031's build changes
 
@@ -1518,7 +1587,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Limits**: one machine with its Homebrew packages, as P-022's; the player's window wasn't opened; neither the Linux preset nor the Docker image was built.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-24
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-059 The full-length §5 report with the defaults of D-022, D-024, D-025, D-027 and D-028
 
@@ -1538,7 +1607,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Result** (`eval/consistency/defaults-full/checks.txt`): every pair passes (check 13). In each pair both sides scored the same 53946 pairs at the same timestamps and every score agrees at the 6 decimals of FFmpeg's log, a largest |delta| of 0.000000 (checks 4 and 13). Both sides used bicubic and vmaf_v0.6.1, the delta tool's defaults: `run.cmd.txt` has them, and each pair's commands give them to both sides (check 3); that the run named neither, which check 3's heading states, no output of the check shows (P-064). `mirage_vmaf` paired every frame, with no failure and one libvmaf context per pair (checks 5 and 6), and its conversions are FFmpeg's, gear2 and gear1 from smpte170m to bt709 (check 7). Frames 0 to 299 have the scores of `defaults-300` on both sides (check 8). The nine pooled values of each report are those `pooling.py` computes at full precision, and its mean, minimum and harmonic mean FFmpeg's at 6 decimals (checks 9 and 10; `eval/pooling/defaults-full/pooling.md`). Against `acceptance-full` no frame scores lower, and the scores rise by 5.863072 to 10.983899 on average per pair (check 11). With the three `showinfo` filters of P-047, FFmpeg's verbose log of a pair holds 91659880 to 92092360 bytes, 1877848 to 1903556 bytes compressed (check 12). Each side of each pair took 1250.509 to 1282.152 s (check 13).
 - **Who**: agent (Claude)
 - **Date**: 2026-10-24
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-060 The records at the end of the second round of Phase 1: the unit tests, and a rerun of every step
 
@@ -1555,7 +1624,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Result** of the rerun (P-062; `eval/run_all/2026-10-24-full/`): every step but `defaults-full` and `pooling-defaults-full` found everything as committed, `acceptance-full` and `pooling-full` among them. The machine's sleep cut those two short; rerun on their own, they found everything as committed (`eval/run_all/2026-10-24-defaults-full/`).
 - **Who**: agent (Claude)
 - **Date**: 2026-10-24
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-061 Information for D-011: candidate source clips, examined without downloading them
 
@@ -1573,7 +1642,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Limits**: what the pages and files said on 2026-10-24. For El Fuente, Netflix's page and its bucket's license file name the Creative Commons Attribution 4.0 license, where the copyright files of 2015 at Xiph.org name Attribution-NonCommercial-NoDerivatives 4.0; which terms hold is not settled here. The El Fuente files of Netflix's bucket and of Xiph.org have the same sizes but weren't compared byte for byte. The SVT sequences' color range is not tagged and their transfer is unknown to ffprobe; the YUV4MPEG2 files carry no color tags at all.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-24
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-062 The rerun of every step at 61241e2, which the machine's sleep cut short, and the rerun of its two unfinished steps
 
@@ -1597,7 +1666,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Result** of the rerun of the two steps (`eval/run_all/2026-10-24-defaults-full/rerun_check.md`, `run_all.md`): both found everything as committed: every pair's verdict, all 53946 per-frame scores of every pair on Mirage's side at full precision, every libvmaf metric of FFmpeg's logs and every pooling series. The program it built from `5908e3b` has the SHA-256 of `eval/consistency/defaults-full/build.txt`, `9f04085f73440a9c9969f9bf6a86767eaf9ade89ae8ca393f8b6c99bb78b9b06`. 3146.5 s of wall time, the build included, of which 3055.2 s for `defaults-full`; each side of each pair took 1453.8 to 1535.4 s (`logs/defaults-full_plain.log`). The run's start and end, 2026-10-25T00:08:21Z and 01:00:48Z, are as far apart as its wall time, so the machine was awake throughout.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-24
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-063 A reference whose frames change size is not scored
 
@@ -1616,7 +1685,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Limits**: no committed run has an input whose size changes; what FFmpeg's §5 graph does with such a reference, or with such a distorted input, is not measured in a committed run (MEASUREMENT PENDING).
 - **Who**: agent (Claude)
 - **Date**: 2026-10-26
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-064 run.cmd.txt names the options its command line gave
 
@@ -1629,7 +1698,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - A run made to show the tool's defaults, such as `defaults-300/` (P-041) and `defaults-full/` (P-059), has `--scaler bicubic --model vmaf_v0.6.1` in its `run.cmd.txt` whether or not they were typed, so no committed output says that the defaults were used without naming them. The names of the options given say it without repeating the values the command has, and without paths.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-26
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
 
 ### P-065 The records after the review fixes: the unit tests at a4692a2, and a rerun of every step, which the machine's sleep cut short
 
@@ -1650,4 +1719,4 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Result** of the rerun of the two steps (`eval/run_all/2026-10-26-defaults-full/rerun_check.md`, `run_all.md`): both found everything as committed: every pair's verdict, all 53946 per-frame scores of each of the four pairs on Mirage's side at full precision, every libvmaf metric of FFmpeg's logs and every pooling series. The program it built from `1f7d42d` has the SHA-256 of the one built from `a4692a2`, `217cc294…`. It took 2719.8 s of wall time, the build included, of which 2666.9 s for `defaults-full`.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-26
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-26, D-041)
