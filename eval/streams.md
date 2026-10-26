@@ -61,7 +61,7 @@ Master playlist: <https://devstreaming-cdn.apple.com/videos/streaming/examples/i
 - The video playlists: `v2` 480x270, `v3` 640x360 and `v4` 768x432 at `FRAME-RATE=30.000`; `v5` 960x540, `v6` 1280x720, and `v7`, `v8` and `v9`, three 1920x1080 playlists at different bandwidths, at `FRAME-RATE=60.000`.
 - Each video playlist has 100 segments of 6 s, each its own file, 600 s in all.
 - ffprobe: h264 High, yuv420p, **no color tags** (range, matrix, primaries and transfer all unset), frame rate 30/1 for `v2` to `v4` and 60/1 for `v5` to `v9`, time base 1/90000, and a start of 10.033333 s at 30 fps and 10.016667 s at 60 fps.
-- So its pairs would exercise D-016's handling of untagged inputs, which the owner has yet to confirm (P-014), and, between a 60 fps reference and the 30 fps playlists, a frame-rate mismatch and inputs that start at different times, which Mirage's pairing in decode order did not detect; since D-028 it pairs by timestamp, on the coarser grid and with times from each input's start (`src/VMAFAlign.h`). No committed run has scored these playlists.
+- So its pairs would exercise D-016's handling of untagged inputs, which D-021 decided for a yuv420p reference, as these playlists are: an untagged input is taken as BT.601 with limited range (D-033 confirmed P-014); and, between a 60 fps reference and the 30 fps playlists, a frame-rate mismatch and inputs that start at different times, which Mirage's pairing in decode order did not detect; since D-028 it pairs by timestamp, on the coarser grid and with times from each input's start (`src/VMAFAlign.h`). No committed run has scored these playlists.
 
 ## Named by the work order, not examined
 
