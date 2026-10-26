@@ -720,8 +720,12 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
         // Pooled from the per-frame scores, with libvmaf's formulas for the
         // mean, the harmonic mean and the minimum, so that a pair scored in
         // one libvmaf context gets vmaf_score_pooled()'s values and one
-        // scored in several still pools as one run (src/VMAFPool.h).
-        result.pooled    = vmafpool::pool(result.per_frame);
+        // scored in several still pools as one run (src/VMAFPool.h); the
+        // contexts' first pairs give the second minimum of D-037.
+        std::vector<std::size_t> context_starts;
+        for (const VMAFContextRun& c : result.alignment.contexts)
+            context_starts.push_back(c.first_index);
+        result.pooled    = vmafpool::pool(result.per_frame, context_starts);
         result.vmaf_mean = result.pooled.mean;
         result.vmaf_min  = result.pooled.min;
         result.vmaf_p5   = result.pooled.p5;

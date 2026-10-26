@@ -171,11 +171,11 @@ void pair_tail(std::string& out, const VMAFResult& r, const std::string& ind)
     out += std::format("{}\"frames_scored\": {},\n", ind, r.per_frame.size());
     const VMAFPooled& p = r.pooled;
     out += std::format("{}\"pooled\": {{\"mean\": {}, \"harmonic_mean\": {}, \"min\": {}, "
-                       "\"min_without_first_frame\": {}, \"p1\": {}, \"p5\": {}, \"p10\": {}, "
-                       "\"p25\": {}, \"p50\": {}}},\n",
+                       "\"min_without_first_frame\": {}, \"min_without_context_first_frames\": {}, "
+                       "\"p1\": {}, \"p5\": {}, \"p10\": {}, \"p25\": {}, \"p50\": {}}},\n",
                        ind, number(p.mean), number(p.harmonic_mean), number(p.min),
-                       number(p.min_without_first_frame), number(p.p1), number(p.p5),
-                       number(p.p10), number(p.p25), number(p.p50));
+                       number(p.min_without_first_frame), number(p.min_without_context_first_frames),
+                       number(p.p1), number(p.p5), number(p.p10), number(p.p25), number(p.p50));
     out += std::format("{}\"alignment\": {},\n", ind, alignment_json(r.alignment, ind));
     out += std::format("{}\"ref\": {},\n", ind, input_json(r.ref_url, r.ref_info));
     out += std::format("{}\"dis\": {},\n", ind, input_json(r.dis_url, r.dis_info));

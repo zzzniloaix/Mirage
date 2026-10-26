@@ -242,6 +242,7 @@ VMAFResult sample_result()
     r.pooled    = { .mean = 12.345678901234567, .harmonic_mean = 9.87654321,
                     .min = 0.1 + 0.2,   // 0.30000000000000004: needs all 17 digits
                     .min_without_first_frame = 1.0 / 3.0,
+                    .min_without_context_first_frames = 2.0 / 3.0,
                     .p1 = 0.5, .p5 = 1.25, .p10 = 2.0, .p25 = 50.0, .p50 = 99.875 };
     r.per_frame = { 0.1 + 0.2, 100.0, 1.0 / 3.0 };
     r.done      = true;
@@ -373,11 +374,12 @@ TEST_CASE("vmafreport::to_json: run settings and pooled values", "[vmafreport]")
     CHECK(d["frames_scored"].num == 3);
     const Value& pooled = d["pooled"];
     REQUIRE(pooled.kind == Value::Kind::Object);
-    CHECK(pooled.obj.size() == 9);
+    CHECK(pooled.obj.size() == 10);
     CHECK(pooled["mean"].num == 12.345678901234567);   // full precision
     CHECK(pooled["harmonic_mean"].num == 9.87654321);
     CHECK(pooled["min"].num == 0.1 + 0.2);
     CHECK(pooled["min_without_first_frame"].num == 1.0 / 3.0);
+    CHECK(pooled["min_without_context_first_frames"].num == 2.0 / 3.0);
     CHECK(pooled["p1"].num == 0.5);
     CHECK(pooled["p5"].num == 1.25);
     CHECK(pooled["p10"].num == 2.0);
@@ -635,8 +637,8 @@ TEST_CASE("vmafreport::to_json: no frame limit, no frames, NaN pooled values", "
     CHECK((*doc)["frames_scored"].num == 0);
     CHECK((*doc)["frames"].kind == Value::Kind::Array);
     CHECK((*doc)["frames"].arr.empty());
-    for (const char* key : { "mean", "harmonic_mean", "min", "min_without_first_frame", "p1", "p5",
-                             "p10", "p25", "p50" }) {
+    for (const char* key : { "mean", "harmonic_mean", "min", "min_without_first_frame",
+                             "min_without_context_first_frames", "p1", "p5", "p10", "p25", "p50" }) {
         INFO(key);
         CHECK((*doc)["pooled"].has(key));
         CHECK((*doc)["pooled"][key].kind == Value::Kind::Null);

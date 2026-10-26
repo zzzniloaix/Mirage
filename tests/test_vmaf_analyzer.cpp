@@ -575,6 +575,8 @@ TEST_CASE("VMAFAnalyzer::analyze: the pooled values of D-027, from the per-frame
     CHECK(r.pooled.harmonic_mean == want.harmonic_mean);
     CHECK(r.pooled.min == want.min);
     CHECK(r.pooled.min_without_first_frame == want.min_without_first_frame);
+    // One libvmaf context: the second minimum of D-037 is D-027's.
+    CHECK(r.pooled.min_without_context_first_frames == want.min_without_first_frame);
     CHECK(r.pooled.p1 == want.p1);
     CHECK(r.pooled.p5 == want.p5);
     CHECK(r.pooled.p10 == want.p10);
@@ -1117,6 +1119,16 @@ TEST_CASE("VMAFAnalyzer::analyze: a stream with a frame dropped on purpose (sect
         CHECK(r.per_frame[k < 5 ? k : k - 1] == full.per_frame[k]);
     }
     CHECK(r.per_frame[5] != full.per_frame[6]);
+
+    // D-037: the second minimum leaves out the first pair of each context,
+    // pairs 0 and 5; D-027's leaves out pair 0 only.
+    double rest = r.per_frame[1], others = r.per_frame[1];
+    for (std::size_t i = 1; i < r.per_frame.size(); ++i) {
+        rest = std::min(rest, r.per_frame[i]);
+        if (i != 5) others = std::min(others, r.per_frame[i]);
+    }
+    CHECK(r.pooled.min_without_first_frame == rest);
+    CHECK(r.pooled.min_without_context_first_frames == others);
 }
 
 TEST_CASE("VMAFAnalyzer::analyze: a duplicated timestamp is a failure, and the pairs keep their scores", "[vmaf]")

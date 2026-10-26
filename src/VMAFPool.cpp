@@ -1,6 +1,7 @@
 #include "VMAFPool.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 
 // CMakeLists.txt compiles this file with -ffp-contract=off: a fused
@@ -19,7 +20,7 @@ double percentile(const std::vector<double>& sorted, unsigned p)
     return sorted[k] + step;
 }
 
-VMAFPooled pool(const std::vector<double>& scores)
+VMAFPooled pool(const std::vector<double>& scores, const std::vector<std::size_t>& context_starts)
 {
     VMAFPooled out;
     if (scores.empty()) return out;
@@ -36,6 +37,19 @@ VMAFPooled pool(const std::vector<double>& scores)
     out.min           = *std::min_element(scores.begin(), scores.end());
     if (scores.size() > 1)
         out.min_without_first_frame = *std::min_element(scores.begin() + 1, scores.end());
+
+    // The pairs that start a libvmaf context have no motion to a frame before
+    // them (D-037); pair 0 starts the first.
+    std::vector<bool> starts(scores.size(), false);
+    starts[0] = true;
+    for (std::size_t i : context_starts)
+        if (i < scores.size()) starts[i] = true;
+    for (std::size_t i = 0; i < scores.size(); ++i) {
+        if (starts[i]) continue;
+        if (std::isnan(out.min_without_context_first_frames) ||
+            scores[i] < out.min_without_context_first_frames)
+            out.min_without_context_first_frames = scores[i];
+    }
 
     std::vector<double> sorted = scores;
     std::sort(sorted.begin(), sorted.end());

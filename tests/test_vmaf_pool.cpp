@@ -98,6 +98,36 @@ TEST_CASE("vmafpool::pool: known values", "[vmafpool]")
     CHECK(c.min_without_first_frame == 7.0);
 }
 
+TEST_CASE("vmafpool::pool: the minimum without the first pair of each libvmaf context (D-037)",
+          "[vmafpool]")
+{
+    const std::vector<double> scores = { 10.0, 50.0, 40.0, 5.0, 60.0, 30.0 };
+
+    // One context: the same as the minimum without the first frame.
+    const VMAFPooled one = vmafpool::pool(scores);
+    CHECK(one.min_without_first_frame == 5.0);
+    CHECK(one.min_without_context_first_frames == 5.0);
+    CHECK(vmafpool::pool(scores, { 0 }).min_without_context_first_frames == 5.0);
+
+    // Contexts from pairs 0 and 3: pair 3, the lowest, starts one.
+    const VMAFPooled two = vmafpool::pool(scores, { 0, 3 });
+    CHECK(two.min_without_first_frame == 5.0);
+    CHECK(two.min_without_context_first_frames == 30.0);
+    CHECK(two.min == 5.0);
+    CHECK(two.mean == one.mean);            // the other values don't depend on the contexts
+    CHECK(two.p50 == one.p50);
+
+    // Pair 0 starts a context whether or not it is listed; a start past the
+    // last pair is ignored.
+    CHECK(vmafpool::pool(scores, { 3 }).min_without_context_first_frames == 30.0);
+    CHECK(vmafpool::pool(scores, { 0, 3, 99 }).min_without_context_first_frames == 30.0);
+
+    // Every pair starts a context, or there is one pair: undefined.
+    CHECK(std::isnan(vmafpool::pool({ 7.0, 8.0 }, { 0, 1 }).min_without_context_first_frames));
+    CHECK(std::isnan(vmafpool::pool({ 7.0 }).min_without_context_first_frames));
+    CHECK(std::isnan(vmafpool::pool({}).min_without_context_first_frames));
+}
+
 TEST_CASE("vmafpool::percentile: each step rounded on its own, as pooling.py", "[vmafpool]")
 {
     // 279 frames: p1 has h = 2.78, between ranks 2 and 3. pooling.py's

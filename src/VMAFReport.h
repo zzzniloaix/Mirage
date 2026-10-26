@@ -31,11 +31,15 @@
 //                          (VMAFResult::warnings); empty when nothing is known
 //   frame_limit (null = none), frames_scored,
 //   pooled { mean, harmonic_mean, min, min_without_first_frame,
+//            min_without_context_first_frames,
 //            p1, p5, p10, p25, p50 }   VMAFResult::pooled (src/VMAFPool.h): the
 //                                      mean, harmonic mean and min as libvmaf
 //                                      pools them, the min of frames 1 on
-//                                      (null for one frame), and percentiles
-//                                      by linear interpolation
+//                                      (null for one frame), the min without
+//                                      the first pair of each libvmaf context
+//                                      (D-037; null when every pair starts
+//                                      one), and percentiles by linear
+//                                      interpolation
 //   alignment {            how the frames were paired by timestamp (D-028,
 //                          src/VMAFAlign.h; VMAFResult::alignment)
 //     rule, timestamp_origin, grid, tolerance (seconds),
