@@ -340,6 +340,20 @@ A limit changes no score of a run whose reads succeed. Where a read fails, the p
 
 **Agent's recommendation.** Option 1: FFmpeg has no score to match for such a pair, and an error can't pass for a complete report.
 
+### Commit messages that state a wrong count or rest on no record (for information)
+
+The agent doesn't amend commits, so these messages stay as they were written; `docs/AI_CONTRIBUTIONS.md` lists them, and the documents and P-entries state the facts correctly:
+
+- `1d4a261` says the `LICENSE` text is the revision "the FSF publishes today", which was not checked against gnu.org; P-020 doesn't rely on it.
+- `ee29d56` says the release build had nothing to rebuild after the reconfigure; a committed record backs only that `mirage_vmaf` kept its SHA-256 (`eval/build_check/macos-2026-10-23-6a6661f.txt`).
+- `22e2874` says its negotiation test covers five tag sets on both inputs; the test has five on the reference and four on the distorted input (`tests/test_vmaf_color.cpp`; P-033).
+- `f718679` names the closed captions of bipbop's frames, seen in a scratch run only.
+- `a0d69fc` says the HLS variants test failed in release builds, the headless one included, and `8720a6e` that reconfiguring an existing build tree rebuilt nothing; both rest on scratch runs, not on a committed record (P-057).
+
+**Options.** Leave them as they are, disclosed; or correct them in a rewrite of the branch's history before the PR merges, as D-012 rewrote the history once, which gives every later commit a new SHA.
+
+**Agent's recommendation.** Leave them, disclosed: the committed records and the documents name commits by SHA (each `build.txt`, `eval/run_all/`, `eval/test_runs/`, the P-entries), and a rewrite would leave them naming commits that no longer exist, as D-012's rewrite left the old SHAs in the raw outputs with a table to map them.
+
 ### CLAUDE.md's build notes (for information)
 
 `CLAUDE.md` still says that glad2 and miniaudio are fetched at configure time, and has a note on installing jinja2 for glad. Since D-031 glad isn't fetched and the build runs no Python. The file is the owner's and wasn't edited.
