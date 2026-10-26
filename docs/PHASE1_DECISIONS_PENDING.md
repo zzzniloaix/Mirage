@@ -110,19 +110,21 @@ For a yuv420p reference without a range tag, distorted frames tagged limited in 
 
 ### D-027: the minimum without the first frame (P-039)
 
-**Question.** D-027 reports the minimum without the first frame under its own name. Which name, and what for a pair of one frame? And once D-028 starts a new libvmaf context after each gap, the first frame of each context has motion features of 0 too: should the value leave those out as well?
+**Question.** D-027 reports the minimum without the first frame under its own name. Which name, and what for a pair of one frame? Since D-028 a pair can be scored in several libvmaf contexts, and the first pair of each context has no motion to a frame before it, as the pair's first frame has none: should the value leave out the first pair of every context as well?
 
-**Today.** `min_without_first_frame`, the name `eval/pooling/pooling.py` gives it: the smallest score of frames 1 to n − 1 of the pair, `null` for a pair of one frame. Every run so far scored each pair in one libvmaf context, and over every frame of the four pairs frame 0 is the only frame whose `integer_motion2` is 0 (`eval/pooling/README.md`, on `acceptance-full/`); so it is with the defaults (`eval/pooling/defaults-full/pooling.md`).
+**Today.** `min_without_first_frame`, the name `eval/pooling/pooling.py` gives it: the smallest score of the pairs 1 to n − 1, `null` for a pair of one frame. It leaves out the pair's first frame only, however many libvmaf contexts the pair was scored in.
 
-Since D-028's implementation the report lists the libvmaf contexts of a pair (`alignment.vmaf_contexts`, P-044); the first pair of each has no motion to a frame before it. `min_without_first_frame` still leaves out only the pair's frame 0. In the committed runs the frames of each pair line up (for the full length, `eval/consistency/acceptance-full/checks.txt`, check 6), and the rerun after D-028 reproduced the per-frame scores of those it covers (`eval/run_all/2026-10-23-d028/`, P-046).
+- Where a pair is scored in one context, its first frame is the only one without motion to a frame before it. So it is over every frame of the four bipbop pairs with the defaults: one context per pair (`eval/consistency/defaults-full/checks.txt`, check 6), and in FFmpeg's logs frame 0 the only frame whose `integer_motion2` is 0 (`eval/pooling/defaults-full/pooling.md`); with bilinear as well (`eval/pooling/README.md`, on `acceptance-full/`).
+- Where D-028 starts a new context after a gap, the value can be the first pair of that context. Of the nine alignment cases scored since D-028, `a01_dropped_distorted`, the stream with a frame dropped on purpose, has two contexts and the others one (`eval/consistency/align-cases-d028/checks.txt`, check 5). In its report (`eval/consistency/align-cases-d028/main/a01_dropped_distorted/mirage.json`) `alignment.vmaf_contexts` is `[{first_index: 0, pairs: 5}, {first_index: 5, pairs: 4}]`, and `pooled.min_without_first_frame` is 72.71141969606174: the score of pair 5, the first pair of the second context, whose two frames score 74.78632698606295 in the control `a00_aligned`, where they start no context. The lowest score of the pairs that start no context is pair 1's, 74.77789802017037 (`align-cases-d028/checks.txt`, check 4, which lists every pair's score in both cases). The last pair of the first context differs from the control too, upward (pair 4: 74.9322319648982 against 74.91274986019386, the same check), since libvmaf's motion2 of a frame also uses the next frame (P-008).
 
 **Options.**
 
-1. As today.
-2. Another name, such as `min_excluding_first`.
-3. Once D-028 is implemented, also leave out the first frame of every libvmaf context, under the same name or another.
+1. As today: only the pair's first frame left out, as D-027 words it.
+2. Another name for today's value, such as `min_excluding_first`.
+3. The first pair of every libvmaf context left out instead, under the same name or another.
+4. Both: today's value as D-027 names it, and, under a name of its own, the minimum without the first pair of every context; for a pair scored in one context the two are the same.
 
-**Agent's recommendation.** Option 1 now, and option 3 decided with D-028's implementation, whose runs show where contexts restart.
+**Agent's recommendation.** Option 4: D-027's value stays as decided, and the second value carries D-027's reason for it, a minimum that says something about the encode, to every pair that has no motion to a frame before it, as `a01` shows the first pair of a later context to be. Which value, and under which names, is the owner's choice.
 
 ### D-030: what a config file accepts (P-040)
 
