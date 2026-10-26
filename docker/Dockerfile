@@ -109,7 +109,9 @@ RUN curl -fsSL -o /tmp/ffmpeg.tar.xz "https://ffmpeg.org/releases/ffmpeg-${FFMPE
 # linux-release preset); CMake fetches miniaudio, pugixml and Catch2.
 COPY --from=source /src/mirage /src/mirage
 WORKDIR /src/mirage
-RUN cmake --preset linux-release \
+# The libvmaf release built above names no version in its path, so the
+# build is given it (docs/DECISIONS.md D-038).
+RUN cmake --preset linux-release -DMIRAGE_LIBVMAF_PACKAGE="${LIBVMAF_VERSION}" \
  && cmake --build --preset linux-release
 
 RUN mkdir -p /usr/local/share/mirage-image \
@@ -121,6 +123,9 @@ RUN mkdir -p /usr/local/share/mirage-image \
 # programs of the runs made before D-016, D-022 and D-028 from their commits
 # itself. The default output directory is /out, which needs to be an empty
 # directory mounted from the host; further arguments replace it.
+# --ffmpeg-libvmaf-package is LIBVMAF_VERSION above, the release FFmpeg's
+# libvmaf filter links (D-038).
 ENTRYPOINT ["eval/run_all.sh", "--mirage-vmaf", "build/linux-release/mirage_vmaf", \
-            "--ffmpeg", "/usr/local/bin/ffmpeg", "--model-dir", "/usr/local/share/libvmaf/model"]
+            "--ffmpeg", "/usr/local/bin/ffmpeg", "--model-dir", "/usr/local/share/libvmaf/model", \
+            "--ffmpeg-libvmaf-package", "3.1.0"]
 CMD ["/out"]

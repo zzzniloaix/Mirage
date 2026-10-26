@@ -5,6 +5,7 @@ usage: eval/run_all.sh <out_dir> [--mirage-vmaf PROG] [--mirage-vmaf-before PROG
                        [--mirage-vmaf-before-d022 PROG] [--mirage-vmaf-before-d028 PROG]
                        [--skip-before] [--skip-full] [--only STEP[,STEP...]]
                        [--jobs J] [--ffmpeg PROG] [--ffprobe PROG]
+                       [--ffmpeg-libvmaf-package VERSION]
                        [--model-dir DIR] [--work-dir DIR] [--no-compare]
 
 <out_dir> is a new or empty directory outside the repository. Each step
@@ -439,6 +440,9 @@ def parse_args(argv):
     p.add_argument("--ffmpeg", default=DEFAULT_FFMPEG,
                    help=f"FFmpeg with the libvmaf filter (default: {DEFAULT_FFMPEG})")
     p.add_argument("--ffprobe", help="ffprobe (default: the one next to --ffmpeg)")
+    p.add_argument("--ffmpeg-libvmaf-package", metavar="VERSION",
+                   help="run_delta.sh's --ffmpeg-libvmaf-package, for an FFmpeg whose libvmaf's "
+                        "path names no package version (DECISIONS.md D-038; default: none given)")
     p.add_argument("--model-dir", default=DEFAULT_MODEL_DIR, metavar="DIR",
                    help="libvmaf's model directory, for the model file run of models-300 "
                         f"(default: {DEFAULT_MODEL_DIR})")
@@ -635,6 +639,8 @@ def run_step(r, s, binaries):
             argv = ["eval/consistency/run_delta.sh", prog,
                     os.path.join(out, run.name)] + expand(run.options, r) + [
                     "--jobs", str(r.args.jobs), "--ffmpeg", r.ffmpeg, "--ffprobe", r.ffprobe]
+            if r.args.ffmpeg_libvmaf_package:
+                argv += ["--ffmpeg-libvmaf-package", r.args.ffmpeg_libvmaf_package]
             c = r.run(s.name, argv, f"logs/{s.name}_{run.name}.log", env=env)
             ok = ok and c["exit_code"] in (0, 1)
         if s.effect and ok:

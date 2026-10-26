@@ -160,6 +160,24 @@ class RunDelta(unittest.TestCase):
         self.assertIn("**Overall: FAIL**: 1 of 2 pairs fail.", self.read("delta.md"))
         self.assertIn("other: FAIL", out)
 
+    def test_the_libvmaf_package_of_ffmpeg_given_where_its_path_names_none(self):
+        # The stand-in ffmpeg links no libvmaf whose path names a version, as
+        # a libvmaf built from source (D-038).
+        rc, _, err = self.run_tool(self.pairs(("same", REF, SAME)), "--frames", "2",
+                                   "--ffmpeg-libvmaf-package", "3.1.0")
+        self.assertEqual(rc, 0, err)
+        self.check_files()
+        o = self.report()
+        self.assertEqual(o["ffmpeg_libvmaf"]["libvmaf_package_version"], "3.1.0")
+        self.assertIn("--ffmpeg-libvmaf-package 3.1.0", self.read("run.cmd.txt"))
+        self.assertIn("# Given on the command line: --pairs --ffmpeg --scaler --frames "
+                      "--ffmpeg-libvmaf-package\n", self.read("run.cmd.txt"))
+
+    def test_the_libvmaf_package_of_ffmpeg_is_unknown_without_a_path_or_option(self):
+        rc, _, err = self.run_tool(self.pairs(("same", REF, SAME)), "--frames", "2")
+        self.assertEqual(rc, 0, err)
+        self.assertEqual(self.report()["ffmpeg_libvmaf"]["libvmaf_package_version"], "unknown")
+
     def test_relabel_variant(self):
         rc, _, err = self.run_tool(self.pairs(("same", REF, SAME), ("other", REF, OTHER)),
                                    "--frames", "3", "--diagnostic-relabel")

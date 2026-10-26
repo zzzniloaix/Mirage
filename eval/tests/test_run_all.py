@@ -534,6 +534,16 @@ class WholeRun(unittest.TestCase):
         self.assertIn("NOT everything is as committed", md)
         self.assertIn("1 differ, largest 0.250000", md)
 
+    def test_the_libvmaf_package_of_ffmpeg_goes_to_every_delta_run(self):
+        # D-038: an FFmpeg whose libvmaf's path names no package version.
+        out = os.path.join(self.dir, "out")
+        self.assertEqual(self.main(out, "--no-compare", "--ffmpeg-libvmaf-package", "3.1.0"), 0)
+        with open(os.path.join(out, "run_all.json")) as f:
+            run = json.load(f)
+        self.assertTrue(run["commands"])
+        for c in run["commands"]:
+            self.assertTrue(c["command"].endswith(" --ffmpeg-libvmaf-package 3.1.0"), c["command"])
+
     def test_a_ladder_step(self):
         # mirage_vmaf's stand-in with --ladder, as the program since D-029.
         env = {f"FAKE_MIRAGE_HAS_{x}": "1"

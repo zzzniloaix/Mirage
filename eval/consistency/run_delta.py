@@ -123,6 +123,11 @@ def make_parser():
     p.add_argument("--ffmpeg", default=DEFAULT_FFMPEG,
                    help=f"FFmpeg with the libvmaf filter (default: {DEFAULT_FFMPEG})")
     p.add_argument("--ffprobe", help="ffprobe (default: the one next to --ffmpeg)")
+    p.add_argument("--ffmpeg-libvmaf-package", metavar="VERSION",
+                   help="the package version of the libvmaf FFmpeg's libvmaf filter links, "
+                        "where its library's path names none, as a libvmaf built from source "
+                        "(DECISIONS.md D-038; default: the version in a Homebrew Cellar path, "
+                        "else unknown)")
     p.add_argument("--timeout", type=positive_int, default=DEFAULT_TIMEOUT, metavar="S",
                    help=f"seconds after which a scoring process is stopped "
                         f"(default: {DEFAULT_TIMEOUT})")
@@ -395,7 +400,11 @@ class Environment:
                   f"libvmaf: {r.redact(vmaf or 'not found')}\n"
                   f"real path: {r.redact(os.path.realpath(vmaf)) if vmaf else '-'}")
         self.fields["ffmpeg_libvmaf"] = r.redact(os.path.realpath(vmaf)) if vmaf else None
-        self.fields["ffmpeg_libvmaf_package_version"] = package_version(vmaf)
+        # D-038: the version given on the command line where the path names none.
+        version = package_version(vmaf)
+        if version == "unknown" and r.args.ffmpeg_libvmaf_package:
+            version = r.args.ffmpeg_libvmaf_package
+        self.fields["ffmpeg_libvmaf_package_version"] = version
 
         mine = linked_library(r.mirage, "libvmaf")
         _, help_text = capture([r.mirage, "--help"])
@@ -582,6 +591,8 @@ def main(argv=None):
                 "--ffprobe", SHOWN["ffprobe"], "--timeout", str(args.timeout)]
     if args.diagnostic_relabel:
         command.append("--diagnostic-relabel")
+    if args.ffmpeg_libvmaf_package:
+        command += ["--ffmpeg-libvmaf-package", args.ffmpeg_libvmaf_package]
     run.write_text("run.cmd.txt",
                    "# The command of this eval/consistency/run_delta.py run, from <repo>; the "
                    "programs behind the placeholders are in environment.txt, and <pairs>, if "

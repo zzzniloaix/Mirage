@@ -31,8 +31,12 @@ pkg_check_modules(VMAF REQUIRED IMPORTED_TARGET libvmaf)
 
 # libvmaf's package version, which can differ from the version the library
 # reports through vmaf_version() (DECISIONS.md D-006). Read from the real path
-# of the library pkg-config resolved, e.g. a Homebrew Cellar path; "unknown"
-# when that path carries no version. mirage_vmaf records it in its reports.
+# of the library pkg-config resolved, e.g. a Homebrew Cellar path. Where that
+# path carries no version, a build gives it with -DMIRAGE_LIBVMAF_PACKAGE=,
+# as docker/Dockerfile does for the release it builds (D-038); "unknown" when
+# neither does. mirage_vmaf records it in its reports.
+set(MIRAGE_LIBVMAF_PACKAGE "" CACHE STRING
+    "libvmaf's package version, where the library's path names none (DECISIONS.md D-038)")
 set(MIRAGE_LIBVMAF_PACKAGE_VERSION "unknown")
 foreach(_vmaf_lib IN LISTS VMAF_LINK_LIBRARIES)
     file(REAL_PATH "${_vmaf_lib}" _vmaf_real)
@@ -40,6 +44,14 @@ foreach(_vmaf_lib IN LISTS VMAF_LINK_LIBRARIES)
         set(MIRAGE_LIBVMAF_PACKAGE_VERSION "${CMAKE_MATCH_1}")
     endif()
 endforeach()
+if(MIRAGE_LIBVMAF_PACKAGE)
+    if(MIRAGE_LIBVMAF_PACKAGE_VERSION STREQUAL "unknown")
+        set(MIRAGE_LIBVMAF_PACKAGE_VERSION "${MIRAGE_LIBVMAF_PACKAGE}")
+    elseif(NOT MIRAGE_LIBVMAF_PACKAGE STREQUAL MIRAGE_LIBVMAF_PACKAGE_VERSION)
+        message(WARNING "MIRAGE_LIBVMAF_PACKAGE=${MIRAGE_LIBVMAF_PACKAGE} ignored: the library's "
+                        "path names version ${MIRAGE_LIBVMAF_PACKAGE_VERSION}")
+    endif()
+endif()
 message(STATUS "libvmaf package version: ${MIRAGE_LIBVMAF_PACKAGE_VERSION}")
 
 # Where the libvmaf package keeps its model files; mirage_tests loads one
