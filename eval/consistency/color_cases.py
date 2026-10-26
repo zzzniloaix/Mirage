@@ -1,5 +1,5 @@
 """Synthetic clips for the color tag cases and the reference format cases
-of docs/DECISIONS.md D-016.
+of docs/DECISIONS.md D-016, and the negotiation cases of D-035.
 
 D-016 has Mirage convert the distorted frames' color matrix and range the
 way FFmpeg's filter graph does, untagged streams included. This script
@@ -9,16 +9,19 @@ Scoring them with run_delta.sh shows, in FFmpeg's verbose log, what its
 section 5 filter graph negotiates for each case and converts, and how
 Mirage's scores compare.
 
-usage: python3 -I -B eval/consistency/color_cases.py <clips_dir> [--set tags|formats]
+usage: python3 -I -B eval/consistency/color_cases.py <clips_dir> [--set tags|formats|negotiation]
                                                      [--ffmpeg FFMPEG] [--ffprobe FFPROBE]
                                                      [--frames N]
 
-Two sets of cases. --set tags, the default, is the color tag cases: every
+Three sets of cases. --set tags, the default, is the color tag cases: every
 clip is 8-bit yuv420p, and only the tags differ. --set formats is the
 reference format cases: references in other pixel formats than yuv420p
 (10-bit, 4:2:2, 4:4:4, and the yuvj420p that FFmpeg's H.264 decoder gives
 for a full range stream), a few distorted inputs in those formats, and
-YCgCo on both inputs.
+YCgCo on both inputs. --set negotiation is the negotiation cases of D-035:
+references that aren't yuv420p against a distorted input without a range
+tag, gray or RGB, where FFmpeg's negotiation changes the distorted frames'
+color.
 
 Writes into <clips_dir>, a new or empty directory:
 
@@ -215,11 +218,34 @@ FORMAT_REFUSED = (
     Case("u03_ycgco_vs_ycgco", REF_YCGCO_TV, DIS_YCGCO_TV, "YCgCo on both inputs"),
 )
 
+# The negotiation cases (--set negotiation, DECISIONS.md D-035): a reference
+# that isn't yuv420p against a distorted input whose buffer source offers
+# more than one matrix or range, where FFmpeg 8.1.1's negotiation changes the
+# distorted frames' color: (a) a distorted input without a range tag, against
+# a full range reference, with a limited range reference as its control, and
+# (b) distorted inputs that aren't plain YUV. FFV1 gives an 8-bit planar RGB
+# stream back as bgr0.
+DIS_GRAY_709_TV = clip("dis", ["colorspace=bt709", "range=tv"], "gray", "ffv1")
+DIS_RGB_PC = clip("dis", ["colorspace=gbr", "range=pc"], "gbrp", "ffv1", (("pix_fmt", "bgr0"),))
+
+NEGOTIATION_CASES = (
+    Case("n01_yuvj_pc_vs_norange", REFJ_709_PC, DIS_709_NORANGE,
+         "(a) a full range H.264 reference, decoded as yuvj420p; a distorted input without a "
+         "range tag"),
+    Case("n02_10bit_tv_vs_norange", REF10_709_TV, DIS_709_NORANGE,
+         "(a)'s control: a limited range 10-bit reference, a distorted input without a range tag"),
+    Case("n03_10bit_bt709_vs_gray", REF10_709_TV, DIS_GRAY_709_TV,
+         "(b) a 10-bit reference, a gray distorted input"),
+    Case("n04_10bit_bt709_vs_rgb", REF10_709_TV, DIS_RGB_PC,
+         "(b) a 10-bit reference, an RGB distorted input"),
+)
+
 # Each set: its cases, its refused cases, and how its files describe it.
 CaseSet = collections.namedtuple("CaseSet", "cases refused option what")
 SETS = {
     "tags": CaseSet(CASES, REFUSED, "", "Color tag cases"),
     "formats": CaseSet(FORMAT_CASES, FORMAT_REFUSED, " --set formats", "Reference format cases"),
+    "negotiation": CaseSet(NEGOTIATION_CASES, (), " --set negotiation", "Negotiation cases"),
 }
 
 

@@ -70,6 +70,22 @@ class Cases(unittest.TestCase):
         # The tag cases' set is the one the committed color tag runs used.
         self.assertEqual(cc.SETS["tags"], (cc.CASES, cc.REFUSED, "", "Color tag cases"))
 
+    def test_negotiation_cases(self):
+        # D-035: references that aren't yuv420p, against a distorted input without a
+        # range tag (a full range reference, and a limited range one as the control),
+        # and against distorted inputs that aren't plain YUV.
+        s = cc.SETS["negotiation"]
+        self.assertEqual(s.refused, ())
+        self.assertEqual(len({c.label for c in s.cases}), len(s.cases))
+        self.assertTrue(all(c.ref.pix_fmt != "yuv420p" or c.ref.codec != "rawvideo"
+                            for c in s.cases))
+        no_range = [c for c in s.cases if ("range", "unknown") in c.dis.tags]
+        self.assertEqual({c.ref for c in no_range}, {cc.REFJ_709_PC, cc.REF10_709_TV})
+        self.assertEqual({c.dis.pix_fmt for c in s.cases} - {"yuv420p"}, {"gray", "gbrp"})
+        self.assertEqual(cc.DIS_RGB_PC.name, "dis_ffv1-bgr0_gbr-pc")
+        clips = cc.all_clips(s.cases)
+        self.assertEqual(len({x.name for x in clips}), len(clips))
+
     def test_pairs_files_read_back(self):
         text = cc.pairs_text(cc.CASES, "/clips", "Title.")
         pairs = vd.parse_pairs(text)
