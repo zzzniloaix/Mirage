@@ -302,7 +302,7 @@ The player's VMAF ladder analysis (`VMAFAnalyzer::start_manifest()`, from the "M
 
 ### A network read without a time limit (P-062)
 
-**What happened.** In the rerun of every step at `61241e2` the machine went to sleep with its lid closed while the last two pairs of `defaults-full` were being scored, and their inputs lost Apple's CDN (`eval/run_all/2026-10-24-full/README.md`, `power_log.txt`). Three of the four scoring processes of those pairs logged TLS reads that timed out and a host name that didn't resolve, skipped the segments they couldn't open and ran to their ends. The fourth, the `mirage_vmaf` of `gear2_vs_gear5`, logged no error and made no progress after the machine woke, until the workflow stopped it (P-062).
+**What happened.** In the rerun of every step at `61241e2` the machine went to sleep with its lid closed while the last two pairs of `defaults-full` were being scored, and their inputs lost Apple's CDN (`eval/run_all/2026-10-24-full/README.md`, `power_log.txt`). Three of the four scoring processes of those pairs logged TLS reads that timed out and a host name that didn't resolve, skipped the segments they couldn't open and ran to their ends. The fourth, the `mirage_vmaf` of `gear2_vs_gear5`, logged no error: its stderr log has no line with "error", "fail" or "timed out". The workflow stopped it with SIGTERM, and it exited with status -15 after 5801.1 s of the time the machine was awake (`logs/defaults-full_plain.log` of that record; P-062). Whether it was waiting on a read then is in no committed file; the code and FFmpeg's defaults below are why it could have been.
 
 **Today.**
 
@@ -324,7 +324,7 @@ The player's VMAF ladder analysis (`VMAFAnalyzer::start_manifest()`, from the "M
 
 A limit changes no score of a run whose reads succeed. Where a read fails, the pair's frames differ from those of an uninterrupted run, and the §5 check fails the pair, as it does today when a segment can't be opened.
 
-**Agent's recommendation.** Option 2, with the player's values: it turns a stall into a failure that the report and the §5 check show, and makes the player's cancel prompt. It changes the analyzer the player shares, so it waits for the owner (D-007).
+**Agent's recommendation.** Option 2, with the player's values: a read that waits longer becomes a failure that the report and the §5 check show, and the player's cancel interrupts a read. It changes the analyzer the player shares, so it waits for the owner (D-007).
 
 ### A reference whose frames change size (P-063)
 
@@ -383,7 +383,7 @@ D-033 confirmed P-006 to P-032 (listed in the decided section below). The measur
 | P-059 | the full-length §5 report with the defaults, its pooling check, its `run_all.sh` steps and checks | the scaler and model named in the run; `--jobs 1` | |
 | P-060 | the records at the end of the round: the unit tests at `12715a6`, and a rerun of every step of `eval/run_all.sh` | `--skip-full`; the unit tests in a clean worktree | |
 | P-061 | information for D-011: eight candidate clips examined without downloading them | other sources; downloading the clips | "D-011" |
-| P-062 | the rerun of every step at `61241e2`, which the machine's sleep cut short: its record with the failed run's reports, logs and the machine's sleep and wake events; the stalled process stopped; its two unfinished steps rerun on their own | the whole rerun again; only the usual files of the record; the stalled process left to the 6 h limit | "A network read without a time limit" |
+| P-062 | the rerun of every step at `61241e2`, which the machine's sleep cut short: its record with the failed run's reports, logs and the machine's sleep and wake events; a scoring process stopped before the 6 h limit; its two unfinished steps rerun on their own | the whole rerun again; only the usual files of the record; the process left to the 6 h limit | "A network read without a time limit" |
 | P-063 | a reference whose frames change size ends the analysis with an error, in `mirage_vmaf` and the player | converting such frames to the first size, with a warning; a libvmaf context for each size | "A reference whose frames change size" |
 | P-064 | `run.cmd.txt` names the options its command line gave, besides every option the run had | the arguments with their values; the same line in `delta.json` | |
 

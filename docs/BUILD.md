@@ -71,7 +71,7 @@ eval/run_all.sh <out_dir>
 
 - It builds the `mirage_vmaf` of each committed run from its commit, reruns every committed Phase 1 measurement, and compares the outputs with the committed ones; `eval/README.md` says how. It needs the packages of step 1 and the network, and no Python but the `python3` it runs with.
 - Its runs and their records are listed in `eval/README.md`.
-- With the steps over every frame it runs for hours and reads Apple's CDN all the while, so the machine has to stay awake and online: `caffeinate -i` keeps a Mac from sleeping when idle, not when its lid is closed, and a read on a connection that the network leaves without data waits without a time limit (`eval/run_all/2026-10-24-full/README.md`).
+- With the steps over every frame it runs for hours and reads Apple's CDN all the while, so the machine has to stay awake and online: `caffeinate -i` keeps a Mac from sleeping when idle, not when its lid is closed, and with FFmpeg 8.1.1's defaults a read on a connection that stays open without data has no time limit (read from FFmpeg's sources: "A network read without a time limit" in `docs/PHASE1_DECISIONS_PENDING.md`).
 
 ## 6. Linux: mirage_vmaf and the unit tests, not yet built on Linux
 
