@@ -2,13 +2,18 @@
 #include "FileHash.h"
 #include "HlsMaster.h"
 #include "VMAFNet.h"
+#include "VMAFProcess.h"
 #include "VMAFReport.h"
 
 #include <algorithm>
 #include <charconv>
+#include <chrono>
+#include <condition_variable>
 #include <format>
 #include <limits>
+#include <mutex>
 #include <system_error>
+#include <thread>
 #include <utility>
 
 extern "C" {
@@ -299,8 +304,19 @@ Fetched read_master(const std::string& url)
     return f;
 }
 
+std::string_view status_name(PairStatus s)
+{
+    switch (s) {
+    case PairStatus::NotStarted: return "not started";
+    case PairStatus::Complete:   return "complete";
+    case PairStatus::Failed:     return "failed";
+    case PairStatus::Stopped:    return "stopped";
+    }
+    return "unknown";
+}
+
 Result score(const std::string& ladder, const std::string& mezzanine, const VMAFOptions& opts,
-             const OnPair& on_pair)
+             const Pool& pool, std::stop_token cancel, const OnPair& on_pair)
 {
     Result out;
     out.ladder  = ladder;
@@ -318,24 +334,161 @@ Result score(const std::string& ladder, const std::string& mezzanine, const VMAF
     }
 
     const std::size_t n = out.plan.pairs.size();
-    for (std::size_t k = 0; k < n; ++k) {
+    out.pairs.resize(n);
+    out.jobs         = pool.jobs > 0 ? pool.jobs : vmafproc::default_jobs();
+    out.memory_limit = pool.memory_limit;
+    const std::function<std::uint64_t()> resident =
+        pool.resident ? pool.resident : std::function<std::uint64_t()>(vmafproc::resident_bytes);
+
+    // Stops the pairs still running, on a cancel or at the first pair that fails.
+    std::stop_source stop;
+    std::stop_callback on_cancel(cancel, [&] { stop.request_stop(); });
+
+    std::mutex              mtx;           // guards everything below and out.pairs' states
+    std::condition_variable cv;
+    std::size_t             next    = 0;   // the next pair to start, in the plan's order
+    unsigned                running = 0;
+    std::vector<bool>       active(n, false);
+    bool                    failed  = false;
+    std::optional<std::size_t> first_complete;   // the first pair to complete, in time
+    std::mutex              callback_mtx;  // one on_pair call at a time
+    const auto t0    = std::chrono::steady_clock::now();
+    const auto now_s = [&] {
+        return std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+    };
+    const std::uint64_t baseline = out.memory_limit > 0 ? resident() : 0;
+    bool alone_warned = false;
+
+    // With the lock held: a pair running alone over the memory limit gets a
+    // warning, once (D-045).
+    const auto check_alone = [&] {
+        if (out.memory_limit == 0 || running != 1 || alone_warned) return;
+        const std::uint64_t now = resident();
+        if (now <= out.memory_limit) return;
+        const auto it = std::find(active.begin(), active.end(), true);
+        out.pool_warnings.push_back(std::format(
+            "pair {} of {} took the process over the memory limit on its own: {} bytes of "
+            "resident memory, the limit {}",
+            static_cast<std::size_t>(it - active.begin()) + 1, n, now, out.memory_limit));
+        alone_warned = true;
+    };
+
+    // With the lock held: whether one more pair may start (D-045). A running
+    // pair is taken to use the memory gained since the run began, shared out
+    // among the pairs running; with none running, a pair always starts.
+    const auto admit = [&] {
+        if (out.memory_limit == 0 || running == 0) return true;
+        const std::uint64_t now = resident();
+        if (now == 0) return true;   // unknown: the limit can't hold a pair back
+        const std::uint64_t per_pair = (now > baseline ? now - baseline : 0) / running;
+        return now + per_pair <= out.memory_limit;
+    };
+
+    // With the lock held: what becomes of pair k once its analysis returned.
+    const auto settle = [&](std::size_t k) {
+        PairRun& run = out.pairs[k];
         const Pair& pair = out.plan.pairs[k];
-        out.results.push_back(VMAFAnalyzer::analyze(out.plan.reference_url, pair.url, opts));
-        const VMAFResult& r = out.results.back();
-        if (const std::string why = vmafreport::incomplete(r); !why.empty()) {
-            out.error = std::format("pair {} of {}, {} against {}: {}", k + 1, n, pair.url,
-                                    out.plan.reference_url, why);
-            return out;
+        if (const std::string why = vmafreport::incomplete(run.result); !why.empty()) {
+            if (stop.stop_requested()) {
+                run.status = PairStatus::Stopped;
+                return;
+            }
+            run.status = PairStatus::Failed;
+            run.why    = why;
+            if (!failed)
+                out.error = std::format("pair {} of {}, {} against {}: {}", k + 1, n, pair.url,
+                                        out.plan.reference_url, why);
+            failed = true;
+            stop.request_stop();
+            return;
         }
-        if (r.settings != out.results.front().settings) {
-            out.error = std::format("pair {} of {} was scored with other settings than pair 1, "
-                                    "model {} with the SHA-256 {} against {}: did the model file "
-                                    "change during the run?",
-                                    k + 1, n, r.settings.model, r.settings.model_sha256,
-                                    out.results.front().settings.model_sha256);
-            return out;
+        if (first_complete && run.result.settings != out.pairs[*first_complete].result.settings) {
+            const VMAFSettings& first = out.pairs[*first_complete].result.settings;
+            run.status = PairStatus::Failed;
+            run.why    = std::format("scored with other settings than pair {}", *first_complete + 1);
+            if (!failed)
+                out.error = std::format("pair {} of {} was scored with other settings than pair {}, "
+                                        "model {} with the SHA-256 {} against {}: did the model "
+                                        "file change during the run?",
+                                        k + 1, n, *first_complete + 1, run.result.settings.model,
+                                        run.result.settings.model_sha256, first.model_sha256);
+            failed = true;
+            stop.request_stop();
+            return;
         }
-        if (on_pair) on_pair(k, n, r);
+        run.status = PairStatus::Complete;
+        if (!first_complete) first_complete = k;
+    };
+
+    const auto worker = [&] {
+        std::unique_lock lk(mtx);
+        for (;;) {
+            while (!(stop.stop_requested() || next >= n || admit()))
+                cv.wait_for(lk, std::chrono::milliseconds(20));
+            if (stop.stop_requested() || next >= n) return;
+            const std::size_t k = next++;
+            ++running;
+            active[k] = true;
+            out.max_running = std::max(out.max_running, running);
+            out.pairs[k].started = now_s();
+            lk.unlock();
+
+            VMAFResult r = VMAFAnalyzer::analyze(out.plan.reference_url, out.plan.pairs[k].url,
+                                                 opts, stop.get_token());
+
+            lk.lock();
+            check_alone();   // before the pair leaves: it may have run alone
+            --running;
+            active[k] = false;
+            out.pairs[k].ended  = now_s();
+            out.pairs[k].result = std::move(r);
+            settle(k);
+            cv.notify_all();
+            if (out.pairs[k].status == PairStatus::Complete && on_pair) {
+                lk.unlock();   // pair k's state no longer changes
+                {
+                    std::lock_guard g(callback_mtx);
+                    on_pair(k, n, out.pairs[k].result);
+                }
+                lk.lock();
+            }
+        }
+    };
+
+    // With a memory limit, a pair running alone is also checked while it runs.
+    std::jthread sampler;
+    if (out.memory_limit > 0) {
+        sampler = std::jthread([&](std::stop_token st) {
+            while (!st.stop_requested()) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                std::lock_guard g(mtx);
+                check_alone();
+                if (alone_warned) return;
+            }
+        });
+    }
+
+    {
+        std::vector<std::jthread> workers;
+        const std::size_t count = std::min<std::size_t>(out.jobs, n);
+        for (std::size_t i = 0; i < count; ++i) workers.emplace_back(worker);
+    }   // joined
+    if (sampler.joinable()) {
+        sampler.request_stop();
+        sampler.join();
+    }
+    out.peak_resident = vmafproc::peak_resident_bytes();
+
+    const std::size_t complete = static_cast<std::size_t>(std::count_if(
+        out.pairs.begin(), out.pairs.end(),
+        [](const PairRun& p) { return p.status == PairStatus::Complete; }));
+    if (failed) {
+        out.status = kFailed;
+    } else if (complete < n) {
+        out.status = kCancelled;
+        out.error  = std::format("the run was cancelled: {} of {} pairs complete", complete, n);
+    } else {
+        out.status = kComplete;
     }
     return out;
 }

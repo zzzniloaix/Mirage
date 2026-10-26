@@ -10,8 +10,10 @@
 #include "TestTemp.h"
 #include "VMAFAnalyzer.h"
 #include "VMAFLadder.h"
+#include "VMAFProcess.h"
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <filesystem>
 #include <format>
@@ -548,9 +550,12 @@ TEST_CASE("vmafladder::score: top-rung mode, each pair as it scores on its own",
     const VMAFOptions opts{ .record_pts = true };
     std::vector<std::pair<std::size_t, std::size_t>> calls;
     const vmafladder::Result r = vmafladder::score(
-        l.master, "", opts,
+        l.master, "", opts, { .jobs = 1 }, {},
         [&](std::size_t k, std::size_t n, const VMAFResult&) { calls.emplace_back(k, n); });
     REQUIRE(r.error.empty());
+    CHECK(r.status == "complete");
+    CHECK(r.jobs == 1);
+    CHECK(r.max_running == 1);
     CHECK(r.ladder == l.master);
     CHECK(r.fetched.location == l.master);
     CHECK(r.master.entries.size() == 5);
@@ -564,11 +569,17 @@ TEST_CASE("vmafladder::score: top-rung mode, each pair as it scores on its own",
     CHECK(r.plan.skipped[0].entry == 4);   // never opened: its playlist doesn't exist
     CHECK(calls == std::vector<std::pair<std::size_t, std::size_t>>{ { 0, 2 }, { 1, 2 } });
 
-    REQUIRE(r.results.size() == 2);
-    CHECK(r.results[0].per_frame.size() == 12);
-    check_same_pair(r.results[0], VMAFAnalyzer::analyze(l.top, l.low, opts));
-    check_same_pair(r.results[1], VMAFAnalyzer::analyze(l.top, l.mid, opts));
-    CHECK(r.results[0].per_frame != r.results[1].per_frame);   // two rungs, two series
+    REQUIRE(r.pairs.size() == 2);
+    for (const vmafladder::PairRun& p : r.pairs) {
+        CHECK(p.status == vmafladder::PairStatus::Complete);
+        CHECK(p.started >= 0.0);
+        CHECK(p.ended >= p.started);
+    }
+    CHECK(r.pairs[1].started >= r.pairs[0].ended);   // one after the other
+    CHECK(r.pairs[0].result.per_frame.size() == 12);
+    check_same_pair(r.pairs[0].result, VMAFAnalyzer::analyze(l.top, l.low, opts));
+    check_same_pair(r.pairs[1].result, VMAFAnalyzer::analyze(l.top, l.mid, opts));
+    CHECK(r.pairs[0].result.per_frame != r.pairs[1].result.per_frame);   // two rungs, two series
 }
 
 TEST_CASE("vmafladder::score: mezzanine mode, the frame limit of each pair", "[ladder][vmaf]")
@@ -583,13 +594,13 @@ TEST_CASE("vmafladder::score: mezzanine mode, the frame limit of each pair", "[l
     CHECK(r.plan.reference_entries.empty());
     REQUIRE(r.plan.pairs.size() == 3);   // low, mid, top
     CHECK(r.plan.pairs[2].url == l.top);
-    REQUIRE(r.results.size() == 3);
+    REQUIRE(r.pairs.size() == 3);
     const std::vector<std::string> rungs = { l.low, l.mid, l.top };
     for (std::size_t k = 0; k < 3; ++k) {
         INFO(k);
-        CHECK(r.results[k].per_frame.size() == 5);
-        CHECK(r.results[k].settings.scaler == "lanczos");
-        check_same_pair(r.results[k], VMAFAnalyzer::analyze(mezzanine, rungs[k], opts));
+        CHECK(r.pairs[k].result.per_frame.size() == 5);
+        CHECK(r.pairs[k].result.settings.scaler == "lanczos");
+        check_same_pair(r.pairs[k].result, VMAFAnalyzer::analyze(mezzanine, rungs[k], opts));
     }
 }
 
@@ -607,21 +618,29 @@ TEST_CASE("vmafladder::score: a pair that can't be scored ends the run", "[ladde
                                    "missing/index.m3u8\n"
                                    "#EXT-X-STREAM-INF:BANDWIDTH=600000,RESOLUTION=128x72\n{}\n",
                                    l.top, l.low, l.mid));
+    // One pair at a time: the third doesn't start once the second has failed.
     int calls = 0;
     const vmafladder::Result r = vmafladder::score(
-        master, "", {}, [&](std::size_t, std::size_t, const VMAFResult&) { ++calls; });
+        master, "", {}, { .jobs = 1 }, {},
+        [&](std::size_t, std::size_t, const VMAFResult&) { ++calls; });
     const std::string missing = (dir / "missing/index.m3u8").string();
+    CHECK(r.status == "failed");
     CHECK(r.error == std::format("pair 2 of 3, {} against {}: cannot open distorted: {}", missing,
                                  l.top, missing));
-    REQUIRE(r.results.size() == 2);   // the failed pair's result is the last
-    CHECK(r.results[0].error.empty());
-    CHECK_FALSE(r.results[1].error.empty());
+    REQUIRE(r.pairs.size() == 3);
+    CHECK(r.pairs[0].status == vmafladder::PairStatus::Complete);
+    CHECK(r.pairs[0].result.error.empty());
+    CHECK(r.pairs[1].status == vmafladder::PairStatus::Failed);
+    CHECK(r.pairs[1].why == "cannot open distorted: " + missing);
+    CHECK(r.pairs[2].status == vmafladder::PairStatus::NotStarted);
+    CHECK(r.pairs[2].started == -1.0);
     CHECK(calls == 1);
 
     const vmafladder::Result none = vmafladder::score((dir / "none.m3u8").string(), "", {});
     CHECK(none.error == std::format("cannot read the master playlist {}: No such file or directory",
                                     (dir / "none.m3u8").string()));
-    CHECK(none.results.empty());
+    CHECK(none.status.empty());   // nothing scored
+    CHECK(none.pairs.empty());
 
     write_text(dir / "media.m3u8", "#EXTM3U\n#EXTINF:1,\nseg.ts\n");
     const vmafladder::Result media = vmafladder::score((dir / "media.m3u8").string(), "", {});
@@ -629,6 +648,7 @@ TEST_CASE("vmafladder::score: a pair that can't be scored ends the run", "[ladde
                                      "EXT-X-STREAM-INF before it: a media playlist's segment? "
                                      "--ladder takes a master playlist",
                                      (dir / "media.m3u8").string()));
+    CHECK(media.status.empty());
     fs::remove_all(dir);
 }
 
@@ -642,13 +662,16 @@ TEST_CASE("vmafladder::score: a model file that changes during the run ends it",
     // After the first pair, the file gets one more newline: other bytes, the
     // same model, so the second pair's settings name another SHA-256.
     const vmafladder::Result r = vmafladder::score(
-        l.master, "", { .model = { .path = copy.string() } },
+        l.master, "", { .model = { .path = copy.string() } }, { .jobs = 1 }, {},
         [&](std::size_t k, std::size_t, const VMAFResult&) {
             if (k == 0) std::ofstream(copy, std::ios::binary | std::ios::app) << '\n';
         });
-    REQUIRE(r.results.size() == 2);
-    const std::string before = r.results[0].settings.model_sha256;
-    const std::string after  = r.results[1].settings.model_sha256;
+    REQUIRE(r.pairs.size() == 2);
+    CHECK(r.status == "failed");
+    CHECK(r.pairs[0].status == vmafladder::PairStatus::Complete);
+    CHECK(r.pairs[1].status == vmafladder::PairStatus::Failed);
+    const std::string before = r.pairs[0].result.settings.model_sha256;
+    const std::string after  = r.pairs[1].result.settings.model_sha256;
     CHECK(before != after);
     CHECK(r.error == std::format("pair 2 of 2 was scored with other settings than pair 1, model {} "
                                  "with the SHA-256 {} against {}: did the model file change "
@@ -674,3 +697,109 @@ TEST_CASE("vmafladder::read_master: a server that sends nothing fails at the rea
     CHECK(s >= 4.0);
     CHECK(s < 15.0);
 }
+
+// ── The pool (work order section 2; DECISIONS.md D-043 to D-047) ─────────────
+
+TEST_CASE("vmafladder::score: every pool size gives every pair the same scores", "[ladder][vmaf]")
+{
+    const Ladder& l = ladder();
+    const std::string mezzanine = make_rung(l.dir / "mezzanine", 192, 108);
+    const VMAFOptions opts{ .record_pts = true };
+    const vmafladder::Result one = vmafladder::score(l.master, mezzanine, opts, { .jobs = 1 });
+    REQUIRE(one.status == "complete");
+    REQUIRE(one.pairs.size() == 3);
+    CHECK(one.max_running == 1);
+    for (unsigned jobs : { 2u, 3u, 8u }) {
+        INFO(jobs);
+        const vmafladder::Result r = vmafladder::score(l.master, mezzanine, opts, { .jobs = jobs });
+        REQUIRE(r.status == "complete");
+        CHECK(r.jobs == jobs);
+        CHECK(r.max_running >= 1);
+        CHECK(r.max_running <= std::min(jobs, 3u));
+        REQUIRE(r.pairs.size() == 3);
+        for (std::size_t k = 0; k < 3; ++k) {
+            INFO(k);
+            CHECK(r.pairs[k].result.dis_url == one.pairs[k].result.dis_url);   // the plan's order
+            CHECK(r.pairs[k].result.per_frame == one.pairs[k].result.per_frame);
+            CHECK(r.pairs[k].result.ref_pts == one.pairs[k].result.ref_pts);
+        }
+    }
+    // The default size: the machine's physical cores minus one, at least 1.
+    const vmafladder::Result d = vmafladder::score(l.master, mezzanine, opts);
+    CHECK(d.jobs == vmafproc::default_jobs());
+}
+
+TEST_CASE("vmafladder::score: a cancel keeps the complete pairs and starts no other", "[ladder][vmaf]")
+{
+    const Ladder& l = ladder();
+    std::stop_source cancel;
+    const vmafladder::Result r = vmafladder::score(
+        l.master, "", {}, { .jobs = 1 }, cancel.get_token(),
+        [&](std::size_t k, std::size_t, const VMAFResult&) {
+            if (k == 0) cancel.request_stop();
+        });
+    CHECK(r.status == "cancelled");
+    CHECK(r.error == "the run was cancelled: 1 of 2 pairs complete");
+    REQUIRE(r.pairs.size() == 2);
+    CHECK(r.pairs[0].status == vmafladder::PairStatus::Complete);
+    CHECK(r.pairs[0].result.per_frame.size() == 12);
+    CHECK(r.pairs[1].status == vmafladder::PairStatus::NotStarted);
+
+    // Cancelled before it starts: the plan, and no pair.
+    std::stop_source early;
+    early.request_stop();
+    const vmafladder::Result e = vmafladder::score(l.master, "", {}, {}, early.get_token());
+    CHECK(e.status == "cancelled");
+    CHECK(e.plan.pairs.size() == 2);
+    REQUIRE(e.pairs.size() == 2);
+    CHECK(e.pairs[0].status == vmafladder::PairStatus::NotStarted);
+    CHECK(e.pairs[1].status == vmafladder::PairStatus::NotStarted);
+}
+
+TEST_CASE("vmafladder::score: the memory limit holds pairs back", "[ladder][vmaf]")
+{
+    const Ladder& l = ladder();
+    const std::string mezzanine = make_rung(l.dir / "mezzanine", 192, 108);
+    // A stand-in for the resident memory: 100 bytes before the run, 1000 once
+    // it has started, so a running pair is taken to use 900.
+    std::atomic<int> reads{ 0 };
+    const auto resident = [&] { return reads.fetch_add(1) == 0 ? std::uint64_t{ 100 } : 1000; };
+
+    // 1000 + 900 is over 1500: one pair at a time, though three may run.
+    reads = 0;
+    const vmafladder::Result held = vmafladder::score(
+        l.master, mezzanine, {}, { .jobs = 3, .memory_limit = 1500, .resident = resident });
+    CHECK(held.status == "complete");
+    CHECK(held.memory_limit == 1500);
+    CHECK(held.max_running == 1);
+    CHECK(held.pool_warnings.empty());   // never over the limit on its own
+
+    // Under 500 nothing fits: a pair alone still runs, with a warning.
+    reads = 0;
+    const vmafladder::Result over = vmafladder::score(
+        l.master, mezzanine, {}, { .jobs = 3, .memory_limit = 500, .resident = resident });
+    CHECK(over.status == "complete");
+    CHECK(over.max_running == 1);
+    REQUIRE(over.pool_warnings.size() == 1);
+    CHECK(over.pool_warnings[0].find("over the memory limit on its own: 1000 bytes of resident "
+                                     "memory, the limit 500") != std::string::npos);
+
+    // Without a limit the stand-in isn't read.
+    reads = 0;
+    const vmafladder::Result unlimited = vmafladder::score(
+        l.master, mezzanine, {}, { .jobs = 3, .resident = resident });
+    CHECK(unlimited.status == "complete");
+    CHECK(reads == 0);
+}
+
+TEST_CASE("vmafproc: the machine's cores and the process's memory", "[ladder]")
+{
+    const unsigned cores = vmafproc::physical_cores();
+    CHECK(cores >= 1);
+    CHECK(vmafproc::default_jobs() == std::max(1u, cores - 1));
+    const std::uint64_t now  = vmafproc::resident_bytes();
+    const std::uint64_t peak = vmafproc::peak_resident_bytes();
+    CHECK(now > 0);
+    CHECK(peak >= now);
+}
+

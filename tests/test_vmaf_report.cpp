@@ -695,7 +695,14 @@ vmafladder::Result sample_ladder()
     mid.dis_url   = l.plan.pairs[1].url;
     mid.per_frame = { 70.25, 71.5, 72.0 };
     mid.warnings  = { "a \"quoted\" warning" };
-    l.results = { low, mid };
+    l.pairs = { { .status = vmafladder::PairStatus::Complete, .result = low,
+                  .started = 0.25, .ended = 1.5 },
+                { .status = vmafladder::PairStatus::Complete, .result = mid,
+                  .started = 0.5, .ended = 2.0 } };
+    l.status        = "complete";
+    l.jobs          = 2;
+    l.max_running   = 2;
+    l.peak_resident = 123456789;
     return l;
 }
 
@@ -757,6 +764,17 @@ TEST_CASE("vmafreport::ladder_to_json: the run, the master and the plan", "[vmaf
     CHECK(d["warnings"].kind == Value::Kind::Array);
     CHECK(d["warnings"].arr.empty());
 
+    // How the run ended, and the pool (D-047).
+    CHECK(d["status"].str == "complete");
+    CHECK(d["error"].kind == Value::Kind::Null);
+    CHECK(d["pool"]["jobs"].num == 2);
+    CHECK(d["pool"]["memory_limit"].kind == Value::Kind::Null);
+    CHECK(d["pool"]["max_running"].num == 2);
+    CHECK(d["pool"]["peak_resident"].num == 123456789);
+    CHECK(d["pool"]["warnings"].arr.empty());
+    CHECK(d["not_scored"].kind == Value::Kind::Array);
+    CHECK(d["not_scored"].arr.empty());
+
     // Mezzanine mode: the mezzanine as given, no entry; the plan's warnings.
     vmafladder::Result m = l;
     m.plan.reference_mode    = "mezzanine";
@@ -770,6 +788,43 @@ TEST_CASE("vmafreport::ladder_to_json: the run, the master and the plan", "[vmaf
     CHECK((*mz)["reference"]["entries"].arr.empty());
     REQUIRE((*mz)["warnings"].arr.size() == 1);
     CHECK((*mz)["warnings"].arr[0].str == m.plan.warnings[0]);
+}
+
+TEST_CASE("vmafreport::ladder_to_json: a run that ended early lists the complete pairs, then the others",
+          "[vmafreport]")
+{
+    vmafladder::Result l = sample_ladder();
+    l.plan.pairs.push_back({ "https://cdn.example.com/hls/hi/p.m3u8", { 4 } });
+    l.pairs[0].status = vmafladder::PairStatus::Failed;
+    l.pairs[0].why    = "cannot open distorted: https://cdn.example.com/hls/low/p.m3u8";
+    l.pairs.push_back({});   // not started
+    l.status          = "failed";
+    l.error           = "pair 1 of 3, https://cdn.example.com/hls/low/p.m3u8 against "
+                        "https://cdn.example.com/hls/top/p.m3u8: cannot open distorted: "
+                        "https://cdn.example.com/hls/low/p.m3u8";
+    l.memory_limit    = 8u << 20;
+    l.pool_warnings   = { "pair 2 of 3 took the process over the memory limit on its own" };
+    const auto doc = parse(vmafreport::ladder_to_json(l, kRun));
+    REQUIRE(doc);
+    const Value& d = *doc;
+    CHECK(d["status"].str == "failed");
+    CHECK(d["error"].str == l.error);
+    CHECK(d["pool"]["memory_limit"].num == 8 << 20);
+    REQUIRE(d["pool"]["warnings"].arr.size() == 1);
+    CHECK(d["pool"]["warnings"].arr[0].str == l.pool_warnings[0]);
+    REQUIRE(d["pairs"].arr.size() == 1);   // the complete one only, with its own index
+    CHECK(d["pairs"].arr[0]["index"].num == 1);
+    CHECK(d["model"].str == "vmaf_v0.6.1");   // the settings of the complete pair
+    const Value& others = d["not_scored"];
+    REQUIRE(others.arr.size() == 2);
+    CHECK(others.arr[0]["index"].num == 0);
+    CHECK(others.arr[0]["url"].str == l.plan.pairs[0].url);
+    CHECK(others.arr[0]["entries"].arr[0].num == 0);
+    CHECK(others.arr[0]["status"].str == "failed");
+    CHECK(others.arr[0]["why"].str == l.pairs[0].why);
+    CHECK(others.arr[1]["index"].num == 2);
+    CHECK(others.arr[1]["status"].str == "not started");
+    CHECK(others.arr[1]["why"].kind == Value::Kind::Null);
 }
 
 TEST_CASE("vmafreport::ladder_to_json: each pair has the keys of its own pair's report", "[vmafreport]")
@@ -786,8 +841,10 @@ TEST_CASE("vmafreport::ladder_to_json: each pair has the keys of its own pair's 
         INFO(k);
         const Value& p = pairs.arr[k];
         CHECK(p["index"].num == static_cast<double>(k));
-        CHECK(p.obj.size() == own.size() + 2);   // and index, entries
-        const auto alone = parse(vmafreport::to_json(l.results[k], kRun));
+        CHECK(p.obj.size() == own.size() + 4);   // and index, entries, started_s, ended_s
+        CHECK(p["started_s"].num == l.pairs[k].started);
+        CHECK(p["ended_s"].num == l.pairs[k].ended);
+        const auto alone = parse(vmafreport::to_json(l.pairs[k].result, kRun));
         REQUIRE(alone);
         for (const std::string& key : own) {
             INFO(key);

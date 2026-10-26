@@ -246,9 +246,10 @@ public:
     void start_manifest(const std::vector<VariantStream>& variants);
 
     // Score one pair on the calling thread and return its result: the same
-    // decoding and scoring as start(), plus what `opts` asks for.
+    // decoding and scoring as start(), plus what `opts` asks for. A stop
+    // requested on `st` ends it as cancel() ends an analysis.
     static VMAFResult analyze(std::string ref_url, std::string dis_url,
-                              const VMAFOptions& opts = {});
+                              const VMAFOptions& opts = {}, std::stop_token st = {});
 
     // Request cancellation and block until the worker exits.
     void cancel();

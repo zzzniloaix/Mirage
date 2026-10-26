@@ -53,6 +53,40 @@ std::string set_scaler(Args& a, std::string_view v)
     return {};
 }
 
+// The most pairs --jobs lets a ladder run score at a time.
+constexpr unsigned kMaxJobs = 256;
+
+std::string set_jobs(Args& a, std::string_view v)
+{
+    unsigned n = 0;
+    const auto [end, ec] = std::from_chars(v.data(), v.data() + v.size(), n);
+    if (ec != std::errc() || end != v.data() + v.size() || n == 0 || n > kMaxJobs)
+        return std::format("wants a whole number from 1 to {}, not '{}'", kMaxJobs, v);
+    a.jobs = n;
+    return {};
+}
+
+// SIZE: a whole number of bytes, or of KiB, MiB, GiB or TiB with the suffix
+// K, M, G or T.
+std::string set_memory_limit(Args& a, std::string_view v)
+{
+    std::uint64_t n = 0;
+    const auto [end, ec] = std::from_chars(v.data(), v.data() + v.size(), n);
+    const std::string_view suffix = v.substr(static_cast<std::size_t>(end - v.data()));
+    unsigned shift = 0;
+    if (suffix == "K") shift = 10;
+    else if (suffix == "M") shift = 20;
+    else if (suffix == "G") shift = 30;
+    else if (suffix == "T") shift = 40;
+    else if (!suffix.empty()) n = 0;
+    if (ec != std::errc() || end == v.data() || n == 0 ||
+        n > (std::numeric_limits<std::uint64_t>::max() >> shift))
+        return std::format("wants a size: a whole number of bytes from 1, or one with K, M, G "
+                           "or T after it for KiB, MiB, GiB or TiB, such as 8G; not '{}'", v);
+    a.memory_limit = n << shift;
+    return {};
+}
+
 constexpr std::string_view kConfig = "--config";   // the one option a config file can't set
 
 const std::array kOptions = {
@@ -66,7 +100,13 @@ const std::array kOptions = {
     Option{ "--mezzanine", "<url|path>", "with --ladder: score every video playlist against this "
             "video instead", Form::Ladder, false,
             [](Args& a, std::string_view v) { a.mezzanine = v; return std::string(); } },
-    Option{ "--out", "<report.json>", "report to write; written only when the run succeeds",
+    Option{ "--jobs", "N", "with --ladder: score N pairs at a time (default: the physical cores "
+            "minus one, at least 1)", Form::Ladder, false, set_jobs },
+    Option{ "--memory-limit", "SIZE", "with --ladder: start a pair only while the resident memory "
+            "stays under SIZE (bytes, or with K, M, G or T; default: none)", Form::Ladder, false,
+            set_memory_limit },
+    Option{ "--out", "<report.json>", "report to write; written when the run succeeds, and with "
+            "--ladder also when it is cancelled or a pair fails",
             Form::Any, true, [](Args& a, std::string_view v) { a.out = v; return std::string(); } },
     Option{ "--frames", "N", "score only the first N frame pairs (N >= 1), of each pair with "
             "--ladder", Form::Any, false, set_frames },
@@ -400,8 +440,19 @@ std::string usage()
         "resolves (from an http(s) master: a relative or absolute path or an http(s)\n"
         "URL, without dot segments or white space); so is a master with nothing to\n"
         "score: no entry with video or, without --mezzanine, no video playlist but\n"
-        "the top rung's. A refused master, or a pair that can't be scored, stops the\n"
-        "run, which then writes no report.\n"
+        "the top rung's. A refused master stops the run, which then writes no report.\n"
+        "\n"
+        "The pool: --jobs pairs are scored at a time, each as a pair given with --ref\n"
+        "and --dis is scored, so a pair's scores don't depend on the pool; by default\n"
+        "the machine's physical cores minus one, at least 1. With --memory-limit a\n"
+        "pair starts only while the process's resident memory, plus what a running\n"
+        "pair uses, stays under the limit; running pairs aren't stopped, and with\n"
+        "none running a pair always starts. SIGINT or SIGTERM, or a pair that can't\n"
+        "be scored, stops the pairs still running and starts no other: the report\n"
+        "then lists the complete pairs, says the run was cancelled or failed, and\n"
+        "lists the other pairs with their state, and the exit status is 1. The\n"
+        "report lists the pairs in the master's order, with the pool's size, the\n"
+        "limit, the most pairs scored at once and the peak resident memory.\n"
         "\n"
         "Config file: --config FILE reads settings before the command line, one per\n"
         "line as name = value, where name is a long option's name without the\n"

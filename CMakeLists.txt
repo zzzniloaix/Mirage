@@ -237,6 +237,7 @@ add_executable(mirage_vmaf
     src/VMAFColor.cpp
     src/VMAFLadder.cpp
     src/VMAFPool.cpp
+    src/VMAFProcess.cpp
     src/FileHash.cpp
     src/HlsMaster.cpp
     src/VMAFCli.cpp
@@ -321,6 +322,7 @@ add_executable(mirage_tests
     src/VMAFColor.cpp
     src/VMAFLadder.cpp
     src/VMAFPool.cpp
+    src/VMAFProcess.cpp
     src/FileHash.cpp
 )
 

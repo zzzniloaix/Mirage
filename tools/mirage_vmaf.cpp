@@ -1,7 +1,7 @@
 // mirage_vmaf — score a distorted video against a reference with Mirage's
 // VMAF analyzer (src/VMAFAnalyzer.cpp) without the player: no window, GL or
 // ImGui. Writes a JSON report (src/VMAFReport.h). With --ladder, scores the
-// video playlists of an HLS master playlist one after another
+// video playlists of an HLS master playlist with a pool of workers
 // (src/VMAFLadder.h) and writes one report of them all. See --help.
 //
 // Exit codes:
@@ -9,9 +9,11 @@
 //       failed to pair by timestamp: that is a warning, on stderr and in the
 //       report (DECISIONS.md D-028)
 //   1 — the analysis failed or was incomplete, with --ladder the master
-//       playlist couldn't be read or was refused (src/VMAFLadder.h), or one
-//       pair's analysis failed or was incomplete (D-029), or the report could
-//       not be written; no report is left at --out
+//       playlist couldn't be read or was refused (src/VMAFLadder.h), or the
+//       report could not be written: no report is left at --out; or, with
+//       --ladder, the run was cancelled (SIGINT, SIGTERM) or a pair's
+//       analysis failed or was incomplete: the report of the complete pairs
+//       says so (DECISIONS.md D-047)
 //   2 — bad arguments, or a --config file that can't be read or has an error
 
 #include "FileHash.h"
@@ -20,9 +22,14 @@
 #include "VMAFLadder.h"
 #include "VMAFReport.h"
 
+#include <atomic>
+#include <chrono>
+#include <csignal>
 #include <cstdio>
+#include <stop_token>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <vector>
 
 extern "C" {
@@ -39,11 +46,32 @@ extern "C" {
 
 namespace {
 
-// The pairs of the ladder `args` names, scored and reported (D-029).
+// Set by SIGINT and SIGTERM during a ladder run.
+volatile std::sig_atomic_t g_signal = 0;
+
+extern "C" void on_signal(int sig) { g_signal = sig; }
+
+// The pairs of the ladder `args` names, scored and reported (D-029, D-047).
 int score_ladder(const vmafcli::Args& args, const VMAFOptions& opts, vmafreport::RunInfo run)
 {
+    // SIGINT and SIGTERM cancel the run: a handler may only set a flag, which
+    // this thread passes on to the run's stop source (D-047).
+    std::stop_source cancel;
+    std::signal(SIGINT, on_signal);
+    std::signal(SIGTERM, on_signal);
+    std::jthread watch([&](std::stop_token st) {
+        while (!st.stop_requested()) {
+            if (g_signal != 0) {
+                cancel.request_stop();
+                return;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        }
+    });
+
     const vmafladder::Result ladder = vmafladder::score(
         args.ladder, args.mezzanine, opts,
+        { .jobs = args.jobs, .memory_limit = args.memory_limit }, cancel.get_token(),
         [](std::size_t k, std::size_t n, const VMAFResult& r) {
             // Too many frames that failed to pair by timestamp: the pair is
             // still scored and reported, with this warning (D-028).
@@ -54,12 +82,20 @@ int score_ladder(const vmafcli::Args& args, const VMAFOptions& opts, vmafreport:
                         r.dis_url.c_str(), r.per_frame.size());
             std::fflush(stdout);
         });
+    watch.request_stop();
+    watch.join();
+    std::signal(SIGINT, SIG_DFL);
+    std::signal(SIGTERM, SIG_DFL);
+
     for (const std::string& w : ladder.plan.warnings)
         std::fprintf(stderr, "mirage_vmaf: warning: %s\n", w.c_str());
-    if (!ladder.error.empty()) {
+    for (const std::string& w : ladder.pool_warnings)
+        std::fprintf(stderr, "mirage_vmaf: warning: %s\n", w.c_str());
+    if (ladder.status.empty()) {   // the master couldn't be read or planned: no report
         std::fprintf(stderr, "mirage_vmaf: %s\n", ladder.error.c_str());
         return 1;
     }
+    if (!ladder.error.empty()) std::fprintf(stderr, "mirage_vmaf: %s\n", ladder.error.c_str());
 
     run.reference_mode = ladder.plan.reference_mode;
     std::string err;
@@ -67,13 +103,17 @@ int score_ladder(const vmafcli::Args& args, const VMAFOptions& opts, vmafreport:
         std::fprintf(stderr, "mirage_vmaf: %s\n", err.c_str());
         return 1;
     }
-    const std::size_t pairs = ladder.results.size(), skipped = ladder.plan.skipped.size();
-    std::printf("mirage_vmaf: %zu %s of the ladder scored against %s (%s), %zu %s skipped, "
-                "report written to %s\n",
-                pairs, pairs == 1 ? "pair" : "pairs", ladder.plan.reference_url.c_str(),
-                ladder.plan.reference_mode.c_str(), skipped, skipped == 1 ? "entry" : "entries",
+    std::size_t pairs = 0;
+    for (const vmafladder::PairRun& p : ladder.pairs)
+        if (p.status == vmafladder::PairStatus::Complete) ++pairs;
+    const std::size_t skipped = ladder.plan.skipped.size();
+    std::printf("mirage_vmaf: %zu of %zu %s of the ladder scored against %s (%s), %zu %s "
+                "skipped, %u at a time; the run is %s; report written to %s\n",
+                pairs, ladder.pairs.size(), ladder.pairs.size() == 1 ? "pair" : "pairs",
+                ladder.plan.reference_url.c_str(), ladder.plan.reference_mode.c_str(), skipped,
+                skipped == 1 ? "entry" : "entries", ladder.jobs, ladder.status.c_str(),
                 args.out.c_str());
-    return 0;
+    return ladder.status == vmafladder::kComplete ? 0 : 1;
 }
 
 } // namespace

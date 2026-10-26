@@ -836,7 +836,7 @@ void VMAFAnalyzer::start_manifest(const std::vector<VariantStream>& variants)
 }
 
 VMAFResult VMAFAnalyzer::analyze(std::string ref_url, std::string dis_url,
-                                  const VMAFOptions& opts)
+                                  const VMAFOptions& opts, std::stop_token st)
 {
     VMAFResult result{
         .ref_url = std::move(ref_url),
@@ -844,7 +844,7 @@ VMAFResult VMAFAnalyzer::analyze(std::string ref_url, std::string dis_url,
         .label   = "Analysis",
     };
     std::atomic<float> progress{ 0.0f };
-    analyze_pair(result, std::stop_token{}, progress, 0.0f, 1.0f, opts);
+    analyze_pair(result, st, progress, 0.0f, 1.0f, opts);
     return result;
 }
 
