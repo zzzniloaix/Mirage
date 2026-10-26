@@ -1630,3 +1630,24 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: agent (Claude)
 - **Date**: 2026-10-26
 - **Status**: pending owner confirmation
+
+### P-065 The records after the review fixes: the unit tests at a4692a2, and a rerun of every step, which the machine's sleep cut short
+
+- **Choice**
+  - The unit test record of P-028, P-032 and P-060 again, from the clean main working tree at `a4692a2`, the last commit of the review fixes that changes code, tests or scripts (`eval/test_runs/macos-2026-10-26-a4692a2.txt`).
+  - `eval/run_all.sh` with no program given and `--jobs 4`, every step, the four over every frame included, from a new clean worktree of `a4692a2`, with its output directory and `TMPDIR` outside the repository. The machine's sleep cut it short, and its record is committed as it ended, as P-062's is, with the failed run's reports and logs and the machine's sleep and wake events (`eval/run_all/2026-10-26-fix/`).
+  - After the machine woke, the four scoring processes still running were sampled twice, 120 s apart, before they were stopped with SIGTERM, and the samples are committed with the record (`stall_check.txt`), so that what is said about them rests on a committed file.
+  - The two steps the sleep cut short rerun on their own, `eval/run_all.sh <out_dir> --only defaults-full,pooling-defaults-full --jobs 4`, from a new clean worktree of `1f7d42d`, the commit of that record (`eval/run_all/2026-10-26-defaults-full/`).
+- **Alternatives**
+  - Waiting for the stalled processes: they read without a time limit (P-062), so only the delta tool's 6 h limit would have ended them.
+  - Rerunning every step again, not only the two.
+  - Not committing the record that was cut short: its other 23 steps are the only rerun of them with the program built after P-063 and P-064.
+- **Rationale**
+  - P-063 changed the analyzer, and P-064 the delta tool and the ladder check, after the last rerun of every step (P-060, P-062). The rerun shows whether either changed a committed verdict or score.
+  - A record that is cut short is kept as it ended, with what shows why, as P-062's is: committed outputs aren't edited afterwards, and the two steps' rerun stands on its own record.
+- **Result** of the unit tests (`eval/test_runs/macos-2026-10-26-a4692a2.txt`): `mirage_tests '~[audio]'` passed at the first run, 112039 assertions in 312 test cases, one more case than at `12715a6`, P-063's; and the four Python suites passed, 27, 133, 11 and 16 tests.
+- **Result** of the rerun at `a4692a2` (`eval/run_all/2026-10-26-fix/`): 23 of its 25 steps found everything as committed, `acceptance-full` and `pooling-full` among them. The program it built from `a4692a2`, SHA-256 `217cc2948bf361aa11a37f4aea467ffe1caa30ab251943ba18b72c55005c6f10`, which no earlier run's `build.txt` names, gives every run it reran that was made after D-016 by another build the committed verdicts and scores; the programs built from `83c8ed6`, `d993686` and `e8b867f` have the SHA-256s of the runs they reran (`rerun_check.md`). In `defaults-full`, `gear4_vs_gear5` and `gear3_vs_gear5` were as committed. The machine went to sleep with its lid closed at 2026-10-26T19:51:20Z, while the other two pairs were being scored, and woke at 21:12:21Z (`power_log.txt`). Their four scoring processes, `mirage_vmaf` and `ffmpeg` alike, had last written their stderr logs at 19:51:16Z and 19:51:17Z, logged no error, and after the wake used 0.05 s of CPU time each in 120 s (`stall_check.txt`); they were stopped with SIGTERM. `pooling-defaults-full` had no reports to read (`README.md`).
+- **Result** of the rerun of the two steps (`eval/run_all/2026-10-26-defaults-full/rerun_check.md`, `run_all.md`): both found everything as committed: every pair's verdict, all 53946 per-frame scores of each of the four pairs on Mirage's side at full precision, every libvmaf metric of FFmpeg's logs and every pooling series. The program it built from `1f7d42d` has the SHA-256 of the one built from `a4692a2`, `217cc294…`. It took 2719.8 s of wall time, the build included, of which 2666.9 s for `defaults-full`.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-26
+- **Status**: pending owner confirmation

@@ -170,3 +170,20 @@ None of them needs the network. `tests/test_run_all.py` checks every step agains
 - Everything compared is as committed (`rerun_check.md`): every pair's verdict, all 53946 per-frame scores of every pair on Mirage's side at full precision, every libvmaf metric of FFmpeg's logs, and every pooling series.
 - The program it built from `5908e3b` has the SHA-256 that `consistency/defaults-full/build.txt` records, `9f04085f73440a9c9969f9bf6a86767eaf9ade89ae8ca393f8b6c99bb78b9b06`.
 - It took 3146.5 s of wall time, the build included, of which 3055.2 s for `defaults-full` (`run_all.md`).
+
+## The rerun of every step after the review fixes, 2026-10-26, which the machine's sleep cut short
+
+`run_all/2026-10-26-fix/` keeps the record of `eval/run_all.sh <out_dir> --jobs 4`, made from a new clean worktree of `a4692a2`, the last commit of the review fixes that changes code or scripts, with no program given (P-065): every step, the four over every frame included, with the four programs built from their commits. Like `2026-10-24-full/` it also keeps the reports and logs of the failed `defaults-full` run and the machine's sleep and wake events, and besides them the CPU times of the stopped processes, with a `README.md` that says what happened.
+
+- 23 of the 25 steps found everything as committed (`rerun_check.md`), `acceptance-full` and `pooling-full` among them: in them the analyzer's error for a reference whose frames change size (P-063) and the delta tool's line of given options (P-064) changed no committed verdict or score.
+- `defaults-full` did not, nor `pooling-defaults-full`, which reads it. Its pairs `gear4_vs_gear5` and `gear3_vs_gear5` are as committed. While the other two were being scored, the machine went to sleep with its lid closed; after it woke, their four scoring processes, `mirage_vmaf` and `ffmpeg` alike, made no progress and logged no error until they were stopped with SIGTERM (`README.md`, `stall_check.txt`; "A network read without a time limit" in `docs/PHASE1_DECISIONS_PENDING.md`). The two steps were rerun on their own (below).
+- The program it built from `a4692a2` has the SHA-256 `217cc2948bf361aa11a37f4aea467ffe1caa30ab251943ba18b72c55005c6f10`, which no earlier run's `build.txt` names. It reproduces exactly the scores of the other runs it reran that were made after D-016, by the builds `420b8776…` (`diag-after-300`, `color-cases-after`), `2220ce3a…` (`format-cases-d022`), `3633c43e…` (`scalers-300`, `models-300`, `acceptance-full`), `85535c5c…` (`defaults-300`), `7fb455e9…` (`align-cases-d028`) and `eab1651c…` (`ladder-300`). The ones built from `e8b867f`, `d993686` and `83c8ed6` have the SHA-256s of the runs they reran.
+- `run_all.md` gives 6912.5 s of wall time, the four builds included; it counts only the time the machine was awake (`README.md`).
+
+## The rerun of defaults-full and its pooling, 2026-10-26
+
+`run_all/2026-10-26-defaults-full/` keeps the record of `eval/run_all.sh <out_dir> --only defaults-full,pooling-defaults-full --jobs 4`, made from a new clean worktree of `1f7d42d`, the commit of the record above, with no program given, the same files as `2026-10-23-full/` (P-065): the two steps that the machine's sleep cut short in the rerun above.
+
+- Everything compared is as committed (`rerun_check.md`): every pair's verdict, all 53946 per-frame scores of every pair on Mirage's side at full precision, every libvmaf metric of FFmpeg's logs, and every pooling series.
+- The program it built from `1f7d42d` has the SHA-256 of the one the rerun above built from `a4692a2`, `217cc2948bf361aa11a37f4aea467ffe1caa30ab251943ba18b72c55005c6f10`; `consistency/defaults-full/build.txt` names another build, `9f04085f…`, whose scores it reproduces exactly.
+- It took 2719.8 s of wall time, the build included, of which 2666.9 s for `defaults-full` (`run_all.md`).

@@ -1,6 +1,6 @@
 # Phase 1: decisions pending for the owner
 
-What is still open for the owner after the decisions of 2026-10-23 (`docs/DECISIONS.md` D-020 to D-033) and their implementation: first, where the implementation departs from a decision's wording; then the questions D-020 left open, the plan D-032 asked for, what implementing the decisions left open, the agent's measurement and process choices P-033 to P-064, and the differences between the work order and the implementation (hard rule 4). The decisions are the owner's (hard rule 3 of the work order); every recommendation below is labeled as the agent's. Every number comes from a committed output, named next to it; where there is none, it says MEASUREMENT PENDING. The state of each section of Phase 1 is in `docs/PHASE1_STATUS.md`, and the statements the paper's method text has to make, with their evidence, in `docs/PAPER_METHOD_NOTES.md`.
+What is still open for the owner after the decisions of 2026-10-23 (`docs/DECISIONS.md` D-020 to D-033) and their implementation: first, where the implementation departs from a decision's wording; then the questions D-020 left open, the plan D-032 asked for, what implementing the decisions left open, the agent's measurement and process choices P-033 to P-065, and the differences between the work order and the implementation (hard rule 4). The decisions are the owner's (hard rule 3 of the work order); every recommendation below is labeled as the agent's. Every number comes from a committed output, named next to it; where there is none, it says MEASUREMENT PENDING. The state of each section of Phase 1 is in `docs/PHASE1_STATUS.md`, and the statements the paper's method text has to make, with their evidence, in `docs/PAPER_METHOD_NOTES.md`.
 
 The packages decided on 2026-10-23 are kept at the end, in "Decided on 2026-10-23 (D-020 to D-033)", with the text they had when they were decided, as the record of their options, and a note at the start of each on what was decided and where the work is.
 
@@ -304,6 +304,8 @@ The player's VMAF ladder analysis (`VMAFAnalyzer::start_manifest()`, from the "M
 
 **What happened.** In the rerun of every step at `61241e2` the machine went to sleep with its lid closed while the last two pairs of `defaults-full` were being scored, and their inputs lost Apple's CDN (`eval/run_all/2026-10-24-full/README.md`, `power_log.txt`). Three of the four scoring processes of those pairs logged TLS reads that timed out and a host name that didn't resolve, skipped the segments they couldn't open and ran to their ends. The fourth, the `mirage_vmaf` of `gear2_vs_gear5`, logged no error: its stderr log has no line with "error", "fail" or "timed out". The workflow stopped it with SIGTERM, and it exited with status -15 after 5801.1 s of the time the machine was awake (`logs/defaults-full_plain.log` of that record; P-062). Whether it was waiting on a read then is in no committed file; the code and FFmpeg's defaults below are why it could have been.
 
+**And again.** In the rerun of every step at `a4692a2` the machine went to sleep with its lid closed while the same two pairs were being scored (`eval/run_all/2026-10-26-fix/README.md`, `power_log.txt`; P-065). This time none of their four scoring processes, `mirage_vmaf` and `ffmpeg` alike, logged an error or skipped a segment. Their stderr logs were last written at the sleep, and after the machine woke each used 0.05 s of CPU time in 120 s (`stall_check.txt`): they made no progress until they were stopped with SIGTERM. What they were waiting on is in no committed file; the code and FFmpeg's defaults below are why a read could wait that long.
+
 **Today.**
 
 - The analyzer opens each input with `avformat_open_input()` without options and without an interrupt callback (`DecodeCtx::open` in `src/VMAFAnalyzer.cpp`), and `src/VMAFLadder.cpp` reads a master playlist with `avio_open2()` without options.
@@ -366,9 +368,9 @@ The agent doesn't amend commits, so these messages stay as they were written; `d
 
 D-024's full-length §5 report with bicubic passes over every frame of the four pairs (`eval/consistency/defaults-full/`, P-059). D-027's rationale gives how far the three percentile definitions differ from runs with bilinear: at most 0.000276 over every frame and 0.093440 over 300 frames. With the defaults they differ by at most 0.001160 over every frame and 0.083044 over 300 frames, gear2's p1 in both (`eval/pooling/defaults-full/pooling.md`, `eval/pooling/defaults-300/pooling.md`). With the defaults too the minimum is the first frame's score in every series over every frame (`eval/pooling/defaults-full/pooling.md`). D-027 is the owner's and unchanged.
 
-## The agent's process choices to confirm: P-033 to P-064
+## The agent's process choices to confirm: P-033 to P-065
 
-D-033 confirmed P-006 to P-032 (listed in the decided section below). The measurement and process choices made in implementing D-020 to D-033 are P-033 to P-064 in `docs/DECISIONS.md`, each pending the owner's confirmation; where one leaves a question open, the question is above. The alternatives worth a look, as each entry lists them:
+D-033 confirmed P-006 to P-032 (listed in the decided section below). The measurement and process choices made in implementing D-020 to D-033 are P-033 to P-065 in `docs/DECISIONS.md`, each pending the owner's confirmation; where one leaves a question open, the question is above. The alternatives worth a look, as each entry lists them:
 
 | Entries | What | Alternatives worth a look | Open question above |
 |---|---|---|---|
@@ -400,6 +402,7 @@ D-033 confirmed P-006 to P-032 (listed in the decided section below). The measur
 | P-062 | the rerun of every step at `61241e2`, which the machine's sleep cut short: its record with the failed run's reports, logs and the machine's sleep and wake events; a scoring process stopped before the 6 h limit; its two unfinished steps rerun on their own | the whole rerun again; only the usual files of the record; the process left to the 6 h limit | "A network read without a time limit" |
 | P-063 | a reference whose frames change size ends the analysis with an error, in `mirage_vmaf` and the player | converting such frames to the first size, with a warning; a libvmaf context for each size | "A reference whose frames change size" |
 | P-064 | `run.cmd.txt` names the options its command line gave, besides every option the run had | the arguments with their values; the same line in `delta.json` | |
+| P-065 | the records after the review fixes: the unit tests at `a4692a2`, and a rerun of every step at `a4692a2`, which the machine's sleep cut short, committed with the failed run's reports, logs, sleep and wake events and the stalled processes' CPU times; its two unfinished steps rerun on their own | the whole rerun again; the processes left to the 6 h limit | "A network read without a time limit" |
 
 **Agent's recommendation**: confirm them all, with the open questions above decided as recommended there.
 
@@ -749,7 +752,7 @@ Nothing has been built or run on Linux, so whether the code compiles there, whic
 
 ### Process choices P-006 to P-032
 
-**Decided**: D-033 confirmed P-006 to P-032 as their entries state them. The choices made since then are P-033 to P-064 ("The agent's process choices to confirm" above). The rest of this package is the list as it was.
+**Decided**: D-033 confirmed P-006 to P-032 as their entries state them. The choices made since then are P-033 to P-065 ("The agent's process choices to confirm" above). The rest of this package is the list as it was.
 
 P-006 to P-032 in `docs/DECISIONS.md` are the agent's measurement and process choices of Phase 1, each pending the owner's confirmation. The alternatives the agent pointed out for each, as its entry lists them:
 
