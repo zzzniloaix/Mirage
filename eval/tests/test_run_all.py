@@ -102,7 +102,9 @@ class StepsAgainstTheCommittedRuns(unittest.TestCase):
                     expected = as_options(recorded_options(path, s.kind))
                     mine = [o.replace("{clips}", "<tmp>/clips")
                             .replace("{format_clips}", "<tmp>/format_clips")
-                            .replace("{align_clips}", "<tmp>/align_clips") for o in run.options]
+                            .replace("{align_clips}", "<tmp>/align_clips")
+                            .replace("{negotiation_clips}", "<tmp>/negotiation_clips")
+                            for o in run.options]
                     self.assertEqual(as_options(ra.expand(mine, fake)), expected)
 
     def test_every_delta_run_names_its_scaler_and_model(self):
@@ -206,18 +208,21 @@ class StepsAgainstTheCommittedRuns(unittest.TestCase):
 
     def test_clips_steps_and_their_sets(self):
         clips = {s.name: s for s in ra.STEPS if s.kind == "clips"}
-        self.assertEqual(set(clips), {"clips", "format-clips", "align-clips"})
+        self.assertEqual(set(clips), {"clips", "format-clips", "align-clips", "negotiation-clips"})
         self.assertEqual(clips["clips"].options, ())
         self.assertEqual(clips["format-clips"].options, ("--set", "formats"))
+        self.assertEqual(clips["negotiation-clips"].options, ("--set", "negotiation"))
         self.assertEqual({s.script for s in clips.values()},
                          {"eval/consistency/color_cases.py", "eval/consistency/align_cases.py"})
         self.assertEqual(clips["align-clips"].script, "eval/consistency/align_cases.py")
         fake = mock.Mock(out="/o", args=mock.Mock(model_dir="/m"))
         self.assertEqual(ra.expand(["{clips}/pairs.txt", "{format_clips}/pairs.txt",
-                                    "{align_clips}/pairs.txt"], fake),
+                                    "{align_clips}/pairs.txt", "{negotiation_clips}/pairs.txt"],
+                                   fake),
                          ["/o/consistency/clips/pairs.txt",
                           "/o/consistency/format_clips/pairs.txt",
-                          "/o/consistency/align_clips/pairs.txt"])
+                          "/o/consistency/align_clips/pairs.txt",
+                          "/o/consistency/negotiation_clips/pairs.txt"])
 
     def test_a_full_length_run_has_no_frame_limit(self):
         self.assertNotIn("--frames", ra.delta_options(None))

@@ -20,6 +20,9 @@ in this order:
                          compared with eval/consistency/format-cases-before/clips.txt
   align-clips            consistency/align_clips/: eval/consistency/align_cases.py,
                          compared with eval/consistency/align-cases-before/clips.txt
+  negotiation-clips      consistency/negotiation_clips/: color_cases.py --set
+                         negotiation, compared with
+                         eval/consistency/negotiation-cases/clips.txt
   diag-before-300        consistency/diag-before-300/{plain,relabel}/
   color-cases-before     consistency/color-cases-before/{main,refused}/
   format-cases-before    consistency/format-cases-before/{main,refused}/
@@ -27,6 +30,8 @@ in this order:
   color-cases-after      consistency/color-cases-after/{main,refused}/
   format-cases-after     consistency/format-cases-after/{main,refused}/
   format-cases-d022      consistency/format-cases-d022/{main,refused}/
+  negotiation-cases      consistency/negotiation-cases/main/: where FFmpeg's
+                         negotiation changes the distorted frames' color (D-035)
   scalers-300            consistency/scalers-300/{bilinear,bicubic,lanczos}/ and
                          scaler_effect.*
   models-300             consistency/models-300/{vmaf_v0.6.1,...}/ and model_effect.*
@@ -165,9 +170,9 @@ LADDER = ("https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_1
           "bipbop_16x9_variant.m3u8")
 
 # One run_delta.sh run of a step: its directory and options. In the options,
-# {clips}, {format_clips} and {align_clips} are the clips directories of the
-# clips, format-clips and align-clips steps, and {model_dir} the libvmaf
-# model directory.
+# {clips}, {format_clips}, {align_clips} and {negotiation_clips} are the clips
+# directories of the clips, format-clips, align-clips and negotiation-clips
+# steps, and {model_dir} the libvmaf model directory.
 Run = collections.namedtuple("Run", "name options")
 
 
@@ -214,6 +219,8 @@ STEPS = (
          out="consistency/format_clips", options=["--set", "formats"]),
     step("align-clips", "clips", committed="consistency/align-cases-before/clips.txt",
          out="consistency/align_clips", script="eval/consistency/align_cases.py"),
+    step("negotiation-clips", "clips", committed="consistency/negotiation-cases/clips.txt",
+         out="consistency/negotiation_clips", options=["--set", "negotiation"]),
     step("diag-before-300", "delta", "before", committed="consistency/diag-before-300", runs=[
         Run("plain", delta_options(300)),
         Run("relabel", delta_options(300, relabel=True))]),
@@ -239,6 +246,10 @@ STEPS = (
          committed="consistency/format-cases-d022", runs=[
              Run("main", delta_options(10, pairs="{format_clips}/pairs.txt")),
              Run("refused", delta_options(10, pairs="{format_clips}/pairs_refused.txt"))]),
+    step("negotiation-cases", "delta", "head", needs=["negotiation-clips"],
+         committed="consistency/negotiation-cases", runs=[
+             Run("main", delta_options(10, pairs="{negotiation_clips}/pairs.txt",
+                                       scaler="bicubic"))]),
     step("scalers-300", "delta", "head", committed="consistency/scalers-300",
          effect=("scaler_effect", "bilinear"), runs=[
              Run(s, delta_options(300, scaler=s)) for s in ("bilinear", "bicubic", "lanczos")]),
@@ -607,7 +618,7 @@ def python(script):
 
 def expand(options, r):
     clips = {name: os.path.join(r.out, "consistency", name)
-             for name in ("clips", "format_clips", "align_clips")}
+             for name in ("clips", "format_clips", "align_clips", "negotiation_clips")}
     return [o.format(model_dir=r.args.model_dir, **clips) for o in options]
 
 
