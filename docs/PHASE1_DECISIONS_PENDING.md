@@ -1,6 +1,6 @@
 # Phase 1: decisions pending for the owner
 
-What is still open for the owner after the decisions of 2026-10-23 (`docs/DECISIONS.md` D-020 to D-033) and their implementation: first, where the implementation departs from a decision's wording; then the questions D-020 left open, the plan D-032 asked for, what implementing the decisions left open, the agent's measurement and process choices P-033 to P-062, and the differences between the work order and the implementation (hard rule 4). The decisions are the owner's (hard rule 3 of the work order); every recommendation below is labeled as the agent's. Every number comes from a committed output, named next to it; where there is none, it says MEASUREMENT PENDING. The state of each section of Phase 1 is in `docs/PHASE1_STATUS.md`, and the statements the paper's method text has to make, with their evidence, in `docs/PAPER_METHOD_NOTES.md`.
+What is still open for the owner after the decisions of 2026-10-23 (`docs/DECISIONS.md` D-020 to D-033) and their implementation: first, where the implementation departs from a decision's wording; then the questions D-020 left open, the plan D-032 asked for, what implementing the decisions left open, the agent's measurement and process choices P-033 to P-064, and the differences between the work order and the implementation (hard rule 4). The decisions are the owner's (hard rule 3 of the work order); every recommendation below is labeled as the agent's. Every number comes from a committed output, named next to it; where there is none, it says MEASUREMENT PENDING. The state of each section of Phase 1 is in `docs/PHASE1_STATUS.md`, and the statements the paper's method text has to make, with their evidence, in `docs/PAPER_METHOD_NOTES.md`.
 
 The packages decided on 2026-10-23 are kept at the end, in "Decided on 2026-10-23 (D-020 to D-033)", with the text they had when they were decided, as the record of their options, and a note at the start of each on what was decided and where the work is.
 
@@ -326,6 +326,20 @@ A limit changes no score of a run whose reads succeed. Where a read fails, the p
 
 **Agent's recommendation.** Option 2, with the player's values: it turns a stall into a failure that the report and the §5 check show, and makes the player's cancel prompt. It changes the analyzer the player shares, so it waits for the owner (D-007).
 
+### A reference whose frames change size (P-063)
+
+**Question.** The decisions don't cover a reference whose frames change size midway. Until `8d14316` the analyzer scored such a pair without an error or a warning: a yuv420p reference's frames of another size were copied with the first size's geometry, and a reference in another pixel format was converted back to the first size (read from the code). What should it do?
+
+**Today** (`src/VMAFAnalyzer.cpp`; the test "a reference whose frames change size is an error" in `tests/test_vmaf_analyzer.cpp`): the analysis ends with an error that names both sizes and the reference frame's position in its input, so `mirage_vmaf` writes no report and exits with status 1 (P-006), and the player's VMAF panels show the error as they show the analyzer's other errors (not seen on screen). The check is made on decoded frames, so no decoding changes, nor anything for a reference whose size stays the same. A distorted input whose frames change size is scaled frame by frame to the reference's size, as before. FFmpeg's libvmaf filter takes inputs of one size only (`eval/consistency/ffmpeg-libvmaf-filter/checks.txt`, check 4). No committed run has an input whose size changes, and what FFmpeg's §5 graph does with one is not measured in a committed run (MEASUREMENT PENDING).
+
+**Options.**
+
+1. As today: an error.
+2. Each reference frame of another size converted to the first size, as D-022's conversion did for references in other pixel formats, with a warning.
+3. Each run of frames of one size scored in a libvmaf context of its own, at that size, with the distorted frames scaled to it, and the sizes recorded in the report.
+
+**Agent's recommendation.** Option 1: FFmpeg has no score to match for such a pair, and an error can't pass for a complete report.
+
 ### CLAUDE.md's build notes (for information)
 
 `CLAUDE.md` still says that glad2 and miniaudio are fetched at configure time, and has a note on installing jinja2 for glad. Since D-031 glad isn't fetched and the build runs no Python. The file is the owner's and wasn't edited.
@@ -338,9 +352,9 @@ A limit changes no score of a run whose reads succeed. Where a read fails, the p
 
 D-024's full-length §5 report with bicubic passes over every frame of the four pairs (`eval/consistency/defaults-full/`, P-059). D-027's rationale gives how far the three percentile definitions differ from runs with bilinear: at most 0.000276 over every frame and 0.093440 over 300 frames. With the defaults they differ by at most 0.001160 over every frame and 0.083044 over 300 frames, gear2's p1 in both (`eval/pooling/defaults-full/pooling.md`, `eval/pooling/defaults-300/pooling.md`). With the defaults too the minimum is the first frame's score in every series over every frame (`eval/pooling/defaults-full/pooling.md`). D-027 is the owner's and unchanged.
 
-## The agent's process choices to confirm: P-033 to P-062
+## The agent's process choices to confirm: P-033 to P-064
 
-D-033 confirmed P-006 to P-032 (listed in the decided section below). The measurement and process choices made in implementing D-020 to D-033 are P-033 to P-062 in `docs/DECISIONS.md`, each pending the owner's confirmation; where one leaves a question open, the question is above. The alternatives worth a look, as each entry lists them:
+D-033 confirmed P-006 to P-032 (listed in the decided section below). The measurement and process choices made in implementing D-020 to D-033 are P-033 to P-064 in `docs/DECISIONS.md`, each pending the owner's confirmation; where one leaves a question open, the question is above. The alternatives worth a look, as each entry lists them:
 
 | Entries | What | Alternatives worth a look | Open question above |
 |---|---|---|---|
@@ -370,6 +384,8 @@ D-033 confirmed P-006 to P-032 (listed in the decided section below). The measur
 | P-060 | the records at the end of the round: the unit tests at `12715a6`, and a rerun of every step of `eval/run_all.sh` | `--skip-full`; the unit tests in a clean worktree | |
 | P-061 | information for D-011: eight candidate clips examined without downloading them | other sources; downloading the clips | "D-011" |
 | P-062 | the rerun of every step at `61241e2`, which the machine's sleep cut short: its record with the failed run's reports, logs and the machine's sleep and wake events; the stalled process stopped; its two unfinished steps rerun on their own | the whole rerun again; only the usual files of the record; the stalled process left to the 6 h limit | "A network read without a time limit" |
+| P-063 | a reference whose frames change size ends the analysis with an error, in `mirage_vmaf` and the player | converting such frames to the first size, with a warning; a libvmaf context for each size | "A reference whose frames change size" |
+| P-064 | `run.cmd.txt` names the options its command line gave, besides every option the run had | the arguments with their values; the same line in `delta.json` | |
 
 **Agent's recommendation**: confirm them all, with the open questions above decided as recommended there.
 
@@ -719,7 +735,7 @@ Nothing has been built or run on Linux, so whether the code compiles there, whic
 
 ### Process choices P-006 to P-032
 
-**Decided**: D-033 confirmed P-006 to P-032 as their entries state them. The choices made in implementing D-020 to D-033 are P-033 to P-062 ("The agent's process choices to confirm" above). The rest of this package is the list as it was.
+**Decided**: D-033 confirmed P-006 to P-032 as their entries state them. The choices made since then are P-033 to P-064 ("The agent's process choices to confirm" above). The rest of this package is the list as it was.
 
 P-006 to P-032 in `docs/DECISIONS.md` are the agent's measurement and process choices of Phase 1, each pending the owner's confirmation. The alternatives the agent pointed out for each, as its entry lists them:
 

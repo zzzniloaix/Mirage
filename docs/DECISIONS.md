@@ -1598,3 +1598,35 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: agent (Claude)
 - **Date**: 2026-10-24
 - **Status**: pending owner confirmation
+
+### P-063 A reference whose frames change size is not scored
+
+- **Choice**
+  - The analyzer that the player and `mirage_vmaf` share ends the analysis with an error when the reference frame of a pair has another size than the one the reference's decoder had when it was opened, the size every pair is scored at (`score_pair()` in `src/VMAFAnalyzer.cpp`). The error names both sizes and the reference frame's position in its input. `mirage_vmaf` then writes no report and exits with status 1 (P-006), and the player's VMAF panels get the error as they get the analyzer's other errors (not seen on screen). `mirage_vmaf --help` says so.
+  - Before, read from the code: a yuv420p reference's frames of another size went through `sws_scale()` with the context made for the first size, the decoder's current height as the slice height; a reference in another pixel format was converted back to the first size by D-022's conversion; either way without an error or a warning.
+  - A distorted input whose frames change size is scaled frame by frame to the reference's size, as before (`vmafcolor::convert()`).
+  - `tests/test_vmaf_analyzer.cpp` writes MPEG-TS clips whose MPEG-2 stream changes size midway, in yuv420p and in yuv422p (D-022's conversion), with MPEG-2's low-delay flag so that FFmpeg's decoder keeps the frame before the change. It checks the error, that the frames before the change are scored with a frame limit that stops there, and that a distorted input whose size changes is scored without a failure.
+- **Alternatives**
+  - Converting each reference frame of another size to the first size, as D-022's conversion did for references in other pixel formats.
+  - Scoring each run of frames of one size in a libvmaf context of its own, at that size, with the distorted frames scaled to it.
+  - A warning instead of an error; the size of the reference's first decoded frame instead of the decoder's when it was opened.
+- **Rationale**
+  - The decisions don't cover a reference whose size changes. FFmpeg's libvmaf filter takes inputs of one size only (`input width must match`, `eval/consistency/ffmpeg-libvmaf-filter/checks.txt`, check 4), so FFmpeg has no score for such pairs to match, and the copy of a yuv420p reference read frames of another size with the first size's geometry.
+  - An error leaves no report that could pass for a complete one (P-006), and changes nothing for a reference whose size stays the same.
+- **Limits**: no committed run has an input whose size changes; what FFmpeg's §5 graph does with such a reference, or with such a distorted input, is not measured in a committed run (MEASUREMENT PENDING).
+- **Who**: agent (Claude)
+- **Date**: 2026-10-26
+- **Status**: pending owner confirmation
+
+### P-064 run.cmd.txt names the options its command line gave
+
+- **Choice**: `eval/consistency/run_delta.py` and `ladder_check.py` write, before a run's command in `run.cmd.txt`, a comment line with the options the run's command line gave, by their long names, in the order given (`given_options()`: the arguments parsed again with every default suppressed, so that an abbreviation or `--name=value` counts as the option it names). The command keeps every option the run had, the defaults included, which `eval/run_all.sh` reads. Runs made before this change, `defaults-300/` and `defaults-full/` among them, have no such line; their command blocks in `eval/consistency/README.md` are the commands as the agent gave them.
+- **Alternatives**
+  - The arguments as given, with their values, each local path replaced by its placeholder (P-011) again.
+  - The command with every option only, as before.
+  - The same line in the run's `delta.json` as well.
+- **Rationale**
+  - A run made to show the tool's defaults, such as `defaults-300/` (P-041) and `defaults-full/` (P-059), has `--scaler bicubic --model vmaf_v0.6.1` in its `run.cmd.txt` whether or not they were typed, so no committed output says that the defaults were used without naming them. The names of the options given say it without repeating the values the command has, and without paths.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-26
+- **Status**: pending owner confirmation
