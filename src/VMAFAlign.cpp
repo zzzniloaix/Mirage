@@ -134,7 +134,8 @@ int64_t Aligner::ticks(const Side& s, int64_t timestamp) const
 void Aligner::push(Input in, int64_t timestamp)
 {
     Side& s = side(in);
-    Entry e{ .index = s.next_index++, .timestamp = timestamp, .t = 0, .repeats = false };
+    Entry e{ .index = s.next_index++, .timestamp = timestamp, .t = 0, .repeats = false,
+             .seq = s.seq };
     if (timestamp != kNoTimestamp && ok()) {
         if (!s.has_start) {
             s.has_start = true;
@@ -144,8 +145,13 @@ void Aligner::push(Input in, int64_t timestamp)
         if (s.has_last) {
             e.repeats = e.t == s.last_t;
             if (e.t < s.last_t || e.t - s.last_t > jump_) {
+                // The input's next discontinuity sequence, measured from this
+                // frame (D-046).
                 ++counts_.discontinuities;
-                stopped_ = true;
+                e.seq = ++s.seq;
+                s.start   = timestamp;
+                e.t       = 0;
+                e.repeats = false;
             }
         }
         s.has_last = true;
@@ -166,6 +172,16 @@ void Aligner::fail(Input in, const Entry& e, Reason r)
     case Reason::NoTimestamp:        ++counts_.no_timestamp;        break;
     case Reason::AfterDiscontinuity: ++counts_.after_discontinuity; break;
     }
+}
+
+bool Aligner::has_frame(const Side& s) const
+{
+    return !s.queue.empty() && s.queue.front().seq == seq_;
+}
+
+bool Aligner::done_with_sequence(const Side& s) const
+{
+    return s.queue.empty() ? s.ended : s.queue.front().seq > seq_;
 }
 
 Step Aligner::drop(Input in)
@@ -249,21 +265,6 @@ Step Aligner::next()
     using K = Step::Kind;
     if (!ok()) return {};
 
-    if (stopped_) {
-        // Pairing stopped at a discontinuity: whatever isn't paired or
-        // counted yet fails, and so does every frame still to come.
-        for (const Entry& e : pending_) fail(other(grid_), e, Reason::AfterDiscontinuity);
-        pending_.clear();
-        for (Input in : { Input::Reference, Input::Distorted }) {
-            if (side(in).queue.empty()) continue;
-            fail(in, side(in).queue.front(), Reason::AfterDiscontinuity);
-            return drop(in);
-        }
-        if (!ref_.ended) return { .kind = K::NeedReference };
-        if (!dis_.ended) return { .kind = K::NeedDistorted };
-        return { .kind = K::Done };
-    }
-
     // A frame without a timestamp is dropped once it is at the head of its queue.
     for (Input in : { Input::Reference, Input::Distorted }) {
         const std::deque<Entry>& q = side(in).queue;
@@ -279,20 +280,28 @@ Step Aligner::next()
     Side& g = side(g_in);
     Side& o = side(o_in);
 
-    if (g.queue.empty()) {
-        if (!g.ended) return { .kind = need_g };
-        // The grid input has ended: the rest of the other input pairs with nothing.
-        if (!o.queue.empty()) {
+    if (!has_frame(g)) {
+        if (!done_with_sequence(g)) return { .kind = need_g };
+        // The grid input has no more frames in this sequence: the rest of the
+        // other input's pair with nothing.
+        if (has_frame(o)) {
             pending_.push_back(o.queue.front());
             return drop(o_in);
         }
-        if (!o.ended) return { .kind = need_o };
+        if (!done_with_sequence(o)) return { .kind = need_o };
         close_interval(prev_grid_, std::nullopt);
-        return { .kind = K::Done };
+        if (g.queue.empty() && o.queue.empty()) return { .kind = K::Done };   // both ended
+        // Both go on to the next sequence either has (D-046), in a new libvmaf
+        // context.
+        seq_ = std::min(g.queue.empty() ? INT64_MAX : g.queue.front().seq,
+                        o.queue.empty() ? INT64_MAX : o.queue.front().seq);
+        prev_grid_.reset();
+        gap_ = true;
+        return next();
     }
     const Entry gf = g.queue.front();
-    if (o.queue.empty()) {
-        if (!o.ended) return { .kind = need_o };
+    if (!has_frame(o)) {
+        if (!done_with_sequence(o)) return { .kind = need_o };
         unpaired_grid_frame(gf);
         return drop(g_in);
     }
@@ -310,7 +319,8 @@ Step Aligner::next()
         if (o.queue.size() < 2 && !o.ended) return { .kind = need_o };
         if (o.queue.size() >= 2) {
             const Entry& later = o.queue[1];
-            if (later.timestamp != kNoTimestamp && std::abs(later.t - gf.t) < gf.t - of.t) {
+            if (later.seq == seq_ && later.timestamp != kNoTimestamp &&
+                std::abs(later.t - gf.t) < gf.t - of.t) {
                 pending_.push_back(of);
                 return drop(o_in);
             }

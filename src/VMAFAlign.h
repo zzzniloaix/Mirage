@@ -53,17 +53,26 @@
 //   between two points, as every other frame of an input at twice the
 //   other's rate is, counts for neither.
 // - A frame without a timestamp can't be placed: it is a failure, dropped.
-// - Discontinuities. A frame whose time is lower than that of its input's
-//   previous timestamped frame, or higher by more than kForwardJump, is a
-//   discontinuity of its input. At the first, in either input, pairing
-//   stops: every frame of either input that isn't paired or counted yet
-//   counts as failed, those still to come included (D-028, the plan's
-//   option (a)).
+// - Discontinuities (DECISIONS.md D-046). A frame whose time is lower than
+//   that of its input's previous timestamped frame, or higher by more than
+//   kForwardJump, is a discontinuity of its input, and starts the input's
+//   next discontinuity sequence, whose times are measured from that frame.
+//   The k-th sequence of the reference is paired with the k-th of the
+//   distorted input, by the rules above: once one input's next frame is in a
+//   later sequence, or it has ended, the other input's frames of the
+//   current sequence pair with nothing; then both go on to the next
+//   sequence either has. A sequence only one input has pairs with nothing.
+//   (D-028's option (a), which stopped pairing at the first discontinuity
+//   and counted the rest as failed, is the rule until D-046.) FFmpeg's hls
+//   demuxer gives each segment's own timestamps, unchanged at an
+//   EXT-X-DISCONTINUITY (docs/PHASE2_SURVEY.md, M5), so a sequence starts
+//   where they jump; where they go on across the tag, it needs none.
 // - libvmaf contexts. A pair before which a reference frame that counts as a
-//   failure was dropped since the previous pair starts a new libvmaf
-//   context (Step::new_context), so that no motion feature spans the gap.
-//   Reference frames off the grid start none: on the distorted input's
-//   coarser grid, the reference frames libvmaf gets are those of the grid.
+//   failure was dropped since the previous pair, and the first pair of every
+//   discontinuity sequence but the first, starts a new libvmaf context
+//   (Step::new_context), so that no motion feature spans the gap. Reference
+//   frames off the grid start none: on the distorted input's coarser grid,
+//   the reference frames libvmaf gets are those of the grid.
 // - The failure rate: failed / (paired + failed), the failures being the
 //   unmatched reference frames, the extra and duplicate distorted frames,
 //   the frames without a timestamp and those counted once pairing stopped.
@@ -114,7 +123,7 @@ enum class Reason {
     ExtraDistorted,       // a distorted frame that paired with no reference frame
     DuplicateDistorted,   // a distorted frame with the timestamp of the one before it
     NoTimestamp,          // a frame without a timestamp
-    AfterDiscontinuity,   // a frame not paired or counted yet when pairing stopped
+    AfterDiscontinuity,   // before D-046: a frame not paired or counted yet when pairing stopped
 };
 
 // "unmatched_reference", "extra_distorted", ... as the report names them.
@@ -136,7 +145,7 @@ struct Counts {
     int64_t after_discontinuity = 0;
     int64_t off_grid_reference  = 0;   // skipped by the coarser grid; not failures
     int64_t off_grid_distorted  = 0;
-    int64_t discontinuities     = 0;   // every one found, also after pairing stopped
+    int64_t discontinuities     = 0;   // every one found, in either input
 
     int64_t failed() const;
     double  failure_rate() const;      // failed / (paired + failed); NaN when both are 0
@@ -197,6 +206,7 @@ private:
         int64_t timestamp;   // as given
         int64_t t;           // ticks from the input's start; valid when timestamp != kNoTimestamp
         bool    repeats;     // the timestamp of the input's previous timestamped frame
+        int64_t seq;         // its input's discontinuity sequence, from 0 (D-046)
     };
     struct Side {
         Clock             clock;
@@ -207,6 +217,7 @@ private:
         int64_t           start      = 0;      // in clock.time_base
         bool              has_last   = false;
         int64_t           last_t     = 0;      // ticks of its last timestamped frame
+        int64_t           seq        = 0;      // the discontinuity sequence of its last frame
     };
 
     Side&       side(Input in) { return in == Input::Reference ? ref_ : dis_; }
@@ -220,6 +231,10 @@ private:
     void    unpaired_grid_frame(const Entry& g);
     void    close_interval(std::optional<int64_t> left, std::optional<int64_t> right);
     Step    drop(Input in);
+    // Whether `s` has a frame of the current sequence at its queue's head, and
+    // whether it has none to come: its head is in a later sequence, or it ended.
+    bool    has_frame(const Side& s) const;
+    bool    done_with_sequence(const Side& s) const;
 
     Side    ref_, dis_;
     Input   grid_        = Input::Reference;
@@ -229,7 +244,7 @@ private:
     int64_t tol_         = 0;         // the tolerance, in ticks
     int64_t grid_dur_    = 0;         // the grid input's frame duration, in ticks
     int64_t jump_        = 0;         // kForwardJump, in ticks
-    bool    stopped_     = false;     // a discontinuity was found
+    int64_t seq_         = 0;         // the discontinuity sequence being paired (D-046)
     bool    gap_         = false;     // a reference frame counted as failed since the last pair
     std::optional<int64_t> prev_grid_;    // the time of the grid input's last decided frame
     std::vector<Entry>     pending_;      // the other input's dropped frames since then

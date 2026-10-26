@@ -1256,7 +1256,8 @@ TEST_CASE("VMAFAnalyzer::analyze: a later start, measured from each input's star
     }
 }
 
-TEST_CASE("VMAFAnalyzer::analyze: MPEG-TS timestamps that restart midway stop the pairing", "[vmaf]")
+TEST_CASE("VMAFAnalyzer::analyze: MPEG-TS timestamps that restart midway, in one input or both",
+          "[vmaf]")
 {
     const std::string ts = make_ts_restart_clip("mirage_test_vmaf_restart.ts", 96, 54, 12, 6);
     const VMAFResult r = VMAFAnalyzer::analyze(ref_clip(), ts, { .record_pts = true });
@@ -1271,17 +1272,38 @@ TEST_CASE("VMAFAnalyzer::analyze: MPEG-TS timestamps that restart midway stop th
         CHECK(r.dis_index[k] == k);
         CHECK(std::abs(r.dis_pts[k] - r.alignment.dis_start - ms(k)) < 1e-9);
     }
-    // Then pairing stops, and the rest of both inputs counts as failed.
+    // The distorted input's second discontinuity sequence has no reference
+    // sequence to pair with, and the reference's other six frames no
+    // distorted frame of their sequence (D-046).
     CHECK(r.alignment.discontinuities == 1);
-    CHECK(r.alignment.after_discontinuity == 12);
+    CHECK(r.alignment.unmatched_reference == 6);
+    CHECK(r.alignment.extra_distorted == 6);
+    CHECK(r.alignment.after_discontinuity == 0);
     CHECK(r.alignment.failed == 12);
     CHECK(r.alignment.failure_rate == 12.0 / 18.0);
     CHECK(r.alignment.exceeded);
     CHECK(r.ref_info.ended);
     CHECK(r.dis_info.ended);
-    REQUIRE(r.alignment.failures.size() == 12);
-    for (const VMAFAlignmentFailure& f : r.alignment.failures) CHECK(f.reason == "after_discontinuity");
-    CHECK(r.alignment.warning.find("12 after a discontinuity") != std::string::npos);
+
+    // Both inputs restart at frame 6, as two rungs at an EXT-X-DISCONTINUITY:
+    // every frame pairs, each sequence in its own libvmaf context.
+    const std::string ref_ts = make_ts_restart_clip("mirage_test_vmaf_restart_ref.ts", 96, 54, 12, 6);
+    const VMAFResult both = VMAFAnalyzer::analyze(ref_ts, ts, { .record_pts = true });
+    REQUIRE(both.error.empty());
+    CHECK(both.per_frame.size() == 12);
+    CHECK(both.alignment.discontinuities == 2);
+    CHECK(both.alignment.failed == 0);
+    CHECK(both.alignment.contexts == std::vector<VMAFContextRun>{ { 0, 6 }, { 6, 6 } });
+    for (int k = 0; k < 12; ++k) {
+        INFO(k);
+        CHECK(both.ref_index[k] == k);
+        CHECK(both.dis_index[k] == k);
+    }
+    // D-037's second minimum leaves out pairs 0 and 6, the contexts' first.
+    double others = both.per_frame[1];
+    for (std::size_t i = 1; i < 12; ++i)
+        if (i != 6) others = std::min(others, both.per_frame[i]);
+    CHECK(both.pooled.min_without_context_first_frames == others);
 }
 
 TEST_CASE("VMAFAnalyzer::start: the player's analysis records the alignment and its warning", "[vmaf]")
