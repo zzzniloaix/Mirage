@@ -5,7 +5,7 @@
 - Surveyed: commit `d3a7a63` of `vmaf/phase-1`, Phase 1's work, which isn't merged yet; Phase 2 is the branch `vmaf/phase-2`, made from it
 - Written by: the agent (Claude), for the owner's review
 
-Every number here comes from a committed output or the code, named next to it; where there is none, it says MEASUREMENT PENDING. Nothing below is implemented yet.
+Every number here comes from a committed output or the code, named next to it; where there is none, it says MEASUREMENT PENDING. The owner's decisions on it are D-042 to D-049 in `docs/DECISIONS.md`; the text below is as the owner decided it, with the measurements added since.
 
 ## What §2 asks
 
@@ -43,7 +43,11 @@ The player's VMAF panel scores a manifest's variants with `VMAFAnalyzer::start_m
 - **M2**, one pair's peak memory and wall time: the Phase 1 program on pairs of the advanced sample, a 1080p reference against a 1080p and against a 270p playlist, the first frames only (`/usr/bin/time -l`). MEASUREMENT PENDING.
 - **M3**, the ladder before the pool: `mirage_vmaf --ladder` on the advanced sample with the Phase 1 program, one pair at a time, its wall time and peak memory, as the baseline the pool is compared with. MEASUREMENT PENDING.
 - **M4**, only if P2-3 chooses fewer libvmaf threads: whether libvmaf's thread count changes any score. MEASUREMENT PENDING.
-- **M5**, test streams with a discontinuity and with rungs whose segments differ, made by a script, as `eval/consistency/align_cases.py` makes the alignment cases: what FFmpeg's hls demuxer gives the analyzer at an `EXT-X-DISCONTINUITY`. MEASUREMENT PENDING.
+- **M5**, test streams with a discontinuity and with rungs whose segments differ, made by `eval/phase2-survey/m5_discontinuities.py`: what FFmpeg's hls demuxer gives the analyzer at an `EXT-X-DISCONTINUITY` (`eval/phase2-survey/m5/record.txt`, made with the release `mirage_vmaf` of `e5a34ea`). Two rungs, two periods of 30 frames each:
+  - FFmpeg's hls demuxer gives each segment's own timestamps, unchanged at the tag: where period B's timestamps start again, its first frame is at 1.433367, the time of period A's first; where they start 60 s later, at 61.400000 (ffprobe's frame times through the hls demuxer).
+  - At both, D-028's rule finds one discontinuity in each input and stops pairing: 30 pairs, and the 60 frames after the tag, 30 of each input, fail.
+  - Where period B's timestamps go on from period A's, the tag changes nothing: 60 pairs, no failure.
+  - Rungs whose segments differ, without a discontinuity: 30 pairs, no failure. P2-6 needs nothing more.
 
 ## Decisions needed from the owner
 
@@ -82,7 +86,7 @@ Agent's recommendation: 1, as it measures what the acceptance checks, with no de
 
 Agent's recommendation: 2, after M5 shows what the analyzer gets at a discontinuity. It changes D-028, which D-040 kept until real discontinuities are measured. FFmpeg's plain §5 graph pairs such inputs by its own rule, so §5 is expected to fail for them, as for the alignment cases (D-040; not measured).
 
-**P2-6. Rungs whose segments have different durations.** Nothing to decide, unless M5 shows timestamps that don't line up across such rungs; then it joins P2-5.
+**P2-6. Rungs whose segments have different durations.** Nothing to decide, unless M5 shows timestamps that don't line up across such rungs; then it joins P2-5. M5: they line up, every frame paired.
 
 **P2-7. A cancel, or a pair that fails.**
 1. `mirage_vmaf` stops on SIGINT or SIGTERM, or at a pair that fails; the pairs still running are stopped; it writes a report of the pairs that were complete, marked as cancelled or failed, with the pairs not scored listed, and exits with status 1.
