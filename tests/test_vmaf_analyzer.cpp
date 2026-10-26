@@ -8,8 +8,10 @@
 
 #include "FileHash.h"
 #include "ManifestParser.h"
+#include "SilentServer.h"
 #include "TestTemp.h"
 #include "VMAFAnalyzer.h"
+#include "VMAFNet.h"
 
 #include <algorithm>
 #include <chrono>
@@ -30,6 +32,7 @@ extern "C" {
 #include <libavformat/avformat.h>
 #include <libavutil/channel_layout.h>
 #include <libavutil/common.h>
+#include <libavutil/dict.h>
 #include <libavutil/imgutils.h>
 #include <libavutil/mem.h>
 #include <libavutil/pixdesc.h>
@@ -1287,4 +1290,63 @@ TEST_CASE("VMAFAnalyzer::start: the player's analysis records the alignment and 
     CHECK(r.alignment.exceeded);
     CHECK_FALSE(r.alignment.warning.empty());   // what the VMAF panel shows next to the label
     CHECK(r.ref_index.empty());                 // no PTS or indices recorded
+}
+
+// ── Network read limits (DECISIONS.md D-036) ─────────────────────────────────
+
+TEST_CASE("vmafnet: network URLs get the read limits, local inputs none", "[vmaf][vmafnet]")
+{
+    for (const char* url : { "http://example.com/a.m3u8", "https://example.com/a.m3u8",
+                             "rtmp://example.com/live", "rtsp://example.com/live" }) {
+        INFO(url);
+        CHECK(vmafnet::is_network_url(url));
+        AVDictionary* opts = nullptr;
+        vmafnet::set_io_limits(&opts, url);
+        const AVDictionaryEntry* timeout    = av_dict_get(opts, "timeout", nullptr, 0);
+        const AVDictionaryEntry* rw_timeout = av_dict_get(opts, "rw_timeout", nullptr, 0);
+        REQUIRE(timeout);
+        REQUIRE(rw_timeout);
+        CHECK(std::string(timeout->value) == "5000000");
+        CHECK(std::string(rw_timeout->value) == "5000000");
+        av_dict_free(&opts);
+    }
+    for (const char* url : { "clip.mkv", "file:clip.mkv", "dir/a.m3u8", "data:text/plain,x" }) {
+        INFO(url);
+        CHECK_FALSE(vmafnet::is_network_url(url));
+        AVDictionary* opts = nullptr;
+        vmafnet::set_io_limits(&opts, url);
+        CHECK(opts == nullptr);
+    }
+}
+
+TEST_CASE("VMAFAnalyzer: a network input whose server sends nothing fails at the read limit",
+          "[vmaf][vmafnet]")
+{
+    // The server would hold the connection for 30 s; the read gives up after 5 s.
+    SilentServer server;
+    REQUIRE(server.ok());
+    const auto t0 = std::chrono::steady_clock::now();
+    const VMAFResult r = VMAFAnalyzer::analyze(server.url("ref.m3u8"), server.url("dis.m3u8"));
+    const double s = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+    INFO(r.error << ", after " << s << " s");
+    CHECK(r.error.starts_with("cannot open reference"));
+    CHECK(server.accepted() >= 1);
+    CHECK(s >= 4.0);
+    CHECK(s < 15.0);
+}
+
+TEST_CASE("VMAFAnalyzer: cancel() interrupts a network read that waits", "[vmaf][vmafnet]")
+{
+    SilentServer server;
+    REQUIRE(server.ok());
+    VMAFAnalyzer analyzer;
+    analyzer.start(server.url("ref.m3u8"), server.url("dis.m3u8"));
+    REQUIRE(server.wait_accepted(1, std::chrono::seconds(3)));
+    const auto t0 = std::chrono::steady_clock::now();
+    analyzer.cancel();
+    const double s = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+    INFO("cancel() took " << s << " s");
+    // Well before the 5 s read limit: the interrupt callback ended the read.
+    CHECK(s < 2.0);
+    CHECK_FALSE(analyzer.running());
 }

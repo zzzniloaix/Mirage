@@ -4,6 +4,7 @@
 #include "Logger.h"
 #include "VMAFAlign.h"
 #include "VMAFColor.h"
+#include "VMAFNet.h"
 
 #include <algorithm>
 #include <cstring>
@@ -155,9 +156,21 @@ struct DecodeCtx {
     DecodeCtx(const DecodeCtx&)            = delete;
     DecodeCtx& operator=(const DecodeCtx&) = delete;
 
-    [[nodiscard]] bool open(const std::string& url)
+    // A network input's reads wait at most 5 s, and a stop requested on `st`
+    // interrupts a blocking call (src/VMAFNet.h, DECISIONS.md D-036). `st`
+    // must outlive the context: it is the interrupt callback's opaque.
+    [[nodiscard]] bool open(const std::string& url, const std::stop_token& st)
     {
-        if (avformat_open_input(&fmt_ctx, url.c_str(), nullptr, nullptr) < 0) return false;
+        fmt_ctx = avformat_alloc_context();
+        if (!fmt_ctx) return false;
+        fmt_ctx->interrupt_callback.callback = vmafnet::stop_requested;
+        fmt_ctx->interrupt_callback.opaque   = const_cast<std::stop_token*>(&st);
+        AVDictionary* opts = nullptr;
+        vmafnet::set_io_limits(&opts, url);
+        // On failure avformat_open_input frees fmt_ctx and nulls the pointer.
+        const int r = avformat_open_input(&fmt_ctx, url.c_str(), nullptr, &opts);
+        av_dict_free(&opts);
+        if (r < 0) return false;
         if (avformat_find_stream_info(fmt_ctx, nullptr) < 0) return false;
 
         const AVCodec* codec = nullptr;
@@ -361,9 +374,9 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
         logger::warn("VMAFAnalyzer: {}", msg);
     };
 
-    if (!ref_ctx.open(result.ref_url))
+    if (!ref_ctx.open(result.ref_url, st))
         return fail("cannot open reference: " + result.ref_url);
-    if (!dis_ctx.open(result.dis_url))
+    if (!dis_ctx.open(result.dis_url, st))
         return fail("cannot open distorted: " + result.dis_url);
 
     const int ref_w = ref_ctx.width();

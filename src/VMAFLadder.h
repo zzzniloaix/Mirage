@@ -150,8 +150,9 @@ struct Fetched {
 };
 
 // Reads the playlist at `url`, a path or any URL FFmpeg's avio opens, with
-// FFmpeg's default options, as the analyzer opens its inputs. Stops, with an
-// error, as soon as the text doesn't start with "#EXTM3U".
+// FFmpeg's default options but the analyzer's limits on a network read
+// (src/VMAFNet.h, D-036). Stops, with an error, as soon as the text doesn't
+// start with "#EXTM3U".
 Fetched read_master(const std::string& url);
 
 // A ladder run: the master, the plan and the pairs' results.

@@ -1,6 +1,7 @@
 #include "VMAFLadder.h"
 #include "FileHash.h"
 #include "HlsMaster.h"
+#include "VMAFNet.h"
 #include "VMAFReport.h"
 
 #include <algorithm>
@@ -263,7 +264,12 @@ Fetched read_master(const std::string& url)
     Fetched f;
     f.location = url;
     AVIOContext* ctx = nullptr;
-    if (const int r = avio_open2(&ctx, url.c_str(), AVIO_FLAG_READ, nullptr, nullptr); r < 0) {
+    // A network read waits at most 5 s, as the analyzer's (D-036).
+    AVDictionary* opts = nullptr;
+    vmafnet::set_io_limits(&opts, url);
+    const int r = avio_open2(&ctx, url.c_str(), AVIO_FLAG_READ, nullptr, &opts);
+    av_dict_free(&opts);
+    if (r < 0) {
         f.error = av_error_text(r);
         return f;
     }

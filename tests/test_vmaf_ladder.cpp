@@ -6,11 +6,13 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include "SilentServer.h"
 #include "TestTemp.h"
 #include "VMAFAnalyzer.h"
 #include "VMAFLadder.h"
 
 #include <algorithm>
+#include <chrono>
 #include <filesystem>
 #include <format>
 #include <fstream>
@@ -653,4 +655,22 @@ TEST_CASE("vmafladder::score: a model file that changes during the run ends it",
                                  "during the run?",
                                  copy.string(), after, before));
     fs::remove(copy);
+}
+
+TEST_CASE("vmafladder::read_master: a server that sends nothing fails at the read limit",
+          "[ladder][vmafnet]")
+{
+    // The server would hold the connection for 30 s; the read gives up after
+    // 5 s, the analyzer's limit (DECISIONS.md D-036).
+    SilentServer server;
+    REQUIRE(server.ok());
+    const auto t0 = std::chrono::steady_clock::now();
+    const vmafladder::Fetched f = vmafladder::read_master(server.url("master.m3u8"));
+    const double s = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+    INFO(f.error << ", after " << s << " s");
+    CHECK_FALSE(f.error.empty());
+    CHECK(f.text.empty());
+    CHECK(server.accepted() >= 1);
+    CHECK(s >= 4.0);
+    CHECK(s < 15.0);
 }
