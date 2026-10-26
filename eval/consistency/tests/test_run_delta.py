@@ -28,6 +28,19 @@ SAME = "fake:960x540:bt709"            # same tags as REF: FFmpeg converts nothi
 OTHER = "fake:640x360:smpte170m"       # other color_space: FFmpeg's stand-in converts it
 
 
+class GivenOptions(unittest.TestCase):
+    def test_the_options_given_by_their_long_names_in_the_order_given(self):
+        # An abbreviation and --name=value count as their option, and an
+        # option given twice once.
+        given = run_delta.given_options(run_delta.make_parser(), [
+            "m", "o", "--jo", "2", "--frames=4", "--diagnostic-relabel", "--jobs", "3"])
+        self.assertEqual(given, ["--jobs", "--frames", "--diagnostic-relabel"])
+        self.assertEqual(run_delta.given_options(run_delta.make_parser(), ["m", "o"]), [])
+        # The command line's defaults stay those of parse_args.
+        args = run_delta.parse_args(["m", "o"])
+        self.assertEqual((args.jobs, args.scaler, args.model), (1, "bicubic", "vmaf_v0.6.1"))
+
+
 class RunDelta(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -134,6 +147,9 @@ class RunDelta(unittest.TestCase):
                       cmd)
         self.assertIn("$ eval/consistency/run_delta.sh <mirage_vmaf> <out_dir> --frames 4 "
                       "--jobs 2 --pairs <tmp>", self.read("run.cmd.txt"))
+        # Which of the options of that command the command line gave.
+        self.assertIn("\n# Given on the command line: --pairs --ffmpeg --scaler --frames --jobs\n"
+                      "$ eval/consistency/run_delta.sh ", self.read("run.cmd.txt"))
         self.assertIn("csp:smpte170m range:tv sar:0/1 -> w:1920 h:1080",
                       self.read("other/ffmpeg_colorspace_lines.txt"))
         env = self.read("environment.txt")

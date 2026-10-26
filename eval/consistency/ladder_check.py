@@ -12,7 +12,8 @@ inputs), that both reports have the same settings and libraries
 that its report accounts for every entry of the master once: as the
 reference's, one pair's, or skipped. Writes into <out_dir>:
 
-  run.cmd.txt, pairs.txt  this run's command line and the pairs file it read
+  run.cmd.txt, pairs.txt  this run's command line, with every option and the
+                          options given on it, and the pairs file it read
   environment.txt         machine, mirage_vmaf, git state
   ladder/                 the ladder run: cmd.txt, mirage.json (its report),
                           mirage.stdout.txt, mirage.stderr.log.xz
@@ -70,7 +71,7 @@ RUN_KEYS = ("tool", "libvmaf_version", "libvmaf_package_version", "ffmpeg_librar
 ABSENT = object()   # a key a report doesn't have
 
 
-def parse_args(argv):
+def make_parser():
     p = argparse.ArgumentParser(
         prog="ladder_check.py",
         description="Check that mirage_vmaf --ladder gives each pair of a master playlist the "
@@ -100,6 +101,11 @@ def parse_args(argv):
                    help="mirage_vmaf processes run at the same time (default: 1)")
     p.add_argument("--timeout", type=rd.positive_int, default=rd.DEFAULT_TIMEOUT, metavar="S",
                    help=f"seconds after which a run is stopped (default: {rd.DEFAULT_TIMEOUT})")
+    return p
+
+
+def parse_args(argv):
+    p = make_parser()
     args = p.parse_args(argv)
     if args.model and args.model_file:
         p.error("--model and --model-file can't be given together")
@@ -412,6 +418,7 @@ def markdown(r):
 def main(argv=None):
     try:
         args = parse_args(argv)
+        given = rd.given_options(make_parser(), argv)
         check = Check(args)
     except rd.SetupError as e:
         print(f"ladder_check: {e}", file=sys.stderr)
@@ -436,7 +443,9 @@ def main(argv=None):
     check.write_text("run.cmd.txt",
                      "# The command of this eval/consistency/ladder_check.py run, from <repo>; "
                      "<mirage_vmaf> is the program of environment.txt, and <pairs>, if it "
-                     "appears, is the pairs file copied to pairs.txt.\n"
+                     "appears, is the pairs file copied to pairs.txt. It has every option; "
+                     "those the command line didn't give had ladder_check.py's defaults.\n"
+                     f"# Given on the command line: {' '.join(given) or '(no option)'}\n"
                      f"$ {rd.command_line(command)}\n")
     check.write_text("pairs.txt", check.pairs_text)
 

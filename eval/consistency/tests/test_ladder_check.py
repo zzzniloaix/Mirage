@@ -235,7 +235,8 @@ class WholeRun(unittest.TestCase):
         self.assertEqual(r["params"]["settings"],
                          ["--frames", "4", "--scaler", "bicubic", "--model", "vmaf_v0.6.1"])
         with open(os.path.join(self.out, "run.cmd.txt"), encoding="utf-8") as f:
-            cmd = f.read().splitlines()[-1]
+            given, cmd = f.read().splitlines()[-2:]
+        self.assertEqual(given, "# Given on the command line: --ladder --pairs --frames --jobs")
         self.assertEqual(cmd, "$ python3 -I -B eval/consistency/ladder_check.py <mirage_vmaf> "
                               "<out_dir> --ladder <tmp>/master.m3u8 --pairs <tmp>/pairs.txt "
                               "--frames 4 --scaler bicubic --model vmaf_v0.6.1 --jobs 2 "

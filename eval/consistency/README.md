@@ -75,7 +75,7 @@ With `--diagnostic-relabel`, FFmpeg's distorted input gets the reference's `colo
 
 | File | Contents |
 |---|---|
-| `run.cmd.txt` | the command of the run |
+| `run.cmd.txt` | the command of the run with every option, those left at their defaults included, and, in the runs made since P-064, a line before it with the options its command line gave |
 | `pairs.txt` | the pairs file it read |
 | `environment.txt` | git HEAD and `git status --porcelain` at the start and end of the run; OS, CPU, kernel and Python; `ffmpeg -version` and `ffprobe -version`; the libvmaf library FFmpeg's libavfilter links, with the package version in its real path; `mirage_vmaf`'s path, SHA-256 and size, the libvmaf it links and the first line of its `--help` |
 | `delta.md`, `delta.json` | the report of the whole run: a table of all pairs, why pairs fail, the warnings, and the parameters, environment and git state |
@@ -171,7 +171,7 @@ python3 -I -B eval/consistency/ladder_check.py <mirage_vmaf> <out_dir> [--ladder
   - the ladder report and each pair's report have the same `tool`, libvmaf and FFmpeg library versions, `config_file`, model, scaler, threads, subsampling and frame limit, and the pair's report is an `explicit-pair` report;
   - the ladder scored exactly the pairs of the pairs file, each once, matched by their reference's and distorted input's URLs as the reports give them;
   - the ladder report accounts for every entry of the master once: as the reference's, one pair's, or skipped.
-- It writes `run.cmd.txt`, `pairs.txt` and `environment.txt` as `run_delta.sh` does; each run's directory with its `cmd.txt`, `mirage.json` (`mirage.json.xz` over 1 MiB), `mirage.stdout.txt` and `mirage.stderr.log.xz`; `check.md` and `check.json`: the verdict, each pair's comparison, and the master's entries with what became of each, the reference, the ladder's pairs and its warnings; and `SHA256SUMS`. Local paths are replaced and searched for as in `run_delta.sh` (P-011).
+- It writes `run.cmd.txt` (with the options its command line gave, since P-064), `pairs.txt` and `environment.txt` as `run_delta.sh` does; each run's directory with its `cmd.txt`, `mirage.json` (`mirage.json.xz` over 1 MiB), `mirage.stdout.txt` and `mirage.stderr.log.xz`; `check.md` and `check.json`: the verdict, each pair's comparison, and the master's entries with what became of each, the reference, the ladder's pairs and its warnings; and `SHA256SUMS`. Local paths are replaced and searched for as in `run_delta.sh` (P-011).
 - Exit status: 0 every pair of the ladder has its own report's values; 1 a pair differs, is missing, is scored twice or is extra, an entry isn't accounted for once, or a run failed (`check.md` says which); 2 bad arguments, or the run could not start; 3 an output still contains a local path or name, and must not be committed.
 
 ## Committed runs

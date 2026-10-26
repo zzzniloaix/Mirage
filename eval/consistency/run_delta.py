@@ -7,7 +7,8 @@ frames and timestamps (D-028; FFmpeg's from the showinfo filters of its
 graph, vmafdelta.ffmpeg_pairing), and compares the scores pair by pair. It
 writes into <out_dir>:
 
-  run.cmd.txt, pairs.txt    this run's command line and the pairs it read
+  run.cmd.txt, pairs.txt    this run's command line, with every option and the
+                            options given on it, and the pairs it read
   environment.txt           machine, programs, libvmaf builds, git state
   delta.md, delta.json      the delta report of the whole run
   <pair>/                   per pair: cmd.txt (every command), ffprobe_*.json,
@@ -83,7 +84,7 @@ def non_negative(s):
     return v
 
 
-def parse_args(argv):
+def make_parser():
     p = argparse.ArgumentParser(
         prog="run_delta.sh",
         description="Compare Mirage's per-frame VMAF scores (mirage_vmaf) with FFmpeg's "
@@ -125,12 +126,32 @@ def parse_args(argv):
     p.add_argument("--timeout", type=positive_int, default=DEFAULT_TIMEOUT, metavar="S",
                    help=f"seconds after which a scoring process is stopped "
                         f"(default: {DEFAULT_TIMEOUT})")
+    return p
+
+
+def parse_args(argv):
+    p = make_parser()
     args = p.parse_args(argv)
     if args.model and args.model_file:
         p.error("--model and --model-file can't be given together")
     if not args.model_file:
         args.model = args.model or "vmaf_v0.6.1"
     return args
+
+
+def given_options(parser, argv):
+    """The options of `parser` that `argv` gives, by their long names, in the
+    order `argv` gives them first: `argv` parsed again with every option's
+    default suppressed, so that an abbreviated option, or one written as
+    --name=value, counts as the option it names. run.cmd.txt records them,
+    since its command has every option, the defaults included."""
+    names = {}
+    for action in parser._actions:
+        if action.option_strings:
+            action.default = argparse.SUPPRESS
+            names[action.dest] = max(action.option_strings, key=len)
+    given = vars(parser.parse_args(sys.argv[1:] if argv is None else argv))
+    return [names[dest] for dest in given if dest in names]
 
 
 def program(path, what):
@@ -529,6 +550,7 @@ def score(run, pair, pdir, sides, task):
 def main(argv=None):
     try:
         args = parse_args(argv)
+        given = given_options(make_parser(), argv)
         run = Run(args)
     except SetupError as e:
         print(f"run_delta: {e}", file=sys.stderr)
@@ -563,7 +585,9 @@ def main(argv=None):
     run.write_text("run.cmd.txt",
                    "# The command of this eval/consistency/run_delta.py run, from <repo>; the "
                    "programs behind the placeholders are in environment.txt, and <pairs>, if "
-                   "it appears, is the pairs file copied to pairs.txt.\n"
+                   "it appears, is the pairs file copied to pairs.txt. It has every option; "
+                   "those the command line didn't give had run_delta.sh's defaults.\n"
+                   f"# Given on the command line: {' '.join(given) or '(no option)'}\n"
                    f"$ {command_line(command)}\n")
     run.write_text("pairs.txt", run.pairs_text)
 
