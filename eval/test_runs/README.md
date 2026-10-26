@@ -1,6 +1,6 @@
 # Test runs
 
-Records of the unit test suites run at a commit, for the PR descriptions that quote their output (hard rule 5 of the work order; `docs/DECISIONS.md` P-028, P-032, P-060, P-065). Each record gives each command, then its output and exit status, run from the root of the main working tree with a clean working tree:
+Records of the unit test suites run at a commit, for the PR descriptions that quote their output (hard rule 5 of the work order; `docs/DECISIONS.md` P-028, P-032, P-060, P-065, P-066). Each record gives each command, then its output and exit status, run from the root of the main working tree with a clean working tree:
 
 - the commit, the working tree's state, and the changes to the C++ sources and CMake files since the commit of the last build check: `6a6661f` (`eval/build_check/macos-2026-10-23-6a6661f.txt`) in the records of 2026-10-23, `5ae44a4` (`eval/build_check/macos-2026-10-24-5ae44a4.txt`) in the records of 2026-10-24 and 2026-10-26, which also list the changes to the Python and shell scripts since then;
 - `cmake --build --preset macos-debug`, which rebuilds whatever the tests need;
@@ -17,6 +17,7 @@ Local paths appear as `<repo>`, `<home>`, `<tmp>` and `<scratch>`.
 | `macos-2026-10-23-9855319.txt` | `985531978d4f300e3638a0937aa5acb84e6fbb05` | `mirage_tests '~[audio]'`: all tests passed, 90866 assertions in 244 test cases, at the first run; the Python suites: 20, 85, 7 and 16 tests, all OK (P-032) |
 | `macos-2026-10-24-12715a6.txt` | `12715a65f6c05143459d2f306ed21ca029624009` | `mirage_tests '~[audio]'`: all tests passed, 111752 assertions in 311 test cases, at the first run; the Python suites: 27, 132, 11 and 16 tests, all OK (P-060) |
 | `macos-2026-10-26-a4692a2.txt` | `a4692a204313fae5c6e6c472029eb5db75b80740` | `mirage_tests '~[audio]'`: all tests passed, 112039 assertions in 312 test cases, at the first run; the Python suites: 27, 133, 11 and 16 tests, all OK (P-065) |
+| `macos-2026-10-26-bbc669d.txt` | `bbc669dfeae9febd6f609f5f1e7b4f1489a57182` | `mirage_tests '~[audio]'`: all tests passed, 112082 assertions in 317 test cases, at the first run; the Python suites: 28, 136, 11 and 16 tests, all OK (P-066) |
 
 ## Repeated runs of one test (P-031)
 
