@@ -1,8 +1,29 @@
 # Phase 1: decisions pending for the owner
 
-What is still open for the owner after the decisions of 2026-10-23 (`docs/DECISIONS.md` D-020 to D-033) and their implementation: the questions D-020 left open, the plan D-032 asked for, what implementing the decisions left open, the agent's measurement and process choices P-033 to P-062, and the differences between the work order and the implementation (hard rule 4). The decisions are the owner's (hard rule 3 of the work order); every recommendation below is labeled as the agent's. Every number comes from a committed output, named next to it; where there is none, it says MEASUREMENT PENDING. The state of each section of Phase 1 is in `docs/PHASE1_STATUS.md`, and the statements the paper's method text has to make, with their evidence, in `docs/PAPER_METHOD_NOTES.md`.
+What is still open for the owner after the decisions of 2026-10-23 (`docs/DECISIONS.md` D-020 to D-033) and their implementation: first, where the implementation departs from a decision's wording; then the questions D-020 left open, the plan D-032 asked for, what implementing the decisions left open, the agent's measurement and process choices P-033 to P-062, and the differences between the work order and the implementation (hard rule 4). The decisions are the owner's (hard rule 3 of the work order); every recommendation below is labeled as the agent's. Every number comes from a committed output, named next to it; where there is none, it says MEASUREMENT PENDING. The state of each section of Phase 1 is in `docs/PHASE1_STATUS.md`, and the statements the paper's method text has to make, with their evidence, in `docs/PAPER_METHOD_NOTES.md`.
 
 The packages decided on 2026-10-23 are kept at the end, in "Decided on 2026-10-23 (D-020 to D-033)", with the text they had when they were decided, as the record of their options, and a note at the start of each on what was decided and where the work is.
+
+## A departure from a decision's wording
+
+One behavior of the implementation departs from the wording of an owner's decision. The code follows FFmpeg there; that is provisional until the owner decides (P-033).
+
+### D-022's wording and FFmpeg's negotiation, where FFmpeg changes the distorted frames' color (P-033)
+
+**The departure.** D-022 has Mirage convert a reference that isn't yuv420p to the distorted frames' color matrix and range, and leave the distorted frames' color as it is. FFmpeg 8.1.1's graph does that whenever the distorted input's buffer source offers one matrix and one range, that is, for plain YUV frames with a range tag or in a yuvj format, as in every committed case. For two kinds of distorted input it does not, and neither does Mirage, which follows FFmpeg there:
+
+- (a) a distorted input without a range tag, against a reference that has one or is yuvj: libavfilter gives both inputs the reference's range, so a full range reference makes the distorted frames full range;
+- (b) a distorted input in a format that isn't plain YUV, such as gray or RGB: both inputs get the reference's matrix and range.
+
+**Today.** `vmafcolor::negotiated()` (`src/VMAFColor.h`) gives FFmpeg's tags. `tests/test_vmaf_color.cpp` compares them with libavfilter's for every combination of five kinds of pixel format on both inputs, with five tag sets on the reference and four on the distorted input, and the frames' bytes for the formats of `vmafcolor::verified_formats()`, distorted inputs without a range tag among them. No committed delta run has such an input (MEASUREMENT PENDING). The code has no switch for D-022's wording: for these inputs the wording would first need the owner's definition, such as which matrix a reference gets against distorted frames that aren't YCbCr.
+
+**Options.**
+
+1. FFmpeg's negotiation, as today: plain FFmpeg and Mirage agree for these inputs.
+2. D-022's wording: convert only the reference, to the distorted frames' tags as they are, with a rule for distorted frames that aren't YCbCr. Plain FFmpeg would then disagree for these inputs, and §5 would fail there.
+3. Refuse such pairs, as pairs with a matrix libswscale can't convert are refused (D-021).
+
+**Agent's recommendation.** Option 1: D-022's rationale is parity with a plain `ffmpeg -lavfi libvmaf` run, and its wording describes the committed cases, in which the two give the same. Whichever the owner chooses, a committed delta run of cases (a) and (b) would then show what both tools do with such inputs (MEASUREMENT PENDING).
 
 ## Open from before D-020
 
@@ -71,19 +92,6 @@ D-032 asked for a plan to find out whether the timing of `Demuxer: seamless vide
 ## Open after D-020: what implementing the decisions left open
 
 The decisions of 2026-10-23 leave the questions below open. The code does what each "Today" describes; each choice is a P-entry in `docs/DECISIONS.md`, pending the owner's confirmation. The recommendations are the agent's.
-
-### D-022 where FFmpeg changes the distorted frames' color (P-033)
-
-**Question.** D-022 has Mirage convert a reference that isn't yuv420p to the distorted frames' color matrix and range and leave the distorted frames' color as it is. FFmpeg 8.1.1's graph does that whenever the distorted input's buffer source offers one matrix and one range, that is, for plain YUV frames with a range tag or in a yuvj format, as in every committed case. For two kinds of distorted input it does not: without a range tag, against a reference that has one or is yuvj, libavfilter gives both inputs the reference's range, so a full range reference makes the distorted frames full range; in a format that isn't plain YUV, such as gray or RGB, both inputs get the reference's matrix and range. Which holds for those inputs?
-
-**Today.** Mirage follows FFmpeg (`vmafcolor::negotiated()`, `src/VMAFColor.h`). `tests/test_vmaf_color.cpp` compares the negotiated tags with libavfilter's for every combination of five kinds of pixel format on both inputs, with five tag sets on the reference and four on the distorted input, and the frames' bytes for the formats of `vmafcolor::verified_formats()`, distorted inputs without a range tag among them. No committed delta run has such an input (MEASUREMENT PENDING).
-
-**Options.**
-
-1. FFmpeg's negotiation, as today.
-2. D-022's wording: convert only the reference, to the distorted frames' tags as they are. Plain FFmpeg would then disagree for those inputs.
-
-**Agent's recommendation.** Option 1: D-022's rationale is parity with a plain `ffmpeg -lavfi libvmaf` run, and its wording describes the committed cases, in which the two give the same.
 
 ### The warning that remains of P-030 (P-033)
 
@@ -336,7 +344,7 @@ D-033 confirmed P-006 to P-032 (listed in the decided section below). The measur
 
 | Entries | What | Alternatives worth a look | Open question above |
 |---|---|---|---|
-| P-033 | how D-022 is implemented: FFmpeg 8.1.1's negotiation for any reference, the reference converted with `sws_scale_frame()` and bicubic flags on one thread, `ref_conversion`, the warning for formats the conversion test doesn't check | D-022's wording where FFmpeg changes the distorted frames' color; no warning, or one for formats that aren't plain YUV only; as many swscale threads as FFmpeg | "D-022 where FFmpeg changes the distorted frames' color", "The warning that remains of P-030" |
+| P-033 | how D-022 is implemented: FFmpeg 8.1.1's negotiation for any reference, the reference converted with `sws_scale_frame()` and bicubic flags on one thread, `ref_conversion`, the warning for formats the conversion test doesn't check | D-022's wording where FFmpeg changes the distorted frames' color; no warning, or one for formats that aren't plain YUV only; as many swscale threads as FFmpeg | "D-022's wording and FFmpeg's negotiation" (a departure from D-022's wording, first above), "The warning that remains of P-030" |
 | P-034 | the reference format cases after D-022, and `format-cases-after` rerun with the program of `d993686` | `format-cases-after` with HEAD's program; the program of `9855319` | "How eval/run_all.sh reruns the reference format cases" |
 | P-035 | the run-time versions of five FFmpeg libraries in the report; a warning when the two sides' differ | the build-time versions as well; a failure | |
 | P-036 | D-032's fixes: a temporary directory per test process, the subtitle test's fixture written by the test, the analyzer's decode context freed by its destructor | a directory per test case; a committed fixture | |
@@ -425,7 +433,7 @@ For a matrix libswscale lacks: (a) refuse, as the code, the player's included, d
 
 ### D-016: references that aren't yuv420p (§5, #5)
 
-**Decided**: D-022, option 1. **Done** (P-033): Mirage converts such a reference as FFmpeg's graph does, to the matrix and range libavfilter negotiates for both inputs, with `sws_scale_frame()` and the bicubic flags of the scale filter FFmpeg inserts, and records it (`ref_conversion`). In the reference format cases after D-022, every case passes, `j01` with its scores from before D-016 (`eval/consistency/format-cases-d022/checks.txt`, checks 4 and 5; P-034). P-030's warning is gone; the analyzer warns instead about frames in a pixel format whose conversion isn't checked against FFmpeg's. Where FFmpeg's negotiation changes the distorted frames' color, which D-022's wording doesn't foresee, Mirage follows FFmpeg ("Open after D-020" above). The rest of this package describes the code before D-022.
+**Decided**: D-022, option 1. **Done** (P-033): Mirage converts such a reference as FFmpeg's graph does, to the matrix and range libavfilter negotiates for both inputs, with `sws_scale_frame()` and the bicubic flags of the scale filter FFmpeg inserts, and records it (`ref_conversion`). In the reference format cases after D-022, every case passes, `j01` with its scores from before D-016 (`eval/consistency/format-cases-d022/checks.txt`, checks 4 and 5; P-034). P-030's warning is gone; the analyzer warns instead about frames in a pixel format whose conversion isn't checked against FFmpeg's. Where FFmpeg's negotiation changes the distorted frames' color, which D-022's wording doesn't foresee, Mirage follows FFmpeg, a departure from D-022's wording that is provisional until the owner decides ("A departure from a decision's wording" above). The rest of this package describes the code before D-022.
 
 **Question.** D-016 has Mirage convert the distorted frames to the reference's color matrix and range, "as FFmpeg's filter graph does". For a reference whose frames aren't yuv420p, FFmpeg 8.1.1's §5 graph does something else: it converts the reference to the distorted frames' matrix and range, with a scale filter it inserts itself, and leaves the distorted frames' tags alone. Mirage converts the distorted frames as it does for a yuv420p reference, so its scores differ from FFmpeg's for such a reference wherever the two inputs' tags differ, and, because of how it converts the reference, for a full range yuvj420p reference even with the same tags. Should Mirage follow FFmpeg for such references, or D-016's wording?
 
