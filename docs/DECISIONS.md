@@ -460,6 +460,61 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-034)
 - **Date**: 2026-10-26
 
+### D-042 Phase 2's survey: the agent's recommendations adopted
+
+- **Decision**: the owner starts Phase 2 (§2, ladder orchestration) on the branch `vmaf/phase-2`, made from `vmaf/phase-1` before Phase 1 is merged, and adopts every recommendation of `docs/PHASE2_SURVEY.md` (P2-1 to P2-11). D-043 to D-049 record each decision.
+- **Owner's words**: "yep go on", to starting the Phase 2 survey on a separate branch; "yep go with recommendations", to the survey's recommendations.
+- **Who**: owner (Jiayu Lin)
+- **Date**: 2026-10-26
+
+### D-043 The pool scores whole pairs, in mirage_vmaf's ladder mode only
+
+- **Decision**: the pool of §2 runs in `mirage_vmaf --ladder` only; the player's VMAF panel keeps scoring a manifest's pairs one after another, until §4 decides scoring next to playback (P2-1). Each worker scores one pair, as a pair is scored today, so nothing within a pair changes (P2-2).
+- **Alternatives**: the pool in the player as well; frames of one pair spread across workers.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-042)
+- **Date**: 2026-10-26
+
+### D-044 The pool's default size, and libvmaf's threads
+
+- **Decision**: by default the pool scores the machine's physical cores minus one pairs at a time, at least one, the work order's default; each pair's libvmaf keeps its 4 threads, so that Phase 1's §5 parity holds as measured (P2-3). How the wall time changes with the pool's size is a measurement of Phase 5's benchmarks.
+- **Alternatives**: libvmaf on 1 thread per pair; a default that counts libvmaf's threads.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-042)
+- **Date**: 2026-10-26
+
+### D-045 The memory limit: the process's resident memory, no default limit yet
+
+- **Decision**: with a memory limit, a pair starts only while the process's resident memory, read from the system during the run, plus what a running pair uses stays under the limit; running pairs aren't stopped, and a pair that needs more than the limit on its own runs alone, with a warning. There is no default limit until the measurements of one pair's memory and of the ladder before the pool (the survey's M2 and M3) show what a pair uses (P2-4).
+- **Alternatives**: an estimate per pair from its frame sizes and queue depths; a default limit as a share of the machine's memory.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-042)
+- **Date**: 2026-10-26
+
+### D-046 Discontinuities: each discontinuity sequence paired on its own
+
+- **Decision**: after the survey's M5 shows what the analyzer gets at an `EXT-X-DISCONTINUITY`, the pairing pairs the k-th discontinuity sequence of the reference with the k-th of the distorted input, each measured from its own start, with a new libvmaf context for each, the sequences taken from the playlists' `EXT-X-DISCONTINUITY` tags where there are any, else from the timestamp jumps (P2-5). This changes D-028's option (a), which D-040 kept until discontinuities were measured. Rungs whose segments differ in duration need nothing of their own unless M5 shows timestamps that don't line up (P2-6).
+- **Alternatives**: D-028's rule as it is; `ffmpeg`'s correction of timestamp jumps.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-042)
+- **Date**: 2026-10-26
+
+### D-047 A cancel or a failed pair leaves a report of the complete pairs
+
+- **Decision**: `mirage_vmaf --ladder` stops on SIGINT or SIGTERM, or at a pair that fails; the pairs still running are stopped; it writes a report of the pairs that were complete, marked as cancelled or failed, with the pairs not scored listed, and exits with status 1 (P2-7). The report lists the pairs in the plan's order, whatever order they finish in, and records the pool's size, the memory limit and each pair's start and end times, so that it is the same report at every pool size apart from the times (P2-8).
+- **Alternatives**: no report unless every pair is complete, as P-006 and D-029 have it until now.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-042)
+- **Date**: 2026-10-26
+
+### D-048 The pool's options
+
+- **Decision**: `--jobs N` and `--memory-limit SIZE`, on the command line and in a config file (D-030) (P2-9).
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-042)
+- **Date**: 2026-10-26
+
+### D-049 Phase 2's acceptance on Apple's advanced HLS sample, from a local copy
+
+- **Decision**: §2's acceptance runs on Apple's advanced HLS sample: the ladder at the pool sizes 1, 2, 4 and the default, the first 300 frames of each pair, every per-frame score compared across them at full precision, and one run over every frame at the default size for the peak memory against the limit; D-011's ladders, once chosen, as a second acceptance (P2-10). The runs across pool sizes read a local copy of the sample's playlists and segments, kept outside the repository with their SHA-256s committed, and one run reads Apple's CDN as a check (P2-11).
+- **Alternatives**: waiting for D-011's ladders; every run from the CDN.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-042)
+- **Date**: 2026-10-26
+
 ---
 
 ## Measurement / process choices (proposed by the agent, confirmed by the owner)
