@@ -1,0 +1,15 @@
+# The one scoring process of defaults-full still running when this was made, the
+# ffmpeg of gear2_vs_gear5: its CPU time ([minutes:]seconds.hundredths) and state, from
+# `ps -o time=,state=`, sampled twice 120 s apart; the last modification time of its
+# stderr log (`stat`), in UTC; then it was sent SIGTERM, and a second SIGTERM when it was
+# still running 10 s later. Made by a script outside the repository, which prints only
+# the program, the pair and these values. State S: sleeping.
+sample 1 at 2026-10-27T17:24:57Z
+  ffmpeg       gear2_vs_gear5   cpu    5:02.27  state S
+sample 2 at 2026-10-27T17:26:57Z
+  ffmpeg       gear2_vs_gear5   cpu    5:02.31  state S
+stderr logs, last modified:
+  gear2_vs_gear5/ffmpeg.stderr.log 2026-10-26T23:59:41Z
+SIGTERM to each at 2026-10-27T17:26:57Z
+  ffmpeg gear2_vs_gear5 still running after 10 s: a second SIGTERM at 2026-10-27T17:27:07Z
+running after that: 0

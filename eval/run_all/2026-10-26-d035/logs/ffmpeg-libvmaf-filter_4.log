@@ -1,0 +1,11 @@
+[Parsed_libvmaf_0] input width must match.
+[Parsed_libvmaf_0] input height must match.
+[Parsed_libvmaf_0] Failed to configure input pad on Parsed_libvmaf_0
+[fc#0] Error reinitializing filters!
+[fc#0] Task finished with error code: -22 (Invalid argument)
+[fc#0] Terminating thread with return code -22 (Invalid argument)
+[vost#0:0/wrapped_avframe] [enc:wrapped_avframe @ 0x70b1041c0] Could not open encoder before EOF
+[vost#0:0/wrapped_avframe] Task finished with error code: -22 (Invalid argument)
+[vost#0:0/wrapped_avframe] Terminating thread with return code -22 (Invalid argument)
+[out#0/null] Nothing was written into output file, because at least one of its streams received no packets.
+exit status 234
