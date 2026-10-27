@@ -134,6 +134,15 @@ class PoolCheck(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertEqual(s["problems"], ["jobs 1: the report gives no memory limit"])
 
+    def test_frames_0_scores_every_frame(self):
+        code, s, md, out = self.check("--jobs", "0", "--frames", "0")
+        self.assertEqual(code, 0, s["problems"])
+        with open(os.path.join(out, "cmd.txt")) as f:
+            cmd = f.read()
+        self.assertIn("<mirage_vmaf> --ladder <ladder> --out <out_dir>/jobs-default/report.json\n", cmd)
+        self.assertNotIn("--frames", cmd)
+        self.assertIn("every frame pair of each pair", md)
+
     def test_without_a_memory_limit_the_column_is_empty(self):
         code, s, md, _ = self.check("--jobs", "1", FAKE_PEAK="999999999999")
         self.assertEqual(code, 0, s["problems"])

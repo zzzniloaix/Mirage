@@ -6,7 +6,8 @@ usage: python3 -I -B eval/ladder/pool_check.py <mirage_vmaf> <out_dir> --ladder 
                                                [--memory-limit SIZE]
 
 Runs `mirage_vmaf --ladder <master> --jobs J` once for each J (default 1,2,4 and the default
-size, given as 0: no --jobs), each with `/usr/bin/time -l` for its peak resident memory, and
+size, given as 0: no --jobs), the first --frames N frame pairs of each pair (default 300; 0:
+every frame, no --frames), each with `/usr/bin/time -l` for its peak resident memory, and
 compares the reports: the same plan, the same pairs complete, and every pair's per-frame
 scores, frame indices and timestamps equal at full precision. With --memory-limit, given to
 every run, it also checks each run's peak resident memory against the limit as its report
@@ -38,7 +39,8 @@ def parse_args(argv):
     p.add_argument("--ladder", required=True)
     p.add_argument("--jobs", default="1,2,4,0",
                    help="pool sizes, 0 for mirage_vmaf's default (default: 1,2,4,0)")
-    p.add_argument("--frames", type=int, default=300)
+    p.add_argument("--frames", type=int, default=300,
+                   help="frame pairs of each pair, 0 for every frame (default: 300)")
     p.add_argument("--memory-limit")
     return p.parse_args(argv)
 
@@ -67,8 +69,10 @@ def main(argv=None):
         d = os.path.join(out, f"jobs-{j or 'default'}")
         os.makedirs(d)
         report = os.path.join(d, "report.json")
-        argv_ = ["/usr/bin/time", "-l", a.mirage_vmaf, "--ladder", a.ladder, "--frames",
-                 str(a.frames), "--out", report]
+        argv_ = ["/usr/bin/time", "-l", a.mirage_vmaf, "--ladder", a.ladder]
+        if a.frames:
+            argv_ += ["--frames", str(a.frames)]
+        argv_ += ["--out", report]
         if j:
             argv_ += ["--jobs", str(j)]
         if a.memory_limit:
@@ -144,8 +148,9 @@ def main(argv=None):
     with open(os.path.join(out, "check.json"), "w") as f:
         json.dump(summary, f, indent=1)
     lines = [f"# The ladder at several pool sizes: {verdict}", "",
-             f"- Ladder: `<ladder>`, the first {a.frames} frame pairs of each pair "
-             f"(`cmd.txt`).",
+             f"- Ladder: `<ladder>`, " + (f"the first {a.frames} frame pairs of each pair"
+                                           if a.frames else "every frame pair of each pair")
+             + " (`cmd.txt`).",
              "- PASS when every run is complete and each pair's frames (indices, timestamps, "
              "scores at full precision) and pooled values are the same in every run.", "",
              "| --jobs | exit | status | pool size | most at once | memory limit | "
