@@ -6,7 +6,9 @@ What is open for the owner on `vmaf/phase-2`, §2 of the VMAF work order, after 
 
 Nothing is open for the owner but the agent's choices to confirm, below; the questions of 2026-10-27 are decided, after them.
 
-## The agent's choices to confirm: P-067 to P-073
+**For information.** With a memory limit, once the first pairs have ended the others run one at a time, in every run at 1 GiB, and the report's `pair_memory` at 300 frames was more than three times one pair's peak: the resident memory still counts memory the ended pairs used (`eval/ladder/advanced-local-300-mem1g-b706ed3/README.md`; P-074). Which of the process's memory measures drops when a pair ends is MEASUREMENT PENDING.
+
+## The agent's choices to confirm: P-067 to P-074
 
 | Entry | What |
 |---|---|
@@ -17,8 +19,9 @@ Nothing is open for the owner but the agent's choices to confirm, below; the que
 | P-071 | M2, M3, the acceptance across pool sizes at 300 frames, and the memory limit's runs |
 | P-072 | the memory limit's rule: a pair's memory measured once it has warmed up |
 | P-073 | how D-050 to D-052 are implemented, and their runs |
+| P-074 | how D-053 is implemented, and its run at 300 frames |
 
-**Agent's recommendation**: confirm P-067 to P-073, as D-050 and D-051 change what P-068 and P-072 implement.
+**Agent's recommendation**: confirm P-067 to P-074, as D-050, D-051 and D-053 change what P-068 and P-072 implement.
 
 ## Decided on 2026-10-27 (D-050 to D-053)
 
@@ -97,7 +100,7 @@ D-046 takes the sequences "from the playlists' `EXT-X-DISCONTINUITY` tags where 
 
 ### The memory limit over every frame (D-051; P-073)
 
-**Decided** (2026-10-27): D-053, option 2: the margin becomes 25%, and the report gives what a pair was measured to use; the run over every frame is to be repeated to check the peak.
+**Decided** (2026-10-27): D-053, option 2: the margin becomes 25%, and the report gives what a pair was measured to use; the run over every frame is to be repeated to check the peak. **Done** in `b706ed3` (P-074): at 1 GiB on the local copy, 3 pairs at once and a peak of 913162240 bytes, PASS (`eval/ladder/advanced-local-300-mem1g-b706ed3/`). The run over every frame is MEASUREMENT PENDING, the long runs set for later.
 
 **What the run shows.** D-049's run over every frame at the default size, from Apple's CDN, with a limit of 1 GiB and D-051's margin (`eval/ladder/advanced-cdn-full-af17121/`; P-073): the run is complete, every frame of the 7 pairs paired, but 3 pairs ran at once and the process peaked at 1096171520 bytes, 2.1% over the limit of 1073741824. At 300 frame pairs the same limit held, with 3 pairs at once and a peak of 825720832 bytes (`eval/ladder/advanced-local-300-mem1g-af17121/`).
 
