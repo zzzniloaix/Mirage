@@ -60,10 +60,12 @@
 // one reference mode per report:
 //   status ("complete" | "cancelled" | "failed"), error (null when complete)
 //                          how the run ended (vmafladder::Result)
-//   pool { jobs, memory_limit, max_running, peak_resident, warnings [ text ] }
+//   pool { jobs, memory_limit, max_running, pair_memory, peak_resident, warnings [ text ] }
 //                          the pool's size, the memory limit in bytes (null =
-//                          none), the most pairs scored at once, the process's
-//                          peak resident memory in bytes (null = unknown)
+//                          none), the most pairs scored at once, what the limit
+//                          measured a pair to use, at its largest, in bytes
+//                          (null = never; D-053), the process's peak resident
+//                          memory in bytes (null = unknown)
 //   tool, reference_mode ("top-rung" | "mezzanine"), libvmaf_version,
 //   libvmaf_package_version, ffmpeg_libraries, config_file, model,
 //   model_source, model_sha256, scaler, n_threads, n_subsample, frame_limit

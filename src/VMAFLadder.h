@@ -45,7 +45,7 @@
 //   the memory before the run, plus what a pair uses as measured then and
 //   kMarginPercent more for each running pair and the new one, stays under
 //   it (admits). Running pairs aren't stopped, and with none running a pair
-//   always starts (D-045, D-051).
+//   always starts (D-045, D-051, D-053).
 // - The end (D-047). A cancel, or the first pair whose analysis is
 //   incomplete (vmafreport::incomplete) or whose settings aren't those of the
 //   first pair to complete, which only a model file that changes during the
@@ -171,10 +171,10 @@ Fetched read_master(const std::string& url);
 // scored them, or all of its frame pairs if it has fewer, it is warming up.
 inline constexpr std::uint64_t kWarmUp = 30;
 
-// What the memory limit adds to what a pair uses, in percent (D-051).
-inline constexpr std::uint64_t kMarginPercent = 10;
+// What the memory limit adds to what a pair uses, in percent (D-051, D-053).
+inline constexpr std::uint64_t kMarginPercent = 25;
 
-// The memory limit's rule (D-045, D-051): whether one more pair may start,
+// The memory limit's rule (D-045, D-051, D-053): whether one more pair may start,
 // with `running` pairs running, `warming` of them still warming up, the
 // process's resident memory `now` (0 = unknown) and `baseline` when the run
 // began. While a pair is warming up no other starts, so that what every
@@ -229,6 +229,8 @@ struct Result {
     std::uint64_t        memory_limit  = 0;  // 0 = none
     unsigned             max_running   = 0;  // the most pairs scored at once
     std::uint64_t        peak_resident = 0;  // vmafproc::peak_resident_bytes() at the end
+    std::uint64_t        pair_memory   = 0;  // with a limit, what a pair was measured to
+                                             // use, at its largest (admits); 0 = never (D-053)
     std::vector<std::string> pool_warnings;  // a pair over the memory limit on its own
 };
 

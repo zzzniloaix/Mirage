@@ -39,6 +39,7 @@ if "--memory-limit" in opt and not os.environ.get("FAKE_NO_LIMIT"):
     v = opt["--memory-limit"]
     limit = int(v[:-1]) << {"K": 10, "M": 20, "G": 30, "T": 40}[v[-1]]
 rep["pool"] = {"jobs": int(jobs), "memory_limit": limit, "max_running": 1,
+               "pair_memory": 4000 if limit else None,
                "peak_resident": int(os.environ.get("FAKE_PEAK", "5000")), "warnings": []}
 with open(opt["--out"], "w") as f:
     json.dump(rep, f)
@@ -118,7 +119,7 @@ class PoolCheck(unittest.TestCase):
         self.assertEqual(code, 0, s["problems"])
         self.assertEqual(s["memory_limit_given"], "1G")
         self.assertEqual([r["pool"]["memory_limit"] for r in s["runs"]], [1 << 30] * 2)
-        self.assertIn("| 1073741824 | 5000 |", md)
+        self.assertIn("| 4000 | 1073741824 | 5000 |", md)
 
     def test_a_peak_over_the_memory_limit_fails(self):
         # The report's peak is over the limit, and so is the stand-in's own resident memory.
@@ -146,7 +147,7 @@ class PoolCheck(unittest.TestCase):
     def test_without_a_memory_limit_the_column_is_empty(self):
         code, s, md, _ = self.check("--jobs", "1", FAKE_PEAK="999999999999")
         self.assertEqual(code, 0, s["problems"])
-        self.assertIn("| 1 | 0 | complete | 1 | 1 | - | 999999999999 |", md)
+        self.assertIn("| 1 | 0 | complete | 1 | 1 | - | - | 999999999999 |", md)
 
 
 if __name__ == "__main__":

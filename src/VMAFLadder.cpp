@@ -325,7 +325,7 @@ bool admits(std::uint64_t limit, std::uint64_t now, std::uint64_t baseline, unsi
     if (now == 0) return true;       // unknown: the limit can't hold a pair back
     per_pair = std::max(per_pair, (now > baseline ? now - baseline : 0) / running);
     if (per_pair == 0) return false;   // nothing measured
-    const std::uint64_t counted = per_pair + per_pair * kMarginPercent / 100;   // D-051
+    const std::uint64_t counted = per_pair + per_pair * kMarginPercent / 100;   // D-051, D-053
     return baseline + (running + 1) * counted <= limit;
 }
 
@@ -504,6 +504,7 @@ Result score(const std::string& ladder, const std::string& mezzanine, const VMAF
         sampler.join();
     }
     out.peak_resident = vmafproc::peak_resident_bytes();
+    out.pair_memory   = per_pair;
 
     const std::size_t complete = static_cast<std::size_t>(std::count_if(
         out.pairs.begin(), out.pairs.end(),

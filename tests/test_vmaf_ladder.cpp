@@ -813,21 +813,22 @@ TEST_CASE("vmafladder::admits: the memory limit's rule", "[ladder]")
     CHECK(per_pair == 0);
 
     // None warming up: a pair is measured at 1000 - 100 = 900, and counted at
-    // 990 with the margin (D-051): the memory before the run and two pairs
-    // make 100 + 2 * 990 = 2080.
-    CHECK_FALSE(admits(2079, 1000, 100, 1, 0, per_pair));
+    // 1125 with the margin (D-051, D-053: 25%): the memory before the run and
+    // two pairs make 100 + 2 * 1125 = 2350.
+    static_assert(vmafladder::kMarginPercent == 25);
+    CHECK_FALSE(admits(2349, 1000, 100, 1, 0, per_pair));
     CHECK(per_pair == 900);
-    CHECK(admits(2080, 1000, 100, 1, 0, per_pair));
+    CHECK(admits(2350, 1000, 100, 1, 0, per_pair));
 
     // The largest measurement stays: two pairs at 1500 use 700 each, and
-    // three pairs count 100 + 3 * 990 = 3070.
-    CHECK(admits(3070, 1500, 100, 2, 0, per_pair));
-    CHECK_FALSE(admits(3069, 1500, 100, 2, 0, per_pair));
+    // three pairs count 100 + 3 * 1125 = 3475.
+    CHECK(admits(3475, 1500, 100, 2, 0, per_pair));
+    CHECK_FALSE(admits(3474, 1500, 100, 2, 0, per_pair));
     CHECK(per_pair == 900);
-    // A larger one replaces it: two pairs at 2100 use 1000 each, counted at 1100.
-    CHECK_FALSE(admits(3399, 2100, 100, 2, 0, per_pair));
+    // A larger one replaces it: two pairs at 2100 use 1000 each, counted at 1250.
+    CHECK_FALSE(admits(3849, 2100, 100, 2, 0, per_pair));
     CHECK(per_pair == 1000);
-    CHECK(admits(3400, 2100, 100, 2, 0, per_pair));
+    CHECK(admits(3850, 2100, 100, 2, 0, per_pair));
 
     // Unknown memory, none warming up: the limit can't hold a pair back.
     CHECK(admits(1500, 0, 100, 2, 0, per_pair));

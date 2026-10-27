@@ -236,10 +236,11 @@ std::string ladder_to_json(const vmafladder::Result& ladder, const RunInfo& run)
     out += std::format("  \"status\": {},\n  \"error\": {},\n", quote(ladder.status),
                        ladder.error.empty() ? std::string("null") : quote(ladder.error));
     out += std::format("  \"pool\": {{\"jobs\": {}, \"memory_limit\": {}, \"max_running\": {}, "
-                       "\"peak_resident\": {}, \"warnings\": {}}},\n",
+                       "\"pair_memory\": {}, \"peak_resident\": {}, \"warnings\": {}}},\n",
                        ladder.jobs,
                        ladder.memory_limit > 0 ? std::to_string(ladder.memory_limit) : "null",
                        ladder.max_running,
+                       ladder.pair_memory > 0 ? std::to_string(ladder.pair_memory) : "null",
                        ladder.peak_resident > 0 ? std::to_string(ladder.peak_resident) : "null",
                        texts_json(ladder.pool_warnings, "  "));
     // The settings are those of the first complete pair in the plan's order.

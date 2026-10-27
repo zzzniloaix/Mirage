@@ -770,6 +770,7 @@ TEST_CASE("vmafreport::ladder_to_json: the run, the master and the plan", "[vmaf
     CHECK(d["pool"]["jobs"].num == 2);
     CHECK(d["pool"]["memory_limit"].kind == Value::Kind::Null);
     CHECK(d["pool"]["max_running"].num == 2);
+    CHECK(d["pool"]["pair_memory"].kind == Value::Kind::Null);   // no limit, never measured
     CHECK(d["pool"]["peak_resident"].num == 123456789);
     CHECK(d["pool"]["warnings"].arr.empty());
     CHECK(d["not_scored"].kind == Value::Kind::Array);
@@ -803,6 +804,7 @@ TEST_CASE("vmafreport::ladder_to_json: a run that ended early lists the complete
                         "https://cdn.example.com/hls/top/p.m3u8: cannot open distorted: "
                         "https://cdn.example.com/hls/low/p.m3u8";
     l.memory_limit    = 8u << 20;
+    l.pair_memory     = 3u << 20;
     l.pool_warnings   = { "pair 2 of 3 took the process over the memory limit on its own" };
     const auto doc = parse(vmafreport::ladder_to_json(l, kRun));
     REQUIRE(doc);
@@ -810,6 +812,7 @@ TEST_CASE("vmafreport::ladder_to_json: a run that ended early lists the complete
     CHECK(d["status"].str == "failed");
     CHECK(d["error"].str == l.error);
     CHECK(d["pool"]["memory_limit"].num == 8 << 20);
+    CHECK(d["pool"]["pair_memory"].num == 3 << 20);   // D-053
     REQUIRE(d["pool"]["warnings"].arr.size() == 1);
     CHECK(d["pool"]["warnings"].arr[0].str == l.pool_warnings[0]);
     REQUIRE(d["pairs"].arr.size() == 1);   // the complete one only, with its own index

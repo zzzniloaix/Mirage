@@ -153,14 +153,14 @@ def main(argv=None):
              + " (`cmd.txt`).",
              "- PASS when every run is complete and each pair's frames (indices, timestamps, "
              "scores at full precision) and pooled values are the same in every run.", "",
-             "| --jobs | exit | status | pool size | most at once | memory limit | "
-             "peak resident (report) | max RSS (time -l) | wall s |",
-             "|---|---|---|---|---|---|---|---|---|"]
+             "| --jobs | exit | status | pool size | most at once | pair memory (report) | "
+             "memory limit | peak resident (report) | max RSS (time -l) | wall s |",
+             "|---|---|---|---|---|---|---|---|---|---|"]
     for r in summary["runs"]:
         pool = r["pool"] or {}
         lines.append(f"| {r['jobs_given'] or 'default'} | {r['exit']} | {r['status']} | "
                      f"{pool.get('jobs')} | {pool.get('max_running')} | "
-                     f"{pool.get('memory_limit') or '-'} | "
+                     f"{pool.get('pair_memory') or '-'} | {pool.get('memory_limit') or '-'} | "
                      f"{pool.get('peak_resident')} | {r['max_rss_time_l']} | {r['wall_s']} |")
     lines += ["", "| pair | distorted | frames | " +
               " | ".join(f"same at --jobs {r['jobs_given'] or 'default'}" for r in runs[1:]) + " |",
