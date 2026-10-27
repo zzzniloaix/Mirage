@@ -1,12 +1,12 @@
 # Test runs
 
-Records of the unit test suites run at a commit, for the PR descriptions that quote their output (hard rule 5 of the work order; `docs/DECISIONS.md` P-028, P-032, P-060, P-065, P-066). Each record gives each command, then its output and exit status, run from the root of the main working tree with a clean working tree:
+Records of the unit test suites run at a commit, for the PR descriptions that quote their output (hard rule 5 of the work order; `docs/DECISIONS.md` P-028, P-032, P-060, P-065, P-066, P-073, P-074). Each record gives each command, then its output and exit status, run from the root of the main working tree with a clean working tree, and on `vmaf/phase-2` from the root of a worktree of that branch:
 
-- the commit, the working tree's state, and the changes to the C++ sources and CMake files since the commit of the last build check: `6a6661f` (`eval/build_check/macos-2026-10-23-6a6661f.txt`) in the records of 2026-10-23, `5ae44a4` (`eval/build_check/macos-2026-10-24-5ae44a4.txt`) in the records of 2026-10-24 and 2026-10-26, which also list the changes to the Python and shell scripts since then;
+- the commit, the working tree's state, and the changes to the C++ sources and CMake files since the commit of the last build check: `6a6661f` (`eval/build_check/macos-2026-10-23-6a6661f.txt`) in the records of 2026-10-23, `5ae44a4` (`eval/build_check/macos-2026-10-24-5ae44a4.txt`) in the records of 2026-10-24 and later, which also list the changes to the Python and shell scripts since then, and on `vmaf/phase-2` the changes since `vmaf/phase-1` as merged (`dc3af0d`);
 - `cmake --build --preset macos-debug`, which rebuilds whatever the tests need;
 - in the records of 2026-10-23, whether the gitignored fixture of the subtitle test is present: it is in the main working tree, not in a clean checkout (`docs/BUILD.md`, step 4); since D-032 the test writes its fixture itself (P-036), and the records of 2026-10-24 and 2026-10-26 show that no source or test names the fixture's directory;
 - `mirage_tests` without the `[audio]` tests, in the form of `docs/BUILD.md` step 4, and a second run only if the first fails;
-- the four Python suites of `eval/` (`eval/README.md`, "Tests"), in the records of 2026-10-24 and 2026-10-26 with `TMPDIR` in a scratch directory outside the repository;
+- the four Python suites of `eval/` (`eval/README.md`, "Tests"), and on `vmaf/phase-2` a fifth, `eval/ladder/tests`, in the records of 2026-10-24 and later with `TMPDIR` in a scratch directory outside the repository;
 - the working tree's state afterwards.
 
 Local paths appear as `<repo>`, `<home>`, `<tmp>` and `<scratch>`.
@@ -18,6 +18,8 @@ Local paths appear as `<repo>`, `<home>`, `<tmp>` and `<scratch>`.
 | `macos-2026-10-24-12715a6.txt` | `12715a65f6c05143459d2f306ed21ca029624009` | `mirage_tests '~[audio]'`: all tests passed, 111752 assertions in 311 test cases, at the first run; the Python suites: 27, 132, 11 and 16 tests, all OK (P-060) |
 | `macos-2026-10-26-a4692a2.txt` | `a4692a204313fae5c6e6c472029eb5db75b80740` | `mirage_tests '~[audio]'`: all tests passed, 112039 assertions in 312 test cases, at the first run; the Python suites: 27, 133, 11 and 16 tests, all OK (P-065) |
 | `macos-2026-10-26-bbc669d.txt` | `bbc669dfeae9febd6f609f5f1e7b4f1489a57182` | `mirage_tests '~[audio]'`: all tests passed, 112082 assertions in 317 test cases, at the first run; the Python suites: 28, 136, 11 and 16 tests, all OK (P-066) |
+| `macos-2026-10-27-1db7b89.txt` | `1db7b89d3cd34fb8f1db97ee60bb56083d3d6a16` (`vmaf/phase-2`) | `mirage_tests '~[audio]'`: all tests passed, 112439 assertions in 325 test cases, at the first run; the Python suites: 28, 136, 11, 16 and 8 tests, all OK (P-073) |
+| `macos-2026-10-27-57b5ea5.txt` | `57b5ea555a6cacc29533fcb5a8e8c791cb0adf6c` (`vmaf/phase-2`) | `mirage_tests '~[audio]'`: all tests passed, 112445 assertions in 325 test cases, at the first run; the Python suites: 28, 136, 11, 16 and 8 tests, all OK (P-074) |
 
 ## Repeated runs of one test (P-031)
 
