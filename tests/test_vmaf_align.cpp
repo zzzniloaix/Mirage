@@ -381,6 +381,15 @@ TEST_CASE("vmafalign: each discontinuity sequence pairs with the other input's o
     CHECK(jumps.counts.discontinuities == 2);
     CHECK(jumps.counts.failed() == 0);
 
+    // Where an input's times are measured from, as the report gives it, stays
+    // its start: each sequence's own start is the pairing's alone.
+    const Clock no_start{ .time_base = { 1, 1000 }, .frame_rate = { 25, 1 } };
+    Aligner a(no_start, no_start);
+    for (int64_t t : { 5000, 5040, 80000, 80040 }) a.push(kRef, t);
+    for (int64_t t : { 5000, 5040, 0, 40 }) a.push(kDis, t);
+    CHECK(a.start(kRef) == 5000);
+    CHECK(a.start(kDis) == 5000);
+
     // A dropped frame within the second sequence counts as it would anywhere.
     const Run dropped = align(restart, without(restart, 8));
     CHECK(dropped.pairs == diagonal(0, 8) + std::vector<std::pair<int64_t, int64_t>>{

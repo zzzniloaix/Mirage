@@ -107,6 +107,7 @@ Aligner::Aligner(const Clock& reference, const Clock& distorted)
     for (Side* s : { &ref_, &dis_ }) {
         s->has_start = s->clock.start != kNoTimestamp;
         s->start     = s->clock.start;
+        s->seq_start = s->clock.start;
     }
 }
 
@@ -125,7 +126,7 @@ int64_t Aligner::ticks(const Side& s, int64_t timestamp) const
     constexpr i128 kLimit = i128{ 1 } << 62;
     const AVRational tb   = reduced(s.clock.time_base);
     const i128       mul  = static_cast<i128>(tb.num) * (tick_den_ / tb.den);
-    const i128       diff = static_cast<i128>(timestamp) - s.start;
+    const i128       diff = static_cast<i128>(timestamp) - s.seq_start;
     if ((diff < 0 ? -diff : diff) > kLimit / mul) return diff < 0 ? -(int64_t{ 1 } << 62)
                                                                   : int64_t{ 1 } << 62;
     return static_cast<int64_t>(diff * mul);
@@ -140,6 +141,7 @@ void Aligner::push(Input in, int64_t timestamp)
         if (!s.has_start) {
             s.has_start = true;
             s.start     = timestamp;
+            s.seq_start = timestamp;
         }
         e.t = ticks(s, timestamp);
         if (s.has_last) {
@@ -148,10 +150,10 @@ void Aligner::push(Input in, int64_t timestamp)
                 // The input's next discontinuity sequence, measured from this
                 // frame (D-046).
                 ++counts_.discontinuities;
-                e.seq = ++s.seq;
-                s.start   = timestamp;
-                e.t       = 0;
-                e.repeats = false;
+                e.seq       = ++s.seq;
+                s.seq_start = timestamp;
+                e.t         = 0;
+                e.repeats   = false;
             }
         }
         s.has_last = true;

@@ -204,7 +204,7 @@ private:
     struct Entry {
         int64_t index;
         int64_t timestamp;   // as given
-        int64_t t;           // ticks from the input's start; valid when timestamp != kNoTimestamp
+        int64_t t;           // ticks from its sequence's start; valid when timestamp != kNoTimestamp
         bool    repeats;     // the timestamp of the input's previous timestamped frame
         int64_t seq;         // its input's discontinuity sequence, from 0 (D-046)
     };
@@ -214,7 +214,8 @@ private:
         bool              ended      = false;
         int64_t           next_index = 0;
         bool              has_start  = false;
-        int64_t           start      = 0;      // in clock.time_base
+        int64_t           start      = 0;      // in clock.time_base: the input's, as start() gives it
+        int64_t           seq_start  = 0;      // in clock.time_base: its discontinuity sequence's (D-046)
         bool              has_last   = false;
         int64_t           last_t     = 0;      // ticks of its last timestamped frame
         int64_t           seq        = 0;      // the discontinuity sequence of its last frame
