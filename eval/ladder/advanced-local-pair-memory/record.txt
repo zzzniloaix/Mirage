@@ -1,0 +1,32 @@
+# One pair's peak resident memory over the whole local copy: <copy_dir>/v9 (1080p60) against <copy_dir>/v8 (1080p60), with the mirage_vmaf built in a new clean worktree of dfed5a3 (eval/ladder/advanced-local-300-mem1g-dfed5a3/build.txt), on the local copy of eval/streams/local-advanced-2026-10-26/ (<copy_dir>), each command alone with nothing else running, on battery power, 2026-10-27 (P-071). Each command, then the lines of its output and of /usr/bin/time -l about the frames, the time and the memory, then the program's exit status.
+
+$ shasum -a 256 <mirage_vmaf>
+0275b6263e5e0630d1974b2239362608dae370739ae414bafea7a8f560b73582  <mirage_vmaf>
+
+$ /usr/bin/time -l <mirage_vmaf> --ref <copy_dir>/v9/prog_index.m3u8 --dis <copy_dir>/v8/prog_index.m3u8 --frames 300 --out <tmp>/300.json
+mirage_vmaf: 300 frame pairs scored, report written to <tmp>/300.json
+        4.26 real        17.68 user         0.09 sys
+           293306368  maximum resident set size
+           276087528  peak memory footprint
+(exit status 0)
+
+$ /usr/bin/time -l <mirage_vmaf> --ref <copy_dir>/v9/prog_index.m3u8 --dis <copy_dir>/v8/prog_index.m3u8 --frames 450 --out <tmp>/450.json
+mirage_vmaf: 450 frame pairs scored, report written to <tmp>/450.json
+        6.27 real        26.28 user         0.07 sys
+           294453248  maximum resident set size
+           277234408  peak memory footprint
+(exit status 0)
+
+$ /usr/bin/time -l <mirage_vmaf> --ref <copy_dir>/v9/prog_index.m3u8 --dis <copy_dir>/v8/prog_index.m3u8 --frames 600 --out <tmp>/600.json
+mirage_vmaf: 600 frame pairs scored, report written to <tmp>/600.json
+        8.32 real        35.01 user         0.08 sys
+           295059456  maximum resident set size
+           277840616  peak memory footprint
+(exit status 0)
+
+$ /usr/bin/time -l <mirage_vmaf> --ref <copy_dir>/v9/prog_index.m3u8 --dis <copy_dir>/v8/prog_index.m3u8 --out <tmp>/all.json
+mirage_vmaf: 720 frame pairs scored, report written to <tmp>/all.json
+       10.18 real        42.53 user         0.16 sys
+           301056000  maximum resident set size
+           283853568  peak memory footprint
+(exit status 0)
