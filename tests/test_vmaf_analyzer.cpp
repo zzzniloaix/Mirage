@@ -1272,13 +1272,13 @@ TEST_CASE("VMAFAnalyzer::analyze: MPEG-TS timestamps that restart midway, in one
         CHECK(r.dis_index[k] == k);
         CHECK(std::abs(r.dis_pts[k] - r.alignment.dis_start - ms(k)) < 1e-9);
     }
-    // The distorted input's second discontinuity sequence has no reference
-    // sequence to pair with, and the reference's other six frames no
-    // distorted frame of their sequence (D-046).
+    // The distorted input restarts alone, so the jumps aren't at the same
+    // place: the reference's frame 6, a frame after the distorted input's
+    // last, pairs with nothing, and pairing stops at its frame 7 (D-050).
     CHECK(r.alignment.discontinuities == 1);
-    CHECK(r.alignment.unmatched_reference == 6);
-    CHECK(r.alignment.extra_distorted == 6);
-    CHECK(r.alignment.after_discontinuity == 0);
+    CHECK(r.alignment.unmatched_reference == 1);
+    CHECK(r.alignment.extra_distorted == 0);
+    CHECK(r.alignment.after_discontinuity == 11);
     CHECK(r.alignment.failed == 12);
     CHECK(r.alignment.failure_rate == 12.0 / 18.0);
     CHECK(r.alignment.exceeded);

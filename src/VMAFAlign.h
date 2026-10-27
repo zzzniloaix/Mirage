@@ -67,6 +67,12 @@
 //   demuxer gives each segment's own timestamps, unchanged at an
 //   EXT-X-DISCONTINUITY (docs/PHASE2_SURVEY.md, M5), so a sequence starts
 //   where they jump; where they go on across the tag, it needs none.
+// - Jumps at different places (D-050). Once an input has jumped to its next
+//   sequence, a frame of the other input's current sequence later than the
+//   jumped input's last by more than the grid's frame duration puts the two
+//   jumps at different places, as frames missing from one input do: pairing
+//   stops there, and every frame not paired or counted yet, and every frame
+//   to come, fails as after a discontinuity, as under D-028's option (a).
 // - libvmaf contexts. A pair before which a reference frame that counts as a
 //   failure was dropped since the previous pair, and the first pair of every
 //   discontinuity sequence but the first, starts a new libvmaf context
@@ -219,6 +225,8 @@ private:
         bool              has_last   = false;
         int64_t           last_t     = 0;      // ticks of its last timestamped frame
         int64_t           seq        = 0;      // the discontinuity sequence of its last frame
+        std::vector<int64_t> ends;             // ends[k]: the ticks of sequence k's last frame,
+                                               // once sequence k + 1 has started (D-050)
     };
 
     Side&       side(Input in) { return in == Input::Reference ? ref_ : dis_; }
@@ -232,6 +240,7 @@ private:
     void    unpaired_grid_frame(const Entry& g);
     void    close_interval(std::optional<int64_t> left, std::optional<int64_t> right);
     Step    drop(Input in);
+    Step    stop();
     // Whether `s` has a frame of the current sequence at its queue's head, and
     // whether it has none to come: its head is in a later sequence, or it ended.
     bool    has_frame(const Side& s) const;
@@ -246,6 +255,7 @@ private:
     int64_t grid_dur_    = 0;         // the grid input's frame duration, in ticks
     int64_t jump_        = 0;         // kForwardJump, in ticks
     int64_t seq_         = 0;         // the discontinuity sequence being paired (D-046)
+    bool    stopped_     = false;     // the inputs' jumps weren't at the same place (D-050)
     bool    gap_         = false;     // a reference frame counted as failed since the last pair
     std::optional<int64_t> prev_grid_;    // the time of the grid input's last decided frame
     std::vector<Entry>     pending_;      // the other input's dropped frames since then

@@ -150,6 +150,7 @@ void Aligner::push(Input in, int64_t timestamp)
                 // The input's next discontinuity sequence, measured from this
                 // frame (D-046).
                 ++counts_.discontinuities;
+                s.ends.push_back(s.last_t);
                 e.seq       = ++s.seq;
                 s.seq_start = timestamp;
                 e.t         = 0;
@@ -194,6 +195,16 @@ Step Aligner::drop(Input in)
     (in == Input::Reference ? step.ref_index : step.dis_index) = s.queue.front().index;
     s.queue.pop_front();
     return step;
+}
+
+// The inputs' jumps aren't at the same place (D-050): the other input's frames
+// dropped since the grid input's last decided frame are counted as before the
+// stop, and pairing stops.
+Step Aligner::stop()
+{
+    close_interval(prev_grid_, std::nullopt);
+    stopped_ = true;
+    return next();
 }
 
 // The grid input's frame `g` pairs with no frame: it ends the interval of the
@@ -267,6 +278,20 @@ Step Aligner::next()
     using K = Step::Kind;
     if (!ok()) return {};
 
+    if (stopped_) {
+        // Pairing stopped where the inputs' jumps weren't at the same place
+        // (D-050): every frame not paired or counted yet fails, and so does
+        // every frame still to come.
+        for (Input in : { Input::Reference, Input::Distorted }) {
+            if (side(in).queue.empty()) continue;
+            fail(in, side(in).queue.front(), Reason::AfterDiscontinuity);
+            return drop(in);
+        }
+        if (!ref_.ended) return { .kind = K::NeedReference };
+        if (!dis_.ended) return { .kind = K::NeedDistorted };
+        return { .kind = K::Done };
+    }
+
     // A frame without a timestamp is dropped once it is at the head of its queue.
     for (Input in : { Input::Reference, Input::Distorted }) {
         const std::deque<Entry>& q = side(in).queue;
@@ -284,6 +309,11 @@ Step Aligner::next()
 
     if (!has_frame(g)) {
         if (!done_with_sequence(g)) return { .kind = need_g };
+        // The grid input jumped to its next sequence: a frame of the other
+        // input's sequence later than its last by more than a grid frame puts
+        // the two jumps at different places (D-050).
+        if (!g.queue.empty() && has_frame(o) && o.queue.front().t > g.ends[seq_] + grid_dur_)
+            return stop();
         // The grid input has no more frames in this sequence: the rest of the
         // other input's pair with nothing.
         if (has_frame(o)) {
@@ -304,6 +334,8 @@ Step Aligner::next()
     const Entry gf = g.queue.front();
     if (!has_frame(o)) {
         if (!done_with_sequence(o)) return { .kind = need_o };
+        // The other input jumped: so too, the grid input's frame (D-050).
+        if (!o.queue.empty() && gf.t > o.ends[seq_] + grid_dur_) return stop();
         unpaired_grid_frame(gf);
         return drop(g_in);
     }
