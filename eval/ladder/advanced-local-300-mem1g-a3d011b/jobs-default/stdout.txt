@@ -1,0 +1,15 @@
+[INFO]  VMAFAnalyzer: 300 frames  mean=85.69  min=79.62  p5=82.04  [Analysis]
+mirage_vmaf: pair 1 of 7, <ladder_dir>/v5/prog_index.m3u8: 300 frame pairs scored
+[INFO]  VMAFAnalyzer: 300 frames  mean=92.71  min=86.70  p5=88.42  [Analysis]
+mirage_vmaf: pair 4 of 7, <ladder_dir>/v6/prog_index.m3u8: 300 frame pairs scored
+[INFO]  VMAFAnalyzer: 300 frames  mean=99.51  min=95.94  p5=97.01  [Analysis]
+mirage_vmaf: pair 2 of 7, <ladder_dir>/v8/prog_index.m3u8: 300 frame pairs scored
+[INFO]  VMAFAnalyzer: 300 frames  mean=99.31  min=94.80  p5=96.18  [Analysis]
+mirage_vmaf: pair 3 of 7, <ladder_dir>/v7/prog_index.m3u8: 300 frame pairs scored
+[INFO]  VMAFAnalyzer: 300 frames  mean=83.07  min=73.82  p5=77.50  [Analysis]
+mirage_vmaf: pair 5 of 7, <ladder_dir>/v4/prog_index.m3u8: 300 frame pairs scored
+[INFO]  VMAFAnalyzer: 300 frames  mean=75.32  min=64.68  p5=69.73  [Analysis]
+mirage_vmaf: pair 6 of 7, <ladder_dir>/v3/prog_index.m3u8: 300 frame pairs scored
+[INFO]  VMAFAnalyzer: 300 frames  mean=56.63  min=44.24  p5=50.13  [Analysis]
+mirage_vmaf: pair 7 of 7, <ladder_dir>/v2/prog_index.m3u8: 300 frame pairs scored
+mirage_vmaf: 7 of 7 pairs of the ladder scored against <ladder_dir>/v9/prog_index.m3u8 (top-rung), 0 entries skipped, 11 at a time; the run is complete; report written to <out_dir>/jobs-default/report.json

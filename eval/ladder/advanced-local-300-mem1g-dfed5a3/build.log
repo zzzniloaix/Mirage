@@ -1,0 +1,15 @@
+$ cmake --build --preset macos-release --target mirage_vmaf
+[1/13] Building CXX object CMakeFiles/mirage_vmaf.dir/src/VMAFProcess.cpp.o
+[2/13] Building CXX object CMakeFiles/mirage_vmaf.dir/src/FileHash.cpp.o
+[3/13] Building CXX object CMakeFiles/mirage_vmaf.dir/src/VMAFColor.cpp.o
+[4/13] Building CXX object CMakeFiles/mirage_vmaf.dir/src/VMAFPool.cpp.o
+[5/13] Building CXX object CMakeFiles/mirage_vmaf.dir/tools/mirage_vmaf.cpp.o
+[6/13] Building CXX object CMakeFiles/mirage_vmaf.dir/src/HlsMaster.cpp.o
+[7/13] Building CXX object CMakeFiles/mirage_vmaf.dir/src/JsonText.cpp.o
+[8/13] Building CXX object CMakeFiles/mirage_vmaf.dir/src/VMAFAlign.cpp.o
+[9/13] Building CXX object CMakeFiles/mirage_vmaf.dir/src/VMAFCli.cpp.o
+[10/13] Building CXX object CMakeFiles/mirage_vmaf.dir/src/VMAFReport.cpp.o
+[11/13] Building CXX object CMakeFiles/mirage_vmaf.dir/src/VMAFLadder.cpp.o
+[12/13] Building CXX object CMakeFiles/mirage_vmaf.dir/src/VMAFAnalyzer.cpp.o
+[13/13] Linking CXX executable mirage_vmaf
+(exit status 0)
