@@ -1,0 +1,2 @@
+# The commands of this eval/ladder/pool_check.py run, one per pool size.
+$ /usr/bin/time -l <mirage_vmaf> --ladder <ladder> --out <out_dir>/jobs-default/report.json --memory-limit 1G
