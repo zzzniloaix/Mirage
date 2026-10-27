@@ -1,33 +1,12 @@
 # Phase 1: decisions pending for the owner
 
-What is still open for the owner after the decisions of 2026-10-23 (`docs/DECISIONS.md` D-020 to D-033) and their implementation: first, where the implementation departs from a decision's wording; then the questions D-020 left open, the plan D-032 asked for, what implementing the decisions left open, the agent's measurement and process choices P-033 to P-065, and the differences between the work order and the implementation (hard rule 4). The decisions are the owner's (hard rule 3 of the work order); every recommendation below is labeled as the agent's. Every number comes from a committed output, named next to it; where there is none, it says MEASUREMENT PENDING. The state of each section of Phase 1 is in `docs/PHASE1_STATUS.md`, and the statements the paper's method text has to make, with their evidence, in `docs/PAPER_METHOD_NOTES.md`.
+What is still open for the owner after the decisions of 2026-10-26 (`docs/DECISIONS.md` D-034 to D-041), which adopted the agent's recommendations of this document as of `b2d2824`: D-011's clips and encoding parameters, and D-008's question with the license texts next to glad's loader; the agent's process choice P-066; and the differences between the work order and the implementation (hard rule 4). The decisions are the owner's (hard rule 3 of the work order); every recommendation below is labeled as the agent's. Every number comes from a committed output, named next to it; where there is none, it says MEASUREMENT PENDING. The state of each section of Phase 1 is in `docs/PHASE1_STATUS.md`, and the statements the paper's method text has to make, with their evidence, in `docs/PAPER_METHOD_NOTES.md`.
 
-The packages decided on 2026-10-23 are kept at the end, in "Decided on 2026-10-23 (D-020 to D-033)", with the text they had when they were decided, as the record of their options, and a note at the start of each on what was decided and where the work is.
+The items decided on 2026-10-26 follow, in "Decided on 2026-10-26 (D-034 to D-041)", and the packages decided on 2026-10-23 at the end, in "Decided on 2026-10-23 (D-020 to D-033)", each with the text it had when it was decided, as the record of its options, and a note at its start on what was decided and where the work is.
 
-## A departure from a decision's wording
+## Open
 
-One behavior of the implementation departs from the wording of an owner's decision. The code follows FFmpeg there; that is provisional until the owner decides (P-033).
-
-### D-022's wording and FFmpeg's negotiation, where FFmpeg changes the distorted frames' color (P-033)
-
-**The departure.** D-022 has Mirage convert a reference that isn't yuv420p to the distorted frames' color matrix and range, and leave the distorted frames' color as it is. FFmpeg 8.1.1's graph does that whenever the distorted input's buffer source offers one matrix and one range, that is, for plain YUV frames with a range tag or in a yuvj format, as in every committed case. For two kinds of distorted input it does not, and neither does Mirage, which follows FFmpeg there:
-
-- (a) a distorted input without a range tag, against a reference that has one or is yuvj: libavfilter gives both inputs the reference's range, so a full range reference makes the distorted frames full range;
-- (b) a distorted input in a format that isn't plain YUV, such as gray or RGB: both inputs get the reference's matrix and range.
-
-**Today.** `vmafcolor::negotiated()` (`src/VMAFColor.h`) gives FFmpeg's tags. `tests/test_vmaf_color.cpp` compares them with libavfilter's for every combination of five kinds of pixel format on both inputs, with five tag sets on the reference and four on the distorted input, and the frames' bytes for the formats of `vmafcolor::verified_formats()`, distorted inputs without a range tag among them. No committed delta run has such an input (MEASUREMENT PENDING). The code has no switch for D-022's wording: for these inputs the wording would first need the owner's definition, such as which matrix a reference gets against distorted frames that aren't YCbCr.
-
-**Options.**
-
-1. FFmpeg's negotiation, as today: libavfilter's tags and, for the formats the test checks, the bytes libavfilter's graph gives libvmaf.
-2. D-022's wording: convert only the reference, to the distorted frames' tags as they are, with a rule for distorted frames that aren't YCbCr. Mirage would then convert these inputs otherwise than plain FFmpeg, and §5 would be expected to fail for them (not measured).
-3. Refuse such pairs, as pairs with a matrix libswscale can't convert are refused (D-021).
-
-**Agent's recommendation.** Option 1: D-022's rationale is parity with a plain `ffmpeg -lavfi libvmaf` run, and its wording describes the committed cases, in which the two give the same. Whichever the owner chooses, a committed delta run of cases (a) and (b) would then show what both tools do with such inputs (MEASUREMENT PENDING).
-
-## Open from before D-020
-
-D-020 adopted the agent's recommendations of this document as of `63b40e2` and names three questions it didn't cover: D-011's clips and encoding parameters, D-008's question, and the player's own JSON export (difference 9). D-032 added a plan for the owner to approve.
+D-034 left these open: the agent's recommendation for D-011 is that the owner choose, and D-008 has none.
 
 ### D-011: the source clips of the self-encoded ladders
 
@@ -73,174 +52,6 @@ What the record shows about them, for the choice:
 
 D-008 chose GPL-3.0-or-later and left open whether legal or the company's open-source process has to confirm it before the repository is made public again. `LICENSE` is committed as D-008 decided (P-020). Two questions wait on the answer: the license texts next to glad's committed loader ("D-031: the license texts next to glad's loader", below) and the terms of the clips D-011 chooses (above). This is the owner's to check; the agent has no recommendation of its own.
 
-### Difference 9: the player's own JSON export
-
-§1.1 to §1.3 ask the output to carry the libvmaf version and the model identifier, the `reference_mode` and the scaler. `mirage_vmaf`'s report does (`src/VMAFReport.h`). The player's own JSON export (`VMAFAnalyzer::write_json` in `src/VMAFAnalyzer.cpp`) still has its Phase 0 layout, which a test pins, without any of them, and the player has no scaler or model option. Since D-024 and D-027 the player's analysis scales with bicubic and its p5 is the interpolated one, so the export's numbers follow the new defaults without naming them.
-
-**Options.** Give `write_json` those fields; have the player write `mirage_vmaf`'s report format; leave the player's export until §7's schema.
-
-**Agent's recommendation.** Leave it until §7's schema, which decides one format for both; the paper's numbers come from `mirage_vmaf`'s reports. D-020 noted that the package had no firm recommendation, and this one is new.
-
-### The plan for the intermittent Demuxer test (D-032)
-
-D-032 asked for a plan to find out whether the timing of `Demuxer: seamless video and audio switches on a local file` or the track switch is at fault; it is `docs/plans/demuxer-switch-test.md`. From reading the code, every recorded failure is a packet of the old track past the take-over point that a consumer took before the demuxer served the switch request, and the test releases its consumers right after the request; the plan's experiments tell the test's timing apart from a delay or a fault in the switch. Nothing on the decode path or in the test changes before the owner approves it (D-007).
-
-**Decisions it needs.** Approval of its experiments 1 to 3, run on the machine of the measurements; and whether experiment 4 may run the player in scripted runs, if the first three point at the switch.
-
-**Agent's recommendation.** Experiments 1 to 3; experiment 4 only if they point at the switch.
-
-## Open after D-020: what implementing the decisions left open
-
-The decisions of 2026-10-23 leave the questions below open. The code does what each "Today" describes; each choice is a P-entry in `docs/DECISIONS.md`, pending the owner's confirmation. The recommendations are the agent's.
-
-### The warning that remains of P-030 (P-033)
-
-**Question.** What should the analyzer warn about once it converts such references as FFmpeg does?
-
-**Today.** It warns, once per input, when frames it converts, the distorted frames always and the reference when it isn't yuv420p, are in a pixel format outside `vmafcolor::verified_formats()`: the formats `tests/test_vmaf_color.cpp` compares byte for byte with the graph run through libavfilter, as reference and as distorted input. NV12 and NV21 are outside: with a change of matrix, libswscale converts them differently on four threads than on one (the same test), and FFmpeg's scale filters use as many threads as `ffmpeg` finds CPUs, where Mirage uses one (P-014). The player shows no warning.
-
-**Options.**
-
-1. Today's warning.
-2. No warning.
-3. A warning only for formats that aren't plain YUV, which no committed delta run covers.
-4. As many swscale threads as FFmpeg's scale filters use, which might give NV12 and NV21 FFmpeg's bytes on the same machine (not measured), with a heavier background analysis in the player.
-
-**Agent's recommendation.** Option 1: it says exactly where the conversion isn't checked, and changes no score.
-
-### target()'s range tag for a yuv420p reference (D-021; for information)
-
-For a yuv420p reference without a range tag, distorted frames tagged limited in a yuvj format or one that isn't plain YUV stay limited in Mirage (`target()`, as implemented), where FFmpeg's graph tags them unspecified. libswscale converts both alike, so the frames libvmaf gets are the same (`tests/test_vmaf_color.cpp`), and the analyzer gives no warning; only the report's `dis_conversion` names another `to` range than FFmpeg's scale filter, which the delta tool would show as a warning. D-021 keeps the rules as implemented; `negotiated()` in their place would change that tag and no pixel.
-
-### How eval/run_all.sh reruns the reference format cases (P-034)
-
-`format-cases-after/` is rerun with the program of `d993686`, the commit its `build.txt` names, because HEAD's converts a reference that isn't yuv420p since D-022; `format-cases-d022/` is rerun with HEAD's, as the other runs made after D-016 are.
-
-### D-027: the minimum without the first frame (P-039)
-
-**Question.** D-027 reports the minimum without the first frame under its own name. Which name, and what for a pair of one frame? Since D-028 a pair can be scored in several libvmaf contexts, and the first pair of each context has no motion to a frame before it, as the pair's first frame has none: should the value leave out the first pair of every context as well?
-
-**Today.** `min_without_first_frame`, the name `eval/pooling/pooling.py` gives it: the smallest score of the pairs 1 to n − 1, `null` for a pair of one frame. It leaves out the pair's first frame only, however many libvmaf contexts the pair was scored in.
-
-- Where a pair is scored in one context, its first frame is the only one without motion to a frame before it. So it is over every frame of the four bipbop pairs with the defaults: one context per pair (`eval/consistency/defaults-full/checks.txt`, check 6), and in FFmpeg's logs frame 0 the only frame whose `integer_motion2` is 0 (`eval/pooling/defaults-full/pooling.md`); with bilinear as well (`eval/pooling/README.md`, on `acceptance-full/`).
-- Where D-028 starts a new context after a gap, the value can be the first pair of that context. Of the nine alignment cases scored since D-028, `a01_dropped_distorted`, the stream with a frame dropped on purpose, has two contexts and the others one (`eval/consistency/align-cases-d028/checks.txt`, check 5). In its report (`eval/consistency/align-cases-d028/main/a01_dropped_distorted/mirage.json`) `alignment.vmaf_contexts` is `[{first_index: 0, pairs: 5}, {first_index: 5, pairs: 4}]`, and `pooled.min_without_first_frame` is 72.71141969606174: the score of pair 5, the first pair of the second context, whose two frames score 74.78632698606295 in the control `a00_aligned`, where they start no context. The lowest score of the pairs that start no context is pair 1's, 74.77789802017037 (`align-cases-d028/checks.txt`, check 4, which lists every pair's score in both cases). The last pair of the first context differs from the control too, upward (pair 4: 74.9322319648982 against 74.91274986019386, the same check), since libvmaf's motion2 of a frame also uses the next frame (P-008).
-
-**Options.**
-
-1. As today: only the pair's first frame left out, as D-027 words it.
-2. Another name for today's value, such as `min_excluding_first`.
-3. The first pair of every libvmaf context left out instead, under the same name or another.
-4. Both: today's value as D-027 names it, and, under a name of its own, the minimum without the first pair of every context; for a pair scored in one context the two are the same.
-
-**Agent's recommendation.** Option 4: D-027's value stays as decided, and the second value carries D-027's reason for it, a minimum that says something about the encode, to every pair that has no motion to a frame before it, as `a01` shows the first pair of a later context to be. Which value, and under which names, is the owner's choice.
-
-### D-030: what a config file accepts (P-040)
-
-**Question.** D-030 decides the format (`name = value` lines with the long options' names), the option table, the command line's precedence and the report's path and SHA-256. Which of the details it leaves open should hold?
-
-**Today** (`src/VMAFCli.h`; tests in `tests/test_vmaf_cli.cpp`):
-
-- Blank lines and lines whose first character other than white space is `#` are skipped; there are no comments after a value, no quotes and no escapes: the value is the rest of the line after the first `=`, without the white space around it.
-- Every option but `--config` can be set in the file, the inputs and the output included, each once; each value is checked as on the command line, also where the command line replaces it.
-- `--model` and `--model-file` are one setting: either on the command line replaces either in the file; both in one place are an error.
-- Relative paths are taken from the current directory, as on the command line.
-- A file that can't be read or has an error ends `mirage_vmaf` with status 2, the file and line named.
-
-**Options.** As today; comments after a value; only the scoring settings in the file, not the inputs and the output; relative paths from the file's directory; settings the command line replaces left unchecked.
-
-**Agent's recommendation.** As today: nothing a command line can say is written differently in the file, and a file with an error doesn't run.
-
-### D-028: the values its pairing leaves open (P-043, P-044)
-
-**Question.** D-028 fixes the rule, the tolerance, the timestamp origin, options (b) and (a), the restarted libvmaf contexts, the report's fields and #7. Which of the values it leaves open should hold?
-
-**Today** (`src/VMAFAlign.h`; tests in `tests/test_vmaf_align.cpp` and `tests/test_vmaf_analyzer.cpp`):
-
-- **Frame rates**: `av_guess_frame_rate()`, the rate `ffmpeg` gives its filter graph for a stream. A reference without one ends the analysis with an error, as do time bases with no common one within 2^40 ticks per second; a distorted input without one is taken to have the reference's.
-- **The tolerance** includes its bound. Each frame of the grid input takes the nearest frame of the other input within it, the earlier of two equally near.
-- **The coarser grid**: frame rates compared exactly. A frame of the finer input that pairs with nothing fails only as the nearest to a point of the grid that no frame of the grid input takes, nearer than the tolerance; the others are off the grid, counted and not failures, and a frame halfway between two points counts for neither.
-- **Discontinuities**: a timestamp that goes back at all, or forward by more than 10 s, the default of `ffmpeg`'s `dts_delta_threshold`. `ffmpeg` itself takes a backward step for a discontinuity only beyond 0.1 s.
-- **#7's boundary**: a failure rate of exactly 1% doesn't warn, as D-023's boundary passes a frame exactly at 0.01.
-- **Without a container start time**, times count from the input's first timestamped frame, as the plan says; `ffmpeg` then shifts nothing.
-- **Both inputs are read to their ends**, unless the frame limit stops the run, so that the rest of the longer input is counted. Before D-028 the pairing stopped at the shorter input's end.
-- **The report** has, beyond the plan's fields, the grid, each input's frame rate and start, the frames that failed once pairing stopped (`after_discontinuity`), the discontinuity limit, the frames off the grid, the libvmaf contexts, and each pair's frame positions in their inputs.
-- **No option sets them**: like libvmaf's threads, these values are fixed in the code, so neither `mirage_vmaf`'s command line nor its config file has them; the report records them.
-
-**Options.** As today; any of the alternatives of P-043 and P-044; or some of the values as options, each one more row of `mirage_vmaf`'s option table and so in the config file as well (D-030).
-
-**Agent's recommendation.** As today: each value is FFmpeg's where FFmpeg has one and the plan's otherwise, and the tests pin each.
-
-### D-028's timestamp origin and a clip cut with its timestamps kept (for information)
-
-With times measured from each input's start (D-028), a clip cut from the reference with its timestamps kept, in a container that holds only its video, starts at its first frame and pairs from there: each frame with the reference frame as many frames earlier in the picture as were cut, as `ffmpeg` without `-copyts` pairs it, and only the reference frames left over at the end fail. With an earlier container start, such as an audio track from 0, the cut frames show as unmatched reference frames instead. The test "a later start, measured from each input's start" (`tests/test_vmaf_analyzer.cpp`) has both. With absolute timestamps, D-028's alternative, the cut clip would pair with the reference frames of its pictures.
-
-### The delta tool's comparison by timestamp (P-047)
-
-**Question.** D-028 has the §5 delta tool compare the two sides by timestamp, a pair passing only if both sides scored the same timestamps, and the differences in what each side counted as failed reported. Which of the details it leaves open should hold?
-
-**Today** (`eval/consistency/vmafdelta.py`; tests in `eval/consistency/tests/`):
-
-- FFmpeg's pairs come from three `showinfo` filters in its graph and FFmpeg 8.1.1's framesync rule; where they aren't the frames libvmaf passed on and scored, the pair fails and no scores are compared.
-- A pair of one side is a pair of the other when it has the same frames, by their positions in the inputs, and both frames must have the same timestamps on both sides: pairs of the same frames whose timestamps `ffmpeg` corrected fail as `TIMESTAMP MISMATCH` (`a07_restart` in `eval/consistency/align-cases-before/`).
-- Every frame the two sides treat differently, `mirage_vmaf`'s failures included, is listed and warned about; it fails the pair only through its pairs or its scores.
-- The pairs further apart than the tolerance are counted with half the reference's frame duration from `mirage_vmaf`'s alignment, or from ffprobe's `r_frame_rate` for a report without one.
-- P-009's warning about `mirage_vmaf` pairs of two different PTS is gone; the comparison settles it.
-- FFmpeg's verbose log is longer: for each frame and each of the three filters, a line with its timestamp, one with its color tags, and one for each item of side data the frame carries; over every frame of a bipbop pair the log holds 91659880 to 92092360 bytes, 1877848 to 1903556 bytes as committed, xz-compressed (`eval/consistency/defaults-full/checks.txt`, check 12).
-- With `--frames N`, FFmpeg's `trim` passes the first N frames of each input on (P-008), where `mirage_vmaf` scores N pairs (P-044). Where the inputs' frames line up the two are the same frames; where they don't, they can be other frames, and the comparison then reports the pairs only one side scored. The alignment runs score every frame.
-
-**Options.** As today; pairs matched by their timestamps only; failing a pair on the differences in failure accounting too; the comparison by position as a fallback where FFmpeg's pairs can't be established; FFmpeg's `metadata` filter writing the frames to separate files, which would leave the verbose log as it was.
-
-**Agent's recommendation.** As today: the positions name the frames exactly, so a pair both sides scored is scored on the same pictures, and a pairing the tool can't establish fails rather than passing pairs nobody knows.
-
-### What the alignment cases show where the two rules differ (P-048)
-
-**Question.** Where the inputs' frames don't line up, Mirage's pairing (D-028) and FFmpeg's libvmaf filter score other pairs, so §5 fails there by design (difference 12). The runs show where (`eval/consistency/align-cases-d028/`; `eval/consistency/README.md`, "`align-cases-before/`, `align-cases-d028/`"):
-
-1. FFmpeg scores pairs of frames of different times where Mirage counts failures: a distorted frame with the reference frame before it when a reference frame is missing (`a02`), both frames under a duplicated timestamp (`a03`), and, once the distorted input has ended, each later reference frame against the last distorted frame (`a04`, `a05`).
-2. With a Matroska reference, whose timestamps are milliseconds, against a 90 kHz MPEG-TS distorted input whose frames line up, FFmpeg's framesync pairs 4 of the 10 distorted frames with the reference frame before theirs, whose rounded time is later (`a08`). Framesync has an option for the nearest frame, `ts_sync_mode=nearest` (`eval/consistency/ffmpeg-libvmaf-filter/checks.txt`, check 3), which the §5 graph doesn't set.
-3. After a gap Mirage starts a new libvmaf context (D-028), where FFmpeg's motion features span the gap, so the pair after the gap scores differently (`a01`).
-4. `ffmpeg` corrects MPEG-TS timestamps that restart and pairs every frame, where Mirage stops pairing (D-028's option (a); `a07`).
-5. With a later start in a container that starts with its video, both sides measure from each input's start and pair the frames three pictures apart (`a05`); in a container that starts at 0 both pair the same frames, and the pair passes with Mirage's unmatched frames reported (`a06`).
-
-Should §5 stay as it is for such inputs?
-
-**Options.**
-
-1. As today: the §5 comparison is FFmpeg's plain graph; for inputs whose frames don't line up the reports show the differences, and the paper states that parity holds where the frames line up.
-2. Options in FFmpeg's graph that make it pair more as rule A does, such as `ts_sync_mode=nearest` for (2); the comparison would then no longer be a plain `ffmpeg -lavfi libvmaf` run.
-3. Mirage following FFmpeg in some of them, such as `ffmpeg`'s correction of timestamp jumps for (4), the plan's option (c); this changes D-028.
-
-**Agent's recommendation.** Option 1 now, and (4) decided again with D-011's ladders, as D-028 foresees for discontinuities.
-
-For D-011, whose clips and encoding parameters stay the owner's: (2) shows that a reference and distorted inputs whose timestamps have different time bases can make FFmpeg's side pair other frames although the frames line up.
-
-### FFmpeg at the end of the distorted input, against the plan's reading (for information)
-
-The plan's "What FFmpeg does" (`docs/plans/frame-alignment.md`) says, from the sources, that scoring ends with the distorted input. The runs show that once the distorted input has ended, FFmpeg's libvmaf filter scores each later reference frame against the last distorted frame (`a04`, `a05` in `eval/consistency/align-cases-d028/`): framesync keeps the distorted input's last frame, and its end hands the events to the reference (`libavfilter/framesync.c`). The plan's status line says so; its text is left as it was approved.
-
-### D-029: the values its ladder scoring leaves open (P-050)
-
-**Question.** D-029 fixes the design of ladder scoring in `mirage_vmaf`: top-rung by default, a mezzanine optionally; each video playlist scored once; entries without video skipped and listed as skipped; one failed pair fails the run; one report per reference mode, with a pairs list. Which of the details it leaves open should hold?
-
-**Today** (`src/VMAFLadder.h`; tests in `tests/test_vmaf_ladder.cpp`, `test_vmaf_cli.cpp` and `test_vmaf_report.cpp`):
-
-- **What an entry is**: an `EXT-X-STREAM-INF` tag with the URI line after it, in an HLS master playlist (no DASH). I-frame playlists and `EXT-X-MEDIA` renditions, video renditions included, aren't entries and aren't scored: D-029's "each video playlist" is read as the playlists of these entries, the ones the §1.2 package asked about.
-- **What has video**: an entry with a `RESOLUTION`, or with a video codec's sample entry in `CODECS` (`avc1`, `avc3`, `hvc1`, `hev1`, `dvh1`, `dvhe`, `av01`, `vp09`, `vp08`, `mp4v`), the rule of `eval/streams/fetch_streams.py`; read from the master, without opening the entry. An entry without video is skipped also when it names a video playlist.
-- **The top rung**: the playlist of the video entry with the highest `BANDWIDTH`; of equals that name different playlists, the first in the master, with a warning in the report, and on stderr when the run ends.
-- **A master read strictly**: the first line `#EXTM3U`, every entry with a `BANDWIDTH` of digits only, up to 2^63 − 1, and a URI line, no URI line without an entry, every URI resolvable (for http(s), relative and absolute paths and http(s) URLs; not dot segments, `//host` references, query- or fragment-only references or other schemes; for a local master, the URI joined to the master's directory as it is, dot segments included, or taken as it is when it has a scheme or starts with `/`). Anything else, or a master with nothing to score, ends the run without a report, exit status 1, as `mirage_vmaf --help` says. FFmpeg's hls demuxer and the player take a missing `BANDWIDTH` as 0.
-- **The order of the pairs**: the master's, by each playlist's first entry; the player's `start_manifest()` scores in descending `BANDWIDTH`.
-- **One mode per run**: `--mezzanine` replaces the top rung as the reference and scores the top rung's playlist too; both modes on one ladder are two runs, two reports.
-- **The first failed pair stops the run**, since no report follows it; each pair decodes the reference again.
-- **The command line**: `--ladder` and `--mezzanine` exclude `--ref` and `--dis` in one place; in a config file and on the command line, the command line's form leaves out the file's other form.
-
-**Options.** As today; any of the alternatives of P-050: scoring `EXT-X-MEDIA` video renditions as well, probing each entry for video instead of reading its attributes, taking a missing `BANDWIDTH` as 0, refusing a master with equal highest bandwidths, ordering the pairs by `BANDWIDTH`, both modes in one run, scoring every pair before failing.
-
-**Agent's recommendation.** As today: the rules are FFmpeg's where FFmpeg reads the master and the repository's where it already decides what has video, and a master the tool would have to guess about is refused rather than scored with a reference nobody chose.
-
-### The player's ladder analysis against mirage_vmaf's (for information)
-
-The player's VMAF ladder analysis (`VMAFAnalyzer::start_manifest()`, from the "Manifest Variants" menu and `--vmaf`) is as before: every `EXT-X-STREAM-INF` entry but the one of the highest `BANDWIDTH` is scored against it, audio-only entries and entries that repeat a playlist included, in descending `BANDWIDTH`, a failed entry recorded as an error, without a mezzanine mode (`docs/VMAF_GAP_REPORT.md`, item 4). D-029 gives `mirage_vmaf` its own rules and chose not to mirror the player. Whether the player should follow `mirage_vmaf`'s rules is the owner's choice, a change to the player (D-007 if it touches its decode path), and is not made here.
-
 ### D-031: the license texts next to glad's loader (P-053)
 
 **Question.** D-031 has the license terms of glad's committed loader stated next to it. Should the license texts be committed as well, and how do the terms sit with GPL-3.0-or-later?
@@ -255,56 +66,84 @@ The player's VMAF ladder analysis (`VMAFAnalyzer::start_manifest()`, from the "M
 
 **Agent's recommendation.** None of the agent's own: this belongs with D-008's open question ("D-008" above), whether legal or the company's open-source process has to confirm the license, whose answer decides what the files need next to them.
 
-### D-031: the headless configuration's details (P-054)
+## For information
 
-**Question.** D-031 fixes a CMake option without the player's dependencies, a Linux preset and Linux instructions. Should the details it leaves open hold?
+What implementing the decisions found, which asks for no decision.
 
-**Today** (`CMakeLists.txt`, `CMakePresets.json`, `docs/BUILD.md` steps 3 and 6):
+### target()'s range tag for a yuv420p reference (D-021; for information)
 
-- The option is `MIRAGE_HEADLESS`, off by default. On, it leaves out OpenGL, GLFW, glad, Dear ImGui and nativefiledialog-extended, and also stb and the player's snapshot check (`snapshot_diff`, `pathb_regression`), which only the player uses; it builds `mirage_vmaf` and all of `mirage_tests`.
-- A third macOS preset, `macos-headless`, so that the headless configuration is built and checked on macOS with ffmpeg-full; its `mirage_vmaf` is identical to the release preset's (`eval/build_check/macos-2026-10-24-5ae44a4.txt`).
-- One Linux preset, `linux-release`, Release only, offered only on a Linux host, with no `PKG_CONFIG_PATH`.
-- `eval/run_all.sh` is unchanged. On Linux it builds the older commits' programs with their `macos-release` preset, as on macOS, which needs the player's configure-time dependencies there.
+For a yuv420p reference without a range tag, distorted frames tagged limited in a yuvj format or one that isn't plain YUV stay limited in Mirage (`target()`, as implemented), where FFmpeg's graph tags them unspecified. libswscale converts both alike, so the frames libvmaf gets are the same (`tests/test_vmaf_color.cpp`), and the analyzer gives no warning; only the report's `dis_conversion` names another `to` range than FFmpeg's scale filter, which the delta tool would show as a warning. D-021 keeps the rules as implemented; `negotiated()` in their place would change that tag and no pixel.
 
-**Options.** As today; any of P-054's alternatives: the name `MIRAGE_BUILD_PLAYER`; stb and `snapshot_diff` kept in the headless configuration; only the VMAF tests; a Linux debug preset; no `macos-headless` preset.
+### How eval/run_all.sh reruns the reference format cases (P-034)
 
-**Agent's recommendation.** As today: the option leaves out exactly what only the player uses, and each preset is a configuration a step of `docs/BUILD.md` gives.
+`format-cases-after/` is rerun with the program of `d993686`, the commit its `build.txt` names, because HEAD's converts a reference that isn't yuv420p since D-022; `format-cases-d022/` is rerun with HEAD's, as the other runs made after D-016 are.
 
-### D-031: the Docker image's details (P-055)
+### D-028's timestamp origin and a clip cut with its timestamps kept (for information)
 
-**Question.** D-031 fixes a base image pinned by digest, FFmpeg 8.1.1 and libvmaf built from release sources checked by SHA-256 at the measured versions, `mirage_vmaf` built from the repository, and `eval/run_all.sh` as the command. Should the details it leaves open hold?
+With times measured from each input's start (D-028), a clip cut from the reference with its timestamps kept, in a container that holds only its video, starts at its first frame and pairs from there: each frame with the reference frame as many frames earlier in the picture as were cut, as `ffmpeg` without `-copyts` pairs it, and only the reference frames left over at the end fail. With an earlier container start, such as an audio track from 0, the cut frames show as unmatched reference frames instead. The test "a later start, measured from each input's start" (`tests/test_vmaf_analyzer.cpp`) has both. With absolute timestamps, D-028's alternative, the cut clip would pair with the reference frames of its pictures.
 
-**Today** (`docker/Dockerfile`, `docker/README.md`; not built, MEASUREMENT PENDING):
+### FFmpeg at the end of the distorted input, against the plan's reading (for information)
 
-- The base image is Debian 13 slim of 2026-10-20, by the digest of its image index (`docker/base-image.txt`).
-- FFmpeg has the configure options of Homebrew's ffmpeg-full formula for what the evaluation uses (GPL version 3, GnuTLS, libvmaf, libx264), without the formula's other external libraries, its macOS options and `ffplay`; libvmaf the formula's meson options and its model files.
-- x264 is the commit of Homebrew's x264 formula r3222, the H.264 encoder of the reference format clips.
-- Debian's packages are not pinned; the image lists the versions it installed.
-- The build context is the repository's `.git` alone, cloned with `--single-branch`: the image holds the commit checked out where it is built, with its branch's history and a clean working tree.
-- The image has the development files of OpenGL, GLFW and GTK 3, which the older commits whose programs `run_all.sh` builds need to configure.
-- Its entry point is `run_all.sh` with the image's `mirage_vmaf`, FFmpeg and model directory, `/out` its default output directory; it runs as root.
+The plan's "What FFmpeg does" (`docs/plans/frame-alignment.md`) says, from the sources, that scoring ends with the distorted input. The runs show that once the distorted input has ended, FFmpeg's libvmaf filter scores each later reference frame against the last distorted frame (`a04`, `a05` in `eval/consistency/align-cases-d028/`): framesync keeps the distorted input's last frame, and its end hands the events to the reference (`libavfilter/framesync.c`). The plan's status line says so; its text is left as it was approved.
 
-**Options.** As today; any of P-055's alternatives: Ubuntu 24.04 or another base; Debian's packages from `snapshot.debian.org` at the base image's date, or each pinned by version; all of the formula's external libraries; Debian's libx264; the older programs built into the image, or an image without the steps that need them; a user other than root.
+### The player's ladder analysis against mirage_vmaf's (for information)
 
-**Agent's recommendation.** As today, adding Debian's packages from `snapshot.debian.org` at the base image's date once a container runtime can show that the image builds: the compilers and libraries would then be pinned as the base image is.
+The player's VMAF ladder analysis (`VMAFAnalyzer::start_manifest()`, from the "Manifest Variants" menu and `--vmaf`) is as before: every `EXT-X-STREAM-INF` entry but the one of the highest `BANDWIDTH` is scored against it, audio-only entries and entries that repeat a playlist included, in descending `BANDWIDTH`, a failed entry recorded as an error, without a mezzanine mode (`docs/VMAF_GAP_REPORT.md`, item 4). D-029 gives `mirage_vmaf` its own rules and chose not to mirror the player. Whether the player should follow `mirage_vmaf`'s rules is the owner's choice, a change to the player (D-007 if it touches its decode path), and is not made here.
 
-### D-006 outside Homebrew: the libvmaf package version on Linux (P-054, P-055)
+### CLAUDE.md's build notes (for information)
 
-**Question.** D-006 has the reports record libvmaf's package version next to its run-time version. The package version is read from a Homebrew Cellar path: by `CMakeLists.txt` for `mirage_vmaf`'s reports, and by `eval/consistency/run_delta.py` for the libvmaf of FFmpeg's libvmaf filter. Outside Homebrew, on Linux and in the Docker image, both give `unknown`. What should they record there?
+`CLAUDE.md` still says that glad2 and miniaudio are fetched at configure time, and has a note on installing jinja2 for glad. Since D-031 glad isn't fetched and the build runs no Python. The file is the owner's and wasn't edited.
+
+### Dear ImGui's loader define (for information)
+
+`CMakeLists.txt` gives `imgui_impl` the define `IMGUI_IMPL_OPENGL_LOADER_GLAD2`, with a comment that glad is the loader of Dear ImGui's OpenGL 3 backend. The backend of the pinned Dear ImGui, v1.91.9, has used a loader of its own since 2021 (the changelog at the top of its `backends/imgui_impl_opengl3.cpp`), so the define has no effect. The line was left as it was.
+
+### The full-length report with the defaults, and D-027's numbers (for information)
+
+D-024's full-length §5 report with bicubic passes over every frame of the four pairs (`eval/consistency/defaults-full/`, P-059). D-027's rationale gives how far the three percentile definitions differ from runs with bilinear: at most 0.000276 over every frame and 0.093440 over 300 frames. With the defaults they differ by at most 0.001160 over every frame and 0.083044 over 300 frames, gear2's p1 in both (`eval/pooling/defaults-full/pooling.md`, `eval/pooling/defaults-300/pooling.md`). With the defaults too the minimum is the first frame's score in every series over every frame (`eval/pooling/defaults-full/pooling.md`). D-027 is the owner's and unchanged.
+
+## The agent's process choice to confirm: P-066
+
+D-033 confirmed P-006 to P-032, and D-041 P-033 to P-065 (in the decided sections below). The choices made in implementing D-035 to D-038 are P-066 in `docs/DECISIONS.md`, pending the owner's confirmation.
+
+| Entries | What | Alternatives worth a look |
+|---|---|---|
+| P-066 | how D-035 to D-038 are implemented: the network limits in `src/VMAFNet.h`, the second minimum's name and computation, `MIRAGE_LIBVMAF_PACKAGE` and `--ffmpeg-libvmaf-package`; the negotiation cases' clips and run; the unit tests at `bbc669d`, and a rerun of every step, which a process that had stopped writing its log and the machine's sleep cut short, committed as it ended, with its two unfinished steps rerun on their own | FfOpen's own open in the player only; other names; a version variable that overrides the path's; other clips for (a) |
+
+**Agent's recommendation**: confirm it.
+
+## Decided on 2026-10-26 (D-034 to D-041)
+
+D-034 adopted the agent's recommendations of this document as of `b2d2824`; D-035 to D-041 record each decision. The items keep the text they had then.
+
+### D-022's wording and FFmpeg's negotiation, where FFmpeg changes the distorted frames' color (P-033)
+
+**Decided** (2026-10-26): D-035: FFmpeg's negotiation, option 1, as the code has it since `22e2874`. The committed delta run of both kinds of input is `eval/consistency/negotiation-cases/`: all four cases pass, every frame within FFmpeg's 6 decimals (its `checks.txt`, check 4; P-066).
+
+**The departure.** D-022 has Mirage convert a reference that isn't yuv420p to the distorted frames' color matrix and range, and leave the distorted frames' color as it is. FFmpeg 8.1.1's graph does that whenever the distorted input's buffer source offers one matrix and one range, that is, for plain YUV frames with a range tag or in a yuvj format, as in every committed case. For two kinds of distorted input it does not, and neither does Mirage, which follows FFmpeg there:
+
+- (a) a distorted input without a range tag, against a reference that has one or is yuvj: libavfilter gives both inputs the reference's range, so a full range reference makes the distorted frames full range;
+- (b) a distorted input in a format that isn't plain YUV, such as gray or RGB: both inputs get the reference's matrix and range.
+
+**Today.** `vmafcolor::negotiated()` (`src/VMAFColor.h`) gives FFmpeg's tags. `tests/test_vmaf_color.cpp` compares them with libavfilter's for every combination of five kinds of pixel format on both inputs, with five tag sets on the reference and four on the distorted input, and the frames' bytes for the formats of `vmafcolor::verified_formats()`, distorted inputs without a range tag among them. No committed delta run has such an input (MEASUREMENT PENDING). The code has no switch for D-022's wording: for these inputs the wording would first need the owner's definition, such as which matrix a reference gets against distorted frames that aren't YCbCr.
 
 **Options.**
 
-1. As today: `unknown`, with the run-time version as on macOS.
-2. A CMake cache variable a build sets where the library's path names no version, which the Dockerfile would set to 3.1.0, the release it builds, and the same as an option of `run_delta.py`.
-3. libvmaf's pkg-config version: it is the run-time version (3.0.0 for the package 3.1.0, D-006), so it would add nothing.
+1. FFmpeg's negotiation, as today: libavfilter's tags and, for the formats the test checks, the bytes libavfilter's graph gives libvmaf.
+2. D-022's wording: convert only the reference, to the distorted frames' tags as they are, with a rule for distorted frames that aren't YCbCr. Mirage would then convert these inputs otherwise than plain FFmpeg, and §5 would be expected to fail for them (not measured).
+3. Refuse such pairs, as pairs with a matrix libswscale can't convert are refused (D-021).
 
-**Agent's recommendation.** Option 2: whoever builds libvmaf knows the release, and D-006 asks for both versions.
+**Agent's recommendation.** Option 1: D-022's rationale is parity with a plain `ffmpeg -lavfi libvmaf` run, and its wording describes the committed cases, in which the two give the same. Whichever the owner chooses, a committed delta run of cases (a) and (b) would then show what both tools do with such inputs (MEASUREMENT PENDING).
 
 ### A network read without a time limit (P-062)
+
+**Decided** (2026-10-26): D-036: option 2, the player's 5 s limits on a network input's reads and an interrupt callback on the analysis's stop token, in `b8eb634` (`src/VMAFNet.h`; P-066).
 
 **What happened.** In the rerun of every step at `61241e2` the machine went to sleep with its lid closed while the last two pairs of `defaults-full` were being scored, and their inputs lost Apple's CDN (`eval/run_all/2026-10-24-full/README.md`, `power_log.txt`). Three of the four scoring processes of those pairs logged TLS reads that timed out and a host name that didn't resolve, skipped the segments they couldn't open and ran to their ends. The fourth, the `mirage_vmaf` of `gear2_vs_gear5`, logged no error: its stderr log has no line with "error", "fail" or "timed out". The workflow stopped it with SIGTERM, and it exited with status -15 after 5801.1 s of the time the machine was awake (`logs/defaults-full_plain.log` of that record; P-062). Whether it was waiting on a read then is in no committed file; the code and FFmpeg's defaults below are why it could have been.
 
 **And again.** In the rerun of every step at `a4692a2` the machine went to sleep with its lid closed while the same two pairs were being scored (`eval/run_all/2026-10-26-fix/README.md`, `power_log.txt`; P-065). This time none of their four scoring processes, `mirage_vmaf` and `ffmpeg` alike, logged an error or skipped a segment. Their stderr logs were last written at the sleep, and after the machine woke each used 0.05 s of CPU time in 120 s (`stall_check.txt`): they made no progress until they were stopped with SIGTERM. What they were waiting on is in no committed file; the code and FFmpeg's defaults below are why a read could wait that long.
+
+**After D-036.** In the rerun of every step at `bbc669d`, the first with D-036's limits, the machine went to sleep with its lid closed while three pairs of `defaults-full` were being scored (`eval/run_all/2026-10-26-d035/README.md`, `power_log.txt`; P-066). The stderr logs of `mirage_vmaf` in those pairs hold TLS reads that timed out, 4, 4 and 20 lines, and in `gear1_vs_gear5` segments that failed to open. It exited with status 0, its reports scoring 52442, 4425 and 15639 of the 53946 frame pairs, each with D-028's warning, most of the failed frames after a discontinuity, where D-028's rule stops pairing (`mirage.stdout.txt` of each pair). The `ffmpeg` of `gear2_vs_gear5`, which has no read limit, had last written its log 3 min 54 s before the sleep, and made no progress until it was stopped (`stall_check.txt`). The text below is as it was written before D-036.
 
 **Today.**
 
@@ -328,7 +167,53 @@ A limit changes no score of a run whose reads succeed. Where a read fails, the p
 
 **Agent's recommendation.** Option 2, with the player's values: a read that waits longer becomes a failure that the report and the §5 check show, and the player's cancel interrupts a read. It changes the analyzer the player shares, so it waits for the owner (D-007).
 
+### D-027: the minimum without the first frame (P-039)
+
+**Decided** (2026-10-26): D-037: option 4, `min_without_context_first_frames` in the report next to D-027's value, in `c810480` (P-066).
+
+**Question.** D-027 reports the minimum without the first frame under its own name. Which name, and what for a pair of one frame? Since D-028 a pair can be scored in several libvmaf contexts, and the first pair of each context has no motion to a frame before it, as the pair's first frame has none: should the value leave out the first pair of every context as well?
+
+**Today.** `min_without_first_frame`, the name `eval/pooling/pooling.py` gives it: the smallest score of the pairs 1 to n − 1, `null` for a pair of one frame. It leaves out the pair's first frame only, however many libvmaf contexts the pair was scored in.
+
+- Where a pair is scored in one context, its first frame is the only one without motion to a frame before it. So it is over every frame of the four bipbop pairs with the defaults: one context per pair (`eval/consistency/defaults-full/checks.txt`, check 6), and in FFmpeg's logs frame 0 the only frame whose `integer_motion2` is 0 (`eval/pooling/defaults-full/pooling.md`); with bilinear as well (`eval/pooling/README.md`, on `acceptance-full/`).
+- Where D-028 starts a new context after a gap, the value can be the first pair of that context. Of the nine alignment cases scored since D-028, `a01_dropped_distorted`, the stream with a frame dropped on purpose, has two contexts and the others one (`eval/consistency/align-cases-d028/checks.txt`, check 5). In its report (`eval/consistency/align-cases-d028/main/a01_dropped_distorted/mirage.json`) `alignment.vmaf_contexts` is `[{first_index: 0, pairs: 5}, {first_index: 5, pairs: 4}]`, and `pooled.min_without_first_frame` is 72.71141969606174: the score of pair 5, the first pair of the second context, whose two frames score 74.78632698606295 in the control `a00_aligned`, where they start no context. The lowest score of the pairs that start no context is pair 1's, 74.77789802017037 (`align-cases-d028/checks.txt`, check 4, which lists every pair's score in both cases). The last pair of the first context differs from the control too, upward (pair 4: 74.9322319648982 against 74.91274986019386, the same check), since libvmaf's motion2 of a frame also uses the next frame (P-008).
+
+**Options.**
+
+1. As today: only the pair's first frame left out, as D-027 words it.
+2. Another name for today's value, such as `min_excluding_first`.
+3. The first pair of every libvmaf context left out instead, under the same name or another.
+4. Both: today's value as D-027 names it, and, under a name of its own, the minimum without the first pair of every context; for a pair scored in one context the two are the same.
+
+**Agent's recommendation.** Option 4: D-027's value stays as decided, and the second value carries D-027's reason for it, a minimum that says something about the encode, to every pair that has no motion to a frame before it, as `a01` shows the first pair of a later context to be. Which value, and under which names, is the owner's choice.
+
+### D-006 outside Homebrew: the libvmaf package version on Linux (P-054, P-055)
+
+**Decided** (2026-10-26): D-038: option 2, CMake's `MIRAGE_LIBVMAF_PACKAGE` and `run_delta.py --ffmpeg-libvmaf-package`, which the Dockerfile gives, in `97bd25a` (P-066); not built.
+
+**Question.** D-006 has the reports record libvmaf's package version next to its run-time version. The package version is read from a Homebrew Cellar path: by `CMakeLists.txt` for `mirage_vmaf`'s reports, and by `eval/consistency/run_delta.py` for the libvmaf of FFmpeg's libvmaf filter. Outside Homebrew, on Linux and in the Docker image, both give `unknown`. What should they record there?
+
+**Options.**
+
+1. As today: `unknown`, with the run-time version as on macOS.
+2. A CMake cache variable a build sets where the library's path names no version, which the Dockerfile would set to 3.1.0, the release it builds, and the same as an option of `run_delta.py`.
+3. libvmaf's pkg-config version: it is the run-time version (3.0.0 for the package 3.1.0, D-006), so it would add nothing.
+
+**Agent's recommendation.** Option 2: whoever builds libvmaf knows the release, and D-006 asks for both versions.
+
+### The plan for the intermittent Demuxer test (D-032)
+
+**Decided** (2026-10-26): D-039: experiments 1 to 3, as `docs/plans/demuxer-switch-test.md` describes them; experiment 4 only if they point at the switch. Their records: MEASUREMENT PENDING.
+
+D-032 asked for a plan to find out whether the timing of `Demuxer: seamless video and audio switches on a local file` or the track switch is at fault; it is `docs/plans/demuxer-switch-test.md`. From reading the code, every recorded failure is a packet of the old track past the take-over point that a consumer took before the demuxer served the switch request, and the test releases its consumers right after the request; the plan's experiments tell the test's timing apart from a delay or a fault in the switch. Nothing on the decode path or in the test changes before the owner approves it (D-007).
+
+**Decisions it needs.** Approval of its experiments 1 to 3, run on the machine of the measurements; and whether experiment 4 may run the player in scripted runs, if the first three point at the switch.
+
+**Agent's recommendation.** Experiments 1 to 3; experiment 4 only if they point at the switch.
+
 ### A reference whose frames change size (P-063)
+
+**Decided** (2026-10-26): D-040: option 1, the error of `8d14316` (P-063).
 
 **Question.** The decisions don't cover a reference whose frames change size midway. Until `8d14316` the analyzer scored such a pair without an error or a warning: a yuv420p reference's frames of another size were copied with the first size's geometry, and a reference in another pixel format was converted back to the first size (read from the code). What should it do?
 
@@ -342,7 +227,178 @@ A limit changes no score of a run whose reads succeed. Where a read fails, the p
 
 **Agent's recommendation.** Option 1: FFmpeg has no score to match for such a pair, and an error can't pass for a complete report.
 
+### The warning that remains of P-030 (P-033)
+
+**Decided** (2026-10-26): D-040: option 1, today's warning.
+
+**Question.** What should the analyzer warn about once it converts such references as FFmpeg does?
+
+**Today.** It warns, once per input, when frames it converts, the distorted frames always and the reference when it isn't yuv420p, are in a pixel format outside `vmafcolor::verified_formats()`: the formats `tests/test_vmaf_color.cpp` compares byte for byte with the graph run through libavfilter, as reference and as distorted input. NV12 and NV21 are outside: with a change of matrix, libswscale converts them differently on four threads than on one (the same test), and FFmpeg's scale filters use as many threads as `ffmpeg` finds CPUs, where Mirage uses one (P-014). The player shows no warning.
+
+**Options.**
+
+1. Today's warning.
+2. No warning.
+3. A warning only for formats that aren't plain YUV, which no committed delta run covers.
+4. As many swscale threads as FFmpeg's scale filters use, which might give NV12 and NV21 FFmpeg's bytes on the same machine (not measured), with a heavier background analysis in the player.
+
+**Agent's recommendation.** Option 1: it says exactly where the conversion isn't checked, and changes no score.
+
+### D-030: what a config file accepts (P-040)
+
+**Decided** (2026-10-26): D-040: as today.
+
+**Question.** D-030 decides the format (`name = value` lines with the long options' names), the option table, the command line's precedence and the report's path and SHA-256. Which of the details it leaves open should hold?
+
+**Today** (`src/VMAFCli.h`; tests in `tests/test_vmaf_cli.cpp`):
+
+- Blank lines and lines whose first character other than white space is `#` are skipped; there are no comments after a value, no quotes and no escapes: the value is the rest of the line after the first `=`, without the white space around it.
+- Every option but `--config` can be set in the file, the inputs and the output included, each once; each value is checked as on the command line, also where the command line replaces it.
+- `--model` and `--model-file` are one setting: either on the command line replaces either in the file; both in one place are an error.
+- Relative paths are taken from the current directory, as on the command line.
+- A file that can't be read or has an error ends `mirage_vmaf` with status 2, the file and line named.
+
+**Options.** As today; comments after a value; only the scoring settings in the file, not the inputs and the output; relative paths from the file's directory; settings the command line replaces left unchecked.
+
+**Agent's recommendation.** As today: nothing a command line can say is written differently in the file, and a file with an error doesn't run.
+
+### D-028: the values its pairing leaves open (P-043, P-044)
+
+**Decided** (2026-10-26): D-040: as today.
+
+**Question.** D-028 fixes the rule, the tolerance, the timestamp origin, options (b) and (a), the restarted libvmaf contexts, the report's fields and #7. Which of the values it leaves open should hold?
+
+**Today** (`src/VMAFAlign.h`; tests in `tests/test_vmaf_align.cpp` and `tests/test_vmaf_analyzer.cpp`):
+
+- **Frame rates**: `av_guess_frame_rate()`, the rate `ffmpeg` gives its filter graph for a stream. A reference without one ends the analysis with an error, as do time bases with no common one within 2^40 ticks per second; a distorted input without one is taken to have the reference's.
+- **The tolerance** includes its bound. Each frame of the grid input takes the nearest frame of the other input within it, the earlier of two equally near.
+- **The coarser grid**: frame rates compared exactly. A frame of the finer input that pairs with nothing fails only as the nearest to a point of the grid that no frame of the grid input takes, nearer than the tolerance; the others are off the grid, counted and not failures, and a frame halfway between two points counts for neither.
+- **Discontinuities**: a timestamp that goes back at all, or forward by more than 10 s, the default of `ffmpeg`'s `dts_delta_threshold`. `ffmpeg` itself takes a backward step for a discontinuity only beyond 0.1 s.
+- **#7's boundary**: a failure rate of exactly 1% doesn't warn, as D-023's boundary passes a frame exactly at 0.01.
+- **Without a container start time**, times count from the input's first timestamped frame, as the plan says; `ffmpeg` then shifts nothing.
+- **Both inputs are read to their ends**, unless the frame limit stops the run, so that the rest of the longer input is counted. Before D-028 the pairing stopped at the shorter input's end.
+- **The report** has, beyond the plan's fields, the grid, each input's frame rate and start, the frames that failed once pairing stopped (`after_discontinuity`), the discontinuity limit, the frames off the grid, the libvmaf contexts, and each pair's frame positions in their inputs.
+- **No option sets them**: like libvmaf's threads, these values are fixed in the code, so neither `mirage_vmaf`'s command line nor its config file has them; the report records them.
+
+**Options.** As today; any of the alternatives of P-043 and P-044; or some of the values as options, each one more row of `mirage_vmaf`'s option table and so in the config file as well (D-030).
+
+**Agent's recommendation.** As today: each value is FFmpeg's where FFmpeg has one and the plan's otherwise, and the tests pin each.
+
+### The delta tool's comparison by timestamp (P-047)
+
+**Decided** (2026-10-26): D-040: as today.
+
+**Question.** D-028 has the §5 delta tool compare the two sides by timestamp, a pair passing only if both sides scored the same timestamps, and the differences in what each side counted as failed reported. Which of the details it leaves open should hold?
+
+**Today** (`eval/consistency/vmafdelta.py`; tests in `eval/consistency/tests/`):
+
+- FFmpeg's pairs come from three `showinfo` filters in its graph and FFmpeg 8.1.1's framesync rule; where they aren't the frames libvmaf passed on and scored, the pair fails and no scores are compared.
+- A pair of one side is a pair of the other when it has the same frames, by their positions in the inputs, and both frames must have the same timestamps on both sides: pairs of the same frames whose timestamps `ffmpeg` corrected fail as `TIMESTAMP MISMATCH` (`a07_restart` in `eval/consistency/align-cases-before/`).
+- Every frame the two sides treat differently, `mirage_vmaf`'s failures included, is listed and warned about; it fails the pair only through its pairs or its scores.
+- The pairs further apart than the tolerance are counted with half the reference's frame duration from `mirage_vmaf`'s alignment, or from ffprobe's `r_frame_rate` for a report without one.
+- P-009's warning about `mirage_vmaf` pairs of two different PTS is gone; the comparison settles it.
+- FFmpeg's verbose log is longer: for each frame and each of the three filters, a line with its timestamp, one with its color tags, and one for each item of side data the frame carries; over every frame of a bipbop pair the log holds 91659880 to 92092360 bytes, 1877848 to 1903556 bytes as committed, xz-compressed (`eval/consistency/defaults-full/checks.txt`, check 12).
+- With `--frames N`, FFmpeg's `trim` passes the first N frames of each input on (P-008), where `mirage_vmaf` scores N pairs (P-044). Where the inputs' frames line up the two are the same frames; where they don't, they can be other frames, and the comparison then reports the pairs only one side scored. The alignment runs score every frame.
+
+**Options.** As today; pairs matched by their timestamps only; failing a pair on the differences in failure accounting too; the comparison by position as a fallback where FFmpeg's pairs can't be established; FFmpeg's `metadata` filter writing the frames to separate files, which would leave the verbose log as it was.
+
+**Agent's recommendation.** As today: the positions name the frames exactly, so a pair both sides scored is scored on the same pictures, and a pairing the tool can't establish fails rather than passing pairs nobody knows.
+
+### What the alignment cases show where the two rules differ (P-048)
+
+**Decided** (2026-10-26): D-040: option 1, with case (4) decided again with D-011's ladders.
+
+**Question.** Where the inputs' frames don't line up, Mirage's pairing (D-028) and FFmpeg's libvmaf filter score other pairs, so §5 fails there by design (difference 12). The runs show where (`eval/consistency/align-cases-d028/`; `eval/consistency/README.md`, "`align-cases-before/`, `align-cases-d028/`"):
+
+1. FFmpeg scores pairs of frames of different times where Mirage counts failures: a distorted frame with the reference frame before it when a reference frame is missing (`a02`), both frames under a duplicated timestamp (`a03`), and, once the distorted input has ended, each later reference frame against the last distorted frame (`a04`, `a05`).
+2. With a Matroska reference, whose timestamps are milliseconds, against a 90 kHz MPEG-TS distorted input whose frames line up, FFmpeg's framesync pairs 4 of the 10 distorted frames with the reference frame before theirs, whose rounded time is later (`a08`). Framesync has an option for the nearest frame, `ts_sync_mode=nearest` (`eval/consistency/ffmpeg-libvmaf-filter/checks.txt`, check 3), which the §5 graph doesn't set.
+3. After a gap Mirage starts a new libvmaf context (D-028), where FFmpeg's motion features span the gap, so the pair after the gap scores differently (`a01`).
+4. `ffmpeg` corrects MPEG-TS timestamps that restart and pairs every frame, where Mirage stops pairing (D-028's option (a); `a07`).
+5. With a later start in a container that starts with its video, both sides measure from each input's start and pair the frames three pictures apart (`a05`); in a container that starts at 0 both pair the same frames, and the pair passes with Mirage's unmatched frames reported (`a06`).
+
+Should §5 stay as it is for such inputs?
+
+**Options.**
+
+1. As today: the §5 comparison is FFmpeg's plain graph; for inputs whose frames don't line up the reports show the differences, and the paper states that parity holds where the frames line up.
+2. Options in FFmpeg's graph that make it pair more as rule A does, such as `ts_sync_mode=nearest` for (2); the comparison would then no longer be a plain `ffmpeg -lavfi libvmaf` run.
+3. Mirage following FFmpeg in some of them, such as `ffmpeg`'s correction of timestamp jumps for (4), the plan's option (c); this changes D-028.
+
+**Agent's recommendation.** Option 1 now, and (4) decided again with D-011's ladders, as D-028 foresees for discontinuities.
+
+For D-011, whose clips and encoding parameters stay the owner's: (2) shows that a reference and distorted inputs whose timestamps have different time bases can make FFmpeg's side pair other frames although the frames line up.
+
+### D-029: the values its ladder scoring leaves open (P-050)
+
+**Decided** (2026-10-26): D-040: as today.
+
+**Question.** D-029 fixes the design of ladder scoring in `mirage_vmaf`: top-rung by default, a mezzanine optionally; each video playlist scored once; entries without video skipped and listed as skipped; one failed pair fails the run; one report per reference mode, with a pairs list. Which of the details it leaves open should hold?
+
+**Today** (`src/VMAFLadder.h`; tests in `tests/test_vmaf_ladder.cpp`, `test_vmaf_cli.cpp` and `test_vmaf_report.cpp`):
+
+- **What an entry is**: an `EXT-X-STREAM-INF` tag with the URI line after it, in an HLS master playlist (no DASH). I-frame playlists and `EXT-X-MEDIA` renditions, video renditions included, aren't entries and aren't scored: D-029's "each video playlist" is read as the playlists of these entries, the ones the §1.2 package asked about.
+- **What has video**: an entry with a `RESOLUTION`, or with a video codec's sample entry in `CODECS` (`avc1`, `avc3`, `hvc1`, `hev1`, `dvh1`, `dvhe`, `av01`, `vp09`, `vp08`, `mp4v`), the rule of `eval/streams/fetch_streams.py`; read from the master, without opening the entry. An entry without video is skipped also when it names a video playlist.
+- **The top rung**: the playlist of the video entry with the highest `BANDWIDTH`; of equals that name different playlists, the first in the master, with a warning in the report, and on stderr when the run ends.
+- **A master read strictly**: the first line `#EXTM3U`, every entry with a `BANDWIDTH` of digits only, up to 2^63 − 1, and a URI line, no URI line without an entry, every URI resolvable (for http(s), relative and absolute paths and http(s) URLs; not dot segments, `//host` references, query- or fragment-only references or other schemes; for a local master, the URI joined to the master's directory as it is, dot segments included, or taken as it is when it has a scheme or starts with `/`). Anything else, or a master with nothing to score, ends the run without a report, exit status 1, as `mirage_vmaf --help` says. FFmpeg's hls demuxer and the player take a missing `BANDWIDTH` as 0.
+- **The order of the pairs**: the master's, by each playlist's first entry; the player's `start_manifest()` scores in descending `BANDWIDTH`.
+- **One mode per run**: `--mezzanine` replaces the top rung as the reference and scores the top rung's playlist too; both modes on one ladder are two runs, two reports.
+- **The first failed pair stops the run**, since no report follows it; each pair decodes the reference again.
+- **The command line**: `--ladder` and `--mezzanine` exclude `--ref` and `--dis` in one place; in a config file and on the command line, the command line's form leaves out the file's other form.
+
+**Options.** As today; any of the alternatives of P-050: scoring `EXT-X-MEDIA` video renditions as well, probing each entry for video instead of reading its attributes, taking a missing `BANDWIDTH` as 0, refusing a master with equal highest bandwidths, ordering the pairs by `BANDWIDTH`, both modes in one run, scoring every pair before failing.
+
+**Agent's recommendation.** As today: the rules are FFmpeg's where FFmpeg reads the master and the repository's where it already decides what has video, and a master the tool would have to guess about is refused rather than scored with a reference nobody chose.
+
+### D-031: the headless configuration's details (P-054)
+
+**Decided** (2026-10-26): D-040: as today.
+
+**Question.** D-031 fixes a CMake option without the player's dependencies, a Linux preset and Linux instructions. Should the details it leaves open hold?
+
+**Today** (`CMakeLists.txt`, `CMakePresets.json`, `docs/BUILD.md` steps 3 and 6):
+
+- The option is `MIRAGE_HEADLESS`, off by default. On, it leaves out OpenGL, GLFW, glad, Dear ImGui and nativefiledialog-extended, and also stb and the player's snapshot check (`snapshot_diff`, `pathb_regression`), which only the player uses; it builds `mirage_vmaf` and all of `mirage_tests`.
+- A third macOS preset, `macos-headless`, so that the headless configuration is built and checked on macOS with ffmpeg-full; its `mirage_vmaf` is identical to the release preset's (`eval/build_check/macos-2026-10-24-5ae44a4.txt`).
+- One Linux preset, `linux-release`, Release only, offered only on a Linux host, with no `PKG_CONFIG_PATH`.
+- `eval/run_all.sh` is unchanged. On Linux it builds the older commits' programs with their `macos-release` preset, as on macOS, which needs the player's configure-time dependencies there.
+
+**Options.** As today; any of P-054's alternatives: the name `MIRAGE_BUILD_PLAYER`; stb and `snapshot_diff` kept in the headless configuration; only the VMAF tests; a Linux debug preset; no `macos-headless` preset.
+
+**Agent's recommendation.** As today: the option leaves out exactly what only the player uses, and each preset is a configuration a step of `docs/BUILD.md` gives.
+
+### D-031: the Docker image's details (P-055)
+
+**Decided** (2026-10-26): D-040: as today, Debian's packages to be pinned from `snapshot.debian.org` once a container runtime shows that the image builds.
+
+**Question.** D-031 fixes a base image pinned by digest, FFmpeg 8.1.1 and libvmaf built from release sources checked by SHA-256 at the measured versions, `mirage_vmaf` built from the repository, and `eval/run_all.sh` as the command. Should the details it leaves open hold?
+
+**Today** (`docker/Dockerfile`, `docker/README.md`; not built, MEASUREMENT PENDING):
+
+- The base image is Debian 13 slim of 2026-10-20, by the digest of its image index (`docker/base-image.txt`).
+- FFmpeg has the configure options of Homebrew's ffmpeg-full formula for what the evaluation uses (GPL version 3, GnuTLS, libvmaf, libx264), without the formula's other external libraries, its macOS options and `ffplay`; libvmaf the formula's meson options and its model files.
+- x264 is the commit of Homebrew's x264 formula r3222, the H.264 encoder of the reference format clips.
+- Debian's packages are not pinned; the image lists the versions it installed.
+- The build context is the repository's `.git` alone, cloned with `--single-branch`: the image holds the commit checked out where it is built, with its branch's history and a clean working tree.
+- The image has the development files of OpenGL, GLFW and GTK 3, which the older commits whose programs `run_all.sh` builds need to configure.
+- Its entry point is `run_all.sh` with the image's `mirage_vmaf`, FFmpeg and model directory, `/out` its default output directory; it runs as root.
+
+**Options.** As today; any of P-055's alternatives: Ubuntu 24.04 or another base; Debian's packages from `snapshot.debian.org` at the base image's date, or each pinned by version; all of the formula's external libraries; Debian's libx264; the older programs built into the image, or an image without the steps that need them; a user other than root.
+
+**Agent's recommendation.** As today, adding Debian's packages from `snapshot.debian.org` at the base image's date once a container runtime can show that the image builds: the compilers and libraries would then be pinned as the base image is.
+
+### Difference 9: the player's own JSON export
+
+**Decided** (2026-10-26): D-040: left until §7's schema.
+
+§1.1 to §1.3 ask the output to carry the libvmaf version and the model identifier, the `reference_mode` and the scaler. `mirage_vmaf`'s report does (`src/VMAFReport.h`). The player's own JSON export (`VMAFAnalyzer::write_json` in `src/VMAFAnalyzer.cpp`) still has its Phase 0 layout, which a test pins, without any of them, and the player has no scaler or model option. Since D-024 and D-027 the player's analysis scales with bicubic and its p5 is the interpolated one, so the export's numbers follow the new defaults without naming them.
+
+**Options.** Give `write_json` those fields; have the player write `mirage_vmaf`'s report format; leave the player's export until §7's schema.
+
+**Agent's recommendation.** Leave it until §7's schema, which decides one format for both; the paper's numbers come from `mirage_vmaf`'s reports. D-020 noted that the package had no firm recommendation, and this one is new.
+
 ### Commit messages that state a wrong count or rest on no record (for information)
+
+**Decided** (2026-10-26): D-040: left as they are, disclosed in `docs/AI_CONTRIBUTIONS.md`.
 
 The agent doesn't amend commits, so these messages stay as they were written; `docs/AI_CONTRIBUTIONS.md` lists them, and the documents and P-entries state the facts correctly:
 
@@ -356,19 +412,9 @@ The agent doesn't amend commits, so these messages stay as they were written; `d
 
 **Agent's recommendation.** Leave them, disclosed: the committed records and the documents name commits by SHA (each `build.txt`, `eval/run_all/`, `eval/test_runs/`, the P-entries), and a rewrite would leave them naming commits that no longer exist, as D-012's rewrite left the old SHAs in the raw outputs with a table to map them.
 
-### CLAUDE.md's build notes (for information)
+### The agent's process choices P-033 to P-065
 
-`CLAUDE.md` still says that glad2 and miniaudio are fetched at configure time, and has a note on installing jinja2 for glad. Since D-031 glad isn't fetched and the build runs no Python. The file is the owner's and wasn't edited.
-
-### Dear ImGui's loader define (for information)
-
-`CMakeLists.txt` gives `imgui_impl` the define `IMGUI_IMPL_OPENGL_LOADER_GLAD2`, with a comment that glad is the loader of Dear ImGui's OpenGL 3 backend. The backend of the pinned Dear ImGui, v1.91.9, has used a loader of its own since 2021 (the changelog at the top of its `backends/imgui_impl_opengl3.cpp`), so the define has no effect. The line was left as it was.
-
-### The full-length report with the defaults, and D-027's numbers (for information)
-
-D-024's full-length §5 report with bicubic passes over every frame of the four pairs (`eval/consistency/defaults-full/`, P-059). D-027's rationale gives how far the three percentile definitions differ from runs with bilinear: at most 0.000276 over every frame and 0.093440 over 300 frames. With the defaults they differ by at most 0.001160 over every frame and 0.083044 over 300 frames, gear2's p1 in both (`eval/pooling/defaults-full/pooling.md`, `eval/pooling/defaults-300/pooling.md`). With the defaults too the minimum is the first frame's score in every series over every frame (`eval/pooling/defaults-full/pooling.md`). D-027 is the owner's and unchanged.
-
-## The agent's process choices to confirm: P-033 to P-065
+**Decided** (2026-10-26): D-041 confirmed P-033 to P-065 as their entries state them.
 
 D-033 confirmed P-006 to P-032 (listed in the decided section below). The measurement and process choices made in implementing D-020 to D-033 are P-033 to P-065 in `docs/DECISIONS.md`, each pending the owner's confirmation; where one leaves a question open, the question is above. The alternatives worth a look, as each entry lists them:
 
@@ -403,8 +449,6 @@ D-033 confirmed P-006 to P-032 (listed in the decided section below). The measur
 | P-063 | a reference whose frames change size ends the analysis with an error, in `mirage_vmaf` and the player | converting such frames to the first size, with a warning; a libvmaf context for each size | "A reference whose frames change size" |
 | P-064 | `run.cmd.txt` names the options its command line gave, besides every option the run had | the arguments with their values; the same line in `delta.json` | |
 | P-065 | the records after the review fixes: the unit tests at `a4692a2`, and a rerun of every step at `a4692a2`, which the machine's sleep cut short, committed with the failed run's reports, logs, sleep and wake events and the stalled processes' CPU times; its two unfinished steps rerun on their own | the whole rerun again; the processes left to the 6 h limit | "A network read without a time limit" |
-
-**Agent's recommendation**: confirm them all, with the open questions above decided as recommended there.
 
 ## Differences between the work order and the implementation found in this work (hard rule 4)
 

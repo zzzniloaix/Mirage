@@ -19,14 +19,15 @@ The evaluation's scripts and their committed outputs. The numbers in this reposi
 eval/run_all.sh <out_dir> [--mirage-vmaf PROG] [--mirage-vmaf-before PROG]
     [--mirage-vmaf-before-d022 PROG] [--mirage-vmaf-before-d028 PROG]
     [--skip-before] [--skip-full] [--only STEP[,STEP...]]
-    [--jobs J] [--ffmpeg PROG] [--ffprobe PROG] [--model-dir DIR] [--work-dir DIR] [--no-compare]
+    [--jobs J] [--ffmpeg PROG] [--ffprobe PROG] [--ffmpeg-libvmaf-package VERSION]
+    [--model-dir DIR] [--work-dir DIR] [--no-compare]
 ```
 
 - `<out_dir>`: a new or empty directory outside the repository. The runs inside record the repository's commit and whether its working tree was clean, so run it from a clean tree when its outputs are to be cited.
 - It needs what `docs/BUILD.md` installs, and the network: the streams come from Apple's CDN, and the builds fetch their dependencies from GitHub. Building HEAD runs no Python, since glad's loader is committed (D-031). The commits before it configure glad, which looks for a Python interpreter, but their `mirage_vmaf` target doesn't need glad's loader, so no glad venv is needed.
 - Without `--mirage-vmaf`, `--mirage-vmaf-before`, `--mirage-vmaf-before-d022` and `--mirage-vmaf-before-d028`, it builds the programs the steps need itself, each in a temporary worktree of its commit (`cmake --preset macos-release`, then only the `mirage_vmaf` target), and keeps them in `<out_dir>/builds/`.
-- With the steps over every frame it runs for hours and reads Apple's CDN all the while, so the machine has to stay awake and online: `caffeinate -i` keeps a Mac from sleeping when idle, not when its lid is closed (`run_all/2026-10-24-full/power_log.txt`), and with FFmpeg 8.1.1's defaults a read in `mirage_vmaf` or `ffmpeg` on a connection that stays open without data has no time limit, so a step can wait instead of failing (read from FFmpeg's sources: "A network read without a time limit" in `docs/PHASE1_DECISIONS_PENDING.md`).
-- **On Linux**, which nothing has been run on yet (MEASUREMENT PENDING): give it the program of the Linux build, `--mirage-vmaf build/linux-release/mirage_vmaf`, and FFmpeg and libvmaf's model directory with `--ffmpeg` and `--model-dir`, whose defaults are Homebrew's paths (`docs/BUILD.md`, step 6). It builds the other programs from their commits with their `macos-release` preset as on macOS; those commits' `CMakeLists.txt` configure the player too, so they need the player's configure-time dependencies. The Docker image of `docker/README.md` has them and runs `run_all.sh` this way as its command; it has not been built.
+- With the steps over every frame it runs for hours and reads Apple's CDN all the while, so the machine has to stay awake and online: `caffeinate -i` keeps a Mac from sleeping when idle, not when its lid is closed (`run_all/2026-10-24-full/power_log.txt`), and with FFmpeg 8.1.1's defaults a read in `ffmpeg` on a connection that stays open without data has no time limit, so a step can wait instead of failing (read from FFmpeg's sources: "A network read without a time limit" in `docs/PHASE1_DECISIONS_PENDING.md`). Since D-036 `mirage_vmaf`'s reads fail after 5 s instead.
+- **On Linux**, which nothing has been run on yet (MEASUREMENT PENDING): give it the program of the Linux build, `--mirage-vmaf build/linux-release/mirage_vmaf`, and FFmpeg and libvmaf's model directory with `--ffmpeg` and `--model-dir`, whose defaults are Homebrew's paths (`docs/BUILD.md`, step 6), and, where FFmpeg's libvmaf names no package version in its path, that version with `--ffmpeg-libvmaf-package` (D-038). It builds the other programs from their commits with their `macos-release` preset as on macOS; those commits' `CMakeLists.txt` configure the player too, so they need the player's configure-time dependencies. The Docker image of `docker/README.md` has them and runs `run_all.sh` this way as its command; it has not been built.
 
 The steps, in order; each writes under `<out_dir>` the path its committed counterpart has under `eval/` (P-024):
 
@@ -36,6 +37,7 @@ The steps, in order; each writes under `<out_dir>` the path its committed counte
 | `clips` | `consistency/color_cases.py`, against `consistency/color-cases-before/clips.txt` | |
 | `format-clips` | `consistency/color_cases.py --set formats`, against `consistency/format-cases-before/clips.txt` | |
 | `align-clips` | `consistency/align_cases.py`, against `consistency/align-cases-before/clips.txt` | |
+| `negotiation-clips` | `consistency/color_cases.py --set negotiation`, against `consistency/negotiation-cases/clips.txt` | |
 | `diag-before-300` | `consistency/diag-before-300/`: plain and relabel | `83c8ed6`'s |
 | `color-cases-before` | `consistency/color-cases-before/`: the scored and the refused cases | `83c8ed6`'s |
 | `format-cases-before` | `consistency/format-cases-before/`: the scored and the refused cases | `83c8ed6`'s |
@@ -43,6 +45,7 @@ The steps, in order; each writes under `<out_dir>` the path its committed counte
 | `color-cases-after` | `consistency/color-cases-after/` | HEAD's |
 | `format-cases-after` | `consistency/format-cases-after/` | `d993686`'s |
 | `format-cases-d022` | `consistency/format-cases-d022/` | HEAD's |
+| `negotiation-cases` | `consistency/negotiation-cases/`: where FFmpeg's negotiation changes the distorted frames' color (D-035) | HEAD's |
 | `scalers-300` | `consistency/scalers-300/`: three runs and `scaler_effect.*` | HEAD's |
 | `models-300` | `consistency/models-300/`: four runs and `model_effect.*` | HEAD's |
 | `defaults-300` | `consistency/defaults-300/`: the first 300 frames of the four pairs with the defaults of D-024 and D-027 | HEAD's |
@@ -187,3 +190,20 @@ None of them needs the network. `tests/test_run_all.py` checks every step agains
 - Everything compared is as committed (`rerun_check.md`): every pair's verdict, all 53946 per-frame scores of every pair on Mirage's side at full precision, every libvmaf metric of FFmpeg's logs, and every pooling series.
 - The program it built from `1f7d42d` has the SHA-256 of the one the rerun above built from `a4692a2`, `217cc2948bf361aa11a37f4aea467ffe1caa30ab251943ba18b72c55005c6f10`; `consistency/defaults-full/build.txt` names another build, `9f04085f…`, whose scores it reproduces exactly.
 - It took 2719.8 s of wall time, the build included, of which 2666.9 s for `defaults-full` (`run_all.md`).
+
+## The rerun of every step after D-035 to D-038, 2026-10-26, which a stalled process and the machine's sleep cut short
+
+`run_all/2026-10-26-d035/` keeps the record of `eval/run_all.sh <out_dir> --jobs 4`, made from a new clean worktree of `bbc669d`, the last commit after D-035 to D-038 that changes code or scripts, with no program given (P-066): every step, the four over every frame and the two of the negotiation cases included, with the four programs built from their commits. Like `2026-10-26-fix/` it also keeps the reports and logs of the failed `defaults-full` run, the machine's sleep and wake events and the CPU times of the stopped process, with a `README.md` that says what happened.
+
+- 25 of the 27 steps found everything as committed (`rerun_check.md`), `acceptance-full`, `pooling-full`, `negotiation-clips` and `negotiation-cases` among them: in them D-036's limits on network reads, D-037's new pooled value and D-038's package version changed no committed verdict or score.
+- `defaults-full` did not, nor `pooling-defaults-full`, which reads it. Its pair `gear4_vs_gear5` is as committed. The `ffmpeg` of `gear2_vs_gear5` last wrote its log 3 min 54 s before the machine went to sleep with its lid closed, and made no progress after the machine woke until it was stopped with SIGTERM (`README.md`, `power_log.txt`, `stall_check.txt`). The stderr logs of `mirage_vmaf` in the three other pairs hold network reads that timed out, at D-036's 5 s limit, and its reports scored 52442, 4425 and 15639 of the 53946 frame pairs, with D-028's warning that more frames than the threshold failed to pair (`README.md`). The two steps were rerun on their own (below).
+- The program it built from `bbc669d` has the SHA-256 `aaac3630522dc4261f6fa27bb8e81dc66a64ba9860292ecdeae5e9164fb372d3`, that of the negotiation cases' run (`consistency/negotiation-cases/build.txt`). It reproduces exactly the scores of the other runs it reran that were made after D-016, by the builds `420b8776…` (`diag-after-300`, `color-cases-after`), `2220ce3a…` (`format-cases-d022`), `3633c43e…` (`scalers-300`, `models-300`, `acceptance-full`), `85535c5c…` (`defaults-300`), `7fb455e9…` (`align-cases-d028`) and `eab1651c…` (`ladder-300`). The ones built from `e8b867f`, `d993686` and `83c8ed6` have the SHA-256s of the runs they reran.
+- `run_all.md` gives 6615.3 s of wall time, the four builds included; it counts only the time the machine was awake (`README.md`).
+
+## The rerun of defaults-full and its pooling, 2026-10-27
+
+`run_all/2026-10-27-defaults-full/` keeps the record of `eval/run_all.sh <out_dir> --only defaults-full,pooling-defaults-full --jobs 4`, made from a new clean worktree of `953d42e`, the commit of the record above, with no program given, the same files as `2026-10-23-full/` (P-066): the two steps that the rerun above didn't finish.
+
+- Everything compared is as committed (`rerun_check.md`): every pair's verdict, all 53946 per-frame scores of every pair on Mirage's side at full precision, every libvmaf metric of FFmpeg's logs, and every pooling series.
+- The program it built from `953d42e` has the SHA-256 of the one the rerun above built from `bbc669d`, `aaac3630…`; `consistency/defaults-full/build.txt` names another build, `9f04085f…`, whose scores it reproduces exactly.
+- It took 3172.9 s of wall time, the build included, of which 3089.7 s for `defaults-full` (`run_all.md`).
