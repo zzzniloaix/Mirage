@@ -1,6 +1,6 @@
 # Phase 2 status
 
-Phase 2 of the VMAF work order is its §2, ladder orchestration, on the branch `vmaf/phase-2`, made from `vmaf/phase-1` before Phase 1 is merged (`docs/DECISIONS.md` D-042). This file says, for each item of §2, what the branch does and which committed output shows it, and what remains. Every number comes from a committed output named next to it; where there is none, it says MEASUREMENT PENDING. The survey that preceded the work is `docs/PHASE2_SURVEY.md`; the owner's decisions on it are D-042 to D-049, and the agent's choices in implementing them P-067 to P-069.
+Phase 2 of the VMAF work order is its §2, ladder orchestration, on the branch `vmaf/phase-2`, made from `vmaf/phase-1` before Phase 1 is merged (`docs/DECISIONS.md` D-042). This file says, for each item of §2, what the branch does and which committed output shows it, and what remains. Every number comes from a committed output named next to it; where there is none, it says MEASUREMENT PENDING. The survey that preceded the work is `docs/PHASE2_SURVEY.md`; the owner's decisions on it are D-042 to D-049, and the agent's choices in implementing them P-067 to P-070. What is open for the owner is in `docs/PHASE2_DECISIONS_PENDING.md`.
 
 | §2 item | Status | Where |
 |---|---|---|
@@ -8,7 +8,7 @@ Phase 2 of the VMAF work order is its §2, ladder orchestration, on the branch `
 | 2. The top rung by `BANDWIDTH` | done in Phase 1 (D-029) | `vmafladder::plan()` |
 | 3. A bounded pool, its size configurable, by default physical cores minus one | done in `mirage_vmaf --ladder` (D-043, D-044, D-048) | `vmafladder::score()`, `--jobs`, `src/VMAFProcess.h`; P-067 |
 | 4. A memory limit that runs fewer pairs at a time | done (D-045); no default limit yet | `--memory-limit`; P-067 |
-| 5. Segments of different durations, `EXT-X-DISCONTINUITY` | done: each discontinuity sequence paired on its own (D-046), the sequences found where the timestamps jump, which departs from D-046's wording (P-068); rungs whose segments differ pair as before | `src/VMAFAlign.h`; `eval/phase2-survey/m5/`, `m5-d046/` |
+| 5. Segments of different durations, `EXT-X-DISCONTINUITY` | done: each discontinuity sequence paired on its own (D-046), the sequences found where the timestamps jump, which departs from D-046's wording (P-068); rungs whose segments differ pair as before. Where the two inputs' jumps are at different places, as gaps from skipped segments can be, the later sequences are paired with each other from their starts, frames 12.012 s apart in M5's gaps (P-070): open for the owner | `src/VMAFAlign.h`; `eval/phase2-survey/m5/`, `m5-d046/`, `m5-gaps/` |
 | 6. A cancel that keeps the pairs done | done: SIGINT, SIGTERM or a failed pair stops the run, whose report lists the complete pairs and the others' states (D-047) | `mirage_vmaf --help`; P-067 |
 | **Acceptance**: a 6 to 8 rung 1080p ladder, the same scores at pool sizes 1 to N, the peak memory under the limit | the check is written (`eval/ladder/pool_check.py`); the runs on Apple's advanced sample (D-049) are MEASUREMENT PENDING | `eval/streams/local-advanced-2026-10-26/` |
 
@@ -16,6 +16,7 @@ Phase 2 of the VMAF work order is its §2, ladder orchestration, on the branch `
 
 - **M1**, the machine: an Apple M3 Pro with 12 physical cores, 6 performance and 6 efficiency cores (`eval/phase2-survey/machine.txt`).
 - **M5**, discontinuities (`eval/phase2-survey/m5/record.txt`): FFmpeg's hls demuxer gives each segment's own timestamps, unchanged at an `EXT-X-DISCONTINUITY`; D-028's rule then stopped pairing at the tag, 30 pairs and the 60 frames after it failed. With D-046 every frame pairs, 60 pairs and no failure (`m5-d046/record.txt`).
+- **M5's gaps** (`eval/phase2-survey/m5-gaps/record.txt`; P-070): playlists that lack about 12 s of segments, without a tag. Where both inputs lack the same segments, D-046's pairing pairs all 719 frames, where D-028's rule paired 240; where they lack different ones, it scores 359 pairs, of which 119 pair a reference frame with the distorted frame 12.012 s later, and nothing in the report sets them apart ("Discontinuity sequences that don't line up" in `docs/PHASE2_DECISIONS_PENDING.md`).
 - **M2, M3**, one pair's and the ladder's memory and time before the pool: `eval/phase2-survey/m2_m3_baseline.sh`; MEASUREMENT PENDING.
 
 ## Tests
@@ -24,9 +25,12 @@ The pool, the memory limit with a stand-in for the memory reading, the cancel, a
 
 ## Open for the owner
 
+In `docs/PHASE2_DECISIONS_PENDING.md`, with the options and the agent's recommendations:
+
+- Discontinuity sequences whose jumps are at different places in the two inputs (D-046; P-068, P-070).
 - P-068: D-046's sequences come from the timestamps, not the playlists' tags; provisional until the owner decides.
 - D-045's default memory limit, once M2 and M3 are measured.
-- P-067 to P-069, the agent's choices, pending confirmation.
+- P-067 to P-070, the agent's choices, pending confirmation.
 
 ## Before the Phase 2 PR
 

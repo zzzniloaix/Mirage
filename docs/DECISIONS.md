@@ -1811,3 +1811,19 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: agent (Claude)
 - **Date**: 2026-10-26
 - **Status**: pending owner confirmation
+
+### P-070 M5's gaps: discontinuity sequences that don't line up, and the report's start after a discontinuity
+
+- **Choice**
+  - `eval/phase2-survey/m5_gaps.py`, after M5, for gaps: a synthetic ladder of two rungs, 36 s of FFmpeg's `testsrc2` at 640x360 and 320x180, MPEG-2 in MPEG-TS with every frame a key frame, in segments of about 2 s, and media playlists without six segments in a row, about 12 s, and without a tag, as when FFmpeg's hls demuxer skips segments it can't read: the reference alone, both inputs at different places, both at the same place. Each case scored by the release `mirage_vmaf` of `e5d6e9d`, D-046's pairing, and by the one `eval/run_all.sh` built from `bbc669d` on `vmaf/phase-1`, D-028's rule (`eval/phase2-survey/m5-gaps/record.txt`).
+  - Made after Phase 1's rerun at `bbc669d`, in which `mirage_vmaf`'s network reads timed out and its reports of two pairs counted 2 and 7 timestamp discontinuities (`eval/run_all/2026-10-26-d035/consistency/defaults-full/plain/gear3_vs_gear5/delta.md` and `gear1_vs_gear5/delta.md` on `vmaf/phase-1`).
+  - The fix it found: since `f988091` a discontinuity replaced the input's start with its sequence's, so the report's `alignment.reference.start` and `alignment.distorted.start` gave the start of the input's last sequence. `7ad0929` keeps each sequence's start apart for the pairing, and the report gives the input's start again (`tests/test_vmaf_align.cpp`); pairs and scores don't change. No committed record has these fields for an input with a discontinuity.
+- **Alternatives**: segments of Apple's sample left out of its playlists; a unit test on timestamps alone, which doesn't go through FFmpeg's hls demuxer.
+- **Result** (`eval/phase2-survey/m5-gaps/record.txt`):
+  - Both inputs lack different segments, the reference its segments 4 to 9, the distorted input its segments 10 to 15: with D-046's pairing, 359 pairs, of which the 119 of the second libvmaf context pair a reference frame with the distorted frame 12.012 s later, from reference 21.453367 s with distorted 33.465367 s to reference 25.390633 s with distorted 37.402633 s. It counted 360 unmatched reference and 360 extra distorted frames and warned of the failure rate, 66.73%, as for any failures; nothing in the report sets the 119 pairs apart, and their mean score, 11.564222, is above that of the 240 others, 9.873372. With D-028's rule, 240 pairs and 958 frames after a discontinuity.
+  - Both lack the same segments: with D-046's pairing, 719 pairs and no failure; with D-028's rule, 240 pairs and 958 frames after a discontinuity.
+  - The reference alone lacks them: 240 pairs with either; with D-046's pairing 479 unmatched reference and 839 extra distorted frames, with D-028's rule 1318 frames after a discontinuity.
+  - Each input's start is 1.433367 s in all six reports, of both programs.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-27
+- **Status**: pending owner confirmation; the question the result raises is the owner's ("Discontinuity sequences that don't line up" in `docs/PHASE2_DECISIONS_PENDING.md`)
