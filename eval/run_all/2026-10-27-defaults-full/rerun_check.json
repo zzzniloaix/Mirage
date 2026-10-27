@@ -1,0 +1,154 @@
+{
+ "report_version": 1,
+ "tool": "eval/run_all.py",
+ "started_utc": "2026-10-27T17:31:33Z",
+ "ended_utc": "2026-10-27T18:24:26Z",
+ "git": {
+  "head_start": "953d42e83538a71044dfef850704abb260731ceb",
+  "clean_start": true,
+  "head_end": "953d42e83538a71044dfef850704abb260731ceb",
+  "clean_end": true
+ },
+ "binaries": [
+  {
+   "name": "head",
+   "commit": "953d42e83538a71044dfef850704abb260731ceb",
+   "purpose": "every run made after D-016 but format-cases-after and align-cases-before",
+   "built": true,
+   "sha256": "aaac3630522dc4261f6fa27bb8e81dc66a64ba9860292ecdeae5e9164fb372d3",
+   "path": "builds/head/mirage_vmaf",
+   "worktree_head": "953d42e83538a71044dfef850704abb260731ceb",
+   "worktree_clean": true
+  }
+ ],
+ "identical": true,
+ "steps": [
+  {
+   "name": "defaults-full",
+   "ran": true,
+   "elapsed_s": 3089.7,
+   "committed": "eval/consistency/defaults-full",
+   "binary_sha256": "aaac3630522dc4261f6fa27bb8e81dc66a64ba9860292ecdeae5e9164fb372d3",
+   "committed_binary_sha256": "9f04085f73440a9c9969f9bf6a86767eaf9ade89ae8ca393f8b6c99bb78b9b06",
+   "comparison": {
+    "what": "each run's verdict, and every pair's verdict and per-frame scores on both sides",
+    "runs": {
+     "plain": {
+      "status": {
+       "rerun": "PASS",
+       "committed": "PASS"
+      },
+      "pairs": [
+       {
+        "pair": "gear4_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 53946,
+         "committed": 53946,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 53946,
+         "committed": 53946,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear3_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 53946,
+         "committed": 53946,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 53946,
+         "committed": 53946,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear2_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 53946,
+         "committed": 53946,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 53946,
+         "committed": 53946,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear1_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 53946,
+         "committed": 53946,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 53946,
+         "committed": 53946,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       }
+      ],
+      "extra_pairs": [],
+      "identical": true
+     }
+    },
+    "identical": true
+   }
+  },
+  {
+   "name": "pooling-defaults-full",
+   "ran": true,
+   "elapsed_s": 3.0,
+   "committed": "eval/pooling/defaults-full",
+   "comparison": {
+    "what": "every series and skipped entry of pooling.json",
+    "sources": {
+     "rerun": 1,
+     "committed": 1
+    },
+    "differing_sources": [],
+    "identical": true
+   }
+  }
+ ]
+}

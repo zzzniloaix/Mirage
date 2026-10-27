@@ -1,0 +1,4630 @@
+{
+ "report_version": 1,
+ "tool": "eval/run_all.py",
+ "command": "eval/run_all.sh <out_dir> --jobs 4",
+ "started_utc": "2026-10-26T22:40:10Z",
+ "ended_utc": "2026-10-27T17:27:24Z",
+ "elapsed_s": 6615.3,
+ "git": {
+  "head_start": "bbc669dfeae9febd6f609f5f1e7b4f1489a57182",
+  "clean_start": true,
+  "head_end": "bbc669dfeae9febd6f609f5f1e7b4f1489a57182",
+  "clean_end": true
+ },
+ "ffmpeg": "/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg",
+ "ffprobe": "/opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+ "binaries": [
+  {
+   "name": "head",
+   "commit": "bbc669dfeae9febd6f609f5f1e7b4f1489a57182",
+   "purpose": "every run made after D-016 but format-cases-after and align-cases-before",
+   "built": true,
+   "sha256": "aaac3630522dc4261f6fa27bb8e81dc66a64ba9860292ecdeae5e9164fb372d3",
+   "path": "builds/head/mirage_vmaf",
+   "worktree_head": "bbc669dfeae9febd6f609f5f1e7b4f1489a57182",
+   "worktree_clean": true
+  },
+  {
+   "name": "before",
+   "commit": "83c8ed6b497783cc6dd265637e7b2298399ba41a",
+   "purpose": "the runs made before D-016",
+   "built": true,
+   "sha256": "4bb0fc2bec6bd240463e3f183204c426bbff1652eadd342733917d8fc58f84c0",
+   "path": "builds/before/mirage_vmaf",
+   "worktree_head": "83c8ed6b497783cc6dd265637e7b2298399ba41a",
+   "worktree_clean": true
+  },
+  {
+   "name": "before-d022",
+   "commit": "d993686add8b2af709e1200437e9d643aed26238",
+   "purpose": "format-cases-after, made after D-016 and before D-022",
+   "built": true,
+   "sha256": "b225a60efd146d27fbb59335176324fa9529b1a86921f8814a1b64e34d162803",
+   "path": "builds/before-d022/mirage_vmaf",
+   "worktree_head": "d993686add8b2af709e1200437e9d643aed26238",
+   "worktree_clean": true
+  },
+  {
+   "name": "before-d028",
+   "commit": "e8b867fc371ccca2a099e941eeaf808a96b078dc",
+   "purpose": "align-cases-before, made before D-028",
+   "built": true,
+   "sha256": "85535c5c0ea56865816a71ea9aef837753e0a995d4892be51b863943f6854c5f",
+   "path": "builds/before-d028/mirage_vmaf",
+   "worktree_head": "e8b867fc371ccca2a099e941eeaf808a96b078dc",
+   "worktree_clean": true
+  }
+ ],
+ "steps": [
+  {
+   "name": "streams",
+   "ran": true,
+   "elapsed_s": 7.4,
+   "out": "streams/fetched",
+   "committed": "eval/streams/fetched-2026-10-23",
+   "comparison": {
+    "what": "every playlist's SHA-256 and every probed stream's parameters",
+    "playlists": {
+     "rerun": 16,
+     "committed": 16
+    },
+    "differing": [],
+    "identical": true
+   }
+  },
+  {
+   "name": "clips",
+   "ran": true,
+   "elapsed_s": 4.6,
+   "out": "consistency/clips",
+   "committed": "eval/consistency/color-cases-before/clips.txt",
+   "comparison": {
+    "what": "clips.txt: each clip's command, tags and MD5 of its frames",
+    "identical": true
+   }
+  },
+  {
+   "name": "format-clips",
+   "ran": true,
+   "elapsed_s": 3.8,
+   "out": "consistency/format_clips",
+   "committed": "eval/consistency/format-cases-before/clips.txt",
+   "comparison": {
+    "what": "clips.txt: each clip's command, tags and MD5 of its frames",
+    "identical": true
+   }
+  },
+  {
+   "name": "align-clips",
+   "ran": true,
+   "elapsed_s": 3.0,
+   "out": "consistency/align_clips",
+   "committed": "eval/consistency/align-cases-before/clips.txt",
+   "comparison": {
+    "what": "clips.txt: each clip's command, tags and MD5 of its frames",
+    "identical": true
+   }
+  },
+  {
+   "name": "negotiation-clips",
+   "ran": true,
+   "elapsed_s": 1.4,
+   "out": "consistency/negotiation_clips",
+   "committed": "eval/consistency/negotiation-cases/clips.txt",
+   "comparison": {
+    "what": "clips.txt: each clip's command, tags and MD5 of its frames",
+    "identical": true
+   }
+  },
+  {
+   "name": "diag-before-300",
+   "ran": true,
+   "elapsed_s": 38.3,
+   "out": "consistency/diag-before-300",
+   "committed": "eval/consistency/diag-before-300",
+   "binary_sha256": "4bb0fc2bec6bd240463e3f183204c426bbff1652eadd342733917d8fc58f84c0",
+   "committed_binary_sha256": "4bb0fc2bec6bd240463e3f183204c426bbff1652eadd342733917d8fc58f84c0",
+   "comparison": {
+    "what": "each run's verdict, and every pair's verdict and per-frame scores on both sides",
+    "runs": {
+     "plain": {
+      "status": {
+       "rerun": "FAIL",
+       "committed": "FAIL"
+      },
+      "pairs": [
+       {
+        "pair": "gear4_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear3_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear2_vs_gear5",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear1_vs_gear5",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       }
+      ],
+      "extra_pairs": [],
+      "identical": true
+     },
+     "relabel": {
+      "status": {
+       "rerun": "PASS",
+       "committed": "PASS"
+      },
+      "pairs": [
+       {
+        "pair": "gear4_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear3_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear2_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear1_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       }
+      ],
+      "extra_pairs": [],
+      "identical": true
+     }
+    },
+    "identical": true
+   }
+  },
+  {
+   "name": "color-cases-before",
+   "ran": true,
+   "elapsed_s": 7.9,
+   "out": "consistency/color-cases-before",
+   "committed": "eval/consistency/color-cases-before",
+   "binary_sha256": "4bb0fc2bec6bd240463e3f183204c426bbff1652eadd342733917d8fc58f84c0",
+   "committed_binary_sha256": "4bb0fc2bec6bd240463e3f183204c426bbff1652eadd342733917d8fc58f84c0",
+   "comparison": {
+    "what": "each run's verdict, and every pair's verdict and per-frame scores on both sides",
+    "runs": {
+     "main": {
+      "status": {
+       "rerun": "FAIL",
+       "committed": "FAIL"
+      },
+      "pairs": [
+       {
+        "pair": "m01_bt709_vs_smpte170m",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "m02_bt709_vs_bt709",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "m03_bt709_vs_untagged",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "m04_untagged_vs_bt709",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "m05_untagged_vs_smpte170m",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "m06_untagged_vs_untagged",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "m07_smpte170m_vs_bt470bg",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "m08_bt2020nc_vs_bt709",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "r01_tv_vs_pc",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "r02_pc_vs_tv",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "r03_norange_vs_pc",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "r04_pc_vs_norange",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "r05_norange_vs_tv",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "r06_tv_vs_norange",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "x01_bt709tv_vs_smpte170mpc",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "x02_primaries_transfer",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "x03_chroma_topleft",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "x04_interlaced_tff",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       }
+      ],
+      "extra_pairs": [],
+      "identical": true
+     },
+     "refused": {
+      "status": {
+       "rerun": "FAIL",
+       "committed": "FAIL"
+      },
+      "pairs": [
+       {
+        "pair": "u01_bt709_vs_ycgco",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": null,
+         "committed": null,
+         "identical": true
+        },
+        "identical": true
+       },
+       {
+        "pair": "u02_ycgco_vs_bt709",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": null,
+         "committed": null,
+         "identical": true
+        },
+        "identical": true
+       }
+      ],
+      "extra_pairs": [],
+      "identical": true
+     }
+    },
+    "identical": true
+   }
+  },
+  {
+   "name": "format-cases-before",
+   "ran": true,
+   "elapsed_s": 6.3,
+   "out": "consistency/format-cases-before",
+   "committed": "eval/consistency/format-cases-before",
+   "binary_sha256": "4bb0fc2bec6bd240463e3f183204c426bbff1652eadd342733917d8fc58f84c0",
+   "committed_binary_sha256": "4bb0fc2bec6bd240463e3f183204c426bbff1652eadd342733917d8fc58f84c0",
+   "comparison": {
+    "what": "each run's verdict, and every pair's verdict and per-frame scores on both sides",
+    "runs": {
+     "main": {
+      "status": {
+       "rerun": "FAIL",
+       "committed": "FAIL"
+      },
+      "pairs": [
+       {
+        "pair": "f01_10bit_bt709_vs_smpte170m",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "f02_10bit_smpte170m_vs_bt709",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "f03_10bit_nomatrix_vs_bt709",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "f04_10bit_bt709_vs_bt709",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "f05_422_bt709_vs_smpte170m",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "f06_422_bt709_vs_bt709",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "f07_444_bt709_vs_smpte170m",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "f08_444_bt709_vs_bt709",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "j01_yuvj_pc_vs_tv",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "j02_yuvj_pc_vs_pc",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "d01_bt709_vs_10bit_smpte170m",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "d02_bt709tv_vs_yuvj_pc",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       }
+      ],
+      "extra_pairs": [],
+      "identical": true
+     },
+     "refused": {
+      "status": {
+       "rerun": "FAIL",
+       "committed": "FAIL"
+      },
+      "pairs": [
+       {
+        "pair": "u03_ycgco_vs_ycgco",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": null,
+         "committed": null,
+         "identical": true
+        },
+        "identical": true
+       }
+      ],
+      "extra_pairs": [],
+      "identical": true
+     }
+    },
+    "identical": true
+   }
+  },
+  {
+   "name": "diag-after-300",
+   "ran": true,
+   "elapsed_s": 19.5,
+   "out": "consistency/diag-after-300",
+   "committed": "eval/consistency/diag-after-300",
+   "binary_sha256": "aaac3630522dc4261f6fa27bb8e81dc66a64ba9860292ecdeae5e9164fb372d3",
+   "committed_binary_sha256": "420b8776e9708329b2f32cf6d2b0f924ee67db6f82f3e05d8e172d28cd243acd",
+   "comparison": {
+    "what": "each run's verdict, and every pair's verdict and per-frame scores on both sides",
+    "runs": {
+     "plain": {
+      "status": {
+       "rerun": "PASS",
+       "committed": "PASS"
+      },
+      "pairs": [
+       {
+        "pair": "gear4_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear3_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear2_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear1_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       }
+      ],
+      "extra_pairs": [],
+      "identical": true
+     }
+    },
+    "identical": true
+   }
+  },
+  {
+   "name": "color-cases-after",
+   "ran": true,
+   "elapsed_s": 7.7,
+   "out": "consistency/color-cases-after",
+   "committed": "eval/consistency/color-cases-after",
+   "binary_sha256": "aaac3630522dc4261f6fa27bb8e81dc66a64ba9860292ecdeae5e9164fb372d3",
+   "committed_binary_sha256": "420b8776e9708329b2f32cf6d2b0f924ee67db6f82f3e05d8e172d28cd243acd",
+   "comparison": {
+    "what": "each run's verdict, and every pair's verdict and per-frame scores on both sides",
+    "runs": {
+     "main": {
+      "status": {
+       "rerun": "PASS",
+       "committed": "PASS"
+      },
+      "pairs": [
+       {
+        "pair": "m01_bt709_vs_smpte170m",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "m02_bt709_vs_bt709",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "m03_bt709_vs_untagged",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "m04_untagged_vs_bt709",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "m05_untagged_vs_smpte170m",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "m06_untagged_vs_untagged",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "m07_smpte170m_vs_bt470bg",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "m08_bt2020nc_vs_bt709",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "r01_tv_vs_pc",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "r02_pc_vs_tv",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "r03_norange_vs_pc",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "r04_pc_vs_norange",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "r05_norange_vs_tv",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "r06_tv_vs_norange",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "x01_bt709tv_vs_smpte170mpc",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "x02_primaries_transfer",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "x03_chroma_topleft",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "x04_interlaced_tff",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       }
+      ],
+      "extra_pairs": [],
+      "identical": true
+     },
+     "refused": {
+      "status": {
+       "rerun": "FAIL",
+       "committed": "FAIL"
+      },
+      "pairs": [
+       {
+        "pair": "u01_bt709_vs_ycgco",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": null,
+         "committed": null,
+         "identical": true
+        },
+        "ffmpeg": {
+         "rerun": null,
+         "committed": null,
+         "identical": true
+        },
+        "identical": true
+       },
+       {
+        "pair": "u02_ycgco_vs_bt709",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": null,
+         "committed": null,
+         "identical": true
+        },
+        "ffmpeg": {
+         "rerun": null,
+         "committed": null,
+         "identical": true
+        },
+        "identical": true
+       }
+      ],
+      "extra_pairs": [],
+      "identical": true
+     }
+    },
+    "identical": true
+   }
+  },
+  {
+   "name": "format-cases-after",
+   "ran": true,
+   "elapsed_s": 6.2,
+   "out": "consistency/format-cases-after",
+   "committed": "eval/consistency/format-cases-after",
+   "binary_sha256": "b225a60efd146d27fbb59335176324fa9529b1a86921f8814a1b64e34d162803",
+   "committed_binary_sha256": "b225a60efd146d27fbb59335176324fa9529b1a86921f8814a1b64e34d162803",
+   "comparison": {
+    "what": "each run's verdict, and every pair's verdict and per-frame scores on both sides",
+    "runs": {
+     "main": {
+      "status": {
+       "rerun": "FAIL",
+       "committed": "FAIL"
+      },
+      "pairs": [
+       {
+        "pair": "f01_10bit_bt709_vs_smpte170m",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "f02_10bit_smpte170m_vs_bt709",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "f03_10bit_nomatrix_vs_bt709",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "f04_10bit_bt709_vs_bt709",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "f05_422_bt709_vs_smpte170m",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "f06_422_bt709_vs_bt709",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "f07_444_bt709_vs_smpte170m",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "f08_444_bt709_vs_bt709",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "j01_yuvj_pc_vs_tv",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "j02_yuvj_pc_vs_pc",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "d01_bt709_vs_10bit_smpte170m",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "d02_bt709tv_vs_yuvj_pc",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       }
+      ],
+      "extra_pairs": [],
+      "identical": true
+     },
+     "refused": {
+      "status": {
+       "rerun": "FAIL",
+       "committed": "FAIL"
+      },
+      "pairs": [
+       {
+        "pair": "u03_ycgco_vs_ycgco",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": null,
+         "committed": null,
+         "identical": true
+        },
+        "ffmpeg": {
+         "rerun": null,
+         "committed": null,
+         "identical": true
+        },
+        "identical": true
+       }
+      ],
+      "extra_pairs": [],
+      "identical": true
+     }
+    },
+    "identical": true
+   }
+  },
+  {
+   "name": "format-cases-d022",
+   "ran": true,
+   "elapsed_s": 7.0,
+   "out": "consistency/format-cases-d022",
+   "committed": "eval/consistency/format-cases-d022",
+   "binary_sha256": "aaac3630522dc4261f6fa27bb8e81dc66a64ba9860292ecdeae5e9164fb372d3",
+   "committed_binary_sha256": "2220ce3a0997d53f750b34a770110f5c65f5f870cfb9a0e6347256733bcf09ea",
+   "comparison": {
+    "what": "each run's verdict, and every pair's verdict and per-frame scores on both sides",
+    "runs": {
+     "main": {
+      "status": {
+       "rerun": "PASS",
+       "committed": "PASS"
+      },
+      "pairs": [
+       {
+        "pair": "f01_10bit_bt709_vs_smpte170m",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "f02_10bit_smpte170m_vs_bt709",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "f03_10bit_nomatrix_vs_bt709",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "f04_10bit_bt709_vs_bt709",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "f05_422_bt709_vs_smpte170m",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "f06_422_bt709_vs_bt709",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "f07_444_bt709_vs_smpte170m",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "f08_444_bt709_vs_bt709",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "j01_yuvj_pc_vs_tv",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "j02_yuvj_pc_vs_pc",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "d01_bt709_vs_10bit_smpte170m",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "d02_bt709tv_vs_yuvj_pc",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       }
+      ],
+      "extra_pairs": [],
+      "identical": true
+     },
+     "refused": {
+      "status": {
+       "rerun": "FAIL",
+       "committed": "FAIL"
+      },
+      "pairs": [
+       {
+        "pair": "u03_ycgco_vs_ycgco",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": null,
+         "committed": null,
+         "identical": true
+        },
+        "ffmpeg": {
+         "rerun": null,
+         "committed": null,
+         "identical": true
+        },
+        "identical": true
+       }
+      ],
+      "extra_pairs": [],
+      "identical": true
+     }
+    },
+    "identical": true
+   }
+  },
+  {
+   "name": "negotiation-cases",
+   "ran": true,
+   "elapsed_s": 3.1,
+   "out": "consistency/negotiation-cases",
+   "committed": "eval/consistency/negotiation-cases",
+   "binary_sha256": "aaac3630522dc4261f6fa27bb8e81dc66a64ba9860292ecdeae5e9164fb372d3",
+   "committed_binary_sha256": "aaac3630522dc4261f6fa27bb8e81dc66a64ba9860292ecdeae5e9164fb372d3",
+   "comparison": {
+    "what": "each run's verdict, and every pair's verdict and per-frame scores on both sides",
+    "runs": {
+     "main": {
+      "status": {
+       "rerun": "PASS",
+       "committed": "PASS"
+      },
+      "pairs": [
+       {
+        "pair": "n01_yuvj_pc_vs_norange",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "n02_10bit_tv_vs_norange",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "n03_10bit_bt709_vs_gray",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "n04_10bit_bt709_vs_rgb",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       }
+      ],
+      "extra_pairs": [],
+      "identical": true
+     }
+    },
+    "identical": true
+   }
+  },
+  {
+   "name": "scalers-300",
+   "ran": true,
+   "elapsed_s": 59.2,
+   "out": "consistency/scalers-300",
+   "committed": "eval/consistency/scalers-300",
+   "effect_name": "scaler_effect",
+   "binary_sha256": "aaac3630522dc4261f6fa27bb8e81dc66a64ba9860292ecdeae5e9164fb372d3",
+   "committed_binary_sha256": "3633c43eaf4261e567ef2fb3a24d015e3e00b9a8ee354ddef88b6330aca4938c",
+   "comparison": {
+    "what": "each run's verdict, and every pair's verdict and per-frame scores on both sides",
+    "runs": {
+     "bilinear": {
+      "status": {
+       "rerun": "PASS",
+       "committed": "PASS"
+      },
+      "pairs": [
+       {
+        "pair": "gear4_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear3_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear2_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear1_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       }
+      ],
+      "extra_pairs": [],
+      "identical": true
+     },
+     "bicubic": {
+      "status": {
+       "rerun": "PASS",
+       "committed": "PASS"
+      },
+      "pairs": [
+       {
+        "pair": "gear4_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear3_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear2_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear1_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       }
+      ],
+      "extra_pairs": [],
+      "identical": true
+     },
+     "lanczos": {
+      "status": {
+       "rerun": "PASS",
+       "committed": "PASS"
+      },
+      "pairs": [
+       {
+        "pair": "gear4_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear3_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear2_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear1_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       }
+      ],
+      "extra_pairs": [],
+      "identical": true
+     }
+    },
+    "effect": {
+     "compared": [
+      "pairs",
+      "parameters_that_differ"
+     ],
+     "differing": [],
+     "identical": true
+    },
+    "identical": true
+   }
+  },
+  {
+   "name": "models-300",
+   "ran": true,
+   "elapsed_s": 26.9,
+   "out": "consistency/models-300",
+   "committed": "eval/consistency/models-300",
+   "effect_name": "model_effect",
+   "binary_sha256": "aaac3630522dc4261f6fa27bb8e81dc66a64ba9860292ecdeae5e9164fb372d3",
+   "committed_binary_sha256": "3633c43eaf4261e567ef2fb3a24d015e3e00b9a8ee354ddef88b6330aca4938c",
+   "comparison": {
+    "what": "each run's verdict, and every pair's verdict and per-frame scores on both sides",
+    "runs": {
+     "vmaf_v0.6.1": {
+      "status": {
+       "rerun": "PASS",
+       "committed": "PASS"
+      },
+      "pairs": [
+       {
+        "pair": "gear2_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       }
+      ],
+      "extra_pairs": [],
+      "identical": true
+     },
+     "vmaf_v0.6.1neg": {
+      "status": {
+       "rerun": "PASS",
+       "committed": "PASS"
+      },
+      "pairs": [
+       {
+        "pair": "gear2_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       }
+      ],
+      "extra_pairs": [],
+      "identical": true
+     },
+     "vmaf_4k_v0.6.1": {
+      "status": {
+       "rerun": "PASS",
+       "committed": "PASS"
+      },
+      "pairs": [
+       {
+        "pair": "gear2_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       }
+      ],
+      "extra_pairs": [],
+      "identical": true
+     },
+     "file_vmaf_v0.6.1": {
+      "status": {
+       "rerun": "PASS",
+       "committed": "PASS"
+      },
+      "pairs": [
+       {
+        "pair": "gear2_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       }
+      ],
+      "extra_pairs": [],
+      "identical": true
+     }
+    },
+    "effect": {
+     "compared": [
+      "pairs",
+      "parameters_that_differ"
+     ],
+     "differing": [],
+     "identical": true
+    },
+    "identical": true
+   }
+  },
+  {
+   "name": "defaults-300",
+   "ran": true,
+   "elapsed_s": 20.0,
+   "out": "consistency/defaults-300",
+   "committed": "eval/consistency/defaults-300",
+   "binary_sha256": "aaac3630522dc4261f6fa27bb8e81dc66a64ba9860292ecdeae5e9164fb372d3",
+   "committed_binary_sha256": "85535c5c0ea56865816a71ea9aef837753e0a995d4892be51b863943f6854c5f",
+   "comparison": {
+    "what": "each run's verdict, and every pair's verdict and per-frame scores on both sides",
+    "runs": {
+     "plain": {
+      "status": {
+       "rerun": "PASS",
+       "committed": "PASS"
+      },
+      "pairs": [
+       {
+        "pair": "gear4_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear3_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear2_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear1_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       }
+      ],
+      "extra_pairs": [],
+      "identical": true
+     }
+    },
+    "identical": true
+   }
+  },
+  {
+   "name": "ladder-300",
+   "ran": true,
+   "elapsed_s": 22.4,
+   "out": "consistency/ladder-300",
+   "committed": "eval/consistency/ladder-300",
+   "binary_sha256": "aaac3630522dc4261f6fa27bb8e81dc66a64ba9860292ecdeae5e9164fb372d3",
+   "committed_binary_sha256": "eab1651cc09237fce5451fd1de0c236c2d589b2d3b2d2848065b675e8e35a4c7",
+   "comparison": {
+    "what": "the check's verdict, the ladder report's master and plan, and every per-frame score of the ladder's pairs and of the pairs scored one by one",
+    "runs": {
+     "top-rung": {
+      "status": {
+       "rerun": "PASS",
+       "committed": "PASS"
+      },
+      "plan_differs": [],
+      "pairs": [
+       {
+        "pair": "ladder pair 0 (entries 0)",
+        "status": {
+         "rerun": "scored",
+         "committed": "scored"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "differing": 0,
+         "largest_difference": 0.0,
+         "identical": true
+        },
+        "ffmpeg": null,
+        "identical": true
+       },
+       {
+        "pair": "ladder pair 1 (entries 1)",
+        "status": {
+         "rerun": "scored",
+         "committed": "scored"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "differing": 0,
+         "largest_difference": 0.0,
+         "identical": true
+        },
+        "ffmpeg": null,
+        "identical": true
+       },
+       {
+        "pair": "ladder pair 2 (entries 2)",
+        "status": {
+         "rerun": "scored",
+         "committed": "scored"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "differing": 0,
+         "largest_difference": 0.0,
+         "identical": true
+        },
+        "ffmpeg": null,
+        "identical": true
+       },
+       {
+        "pair": "ladder pair 3 (entries 3)",
+        "status": {
+         "rerun": "scored",
+         "committed": "scored"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "differing": 0,
+         "largest_difference": 0.0,
+         "identical": true
+        },
+        "ffmpeg": null,
+        "identical": true
+       },
+       {
+        "pair": "gear4_vs_gear5",
+        "status": {
+         "rerun": "SAME",
+         "committed": "SAME"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": null,
+        "identical": true
+       },
+       {
+        "pair": "gear3_vs_gear5",
+        "status": {
+         "rerun": "SAME",
+         "committed": "SAME"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": null,
+        "identical": true
+       },
+       {
+        "pair": "gear2_vs_gear5",
+        "status": {
+         "rerun": "SAME",
+         "committed": "SAME"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": null,
+        "identical": true
+       },
+       {
+        "pair": "gear1_vs_gear5",
+        "status": {
+         "rerun": "SAME",
+         "committed": "SAME"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": null,
+        "identical": true
+       }
+      ],
+      "identical": true
+     }
+    },
+    "identical": true
+   }
+  },
+  {
+   "name": "align-cases-before",
+   "ran": true,
+   "elapsed_s": 3.7,
+   "out": "consistency/align-cases-before",
+   "committed": "eval/consistency/align-cases-before",
+   "binary_sha256": "85535c5c0ea56865816a71ea9aef837753e0a995d4892be51b863943f6854c5f",
+   "committed_binary_sha256": "85535c5c0ea56865816a71ea9aef837753e0a995d4892be51b863943f6854c5f",
+   "comparison": {
+    "what": "each run's verdict, and every pair's verdict and per-frame scores on both sides",
+    "runs": {
+     "main": {
+      "status": {
+       "rerun": "FAIL",
+       "committed": "FAIL"
+      },
+      "pairs": [
+       {
+        "pair": "a00_aligned",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "a01_dropped_distorted",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 9,
+         "committed": 9,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 9,
+         "committed": 9,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "a02_dropped_reference",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 9,
+         "committed": 9,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "a03_duplicated_timestamp",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 11,
+         "committed": 11,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "a04_half_rate",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 5,
+         "committed": 5,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 6,
+         "committed": 6,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "a05_later_start",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 7,
+         "committed": 7,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "a06_later_start_audio",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 7,
+         "committed": 7,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 7,
+         "committed": 7,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "a07_restart",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "a08_ms_vs_90khz",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       }
+      ],
+      "extra_pairs": [],
+      "identical": true
+     }
+    },
+    "identical": true
+   }
+  },
+  {
+   "name": "align-cases-d028",
+   "ran": true,
+   "elapsed_s": 3.5,
+   "out": "consistency/align-cases-d028",
+   "committed": "eval/consistency/align-cases-d028",
+   "binary_sha256": "aaac3630522dc4261f6fa27bb8e81dc66a64ba9860292ecdeae5e9164fb372d3",
+   "committed_binary_sha256": "7fb455e9e1349c85e25afe54d5fd47d714c463ecebea1b03b84ca1b594d27741",
+   "comparison": {
+    "what": "each run's verdict, and every pair's verdict and per-frame scores on both sides",
+    "runs": {
+     "main": {
+      "status": {
+       "rerun": "FAIL",
+       "committed": "FAIL"
+      },
+      "pairs": [
+       {
+        "pair": "a00_aligned",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "a01_dropped_distorted",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 9,
+         "committed": 9,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 9,
+         "committed": 9,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "a02_dropped_reference",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 9,
+         "committed": 9,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "a03_duplicated_timestamp",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 11,
+         "committed": 11,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "a04_half_rate",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 5,
+         "committed": 5,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 6,
+         "committed": 6,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "a05_later_start",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 7,
+         "committed": 7,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "a06_later_start_audio",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 7,
+         "committed": 7,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 7,
+         "committed": 7,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "a07_restart",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 5,
+         "committed": 5,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "a08_ms_vs_90khz",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "FAIL"
+        },
+        "mirage": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 10,
+         "committed": 10,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       }
+      ],
+      "extra_pairs": [],
+      "identical": true
+     }
+    },
+    "identical": true
+   }
+  },
+  {
+   "name": "acceptance-full",
+   "ran": true,
+   "elapsed_s": 2758.3,
+   "out": "consistency/acceptance-full",
+   "committed": "eval/consistency/acceptance-full",
+   "binary_sha256": "aaac3630522dc4261f6fa27bb8e81dc66a64ba9860292ecdeae5e9164fb372d3",
+   "committed_binary_sha256": "3633c43eaf4261e567ef2fb3a24d015e3e00b9a8ee354ddef88b6330aca4938c",
+   "comparison": {
+    "what": "each run's verdict, and every pair's verdict and per-frame scores on both sides",
+    "runs": {
+     "plain": {
+      "status": {
+       "rerun": "PASS",
+       "committed": "PASS"
+      },
+      "pairs": [
+       {
+        "pair": "gear4_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 53946,
+         "committed": 53946,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 53946,
+         "committed": 53946,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear3_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 53946,
+         "committed": 53946,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 53946,
+         "committed": 53946,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear2_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 53946,
+         "committed": 53946,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 53946,
+         "committed": 53946,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear1_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 53946,
+         "committed": 53946,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 53946,
+         "committed": 53946,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       }
+      ],
+      "extra_pairs": [],
+      "identical": true
+     }
+    },
+    "identical": true
+   }
+  },
+  {
+   "name": "defaults-full",
+   "ran": true,
+   "elapsed_s": 3402.3,
+   "out": "consistency/defaults-full",
+   "committed": "eval/consistency/defaults-full",
+   "binary_sha256": "aaac3630522dc4261f6fa27bb8e81dc66a64ba9860292ecdeae5e9164fb372d3",
+   "committed_binary_sha256": "9f04085f73440a9c9969f9bf6a86767eaf9ade89ae8ca393f8b6c99bb78b9b06",
+   "comparison": {
+    "what": "each run's verdict, and every pair's verdict and per-frame scores on both sides",
+    "runs": {
+     "plain": {
+      "status": {
+       "rerun": "FAIL",
+       "committed": "PASS"
+      },
+      "pairs": [
+       {
+        "pair": "gear4_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 53946,
+         "committed": 53946,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 53946,
+         "committed": 53946,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear3_vs_gear5",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 52442,
+         "committed": 53946,
+         "identical": false,
+         "differing": 4,
+         "largest_difference": 38.627685496805626
+        },
+        "ffmpeg": {
+         "rerun": 53946,
+         "committed": 53946,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": false
+       },
+       {
+        "pair": "gear2_vs_gear5",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 4425,
+         "committed": 53946,
+         "identical": false,
+         "differing": 47,
+         "largest_difference": 35.9287239964223
+        },
+        "ffmpeg": {
+         "rerun": 4562,
+         "committed": 53946,
+         "identical": false,
+         "differing": 14,
+         "largest_difference": 17.357473
+        },
+        "identical": false
+       },
+       {
+        "pair": "gear1_vs_gear5",
+        "status": {
+         "rerun": "FAIL",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 15639,
+         "committed": 53946,
+         "identical": false,
+         "differing": 12747,
+         "largest_difference": 7.860565341776521
+        },
+        "ffmpeg": {
+         "rerun": 52184,
+         "committed": 53946,
+         "identical": false,
+         "differing": 40180,
+         "largest_difference": 12.40004
+        },
+        "identical": false
+       }
+      ],
+      "extra_pairs": [],
+      "identical": false
+     }
+    },
+    "identical": false
+   }
+  },
+  {
+   "name": "ffmpeg-scale-default",
+   "ran": true,
+   "elapsed_s": 0.4,
+   "out": "consistency/ffmpeg-scale-default",
+   "committed": "eval/consistency/ffmpeg-scale-default",
+   "comparison": {
+    "what": "the output of each command of checks.txt after check 1",
+    "checks": [
+     2,
+     3,
+     4
+    ],
+    "differing": [],
+    "identical": true
+   }
+  },
+  {
+   "name": "ffmpeg-libvmaf-filter",
+   "ran": true,
+   "elapsed_s": 0.2,
+   "out": "consistency/ffmpeg-libvmaf-filter",
+   "committed": "eval/consistency/ffmpeg-libvmaf-filter",
+   "comparison": {
+    "what": "the output of each command of checks.txt after check 1",
+    "checks": [
+     2,
+     3,
+     4
+    ],
+    "differing": [],
+    "identical": true
+   }
+  },
+  {
+   "name": "pooling",
+   "ran": true,
+   "elapsed_s": 0.3,
+   "out": "pooling/bipbop16x9",
+   "committed": "eval/pooling/bipbop16x9",
+   "comparison": {
+    "what": "every series and skipped entry of pooling.json",
+    "sources": {
+     "rerun": 2,
+     "committed": 2
+    },
+    "differing_sources": [],
+    "identical": true
+   }
+  },
+  {
+   "name": "pooling-defaults-300",
+   "ran": true,
+   "elapsed_s": 0.2,
+   "out": "pooling/defaults-300",
+   "committed": "eval/pooling/defaults-300",
+   "comparison": {
+    "what": "every series and skipped entry of pooling.json",
+    "sources": {
+     "rerun": 1,
+     "committed": 1
+    },
+    "differing_sources": [],
+    "identical": true
+   }
+  },
+  {
+   "name": "pooling-full",
+   "ran": true,
+   "elapsed_s": 1.8,
+   "out": "pooling/acceptance-full",
+   "committed": "eval/pooling/acceptance-full",
+   "comparison": {
+    "what": "every series and skipped entry of pooling.json",
+    "sources": {
+     "rerun": 1,
+     "committed": 1
+    },
+    "differing_sources": [],
+    "identical": true
+   }
+  },
+  {
+   "name": "pooling-defaults-full",
+   "ran": true,
+   "elapsed_s": 1.5,
+   "out": "pooling/defaults-full",
+   "committed": "eval/pooling/defaults-full",
+   "comparison": {
+    "what": "every series and skipped entry of pooling.json",
+    "sources": {
+     "rerun": 1,
+     "committed": 1
+    },
+    "differing_sources": [
+     0
+    ],
+    "identical": false
+   }
+  }
+ ],
+ "commands": [
+  {
+   "step": "build head",
+   "command": "git -C <repo> worktree add --detach <worktree> bbc669dfeae9febd6f609f5f1e7b4f1489a57182",
+   "cwd": ".",
+   "log": "builds/head/worktree_add.log",
+   "started_utc": "2026-10-26T22:40:10Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 0.6,
+   "ended_utc": "2026-10-26T22:40:10Z"
+  },
+  {
+   "step": "build head",
+   "command": "cmake --preset macos-release",
+   "cwd": "<worktree>",
+   "log": "builds/head/configure.log",
+   "started_utc": "2026-10-26T22:40:11Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 42.6,
+   "ended_utc": "2026-10-26T22:40:53Z"
+  },
+  {
+   "step": "build head",
+   "command": "cmake --build --preset macos-release --target mirage_vmaf",
+   "cwd": "<worktree>",
+   "log": "builds/head/build.log",
+   "started_utc": "2026-10-26T22:40:53Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 2.6,
+   "ended_utc": "2026-10-26T22:40:56Z"
+  },
+  {
+   "step": "build before",
+   "command": "git -C <repo> worktree add --detach <worktree> 83c8ed6b497783cc6dd265637e7b2298399ba41a",
+   "cwd": ".",
+   "log": "builds/before/worktree_add.log",
+   "started_utc": "2026-10-26T22:40:56Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 0.1,
+   "ended_utc": "2026-10-26T22:40:56Z"
+  },
+  {
+   "step": "build before",
+   "command": "cmake --preset macos-release",
+   "cwd": "<worktree>",
+   "log": "builds/before/configure.log",
+   "started_utc": "2026-10-26T22:40:56Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 47.8,
+   "ended_utc": "2026-10-26T22:41:44Z"
+  },
+  {
+   "step": "build before",
+   "command": "cmake --build --preset macos-release --target mirage_vmaf",
+   "cwd": "<worktree>",
+   "log": "builds/before/build.log",
+   "started_utc": "2026-10-26T22:41:44Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 1.9,
+   "ended_utc": "2026-10-26T22:41:46Z"
+  },
+  {
+   "step": "build before-d022",
+   "command": "git -C <repo> worktree add --detach <worktree> d993686add8b2af709e1200437e9d643aed26238",
+   "cwd": ".",
+   "log": "builds/before-d022/worktree_add.log",
+   "started_utc": "2026-10-26T22:41:46Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 0.4,
+   "ended_utc": "2026-10-26T22:41:47Z"
+  },
+  {
+   "step": "build before-d022",
+   "command": "cmake --preset macos-release",
+   "cwd": "<worktree>",
+   "log": "builds/before-d022/configure.log",
+   "started_utc": "2026-10-26T22:41:47Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 45.0,
+   "ended_utc": "2026-10-26T22:42:32Z"
+  },
+  {
+   "step": "build before-d022",
+   "command": "cmake --build --preset macos-release --target mirage_vmaf",
+   "cwd": "<worktree>",
+   "log": "builds/before-d022/build.log",
+   "started_utc": "2026-10-26T22:42:32Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 2.0,
+   "ended_utc": "2026-10-26T22:42:34Z"
+  },
+  {
+   "step": "build before-d028",
+   "command": "git -C <repo> worktree add --detach <worktree> e8b867fc371ccca2a099e941eeaf808a96b078dc",
+   "cwd": ".",
+   "log": "builds/before-d028/worktree_add.log",
+   "started_utc": "2026-10-26T22:42:34Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 0.5,
+   "ended_utc": "2026-10-26T22:42:35Z"
+  },
+  {
+   "step": "build before-d028",
+   "command": "cmake --preset macos-release",
+   "cwd": "<worktree>",
+   "log": "builds/before-d028/configure.log",
+   "started_utc": "2026-10-26T22:42:35Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 44.7,
+   "ended_utc": "2026-10-26T22:43:20Z"
+  },
+  {
+   "step": "build before-d028",
+   "command": "cmake --build --preset macos-release --target mirage_vmaf",
+   "cwd": "<worktree>",
+   "log": "builds/before-d028/build.log",
+   "started_utc": "2026-10-26T22:43:20Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 2.2,
+   "ended_utc": "2026-10-26T22:43:22Z"
+  },
+  {
+   "step": "streams",
+   "command": "/opt/homebrew/opt/python@3.14/bin/python3.14 -I -B eval/streams/fetch_streams.py <out_dir>/streams/fetched --probe --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/streams.log",
+   "started_utc": "2026-10-26T22:43:22Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 7.4,
+   "ended_utc": "2026-10-26T22:43:29Z"
+  },
+  {
+   "step": "clips",
+   "command": "/opt/homebrew/opt/python@3.14/bin/python3.14 -I -B eval/consistency/color_cases.py <out_dir>/consistency/clips --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/clips.log",
+   "started_utc": "2026-10-26T22:43:29Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 4.6,
+   "ended_utc": "2026-10-26T22:43:34Z"
+  },
+  {
+   "step": "format-clips",
+   "command": "/opt/homebrew/opt/python@3.14/bin/python3.14 -I -B eval/consistency/color_cases.py <out_dir>/consistency/format_clips --set formats --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/format-clips.log",
+   "started_utc": "2026-10-26T22:43:34Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 3.7,
+   "ended_utc": "2026-10-26T22:43:38Z"
+  },
+  {
+   "step": "align-clips",
+   "command": "/opt/homebrew/opt/python@3.14/bin/python3.14 -I -B eval/consistency/align_cases.py <out_dir>/consistency/align_clips --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/align-clips.log",
+   "started_utc": "2026-10-26T22:43:38Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 3.0,
+   "ended_utc": "2026-10-26T22:43:41Z"
+  },
+  {
+   "step": "negotiation-clips",
+   "command": "/opt/homebrew/opt/python@3.14/bin/python3.14 -I -B eval/consistency/color_cases.py <out_dir>/consistency/negotiation_clips --set negotiation --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/negotiation-clips.log",
+   "started_utc": "2026-10-26T22:43:41Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 1.4,
+   "ended_utc": "2026-10-26T22:43:42Z"
+  },
+  {
+   "step": "diag-before-300",
+   "command": "eval/consistency/run_delta.sh <out_dir>/builds/before/mirage_vmaf <out_dir>/consistency/diag-before-300/plain --frames 300 --pairs eval/consistency/pairs/bipbop16x9.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/diag-before-300_plain.log",
+   "started_utc": "2026-10-26T22:43:42Z",
+   "exit_code": 1,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 19.0,
+   "ended_utc": "2026-10-26T22:44:01Z"
+  },
+  {
+   "step": "diag-before-300",
+   "command": "eval/consistency/run_delta.sh <out_dir>/builds/before/mirage_vmaf <out_dir>/consistency/diag-before-300/relabel --frames 300 --pairs eval/consistency/pairs/bipbop16x9.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --diagnostic-relabel --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/diag-before-300_relabel.log",
+   "started_utc": "2026-10-26T22:44:01Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 19.2,
+   "ended_utc": "2026-10-26T22:44:21Z"
+  },
+  {
+   "step": "color-cases-before",
+   "command": "eval/consistency/run_delta.sh <out_dir>/builds/before/mirage_vmaf <out_dir>/consistency/color-cases-before/main --frames 10 --pairs <out_dir>/consistency/clips/pairs.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/color-cases-before_main.log",
+   "started_utc": "2026-10-26T22:44:21Z",
+   "exit_code": 1,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 6.7,
+   "ended_utc": "2026-10-26T22:44:27Z"
+  },
+  {
+   "step": "color-cases-before",
+   "command": "eval/consistency/run_delta.sh <out_dir>/builds/before/mirage_vmaf <out_dir>/consistency/color-cases-before/refused --frames 10 --pairs <out_dir>/consistency/clips/pairs_refused.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/color-cases-before_refused.log",
+   "started_utc": "2026-10-26T22:44:27Z",
+   "exit_code": 1,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 1.1,
+   "ended_utc": "2026-10-26T22:44:28Z"
+  },
+  {
+   "step": "format-cases-before",
+   "command": "eval/consistency/run_delta.sh <out_dir>/builds/before/mirage_vmaf <out_dir>/consistency/format-cases-before/main --frames 10 --pairs <out_dir>/consistency/format_clips/pairs.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/format-cases-before_main.log",
+   "started_utc": "2026-10-26T22:44:28Z",
+   "exit_code": 1,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 5.4,
+   "ended_utc": "2026-10-26T22:44:34Z"
+  },
+  {
+   "step": "format-cases-before",
+   "command": "eval/consistency/run_delta.sh <out_dir>/builds/before/mirage_vmaf <out_dir>/consistency/format-cases-before/refused --frames 10 --pairs <out_dir>/consistency/format_clips/pairs_refused.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/format-cases-before_refused.log",
+   "started_utc": "2026-10-26T22:44:34Z",
+   "exit_code": 1,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 0.9,
+   "ended_utc": "2026-10-26T22:44:35Z"
+  },
+  {
+   "step": "diag-after-300",
+   "command": "eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/diag-after-300/plain --frames 300 --pairs eval/consistency/pairs/bipbop16x9.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/diag-after-300_plain.log",
+   "started_utc": "2026-10-26T22:44:35Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 19.5,
+   "ended_utc": "2026-10-26T22:44:54Z"
+  },
+  {
+   "step": "color-cases-after",
+   "command": "eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/color-cases-after/main --frames 10 --pairs <out_dir>/consistency/clips/pairs.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/color-cases-after_main.log",
+   "started_utc": "2026-10-26T22:44:54Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 6.7,
+   "ended_utc": "2026-10-26T22:45:01Z"
+  },
+  {
+   "step": "color-cases-after",
+   "command": "eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/color-cases-after/refused --frames 10 --pairs <out_dir>/consistency/clips/pairs_refused.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/color-cases-after_refused.log",
+   "started_utc": "2026-10-26T22:45:01Z",
+   "exit_code": 1,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 1.0,
+   "ended_utc": "2026-10-26T22:45:02Z"
+  },
+  {
+   "step": "format-cases-after",
+   "command": "eval/consistency/run_delta.sh <out_dir>/builds/before-d022/mirage_vmaf <out_dir>/consistency/format-cases-after/main --frames 10 --pairs <out_dir>/consistency/format_clips/pairs.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/format-cases-after_main.log",
+   "started_utc": "2026-10-26T22:45:02Z",
+   "exit_code": 1,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 5.5,
+   "ended_utc": "2026-10-26T22:45:07Z"
+  },
+  {
+   "step": "format-cases-after",
+   "command": "eval/consistency/run_delta.sh <out_dir>/builds/before-d022/mirage_vmaf <out_dir>/consistency/format-cases-after/refused --frames 10 --pairs <out_dir>/consistency/format_clips/pairs_refused.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/format-cases-after_refused.log",
+   "started_utc": "2026-10-26T22:45:07Z",
+   "exit_code": 1,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 0.8,
+   "ended_utc": "2026-10-26T22:45:08Z"
+  },
+  {
+   "step": "format-cases-d022",
+   "command": "eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/format-cases-d022/main --frames 10 --pairs <out_dir>/consistency/format_clips/pairs.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/format-cases-d022_main.log",
+   "started_utc": "2026-10-26T22:45:08Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 6.3,
+   "ended_utc": "2026-10-26T22:45:15Z"
+  },
+  {
+   "step": "format-cases-d022",
+   "command": "eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/format-cases-d022/refused --frames 10 --pairs <out_dir>/consistency/format_clips/pairs_refused.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/format-cases-d022_refused.log",
+   "started_utc": "2026-10-26T22:45:15Z",
+   "exit_code": 1,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 0.8,
+   "ended_utc": "2026-10-26T22:45:15Z"
+  },
+  {
+   "step": "negotiation-cases",
+   "command": "eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/negotiation-cases/main --frames 10 --pairs <out_dir>/consistency/negotiation_clips/pairs.txt --scaler bicubic --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/negotiation-cases_main.log",
+   "started_utc": "2026-10-26T22:45:15Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 3.1,
+   "ended_utc": "2026-10-26T22:45:18Z"
+  },
+  {
+   "step": "scalers-300",
+   "command": "eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/scalers-300/bilinear --frames 300 --pairs eval/consistency/pairs/bipbop16x9.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/scalers-300_bilinear.log",
+   "started_utc": "2026-10-26T22:45:18Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 19.4,
+   "ended_utc": "2026-10-26T22:45:38Z"
+  },
+  {
+   "step": "scalers-300",
+   "command": "eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/scalers-300/bicubic --frames 300 --pairs eval/consistency/pairs/bipbop16x9.txt --scaler bicubic --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/scalers-300_bicubic.log",
+   "started_utc": "2026-10-26T22:45:38Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 18.4,
+   "ended_utc": "2026-10-26T22:45:56Z"
+  },
+  {
+   "step": "scalers-300",
+   "command": "eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/scalers-300/lanczos --frames 300 --pairs eval/consistency/pairs/bipbop16x9.txt --scaler lanczos --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/scalers-300_lanczos.log",
+   "started_utc": "2026-10-26T22:45:56Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 21.3,
+   "ended_utc": "2026-10-26T22:46:17Z"
+  },
+  {
+   "step": "scalers-300",
+   "command": "/opt/homebrew/opt/python@3.14/bin/python3.14 -I -B eval/consistency/compare_runs.py --base bilinear=<out_dir>/consistency/scalers-300/bilinear --run bicubic=<out_dir>/consistency/scalers-300/bicubic --run lanczos=<out_dir>/consistency/scalers-300/lanczos --out <out_dir>/consistency/scalers-300/scaler_effect",
+   "cwd": ".",
+   "log": "logs/scalers-300_scaler_effect.log",
+   "started_utc": "2026-10-26T22:46:17Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 0.1,
+   "ended_utc": "2026-10-26T22:46:18Z"
+  },
+  {
+   "step": "models-300",
+   "command": "eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/models-300/vmaf_v0.6.1 --frames 300 --pairs eval/consistency/pairs/bipbop16x9_gear2.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/models-300_vmaf_v0.6.1.log",
+   "started_utc": "2026-10-26T22:46:18Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 7.0,
+   "ended_utc": "2026-10-26T22:46:25Z"
+  },
+  {
+   "step": "models-300",
+   "command": "eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/models-300/vmaf_v0.6.1neg --frames 300 --pairs eval/consistency/pairs/bipbop16x9_gear2.txt --scaler bilinear --model vmaf_v0.6.1neg --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/models-300_vmaf_v0.6.1neg.log",
+   "started_utc": "2026-10-26T22:46:25Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 6.9,
+   "ended_utc": "2026-10-26T22:46:31Z"
+  },
+  {
+   "step": "models-300",
+   "command": "eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/models-300/vmaf_4k_v0.6.1 --frames 300 --pairs eval/consistency/pairs/bipbop16x9_gear2.txt --scaler bilinear --model vmaf_4k_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/models-300_vmaf_4k_v0.6.1.log",
+   "started_utc": "2026-10-26T22:46:31Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 6.5,
+   "ended_utc": "2026-10-26T22:46:38Z"
+  },
+  {
+   "step": "models-300",
+   "command": "eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/models-300/file_vmaf_v0.6.1 --frames 300 --pairs eval/consistency/pairs/bipbop16x9_gear2.txt --scaler bilinear --model-file /opt/homebrew/opt/libvmaf/share/libvmaf/model/vmaf_v0.6.1.json --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/models-300_file_vmaf_v0.6.1.log",
+   "started_utc": "2026-10-26T22:46:38Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 6.4,
+   "ended_utc": "2026-10-26T22:46:44Z"
+  },
+  {
+   "step": "models-300",
+   "command": "/opt/homebrew/opt/python@3.14/bin/python3.14 -I -B eval/consistency/compare_runs.py --base vmaf_v0.6.1=<out_dir>/consistency/models-300/vmaf_v0.6.1 --run vmaf_v0.6.1neg=<out_dir>/consistency/models-300/vmaf_v0.6.1neg --run vmaf_4k_v0.6.1=<out_dir>/consistency/models-300/vmaf_4k_v0.6.1 --run file_vmaf_v0.6.1=<out_dir>/consistency/models-300/file_vmaf_v0.6.1 --out <out_dir>/consistency/models-300/model_effect",
+   "cwd": ".",
+   "log": "logs/models-300_model_effect.log",
+   "started_utc": "2026-10-26T22:46:44Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 0.1,
+   "ended_utc": "2026-10-26T22:46:44Z"
+  },
+  {
+   "step": "defaults-300",
+   "command": "eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/defaults-300/plain --frames 300 --pairs eval/consistency/pairs/bipbop16x9.txt --scaler bicubic --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/defaults-300_plain.log",
+   "started_utc": "2026-10-26T22:46:45Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 20.0,
+   "ended_utc": "2026-10-26T22:47:05Z"
+  },
+  {
+   "step": "ladder-300",
+   "command": "/opt/homebrew/opt/python@3.14/bin/python3.14 -I -B eval/consistency/ladder_check.py <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/ladder-300/top-rung --ladder https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8 --pairs eval/consistency/pairs/bipbop16x9.txt --frames 300 --scaler bicubic --model vmaf_v0.6.1 --jobs 4",
+   "cwd": ".",
+   "log": "logs/ladder-300_top-rung.log",
+   "started_utc": "2026-10-26T22:47:05Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 22.4,
+   "ended_utc": "2026-10-26T22:47:27Z"
+  },
+  {
+   "step": "align-cases-before",
+   "command": "eval/consistency/run_delta.sh <out_dir>/builds/before-d028/mirage_vmaf <out_dir>/consistency/align-cases-before/main --pairs <out_dir>/consistency/align_clips/pairs.txt --scaler bicubic --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/align-cases-before_main.log",
+   "started_utc": "2026-10-26T22:47:27Z",
+   "exit_code": 1,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 3.7,
+   "ended_utc": "2026-10-26T22:47:31Z"
+  },
+  {
+   "step": "align-cases-d028",
+   "command": "eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/align-cases-d028/main --pairs <out_dir>/consistency/align_clips/pairs.txt --scaler bicubic --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/align-cases-d028_main.log",
+   "started_utc": "2026-10-26T22:47:31Z",
+   "exit_code": 1,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 3.5,
+   "ended_utc": "2026-10-26T22:47:34Z"
+  },
+  {
+   "step": "acceptance-full",
+   "command": "eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/acceptance-full/plain --pairs eval/consistency/pairs/bipbop16x9.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/acceptance-full_plain.log",
+   "started_utc": "2026-10-26T22:47:34Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 2758.3,
+   "ended_utc": "2026-10-26T23:33:32Z"
+  },
+  {
+   "step": "defaults-full",
+   "command": "eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/defaults-full/plain --pairs eval/consistency/pairs/bipbop16x9.txt --scaler bicubic --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/defaults-full_plain.log",
+   "started_utc": "2026-10-26T23:33:35Z",
+   "exit_code": 1,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 3402.3,
+   "ended_utc": "2026-10-27T17:27:16Z"
+  },
+  {
+   "step": "ffmpeg-scale-default",
+   "command": "/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -hide_banner -version | head -n 1",
+   "cwd": ".",
+   "log": "logs/ffmpeg-scale-default_2.log",
+   "started_utc": "2026-10-27T17:27:19Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 0.2,
+   "ended_utc": "2026-10-27T17:27:19Z"
+  },
+  {
+   "step": "ffmpeg-scale-default",
+   "command": "for flags in '' ':flags=bilinear' ':flags=bicubic'; do echo \"scale=1920:1080$flags\"; /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -hide_banner -nostdin -nostats -v verbose -f lavfi -i testsrc2=size=640x360:rate=30000/1001:duration=1 -vf \"scale=1920:1080$flags\" -frames:v 1 -f null - 2>&1 | grep -E '^\\[Parsed_scale_0 @ [^]]*\\] w:[0-9]+ h:[0-9]+ fmt:' | sed -E 's/ @ 0x[0-9a-f]+//'; done",
+   "cwd": ".",
+   "log": "logs/ffmpeg-scale-default_3.log",
+   "started_utc": "2026-10-27T17:27:19Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 0.2,
+   "ended_utc": "2026-10-27T17:27:19Z"
+  },
+  {
+   "step": "ffmpeg-scale-default",
+   "command": "grep -E 'SWS_(BILINEAR|BICUBIC) ' /opt/homebrew/opt/ffmpeg-full/include/libswscale/swscale.h",
+   "cwd": ".",
+   "log": "logs/ffmpeg-scale-default_4.log",
+   "started_utc": "2026-10-27T17:27:19Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 0.0,
+   "ended_utc": "2026-10-27T17:27:19Z"
+  },
+  {
+   "step": "ffmpeg-libvmaf-filter",
+   "command": "/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -hide_banner -version | head -n 1",
+   "cwd": ".",
+   "log": "logs/ffmpeg-libvmaf-filter_2.log",
+   "started_utc": "2026-10-27T17:27:19Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 0.1,
+   "ended_utc": "2026-10-27T17:27:19Z"
+  },
+  {
+   "step": "ffmpeg-libvmaf-filter",
+   "command": "/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -hide_banner -h filter=libvmaf",
+   "cwd": ".",
+   "log": "logs/ffmpeg-libvmaf-filter_3.log",
+   "started_utc": "2026-10-27T17:27:19Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 0.1,
+   "ended_utc": "2026-10-27T17:27:19Z"
+  },
+  {
+   "step": "ffmpeg-libvmaf-filter",
+   "command": "/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -hide_banner -nostdin -nostats -v error -f lavfi -i testsrc2=size=640x360:rate=30000/1001:duration=1 -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001:duration=1 -lavfi '[0:v][1:v]libvmaf=model=version=vmaf_v0.6.1' -f null - 2>&1 | sed -E 's/ @ 0x[0-9a-f]+//'; echo \"exit status ${PIPESTATUS[0]:-?}\"",
+   "cwd": ".",
+   "log": "logs/ffmpeg-libvmaf-filter_4.log",
+   "started_utc": "2026-10-27T17:27:19Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 0.1,
+   "ended_utc": "2026-10-27T17:27:20Z"
+  },
+  {
+   "step": "pooling",
+   "command": "/opt/homebrew/opt/python@3.14/bin/python3.14 -I -B eval/pooling/pooling.py --gui-report eval/baseline/bipbop16x9/report.vmaf.json --delta-run <out_dir>/consistency/diag-after-300/plain --out <out_dir>/pooling/bipbop16x9/pooling",
+   "cwd": ".",
+   "log": "logs/pooling.log",
+   "started_utc": "2026-10-27T17:27:20Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 0.3,
+   "ended_utc": "2026-10-27T17:27:20Z"
+  },
+  {
+   "step": "pooling-defaults-300",
+   "command": "/opt/homebrew/opt/python@3.14/bin/python3.14 -I -B eval/pooling/pooling.py --delta-run <out_dir>/consistency/defaults-300/plain --check-pooled --out <out_dir>/pooling/defaults-300/pooling",
+   "cwd": ".",
+   "log": "logs/pooling-defaults-300.log",
+   "started_utc": "2026-10-27T17:27:20Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 0.2,
+   "ended_utc": "2026-10-27T17:27:20Z"
+  },
+  {
+   "step": "pooling-full",
+   "command": "/opt/homebrew/opt/python@3.14/bin/python3.14 -I -B eval/pooling/pooling.py --delta-run <out_dir>/consistency/acceptance-full/plain --out <out_dir>/pooling/acceptance-full/pooling",
+   "cwd": ".",
+   "log": "logs/pooling-full.log",
+   "started_utc": "2026-10-27T17:27:20Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 1.8,
+   "ended_utc": "2026-10-27T17:27:22Z"
+  },
+  {
+   "step": "pooling-defaults-full",
+   "command": "/opt/homebrew/opt/python@3.14/bin/python3.14 -I -B eval/pooling/pooling.py --delta-run <out_dir>/consistency/defaults-full/plain --check-pooled --out <out_dir>/pooling/defaults-full/pooling",
+   "cwd": ".",
+   "log": "logs/pooling-defaults-full.log",
+   "started_utc": "2026-10-27T17:27:22Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 1.5,
+   "ended_utc": "2026-10-27T17:27:24Z"
+  }
+ ]
+}

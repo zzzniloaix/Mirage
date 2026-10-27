@@ -1,0 +1,180 @@
+{
+  "report_version": 1,
+  "pair": "gear2_vs_gear5",
+  "reference": "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear5/prog_index.m3u8",
+  "distorted": "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear2/prog_index.m3u8",
+  "variant": "plain",
+  "status": "FAIL",
+  "fail_reasons": [
+    "FFmpeg exited with status 255"
+  ],
+  "warnings": [
+    "mirage_vmaf: 95.70% of the frames failed to pair by timestamp (98489 of 102914: 195 extra distorted, 98294 after a discontinuity), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 4425 frame pairs that paired"
+  ],
+  "threshold": 0.01,
+  "frame_limit": null,
+  "frames": {
+    "mirage": null,
+    "ffmpeg": null,
+    "compared": 0,
+    "counts_match": false
+  },
+  "delta": null,
+  "alignment": null,
+  "pooled": null,
+  "relabel": null,
+  "ffmpeg_color": {
+    "graph_inputs": [
+      {
+        "input": 0,
+        "stream": 1,
+        "color_space": "smpte170m",
+        "color_range": "tv"
+      },
+      {
+        "input": 1,
+        "stream": 1,
+        "color_space": "bt709",
+        "color_range": "tv"
+      }
+    ],
+    "scale": [
+      {
+        "filter": "Parsed_scale_0",
+        "in": {
+          "width": 640,
+          "height": 360,
+          "pix_fmt": "yuv420p",
+          "color_space": "smpte170m",
+          "color_range": "tv"
+        },
+        "out": {
+          "width": 1920,
+          "height": 1080,
+          "pix_fmt": "yuv420p",
+          "color_space": "bt709",
+          "color_range": "tv"
+        },
+        "flags": "0x00000004"
+      }
+    ],
+    "conversions": [
+      "Parsed_scale_0: color_space smpte170m -> bt709"
+    ]
+  },
+  "mirage_color": {
+    "dis_conversion": [
+      {
+        "from": {
+          "color_space": "smpte170m",
+          "color_range": "tv"
+        },
+        "to": {
+          "color_space": "bt709",
+          "color_range": "tv"
+        },
+        "matrix_changed": true,
+        "range_changed": false,
+        "first_index": 0,
+        "pairs": 4425
+      }
+    ],
+    "ref_conversion": []
+  },
+  "inputs": {
+    "ref": {
+      "ffprobe": {
+        "codec_name": "h264",
+        "width": 1920,
+        "height": 1080,
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_range": "tv",
+        "color_primaries": "bt709",
+        "color_transfer": "bt709",
+        "time_base": "1/90000",
+        "r_frame_rate": "30000/1001",
+        "avg_frame_rate": "30000/1001",
+        "start_time": "10.000000"
+      },
+      "mirage_vmaf": {
+        "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear5/prog_index.m3u8",
+        "width": 1920,
+        "height": 1080,
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_range": "tv",
+        "color_primaries": "bt709",
+        "color_trc": "bt709",
+        "time_base": "1/90000",
+        "ended": true
+      }
+    },
+    "dis": {
+      "ffprobe": {
+        "codec_name": "h264",
+        "width": 640,
+        "height": 360,
+        "pix_fmt": "yuv420p",
+        "color_space": "smpte170m",
+        "color_range": "tv",
+        "color_primaries": "smpte170m",
+        "color_transfer": "bt709",
+        "time_base": "1/90000",
+        "r_frame_rate": "30000/1001",
+        "avg_frame_rate": "30000/1001",
+        "start_time": "10.000000"
+      },
+      "mirage_vmaf": {
+        "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear2/prog_index.m3u8",
+        "width": 640,
+        "height": 360,
+        "pix_fmt": "yuv420p",
+        "color_space": "smpte170m",
+        "color_range": "tv",
+        "color_primaries": "smpte170m",
+        "color_trc": "bt709",
+        "time_base": "1/90000",
+        "ended": true
+      }
+    }
+  },
+  "mirage_vmaf": {
+    "exit_code": 0,
+    "elapsed_s": 206.001,
+    "tool": "mirage_vmaf",
+    "reference_mode": "explicit-pair",
+    "libvmaf_version": "3.0.0",
+    "libvmaf_package_version": "3.1.0",
+    "ffmpeg_libraries": {
+      "libavutil": "60.26.101",
+      "libavcodec": "62.28.101",
+      "libavformat": "62.12.101",
+      "libswscale": "9.5.101",
+      "libavfilter": "11.14.101"
+    },
+    "model": "vmaf_v0.6.1",
+    "model_source": "built-in",
+    "model_sha256": null,
+    "scaler": "bicubic",
+    "n_threads": 4,
+    "n_subsample": 1,
+    "scored_as": {
+      "width": 1920,
+      "height": 1080,
+      "pix_fmt": "yuv420p",
+      "bit_depth": 8
+    },
+    "frame_limit": null,
+    "frames_scored": 4425,
+    "ref_ended": true,
+    "dis_ended": true,
+    "first_ref_pts": 10.0,
+    "last_ref_pts": 170.09342222222222,
+    "pairs_with_different_pts": 0,
+    "warnings": [
+      "95.70% of the frames failed to pair by timestamp (98489 of 102914: 195 extra distorted, 98294 after a discontinuity), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 4425 frame pairs that paired"
+    ]
+  },
+  "ffmpeg": null
+}

@@ -1,0 +1,13 @@
+n01_yuvj_pc_vs_norange: mirage_vmaf exit 0 after 0.7 s
+n02_10bit_tv_vs_norange: FFmpeg exit 0 after 0.7 s
+n01_yuvj_pc_vs_norange: FFmpeg exit 0 after 0.7 s
+n02_10bit_tv_vs_norange: mirage_vmaf exit 0 after 0.8 s
+n03_10bit_bt709_vs_gray: FFmpeg exit 0 after 0.5 s
+n04_10bit_bt709_vs_rgb: FFmpeg exit 0 after 0.5 s
+n04_10bit_bt709_vs_rgb: mirage_vmaf exit 0 after 0.7 s
+n03_10bit_bt709_vs_gray: mirage_vmaf exit 0 after 0.7 s
+n01_yuvj_pc_vs_norange: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+n02_10bit_tv_vs_norange: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+n03_10bit_bt709_vs_gray: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+n04_10bit_bt709_vs_rgb: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+overall: PASS; reports in <out_dir>/consistency/negotiation-cases/main/delta.md

@@ -34,7 +34,7 @@ cmake --build --preset macos-debug    # or macos-release
   - `mirage_vmaf`: the player's VMAF analyzer without a window (D-017); see `mirage_vmaf --help`.
   - `mirage_tests`: the unit tests.
   - `snapshot_diff`: the PNG comparison behind `tests/pathb_snapshot_regression.sh`.
-- While configuring, CMake prints `libvmaf package version: …`. `mirage_vmaf` writes that value into its reports, next to the version libvmaf reports about itself (D-006). It is read from the real path of the libvmaf library that pkg-config resolves (a Homebrew Cellar path), so it is only as current as the last configure: configure again after `brew upgrade libvmaf`. Where the path carries no version, as outside Homebrew, it is `unknown`.
+- While configuring, CMake prints `libvmaf package version: …`. `mirage_vmaf` writes that value into its reports, next to the version libvmaf reports about itself (D-006). It is read from the real path of the libvmaf library that pkg-config resolves (a Homebrew Cellar path), so it is only as current as the last configure: configure again after `brew upgrade libvmaf`. Where the path carries no version, as outside Homebrew, a build gives it with `-DMIRAGE_LIBVMAF_PACKAGE=<version>`, as the Docker image does for the libvmaf it builds (D-038); without it, it is `unknown`. A version the path names wins over the variable, with a warning when the two differ.
 
 Until D-031 glad generated the loader during the build with the Python CMake had found, and on the machine of the records Homebrew's Python 3.14 couldn't import `pyexpat` (`Symbol not found: _XML_SetAllocTrackerActivationThreshold`), so the build stopped at that step unless CMake was given a venv of Python 3.13 with Jinja2 (P-003; "Release preset, default Python" in both records of 2026-10-23). That is no longer needed.
 
@@ -58,7 +58,7 @@ perl -e 'alarm 900; exec @ARGV' build/macos-debug/mirage_tests '~[audio]'
 - This is the form the build checks and unattended runs use: it leaves out the tests tagged `[audio]` and ends a run that stalls after 900 seconds. Without arguments, `mirage_tests` runs every test. The headless build's tests are `build/macos-headless/mirage_tests`.
 - The `[vmaf]` tests run the VMAF analyzer on small clips they generate.
 - **In the record at `5ae44a4` every test passed**, in the debug build and in the headless build: 311 test cases each, with 111765 and 111752 assertions ("Unit tests (debug build)", "Unit tests (headless build)").
-- **In the main working tree**, at `a4692a2`, the last commit that changes code, tests or scripts, every test passed at the first run, 112039 assertions in 312 test cases, and so did the four Python suites of `eval/` (`eval/README.md`, "Tests"), 27, 133, 11 and 16 tests (`eval/test_runs/macos-2026-10-26-a4692a2.txt`). The record before it, at `12715a6`, had 311 test cases (`eval/test_runs/macos-2026-10-24-12715a6.txt`); the one added since is P-063's.
+- **In the main working tree**, at `bbc669d`, the last commit that changes code, tests or scripts, every test passed at the first run, 112082 assertions in 317 test cases, and so did the four Python suites of `eval/` (`eval/README.md`, "Tests"), 28, 136, 11 and 16 tests (`eval/test_runs/macos-2026-10-26-bbc669d.txt`). The records before it, at `a4692a2` and `12715a6`, had 312 and 311 test cases (`eval/test_runs/`); the five added since `a4692a2` are those of D-036 and D-037 (P-066). The tests of D-036 each wait about 5 s for a read limit, on a server of their own on 127.0.0.1.
 - **The subtitle fixture.** In a clean checkout one test failed until `97f0098`: `SidecarSubtitles — decodes data/sub_test/test.srt` read that file, but `.gitignore` ignores `data/`, so the file isn't in the repository (both records of 2026-10-23, "Unit tests"). Since then the test, `SidecarSubtitles — decodes an SRT file`, writes its fixture at run time (D-032); in the clean checkout of the check at `5ae44a4` it passed with the others.
 - **Release builds.** Until `a0d69fc`, the test `HLS master → variant playlist: FFmpeg structure, open_variant checks, same timeline` passed a temporary stop token to `ffopen::open_variant` and then read from the context it opened, whose interrupt callback keeps a pointer to the token (`src/FfOpen.h`: the token must outlive the context), so the context's reads checked a token that no longer existed (P-057). The test is fixed. The headless preset is a release build; no committed record ran a release build's tests before the check at `5ae44a4`.
 - Every test that writes a file writes it in a temporary directory of the run's own, `mirage_tests.XXXXXX` under the system's temporary directory, which the run removes when it ends normally (`tests/TestTemp.h`), so two runs at the same time don't share files.
@@ -100,7 +100,7 @@ perl -e 'alarm 900; exec @ARGV' build/linux-release/mirage_tests '~[audio]'
   ```
 
   Its FFmpeg needs the libvmaf filter, libx264 (the reference format clips, `eval/consistency/color_cases.py`) and HTTPS (Apple's CDN). It builds the `mirage_vmaf` of the runs made before D-016, D-022 and D-028 from their commits with their `macos-release` preset, and, without `--mirage-vmaf`, HEAD's too. Those commits' `CMakeLists.txt` configure the player as well, so they need the development files of OpenGL, GLFW and GTK 3 (nativefiledialog-extended's Linux backend) and a Python 3 interpreter (glad's configure step) to configure, though none of it goes into `mirage_vmaf`: read from those `CMakeLists.txt` and their dependencies' CMake files, not run on Linux.
-- `mirage_vmaf`'s reports give the libvmaf package version as `unknown` outside Homebrew (step 2).
+- `mirage_vmaf`'s reports give the libvmaf package version as `unknown` outside Homebrew unless the configure gives it (`-DMIRAGE_LIBVMAF_PACKAGE=`, step 2); for FFmpeg's side, `eval/run_all.sh` and `run_delta.sh` take `--ffmpeg-libvmaf-package` (D-038).
 
 ## 7. The Docker image: not yet built
 
@@ -147,4 +147,3 @@ The FetchContent dependencies: how `CMakeLists.txt` pins each one, and the commi
 
 - Linux and the Docker image are written, not built or run (steps 6 and 7; MEASUREMENT PENDING).
 - Pinned versions of the Homebrew packages: Homebrew can't pin them (step 1). The Docker image pins FFmpeg, libvmaf and x264, not Debian's packages (`docker/README.md`).
-- The libvmaf package version of D-006 outside Homebrew (step 2).

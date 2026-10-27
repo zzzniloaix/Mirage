@@ -1,0 +1,28 @@
+a01_dropped_distorted: mirage_vmaf exit 0 after 0.3 s
+a00_aligned: FFmpeg exit 0 after 0.3 s
+a00_aligned: mirage_vmaf exit 0 after 0.4 s
+a01_dropped_distorted: FFmpeg exit 0 after 0.4 s
+a02_dropped_reference: mirage_vmaf exit 0 after 0.3 s
+a02_dropped_reference: FFmpeg exit 0 after 0.3 s
+a03_duplicated_timestamp: mirage_vmaf exit 0 after 0.3 s
+a03_duplicated_timestamp: FFmpeg exit 0 after 0.4 s
+a04_half_rate: mirage_vmaf exit 0 after 0.2 s
+a04_half_rate: FFmpeg exit 0 after 0.3 s
+a05_later_start: mirage_vmaf exit 0 after 0.3 s
+a05_later_start: FFmpeg exit 0 after 0.4 s
+a06_later_start_audio: mirage_vmaf exit 0 after 0.3 s
+a07_restart: mirage_vmaf exit 0 after 0.2 s
+a06_later_start_audio: FFmpeg exit 0 after 0.2 s
+a07_restart: FFmpeg exit 0 after 0.3 s
+a08_ms_vs_90khz: mirage_vmaf exit 0 after 0.3 s
+a08_ms_vs_90khz: FFmpeg exit 0 after 0.3 s
+a00_aligned: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+a01_dropped_distorted: FAIL  frames 9 / 9  max |delta| 2.074907  over 0.01: 1
+a02_dropped_reference: FAIL  frames 9 / 10  max |delta| 2.151021  over 0.01: 1
+a03_duplicated_timestamp: FAIL  frames 10 / 11  max |delta| 2.124530  over 0.01: 1
+a04_half_rate: FAIL  frames 5 / 6  max |delta| 0.072752  over 0.01: 1
+a05_later_start: FAIL  frames 7 / 10  max |delta| 0.042191  over 0.01: 1
+a06_later_start_audio: PASS  frames 7 / 7  max |delta| 0.000000  over 0.01: 0
+a07_restart: FAIL  frames 5 / 10  max |delta| 0.019371  over 0.01: 1
+a08_ms_vs_90khz: FAIL  frames 10 / 10  max |delta| 2.131170  over 0.01: 5
+overall: FAIL; reports in <out_dir>/consistency/align-cases-d028/main/delta.md

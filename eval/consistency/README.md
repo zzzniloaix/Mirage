@@ -116,12 +116,13 @@ python3 -I -B eval/consistency/compare_runs.py --base LABEL=DIR --run LABEL=DIR 
 `color_cases.py` makes the inputs that show what FFmpeg's §5 filter graph does with the distorted input's color matrix and range when the two inputs' tags differ, or are missing (D-016):
 
 ```
-python3 -I -B eval/consistency/color_cases.py <clips_dir> [--set tags|formats] [--ffmpeg <ffmpeg>] [--ffprobe <ffprobe>] [--frames N]
+python3 -I -B eval/consistency/color_cases.py <clips_dir> [--set tags|formats|negotiation] [--ffmpeg <ffmpeg>] [--ffprobe <ffprobe>] [--frames N]
 ```
 
 - The clips are FFmpeg's `testsrc2` pattern, 10 frames by default at 30000/1001 fps: references at 1920x1080, distorted inputs scaled to 640x360 (like bipbop's gear5 and gear2). `setparams` gives each clip its tags.
 - `--set tags`, the default, makes the color tag cases: every clip yuv420p, uncompressed in Matroska, and the pixels of all clips of one size the same, which the script checks.
 - `--set formats` makes the reference format cases: references in yuv420p10le, yuv422p and yuv444p (FFV1, lossless) and a lossless full range H.264 reference, which FFmpeg's H.264 decoder gives as yuvj420p, against yuv420p distorted inputs; a 10-bit and a full range H.264 distorted input against a yuv420p reference; and YCgCo on both inputs. A clip's name says its codec and decoded pixel format when it isn't uncompressed yuv420p (`ref_ffv1-yuv420p10le_bt709-tv.mkv`). The script checks that all clips of one size made from one pixel format have the same pixels, the lossless H.264 clips those of the uncompressed yuv420p ones.
+- `--set negotiation` makes the negotiation cases of D-035: a full range H.264 reference and a limited range 10-bit one against a distorted input without a range tag, and the 10-bit reference against a gray and an RGB distorted input (FFV1; FFmpeg's FFV1 decoder gives the RGB clip as bgr0).
 - `<clips_dir>/pairs.txt` lists the cases FFmpeg's graph scores, `<clips_dir>/pairs_refused.txt` those it refuses (a YCgCo matrix, which libswscale doesn't have). Both are pairs files for `run_delta.sh --pairs`; each case's label names the reference's tags, then the distorted input's, and the file's comment lines say what each case is.
 - `<clips_dir>/clips.txt` records, for every clip, the command that made it, its stream parameters as ffprobe reads them back, and the MD5 of its decoded frames, with `<clips_dir>`, `<ffmpeg>` and `<ffprobe>` in place of local paths.
 - Exit status: 0 the clips have the intended tags and pixels; 1 a program failed or a clip is not as intended; 2 bad arguments.
@@ -363,6 +364,36 @@ What they show:
 
 Limits: synthetic clips, 10 frames each, the §5 graph of FFmpeg 8.1.1 only. `tests/test_vmaf_color.cpp` compares the frames libvmaf gets with those of the graph run through libavfilter for further formats and tags, among them distorted inputs without a range tag or in full range against such references (P-033); real streams in these formats are not measured (MEASUREMENT PENDING). The scores of these clips only compare the two tools.
 
+### `negotiation-cases/`: where FFmpeg's negotiation changes the distorted frames' color (D-035, P-066)
+
+D-035 keeps FFmpeg 8.1.1's negotiation where it departs from D-022's wording: for a reference that isn't yuv420p, a distorted input without a range tag gets the reference's range, so a full range reference makes it full range, and a distorted input that isn't plain YUV gets the reference's matrix and range. This run shows both kinds with the program of `da0464c` and the delta tool's defaults, made from a clean worktree of that commit:
+
+```
+python3 -I -B eval/consistency/color_cases.py <tmp>/negotiation_clips --set negotiation
+TMPDIR=<tmp> eval/consistency/run_delta.sh build/macos-release/mirage_vmaf <out>/main --frames 10 --pairs <tmp>/negotiation_clips/pairs.txt
+```
+
+| File | Contents |
+|---|---|
+| `build.txt` | the build of `mirage_vmaf` in the new worktree: its commit and clean state, the configure, the build's output and its SHA-256 |
+| `clips.txt` | the clips' record, as `color_cases.py` wrote it; the `run_all.sh` step `negotiation-clips` compares its rerun with it |
+| `main/` | the run |
+| `checks.txt` | checks made on the run afterwards, each command with its output |
+| `SHA256SUMS` | SHA-256 of every file here |
+
+Per case, from `checks.txt` (checks 3 to 5) and `main/delta.md` (tags as color matrix/range, `unknown` = no tag):
+
+| case | FFmpeg: `Parsed_scale_1`, the distorted frames | Mirage: `dis_conversion` | verdict | max \|delta\| | frames at FFmpeg's 6 decimals (of 10) |
+|---|---|---|---|---|---|
+| `n01_yuvj_pc_vs_norange` | bt709/unknown -> bt709/pc | bt709/unknown -> bt709/pc | PASS | 0.000000 | 10 |
+| `n02_10bit_tv_vs_norange` | bt709/unknown -> bt709/tv | bt709/unknown -> bt709/tv | PASS | 0.000000 | 10 |
+| `n03_10bit_bt709_vs_gray` | gray unknown/pc -> bt709/tv, then gray bt709/tv -> bt709/tv | bt709/tv -> bt709/tv | PASS | 0.000000 | 10 |
+| `n04_10bit_bt709_vs_rgb` | bgr0 gbr/pc -> bt709/tv | gbr/pc -> bt709/tv | PASS | 0.000000 | 10 |
+
+- In `n01` both tools make the distorted input without a range tag full range against the full range reference, where D-022's wording would have converted the reference to the distorted input's limited range; `n02` is its limited range control.
+- The delta report warns for `n03` that FFmpeg's log names more conversions of the gray input than `mirage_vmaf`'s report, and for `n04` that `mirage_vmaf`'s conversion of bgr0 isn't checked byte for byte against FFmpeg's (`tests/test_vmaf_color.cpp`); both pass (check 6).
+- Limits: synthetic clips, 10 frames each; the full range reference of (a) is the H.264 one of the format cases (P-066). Real streams of these kinds are MEASUREMENT PENDING.
+
 ### `diag-after-300/`: the first 300 frames after D-016 (P-015)
 
 The plain run of `diag-before-300/` again, with the `mirage_vmaf` that converts color like FFmpeg, built at `5263061c3dfa7b3134763669443977b436ab1003` from the clean main working tree (`build.txt`):
@@ -587,7 +618,7 @@ What they show:
 - **Against the report with bilinear** (`acceptance-full/`, made by the program of `3650f83`): no frame scores lower; every frame of gear4, gear3 and gear2 scores higher, and 52147 of gear1's, its other 1799 the same; on average the scores rise by 9.652583 (gear4), 10.983899 (gear3), 7.942400 (gear2) and 5.863072 (gear1) (check 11). The two runs differ in the program as well as the scaler; on frames 0 to 298 each has the scores of the `scalers-300/` run of its scaler, which one program made (check 8 here; `defaults-300/checks.txt`, check 3; `acceptance-full/checks.txt`, check 3).
 - **FFmpeg's verbose log with the `showinfo` filters** of the comparison by timestamp (P-047): from 91659880 to 92092360 bytes per pair, 1877848 to 1903556 bytes as committed, xz-compressed, with a line for each of the 53946 frames from each of the three filters (check 12).
 - **Wall time.** Each side of each pair took from 1250.509 to 1282.152 s, four processes running at a time (check 13); the run lasted from 14:40:10Z to 15:23:15Z on 2026-10-24 (`plain/delta.md`).
-- **Reproduced.** `eval/run_all.sh`'s steps `defaults-full` and `pooling-defaults-full` rerun it with the head's program and compare it with these outputs (`eval/README.md`). In the rerun of every step at `61241e2`, `gear4_vs_gear5` and `gear3_vs_gear5` were as committed, and the machine's sleep cut the other two pairs short (`eval/run_all/2026-10-24-full/README.md`); rerun on their own from `5908e3b`, with a program of the same SHA-256, both steps found everything as committed (`eval/run_all/2026-10-24-defaults-full/rerun_check.md`; P-062). The same happened in the rerun of every step at `a4692a2`, after the review fixes (`eval/run_all/2026-10-26-fix/README.md`), and rerun on their own from `1f7d42d`, with the program built after P-063 and P-064, of another SHA-256, both steps found everything as committed (`eval/run_all/2026-10-26-defaults-full/rerun_check.md`; P-065).
+- **Reproduced.** `eval/run_all.sh`'s steps `defaults-full` and `pooling-defaults-full` rerun it with the head's program and compare it with these outputs (`eval/README.md`). In the rerun of every step at `61241e2`, `gear4_vs_gear5` and `gear3_vs_gear5` were as committed, and the machine's sleep cut the other two pairs short (`eval/run_all/2026-10-24-full/README.md`); rerun on their own from `5908e3b`, with a program of the same SHA-256, both steps found everything as committed (`eval/run_all/2026-10-24-defaults-full/rerun_check.md`; P-062). The same happened in the rerun of every step at `a4692a2`, after the review fixes (`eval/run_all/2026-10-26-fix/README.md`), and rerun on their own from `1f7d42d`, with the program built after P-063 and P-064, of another SHA-256, both steps found everything as committed (`eval/run_all/2026-10-26-defaults-full/rerun_check.md`; P-065). After D-035 to D-038, in the rerun of every step at `bbc669d`, `gear4_vs_gear5` was as committed, and a process that had stopped writing its log and the machine's sleep cut the other three pairs short (`eval/run_all/2026-10-26-d035/README.md`); rerun on their own from `953d42e`, with the program built after D-035 to D-038, both steps found everything as committed (`eval/run_all/2026-10-27-defaults-full/rerun_check.md`; P-066).
 
 Limits:
 
