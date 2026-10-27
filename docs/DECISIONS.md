@@ -1905,3 +1905,22 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: agent (Claude)
 - **Date**: 2026-10-27
 - **Status**: pending owner confirmation
+
+### P-073 How D-050 to D-052 are implemented, and their runs
+
+- **Choice**
+  - **D-050** (`23d733f`): each input keeps where each of its discontinuity sequences ended. Once an input has jumped to its next sequence, a frame of the other input's current sequence later than the jumped input's last by more than the grid's frame duration, the coarser input's, puts the two jumps at different places; pairing then stops: the other input's frames dropped since the grid input's last decided frame are counted as before, and every frame not paired or counted yet, and every frame to come, fails as after a discontinuity, as under D-028's option (a) (`src/VMAFAlign.h`). Jumps at the same place, or a frame apart, pair as under D-046.
+  - **D-051** (`af17121`): `vmafladder::admits()` lets a pair start while the memory before the run, plus what a pair uses as measured and `kMarginPercent`, 10, more for each running pair and the new one, stays within the limit; P-072's warm-up stays.
+  - **D-052**: no change; there was no default limit.
+  - `pool_check.py --frames 0` scores every frame (`cee3540`), for D-049's run over every frame.
+  - The runs, with a `mirage_vmaf` built in a new clean worktree of `af17121`: M5 (`eval/phase2-survey/m5-d050/`), M5's gaps with it and with Phase 1's program (`m5-gaps-d050/`), the memory limit at 1 GiB on the local copy (`eval/ladder/advanced-local-300-mem1g-af17121/`), and D-049's run over every frame at the default size with a limit of 1 GiB, from Apple's CDN.
+- **Alternatives**: for D-050, comparing the sequences' ends only when both inputs have jumped, which would leave the frames of one input's sequence past the other's jump paired or counted as before; for D-051, the margin on the new pair only.
+- **Rationale**: D-050's "within a frame of the coarser input" is the grid's frame duration, the pairing's own unit for the coarser input; checking each frame as it comes stops the pairing at the first frame past the other input's jump. D-051 counts "each pair", running or new.
+- **Result**
+  - M5 (`m5-d050/record.txt`): `restart` and `jump` 60 pairs each and no failure, in two libvmaf contexts of 30, as with D-046; `continuous` 60 and `segments` 30, no failure.
+  - M5's gaps (`m5-gaps-d050/record.txt`): where the inputs lack different segments, 240 pairs and no pair of frames at different times, 1 extra distorted frame and 957 frames after a discontinuity; where both lack the same segments, 719 pairs and no failure; where the reference alone lacks them, 240 pairs, 1 extra distorted frame and 1317 after a discontinuity.
+  - The memory limit at 1 GiB (`advanced-local-300-mem1g-af17121/`): PASS; at the default size 3 pairs at once and a peak of 825720832 bytes.
+  - D-049's run over every frame (`eval/ladder/advanced-cdn-full-af17121/`): FAIL. All 7 pairs complete, every frame, 36000 or 18000 frame pairs each and none failing to pair, in 1907.7 s; 3 pairs ran at once, and the process peaked at 1096171520 bytes, 2.1% over the limit of 1073741824. The three pairs of the first wave, scored together for about 695 s, used more over their full length than the rule counted from what a pair used after 30 frame pairs, plus 10%. One pair alone over every frame from Apple's CDN, its resident memory sampled every 15 s, was at 322256 KiB 45 s into its run and 336096 KiB 405 s in, and peaked at 345407488 bytes (`eval/ladder/advanced-cdn-pair-full/record.txt`).
+- **Who**: agent (Claude)
+- **Date**: 2026-10-27
+- **Status**: pending owner confirmation

@@ -4,9 +4,24 @@ What is open for the owner on `vmaf/phase-2`, §2 of the VMAF work order, after 
 
 ## Open
 
-Nothing is open for the owner but the agent's choices to confirm, below; the questions of 2026-10-27 are decided, after them.
+### The memory limit over every frame (D-051; P-073)
 
-## The agent's choices to confirm: P-067 to P-072
+**What the run shows.** D-049's run over every frame at the default size, from Apple's CDN, with a limit of 1 GiB and D-051's margin (`eval/ladder/advanced-cdn-full-af17121/`; P-073): the run is complete, every frame of the 7 pairs paired, but 3 pairs ran at once and the process peaked at 1096171520 bytes, 2.1% over the limit of 1073741824. At 300 frame pairs the same limit held, with 3 pairs at once and a peak of 825720832 bytes (`eval/ladder/advanced-local-300-mem1g-af17121/`).
+
+**Why.** D-051 counts each pair at what a pair used after its first 30 frame pairs, plus 10%. A pair uses more over its full length: one pair alone over every frame from Apple's CDN was at 322256 KiB of resident memory 45 s into its run and 336096 KiB 405 s in, and peaked at 345407488 bytes (`eval/ladder/advanced-cdn-pair-full/record.txt`), 21% above one pair's peak after 30 frame pairs of the local copy, 284639232 bytes (`eval/ladder/advanced-local-300-mem1g-dfed5a3/warm_up.txt`). What the rule measured for a pair in the run over every frame isn't in its report.
+
+**Question.** How should the limit count a pair, so that the peak stays under it over every frame?
+
+**Options.**
+
+1. As now, D-051's 10%: over every frame of this ladder the peak was 2.1% over the limit.
+2. A larger margin, 25%, which covers the 21% above; the report would also give what the rule measured for a pair, so that a run shows how far its pairs went beyond it. A ladder longer than this one's 10 minutes would gain more: the pair above grew by 13840 KiB between 45 s and 405 s into its run.
+3. A count that grows with a pair's length: what a pair uses after its warm-up, plus 10%, plus a growth per frame pair times the frame pairs the pair will score, from its playlists' durations and frame rate; the growth per frame pair to be measured. Each pair's playlists would be read before it starts.
+4. D-045's alternative: an estimate from the inputs' frame sizes, the queues' depths and their length.
+
+**Agent's recommendation.** Option 2, with the run over every frame repeated to check it: the smallest change that covers D-049's ladder, and the report's new value shows whether a longer ladder needs option 3.
+
+## The agent's choices to confirm: P-067 to P-073
 
 | Entry | What |
 |---|---|
@@ -16,8 +31,9 @@ Nothing is open for the owner but the agent's choices to confirm, below; the que
 | P-070 | M5's gaps, and the report's start after a discontinuity |
 | P-071 | M2, M3, the acceptance across pool sizes at 300 frames, and the memory limit's runs |
 | P-072 | the memory limit's rule: a pair's memory measured once it has warmed up |
+| P-073 | how D-050 to D-052 are implemented, and their runs |
 
-**Agent's recommendation**: confirm P-067 to P-072, as D-050 and D-051 change what P-068 and P-072 implement.
+**Agent's recommendation**: confirm P-067 to P-073, as D-050 and D-051 change what P-068 and P-072 implement.
 
 ## Decided on 2026-10-27 (D-050 to D-052)
 
@@ -25,7 +41,7 @@ The owner's answers to the agent's questions of 2026-10-27 (`docs/DECISIONS.md` 
 
 ### Discontinuity sequences that don't line up (D-046; P-068, P-070)
 
-**Decided** (2026-10-27): D-050, option 2: the k-th sequences pair only where their jumps are at the same place in both inputs; elsewhere pairing stops, and the frames after count as failed. To be implemented after this record.
+**Decided** (2026-10-27): D-050, option 2: the k-th sequences pair only where their jumps are at the same place in both inputs; elsewhere pairing stops, and the frames after count as failed. **Done** in `23d733f` (P-073): in M5's gaps, where the inputs lack different segments, 240 pairs and no pair of frames at different times; where both lack the same segments, all 719 frames pair; M5's discontinuities pair every frame, as with D-046 (`eval/phase2-survey/m5-gaps-d050/`, `m5-d050/`).
 
 **What M5's gaps show** (`eval/phase2-survey/m5-gaps/record.txt`; P-070). A synthetic ladder of two rungs in segments of about 2 s, whose playlists lack six segments in a row, about 12 s, without a tag, as when FFmpeg's hls demuxer skips segments it can't read:
 
@@ -55,7 +71,7 @@ In `both`, the 119 pairs make the second libvmaf context, from reference 21.4533
 
 ### The memory limit's peak (D-045; P-071, P-072)
 
-**Decided** (2026-10-27): D-051, option 2 with 10%: each pair, running or new, counted at what a pair uses plus 10%. To be implemented after this record, and checked by the acceptance's runs.
+**Decided** (2026-10-27): D-051, option 2 with 10%: each pair, running or new, counted at what a pair uses plus 10%. **Done** in `af17121` (P-073): at 1 GiB on the local copy, 3 pairs at once and a peak of 825720832 bytes, PASS (`eval/ladder/advanced-local-300-mem1g-af17121/`); D-049's run over every frame is P-073's.
 
 **What the runs show.** `pool_check.py --jobs 1,0 --memory-limit 1G` on the local copy of Apple's advanced sample, the first 300 frame pairs of each of its 7 pairs, checks each run's peak against the limit (P-071):
 
