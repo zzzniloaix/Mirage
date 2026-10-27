@@ -325,7 +325,8 @@ bool admits(std::uint64_t limit, std::uint64_t now, std::uint64_t baseline, unsi
     if (now == 0) return true;       // unknown: the limit can't hold a pair back
     per_pair = std::max(per_pair, (now > baseline ? now - baseline : 0) / running);
     if (per_pair == 0) return false;   // nothing measured
-    return now + per_pair <= limit;
+    const std::uint64_t counted = per_pair + per_pair * kMarginPercent / 100;   // D-051
+    return baseline + (running + 1) * counted <= limit;
 }
 
 Result score(const std::string& ladder, const std::string& mezzanine, const VMAFOptions& opts,

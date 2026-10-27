@@ -42,9 +42,10 @@
 //   pair depends on the pool. By default as many workers as the machine's
 //   physical cores minus one (D-044). With a memory limit, a worker starts a
 //   pair only when no running pair is warming up (kWarmUp), and only while
-//   the process's resident memory, plus what a pair uses as measured then,
-//   stays under it. Running pairs aren't stopped, and with none running a
-//   pair always starts (D-045).
+//   the memory before the run, plus what a pair uses as measured then and
+//   kMarginPercent more for each running pair and the new one, stays under
+//   it (admits). Running pairs aren't stopped, and with none running a pair
+//   always starts (D-045, D-051).
 // - The end (D-047). A cancel, or the first pair whose analysis is
 //   incomplete (vmafreport::incomplete) or whose settings aren't those of the
 //   first pair to complete, which only a model file that changes during the
@@ -170,15 +171,19 @@ Fetched read_master(const std::string& url);
 // scored them, or all of its frame pairs if it has fewer, it is warming up.
 inline constexpr std::uint64_t kWarmUp = 30;
 
-// The memory limit's rule (D-045): whether one more pair may start, with
-// `running` pairs running, `warming` of them still warming up, the process's
-// resident memory `now` (0 = unknown) and `baseline` when the run began.
-// While a pair is warming up no other starts, so that what every running
-// pair uses shows in `now`. What a pair uses, `per_pair` (0 = not measured
-// yet), is the memory gained since the run began shared out among the pairs
-// running, kept at its largest; a pair starts while `now` plus that stays
-// within `limit`. With no limit or none running it always starts, and with
-// the memory unknown once no pair is warming up.
+// What the memory limit adds to what a pair uses, in percent (D-051).
+inline constexpr std::uint64_t kMarginPercent = 10;
+
+// The memory limit's rule (D-045, D-051): whether one more pair may start,
+// with `running` pairs running, `warming` of them still warming up, the
+// process's resident memory `now` (0 = unknown) and `baseline` when the run
+// began. While a pair is warming up no other starts, so that what every
+// running pair uses shows in `now`. What a pair uses, `per_pair` (0 = not
+// measured yet), is the memory gained since the run began shared out among
+// the pairs running, kept at its largest; a pair starts while `baseline`
+// plus that and kMarginPercent more for each running pair and the new one
+// stays within `limit`. With no limit or none running it always starts, and
+// with the memory unknown once no pair is warming up.
 bool admits(std::uint64_t limit, std::uint64_t now, std::uint64_t baseline, unsigned running,
             unsigned warming, std::uint64_t& per_pair);
 
