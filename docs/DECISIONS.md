@@ -542,6 +542,15 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: owner (Jiayu Lin), adopting the agent's recommendation
 - **Date**: 2026-10-27
 
+### D-053 The memory limit's margin is 25%, and the report gives what a pair was measured to use
+
+- **Decision**: D-051's margin becomes 25%: each pair, running or new, is counted at what a pair uses plus 25%. The report gives what the rule measured a pair to use, so that a run shows how far its pairs went beyond it, and D-049's run over every frame is repeated to check the peak (option 2 of "The memory limit over every frame" in `docs/PHASE2_DECISIONS_PENDING.md`).
+- **Owner's words**: "25% margin (Recommended)", the owner's answer to the agent's question of 2026-10-27.
+- **Alternatives**: D-051's 10%; a count that grows with a pair's length; an estimate from the inputs' frame sizes, the queues' depths and their length.
+- **Rationale**: with 10%, D-049's run over every frame from Apple's CDN peaked 2.1% over 1 GiB; one pair over every frame peaked at 345407488 bytes, 21% above one pair's peak after 30 frame pairs of the local copy (P-073).
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Date**: 2026-10-27
+
 ---
 
 ## Measurement / process choices (proposed by the agent, confirmed by the owner)

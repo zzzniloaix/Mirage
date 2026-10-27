@@ -1,25 +1,10 @@
 # Phase 2: decisions pending for the owner
 
-What is open for the owner on `vmaf/phase-2`, §2 of the VMAF work order, after the decisions of 2026-10-26 on the survey (`docs/DECISIONS.md` D-042 to D-049) and of 2026-10-27 on what the measurements found (D-050 to D-052). The decisions are the owner's (hard rule 3 of the work order); every recommendation below is labeled as the agent's. Every number comes from a committed output, named next to it; where there is none, it says MEASUREMENT PENDING. The state of each item of §2 is in `docs/PHASE2_STATUS.md`.
+What is open for the owner on `vmaf/phase-2`, §2 of the VMAF work order, after the decisions of 2026-10-26 on the survey (`docs/DECISIONS.md` D-042 to D-049) and of 2026-10-27 on what the measurements found (D-050 to D-053). The decisions are the owner's (hard rule 3 of the work order); every recommendation below is labeled as the agent's. Every number comes from a committed output, named next to it; where there is none, it says MEASUREMENT PENDING. The state of each item of §2 is in `docs/PHASE2_STATUS.md`.
 
 ## Open
 
-### The memory limit over every frame (D-051; P-073)
-
-**What the run shows.** D-049's run over every frame at the default size, from Apple's CDN, with a limit of 1 GiB and D-051's margin (`eval/ladder/advanced-cdn-full-af17121/`; P-073): the run is complete, every frame of the 7 pairs paired, but 3 pairs ran at once and the process peaked at 1096171520 bytes, 2.1% over the limit of 1073741824. At 300 frame pairs the same limit held, with 3 pairs at once and a peak of 825720832 bytes (`eval/ladder/advanced-local-300-mem1g-af17121/`).
-
-**Why.** D-051 counts each pair at what a pair used after its first 30 frame pairs, plus 10%. A pair uses more over its full length: one pair alone over every frame from Apple's CDN was at 322256 KiB of resident memory 45 s into its run and 336096 KiB 405 s in, and peaked at 345407488 bytes (`eval/ladder/advanced-cdn-pair-full/record.txt`), 21% above one pair's peak after 30 frame pairs of the local copy, 284639232 bytes (`eval/ladder/advanced-local-300-mem1g-dfed5a3/warm_up.txt`). What the rule measured for a pair in the run over every frame isn't in its report.
-
-**Question.** How should the limit count a pair, so that the peak stays under it over every frame?
-
-**Options.**
-
-1. As now, D-051's 10%: over every frame of this ladder the peak was 2.1% over the limit.
-2. A larger margin, 25%, which covers the 21% above; the report would also give what the rule measured for a pair, so that a run shows how far its pairs went beyond it. A ladder longer than this one's 10 minutes would gain more: the pair above grew by 13840 KiB between 45 s and 405 s into its run.
-3. A count that grows with a pair's length: what a pair uses after its warm-up, plus 10%, plus a growth per frame pair times the frame pairs the pair will score, from its playlists' durations and frame rate; the growth per frame pair to be measured. Each pair's playlists would be read before it starts.
-4. D-045's alternative: an estimate from the inputs' frame sizes, the queues' depths and their length.
-
-**Agent's recommendation.** Option 2, with the run over every frame repeated to check it: the smallest change that covers D-049's ladder, and the report's new value shows whether a longer ladder needs option 3.
+Nothing is open for the owner but the agent's choices to confirm, below; the questions of 2026-10-27 are decided, after them.
 
 ## The agent's choices to confirm: P-067 to P-073
 
@@ -35,9 +20,9 @@ What is open for the owner on `vmaf/phase-2`, §2 of the VMAF work order, after 
 
 **Agent's recommendation**: confirm P-067 to P-073, as D-050 and D-051 change what P-068 and P-072 implement.
 
-## Decided on 2026-10-27 (D-050 to D-052)
+## Decided on 2026-10-27 (D-050 to D-053)
 
-The owner's answers to the agent's questions of 2026-10-27 (`docs/DECISIONS.md` D-050 to D-052), each item with the text it had when it was decided, as the record of its options, and a note at its start on what was decided.
+The owner's answers to the agent's questions of 2026-10-27 (`docs/DECISIONS.md` D-050 to D-053), each item with the text it had when it was decided, as the record of its options, and a note at its start on what was decided.
 
 ### Discontinuity sequences that don't line up (D-046; P-068, P-070)
 
@@ -109,3 +94,22 @@ D-045 sets no default limit until M2 and M3 show what a pair uses. They are meas
 **Decided** (2026-10-27): D-050 keeps the sequences from the timestamp jumps, P-068's, and doesn't read the playlists' tags (its option 5).
 
 D-046 takes the sequences "from the playlists' `EXT-X-DISCONTINUITY` tags where there are any, else from the timestamp jumps"; P-068 takes them from the timestamp jumps alone. Provisional until the owner decides; the question above bears on it (its option 5).
+
+### The memory limit over every frame (D-051; P-073)
+
+**Decided** (2026-10-27): D-053, option 2: the margin becomes 25%, and the report gives what a pair was measured to use; the run over every frame is to be repeated to check the peak.
+
+**What the run shows.** D-049's run over every frame at the default size, from Apple's CDN, with a limit of 1 GiB and D-051's margin (`eval/ladder/advanced-cdn-full-af17121/`; P-073): the run is complete, every frame of the 7 pairs paired, but 3 pairs ran at once and the process peaked at 1096171520 bytes, 2.1% over the limit of 1073741824. At 300 frame pairs the same limit held, with 3 pairs at once and a peak of 825720832 bytes (`eval/ladder/advanced-local-300-mem1g-af17121/`).
+
+**Why.** D-051 counts each pair at what a pair used after its first 30 frame pairs, plus 10%. A pair uses more over its full length: one pair alone over every frame from Apple's CDN was at 322256 KiB of resident memory 45 s into its run and 336096 KiB 405 s in, and peaked at 345407488 bytes (`eval/ladder/advanced-cdn-pair-full/record.txt`), 21% above one pair's peak after 30 frame pairs of the local copy, 284639232 bytes (`eval/ladder/advanced-local-300-mem1g-dfed5a3/warm_up.txt`). What the rule measured for a pair in the run over every frame isn't in its report.
+
+**Question.** How should the limit count a pair, so that the peak stays under it over every frame?
+
+**Options.**
+
+1. As now, D-051's 10%: over every frame of this ladder the peak was 2.1% over the limit.
+2. A larger margin, 25%, which covers the 21% above; the report would also give what the rule measured for a pair, so that a run shows how far its pairs went beyond it. A ladder longer than this one's 10 minutes would gain more: the pair above grew by 13840 KiB between 45 s and 405 s into its run.
+3. A count that grows with a pair's length: what a pair uses after its warm-up, plus 10%, plus a growth per frame pair times the frame pairs the pair will score, from its playlists' durations and frame rate; the growth per frame pair to be measured. Each pair's playlists would be read before it starts.
+4. D-045's alternative: an estimate from the inputs' frame sizes, the queues' depths and their length.
+
+**Agent's recommendation.** Option 2, with the run over every frame repeated to check it: the smallest change that covers D-049's ladder, and the report's new value shows whether a longer ladder needs option 3.
