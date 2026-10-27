@@ -158,6 +158,9 @@ struct VMAFOptions {
     bool            record_pts = false;   // fill VMAFResult::ref_pts, dis_pts, ref_index, dis_index
     VMAFScaler      scaler     = VMAFScaler::Bicubic;    // scales the distorted frames (D-024)
     VMAFModelChoice model;
+    // Counted up by one for each frame pair scored, for a caller that watches
+    // the analysis from another thread (vmafladder's memory limit); null = none.
+    std::atomic<std::uint64_t>* scored = nullptr;
 };
 
 // One FFmpeg library and the version it reports at run time,

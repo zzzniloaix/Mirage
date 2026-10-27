@@ -6,11 +6,13 @@
 #include "VMAFReport.h"
 
 #include <algorithm>
+#include <atomic>
 #include <charconv>
 #include <chrono>
 #include <condition_variable>
 #include <format>
 #include <limits>
+#include <memory>
 #include <mutex>
 #include <system_error>
 #include <thread>
@@ -315,6 +317,17 @@ std::string_view status_name(PairStatus s)
     return "unknown";
 }
 
+bool admits(std::uint64_t limit, std::uint64_t now, std::uint64_t baseline, unsigned running,
+            unsigned warming, std::uint64_t& per_pair)
+{
+    if (limit == 0 || running == 0) return true;
+    if (now == 0) return true;   // unknown: the limit can't hold a pair back
+    if (warming == 0)
+        per_pair = std::max(per_pair, (now > baseline ? now - baseline : 0) / running);
+    if (per_pair == 0) return false;   // nothing measured yet
+    return now + (warming + 1) * per_pair <= limit;
+}
+
 Result score(const std::string& ladder, const std::string& mezzanine, const VMAFOptions& opts,
              const Pool& pool, std::stop_token cancel, const OnPair& on_pair)
 {
@@ -358,6 +371,12 @@ Result score(const std::string& ladder, const std::string& mezzanine, const VMAF
     };
     const std::uint64_t baseline = out.memory_limit > 0 ? resident() : 0;
     bool alone_warned = false;
+    // The frame pairs each pair has scored, and how many a pair scores before
+    // what it uses shows in the resident memory (D-045).
+    const auto scored = std::make_unique<std::atomic<std::uint64_t>[]>(n);
+    const std::uint64_t warm_at =
+        opts.max_frames > 0 ? std::min<std::uint64_t>(kWarmUp, opts.max_frames) : kWarmUp;
+    std::uint64_t per_pair = 0;   // what a pair uses, as measured; 0 = not yet
 
     // With the lock held: a pair running alone over the memory limit gets a
     // warning, once (D-045).
@@ -373,15 +392,19 @@ Result score(const std::string& ladder, const std::string& mezzanine, const VMAF
         alone_warned = true;
     };
 
-    // With the lock held: whether one more pair may start (D-045). A running
-    // pair is taken to use the memory gained since the run began, shared out
-    // among the pairs running; with none running, a pair always starts.
+    // With the lock held: the running pairs that haven't scored warm_at frame
+    // pairs yet, whose memory may not show in the resident memory.
+    const auto warming = [&] {
+        unsigned w = 0;
+        for (std::size_t k = 0; k < n; ++k)
+            if (active[k] && scored[k].load(std::memory_order_relaxed) < warm_at) ++w;
+        return w;
+    };
+
+    // With the lock held: whether one more pair may start (D-045).
     const auto admit = [&] {
         if (out.memory_limit == 0 || running == 0) return true;
-        const std::uint64_t now = resident();
-        if (now == 0) return true;   // unknown: the limit can't hold a pair back
-        const std::uint64_t per_pair = (now > baseline ? now - baseline : 0) / running;
-        return now + per_pair <= out.memory_limit;
+        return admits(out.memory_limit, resident(), baseline, running, warming(), per_pair);
     };
 
     // With the lock held: what becomes of pair k once its analysis returned.
@@ -433,8 +456,10 @@ Result score(const std::string& ladder, const std::string& mezzanine, const VMAF
             out.pairs[k].started = now_s();
             lk.unlock();
 
+            VMAFOptions pair_opts = opts;
+            pair_opts.scored      = &scored[k];
             VMAFResult r = VMAFAnalyzer::analyze(out.plan.reference_url, out.plan.pairs[k].url,
-                                                 opts, stop.get_token());
+                                                 pair_opts, stop.get_token());
 
             lk.lock();
             check_alone();   // before the pair leaves: it may have run alone

@@ -696,6 +696,7 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
             result.dis_index.push_back(step.dis_index);
         }
         if (!score_pair(ref_frame, dis_frame, step.ref_index)) break;
+        if (opts.scored) opts.scored->fetch_add(1, std::memory_order_relaxed);
 
         float pair_frac = std::min(static_cast<float>(frame_idx) /
                                    static_cast<float>(total_est), 0.99f);
