@@ -1,0 +1,1862 @@
+# The unit tests, run in <repo>, a worktree of branch vmaf/phase-2, at the commit below with a clean working tree (docs/DECISIONS.md P-028, P-032, P-060, P-065, P-066, P-073): each command, then its output and exit status. The Python suites run with TMPDIR in a scratch directory outside the repository, <scratch>.
+
+$ git rev-parse HEAD
+1db7b89d3cd34fb8f1db97ee60bb56083d3d6a16
+(exit status 0; 0.0 s)
+
+$ git status --porcelain
+(no output)
+(exit status 0; 0.0 s)
+
+$ git diff --stat 5ae44a4 HEAD -- src tools tests third_party CMakeLists.txt CMakePresets.json
+ CMakeLists.txt               |  18 +++-
+ src/VMAFAlign.cpp            |  76 +++++++++++---
+ src/VMAFAlign.h              |  56 ++++++++---
+ src/VMAFAnalyzer.cpp         |  55 +++++++---
+ src/VMAFAnalyzer.h           |   8 +-
+ src/VMAFCli.cpp              |  88 +++++++++++++---
+ src/VMAFCli.h                |   3 +
+ src/VMAFLadder.cpp           | 219 ++++++++++++++++++++++++++++++++++++----
+ src/VMAFLadder.h             | 119 +++++++++++++++++-----
+ src/VMAFNet.h                |  48 +++++++++
+ src/VMAFPool.cpp             |  16 ++-
+ src/VMAFPool.h               |  18 +++-
+ src/VMAFProcess.cpp          |  80 +++++++++++++++
+ src/VMAFProcess.h            |  29 ++++++
+ src/VMAFReport.cpp           |  55 ++++++++--
+ src/VMAFReport.h             |  33 ++++--
+ tests/SilentServer.h         |  94 ++++++++++++++++++
+ tests/test_vmaf_align.cpp    | 122 ++++++++++++++++++-----
+ tests/test_vmaf_analyzer.cpp | 231 ++++++++++++++++++++++++++++++++++++++++--
+ tests/test_vmaf_cli.cpp      |  62 +++++++++++-
+ tests/test_vmaf_ladder.cpp   | 232 +++++++++++++++++++++++++++++++++++++++----
+ tests/test_vmaf_pool.cpp     |  30 ++++++
+ tests/test_vmaf_report.cpp   |  71 +++++++++++--
+ third_party/glad/README.md   |   6 +-
+ tools/mirage_vmaf.cpp        |  64 +++++++++---
+ 25 files changed, 1635 insertions(+), 198 deletions(-)
+(exit status 0; 0.0 s)
+
+$ git diff --stat 5ae44a4 HEAD -- '*.py' '*.sh'
+ eval/consistency/color_cases.py             |  34 ++++-
+ eval/consistency/ladder_check.py            |  15 ++-
+ eval/consistency/run_delta.py               |  43 ++++++-
+ eval/consistency/tests/test_color_cases.py  |  16 +++
+ eval/consistency/tests/test_ladder_check.py |   3 +-
+ eval/consistency/tests/test_run_delta.py    |  34 +++++
+ eval/ladder/pool_check.py                   | 190 ++++++++++++++++++++++++++++
+ eval/ladder/tests/test_pool_check.py        | 153 ++++++++++++++++++++++
+ eval/phase2-survey/m2_m3_baseline.sh        |  31 +++++
+ eval/phase2-survey/m5_discontinuities.py    | 170 +++++++++++++++++++++++++
+ eval/phase2-survey/m5_gaps.py               | 172 +++++++++++++++++++++++++
+ eval/run_all.py                             |  61 ++++++---
+ eval/streams/local_copy.py                  | 141 +++++++++++++++++++++
+ eval/tests/test_run_all.py                  |  47 +++++--
+ 14 files changed, 1074 insertions(+), 36 deletions(-)
+(exit status 0; 0.1 s)
+
+$ git diff --stat dc3af0d HEAD -- src tools tests CMakeLists.txt CMakePresets.json '*.py'
+ CMakeLists.txt                           |   2 +
+ eval/ladder/pool_check.py                | 190 +++++++++++++++++++++++++++
+ eval/ladder/tests/test_pool_check.py     | 153 ++++++++++++++++++++++
+ eval/phase2-survey/m5_discontinuities.py | 170 +++++++++++++++++++++++++
+ eval/phase2-survey/m5_gaps.py            | 172 +++++++++++++++++++++++++
+ eval/streams/local_copy.py               | 141 ++++++++++++++++++++
+ src/VMAFAlign.cpp                        |  76 ++++++++---
+ src/VMAFAlign.h                          |  56 +++++---
+ src/VMAFAnalyzer.cpp                     |   5 +-
+ src/VMAFAnalyzer.h                       |   8 +-
+ src/VMAFCli.cpp                          |  72 +++++++++--
+ src/VMAFCli.h                            |   3 +
+ src/VMAFLadder.cpp                       | 211 +++++++++++++++++++++++++++---
+ src/VMAFLadder.h                         | 114 +++++++++++++----
+ src/VMAFProcess.cpp                      |  80 ++++++++++++
+ src/VMAFProcess.h                        |  29 +++++
+ src/VMAFReport.cpp                       |  47 ++++++-
+ src/VMAFReport.h                         |  25 +++-
+ tests/test_vmaf_align.cpp                | 122 ++++++++++++++----
+ tests/test_vmaf_analyzer.cpp             |  34 ++++-
+ tests/test_vmaf_cli.cpp                  |  62 ++++++++-
+ tests/test_vmaf_ladder.cpp               | 212 ++++++++++++++++++++++++++++---
+ tests/test_vmaf_report.cpp               |  63 ++++++++-
+ tools/mirage_vmaf.cpp                    |  64 ++++++++--
+ 24 files changed, 1949 insertions(+), 162 deletions(-)
+(exit status 0; 0.0 s)
+
+$ cmake --build --preset macos-debug
+[1/5] Building CXX object CMakeFiles/mirage.dir/src/VMAFAlign.cpp.o
+[2/5] Building CXX object CMakeFiles/mirage.dir/src/VMAFAnalyzer.cpp.o
+[3/5] Building CXX object CMakeFiles/mirage.dir/src/MediaSession.cpp.o
+[4/5] Building CXX object CMakeFiles/mirage.dir/src/main.cpp.o
+In file included from <repo>/src/main.cpp:54:
+<repo>/build/macos-debug/_deps/stb-src/stb_image_write.h:776:13: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
+  776 |       len = sprintf(buffer, "EXPOSURE=          1.0000000000000\n\n-Y %d +X %d\n", y, x);
+      |             ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/_stdio.h:278:1: note: 'sprintf' has been explicitly marked deprecated here
+  278 | __deprecated_msg("This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead.")
+      | ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/sys/cdefs.h:227:48: note: expanded from macro '__deprecated_msg'
+  227 |         #define __deprecated_msg(_msg) __attribute__((__deprecated__(_msg)))
+      |                                                       ^
+1 warning generated.
+[5/5] Linking CXX executable mirage
+ld: warning: ignoring duplicate libraries: 'libglad_gl_core_41.a'
+(exit status 0; 2.4 s)
+
+$ git grep -n 'sub_test' -- src tests tools || echo '(no match)'
+(no match)
+(exit status 0; 0.0 s)
+
+$ perl -e 'alarm 900; exec @ARGV' build/macos-debug/mirage_tests '~[audio]'
+Filters: ~[audio]
+Randomness seeded to: 3004983792
+[WARN]  ManifestParser: MPD XML parse error: Could not determine tag type
+[INFO]  SubtitleDecoder opened: srt (text)
+[INFO]  SubtitleDecoder opened: srt (text)
+[INFO]  SubtitleDecoder opened: srt (text)
+[INFO]  SubtitleDecoder opened: srt (text)
+[WARN]  Sidecar subtitles: cannot open /nonexistent/x.srt
+[INFO]  Demuxer: avformat_open_input 0 ms (4 streams, 0 programs) (t=0.000)
+[INFO]  Demuxer: avformat_find_stream_info 0 ms (t=0.000)
+[INFO]  Container: NUT
+[INFO]  Duration:  00:00:39
+[INFO]  Video:     rawvideo 32×18 @ 25.000 fps  pixel_fmt=rgb555le
+[INFO]  Audio:     pcm_s16le 8000 Hz  1 ch  fmt=s16
+[INFO]  Video stream switched to index 1 (seamless, resume at 3.000) (t=0.346)
+[INFO]  switch-trace: repositioned to 3.000 (t=0.346)
+[INFO]  switch-trace: first video packet pts=2.640 key (t=0.346)
+[INFO]  switch-trace: first video keyframe pts=2.640 (t=0.346)
+[INFO]  Audio stream switched to index 3 (seamless, from 4.650) (t=0.696)
+[INFO]  switch-trace: repositioned to 4.650 (t=0.696)
+[INFO]  Demuxer: avformat_open_input 1 ms (4 streams, 0 programs) (t=0.927)
+[INFO]  Demuxer: avformat_find_stream_info 0 ms (t=0.928)
+[INFO]  Container: NUT
+[INFO]  Duration:  00:00:39
+[INFO]  Video:     rawvideo 32×18 @ 25.000 fps  pixel_fmt=rgb555le
+[INFO]  Audio:     pcm_s16le 8000 Hz  1 ch  fmt=s16
+[INFO]  Video stream switched to index 1 (exact, resume at 5.000) (t=1.075)
+[INFO]  switch-trace: first video packet pts=4.560 key (t=1.075)
+[INFO]  switch-trace: first video keyframe pts=4.560 (t=1.075)
+[INFO]  Demuxer: avformat_open_input 1 ms (4 streams, 0 programs) (t=1.143)
+[INFO]  Demuxer: avformat_find_stream_info 0 ms (t=1.143)
+[INFO]  Container: NUT
+[INFO]  Duration:  00:00:39
+[INFO]  Video:     rawvideo 32×18 @ 25.000 fps  pixel_fmt=rgb555le
+[INFO]  Audio:     pcm_s16le 8000 Hz  1 ch  fmt=s16
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=1.146)
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=1.155)
+[INFO]  Demuxer: avformat_open_input 0 ms (4 streams, 0 programs) (t=1.177)
+[INFO]  Demuxer: avformat_find_stream_info 0 ms (t=1.177)
+[INFO]  Container: NUT
+[INFO]  Duration:  00:00:39
+[INFO]  Video:     rawvideo 32×18 @ 25.000 fps  pixel_fmt=rgb555le
+[INFO]  Audio:     pcm_s16le 8000 Hz  1 ch  fmt=s16
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=1.178)
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=1.187)
+[INFO]  Demuxer: avformat_open_input 0 ms (4 streams, 0 programs) (t=1.206)
+[INFO]  Demuxer: avformat_find_stream_info 0 ms (t=1.206)
+[INFO]  Container: NUT
+[INFO]  Duration:  00:00:39
+[INFO]  Video:     rawvideo 32×18 @ 25.000 fps  pixel_fmt=rgb555le
+[INFO]  Audio:     pcm_s16le 8000 Hz  1 ch  fmt=s16
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=1.207)
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=1.215)
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=1.223)
+[INFO]  Demuxer: avformat_open_input 0 ms (4 streams, 0 programs) (t=1.240)
+[INFO]  Demuxer: avformat_find_stream_info 0 ms (t=1.240)
+[INFO]  Container: NUT
+[INFO]  Duration:  00:00:39
+[INFO]  Video:     rawvideo 32×18 @ 25.000 fps  pixel_fmt=rgb555le
+[INFO]  Audio:     pcm_s16le 8000 Hz  1 ch  fmt=s16
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=1.242)
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=1.248)
+[INFO]  Demuxer: avformat_open_input 0 ms (4 streams, 0 programs) (t=1.262)
+[INFO]  Demuxer: avformat_find_stream_info 0 ms (t=1.262)
+[INFO]  Container: NUT
+[INFO]  Duration:  00:00:39
+[INFO]  Video:     rawvideo 32×18 @ 25.000 fps  pixel_fmt=rgb555le
+[INFO]  Audio:     pcm_s16le 8000 Hz  1 ch  fmt=s16
+[INFO]  Audio stream switched to index 3 (exact, from 1.000) (t=1.451)
+[INFO]  switch-trace: repositioned to 1.000 (t=1.451)
+[INFO]  Demuxer: avformat_open_input 0 ms (4 streams, 0 programs) (t=2.188)
+[INFO]  Demuxer: avformat_find_stream_info 0 ms (t=2.188)
+[INFO]  Container: NUT
+[INFO]  Duration:  00:00:39
+[INFO]  Video:     rawvideo 32×18 @ 25.000 fps  pixel_fmt=rgb555le
+[INFO]  Audio:     pcm_s16le 8000 Hz  1 ch  fmt=s16
+[INFO]  Audio stream switched to index 3 (exact, from 20.000) (t=2.256)
+[INFO]  switch-trace: repositioned to 20.000 (t=2.256)
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=2.261)
+[INFO]  Demuxer: avformat_open_input 1 ms (4 streams, 0 programs) (t=2.288)
+[INFO]  Demuxer: avformat_find_stream_info 0 ms (t=2.288)
+[INFO]  Container: NUT
+[INFO]  Duration:  00:00:39
+[INFO]  Video:     rawvideo 16×8 @ 25.000 fps  pixel_fmt=rgb555le
+[INFO]  Audio:     pcm_s16le 8000 Hz  1 ch  fmt=s16
+[INFO]  Subtitles: 1 embedded track(s)
+[INFO]  Subtitle stream switched to index 3
+[INFO]  switch-trace: repositioned to 2.000 (t=2.578)
+[INFO]  Demuxer: avformat_open_input 0 ms (4 streams, 0 programs) (t=3.047)
+[INFO]  Demuxer: avformat_find_stream_info 0 ms (t=3.047)
+[INFO]  Container: NUT
+[INFO]  Duration:  00:00:39
+[INFO]  Video:     rawvideo 16×8 @ 25.000 fps  pixel_fmt=rgb555le
+[INFO]  Audio:     pcm_s16le 8000 Hz  1 ch  fmt=s16
+[INFO]  Subtitles: 1 embedded track(s)
+[INFO]  Demuxer: avformat_open_input 0 ms (4 streams, 0 programs) (t=3.059)
+[INFO]  Demuxer: avformat_find_stream_info 0 ms (t=3.059)
+[INFO]  Container: NUT
+[INFO]  Duration:  00:00:39
+[INFO]  Video:     rawvideo 16×8 @ 25.000 fps  pixel_fmt=rgb555le
+[INFO]  Audio:     pcm_s16le 8000 Hz  1 ch  fmt=s16
+[INFO]  Subtitles: 1 embedded track(s)
+[INFO]  Audio stream switched to index 2 (exact, from 2.000) (t=3.380)
+[INFO]  switch-trace: repositioned to 2.000 (t=3.380)
+[INFO]  Subtitle stream switched to index -1
+[INFO]  Subtitle stream switched to index 3
+[INFO]  switch-trace: repositioned to 2.000 (t=3.561)
+[INFO]  Demuxer: avformat_open_input 0 ms (3 streams, 0 programs) (t=4.039)
+[INFO]  Demuxer: avformat_find_stream_info 0 ms (t=4.039)
+[INFO]  Container: Matroska / WebM
+[INFO]  Duration:  00:00:20
+[INFO]  Video:     h264 64×48 @ 25.000 fps  pixel_fmt=yuv420p
+[INFO]  Audio:     pcm_s16le 8000 Hz  1 ch  fmt=s16
+[INFO]  Audio stream switched to index 2 (exact, from 3.040) (t=4.505)
+[INFO]  switch-trace: repositioned to 3.040 (t=4.505)
+[INFO]  Demuxer: avformat_open_input 1 ms (2 streams, 0 programs) (t=5.105)
+[INFO]  Demuxer: avformat_find_stream_info 0 ms (t=5.106)
+[INFO]  Container: NUT
+[INFO]  Duration:  00:00:01
+[INFO]  Video:     rawvideo 16×8 @ 25.000 fps  pixel_fmt=rgb555le
+[INFO]  Audio:     pcm_s16le 8000 Hz  1 ch  fmt=s16
+[INFO]  Demuxer: avformat_open_input 0 ms (2 streams, 0 programs) (t=5.110)
+[INFO]  Demuxer: avformat_find_stream_info 0 ms (t=5.110)
+[INFO]  Container: NUT
+[INFO]  Duration:  00:00:01
+[INFO]  Video:     rawvideo 16×8 @ 25.000 fps  pixel_fmt=rgb555le
+[INFO]  Audio:     pcm_s16le 8000 Hz  1 ch  fmt=s16
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=5.110)
+[INFO]  ManifestParser: parsed HLS — 0 tags, 4 variants from <tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/master.m3u8
+[INFO]  ManifestParser: parsed HLS — 0 tags, 4 variants from <tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/master.m3u8
+[WARN]  other: variant playlist <tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/index.m3u8 not usable (different frame size) — opening the master instead
+[WARN]  other: variant playlist <tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/index.m3u8 not usable (different codec) — opening the master instead
+[WARN]  other: variant playlist <tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/a1/index.m3u8 not usable (no video stream) — opening the master instead
+[WARN]  other: variant playlist <tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/seg0.ts not usable (not an HLS playlist) — opening the master instead
+[INFO]  ManifestParser: parsed HLS — 0 tags, 4 variants from <tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/master.m3u8
+[INFO]  Demuxer: avformat_open_input 2 ms (6 streams, 4 programs) (t=5.162)
+[INFO]  Demuxer: avformat_find_stream_info 1 ms (t=5.163)
+[INFO]  Container: Apple HTTP Live Streaming
+[INFO]  Duration:  00:00:03
+[INFO]  Video:     mpeg2video 64×48 @ 25.000 fps  pixel_fmt=yuv420p
+[INFO]  Audio:     mp2 48000 Hz  1 ch  fmt=s16p
+[INFO]  Demuxer: avformat_open_input 1 ms (5 streams, 3 programs, deduplicated master) (t=5.164)
+[INFO]  Demuxer: avformat_find_stream_info 1 ms (t=5.165)
+[INFO]  Container: Apple HTTP Live Streaming
+[INFO]  Duration:  00:00:03
+[INFO]  Video:     mpeg2video 64×48 @ 25.000 fps  pixel_fmt=yuv420p
+[INFO]  Audio:     mp2 48000 Hz  1 ch  fmt=s16p
+[INFO]  Keyframes: stream 3 — 5 playlist segment starts confirmed (1 read where predicted, first at 10.033 s): listed with the 4 keyframes read
+[INFO]  Keyframes: stream 5 — 100 playlist segment starts confirmed (1 read where predicted, first at 10.017 s): listed with the 1 keyframes read
+[WARN]  Keyframes: stream 3 — the playlist's segment starts don't match the keyframes read (1 contradiction: keyframes at 10.033 and 17.033 were read in one go, none at the start predicted at 16.033): only keyframes read are listed
+[INFO]  Keyframes: stream 3 — 5 playlist segment starts confirmed (1 read where predicted, first at 10.033 s): listed with the 3 keyframes read
+[WARN]  Keyframes: stream 3 — the playlist's segment starts don't match the keyframes read (1 contradiction: a read from a segment start began at 13.033, the nearest start predicted is 16.033): only keyframes read are listed
+[INFO]  Keyframes: stream 3 — 5 playlist segment starts confirmed (1 read where predicted, first at 10.033 s): listed with the 2 keyframes read
+[WARN]  Keyframes: stream 3 — the playlist's segment starts don't match the keyframes read (1 contradiction: a read from a segment start began on a frame that is not a keyframe): only keyframes read are listed
+[INFO]  Keyframes: stream 3 — 5 playlist segment starts confirmed (1 read where predicted, first at 10.033 s): listed with the 2 keyframes read
+[INFO]  Keyframes: stream 0 — the playlist's 3 segment durations are not whole frames (or the start / frame rate is unknown): segment starts are not predicted
+[INFO]  Keyframes: stream 1 — the playlist's 2 segment durations are not whole frames (or the start / frame rate is unknown): segment starts are not predicted
+[INFO]  Keyframes: stream 2 — the playlist's 2 segment durations are not whole frames (or the start / frame rate is unknown): segment starts are not predicted
+[INFO]  Keyframes: stream 3 — 5 playlist segment starts confirmed (1 read where predicted, first at 10.033 s): listed with the 4 keyframes read
+[INFO]  Keyframes: stream 3 — 5 playlist segment starts confirmed (1 read where predicted, first at 10.033 s): listed with the 4 keyframes read
+[INFO]  Keyframes: stream 3 — 5 playlist segment starts confirmed (1 read where predicted, first at 10.033 s): listed with the 4 keyframes read
+[WARN]  Keyframes: stream 3 — the playlist's segment starts don't match the keyframes read (1 contradiction: keyframes at 31.033 and 35.033 were read in one go, none at the start predicted at 34.033): only keyframes read are listed
+[INFO]  Demuxer: avformat_open_input 1 ms (2 streams, 2 programs) (t=5.179)
+[INFO]  Demuxer: avformat_find_stream_info 0 ms (t=5.179)
+[WARN]  No audio stream found
+[INFO]  Container: Apple HTTP Live Streaming
+[INFO]  Duration:  00:00:05
+[INFO]  Video:     mpeg2video 64×48 @ 25.000 fps  pixel_fmt=yuv420p
+[INFO]  Keyframes: stream 0 — 3 playlist segment starts confirmed (1 read where predicted, first at 0.040 s): listed with the 6 keyframes read
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=5.180)
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=5.188)
+[INFO]  Demuxer: avformat_open_input 1 ms (2 streams, 2 programs) (t=5.197)
+[INFO]  Demuxer: avformat_find_stream_info 0 ms (t=5.198)
+[WARN]  No audio stream found
+[INFO]  Container: Apple HTTP Live Streaming
+[INFO]  Duration:  00:00:05
+[INFO]  Video:     mpeg2video 64×48 @ 25.000 fps  pixel_fmt=yuv420p
+[INFO]  Keyframes: stream 0 — 3 playlist segment starts confirmed (1 read where predicted, first at 0.040 s): listed with the 6 keyframes read
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=5.198)
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=5.206)
+[INFO]  ScrubDecoder: ready (open 1 ms, probe 0 ms) (t=5.216)
+[INFO]  ScrubDecoder: following stream 1 (0x0) — same context (t=5.218)
+[INFO]  ScrubDecoder: stopped (0 requests decoded from a keyframe read, 2 from a seek)
+[INFO]  ScrubDecoder: ready — variant playlist <tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8 (open + probe 0 ms) (t=5.222)
+[INFO]  ScrubDecoder: following stream 1 (32x32) — variant playlist <tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/index.m3u8 (0 ms) (t=5.225)
+[INFO]  ScrubDecoder: following stream 0 (64x48) — variant playlist <tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8 (0 ms) (t=5.228)
+[INFO]  ScrubDecoder: stopped (0 requests decoded from a keyframe read, 3 from a seek)
+[INFO]  ScrubDecoder: ready — variant playlist <tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8 (open + probe 0 ms) (t=5.232)
+[INFO]  ScrubDecoder: following stream 1 (32x32) — variant playlist <tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/index.m3u8 (0 ms) (t=5.235)
+[INFO]  ScrubDecoder: stopped (0 requests decoded from a keyframe read, 2 from a seek)
+[INFO]  ScrubDecoder: ready (open 1 ms, probe 0 ms) (t=5.240)
+[INFO]  ScrubDecoder: stopped (0 requests decoded from a keyframe read, 3 from a seek)
+[INFO]  ScrubDecoder: ready — variant playlist <tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8 (open + probe 1 ms) (t=5.561)
+[INFO]  ScrubDecoder: stopped (1 requests decoded from a keyframe read, 1 from a seek)
+[INFO]  ScrubDecoder: ready — variant playlist <tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8 (open + probe 1 ms) (t=5.572)
+[INFO]  ScrubDecoder: stopped (1 requests decoded from a keyframe read — 1 missed it, 0 from a seek)
+[INFO]  Keyframes: stream 0 — 3 playlist segment starts confirmed (1 read where predicted, first at 0.040 s): listed with the 6 keyframes read
+[INFO]  ScrubDecoder: ready — variant playlist <tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8 (open + probe 2 ms) (t=5.585)
+[INFO]  ScrubDecoder: read stream 0 for keyframes 2.040 .. 4.040 — 52 packets, 6 keyframes, 1 ms (t=5.587)
+[INFO]  ScrubDecoder: stopped (0 requests decoded from a keyframe read, 0 from a seek)
+[INFO]  ScrubDecoder: ready — variant playlist <tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8 (open + probe 2 ms) (t=5.598)
+[INFO]  ScrubDecoder: read stream 0 for keyframes 2.040 .. 4.040 — 52 packets, 6 keyframes, 1 ms (t=5.599)
+[INFO]  ScrubDecoder: stopped (0 requests decoded from a keyframe read, 0 from a seek)
+[INFO]  ScrubDecoder: ready — variant playlist <tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8 (open + probe 1 ms) (t=5.609)
+[INFO]  ScrubDecoder: read stream 0 for keyframes (from the segment before) 2.040 .. 4.040 — 53 packets, 7 keyframes, 1 ms (t=5.610)
+[INFO]  ScrubDecoder: stopped (0 requests decoded from a keyframe read, 0 from a seek)
+[INFO]  ScrubDecoder: ready — variant playlist <tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8 (open + probe 1 ms) (t=5.616)
+[INFO]  ScrubDecoder: read stream 0 for keyframes 4.040 .. 4.400 — 11 packets, 2 keyframes, 1 ms (t=5.616)
+[INFO]  ScrubDecoder: stopped (0 requests decoded from a keyframe read, 0 from a seek)
+[INFO]  Keyframes: stream 0 — 3 playlist segment starts confirmed (1 read where predicted, first at 0.040 s): listed with the 6 keyframes read
+[INFO]  Keyframes: stream 0 — 3 playlist segment starts confirmed (1 read where predicted, first at 0.040 s): listed with the 6 keyframes read
+[INFO]  ScrubDecoder: ready — variant playlist <tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8 (open + probe 0 ms) (t=5.622)
+[INFO]  ScrubDecoder: keyframe read of stream 1 abandoned / failed after 0 packets (0 ms) (t=5.622)
+[INFO]  ScrubDecoder: stopped (0 requests decoded from a keyframe read, 0 from a seek)
+[INFO]  Keyframes: stream 0 — 3 playlist segment starts confirmed (1 read where predicted, first at 0.040 s): listed with the 6 keyframes read
+[INFO]  ScrubDecoder: ready — variant playlist <tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8 (open + probe 0 ms) (t=5.626)
+[INFO]  ScrubDecoder: read stream 0 for keyframes 2.040 .. 4.040 — 52 packets, 6 keyframes, 0 ms (t=5.626)
+[INFO]  ScrubDecoder: stopped (0 requests decoded from a keyframe read, 0 from a seek)
+[INFO]  Keyframes: stream 0 — 3 playlist segment starts confirmed (1 read where predicted, first at 0.040 s): listed with the 6 keyframes read
+[INFO]  ScrubDecoder: ready — variant playlist <tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8 (open + probe 1 ms) (t=5.632)
+[INFO]  ScrubDecoder: stopped (1 requests decoded from a keyframe read, 0 from a seek)
+[INFO]  Demuxer: avformat_open_input 0 ms (1 streams, 1 programs) (t=5.637)
+[INFO]  Demuxer: avformat_find_stream_info 0 ms (t=5.638)
+[WARN]  No audio stream found
+[INFO]  Container: Apple HTTP Live Streaming
+[INFO]  Duration:  00:00:05
+[INFO]  Video:     mpeg2video 64×48 @ 25.000 fps  pixel_fmt=yuv420p
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=5.638)
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=5.644)
+[INFO]  Demuxer: avformat_open_input 0 ms (1 streams, 1 programs) (t=5.653)
+[INFO]  Demuxer: avformat_find_stream_info 0 ms (t=5.653)
+[WARN]  No audio stream found
+[INFO]  Container: Apple HTTP Live Streaming
+[INFO]  Duration:  00:00:05
+[INFO]  Video:     mpeg2video 64×48 @ 25.000 fps  pixel_fmt=yuv420p
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=5.653)
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=5.659)
+[INFO]  ScrubDecoder: ready — variant playlist <tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/index.m3u8 (open + probe 0 ms) (t=5.668)
+[INFO]  Keyframes: stream 0 — 3 playlist segment starts confirmed (1 read where predicted, first at 10.000 s): listed with the 1 keyframes read
+[INFO]  ScrubDecoder: stopped (0 requests decoded from a keyframe read, 3 from a seek)
+[INFO]  ScrubDecoder: ready — variant playlist <tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/index.m3u8 (open + probe 0 ms) (t=5.677)
+[INFO]  Keyframes: stream 0 — 3 playlist segment starts confirmed (1 read where predicted, first at 10.000 s): listed with the 1 keyframes read
+[INFO]  ScrubDecoder: stopped (1 requests decoded from a keyframe read, 2 from a seek)
+[INFO]  VMAFAnalyzer: 5 frames  mean=45.21  min=41.99  p5=42.07  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=45.56  min=41.99  p5=42.10  [Analysis]
+[INFO]  VMAFAnalyzer: 5 frames  mean=45.21  min=41.99  p5=42.07  [Analysis]
+[INFO]  VMAFAnalyzer: 6 frames  mean=13.40  min=8.94  p5=8.98  [Analysis]
+[INFO]  VMAFAnalyzer: 8 frames  mean=51.64  min=45.79  p5=46.86  [Analysis]
+[INFO]  VMAFAnalyzer: 4 frames  mean=53.01  min=50.14  p5=50.18  [Analysis]
+[INFO]  VMAFAnalyzer: 8 frames  mean=44.76  min=41.99  p5=42.06  [Analysis]
+[WARN]  VMAFAnalyzer: 33.33% of the frames failed to pair by timestamp (4 of 12: 4 unmatched reference), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 8 frame pairs that paired
+[WARN]  VMAFAnalyzer: cannot open reference: <tmp>/mirage_tests.K6yKw0/mirage_test_vmaf_missing.mkv
+[WARN]  VMAFAnalyzer: cannot open distorted: <tmp>/mirage_tests.K6yKw0/mirage_test_vmaf_missing.mkv
+[WARN]  VMAFAnalyzer: cannot open reference: <tmp>/mirage_tests.K6yKw0/mirage_test_vmaf_audio_only.mkv
+[WARN]  VMAFAnalyzer: cannot open distorted: <tmp>/mirage_tests.K6yKw0/mirage_test_vmaf_audio_only.mkv
+[WARN]  VMAFAnalyzer: cannot open reference: <tmp>/mirage_tests.K6yKw0/mirage_test_vmaf_bad_ffv1.mkv
+[WARN]  VMAFAnalyzer: cannot open distorted: <tmp>/mirage_tests.K6yKw0/mirage_test_vmaf_bad_ffv1.mkv
+[WARN]  VMAFAnalyzer: the reference's frames change size, from 192x108 to 128x72 at its frame 6: a reference is scored at one size, as FFmpeg's libvmaf filter takes inputs of one size only
+[INFO]  VMAFAnalyzer: 6 frames  mean=53.44  min=49.96  p5=50.17  [Analysis]
+[WARN]  VMAFAnalyzer: the reference's frames change size, from 192x108 to 128x72 at its frame 6: a reference is scored at one size, as FFmpeg's libvmaf filter takes inputs of one size only
+[INFO]  VMAFAnalyzer: 6 frames  mean=53.44  min=49.96  p5=50.17  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=65.58  min=49.96  p5=50.42  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=45.56  min=41.99  p5=42.10  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=45.56  min=41.99  p5=42.10  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=45.56  min=41.99  p5=42.10  [96x54  0.5 Mbps]
+[INFO]  VMAFAnalyzer: 12 frames  mean=45.56  min=41.99  p5=42.10  [Analysis]
+[INFO]  VMAFAnalyzer: wrote report to <tmp>/mirage_tests.K6yKw0/mirage_test_vmaf_gui.json
+[INFO]  VMAFAnalyzer: 6 frames  mean=13.40  min=8.94  p5=8.98  [Analysis]
+[INFO]  VMAFAnalyzer: 6 frames  mean=13.40  min=8.94  p5=8.98  [Analysis]
+[INFO]  VMAFAnalyzer: 6 frames  mean=55.02  min=50.14  p5=50.65  [Analysis]
+[INFO]  VMAFAnalyzer: 6 frames  mean=55.02  min=50.14  p5=50.65  [Analysis]
+[INFO]  VMAFAnalyzer: 6 frames  mean=50.13  min=47.05  p5=47.07  [Analysis]
+[INFO]  VMAFAnalyzer: 6 frames  mean=55.02  min=50.14  p5=50.65  [Analysis]
+[INFO]  VMAFAnalyzer: 6 frames  mean=54.84  min=50.19  p5=50.65  [Analysis]
+[INFO]  VMAFAnalyzer: 6 frames  mean=55.02  min=50.14  p5=50.65  [Analysis]
+[INFO]  VMAFAnalyzer: 6 frames  mean=55.02  min=50.14  p5=50.65  [Analysis]
+[INFO]  VMAFAnalyzer: 6 frames  mean=55.02  min=50.14  p5=50.65  [Analysis]
+[INFO]  VMAFAnalyzer: 6 frames  mean=50.44  min=46.87  p5=47.44  [Analysis]
+[INFO]  VMAFAnalyzer: 6 frames  mean=65.63  min=63.04  p5=63.10  [Analysis]
+[INFO]  VMAFAnalyzer: 6 frames  mean=50.44  min=46.87  p5=47.44  [Analysis]
+[INFO]  VMAFAnalyzer: 6 frames  mean=50.44  min=46.87  p5=47.44  [Analysis]
+[INFO]  VMAFAnalyzer: 6 frames  mean=55.02  min=50.14  p5=50.65  [Analysis]
+[WARN]  VMAFAnalyzer: vmaf_model_load failed: this libvmaf has no built-in model vmaf_v0.0.0
+[WARN]  VMAFAnalyzer: cannot read the model file <tmp>/mirage_tests.K6yKw0/mirage_test_vmaf_no_model.json: No such file or directory
+[WARN]  VMAFAnalyzer: vmaf_model_load_from_path failed: libvmaf cannot load the model file <tmp>/mirage_tests.K6yKw0/mirage_test_vmaf_not_a_model.json
+[INFO]  VMAFAnalyzer: 6 frames  mean=37.65  min=33.91  p5=34.09  [Analysis]
+[INFO]  VMAFAnalyzer: 6 frames  mean=55.02  min=50.14  p5=50.65  [Analysis]
+[INFO]  VMAFAnalyzer: 6 frames  mean=13.40  min=8.94  p5=8.98  [Analysis]
+[INFO]  VMAFAnalyzer: 6 frames  mean=13.40  min=8.94  p5=8.98  [Analysis]
+[INFO]  VMAFAnalyzer: 6 frames  mean=13.40  min=8.94  p5=8.98  [Analysis]
+[INFO]  VMAFAnalyzer: 6 frames  mean=13.40  min=8.94  p5=8.98  [Analysis]
+[WARN]  VMAFAnalyzer: the distorted input has the color matrix ycgco, which FFmpeg's scale filter does not convert, so the pair can't be scored as FFmpeg scores it (DECISIONS.md D-016)
+[WARN]  VMAFAnalyzer: the reference has the color matrix ycgco, which FFmpeg's scale filter does not convert, so the pair can't be scored as FFmpeg scores it (DECISIONS.md D-016)
+[INFO]  VMAFAnalyzer: 12 frames  mean=62.57  min=54.31  p5=56.37  [Analysis]
+[INFO]  VMAFAnalyzer: 2 frames  mean=46.34  min=42.54  p5=42.92  [Analysis]
+[WARN]  VMAFAnalyzer: the distorted input's frames are nv12, a pixel format whose conversion isn't checked against FFmpeg's section 5 graph (vmafcolor::verified), so the scores can differ from FFmpeg's
+[INFO]  VMAFAnalyzer: 12 frames  mean=45.56  min=41.99  p5=42.10  [Analysis]
+[WARN]  VMAFAnalyzer: the reference's frames are nv12, a pixel format whose conversion isn't checked against FFmpeg's section 5 graph (vmafcolor::verified), so the scores can differ from FFmpeg's
+[INFO]  VMAFAnalyzer: 12 frames  mean=62.57  min=54.31  p5=56.37  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=45.56  min=41.99  p5=42.10  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=45.56  min=41.99  p5=42.10  [Analysis]
+[INFO]  VMAFAnalyzer: 11 frames  mean=45.08  min=39.01  p5=40.50  [Analysis]
+[WARN]  VMAFAnalyzer: 8.33% of the frames failed to pair by timestamp (1 of 12: 1 unmatched reference), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 11 frame pairs that paired
+[INFO]  VMAFAnalyzer: 12 frames  mean=45.56  min=41.99  p5=42.10  [Analysis]
+[WARN]  VMAFAnalyzer: 7.69% of the frames failed to pair by timestamp (1 of 13: 1 duplicate distorted), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 12 frame pairs that paired
+[INFO]  VMAFAnalyzer: 12 frames  mean=45.56  min=41.99  p5=42.10  [Analysis]
+[INFO]  VMAFAnalyzer: 6 frames  mean=50.55  min=42.54  p5=43.98  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=45.56  min=41.99  p5=42.10  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=45.56  min=41.99  p5=42.10  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=45.56  min=41.99  p5=42.10  [Analysis]
+[INFO]  VMAFAnalyzer: 9 frames  mean=0.00  min=0.00  p5=0.00  [Analysis]
+[WARN]  VMAFAnalyzer: 25.00% of the frames failed to pair by timestamp (3 of 12: 3 unmatched reference), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 9 frame pairs that paired
+[INFO]  VMAFAnalyzer: 9 frames  mean=44.28  min=35.87  p5=38.32  [Analysis]
+[WARN]  VMAFAnalyzer: 25.00% of the frames failed to pair by timestamp (3 of 12: 3 unmatched reference), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 9 frame pairs that paired
+[INFO]  VMAFAnalyzer: 6 frames  mean=44.75  min=41.64  p5=41.74  [Analysis]
+[WARN]  VMAFAnalyzer: 66.67% of the frames failed to pair by timestamp (12 of 18: 1 unmatched reference, 11 after a discontinuity), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 6 frame pairs that paired
+[INFO]  VMAFAnalyzer: 12 frames  mean=99.57  min=97.43  p5=97.43  [Analysis]
+[INFO]  VMAFAnalyzer: 11 frames  mean=45.08  min=39.01  p5=40.50  [Analysis]
+[WARN]  VMAFAnalyzer: 8.33% of the frames failed to pair by timestamp (1 of 12: 1 unmatched reference), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 11 frame pairs that paired
+[WARN]  VMAFAnalyzer: cannot open reference: http://127.0.0.1:61350/ref.m3u8
+[WARN]  VMAFAnalyzer: cannot open reference: http://127.0.0.1:61352/ref.m3u8
+[INFO]  VMAFAnalyzer: 12 frames  mean=53.99  min=49.45  p5=49.73  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=77.13  min=73.27  p5=73.65  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=53.99  min=49.45  p5=49.73  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=77.13  min=73.27  p5=73.65  [Analysis]
+[INFO]  VMAFAnalyzer: 5 frames  mean=53.86  min=50.11  p5=50.20  [Analysis]
+[INFO]  VMAFAnalyzer: 5 frames  mean=99.49  min=97.43  p5=97.94  [Analysis]
+[INFO]  VMAFAnalyzer: 5 frames  mean=76.42  min=73.75  p5=73.92  [Analysis]
+[INFO]  VMAFAnalyzer: 5 frames  mean=53.86  min=50.11  p5=50.20  [Analysis]
+[INFO]  VMAFAnalyzer: 5 frames  mean=76.42  min=73.75  p5=73.92  [Analysis]
+[INFO]  VMAFAnalyzer: 5 frames  mean=99.49  min=97.43  p5=97.94  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=53.99  min=49.45  p5=49.73  [Analysis]
+[WARN]  VMAFAnalyzer: cannot open distorted: <tmp>/mirage_tests.K6yKw0/mirage_test_ladder_broken/missing/index.m3u8
+[INFO]  VMAFAnalyzer: 12 frames  mean=53.99  min=49.45  p5=49.73  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=77.13  min=73.27  p5=73.65  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=53.99  min=49.45  p5=49.73  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=77.13  min=73.27  p5=73.65  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=99.79  min=97.43  p5=98.84  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=77.13  min=73.27  p5=73.65  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=53.99  min=49.45  p5=49.73  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=99.79  min=97.43  p5=98.84  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=53.99  min=49.45  p5=49.73  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=77.13  min=73.27  p5=73.65  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=99.79  min=97.43  p5=98.84  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=53.99  min=49.45  p5=49.73  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=77.13  min=73.27  p5=73.65  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=99.79  min=97.43  p5=98.84  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=77.13  min=73.27  p5=73.65  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=53.99  min=49.45  p5=49.73  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=99.79  min=97.43  p5=98.84  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=53.99  min=49.45  p5=49.73  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=53.99  min=49.45  p5=49.73  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=77.13  min=73.27  p5=73.65  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=99.79  min=97.43  p5=98.84  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=53.99  min=49.45  p5=49.73  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=77.13  min=73.27  p5=73.65  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=99.79  min=97.43  p5=98.84  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=99.79  min=97.43  p5=98.84  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=77.13  min=73.27  p5=73.65  [Analysis]
+[INFO]  VMAFAnalyzer: 12 frames  mean=53.99  min=49.45  p5=49.73  [Analysis]
+===============================================================================
+All tests passed (112439 assertions in 325 test cases)
+
+[libx264 @ 0xb12c54000] using cpu capabilities: ARMv8 NEON DotProd I8MM
+[libx264 @ 0xb12c54000] profile High, level 1.0, 4:2:0, 8-bit
+[libx264 @ 0xb12c54000] 264 - core 165 r3222 b35605a - H.264/MPEG-4 AVC codec - Copyleft 2003-2025 - http://www.videolan.org/x264.html - options: cabac=1 ref=1 deblock=1:0:0 analyse=0x3:0x113 me=hex subme=2 psy=1 psy_rd=1.00:0.00 mixed_ref=0 me_range=16 chroma_me=1 trellis=0 8x8dct=1 cqm=0 deadzone=21,11 fast_pskip=1 chroma_qp_offset=0 threads=1 lookahead_threads=1 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=2 b_pyramid=2 b_adapt=0 b_bias=0 direct=1 weightb=1 open_gop=0 weightp=1 keyint=10 keyint_min=6 scenecut=0 intra_refresh=0 rc_lookahead=10 rc=crf mbtree=1 crf=23.0 qcomp=0.60 qpmin=0 qpmax=69 qpstep=4 ip_ratio=1.40 aq=1:1.00
+[libx264 @ 0xb12c54000] frame I:50    Avg QP:26.30  size:    53
+[libx264 @ 0xb12c54000] frame P:150   Avg QP:28.66  size:    28
+[libx264 @ 0xb12c54000] frame B:300   Avg QP:30.85  size:    17
+[libx264 @ 0xb12c54000] consecutive B-frames: 10.0%  0.0% 90.0%
+[libx264 @ 0xb12c54000] mb I  I16..4: 35.8% 39.7% 24.5%
+[libx264 @ 0xb12c54000] mb P  I16..4: 27.6%  8.9%  4.0%  P16..4: 15.5%  0.9%  0.0%  0.0%  0.0%    skip:43.1%
+[libx264 @ 0xb12c54000] mb B  I16..4:  8.2%  0.7%  0.0%  B16..8:  9.6%  0.9%  0.0%  direct: 0.1%  skip:80.5%  L0:43.3% L1:49.1% BI: 7.7%
+[libx264 @ 0xb12c54000] 8x8 transform intra:25.7% inter:100.0%
+[libx264 @ 0xb12c54000] coded y,uvDC,uvAC intra: 8.9% 0.0% 0.0% inter: 0.3% 0.0% 0.0%
+[libx264 @ 0xb12c54000] i16 v,h,dc,p:  0% 84%  0% 16%
+[libx264 @ 0xb12c54000] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu:  0% 100%  0%  0%  0%  0%  0%  0%  0%
+[libx264 @ 0xb12c54000] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu:  0% 73% 27%  0%  0%  0%  0%  0%  0%
+[libx264 @ 0xb12c54000] i8c dc,h,v,p: 100%  0%  0%  0%
+[libx264 @ 0xb12c54000] Weighted P-Frames: Y:38.0% UV:0.0%
+[libx264 @ 0xb12c54000] kb/s:4.71
+[hls @ 0xb1327c280] Stream 0 packet with pts 14400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 7200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 10800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 25200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 18000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 21600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 36000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 28800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 32400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 46800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 39600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 43200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 57600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 50400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 54000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 68400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 61200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 64800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 79200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 72000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 75600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 90000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 82800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 86400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 100800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/seg0.ts' for writing
+[hls @ 0xb1327c280] Stream 0 packet with pts 93600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 97200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 111600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 104400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 108000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 122400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 115200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 118800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 133200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 126000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 129600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 144000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 136800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 140400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 154800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 147600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 151200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 165600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 158400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 162000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 176400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 169200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 172800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 187200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/seg1.ts' for writing
+[hls @ 0xb1327c280] Stream 0 packet with pts 180000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 183600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 198000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 190800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 194400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 208800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 201600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 205200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 219600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 212400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 216000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 230400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 223200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 226800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 241200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 234000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 237600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 252000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 244800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 248400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 262800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 255600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 259200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 273600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/seg2.ts' for writing
+[hls @ 0xb1327c280] Stream 0 packet with pts 266400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 270000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 284400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 277200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 280800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 295200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 288000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 291600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 306000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 298800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 302400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 316800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 309600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 313200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 327600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 320400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 324000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 338400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 331200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 334800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 349200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 342000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 345600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 360000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 352800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 356400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/seg3.ts' for writing
+[hls @ 0xb1327c000] Stream 0 packet with pts 14400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 7200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 10800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 25200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 18000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 21600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 36000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 28800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 32400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 46800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 39600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 43200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 57600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 50400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 54000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 68400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 61200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 64800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 79200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 72000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 75600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 90000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 82800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 86400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 100800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v1/seg0.ts' for writing
+[hls @ 0xb1327c000] Stream 0 packet with pts 93600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 97200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 111600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 104400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 108000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 122400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 115200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 118800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 133200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 126000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 129600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 144000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 136800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 140400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 154800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 147600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 151200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 165600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 158400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 162000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 176400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 169200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 172800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 187200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v1/seg1.ts' for writing
+[hls @ 0xb1327c000] Stream 0 packet with pts 180000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 183600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 198000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 190800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 194400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 208800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 201600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 205200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 219600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 212400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 216000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 230400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 223200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 226800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 241200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 234000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 237600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 252000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 244800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 248400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 262800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 255600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 259200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 273600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v1/seg2.ts' for writing
+[hls @ 0xb1327c000] Stream 0 packet with pts 266400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 270000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 284400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 277200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 280800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 295200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 288000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 291600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 306000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 298800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 302400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 316800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 309600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 313200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 327600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 320400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 324000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 338400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 331200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 334800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 349200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 342000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 345600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 360000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 352800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 356400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v1/seg3.ts' for writing
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/a1/seg0.ts' for writing
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/a1/seg1.ts' for writing
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/a1/seg2.ts' for writing
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/a1/seg3.ts' for writing
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/a2/seg0.ts' for writing
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/a2/seg1.ts' for writing
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/a2/seg2.ts' for writing
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/a2/seg3.ts' for writing
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/a1/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/a2/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v1/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v1/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/a1/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/a2/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v1/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v1/seg0.ts' for reading
+[hls @ 0xb1327d180] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/seg2.ts' for reading
+[hls @ 0xb1327d180] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/seg1.ts' for reading
+[hls @ 0xb1327d180] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/a1/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/a2/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v1/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v1/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/a1/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/a2/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v1/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v1/seg0.ts' for reading
+[hls @ 0xb1327d180] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/seg3.ts' for reading
+[hls @ 0xb1327d180] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/seg2.ts' for reading
+[hls @ 0xb1327d180] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/seg3.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/a1/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/a1/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/a2/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v1/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v1/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/a1/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/a2/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v1/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v1/seg0.ts' for reading
+[hls @ 0xb1327d180] Opening 'file:<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/a1/index.m3u8' for reading
+[hls @ 0xb1327d180] Opening 'file:<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/a2/index.m3u8' for reading
+[hls @ 0xb1327d180] Opening 'file:<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/index.m3u8' for reading
+[hls @ 0xb1327d180] Opening 'file:<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v1/index.m3u8' for reading
+[hls @ 0xb1327d180] Opening 'file:<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v1/index.m3u8' for reading
+[hls @ 0xb1327d180] Opening 'file:<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/a1/seg0.ts' for reading
+[hls @ 0xb1327d180] Opening 'file:<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/a2/seg0.ts' for reading
+[hls @ 0xb1327d180] Opening 'file:<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v0/seg0.ts' for reading
+[hls @ 0xb1327d180] Opening 'file:<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v1/seg0.ts' for reading
+[hls @ 0xb1327d180] Opening 'file:<tmp>/mirage_tests.K6yKw0/mirage_test_hls_variants/v1/seg0.ts' for reading
+[hls @ 0xb1327c280] Stream 0 packet with pts 14400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 7200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 10800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 25200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 18000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 21600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 36000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 28800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 32400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 39600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 50400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 43200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 46800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 61200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 54000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 57600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 72000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 64800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 68400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 75600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 86400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 79200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 82800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 97200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 90000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 93600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 108000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 100800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 104400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 111600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 122400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 115200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 118800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 133200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 126000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 129600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 144000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 136800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 140400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 147600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 158400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 151200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 154800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 169200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 162000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 165600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 180000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 172800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 176400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 183600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for writing
+[hls @ 0xb1327c280] Stream 0 packet with pts 194400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 187200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 190800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 205200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 198000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 201600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 216000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 208800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 212400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 219600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 230400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 223200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 226800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 241200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 234000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 237600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 252000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 244800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 248400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 255600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 266400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 259200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 262800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 277200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 270000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 273600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 288000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 280800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 284400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 291600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 302400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 295200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 298800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 313200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 306000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 309600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 324000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 316800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 320400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 327600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 338400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 331200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 334800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 349200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 342000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 345600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 360000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 352800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 356400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 363600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for writing
+[hls @ 0xb1327c280] Stream 0 packet with pts 374400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 367200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 370800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 385200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 378000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 381600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 396000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 388800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 392400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 399600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 410400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 403200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 406800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 421200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 414000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 417600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 432000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 424800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 428400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 435600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 446400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 439200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 442800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 457200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 450000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 453600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 468000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 460800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 464400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 471600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 482400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 475200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 478800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 493200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 486000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 489600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 504000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 496800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 500400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 507600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 518400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 511200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 514800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 529200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 522000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 525600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 540000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 532800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 536400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg2.ts' for writing
+[hls @ 0xb1327c000] Stream 0 packet with pts 14400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 7200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 10800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 25200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 18000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 21600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 36000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 28800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 32400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 39600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 50400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 43200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 46800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 61200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 54000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 57600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 72000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 64800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 68400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 75600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 86400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 79200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 82800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 97200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 90000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 93600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 108000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 100800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 104400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 111600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 122400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 115200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 118800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 133200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 126000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 129600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 144000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 136800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 140400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 147600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 158400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 151200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 154800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 169200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 162000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 165600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 180000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 172800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 176400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 183600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/seg0.ts' for writing
+[hls @ 0xb1327c000] Stream 0 packet with pts 194400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 187200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 190800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 205200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 198000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 201600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 216000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 208800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 212400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 219600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 230400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 223200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 226800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 241200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 234000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 237600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 252000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 244800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 248400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 255600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 266400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 259200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 262800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 277200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 270000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 273600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 288000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 280800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 284400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 291600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 302400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 295200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 298800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 313200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 306000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 309600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 324000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 316800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 320400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 327600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 338400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 331200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 334800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 349200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 342000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 345600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 360000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 352800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 356400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 363600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/seg1.ts' for writing
+[hls @ 0xb1327c000] Stream 0 packet with pts 374400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 367200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 370800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 385200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 378000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 381600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 396000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 388800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 392400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 399600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 410400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 403200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 406800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 421200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 414000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 417600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 432000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 424800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 428400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 435600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 446400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 439200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 442800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 457200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 450000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 453600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 468000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 460800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 464400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 471600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 482400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 475200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 478800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 493200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 486000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 489600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 504000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 496800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 500400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 507600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 518400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 511200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 514800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 529200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 522000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 525600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 540000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 532800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Stream 0 packet with pts 536400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/seg2.ts' for writing
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] The m3u8 list sequence may have been wrapped.
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] The m3u8 list sequence may have been wrapped.
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] The m3u8 list sequence may have been wrapped.
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] The m3u8 list sequence may have been wrapped.
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/seg0.ts' for reading
+[hls @ 0xb1327c000] No longer receiving playlist 1
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] Could not find codec parameters for stream 1 (Video: mpeg2video ([2][0][0][0] / 0x0002), none(tv)): unspecified size
+Consider increasing the value for the 'analyzeduration' (0) and 'probesize' (5000000) options
+[hls @ 0xb1327c000] The m3u8 list sequence may have been wrapped.
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] Now receiving playlist 1, segment 1
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/seg1.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c500] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/seg0.ts' for reading
+[hls @ 0xb1327c500] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/seg1.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c280] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/seg0.ts' for reading
+[hls @ 0xb1327c280] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/seg0.ts' for reading
+[hls @ 0xb1327c000] No longer receiving playlist 1
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] Could not find codec parameters for stream 1 (Video: mpeg2video ([2][0][0][0] / 0x0002), none(tv)): unspecified size
+Consider increasing the value for the 'analyzeduration' (0) and 'probesize' (5000000) options
+[hls @ 0xb1327c000] The m3u8 list sequence may have been wrapped.
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] The m3u8 list sequence may have been wrapped.
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] The m3u8 list sequence may have been wrapped.
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] The m3u8 list sequence may have been wrapped.
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] The m3u8 list sequence may have been wrapped.
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v1/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_scrub_follow/v0/seg1.ts' for reading
+[hls @ 0xb1327c280] Stream 0 packet with pts 910800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 903600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 907200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 921600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 914400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 918000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 932400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 925200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 928800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 936000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 946800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 939600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 943200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 957600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 950400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 954000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 968400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 961200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 964800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 972000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 982800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 975600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 979200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 993600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 986400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 990000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1004400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 997200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1000800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1008000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1018800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1011600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1015200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1029600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1022400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1026000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1040400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1033200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1036800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1044000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1054800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1047600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1051200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1065600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1058400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1062000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1076400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1069200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1072800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1080000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/seg0.ts' for writing
+[hls @ 0xb1327c280] Stream 0 packet with pts 1090800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1083600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1087200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1101600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1094400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1098000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1112400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1105200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1108800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1116000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1126800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1119600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1123200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1137600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1130400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1134000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1148400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1141200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1144800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1152000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1162800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1155600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1159200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1173600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1166400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1170000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1184400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1177200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1180800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1188000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1198800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1191600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1195200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1209600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1202400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1206000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1220400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1213200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1216800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1224000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1234800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1227600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1231200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1245600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1238400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1242000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1256400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1249200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1252800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1260000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/seg1.ts' for writing
+[hls @ 0xb1327c280] Stream 0 packet with pts 1270800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1263600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1267200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1281600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1274400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1278000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1292400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1285200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1288800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1296000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1306800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1299600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1303200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1317600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1310400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1314000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1328400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1321200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1324800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1332000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1342800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1335600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1339200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1353600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1346400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1350000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1364400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1357200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1360800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1368000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1378800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1371600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1375200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1389600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1382400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1386000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1400400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1393200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1396800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1404000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1414800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1407600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1411200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1425600 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1418400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1422000 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1436400 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1429200 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Stream 0 packet with pts 1432800 has duration 0. The segment duration may not be precise.
+[hls @ 0xb1327c280] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/seg2.ts' for writing
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] The m3u8 list sequence may have been wrapped.
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] The m3u8 list sequence may have been wrapped.
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] The m3u8 list sequence may have been wrapped.
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/seg1.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] The m3u8 list sequence may have been wrapped.
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] The m3u8 list sequence may have been wrapped.
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] The m3u8 list sequence may have been wrapped.
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/index.m3u8' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/seg2.ts' for reading
+[hls @ 0xb1327c000] The m3u8 list sequence may have been wrapped.
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_seek_offset/v0/seg1.ts' for reading
+[ffv1 @ 0xb12c54a80] Invalid version in global header
+[matroska,webm @ 0xb1327c000] Failed to open codec in avformat_find_stream_info
+[NULL @ 0xb12c54a80] Invalid version in global header
+[ffv1 @ 0xb12c54a80] Invalid version in global header
+[ffv1 @ 0xb12c54000] Invalid version in global header
+[ffv1 @ 0xb12c54380] Invalid version in global header
+[matroska,webm @ 0xb1327c280] Failed to open codec in avformat_find_stream_info
+[NULL @ 0xb12c54380] Invalid version in global header
+[ffv1 @ 0xb12c54380] Invalid version in global header
+[ffv1 @ 0xb12c55500] Invalid version in global header
+[http @ 0xb12c38000] Error reading HTTP response: Operation timed out
+[http @ 0xb12c38000] Error reading HTTP response: Immediate exit requested
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb1344c000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb1344c000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb1344c000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb1344c000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb1344c000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb1344c000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb1344c000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb1344c000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb1344c000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb1344c000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb1344c000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb1344c000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13450000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13450000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13450000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13450000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13450000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13450000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13450000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13450000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13450000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13450000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13450000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13450000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb1344c000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13450000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb1344c000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13450000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb1344c000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13450000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb1344c000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13450000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb1344c000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13450000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb1344c000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13450000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb1344c000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13450000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb1344c000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13450000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13448000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb1344c000] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0xb13450000] deprecated pixel format used, make sure you did set range correctly
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/top/seg0.ts' for reading
+[hls @ 0xb1327c500] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/low/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/top/seg0.ts' for reading
+[hls @ 0xb1327c500] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mid/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/top/seg0.ts' for reading
+[hls @ 0xb1327c500] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/low/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/top/seg0.ts' for reading
+[hls @ 0xb1327c500] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mid/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327c500] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327c280] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327cf00] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/low/seg0.ts' for reading
+[hls @ 0xb1327d400] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/top/seg0.ts' for reading
+[hls @ 0xb1327d900] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mid/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327c500] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/low/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327c500] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mid/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327c500] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/top/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/top/seg0.ts' for reading
+[hls @ 0xb1327c500] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/low/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/top/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/top/seg0.ts' for reading
+[hls @ 0xb1327c500] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/low/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/top/seg0.ts' for reading
+[hls @ 0xb1327c500] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mid/seg0.ts' for reading
+[http @ 0xb148f5400] Error reading HTTP response: Operation timed out
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327c500] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/low/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327c500] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mid/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327c500] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/top/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327c280] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327ca00] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/low/seg0.ts' for reading
+[hls @ 0xb1327cc80] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mid/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327c500] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/top/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327c280] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327c500] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327cf00] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/low/seg0.ts' for reading
+[hls @ 0xb1327d400] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mid/seg0.ts' for reading
+[hls @ 0xb1327d680] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/top/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327c500] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327c280] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327cf00] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/low/seg0.ts' for reading
+[hls @ 0xb1327d180] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/top/seg0.ts' for reading
+[hls @ 0xb1327d680] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mid/seg0.ts' for reading
+[hls @ 0xb1327c280] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327c500] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327cf00] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mid/seg0.ts' for reading
+[hls @ 0xb1327d180] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/low/seg0.ts' for reading
+[hls @ 0xb1327d900] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/top/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/top/seg0.ts' for reading
+[hls @ 0xb1327c500] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/low/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327c500] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/low/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327c500] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mid/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327c500] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/top/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327c500] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/low/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327c500] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mid/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327c500] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/top/seg0.ts' for reading
+[hls @ 0xb1327c500] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327c280] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327c000] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mezzanine/seg0.ts' for reading
+[hls @ 0xb1327cf00] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/top/seg0.ts' for reading
+[hls @ 0xb1327d400] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/mid/seg0.ts' for reading
+[hls @ 0xb1327d680] Opening '<tmp>/mirage_tests.K6yKw0/mirage_test_ladder/low/seg0.ts' for reading
+(exit status 0; 19.9 s)
+
+$ python3 --version
+Python 3.14.7
+(exit status 0; 0.0 s)
+
+$ TMPDIR=<scratch> python3 -I -B -m unittest discover -s eval/tests -v
+test_a_changed_score_a_verdict_and_a_missing_pair (test_run_all.Comparisons.test_a_changed_score_a_verdict_and_a_missing_pair) ... ok
+test_committed_binary (test_run_all.Comparisons.test_committed_binary) ... ok
+test_effect_ignores_settings_only (test_run_all.Comparisons.test_effect_ignores_settings_only) ... ok
+test_ffmpeg_records_ignore_addresses (test_run_all.Comparisons.test_ffmpeg_records_ignore_addresses) ... ok
+test_identical_and_differing_ladder_runs (test_run_all.Comparisons.test_identical_and_differing_ladder_runs) ... ok
+test_identical_delta_runs (test_run_all.Comparisons.test_identical_delta_runs) ... ok
+test_pooling_compares_series_not_inputs (test_run_all.Comparisons.test_pooling_compares_series_not_inputs) ... ok
+test_reports_both_sides_left_out_alike (test_run_all.Comparisons.test_reports_both_sides_left_out_alike) ... ok
+test_streams (test_run_all.Comparisons.test_streams) ... ok
+test_paths_and_their_cmake_variable_forms (test_run_all.Redaction.test_paths_and_their_cmake_variable_forms) ... ok
+test_a_full_length_run_has_no_frame_limit (test_run_all.StepsAgainstTheCommittedRuns.test_a_full_length_run_has_no_frame_limit) ... ok
+test_clips_steps_and_their_sets (test_run_all.StepsAgainstTheCommittedRuns.test_clips_steps_and_their_sets) ... ok
+test_each_delta_step_has_the_program_of_its_build_txt (test_run_all.StepsAgainstTheCommittedRuns.test_each_delta_step_has_the_program_of_its_build_txt) ... ok
+test_every_committed_measurement_has_a_step (test_run_all.StepsAgainstTheCommittedRuns.test_every_committed_measurement_has_a_step) ... ok
+test_every_delta_run_has_the_options_of_its_run_cmd (test_run_all.StepsAgainstTheCommittedRuns.test_every_delta_run_has_the_options_of_its_run_cmd) ... ok
+test_every_delta_run_names_its_scaler_and_model (test_run_all.StepsAgainstTheCommittedRuns.test_every_delta_run_names_its_scaler_and_model) ... ok
+test_ffmpeg_record_commands_are_those_of_checks_txt (test_run_all.StepsAgainstTheCommittedRuns.test_ffmpeg_record_commands_are_those_of_checks_txt) ... ok
+test_only_rejects_unknown_steps (test_run_all.StepsAgainstTheCommittedRuns.test_only_rejects_unknown_steps) ... ok
+test_pooling_steps_read_the_reruns_of_the_steps_they_need (test_run_all.StepsAgainstTheCommittedRuns.test_pooling_steps_read_the_reruns_of_the_steps_they_need) ... ok
+test_skip_full_leaves_out_every_step_over_every_frame_of_the_four_pairs (test_run_all.StepsAgainstTheCommittedRuns.test_skip_full_leaves_out_every_step_over_every_frame_of_the_four_pairs) ... ok
+test_steps_needed_are_added (test_run_all.StepsAgainstTheCommittedRuns.test_steps_needed_are_added) ... ok
+test_the_committed_outputs_of_every_step_exist (test_run_all.StepsAgainstTheCommittedRuns.test_the_committed_outputs_of_every_step_exist) ... ok
+test_the_ladder_check_runs_on_the_bipbop_master (test_run_all.StepsAgainstTheCommittedRuns.test_the_ladder_check_runs_on_the_bipbop_master) ... ok
+test_the_pooling_check_of_d027_runs_on_the_runs_with_the_defaults (test_run_all.StepsAgainstTheCommittedRuns.test_the_pooling_check_of_d027_runs_on_the_runs_with_the_defaults) ... ok
+test_a_ladder_step (test_run_all.WholeRun.test_a_ladder_step) ... ok
+test_a_rerun_matches_its_own_outputs_and_finds_a_change (test_run_all.WholeRun.test_a_rerun_matches_its_own_outputs_and_finds_a_change) ... ok
+test_out_dir_inside_the_repository_is_refused (test_run_all.WholeRun.test_out_dir_inside_the_repository_is_refused) ... ok
+test_the_libvmaf_package_of_ffmpeg_goes_to_every_delta_run (test_run_all.WholeRun.test_the_libvmaf_package_of_ffmpeg_goes_to_every_delta_run) ... ok
+
+----------------------------------------------------------------------
+Ran 28 tests in 8.354s
+
+OK
+(exit status 0; 8.5 s)
+
+$ TMPDIR=<scratch> python3 -I -B -m unittest discover -s eval/consistency/tests -v
+test_frames_of_the_clips (test_align_cases.Cases.test_frames_of_the_clips) ... ok
+test_pairs_file_reads_back (test_align_cases.Cases.test_pairs_file_reads_back) ... ok
+test_the_cases (test_align_cases.Cases.test_the_cases) ... ok
+test_expected_times (test_align_cases.Checks.test_expected_times) ... ok
+test_frame_problems (test_align_cases.Checks.test_frame_problems) ... ok
+test_a_clip_in_two_parts (test_align_cases.Commands.test_a_clip_in_two_parts) ... ok
+test_a_plain_clip (test_align_cases.Commands.test_a_plain_clip) ... ok
+test_audio_from_0 (test_align_cases.Commands.test_audio_from_0) ... ok
+test_reading_the_records (test_align_cases.Commands.test_reading_the_records) ... ok
+test_the_duplicate_keeps_both_frames (test_align_cases.Commands.test_the_duplicate_keeps_both_frames) ... ok
+test_a_wrong_picture_fails (test_align_cases.Main.test_a_wrong_picture_fails) ... ok
+test_needs_an_empty_directory (test_align_cases.Main.test_needs_an_empty_directory) ... ok
+test_writes_clips_pairs_and_record (test_align_cases.Main.test_writes_clips_pairs_and_record) ... ok
+test_clip_names_follow_codec_and_decoded_format (test_color_cases.Cases.test_clip_names_follow_codec_and_decoded_format) ... ok
+test_clip_names_follow_tags (test_color_cases.Cases.test_clip_names_follow_tags) ... ok
+test_format_cases (test_color_cases.Cases.test_format_cases) ... ok
+test_labels_and_clips (test_color_cases.Cases.test_labels_and_clips) ... ok
+test_negotiation_cases (test_color_cases.Cases.test_negotiation_cases) ... ok
+test_pairs_files_read_back (test_color_cases.Cases.test_pairs_files_read_back) ... ok
+test_expected_tags (test_color_cases.Commands.test_expected_tags) ... ok
+test_make_command (test_color_cases.Commands.test_make_command) ... ok
+test_make_command_of_a_tag_case_clip_is_unchanged (test_color_cases.Commands.test_make_command_of_a_tag_case_clip_is_unchanged) ... ok
+test_make_command_of_format_clips (test_color_cases.Commands.test_make_command_of_format_clips) ... ok
+test_shown (test_color_cases.Commands.test_shown) ... ok
+test_tag_problems (test_color_cases.Commands.test_tag_problems) ... ok
+test_a_wrong_tag_fails (test_color_cases.Main.test_a_wrong_tag_fails) ... ok
+test_clips_of_one_format_with_other_pixels_fail (test_color_cases.Main.test_clips_of_one_format_with_other_pixels_fail) ... ok
+test_needs_an_empty_directory (test_color_cases.Main.test_needs_an_empty_directory) ... ok
+test_the_format_cases (test_color_cases.Main.test_the_format_cases) ... ok
+test_the_tag_cases_record_begins_as_before (test_color_cases.Main.test_the_tag_cases_record_begins_as_before) ... ok
+test_writes_clips_pairs_and_record (test_color_cases.Main.test_writes_clips_pairs_and_record) ... ok
+test_labels_must_differ (test_compare_runs.CompareRuns.test_labels_must_differ) ... ok
+test_missing_inputs (test_compare_runs.CompareRuns.test_missing_inputs) ... ok
+test_runs_against_the_base_run (test_compare_runs.CompareRuns.test_runs_against_the_base_run) ... ok
+test_warnings (test_compare_runs.CompareRuns.test_warnings) ... ok
+test_numbers (test_compare_runs.Shift.test_numbers) ... ok
+test_unequal_lengths_missing_and_empty (test_compare_runs.Shift.test_unequal_lengths_missing_and_empty) ... ok
+test_a_score_or_a_setting_that_differs (test_ladder_check.Compare.test_a_score_or_a_setting_that_differs) ... ok
+test_every_entry_once (test_ladder_check.Compare.test_every_entry_once) ... ok
+test_pairs_missing_twice_or_extra (test_ladder_check.Compare.test_pairs_missing_twice_or_extra) ... ok
+test_the_same_pairs_pass (test_ladder_check.Compare.test_the_same_pairs_pass) ... ok
+test_a_ladder_pair_that_scores_otherwise_fails (test_ladder_check.WholeRun.test_a_ladder_pair_that_scores_otherwise_fails) ... ok
+test_a_ladder_whose_pairs_are_the_same (test_ladder_check.WholeRun.test_a_ladder_whose_pairs_are_the_same) ... ok
+test_bad_arguments (test_ladder_check.WholeRun.test_bad_arguments) ... ok
+test_mezzanine_mode (test_ladder_check.WholeRun.test_mezzanine_mode) ... ok
+test_pairs_the_ladder_doesnt_have_and_a_failed_run (test_ladder_check.WholeRun.test_pairs_the_ladder_doesnt_have_and_a_failed_run) ... ok
+test_the_options_given_by_their_long_names_in_the_order_given (test_run_delta.GivenOptions.test_the_options_given_by_their_long_names_in_the_order_given) ... ok
+test_bad_pairs_file (test_run_delta.RunDelta.test_bad_pairs_file) ... ok
+test_every_frame_and_a_count_mismatch (test_run_delta.RunDelta.test_every_frame_and_a_count_mismatch) ... ok
+test_failing_mirage_vmaf (test_run_delta.RunDelta.test_failing_mirage_vmaf) ... ok
+test_ffmpeg_libraries_and_conversions_of_a_current_mirage_vmaf (test_run_delta.RunDelta.test_ffmpeg_libraries_and_conversions_of_a_current_mirage_vmaf) ... ok
+test_large_json_outputs_are_compressed (test_run_delta.RunDelta.test_large_json_outputs_are_compressed) ... ok
+test_model_file_is_forwarded_and_checked (test_run_delta.RunDelta.test_model_file_is_forwarded_and_checked) ... ok
+test_model_options_are_checked (test_run_delta.RunDelta.test_model_options_are_checked) ... ok
+test_out_dir_must_be_new_or_empty (test_run_delta.RunDelta.test_out_dir_must_be_new_or_empty) ... ok
+test_pairs_are_compared_by_timestamp (test_run_delta.RunDelta.test_pairs_are_compared_by_timestamp) ... ok
+test_plain_run (test_run_delta.RunDelta.test_plain_run) ... ok
+test_pooled_harmonic_mean_of_a_current_mirage_vmaf (test_run_delta.RunDelta.test_pooled_harmonic_mean_of_a_current_mirage_vmaf) ... ok
+test_relabel_variant (test_run_delta.RunDelta.test_relabel_variant) ... ok
+test_scaler_is_checked_and_forwarded (test_run_delta.RunDelta.test_scaler_is_checked_and_forwarded) ... ok
+test_small_offsets_and_the_threshold (test_run_delta.RunDelta.test_small_offsets_and_the_threshold) ... ok
+test_the_default_scaler_is_bicubic_on_both_sides (test_run_delta.RunDelta.test_the_default_scaler_is_bicubic_on_both_sides) ... ok
+test_the_libvmaf_package_of_ffmpeg_given_where_its_path_names_none (test_run_delta.RunDelta.test_the_libvmaf_package_of_ffmpeg_given_where_its_path_names_none) ... ok
+test_the_libvmaf_package_of_ffmpeg_is_unknown_without_a_path_or_option (test_run_delta.RunDelta.test_the_libvmaf_package_of_ffmpeg_is_unknown_without_a_path_or_option) ... ok
+test_ffmpeg_command (test_vmafdelta.Commands.test_ffmpeg_command) ... ok
+test_filter_safe (test_vmafdelta.Commands.test_filter_safe) ... ok
+test_graph_is_phase_0s (test_vmafdelta.Commands.test_graph_is_phase_0s) ... ok
+test_graph_with_a_model_file (test_vmafdelta.Commands.test_graph_with_a_model_file) ... ok
+test_graph_with_frames_and_relabel (test_vmafdelta.Commands.test_graph_with_frames_and_relabel) ... ok
+test_help_options_and_forwarding (test_vmafdelta.Commands.test_help_options_and_forwarding) ... ok
+test_mirage_command (test_vmafdelta.Commands.test_mirage_command) ... ok
+test_probe_command_and_parse (test_vmafdelta.Commands.test_probe_command_and_parse) ... ok
+test_shell_line (test_vmafdelta.Commands.test_shell_line) ... ok
+test_a_report_without_conversions (test_vmafdelta.Conversions.test_a_report_without_conversions) ... ok
+test_another_conversion_is_a_warning (test_vmafdelta.Conversions.test_another_conversion_is_a_warning) ... ok
+test_both_sides_listed (test_vmafdelta.Conversions.test_both_sides_listed) ... ok
+test_the_same_conversion_is_no_warning (test_vmafdelta.Conversions.test_the_same_conversion_is_no_warning) ... ok
+test_a_model_file_where_ffmpeg_had_a_built_in_model (test_vmafdelta.EvaluatePair.test_a_model_file_where_ffmpeg_had_a_built_in_model) ... ok
+test_a_pair_at_another_timestamp_fails (test_vmafdelta.EvaluatePair.test_a_pair_at_another_timestamp_fails) ... ok
+test_both_libvmaf_versions_of_both_sides (test_vmafdelta.EvaluatePair.test_both_libvmaf_versions_of_both_sides) ... ok
+test_equal_scores_pass (test_vmafdelta.EvaluatePair.test_equal_scores_pass) ... ok
+test_failed_runs (test_vmafdelta.EvaluatePair.test_failed_runs) ... ok
+test_frame_count_mismatch_fails_first (test_vmafdelta.EvaluatePair.test_frame_count_mismatch_fails_first) ... ok
+test_frames_over_the_threshold_fail (test_vmafdelta.EvaluatePair.test_frames_over_the_threshold_fail) ... ok
+test_frames_scored_must_match_the_frames (test_vmafdelta.EvaluatePair.test_frames_scored_must_match_the_frames) ... ok
+test_mirage_vmafs_own_warnings (test_vmafdelta.EvaluatePair.test_mirage_vmafs_own_warnings) ... ok
+test_model_file_settings (test_vmafdelta.EvaluatePair.test_model_file_settings) ... ok
+test_pooled_values_of_both_sides (test_vmafdelta.EvaluatePair.test_pooled_values_of_both_sides) ... ok
+test_settings_mismatch_fails (test_vmafdelta.EvaluatePair.test_settings_mismatch_fails) ... ok
+test_the_ffmpeg_libraries_of_both_sides (test_vmafdelta.EvaluatePair.test_the_ffmpeg_libraries_of_both_sides) ... ok
+test_warnings_do_not_fail (test_vmafdelta.EvaluatePair.test_warnings_do_not_fail) ... ok
+test_sha256sums (test_vmafdelta.Files.test_sha256sums) ... ok
+test_xz_round_trip (test_vmafdelta.Files.test_xz_round_trip) ... ok
+test_colorspace_lines (test_vmafdelta.Log.test_colorspace_lines) ... ok
+test_colorspace_lines_warnings_and_refusals (test_vmafdelta.Log.test_colorspace_lines_warnings_and_refusals) ... ok
+test_graph_inputs (test_vmafdelta.Log.test_graph_inputs) ... ok
+test_library_versions (test_vmafdelta.Log.test_library_versions) ... ok
+test_scale_lines_and_conversions (test_vmafdelta.Log.test_scale_lines_and_conversions) ... ok
+test_compare_pairings (test_vmafdelta.Pairing.test_compare_pairings) ... ok
+test_ffmpeg_pairing (test_vmafdelta.Pairing.test_ffmpeg_pairing) ... ok
+test_ffmpeg_pairing_that_cant_be_established (test_vmafdelta.Pairing.test_ffmpeg_pairing_that_cant_be_established) ... ok
+test_framesync_events (test_vmafdelta.Pairing.test_framesync_events) ... ok
+test_input_starts (test_vmafdelta.Pairing.test_input_starts) ... ok
+test_mirage_pairing (test_vmafdelta.Pairing.test_mirage_pairing) ... ok
+test_rescale_and_framesync_time_base (test_vmafdelta.Pairing.test_rescale_and_framesync_time_base) ... ok
+test_showinfo_log (test_vmafdelta.Pairing.test_showinfo_log) ... ok
+test_a_failure_both_sides_skip_passes_with_a_warning (test_vmafdelta.PairingInTheReports.test_a_failure_both_sides_skip_passes_with_a_warning) ... ok
+test_ffmpeg_pairs_that_cant_be_established_fail_the_pair (test_vmafdelta.PairingInTheReports.test_ffmpeg_pairs_that_cant_be_established_fail_the_pair) ... ok
+test_ffmpegs_corrections_are_a_warning (test_vmafdelta.PairingInTheReports.test_ffmpegs_corrections_are_a_warning) ... ok
+test_pairs_only_one_side_scored_fail_the_pair (test_vmafdelta.PairingInTheReports.test_pairs_only_one_side_scored_fail_the_pair) ... ok
+test_committed_pairs_file (test_vmafdelta.ParsePairs.test_committed_pairs_file) ... ok
+test_errors (test_vmafdelta.ParsePairs.test_errors) ... ok
+test_lines_comments_and_blank_lines (test_vmafdelta.ParsePairs.test_lines_comments_and_blank_lines) ... ok
+test_local_strings (test_vmafdelta.Redaction.test_local_strings) ... ok
+test_longest_first_text_and_bytes (test_vmafdelta.Redaction.test_longest_first_text_and_bytes) ... ok
+test_real_path_too (test_vmafdelta.Redaction.test_real_path_too) ... ok
+test_a_report_without_reference_conversions (test_vmafdelta.ReferenceConversions.test_a_report_without_reference_conversions) ... ok
+test_other_conversions_are_a_warning (test_vmafdelta.ReferenceConversions.test_other_conversions_are_a_warning) ... ok
+test_the_inserted_scale_filter (test_vmafdelta.ReferenceConversions.test_the_inserted_scale_filter) ... ok
+test_the_same_conversions_are_no_warning (test_vmafdelta.ReferenceConversions.test_the_same_conversions_are_no_warning) ... ok
+test_color_space_differs (test_vmafdelta.Relabel.test_color_space_differs) ... ok
+test_range_differs_too (test_vmafdelta.Relabel.test_range_differs_too) ... ok
+test_same_tags (test_vmafdelta.Relabel.test_same_tags) ... ok
+test_untagged_reference (test_vmafdelta.Relabel.test_untagged_reference) ... ok
+test_numbers (test_vmafdelta.Reports.test_numbers) ... ok
+test_overall_markdown_states_both_libvmaf_versions (test_vmafdelta.Reports.test_overall_markdown_states_both_libvmaf_versions) ... ok
+test_overall_report_and_markdown (test_vmafdelta.Reports.test_overall_report_and_markdown) ... ok
+test_pair_markdown (test_vmafdelta.Reports.test_pair_markdown) ... ok
+test_relabel_variant_is_labeled (test_vmafdelta.Reports.test_relabel_variant_is_labeled) ... ok
+test_compare (test_vmafdelta.Scores.test_compare) ... ok
+test_compare_pairs_named_by_both_sides (test_vmafdelta.Scores.test_compare_pairs_named_by_both_sides) ... ok
+test_ffmpeg_scores (test_vmafdelta.Scores.test_ffmpeg_scores) ... ok
+test_index_ranges (test_vmafdelta.Scores.test_index_ranges) ... ok
+test_mirage_scores (test_vmafdelta.Scores.test_mirage_scores) ... ok
+test_threshold_is_exclusive (test_vmafdelta.Scores.test_threshold_is_exclusive) ... ok
+test_unequal_lengths_and_empty (test_vmafdelta.Scores.test_unequal_lengths_and_empty) ... ok
+
+----------------------------------------------------------------------
+Ran 136 tests in 29.530s
+
+OK
+(exit status 0; 29.7 s)
+
+$ TMPDIR=<scratch> python3 -I -B -m unittest discover -s eval/pooling/tests -v
+test_forms (test_pooling.Harmonic.test_forms) ... ok
+test_linear_is_definition_7 (test_pooling.Percentiles.test_linear_is_definition_7) ... ok
+test_nearest_rank (test_pooling.Percentiles.test_nearest_rank) ... ok
+test_today_is_the_analyzers_p5_rule (test_pooling.Percentiles.test_today_is_the_analyzers_p5_rule) ... ok
+test_a_percentile_rounded_step_by_step (test_pooling.PooledD027.test_a_percentile_rounded_step_by_step) ... ok
+test_known_values (test_pooling.PooledD027.test_known_values) ... ok
+test_libvmaf_sums_in_frame_order (test_pooling.PooledD027.test_libvmaf_sums_in_frame_order) ... ok
+test_check_pooled (test_pooling.Reports.test_check_pooled) ... ok
+test_gui_report_and_delta_run (test_pooling.Reports.test_gui_report_and_delta_run) ... ok
+test_zero_scores_and_errors (test_pooling.Reports.test_zero_scores_and_errors) ... ok
+test_min_and_the_first_frame (test_pooling.SeriesStats.test_min_and_the_first_frame) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.827s
+
+OK
+(exit status 0; 0.9 s)
+
+$ TMPDIR=<scratch> python3 -I -B -m unittest discover -s eval/streams/tests -v
+test_a_changed_playlist_is_flagged (test_fetch_streams.EndToEnd.test_a_changed_playlist_is_flagged) ... ok
+test_a_failed_fetch_fails_the_run (test_fetch_streams.EndToEnd.test_a_failed_fetch_fails_the_run) ... ok
+test_a_failed_master_stops_that_stream (test_fetch_streams.EndToEnd.test_a_failed_master_stops_that_stream) ... ok
+test_a_failed_probe_fails_the_run (test_fetch_streams.EndToEnd.test_a_failed_probe_fails_the_run) ... ok
+test_fetches_the_master_and_every_playlist_once (test_fetch_streams.EndToEnd.test_fetches_the_master_and_every_playlist_once) ... ok
+test_out_dir_must_be_new_or_empty (test_fetch_streams.EndToEnd.test_out_dir_must_be_new_or_empty) ... ok
+test_probe_runs_ffprobe_on_the_video_playlists_only (test_fetch_streams.EndToEnd.test_probe_runs_ffprobe_on_the_video_playlists_only) ... ok
+test_advanced_master (test_fetch_streams.Parsing.test_advanced_master) ... ok
+test_attributes_with_quoted_commas (test_fetch_streams.Parsing.test_attributes_with_quoted_commas) ... ok
+test_bipbop_master (test_fetch_streams.Parsing.test_bipbop_master) ... ok
+test_default_streams_file_lists_both_masters (test_fetch_streams.Parsing.test_default_streams_file_lists_both_masters) ... ok
+test_has_video_from_codecs_alone (test_fetch_streams.Parsing.test_has_video_from_codecs_alone) ... ok
+test_media_playlist_of_gear5 (test_fetch_streams.Parsing.test_media_playlist_of_gear5) ... ok
+test_media_playlist_tags (test_fetch_streams.Parsing.test_media_playlist_tags) ... ok
+test_names (test_fetch_streams.Parsing.test_names) ... ok
+test_streams_file (test_fetch_streams.Parsing.test_streams_file) ... ok
+
+----------------------------------------------------------------------
+Ran 16 tests in 0.795s
+
+OK
+(exit status 0; 0.9 s)
+
+$ TMPDIR=<scratch> python3 -I -B -m unittest discover -s eval/ladder/tests -v
+test_a_changed_score_fails (test_pool_check.PoolCheck.test_a_changed_score_fails) ... ok
+test_a_peak_over_the_memory_limit_fails (test_pool_check.PoolCheck.test_a_peak_over_the_memory_limit_fails) ... ok
+test_a_peak_under_the_memory_limit_passes (test_pool_check.PoolCheck.test_a_peak_under_the_memory_limit_passes) ... ok
+test_a_report_without_the_memory_limit_fails (test_pool_check.PoolCheck.test_a_report_without_the_memory_limit_fails) ... ok
+test_an_incomplete_run_fails (test_pool_check.PoolCheck.test_an_incomplete_run_fails) ... ok
+test_frames_0_scores_every_frame (test_pool_check.PoolCheck.test_frames_0_scores_every_frame) ... ok
+test_the_same_pairs_at_every_size_pass (test_pool_check.PoolCheck.test_the_same_pairs_at_every_size_pass) ... ok
+test_without_a_memory_limit_the_column_is_empty (test_pool_check.PoolCheck.test_without_a_memory_limit_the_column_is_empty) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 3.085s
+
+OK
+(exit status 0; 3.2 s)
+
+$ git status --porcelain
+(no output)
+(exit status 0; 0.1 s)
