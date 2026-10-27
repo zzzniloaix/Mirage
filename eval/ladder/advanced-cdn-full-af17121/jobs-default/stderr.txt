@@ -1,0 +1,18 @@
+mime type is not rfc8216 compliant
+mime type is not rfc8216 compliant
+mime type is not rfc8216 compliant
+mime type is not rfc8216 compliant
+mime type is not rfc8216 compliant
+mime type is not rfc8216 compliant
+[tls @ 0x8e3030fa0] Error in the pull function.
+[tls @ 0x8e3030fa0] IO error: Operation timed out
+[https @ 0x8e302d340] Error reading HTTP response: Operation timed out
+[hls @ 0x8e2874f00] keepalive request failed for 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v8/fileSequence27.ts' with error: 'Operation timed out' when opening url, retrying with new connection
+mime type is not rfc8216 compliant
+mime type is not rfc8216 compliant
+mime type is not rfc8216 compliant
+mime type is not rfc8216 compliant
+mime type is not rfc8216 compliant
+mime type is not rfc8216 compliant
+mime type is not rfc8216 compliant
+mime type is not rfc8216 compliant
