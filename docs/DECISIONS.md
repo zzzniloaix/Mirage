@@ -515,6 +515,33 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-042)
 - **Date**: 2026-10-26
 
+### D-050 Discontinuity sequences pair only where their jumps are at the same place
+
+- **Decision**: the k-th discontinuity sequences of the two inputs pair only where the jump that starts them is at the same place in both: where both inputs' (k − 1)-th sequences end within a frame of the coarser input of each other, in their own times. Where they don't, pairing stops at that sequence and every frame after it counts as failed, as D-028's rule counts the frames after a discontinuity (option 2 of "Discontinuity sequences that don't line up" in `docs/PHASE2_DECISIONS_PENDING.md`). Jumps at the same place pair as D-046 has them, and the sequences stay those of P-068, found where the timestamps jump; the playlists' tags (option 5) aren't read.
+- **Owner's words**: "Pair only aligned jumps (Recommended)", the owner's answer to the agent's question of 2026-10-27.
+- **Alternatives**: D-046 as P-068 implements it; a jump forward taken as a gap, not a sequence (options 3 and 4); the sequences from the playlists' tags.
+- **Rationale**: RFC 8216 (§6.2.4) has matching content in variant streams carry matching timestamps and discontinuity sequence numbers, so a tag's jump is at the same place in every rung of a ladder that follows it. Jumps at different places come from frames missing in one input, as when segments are skipped, and D-046's pairing paired those inputs' later sequences 12.012 s apart in M5's gaps (P-070).
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Date**: 2026-10-27
+
+### D-051 The memory limit counts each pair at what a pair uses plus 10%
+
+- **Decision**: with a memory limit, a pair starts only while the memory before the run, plus what a pair uses and 10% more for each running pair and the new one, stays within the limit; the rest of D-045's rule and P-072's warm-up stay as they are (option 2 of "The memory limit's peak"). The acceptance's runs check that the peak then stays under the limit.
+- **Owner's words**: "10% margin (Recommended)".
+- **Alternatives**: D-045's rule with P-072's warm-up as it is; a pair counted at the most one pair has used in the run; an estimate from the inputs' frame sizes and the queues' depths (D-045's alternative).
+- **Rationale**: one pair gains about 3% after its first 30 frame pairs (P-071, `warm_up.txt`), and with the rule as it was the peak at 1 GiB was 5.4% over the limit (P-072).
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Date**: 2026-10-27
+
+### D-052 No default memory limit
+
+- **Decision**: `mirage_vmaf --ladder` has a memory limit only when `--memory-limit` gives one; there is no default. This settles what D-045 left until M2 and M3 were measured.
+- **Owner's words**: "No default (Recommended)".
+- **Alternatives**: a default limit as a share of the machine's memory.
+- **Rationale**: by M2 one pair of the advanced sample with two 1080p60 inputs peaked at 292995072 bytes over 300 frame pairs, and at the default size 7 pairs at once peaked at 2009759744 bytes, on a machine with 38654705664 bytes (P-071).
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Date**: 2026-10-27
+
 ---
 
 ## Measurement / process choices (proposed by the agent, confirmed by the owner)

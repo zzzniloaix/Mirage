@@ -1,10 +1,31 @@
 # Phase 2: decisions pending for the owner
 
-What is open for the owner on `vmaf/phase-2`, §2 of the VMAF work order, after the decisions of 2026-10-26 on the survey (`docs/DECISIONS.md` D-042 to D-049). The decisions are the owner's (hard rule 3 of the work order); every recommendation below is labeled as the agent's. Every number comes from a committed output, named next to it; where there is none, it says MEASUREMENT PENDING. The state of each item of §2 is in `docs/PHASE2_STATUS.md`.
+What is open for the owner on `vmaf/phase-2`, §2 of the VMAF work order, after the decisions of 2026-10-26 on the survey (`docs/DECISIONS.md` D-042 to D-049) and of 2026-10-27 on what the measurements found (D-050 to D-052). The decisions are the owner's (hard rule 3 of the work order); every recommendation below is labeled as the agent's. Every number comes from a committed output, named next to it; where there is none, it says MEASUREMENT PENDING. The state of each item of §2 is in `docs/PHASE2_STATUS.md`.
 
 ## Open
 
+Nothing is open for the owner but the agent's choices to confirm, below; the questions of 2026-10-27 are decided, after them.
+
+## The agent's choices to confirm: P-067 to P-072
+
+| Entry | What |
+|---|---|
+| P-067 | how D-043 to D-048 are implemented: the pool, the memory limit and the end of a run |
+| P-068 | how D-046 is implemented: the discontinuity sequences from the timestamps |
+| P-069 | the measurements so far: the machine, M5, the local copy of the acceptance ladder and its check |
+| P-070 | M5's gaps, and the report's start after a discontinuity |
+| P-071 | M2, M3, the acceptance across pool sizes at 300 frames, and the memory limit's runs |
+| P-072 | the memory limit's rule: a pair's memory measured once it has warmed up |
+
+**Agent's recommendation**: confirm P-067 to P-072, as D-050 and D-051 change what P-068 and P-072 implement.
+
+## Decided on 2026-10-27 (D-050 to D-052)
+
+The owner's answers to the agent's questions of 2026-10-27 (`docs/DECISIONS.md` D-050 to D-052), each item with the text it had when it was decided, as the record of its options, and a note at its start on what was decided.
+
 ### Discontinuity sequences that don't line up (D-046; P-068, P-070)
+
+**Decided** (2026-10-27): D-050, option 2: the k-th sequences pair only where their jumps are at the same place in both inputs; elsewhere pairing stops, and the frames after count as failed. To be implemented after this record.
 
 **What M5's gaps show** (`eval/phase2-survey/m5-gaps/record.txt`; P-070). A synthetic ladder of two rungs in segments of about 2 s, whose playlists lack six segments in a row, about 12 s, without a tag, as when FFmpeg's hls demuxer skips segments it can't read:
 
@@ -34,6 +55,8 @@ In `both`, the 119 pairs make the second libvmaf context, from reference 21.4533
 
 ### The memory limit's peak (D-045; P-071, P-072)
 
+**Decided** (2026-10-27): D-051, option 2 with 10%: each pair, running or new, counted at what a pair uses plus 10%. To be implemented after this record, and checked by the acceptance's runs.
+
 **What the runs show.** `pool_check.py --jobs 1,0 --memory-limit 1G` on the local copy of Apple's advanced sample, the first 300 frame pairs of each of its 7 pairs, checks each run's peak against the limit (P-071):
 
 | Program | Rule | Most pairs at once | Peak resident memory, bytes | Record |
@@ -59,23 +82,14 @@ The limit is 1073741824 bytes; every run fails the check. With `dfed5a3`'s rule 
 
 ### D-045's default memory limit
 
+**Decided** (2026-10-27): D-052: no default limit, as recommended below.
+
 D-045 sets no default limit until M2 and M3 show what a pair uses. They are measured (`eval/phase2-survey/m2-m3/record.txt`; P-071): one pair of the advanced sample peaked at 292995072 bytes with two 1080p60 inputs and 272957440 with a 1080p60 and a 270p30 input, over 300 frame pairs, and the ladder one pair after another at 304955392 bytes; at the default size, 7 pairs at once peaked at 2009759744 bytes (`eval/ladder/advanced-local-300/`). The machine has 38654705664 bytes of memory (`eval/phase2-survey/machine.txt`).
 
 **Agent's recommendation.** No default limit: at the default size, 11 pairs of this ladder's size would need about 11 times one pair's peak, about 3.2 GB by M2, well under the machine's memory; a limit is for ladders whose pairs are larger, and the user who scores them gives it.
 
 ### P-068's departure from D-046's wording
 
+**Decided** (2026-10-27): D-050 keeps the sequences from the timestamp jumps, P-068's, and doesn't read the playlists' tags (its option 5).
+
 D-046 takes the sequences "from the playlists' `EXT-X-DISCONTINUITY` tags where there are any, else from the timestamp jumps"; P-068 takes them from the timestamp jumps alone. Provisional until the owner decides; the question above bears on it (its option 5).
-
-## The agent's choices to confirm: P-067 to P-072
-
-| Entry | What |
-|---|---|
-| P-067 | how D-043 to D-048 are implemented: the pool, the memory limit and the end of a run |
-| P-068 | how D-046 is implemented: the discontinuity sequences from the timestamps |
-| P-069 | the measurements so far: the machine, M5, the local copy of the acceptance ladder and its check |
-| P-070 | M5's gaps, and the report's start after a discontinuity |
-| P-071 | M2, M3, the acceptance across pool sizes at 300 frames, and the memory limit's runs |
-| P-072 | the memory limit's rule: a pair's memory measured once it has warmed up |
-
-**Agent's recommendation**: confirm P-067 and P-069 to P-072; P-068 with the question on discontinuity sequences, and P-067's memory limit with the question on its peak.
