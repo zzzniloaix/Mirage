@@ -1849,3 +1849,32 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: agent (Claude)
 - **Date**: 2026-10-27
 - **Status**: pending owner confirmation; the question the result raises is the owner's ("Discontinuity sequences that don't line up" in `docs/PHASE2_DECISIONS_PENDING.md`)
+
+### P-071 Phase 2's measurements: M2, M3, the acceptance across pool sizes at 300 frames, and the memory limit
+
+- **Choice**
+  - M2 and M3 by `eval/phase2-survey/m2_m3_baseline.sh`, with the `mirage_vmaf` that `eval/run_all.sh` built from `953d42e` on `vmaf/phase-1`, from before the pool (SHA-256 `aaac3630…`, `eval/run_all/2026-10-27-defaults-full/builds/head/build.txt` on that branch), on the local copy of Apple's advanced sample (`eval/streams/local-advanced-2026-10-26/`), the first 300 frame pairs (`eval/phase2-survey/m2-m3/record.txt`).
+  - D-049's runs across pool sizes: `eval/ladder/pool_check.py` at the sizes 1, 2, 4 and the default, the first 300 frame pairs of each pair, with a `mirage_vmaf` built in a new clean worktree of `1cc1ab0` (`eval/ladder/advanced-local-300/`).
+  - The memory limit at 300 frames: `pool_check.py --jobs 1,0 --memory-limit 1G`, 1 GiB being about three pairs' worth by M2 and under the default size's peak, so that the limit holds pairs back. Since `048a9ac` the check fails a run whose peak, by its report or by `/usr/bin/time -l`, is over the limit, with tests (`eval/ladder/tests/test_pool_check.py`). Run with the programs of `1cc1ab0`, `a3d011b` and `dfed5a3`, each built in a new clean worktree (`eval/ladder/advanced-local-300-mem1g-1cc1ab0/`, `-a3d011b/`, `-dfed5a3/`), the last two with one pair's peak memory after 1 to 300 frame pairs (`warm_up.txt`).
+  - Every run one at a time with nothing else running, on battery power, with no sleep (the records' READMEs).
+- **Alternatives**: the CDN, as D-049's one check run does; another limit; the wall times on AC power.
+- **Result**
+  - M2: the top rung, 1080p60, against `v8`, 1080p60, peaked at 292995072 bytes of resident memory in 4.20 s, against `v2`, 480x270 at 30 fps, at 272957440 bytes in 4.19 s. M3: the ladder's 7 pairs one after another, 304955392 bytes in 28.91 s.
+  - Across pool sizes: PASS, every pair the same at every size at full precision. The peaks were 304529408, 581894144, 1111425024 and 2009759744 bytes at the sizes 1, 2, 4 and the default, 11, at which 7 pairs ran at once; the wall times 33.146, 20.173, 13.558 and 14.553 s, one run each on battery power.
+  - The memory limit: FAIL with each program. The peak was 2011676672 bytes with 7 pairs at once (`1cc1ab0`), 1132167168 with 4 (`a3d011b`) and 1131544576 with 4 (`dfed5a3`), against the limit of 1073741824 (P-072).
+  - One pair's peak alone (`warm_up.txt` of `dfed5a3`): 128729088 bytes after 1 frame pair, then 271597568 after 5, 284639232 after 30 and 293208064 after 300; and in another run each, 293306368 after 300, 294453248 after 450, 295059456 after 600 and 301056000 over all 720 frame pairs of the copy (`eval/ladder/advanced-local-pair-memory/record.txt`).
+- **Who**: agent (Claude)
+- **Date**: 2026-10-27
+- **Status**: pending owner confirmation
+
+### P-072 The memory limit's rule: a pair's memory measured once it has warmed up
+
+- **Choice**
+  - `60c1f7b`: P-067's rule took a pair to use the memory gained since the run began shared out among the pairs running. At a run's start every worker asked at once, before any pair had allocated what it uses, so with 1 GiB all 7 pairs started within 0.34 ms (`eval/ladder/advanced-local-300-mem1g-1cc1ab0/`). A pair now warms up until it has scored `vmafladder::kWarmUp`, 30, frame pairs, or all of them if it has fewer, which `VMAFOptions::scored` counts for the pool; the player's analysis sets no counter. What a pair uses is measured while no pair is warming up, and kept at its largest; until it has been measured no other pair starts.
+  - `dfed5a3`: `60c1f7b` counted the pairs still warming up at that measure, and three started together once the first had warmed up (`-a3d011b/`). Now no pair starts while a running pair is warming up, so that each admission sees what every running pair uses: a pair starts while the resident memory, plus what a pair uses as measured then, stays within the limit, D-045's rule. `vmafladder::admits()` holds the rule, and `tests/test_vmaf_ladder.cpp` tests it on its own.
+- **Alternatives**: a fixed time between starts; a margin on what a pair uses; D-045's alternative, an estimate from the inputs' frame sizes.
+- **Rationale**: D-045 lets a pair in on what a running pair uses, which the resident memory shows only once the pair has allocated it. By `warm_up.txt` a pair alone is at 97% of its peak after 30 frame pairs, 284639232 bytes of 293208064 after 300.
+- **Result** (`eval/ladder/advanced-local-300-mem1g-dfed5a3/`): the pairs started one after another, each once the one before had warmed up, and 4 ran at once; the peak, 1131544576 bytes, is 5.4% over the limit of 1073741824. After the first four ended the others ran one at a time, and the report warns that pair 4 took the process over the limit on its own, at 1095270400 bytes, more than three times one pair's peak. Whether the limit should hold the peak, and how, is the owner's ("The memory limit's peak" in `docs/PHASE2_DECISIONS_PENDING.md`).
+- **Who**: agent (Claude)
+- **Date**: 2026-10-27
+- **Status**: pending owner confirmation

@@ -32,15 +32,42 @@ In `both`, the 119 pairs make the second libvmaf context, from reference 21.4533
 
 **Agent's recommendation.** Option 2. It keeps D-046 as decided wherever the jumps are at the same place in both inputs, which RFC 8216 makes every jump at a tag in a ladder that follows it, and it pairs no two sequences whose jumps are at different places: where they are, the frames after count as failed and the report warns, as with D-028's rule. Option 4 would keep the pairs after a gap in one input, at the cost of D-046's pairing of jumps of different sizes at the same place.
 
+### The memory limit's peak (D-045; P-071, P-072)
+
+**What the runs show.** `pool_check.py --jobs 1,0 --memory-limit 1G` on the local copy of Apple's advanced sample, the first 300 frame pairs of each of its 7 pairs, checks each run's peak against the limit (P-071):
+
+| Program | Rule | Most pairs at once | Peak resident memory, bytes | Record |
+|---|---|---|---|---|
+| `1cc1ab0` | P-067's | 7 | 2011676672 | `eval/ladder/advanced-local-300-mem1g-1cc1ab0/` |
+| `a3d011b` | `60c1f7b`'s | 4 | 1132167168 | `-a3d011b/` |
+| `dfed5a3` | `dfed5a3`'s, D-045's with a warm-up | 4 | 1131544576 | `-dfed5a3/` |
+
+The limit is 1073741824 bytes; every run fails the check. With `dfed5a3`'s rule (P-072) the pairs start one after another, each once the one before has scored its first 30 frame pairs, and a pair starts while the resident memory, plus what a pair uses as measured then, stays within the limit, as D-045 has it. The fourth pair fitted when it started; then the four grew, to a peak 5.4% over the limit. A pair alone is at 97% of its 300-frame peak after 30 frame pairs, 284639232 bytes of 293208064 (`warm_up.txt`), and beyond that its peak grows little: 293306368, 294453248 and 295059456 bytes after 300, 450 and 600 frame pairs, and 301056000 over all 720 of the copy (`eval/ladder/advanced-local-pair-memory/record.txt`).
+
+**Memory that stays resident.** After the first four pairs ended, the other three ran one at a time, and the report warns that pair 4 took the process over the limit on its own, at 1095270400 bytes of resident memory, more than three times one pair's peak; the run before the fix warned the same of pair 7 at 1331806208 bytes (`-1cc1ab0/README.md`). The resident memory then still counted memory the ended pairs had used. Which of the process's memory measures drops when a pair ends is MEASUREMENT PENDING.
+
+**Question.** Should the limit hold the peak under it, as D-049's acceptance checks, and how?
+
+**Options.**
+
+1. As now: D-045's rule with the warm-up. The peak can exceed the limit by what the running pairs gain after the last pair started: 5.4% at 1 GiB here. The acceptance's check fails for a limit just above what a whole number of pairs used when the last one started.
+2. A margin: each pair counted at what it uses plus a share, such as 10%, the share to be checked by the acceptance's runs.
+3. A pair counted at the most one pair has used in the run so far, once a pair has completed alone; before that, as option 1.
+4. D-045's alternative: an estimate from the inputs' frame sizes and the queues' depths, before a pair starts.
+
+**Agent's recommendation.** Option 2 with 10%, more than three times the 3% one pair gains after its warm-up in `warm_up.txt`, so that the check of D-049's runs can hold; the runs at 300 frames and over every frame then show whether it does. Separately, measuring which memory measure drops when a pair ends would show whether the pool can run more pairs once the first have ended.
+
 ### D-045's default memory limit
 
-D-045 sets no default limit until M2 and M3 are measured: one pair's peak resident memory and wall time, and the ladder's, by a `mirage_vmaf` from before the pool (`eval/phase2-survey/m2_m3_baseline.sh`; MEASUREMENT PENDING).
+D-045 sets no default limit until M2 and M3 show what a pair uses. They are measured (`eval/phase2-survey/m2-m3/record.txt`; P-071): one pair of the advanced sample peaked at 292995072 bytes with two 1080p60 inputs and 272957440 with a 1080p60 and a 270p30 input, over 300 frame pairs, and the ladder one pair after another at 304955392 bytes; at the default size, 7 pairs at once peaked at 2009759744 bytes (`eval/ladder/advanced-local-300/`). The machine has 38654705664 bytes of memory (`eval/phase2-survey/machine.txt`).
+
+**Agent's recommendation.** No default limit: at the default size, 11 pairs of this ladder's size would need about 11 times one pair's peak, about 3.2 GB by M2, well under the machine's memory; a limit is for ladders whose pairs are larger, and the user who scores them gives it.
 
 ### P-068's departure from D-046's wording
 
 D-046 takes the sequences "from the playlists' `EXT-X-DISCONTINUITY` tags where there are any, else from the timestamp jumps"; P-068 takes them from the timestamp jumps alone. Provisional until the owner decides; the question above bears on it (its option 5).
 
-## The agent's choices to confirm: P-067 to P-070
+## The agent's choices to confirm: P-067 to P-072
 
 | Entry | What |
 |---|---|
@@ -48,5 +75,7 @@ D-046 takes the sequences "from the playlists' `EXT-X-DISCONTINUITY` tags where 
 | P-068 | how D-046 is implemented: the discontinuity sequences from the timestamps |
 | P-069 | the measurements so far: the machine, M5, the local copy of the acceptance ladder and its check |
 | P-070 | M5's gaps, and the report's start after a discontinuity |
+| P-071 | M2, M3, the acceptance across pool sizes at 300 frames, and the memory limit's runs |
+| P-072 | the memory limit's rule: a pair's memory measured once it has warmed up |
 
-**Agent's recommendation**: confirm P-067, P-069 and P-070; P-068 with the question above.
+**Agent's recommendation**: confirm P-067 and P-069 to P-072; P-068 with the question on discontinuity sequences, and P-067's memory limit with the question on its peak.
