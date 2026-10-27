@@ -89,9 +89,10 @@ python3 -I -B -m unittest discover -s eval/tests -v
 python3 -I -B -m unittest discover -s eval/consistency/tests -v
 python3 -I -B -m unittest discover -s eval/pooling/tests -v
 python3 -I -B -m unittest discover -s eval/streams/tests -v
+python3 -I -B -m unittest discover -s eval/ladder/tests -v
 ```
 
-None of them needs the network. `tests/test_run_all.py` checks every step against the committed `run.cmd.txt` and `checks.txt` files, fails when a committed run has no step, and runs the whole script with the stand-ins of `consistency/tests/fake_tools.py`.
+None of them needs the network. `tests/test_run_all.py` checks every step against the committed `run.cmd.txt` and `checks.txt` files, fails when a committed run has no step, and runs the whole script with the stand-ins of `consistency/tests/fake_tools.py`. `ladder/tests/test_pool_check.py` runs `ladder/pool_check.py` with a stand-in for `mirage_vmaf`, on macOS only, as the check runs `/usr/bin/time -l`.
 
 ## The run of 2026-10-23
 

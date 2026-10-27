@@ -8,13 +8,15 @@ usage: python3 -I -B eval/ladder/pool_check.py <mirage_vmaf> <out_dir> --ladder 
 Runs `mirage_vmaf --ladder <master> --jobs J` once for each J (default 1,2,4 and the default
 size, given as 0: no --jobs), each with `/usr/bin/time -l` for its peak resident memory, and
 compares the reports: the same plan, the same pairs complete, and every pair's per-frame
-scores, frame indices and timestamps equal at full precision. Writes into <out_dir>, a new or
-empty directory: jobs-<J>/report.json.xz, stdout.txt, stderr.txt and time.txt for each run;
-cmd.txt (every command, with <mirage_vmaf>, <ladder>, <ladder_dir> and <out_dir> for
-paths); check.md and
+scores, frame indices and timestamps equal at full precision. With --memory-limit, given to
+every run, it also checks each run's peak resident memory against the limit as its report
+gives it (pool.memory_limit, in bytes): the report's pool.peak_resident and /usr/bin/time -l's
+maximum resident set size. Writes into <out_dir>, a new or empty directory:
+jobs-<J>/report.json.xz, stdout.txt, stderr.txt and time.txt for each run; cmd.txt (every
+command, with <mirage_vmaf>, <ladder>, <ladder_dir> and <out_dir> for paths); check.md and
 check.json (the verdict, each run's pool fields and times, each pair's comparison); and
-SHA256SUMS. PASS when every run is complete and every pair is the same in every run.
-Python 3 standard library only.
+SHA256SUMS. PASS when every run is complete, every pair is the same in every run, and no
+run's peak is over a memory limit it was given. Python 3 standard library only.
 """
 
 import argparse
@@ -102,6 +104,17 @@ def main(argv=None):
             problems.append(f"jobs {r['jobs_given']}: no report")
         elif rep.get("status") != "complete":
             problems.append(f"jobs {r['jobs_given']}: the run is {rep.get('status')}")
+        limit = ((rep or {}).get("pool") or {}).get("memory_limit")
+        if a.memory_limit and limit is None:
+            problems.append(f"jobs {r['jobs_given']}: the report gives no memory limit")
+        elif limit is not None:
+            for what, peak in (("the report's peak resident memory",
+                                ((rep or {}).get("pool") or {}).get("peak_resident")),
+                               ("/usr/bin/time -l's maximum resident set size",
+                                r["max_rss_time_l"])):
+                if peak is None or peak > limit:
+                    problems.append(f"jobs {r['jobs_given']}: {what}, {peak}, is over the "
+                                    f"memory limit, {limit}")
     if first is not None:
         for k, p0 in enumerate(first.get("pairs") or []):
             row = {"index": p0.get("index"), "dis": shown((p0.get("dis") or {}).get("url") or ""),
@@ -135,12 +148,14 @@ def main(argv=None):
              f"(`cmd.txt`).",
              "- PASS when every run is complete and each pair's frames (indices, timestamps, "
              "scores at full precision) and pooled values are the same in every run.", "",
-             "| --jobs | exit | status | pool size | most at once | peak resident (report) | "
-             "max RSS (time -l) | wall s |", "|---|---|---|---|---|---|---|---|"]
+             "| --jobs | exit | status | pool size | most at once | memory limit | "
+             "peak resident (report) | max RSS (time -l) | wall s |",
+             "|---|---|---|---|---|---|---|---|---|"]
     for r in summary["runs"]:
         pool = r["pool"] or {}
         lines.append(f"| {r['jobs_given'] or 'default'} | {r['exit']} | {r['status']} | "
                      f"{pool.get('jobs')} | {pool.get('max_running')} | "
+                     f"{pool.get('memory_limit') or '-'} | "
                      f"{pool.get('peak_resident')} | {r['max_rss_time_l']} | {r['wall_s']} |")
     lines += ["", "| pair | distorted | frames | " +
               " | ".join(f"same at --jobs {r['jobs_given'] or 'default'}" for r in runs[1:]) + " |",
