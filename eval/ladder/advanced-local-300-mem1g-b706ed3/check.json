@@ -1,0 +1,119 @@
+{
+ "verdict": "PASS",
+ "problems": [],
+ "frames": 300,
+ "memory_limit_given": "1G",
+ "runs": [
+  {
+   "jobs_given": 1,
+   "exit": 0,
+   "wall_s": 23.591,
+   "max_rss_time_l": 304906240,
+   "pool": {
+    "jobs": 1,
+    "memory_limit": 1073741824,
+    "max_running": 1,
+    "pair_memory": null,
+    "peak_resident": 304021504,
+    "warnings": []
+   },
+   "pairs_complete": 7,
+   "status": "complete"
+  },
+  {
+   "jobs_given": 0,
+   "exit": 0,
+   "wall_s": 19.762,
+   "max_rss_time_l": 913162240,
+   "pool": {
+    "jobs": 11,
+    "memory_limit": 1073741824,
+    "max_running": 3,
+    "pair_memory": 896270336,
+    "peak_resident": 913162240,
+    "warnings": []
+   },
+   "pairs_complete": 7,
+   "status": "complete"
+  }
+ ],
+ "pairs": [
+  {
+   "index": 0,
+   "dis": "<ladder_dir>/v5/prog_index.m3u8",
+   "frames": 300,
+   "same_in": [
+    {
+     "jobs_given": 0,
+     "same": true
+    }
+   ]
+  },
+  {
+   "index": 1,
+   "dis": "<ladder_dir>/v8/prog_index.m3u8",
+   "frames": 300,
+   "same_in": [
+    {
+     "jobs_given": 0,
+     "same": true
+    }
+   ]
+  },
+  {
+   "index": 2,
+   "dis": "<ladder_dir>/v7/prog_index.m3u8",
+   "frames": 300,
+   "same_in": [
+    {
+     "jobs_given": 0,
+     "same": true
+    }
+   ]
+  },
+  {
+   "index": 3,
+   "dis": "<ladder_dir>/v6/prog_index.m3u8",
+   "frames": 300,
+   "same_in": [
+    {
+     "jobs_given": 0,
+     "same": true
+    }
+   ]
+  },
+  {
+   "index": 4,
+   "dis": "<ladder_dir>/v4/prog_index.m3u8",
+   "frames": 300,
+   "same_in": [
+    {
+     "jobs_given": 0,
+     "same": true
+    }
+   ]
+  },
+  {
+   "index": 5,
+   "dis": "<ladder_dir>/v3/prog_index.m3u8",
+   "frames": 300,
+   "same_in": [
+    {
+     "jobs_given": 0,
+     "same": true
+    }
+   ]
+  },
+  {
+   "index": 6,
+   "dis": "<ladder_dir>/v2/prog_index.m3u8",
+   "frames": 300,
+   "same_in": [
+    {
+     "jobs_given": 0,
+     "same": true
+    }
+   ]
+  }
+ ]
+}
