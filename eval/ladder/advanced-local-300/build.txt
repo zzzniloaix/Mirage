@@ -1,0 +1,5 @@
+$ git rev-parse HEAD
+1cc1ab0bb5386fe9ec7841af7f0889eb6e5da963
+$ git status --porcelain
+$ shasum -a 256 build/macos-release/mirage_vmaf
+1536b315b003269a8f3fb6dd033604c5613862139d9bb2ffae66d6099de1d03e  <mirage_vmaf>
