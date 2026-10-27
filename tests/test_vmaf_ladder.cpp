@@ -804,25 +804,19 @@ TEST_CASE("vmafladder::admits: the memory limit's rule", "[ladder]")
     CHECK(admits(1500, 5000, 100, 0, 0, per_pair));
     CHECK(per_pair == 0);
 
-    // The start of a run: the first pair is warming up and nothing is
-    // measured, so the next waits, whatever the resident memory says.
+    // While a pair is warming up no other starts, whatever the resident
+    // memory says, and nothing is measured.
     CHECK_FALSE(admits(1500, 100, 100, 1, 1, per_pair));
     CHECK_FALSE(admits(std::uint64_t{ 1 } << 30, 120, 100, 1, 1, per_pair));
+    CHECK_FALSE(admits(1500, 0, 100, 1, 1, per_pair));
+    CHECK_FALSE(admits(std::uint64_t{ 1 } << 30, 1000, 100, 3, 1, per_pair));
     CHECK(per_pair == 0);
-    // Unknown memory: the limit can't hold a pair back.
-    CHECK(admits(1500, 0, 100, 1, 1, per_pair));
 
-    // Warmed up, a pair is measured at 1000 - 100 = 900; 1000 + 900 is over
-    // 1500 and within 1900.
+    // None warming up: a pair is measured at 1000 - 100 = 900; 1000 + 900 is
+    // over 1500 and within 1900.
     CHECK_FALSE(admits(1500, 1000, 100, 1, 0, per_pair));
     CHECK(per_pair == 900);
     CHECK(admits(1900, 1000, 100, 1, 0, per_pair));
-
-    // A pair still warming up counts at the measured 900: 1000 + 2 * 900, and
-    // nothing is measured while it warms up.
-    CHECK(admits(2800, 1000, 100, 2, 1, per_pair));
-    CHECK_FALSE(admits(2799, 1000, 100, 2, 1, per_pair));
-    CHECK(per_pair == 900);
 
     // The largest measurement stays: two pairs at 1500 use 700 each.
     CHECK(admits(2400, 1500, 100, 2, 0, per_pair));
@@ -830,6 +824,13 @@ TEST_CASE("vmafladder::admits: the memory limit's rule", "[ladder]")
     // A larger one replaces it: two pairs at 2100 use 1000 each.
     CHECK_FALSE(admits(3000, 2100, 100, 2, 0, per_pair));
     CHECK(per_pair == 1000);
+
+    // Unknown memory, none warming up: the limit can't hold a pair back.
+    CHECK(admits(1500, 0, 100, 2, 0, per_pair));
+    // Memory that hasn't grown measures nothing, and no pair starts.
+    std::uint64_t none = 0;
+    CHECK_FALSE(admits(1500, 100, 100, 1, 0, none));
+    CHECK(none == 0);
 }
 
 TEST_CASE("vmafproc: the machine's cores and the process's memory", "[ladder]")

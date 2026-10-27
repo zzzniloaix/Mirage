@@ -321,11 +321,11 @@ bool admits(std::uint64_t limit, std::uint64_t now, std::uint64_t baseline, unsi
             unsigned warming, std::uint64_t& per_pair)
 {
     if (limit == 0 || running == 0) return true;
-    if (now == 0) return true;   // unknown: the limit can't hold a pair back
-    if (warming == 0)
-        per_pair = std::max(per_pair, (now > baseline ? now - baseline : 0) / running);
-    if (per_pair == 0) return false;   // nothing measured yet
-    return now + (warming + 1) * per_pair <= limit;
+    if (warming > 0) return false;   // what it uses doesn't show yet
+    if (now == 0) return true;       // unknown: the limit can't hold a pair back
+    per_pair = std::max(per_pair, (now > baseline ? now - baseline : 0) / running);
+    if (per_pair == 0) return false;   // nothing measured
+    return now + per_pair <= limit;
 }
 
 Result score(const std::string& ladder, const std::string& mezzanine, const VMAFOptions& opts,
@@ -393,7 +393,7 @@ Result score(const std::string& ladder, const std::string& mezzanine, const VMAF
     };
 
     // With the lock held: the running pairs that haven't scored warm_at frame
-    // pairs yet, whose memory may not show in the resident memory.
+    // pairs yet, whose memory may not show in the resident memory yet.
     const auto warming = [&] {
         unsigned w = 0;
         for (std::size_t k = 0; k < n; ++k)
