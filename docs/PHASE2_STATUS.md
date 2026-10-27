@@ -24,7 +24,7 @@ Phase 2 of the VMAF work order is its §2, ladder orchestration, on the branch `
 
 ## Tests
 
-The pool, the memory limit with a stand-in for the memory reading and its rule on its own (`vmafladder::admits`), the cancel, a failed pair, the options and the report's new fields (`tests/test_vmaf_ladder.cpp`, `test_vmaf_cli.cpp`, `test_vmaf_report.cpp`); the acceptance's check with a stand-in for `mirage_vmaf` (`eval/ladder/tests/test_pool_check.py`); the discontinuity sequences, and D-050's jumps at different places, on timestamp sequences and on MPEG-TS clips (`tests/test_vmaf_align.cpp`, `test_vmaf_analyzer.cpp`). The unit test record of Phase 2 is MEASUREMENT PENDING.
+The pool, the memory limit with a stand-in for the memory reading and its rule on its own (`vmafladder::admits`), the cancel, a failed pair, the options and the report's new fields (`tests/test_vmaf_ladder.cpp`, `test_vmaf_cli.cpp`, `test_vmaf_report.cpp`); the acceptance's check with a stand-in for `mirage_vmaf` (`eval/ladder/tests/test_pool_check.py`); the discontinuity sequences, and D-050's jumps at different places, on timestamp sequences and on MPEG-TS clips (`tests/test_vmaf_align.cpp`, `test_vmaf_analyzer.cpp`). In a clean worktree at `1db7b89`, whose code and tests are those of `cee3540`, `mirage_tests '~[audio]'` passed at the first run, 112439 assertions in 325 test cases, and the five Python suites passed, 28, 136, 11, 16 and 8 tests (`eval/test_runs/macos-2026-10-27-1db7b89.txt`; P-073).
 
 ## Open for the owner
 
