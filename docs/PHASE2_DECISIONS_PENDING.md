@@ -6,14 +6,14 @@ What is open for the owner on `vmaf/phase-2`, §2 of the VMAF work order, after 
 
 Nothing is open for the owner but the agent's choices to confirm, below; the questions of 2026-10-27 are decided, after them.
 
-**For information.** With a memory limit, once the first pairs have ended the others run one at a time, in every run at 1 GiB, and the report's `pair_memory` at 300 frames was more than three times one pair's peak: the resident memory still counts memory the ended pairs used (`eval/ladder/advanced-local-300-mem1g-b706ed3/README.md`; P-074). Which of the process's memory measures drops when a pair ends is MEASUREMENT PENDING.
+**For information.** With a memory limit, once the first pairs had ended the others ran one at a time in each run at 1 GiB over 300 frame pairs but the first, in which all 7 started at once (`eval/ladder/advanced-local-300-mem1g-1cc1ab0/`), and in the run over every frame with D-051's 10%; in the run over every frame with D-053's 25%, the next two pairs ran together once the first two had ended, and only the last three one at a time (`eval/ladder/advanced-cdn-full-b706ed3/README.md`). The report's `pair_memory` at 300 frames was more than three times one pair's peak, so at times the resident memory still counted memory of pairs that had ended (`eval/ladder/advanced-local-300-mem1g-b706ed3/README.md`; P-074). Which of the process's memory measures drops when a pair ends, and when, is MEASUREMENT PENDING.
 
 ## The agent's choices to confirm: P-067 to P-076
 
 | Entry | What |
 |---|---|
 | P-067 | how D-043 to D-048 are implemented: the pool, the memory limit and the end of a run |
-| P-068 | how D-046 is implemented: the discontinuity sequences from the timestamps |
+| P-068 | how D-046 is implemented: the discontinuity sequences from the timestamps; its statement on `a07_restart` no longer describes the code under D-050 (its correction, P-073) |
 | P-069 | the measurements so far: the machine, M5, the local copy of the acceptance ladder and its check |
 | P-070 | M5's gaps, and the report's start after a discontinuity |
 | P-071 | M2, M3, the acceptance across pool sizes at 300 frames, and the memory limit's runs |
@@ -74,6 +74,8 @@ In `both`, the 119 pairs make the second libvmaf context, from reference 21.4533
 The limit is 1073741824 bytes; every run fails the check. With `dfed5a3`'s rule (P-072) the pairs start one after another, each once the one before has scored its first 30 frame pairs, and a pair starts while the resident memory, plus what a pair uses as measured then, stays within the limit, as D-045 has it. The fourth pair fitted when it started; then the four grew, to a peak 5.4% over the limit. A pair alone is at 97% of its 300-frame peak after 30 frame pairs, 284639232 bytes of 293208064 (`warm_up.txt`), and beyond that its peak grows little: 293306368, 294453248 and 295059456 bytes after 300, 450 and 600 frame pairs, and 301056000 over all 720 of the copy (`eval/ladder/advanced-local-pair-memory/record.txt`).
 
 **Memory that stays resident.** After the first four pairs ended, the other three ran one at a time, and the report warns that pair 4 took the process over the limit on its own, at 1095270400 bytes of resident memory, more than three times one pair's peak; the run before the fix warned the same of pair 7 at 1331806208 bytes (`-1cc1ab0/README.md`). The resident memory then still counted memory the ended pairs had used. Which of the process's memory measures drops when a pair ends is MEASUREMENT PENDING.
+
+**Correction** (2026-10-28): the warning's "pair 4 of 7" counts pairs from 1; it is the pair of index 3, which ran alone from 8.399 s to 8.746 s, when the other three of the first wave had ended, not a pair after the first four (P-072's correction).
 
 **Question.** Should the limit hold the peak under it, as D-049's acceptance checks, and how?
 
