@@ -107,7 +107,8 @@ struct VMAFAlignmentFailure {
 };
 
 // One libvmaf context of a pair: the pairs it scored, from first_index on.
-// A new one starts after each gap in the reference's frames (D-028).
+// A new one starts after each gap in the reference's frames (D-028) and at
+// each discontinuity sequence but the first (D-046).
 struct VMAFContextRun {
     unsigned first_index = 0;
     unsigned pairs       = 0;

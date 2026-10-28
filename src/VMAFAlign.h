@@ -129,7 +129,7 @@ enum class Reason {
     ExtraDistorted,       // a distorted frame that paired with no reference frame
     DuplicateDistorted,   // a distorted frame with the timestamp of the one before it
     NoTimestamp,          // a frame without a timestamp
-    AfterDiscontinuity,   // before D-046: a frame not paired or counted yet when pairing stopped
+    AfterDiscontinuity,   // a frame not paired or counted yet when pairing stopped (D-050)
 };
 
 // "unmatched_reference", "extra_distorted", ... as the report names them.

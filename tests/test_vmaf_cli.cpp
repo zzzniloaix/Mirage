@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 
 #include "TestTemp.h"
@@ -183,6 +184,35 @@ TEST_CASE("vmafcli::usage: lists every option", "[vmafcli]")
     CHECK(contains(u, "couldn't be read or was refused"));
     CHECK(contains(u, "The pool: --jobs pairs are scored at a time"));   // D-043 to D-047
     CHECK_FALSE(contains(u, "in the order the decoders output them"));
+
+    // The decided behaviour, across the help's line breaks.
+    std::string flat = u;
+    std::replace(flat.begin(), flat.end(), '\n', ' ');
+    // D-050: sequences pair only where their jumps are at the same place.
+    CHECK(contains(flat, "where the jump before them is at the same place in both inputs"));
+    CHECK(contains(flat, "Where it isn't, pairing stops there"));
+    CHECK_FALSE(contains(flat, "a sequence only one input has pairs with nothing"));
+    // D-043 and D-047: the pool, and the report of a cancelled or failed ladder run.
+    CHECK_FALSE(contains(flat, "one after another"));
+    CHECK(contains(flat, "--jobs pairs at a time"));
+    CHECK(contains(flat, "the run was cancelled by SIGINT or SIGTERM"));
+    CHECK(contains(flat, "(the report is written, with the complete pairs"));
+    CHECK_FALSE(contains(flat, "a pair couldn't be scored (no report is left behind)"));
+    // The 5 s limits aren't the player's playback limits, and SIZE's suffixes are binary.
+    CHECK_FALSE(contains(flat, "the player's: a connection attempt"));
+    CHECK(contains(flat, "K, M, G or T for KiB, MiB, GiB or TiB"));
+    // No help line is wider than the options' rows.
+    std::size_t from = 0;
+    while (from < u.size()) {
+        const std::size_t to = std::min(u.find('\n', from), u.size());
+        const std::string_view line(u.data() + from, to - from);
+        if (!line.starts_with("Usage:") && !line.starts_with("       mirage_vmaf") &&
+            !line.starts_with("  -")) {
+            INFO(line);
+            CHECK(line.size() <= 80);
+        }
+        from = to + 1;
+    }
 }
 
 // ── --ladder and --mezzanine (D-029) ──────────────────────────────────────────
