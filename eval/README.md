@@ -208,3 +208,12 @@ None of them needs the network. `tests/test_run_all.py` checks every step agains
 - Everything compared is as committed (`rerun_check.md`): every pair's verdict, all 53946 per-frame scores of every pair on Mirage's side at full precision, every libvmaf metric of FFmpeg's logs, and every pooling series.
 - The program it built from `953d42e` has the SHA-256 of the one the rerun above built from `bbc669d`, `aaac3630…`; `consistency/defaults-full/build.txt` names another build, `9f04085f…`, whose scores it reproduces exactly.
 - It took 3172.9 s of wall time, the build included, of which 3089.7 s for `defaults-full` (`run_all.md`).
+
+## The rerun of every step with the Phase 2 program, 2026-10-27, which the machine's sleep cut short
+
+`run_all/2026-10-27-phase2/` keeps the record of `eval/run_all.sh <out_dir> --jobs 4`, made on `vmaf/phase-2` from a new clean worktree of `4587c2d`, the head after D-053's implementation, with no program given (P-076): every step, the four over every frame included, with the Phase 2 program and the three earlier programs built from their commits. Like `2026-10-26-d035/` it also keeps the reports and logs of the failed `acceptance-full` run, the machine's sleep and wake events and the CPU times of the stopped processes, with a `README.md` that says what happened.
+
+- 25 of the 27 steps found everything as committed (`rerun_check.md`), `defaults-full` over every frame, `align-cases-before` and `align-cases-d028`, `ladder-300` and `negotiation-cases` among them: in them the Phase 2 program, its pool, D-046's and D-050's pairing and D-051's and D-053's memory limit, which no step sets, changed no committed verdict or score.
+- `acceptance-full` did not, nor `pooling-full`, which reads it. Its pair `gear3_vs_gear5` is as committed. The machine went to sleep with its lid closed 23 minutes into the step; two `ffmpeg` processes made no progress after it woke until they were stopped with SIGTERM, and `mirage_vmaf`'s reports of three pairs scored fewer frames, with D-028's warning (`README.md`, `power_log.txt`, `stall_check.txt`).
+- The program it built from `4587c2d` has the SHA-256 `6348ea3a5fd022e55603b0731b2af2f3a72c29d1b901eb1f133c76c0b7d86f40`, that of the build of `b706ed3` in `ladder/advanced-local-300-mem1g-b706ed3/build.txt`; the ones built from `e8b867f`, `d993686` and `83c8ed6` have the SHA-256s of the runs they reran.
+- `run_all.md` gives 7007.0 s of wall time, the four builds included; it counts only the time the machine was awake (`README.md`).

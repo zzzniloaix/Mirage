@@ -1,6 +1,6 @@
 # Phase 2 status
 
-Phase 2 of the VMAF work order is its §2, ladder orchestration, on the branch `vmaf/phase-2`, made from `vmaf/phase-1` before Phase 1 is merged (`docs/DECISIONS.md` D-042). This file says, for each item of §2, what the branch does and which committed output shows it, and what remains. Every number comes from a committed output named next to it; where there is none, it says MEASUREMENT PENDING. The survey that preceded the work is `docs/PHASE2_SURVEY.md`; the owner's decisions on it are D-042 to D-049, those on what the measurements found D-050 to D-053, and the agent's choices in implementing and measuring them P-067 to P-075. What is open for the owner is in `docs/PHASE2_DECISIONS_PENDING.md`.
+Phase 2 of the VMAF work order is its §2, ladder orchestration, on the branch `vmaf/phase-2`, made from `vmaf/phase-1` before Phase 1 is merged (`docs/DECISIONS.md` D-042). This file says, for each item of §2, what the branch does and which committed output shows it, and what remains. Every number comes from a committed output named next to it; where there is none, it says MEASUREMENT PENDING. The survey that preceded the work is `docs/PHASE2_SURVEY.md`; the owner's decisions on it are D-042 to D-049, those on what the measurements found D-050 to D-053, and the agent's choices in implementing and measuring them P-067 to P-076. What is open for the owner is in `docs/PHASE2_DECISIONS_PENDING.md`.
 
 | §2 item | Status | Where |
 |---|---|---|
@@ -28,10 +28,10 @@ The pool, the memory limit with a stand-in for the memory reading and its rule o
 
 ## Open for the owner
 
-P-067 to P-075, the agent's choices, pending confirmation (`docs/PHASE2_DECISIONS_PENDING.md`). The owner decided the questions of 2026-10-27 (D-050 to D-053).
+P-067 to P-076, the agent's choices, pending confirmation (`docs/PHASE2_DECISIONS_PENDING.md`). The owner decided the questions of 2026-10-27 (D-050 to D-053).
 
 For information: with a memory limit, once the first pairs have ended the others ran one at a time in every run at 1 GiB, as the resident memory still counted what the ended pairs had used, and at 300 frames the report's `pair_memory` was more than three times one pair's peak (`eval/ladder/advanced-local-300-mem1g-dfed5a3/README.md`, `-af17121/README.md`, `-b706ed3/README.md`); which of the process's memory measures drops when a pair ends is MEASUREMENT PENDING.
 
 ## Before the Phase 2 PR
 
-Phase 1's PR first (hard rule 5: one PR per phase); then the acceptance runs, a unit test record and a rerun of every committed measurement with the Phase 2 program, and this branch brought up to date with Phase 1's.
+Phase 1's PR first (hard rule 5: one PR per phase); then this branch brought up to date with Phase 1's. Done: the acceptance runs (P-071 to P-075), the unit test records (`eval/test_runs/`), and the rerun of every committed measurement with the Phase 2 program, which found 25 of its 27 steps as committed and was cut short in `acceptance-full` by the machine's sleep (`eval/run_all/2026-10-27-phase2/`; P-076). Left: `acceptance-full` and `pooling-full` rerun on their own with the Phase 2 program, set for another time by the owner.

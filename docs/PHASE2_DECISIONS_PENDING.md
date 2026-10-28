@@ -8,7 +8,7 @@ Nothing is open for the owner but the agent's choices to confirm, below; the que
 
 **For information.** With a memory limit, once the first pairs have ended the others run one at a time, in every run at 1 GiB, and the report's `pair_memory` at 300 frames was more than three times one pair's peak: the resident memory still counts memory the ended pairs used (`eval/ladder/advanced-local-300-mem1g-b706ed3/README.md`; P-074). Which of the process's memory measures drops when a pair ends is MEASUREMENT PENDING.
 
-## The agent's choices to confirm: P-067 to P-075
+## The agent's choices to confirm: P-067 to P-076
 
 | Entry | What |
 |---|---|
@@ -21,8 +21,9 @@ Nothing is open for the owner but the agent's choices to confirm, below; the que
 | P-073 | how D-050 to D-052 are implemented, and their runs |
 | P-074 | how D-053 is implemented, and its run at 300 frames |
 | P-075 | D-049's run over every frame with D-053's margin |
+| P-076 | the rerun of every committed Phase 1 measurement with the Phase 2 program, cut short by the machine's sleep |
 
-**Agent's recommendation**: confirm P-067 to P-075, as D-050, D-051 and D-053 change what P-068 and P-072 implement.
+**Agent's recommendation**: confirm P-067 to P-076, as D-050, D-051 and D-053 change what P-068 and P-072 implement.
 
 ## Decided on 2026-10-27 (D-050 to D-053)
 
