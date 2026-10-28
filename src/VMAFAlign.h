@@ -61,7 +61,8 @@
 //   distorted input, by the rules above: once one input's next frame is in a
 //   later sequence, or it has ended, the other input's frames of the
 //   current sequence pair with nothing; then both go on to the next
-//   sequence either has. A sequence only one input has pairs with nothing.
+//   sequence either has. The sequences of an input left after the other
+//   has ended pair with nothing.
 //   (D-028's option (a), which stopped pairing at the first discontinuity
 //   and counted the rest as failed, is the rule until D-046.) FFmpeg's hls
 //   demuxer gives each segment's own timestamps, unchanged at an

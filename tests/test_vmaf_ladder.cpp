@@ -1,8 +1,10 @@
 // Ladder scoring (src/VMAFLadder.h, DECISIONS.md D-029): a master playlist's
-// entries, the pairs of each reference mode, and the scoring of a synthetic
+// entries, the pairs of each reference mode, the scoring of a synthetic
 // ladder written at run time, whose pairs must have the results of the same
-// pairs scored one by one. No network: the ladders are local HLS playlists of
-// MPEG-TS segments, coded by FFmpeg's own MPEG-2 encoder.
+// pairs scored one by one, its pool (D-043 to D-047), and mirage_vmaf
+// --ladder run as a program. The ladders are local HLS playlists of MPEG-TS
+// segments, coded by FFmpeg's own MPEG-2 encoder; the [vmafnet] tests add a
+// rung on a server on 127.0.0.1 that sends nothing (tests/SilentServer.h).
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -14,18 +16,29 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cerrno>
 #include <chrono>
+#include <csignal>
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <functional>
+#include <iterator>
 #include <string>
 #include <utility>
 #include <vector>
+
+#include <fcntl.h>
+#include <spawn.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 }
+
+extern char** environ;
 
 namespace fs = std::filesystem;
 using vmafladder::Entry;
@@ -158,10 +171,10 @@ std::string make_rung(const fs::path& dir, int w, int h, int frames = 12)
     avcodec_free_context(&enc);
 
     write_text(dir / "index.m3u8",
-               std::format("#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:1\n"
+               std::format("#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:{}\n"
                            "#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-PLAYLIST-TYPE:VOD\n"
                            "#EXTINF:{:.6f},\nseg0.ts\n#EXT-X-ENDLIST\n",
-                           static_cast<double>(frames) / kFps));
+                           (frames + kFps - 1) / kFps, static_cast<double>(frames) / kFps));
     return (dir / "index.m3u8").string();
 }
 
@@ -198,6 +211,123 @@ const Ladder& ladder()
         return x;
     }();
     return l;
+}
+
+// A ladder whose pairs warm up (vmafladder::kWarmUp) long before they end,
+// in testtemp::dir()/mirage_test_ladder_long, made once: rungs low (96x54)
+// and mid (128x72), and the top rung (192x108), of 20 kWarmUp frames each.
+struct LongLadder {
+    fs::path    dir;
+    std::string master, low, mid, top;
+};
+
+const LongLadder& long_ladder()
+{
+    static const LongLadder l = [] {
+        constexpr int frames = 20 * static_cast<int>(vmafladder::kWarmUp);
+        LongLadder x;
+        x.dir    = testtemp::path("mirage_test_ladder_long");
+        x.low    = make_rung(x.dir / "low", 96, 54, frames);
+        x.mid    = make_rung(x.dir / "mid", 128, 72, frames);
+        x.top    = make_rung(x.dir / "top", 192, 108, frames);
+        x.master = (x.dir / "master.m3u8").string();
+        write_text(x.master,
+                   "#EXTM3U\n"
+                   "#EXT-X-STREAM-INF:BANDWIDTH=300000,RESOLUTION=96x54\nlow/index.m3u8\n"
+                   "#EXT-X-STREAM-INF:BANDWIDTH=600000,RESOLUTION=128x72\nmid/index.m3u8\n"
+                   "#EXT-X-STREAM-INF:BANDWIDTH=900000,RESOLUTION=192x108\ntop/index.m3u8\n");
+        return x;
+    }();
+    return l;
+}
+
+// A master playlist of `uris` in its order, each a video entry with the
+// BANDWIDTH after it; the highest names the top rung.
+std::string master_of(const std::vector<std::pair<std::string, int>>& uris)
+{
+    std::string text = "#EXTM3U\n";
+    for (const auto& [uri, bandwidth] : uris)
+        text += std::format("#EXT-X-STREAM-INF:BANDWIDTH={},RESOLUTION=96x54\n{}\n", bandwidth,
+                            uri);
+    return text;
+}
+
+std::string read_text(const fs::path& path)
+{
+    std::ifstream f(path, std::ios::binary);
+    return { std::istreambuf_iterator<char>(f), std::istreambuf_iterator<char>() };
+}
+
+bool contains(const std::string& s, const std::string& part)
+{
+    return s.find(part) != std::string::npos;
+}
+
+// What a run of the built mirage_vmaf did.
+struct ToolRun {
+    int         status = -1;   // waitpid()'s
+    std::string out, err;      // its stdout and stderr
+};
+
+// Runs the built mirage_vmaf with `args`, SIGINT and SIGTERM at their
+// defaults, and reads its stdout as it comes: `on_line` gets each line and
+// the process's id.
+ToolRun run_tool(std::vector<std::string> args,
+                 const std::function<void(const std::string&, pid_t)>& on_line = {})
+{
+    static int runs = 0;
+    const fs::path err_path = testtemp::path(std::format("mirage_vmaf_stderr_{}.txt", ++runs));
+    int out[2];
+    REQUIRE(::pipe(out) == 0);
+    posix_spawn_file_actions_t files;
+    posix_spawn_file_actions_init(&files);
+    posix_spawn_file_actions_adddup2(&files, out[1], STDOUT_FILENO);
+    posix_spawn_file_actions_addclose(&files, out[0]);
+    posix_spawn_file_actions_addclose(&files, out[1]);
+    posix_spawn_file_actions_addopen(&files, STDERR_FILENO, err_path.c_str(),
+                                     O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    posix_spawnattr_t attr;
+    posix_spawnattr_init(&attr);
+    sigset_t none, defaults;
+    sigemptyset(&none);
+    sigemptyset(&defaults);
+    sigaddset(&defaults, SIGINT);
+    sigaddset(&defaults, SIGTERM);
+    posix_spawnattr_setsigmask(&attr, &none);
+    posix_spawnattr_setsigdefault(&attr, &defaults);
+    posix_spawnattr_setflags(&attr, POSIX_SPAWN_SETSIGMASK | POSIX_SPAWN_SETSIGDEF);
+    args.insert(args.begin(), MIRAGE_VMAF_PATH);
+    std::vector<char*> argv;
+    for (std::string& a : args) argv.push_back(a.data());
+    argv.push_back(nullptr);
+    pid_t pid = 0;
+    const int spawned = posix_spawn(&pid, argv[0], &files, &attr, argv.data(), environ);
+    posix_spawn_file_actions_destroy(&files);
+    posix_spawnattr_destroy(&attr);
+    ::close(out[1]);
+    if (spawned != 0) ::close(out[0]);
+    REQUIRE(spawned == 0);
+
+    ToolRun run;
+    std::string pending;
+    char buf[4096];
+    for (;;) {
+        const ssize_t n = ::read(out[0], buf, sizeof buf);
+        if (n < 0 && errno == EINTR) continue;
+        if (n <= 0) break;
+        pending.append(buf, static_cast<std::size_t>(n));
+        for (std::size_t nl; (nl = pending.find('\n')) != std::string::npos;) {
+            const std::string line = pending.substr(0, nl);
+            pending.erase(0, nl + 1);
+            run.out += line + '\n';
+            if (on_line) on_line(line, pid);
+        }
+    }
+    run.out += pending;
+    ::close(out[0]);
+    while (::waitpid(pid, &run.status, 0) < 0 && errno == EINTR) {}
+    run.err = read_text(err_path);
+    return run;
 }
 
 // Checks that `got`, a pair of a ladder run, has the result of `want`, the
@@ -775,6 +905,7 @@ TEST_CASE("vmafladder::score: the memory limit holds pairs back", "[ladder][vmaf
     CHECK(held.status == "complete");
     CHECK(held.memory_limit == 1500);
     CHECK(held.max_running == 1);
+    CHECK(held.pair_memory == 0);
     CHECK(held.pool_warnings.empty());   // never over the limit on its own
 
     // Under 500 nothing fits: a pair alone still runs, with a warning.
@@ -783,6 +914,7 @@ TEST_CASE("vmafladder::score: the memory limit holds pairs back", "[ladder][vmaf
         l.master, mezzanine, {}, { .jobs = 3, .memory_limit = 500, .resident = resident });
     CHECK(over.status == "complete");
     CHECK(over.max_running == 1);
+    CHECK(over.pair_memory == 0);
     REQUIRE(over.pool_warnings.size() == 1);
     CHECK(over.pool_warnings[0].find("over the memory limit on its own: 1000 bytes of resident "
                                      "memory, the limit 500") != std::string::npos);
@@ -793,6 +925,95 @@ TEST_CASE("vmafladder::score: the memory limit holds pairs back", "[ladder][vmaf
         l.master, mezzanine, {}, { .jobs = 3, .resident = resident });
     CHECK(unlimited.status == "complete");
     CHECK(reads == 0);
+}
+
+TEST_CASE("vmafladder::score: a pair starts once the running one has warmed up", "[ladder][vmaf]")
+{
+    const LongLadder& l = long_ladder();
+    // A stand-in for the resident memory: 100 bytes before the run, 1000 once
+    // it has started.
+    std::atomic<int> reads{ 0 };
+    const auto resident = [&] { return reads.fetch_add(1) == 0 ? std::uint64_t{ 100 } : 1000; };
+
+    // Without a limit the two pairs run at once (D-043), and nothing is measured.
+    const vmafladder::Result free = vmafladder::score(l.master, "", {}, { .jobs = 2 });
+    CHECK(free.status == "complete");
+    CHECK(free.max_running == 2);
+    CHECK(free.pair_memory == 0);
+
+    // The first pair has warmed up once it has scored kWarmUp of its frame
+    // pairs, and is measured then: 1000 - 100 = 900 bytes, counted at 1125 with
+    // the margin (D-051, D-053). A limit of 100 + 2 * 1125 lets the second
+    // pair start while the first runs (D-045).
+    reads = 0;
+    const vmafladder::Result two = vmafladder::score(
+        l.master, "", {}, { .jobs = 2, .memory_limit = 2350, .resident = resident });
+    CHECK(two.status == "complete");
+    CHECK(two.pair_memory == 900);
+    CHECK(two.max_running == 2);
+    REQUIRE(two.pairs.size() == 2);
+    CHECK(two.pairs[1].started < two.pairs[0].ended);
+    CHECK(two.pool_warnings.empty());
+
+    // One byte less, and the second pair waits for the first to end.
+    reads = 0;
+    const vmafladder::Result one = vmafladder::score(
+        l.master, "", {}, { .jobs = 2, .memory_limit = 2349, .resident = resident });
+    CHECK(one.status == "complete");
+    CHECK(one.pair_memory == 900);
+    CHECK(one.max_running == 1);
+    REQUIRE(one.pairs.size() == 2);
+    CHECK(one.pairs[1].started >= one.pairs[0].ended);
+}
+
+TEST_CASE("vmafladder::score: a cancel stops the pairs that are running", "[ladder][vmaf][vmafnet]")
+{
+    // The first pair's rung is on a server that sends nothing: the pair waits
+    // in its first read, up to the read limit (D-036), while the second is
+    // scored.
+    const Ladder& l = ladder();
+    SilentServer server;
+    REQUIRE(server.ok());
+    const fs::path dir = testtemp::path("mirage_test_ladder_stop");
+    fs::create_directories(dir);
+    const std::string master = (dir / "master.m3u8").string();
+    const std::string held   = server.url("held/index.m3u8");
+    write_text(master, master_of({ { held, 600000 }, { l.low, 300000 }, { l.top, 900000 } }));
+
+    // Cancelled once the second pair is complete: the first is stopped, not
+    // failed, and the run is cancelled (D-047).
+    std::stop_source cancel;
+    const auto t0 = std::chrono::steady_clock::now();
+    const vmafladder::Result r = vmafladder::score(
+        master, "", {}, { .jobs = 2 }, cancel.get_token(),
+        [&](std::size_t, std::size_t, const VMAFResult&) { cancel.request_stop(); });
+    const double s = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+    INFO(r.error << ", after " << s << " s");
+    CHECK(s < 4.0);   // the cancel ended the read, well before the limit
+    CHECK(r.status == "cancelled");
+    CHECK(r.error == "the run was cancelled: 1 of 2 pairs complete");
+    CHECK(r.max_running == 2);
+    REQUIRE(r.pairs.size() == 2);
+    CHECK(r.pairs[0].status == vmafladder::PairStatus::Stopped);
+    CHECK(vmafladder::status_name(r.pairs[0].status) == "stopped");
+    CHECK(r.pairs[0].why.empty());
+    CHECK(r.pairs[0].started >= 0.0);
+    CHECK(r.pairs[1].status == vmafladder::PairStatus::Complete);
+
+    // A pair that can't be scored fails the run and stops the one that is
+    // running, which isn't failed.
+    const std::string missing = (dir / "missing/index.m3u8").string();
+    write_text(master, master_of({ { held, 600000 }, { missing, 300000 }, { l.top, 900000 } }));
+    const vmafladder::Result f = vmafladder::score(master, "", {}, { .jobs = 2 });
+    CHECK(f.status == "failed");
+    CHECK(f.error == std::format("pair 2 of 2, {} against {}: cannot open distorted: {}", missing,
+                                 l.top, missing));
+    REQUIRE(f.pairs.size() == 2);
+    CHECK(f.pairs[0].status == vmafladder::PairStatus::Stopped);
+    CHECK(f.pairs[0].why.empty());
+    CHECK(f.pairs[1].status == vmafladder::PairStatus::Failed);
+    CHECK(f.pairs[1].why == "cannot open distorted: " + missing);
+    fs::remove_all(dir);
 }
 
 TEST_CASE("vmafladder::admits: the memory limit's rule", "[ladder]")
@@ -829,6 +1050,9 @@ TEST_CASE("vmafladder::admits: the memory limit's rule", "[ladder]")
     CHECK_FALSE(admits(3849, 2100, 100, 2, 0, per_pair));
     CHECK(per_pair == 1000);
     CHECK(admits(3850, 2100, 100, 2, 0, per_pair));
+    // A pair warming up holds the next back, also once pairs have been measured.
+    CHECK_FALSE(admits(std::uint64_t{ 1 } << 30, 2100, 100, 2, 1, per_pair));
+    CHECK(per_pair == 1000);
 
     // Unknown memory, none warming up: the limit can't hold a pair back.
     CHECK(admits(1500, 0, 100, 2, 0, per_pair));
@@ -836,6 +1060,102 @@ TEST_CASE("vmafladder::admits: the memory limit's rule", "[ladder]")
     std::uint64_t none = 0;
     CHECK_FALSE(admits(1500, 100, 100, 1, 0, none));
     CHECK(none == 0);
+}
+
+TEST_CASE("vmafladder::warm_up: kWarmUp frame pairs, or all of them under a lower frame limit",
+          "[ladder]")
+{
+    using vmafladder::kWarmUp;
+    using vmafladder::warm_up;
+    constexpr unsigned warm = static_cast<unsigned>(kWarmUp);
+    CHECK(warm_up(0) == kWarmUp);   // no frame limit
+    CHECK(warm_up(5) == 5);
+    CHECK(warm_up(warm - 1) == kWarmUp - 1);
+    CHECK(warm_up(warm) == kWarmUp);
+    CHECK(warm_up(warm + 1) == kWarmUp);
+}
+
+// ── mirage_vmaf --ladder (tools/mirage_vmaf.cpp) ─────────────────────────────
+
+TEST_CASE("mirage_vmaf --ladder: exit 0 when complete, 1 with the report when a pair fails",
+          "[ladder][vmaf]")
+{
+    const Ladder& l = ladder();
+    const fs::path dir = testtemp::path("mirage_test_tool_ladder");
+    fs::create_directories(dir);
+    const std::string report = (dir / "report.json").string();
+    const ToolRun ok = run_tool({ "--ladder", l.master, "--out", report });
+    INFO(ok.out << ok.err);
+    REQUIRE(WIFEXITED(ok.status));
+    CHECK(WEXITSTATUS(ok.status) == 0);
+    CHECK(read_text(report).starts_with("{\n  \"status\": \"complete\",\n  \"error\": null,\n"));
+    CHECK(contains(ok.out, "; the run is complete; report written to " + report + "\n"));
+
+    // The second pair's playlist doesn't exist: the report has the first
+    // pair, and the second as failed (D-047).
+    const std::string master  = (dir / "master.m3u8").string();
+    const std::string missing = (dir / "missing/index.m3u8").string();
+    write_text(master, master_of({ { l.low, 300000 }, { missing, 200000 }, { l.top, 900000 } }));
+    const std::string failed = (dir / "failed.json").string();
+    const ToolRun bad = run_tool({ "--ladder", master, "--jobs", "1", "--out", failed });
+    INFO(bad.out << bad.err);
+    REQUIRE(WIFEXITED(bad.status));
+    CHECK(WEXITSTATUS(bad.status) == 1);
+    const std::string error =
+        std::format("pair 2 of 2, {} against {}: cannot open distorted: {}", missing, l.top,
+                    missing);
+    CHECK(contains(bad.err, "mirage_vmaf: " + error + "\n"));
+    const std::string text = read_text(failed);
+    CHECK(text.starts_with(
+        std::format("{{\n  \"status\": \"failed\",\n  \"error\": \"{}\",\n", error)));
+    CHECK(contains(text, "  \"pairs\": [\n    {\n      \"index\": 0,\n"));
+    CHECK(contains(text, std::format("\"index\": 1, \"url\": \"{}\", \"entries\": [1], "
+                                     "\"status\": \"failed\", "
+                                     "\"why\": \"cannot open distorted: {}\"}}",
+                                     missing, missing)));
+    CHECK(contains(bad.out, "; the run is failed; report written to " + failed + "\n"));
+    fs::remove_all(dir);
+}
+
+TEST_CASE("mirage_vmaf --ladder: SIGINT cancels the run, which exits 1 with the report",
+          "[ladder][vmaf][vmafnet]")
+{
+    // The first pair waits for a server that sends nothing, as in "a cancel
+    // stops the pairs that are running"; SIGINT comes once the second is
+    // complete.
+    const Ladder& l = ladder();
+    SilentServer server;
+    REQUIRE(server.ok());
+    const fs::path dir = testtemp::path("mirage_test_tool_sigint");
+    fs::create_directories(dir);
+    const std::string master = (dir / "master.m3u8").string();
+    const std::string held   = server.url("held/index.m3u8");
+    write_text(master, master_of({ { held, 600000 }, { l.low, 300000 }, { l.top, 900000 } }));
+    const std::string report = (dir / "report.json").string();
+    int signals = 0;
+    const auto t0 = std::chrono::steady_clock::now();
+    const ToolRun run = run_tool({ "--ladder", master, "--jobs", "2", "--out", report },
+                                 [&](const std::string& line, pid_t pid) {
+                                     if (line.starts_with("mirage_vmaf: pair 2 of 2, ")) {
+                                         ::kill(pid, SIGINT);
+                                         ++signals;
+                                     }
+                                 });
+    const double s = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+    INFO(run.out << run.err << "after " << s << " s");
+    CHECK(signals == 1);
+    CHECK(s < 4.0);   // well before the read limit
+    REQUIRE(WIFEXITED(run.status));
+    CHECK(WEXITSTATUS(run.status) == 1);
+    CHECK(contains(run.err, "mirage_vmaf: the run was cancelled: 1 of 2 pairs complete\n"));
+    const std::string text = read_text(report);
+    CHECK(text.starts_with("{\n  \"status\": \"cancelled\",\n  \"error\": \"the run was cancelled: "
+                           "1 of 2 pairs complete\",\n"));
+    CHECK(contains(text, std::format("\"index\": 0, \"url\": \"{}\", \"entries\": [0], "
+                                     "\"status\": \"stopped\", \"why\": null}}",
+                                     held)));
+    CHECK(contains(run.out, "; the run is cancelled; report written to " + report + "\n"));
+    fs::remove_all(dir);
 }
 
 TEST_CASE("vmafproc: the machine's cores and the process's memory", "[ladder]")

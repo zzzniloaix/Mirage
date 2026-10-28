@@ -375,8 +375,7 @@ Result score(const std::string& ladder, const std::string& mezzanine, const VMAF
     // The frame pairs each pair has scored, and how many a pair scores before
     // what it uses shows in the resident memory (D-045).
     const auto scored = std::make_unique<std::atomic<std::uint64_t>[]>(n);
-    const std::uint64_t warm_at =
-        opts.max_frames > 0 ? std::min<std::uint64_t>(kWarmUp, opts.max_frames) : kWarmUp;
+    const std::uint64_t warm_at = warm_up(opts.max_frames);
     std::uint64_t per_pair = 0;   // what a pair uses, as measured; 0 = not yet
 
     // With the lock held: a pair running alone over the memory limit gets a

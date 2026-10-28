@@ -341,7 +341,10 @@ target_link_libraries(mirage_tests PRIVATE
 
 target_compile_definitions(mirage_tests PRIVATE
     MIRAGE_LIBVMAF_MODEL_DIR="${MIRAGE_LIBVMAF_MODEL_DIR}"
+    # The built mirage_vmaf, which tests/test_vmaf_ladder.cpp runs as a program.
+    MIRAGE_VMAF_PATH="$<TARGET_FILE:mirage_vmaf>"
 )
+add_dependencies(mirage_tests mirage_vmaf)
 
 # The player's HW-vs-SW snapshot check, not in the headless configuration.
 if(NOT MIRAGE_HEADLESS)

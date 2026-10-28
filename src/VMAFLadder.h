@@ -171,6 +171,14 @@ Fetched read_master(const std::string& url);
 // scored them, or all of its frame pairs if it has fewer, it is warming up.
 inline constexpr std::uint64_t kWarmUp = 30;
 
+// The frame pairs a pair scores before it has warmed up, in a run whose
+// pairs score at most `max_frames` (0 = no limit): kWarmUp, or all of them
+// when the limit is lower.
+constexpr std::uint64_t warm_up(unsigned max_frames)
+{
+    return max_frames > 0 && max_frames < kWarmUp ? max_frames : kWarmUp;
+}
+
 // What the memory limit adds to what a pair uses, in percent (D-051, D-053).
 inline constexpr std::uint64_t kMarginPercent = 25;
 
