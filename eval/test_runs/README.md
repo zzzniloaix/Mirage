@@ -1,6 +1,6 @@
 # Test runs
 
-Records of the unit test suites run at a commit, for the PR descriptions that quote their output (hard rule 5 of the work order; `docs/DECISIONS.md` P-028, P-032, P-060, P-065, P-066, P-073, P-074). Each record gives each command, then its output and exit status, run from the root of the main working tree with a clean working tree, and on `vmaf/phase-2` from the root of a worktree of that branch:
+Records of the unit test suites run at a commit, for the PR descriptions that quote their output (hard rule 5 of the work order; `docs/DECISIONS.md` P-028, P-032, P-060, P-065, P-066, P-073, P-074, P-077, P-078). Each record gives each command, then its output and exit status, run from the root of the main working tree with a clean working tree, and on `vmaf/phase-2` from the root of a worktree of that branch:
 
 - the commit, the working tree's state, and the changes to the C++ sources and CMake files since the commit of the last build check: `6a6661f` (`eval/build_check/macos-2026-10-23-6a6661f.txt`) in the records of 2026-10-23, `5ae44a4` (`eval/build_check/macos-2026-10-24-5ae44a4.txt`) in the records of 2026-10-24 and later, which also list the changes to the Python and shell scripts since then, and on `vmaf/phase-2` the changes since `vmaf/phase-1` as merged (`dc3af0d`);
 - `cmake --build --preset macos-debug`, which rebuilds whatever the tests need;
@@ -9,6 +9,7 @@ Records of the unit test suites run at a commit, for the PR descriptions that qu
 - the four Python suites of `eval/` (`eval/README.md`, "Tests"), and on `vmaf/phase-2` a fifth, `eval/ladder/tests`, in the records of 2026-10-24 and later with `TMPDIR` in a scratch directory outside the repository;
 - the working tree's state afterwards;
 - since `macos-2026-10-29-93acc4d.txt`, `uptime` first and last: the machine's load averages, of which what else was running takes its share.
+- since `macos-2026-10-29-90153d6.txt`, `sw_vers` after the first `uptime`: the macOS version, 26.6.2 (25G83) since an update of 2026-10-29, where every committed environment capture before it gives 26.2 (25C56) (`docs/BUILD.md`, "Versions").
 
 Local paths appear as `<repo>`, `<home>`, `<tmp>` and `<scratch>`.
 
@@ -22,6 +23,7 @@ Local paths appear as `<repo>`, `<home>`, `<tmp>` and `<scratch>`.
 | `macos-2026-10-27-1db7b89.txt` | `1db7b89d3cd34fb8f1db97ee60bb56083d3d6a16` (`vmaf/phase-2`) | `mirage_tests '~[audio]'`: all tests passed, 112439 assertions in 325 test cases, at the first run; the Python suites: 28, 136, 11, 16 and 8 tests, all OK (P-073) |
 | `macos-2026-10-27-57b5ea5.txt` | `57b5ea555a6cacc29533fcb5a8e8c791cb0adf6c` (`vmaf/phase-2`) | `mirage_tests '~[audio]'`: all tests passed, 112445 assertions in 325 test cases, at the first run; the Python suites: 28, 136, 11, 16 and 8 tests, all OK (P-074) |
 | `macos-2026-10-29-93acc4d.txt` | `93acc4dca8b5863c08de86fba8164c7b85ddb9dc` (`vmaf/phase-2`) | `mirage_tests '~[audio]'`: all tests passed, 118170 assertions in 335 test cases, at the first run; the Python suites: 28, 136, 11, 16 and 14 tests, all OK; load averages 4.92, 7.75 and 15.31 at the start (P-077) |
+| `macos-2026-10-29-90153d6.txt` | `90153d6858ae1ec02411d883ed7e56c39c7fb67a` (`vmaf/phase-2`) | `mirage_tests '~[audio]'`: all tests passed, 118740 assertions in 348 test cases, at the first run; the Python suites: 28, 136, 11, 16 and 14 tests, all OK; load averages 4.65, 4.82 and 5.15 at the start; macOS 26.6.2 (25G83) (P-078) |
 
 ## Repeated runs of one test (P-031)
 
