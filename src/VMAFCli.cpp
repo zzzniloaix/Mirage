@@ -510,10 +510,11 @@ std::string usage()
         "\n"
         "Exit status: 0 the report was written, a warning about the pairing included;\n"
         "1 the analysis or the write failed, or with --ladder the master playlist\n"
-        "couldn't be read or was refused (no report is left behind), or the run was\n"
-        "cancelled by SIGINT or SIGTERM, or a pair couldn't be scored (the report is\n"
-        "written, with the complete pairs and the other pairs' states); 2 bad\n"
-        "arguments, or a config file that can't be read or has an error.\n",
+        "couldn't be read or was refused (no report is left behind, also when SIGINT\n"
+        "or SIGTERM ended its read), or the run was cancelled by SIGINT or SIGTERM,\n"
+        "or a pair couldn't be scored (the report is written, with the complete pairs\n"
+        "and the other pairs' states); 2 bad arguments, or a config file that can't\n"
+        "be read or has an error.\n",
         synopsis(Form::Pair), synopsis(Form::Ladder), options);
 }
 

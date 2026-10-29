@@ -78,6 +78,30 @@ std::string av_error_text(int err)
     return buf;
 }
 
+// How long a read of the master goes on before a cancel ends it: the
+// interval at which FFmpeg's network reads check the interrupt callback
+// while they wait (POLLING_TIME of libavformat/network.h). A read that
+// doesn't wait, as a local file's, isn't ended, so that a run cancelled
+// before it starts still has its plan (D-047).
+constexpr auto kMasterReadGrace = std::chrono::milliseconds(100);
+
+// A read of the master, the opaque of its interrupt callback.
+struct MasterRead {
+    std::stop_token                       cancel;
+    std::chrono::steady_clock::time_point start;
+};
+
+// 1, which ends FFmpeg's call, once a stop is requested and the read has
+// gone on for kMasterReadGrace.
+int master_read_interrupted(void* opaque)
+{
+    const auto* read = static_cast<const MasterRead*>(opaque);
+    return read->cancel.stop_requested() &&
+                   std::chrono::steady_clock::now() - read->start >= kMasterReadGrace
+               ? 1
+               : 0;
+}
+
 std::string entry_list(const std::vector<std::size_t>& entries)
 {
     std::string out;
@@ -266,15 +290,18 @@ Plan plan(const Master& master, const std::string& mezzanine)
     return p;
 }
 
-Fetched read_master(const std::string& url)
+Fetched read_master(const std::string& url, std::stop_token cancel)
 {
     Fetched f;
     f.location = url;
     AVIOContext* ctx = nullptr;
-    // A network read waits at most 5 s, as the analyzer's (D-036).
+    // A network read waits at most 5 s, as the analyzer's (D-036), and a
+    // cancel ends one that waits.
     AVDictionary* opts = nullptr;
     vmafnet::set_io_limits(&opts, url);
-    const int r = avio_open2(&ctx, url.c_str(), AVIO_FLAG_READ, nullptr, &opts);
+    MasterRead read{ .cancel = cancel, .start = std::chrono::steady_clock::now() };
+    const AVIOInterruptCB interrupt{ master_read_interrupted, &read };
+    const int r = avio_open2(&ctx, url.c_str(), AVIO_FLAG_READ, &interrupt, &opts);
     av_dict_free(&opts);
     if (r < 0) {
         f.error = av_error_text(r);
@@ -334,7 +361,7 @@ Result score(const std::string& ladder, const std::string& mezzanine, const VMAF
 {
     Result out;
     out.ladder  = ladder;
-    out.fetched = read_master(ladder);
+    out.fetched = read_master(ladder, cancel);
     if (!out.fetched.error.empty()) {
         out.error = std::format("cannot read the master playlist {}: {}", ladder,
                                 out.fetched.error);

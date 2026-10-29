@@ -3,9 +3,10 @@
 // The limits on the VMAF analyzer's network reads (DECISIONS.md D-036): its
 // inputs and the ladder's master playlist get the player's I/O timeouts
 // (src/FfOpen.cpp), so a read that waits longer fails instead of waiting
-// for good, and the analyzer's inputs an interrupt callback on its stop
-// token, so a cancel interrupts a read. Header-only: mirage_vmaf doesn't
-// link the player's FfOpen and its network logger.
+// for good, and both an interrupt callback on the run's stop token, so a
+// cancel interrupts a read that waits (the master's: vmafladder::
+// read_master()). Header-only: mirage_vmaf doesn't link the player's FfOpen
+// and its network logger.
 
 #include <stop_token>
 #include <string>

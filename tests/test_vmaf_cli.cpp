@@ -196,6 +196,7 @@ TEST_CASE("vmafcli::usage: lists every option", "[vmafcli]")
     CHECK_FALSE(contains(flat, "one after another"));
     CHECK(contains(flat, "--jobs pairs at a time"));
     CHECK(contains(flat, "the run was cancelled by SIGINT or SIGTERM"));
+    CHECK(contains(flat, "(no report is left behind, also when SIGINT or SIGTERM ended its read)"));
     CHECK(contains(flat, "(the report is written, with the complete pairs"));
     CHECK_FALSE(contains(flat, "a pair couldn't be scored (no report is left behind)"));
     // The 5 s limits aren't the player's playback limits, and SIZE's suffixes are binary.

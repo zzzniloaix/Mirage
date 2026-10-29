@@ -833,6 +833,47 @@ TEST_CASE("vmafladder::read_master: a server that sends nothing fails at the rea
     CHECK(s < 15.0);
 }
 
+TEST_CASE("vmafladder::score: a cancel ends a read of the master playlist that waits",
+          "[ladder][vmafnet]")
+{
+    // As above, and a cancel 200 ms after the server has taken the
+    // connection: the callback on the run's stop token ends the read, and
+    // the run, without a master to plan by, has nothing to report.
+    SilentServer server;
+    REQUIRE(server.ok());
+    const std::string url = server.url("master.m3u8");
+    std::stop_source cancel;
+    std::jthread canceller([&] {
+        server.wait_accepted(1, std::chrono::seconds(3));
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        cancel.request_stop();
+    });
+    const auto t0 = std::chrono::steady_clock::now();
+    const vmafladder::Result r = vmafladder::score(url, "", {}, {}, cancel.get_token());
+    const double s = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+    INFO(r.error << ", after " << s << " s");
+    CHECK(server.accepted() >= 1);
+    CHECK(s < 2.0);   // well before the read limit
+    CHECK(r.status.empty());
+    CHECK(r.error ==
+          std::format("cannot read the master playlist {}: Immediate exit requested", url));
+    CHECK(r.fetched.text.empty());
+    CHECK(r.pairs.empty());
+
+    // Cancelled before it starts: the read that waits ends as soon as it has
+    // gone on for 100 ms. A local master is read before a cancel can end it,
+    // as in "a cancel keeps the complete pairs and starts no other".
+    std::stop_source early;
+    early.request_stop();
+    const auto t1 = std::chrono::steady_clock::now();
+    const vmafladder::Result e = vmafladder::score(url, "", {}, {}, early.get_token());
+    const double s1 = std::chrono::duration<double>(std::chrono::steady_clock::now() - t1).count();
+    INFO(e.error << ", after " << s1 << " s");
+    CHECK(s1 < 2.0);
+    CHECK(e.status.empty());
+    CHECK(e.error == r.error);
+}
+
 // ── The pool (work order section 2; DECISIONS.md D-043 to D-047) ─────────────
 
 TEST_CASE("vmafladder::score: every pool size gives every pair the same scores", "[ladder][vmaf]")

@@ -163,8 +163,11 @@ struct Fetched {
 // Reads the playlist at `url`, a path or any URL FFmpeg's avio opens, with
 // FFmpeg's default options but the analyzer's limits on a network read
 // (src/VMAFNet.h, D-036). Stops, with an error, as soon as the text doesn't
-// start with "#EXTM3U".
-Fetched read_master(const std::string& url);
+// start with "#EXTM3U", and once a stop is requested on `cancel` and the
+// read has gone on for 100 ms: a cancel ends a read that waits, as it ends
+// the analyzer's, and leaves one that doesn't, as a local file's, to finish,
+// so that a run cancelled before it starts still has its plan (D-047).
+Fetched read_master(const std::string& url, std::stop_token cancel = {});
 
 // With a memory limit, the frame pairs a pair scores before what it uses is
 // taken to show in the process's resident memory (D-045): until a pair has
@@ -249,8 +252,9 @@ using OnPair = std::function<void(std::size_t index, std::size_t count, const VM
 
 // Reads the master playlist `ladder`, plans the run (plan()) and scores its
 // pairs with VMAFAnalyzer::analyze() and `opts`, `pool` of them at a time.
-// A stop requested on `cancel` ends the run as cancelled. When the master
-// can't be read or planned, `status` is empty and `error` says why.
+// A stop requested on `cancel` ends the run as cancelled; while the master
+// is read, it ends a read that waits (read_master). When the master can't
+// be read or planned, `status` is empty and `error` says why.
 Result score(const std::string& ladder, const std::string& mezzanine, const VMAFOptions& opts,
              const Pool& pool = {}, std::stop_token cancel = {}, const OnPair& on_pair = {});
 
