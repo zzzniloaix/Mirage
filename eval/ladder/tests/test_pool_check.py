@@ -10,6 +10,7 @@ import json
 import lzma
 import os
 import shlex
+import shutil
 import sys
 import tempfile
 import unittest
@@ -23,7 +24,9 @@ import pool_check  # noqa: E402
 # The stand-in: writes REPORT to --out with the pool fields of its options. Environment:
 # FAKE_DIFF_JOBS, the --jobs value whose first pair scores its first frame 1e-9 higher;
 # FAKE_STATUS_JOBS, the one whose run is cancelled; FAKE_PEAK, the report's peak resident
-# memory; FAKE_NO_LIMIT, a report without the memory limit.
+# memory; FAKE_NO_LIMIT, a report without the memory limit; FAKE_LIMIT, the limit the report
+# gives instead of the one asked for; FAKE_STDERR, what it writes to stderr; FAKE_EXIT, its
+# exit status.
 FAKE = r'''
 import json, os, sys
 args = sys.argv[1:]
@@ -38,12 +41,15 @@ limit = None
 if "--memory-limit" in opt and not os.environ.get("FAKE_NO_LIMIT"):
     v = opt["--memory-limit"]
     limit = int(v[:-1]) << {"K": 10, "M": 20, "G": 30, "T": 40}[v[-1]]
+    limit = int(os.environ.get("FAKE_LIMIT", limit))
 rep["pool"] = {"jobs": int(jobs), "memory_limit": limit, "max_running": 1,
                "pair_memory": 4000 if limit else None,
                "peak_resident": int(os.environ.get("FAKE_PEAK", "5000")), "warnings": []}
 with open(opt["--out"], "w") as f:
     json.dump(rep, f)
 print("mirage_vmaf: report written to " + opt["--out"])
+sys.stderr.write(os.environ.get("FAKE_STDERR", ""))
+sys.exit(int(os.environ.get("FAKE_EXIT", "0")))
 '''
 
 REPORT = {
@@ -143,6 +149,59 @@ class PoolCheck(unittest.TestCase):
         self.assertIn("<mirage_vmaf> --ladder <ladder> --out <out_dir>/jobs-default/report.json\n", cmd)
         self.assertNotIn("--frames", cmd)
         self.assertIn("every frame pair of each pair", md)
+
+    def test_a_run_that_exits_non_zero_fails(self):
+        # A complete report, and the exit status of a run that went wrong after it.
+        code, s, _, _ = self.check("--jobs", "1,2", FAKE_EXIT="3")
+        self.assertEqual(code, 1)
+        self.assertEqual(s["problems"], ["jobs 1: mirage_vmaf exited with status 3",
+                                        "jobs 2: mirage_vmaf exited with status 3"])
+
+    def test_the_peak_is_checked_against_the_limit_given(self):
+        # The report gives another limit than the one given, and the peak is under it.
+        code, s, _, _ = self.check("--jobs", "1", "--memory-limit", "1M",
+                                   FAKE_LIMIT=str(2 << 30), FAKE_PEAK=str(3 << 20))
+        self.assertEqual(code, 1)
+        self.assertEqual(s["memory_limit_bytes"], 1 << 20)
+        self.assertIn(f"jobs 1: the report gives the memory limit {2 << 30}, not the "
+                      f"{1 << 20} given", s["problems"])
+        self.assertIn(f"jobs 1: the report's peak resident memory, {3 << 20}, is over the "
+                      f"memory limit, {1 << 20}", s["problems"])
+
+    def test_a_size_mirage_vmaf_wouldnt_read_is_refused(self):
+        for size in ("1.5G", "0", "1g", "1 G", "1GiB", ""):
+            with self.subTest(size=size), contextlib.redirect_stderr(io.StringIO()):
+                out = os.path.join(self.tmp.name, "refused")
+                self.assertEqual(pool_check.main([self.prog, out, "--ladder", self.ladder,
+                                                  "--memory-limit", size]), 2)
+                self.assertFalse(os.path.exists(os.path.join(out, "check.json")))
+
+    def test_the_pass_line_names_every_criterion(self):
+        _, _, md, out = self.check("--jobs", "1,2", "--memory-limit", "1G")
+        self.assertIn("- PASS when every run exits 0 with a complete report, each pair's frames "
+                      "(indices, timestamps, scores at full precision) and pooled values are "
+                      "the same in every run, and with --memory-limit 1G, 1073741824 bytes, "
+                      "every report gives that limit and neither its peak resident memory nor "
+                      "/usr/bin/time -l's maximum resident set size is over it.\n", md)
+        shutil.rmtree(out)
+        _, _, md, _ = self.check("--jobs", "1,2")
+        self.assertIn("are the same in every run.\n", md)
+
+    def test_time_l_is_split_off_at_its_last_real_line(self):
+        # The program's own stderr says "real" before /usr/bin/time -l's lines.
+        code, s, _, out = self.check("--jobs", "1",
+                                     FAKE_STDERR="mirage_vmaf: warning: real 1.0 user 2.0\n")
+        self.assertEqual(code, 0, s["problems"])
+        with open(os.path.join(out, "jobs-1", "stderr.txt")) as f:
+            self.assertEqual(f.read(), "mirage_vmaf: warning: real 1.0 user 2.0\n")
+        with open(os.path.join(out, "jobs-1", "time.txt")) as f:
+            first = f.readline()
+        self.assertRegex(first, r"^\s*[\d.]+ real\s+[\d.]+ user\s+[\d.]+ sys\n$")
+
+    def test_one_run_writes_a_valid_table(self):
+        code, s, md, _ = self.check("--jobs", "1")
+        self.assertEqual(code, 0, s["problems"])
+        self.assertIn("\n| pair | distorted | frames |\n|---|---|---|\n| 0 | `v2.m3u8` | 2 |\n", md)
 
     def test_without_a_memory_limit_the_column_is_empty(self):
         code, s, md, _ = self.check("--jobs", "1", FAKE_PEAK="999999999999")

@@ -10,14 +10,16 @@ size, given as 0: no --jobs), the first --frames N frame pairs of each pair (def
 every frame, no --frames), each with `/usr/bin/time -l` for its peak resident memory, and
 compares the reports: the same plan, the same pairs complete, and every pair's per-frame
 scores, frame indices and timestamps equal at full precision. With --memory-limit, given to
-every run, it also checks each run's peak resident memory against the limit as its report
-gives it (pool.memory_limit, in bytes): the report's pool.peak_resident and /usr/bin/time -l's
-maximum resident set size. Writes into <out_dir>, a new or empty directory:
+every run, it also checks that each run's report gives that limit (pool.memory_limit) in
+bytes, as mirage_vmaf reads SIZE, and that neither the report's pool.peak_resident nor
+/usr/bin/time -l's maximum resident set size is over it. Writes into <out_dir>, a new or
+empty directory:
 jobs-<J>/report.json.xz, stdout.txt, stderr.txt and time.txt for each run; cmd.txt (every
 command, with <mirage_vmaf>, <ladder>, <ladder_dir> and <out_dir> for paths); check.md and
 check.json (the verdict, each run's pool fields and times, each pair's comparison); and
-SHA256SUMS. PASS when every run is complete, every pair is the same in every run, and no
-run's peak is over a memory limit it was given. Python 3 standard library only.
+SHA256SUMS. PASS when every run exits 0 with a complete report, every pair is the same in
+every run, and with --memory-limit every report gives the limit and no run's peak is over
+it. Python 3 standard library only.
 """
 
 import argparse
@@ -45,8 +47,25 @@ def parse_args(argv):
     return p.parse_args(argv)
 
 
+def size_bytes(text):
+    """SIZE as mirage_vmaf reads it (src/VMAFCli.cpp): a whole number of bytes from 1, or of
+    KiB, MiB, GiB or TiB with K, M, G or T after it; None when it isn't one."""
+    m = re.fullmatch(r"([0-9]+)([KMGT]?)", text)
+    if not m or int(m.group(1)) == 0:
+        return None
+    n = int(m.group(1)) << {"": 0, "K": 10, "M": 20, "G": 30, "T": 40}[m.group(2)]
+    return n if n < 1 << 64 else None
+
+
 def main(argv=None):
     a = parse_args(argv)
+    limit_given = None
+    if a.memory_limit is not None:
+        limit_given = size_bytes(a.memory_limit)
+        if limit_given is None:
+            print(f"pool_check: --memory-limit wants a size as mirage_vmaf reads it, such as "
+                  f"8G; not '{a.memory_limit}'", file=sys.stderr)
+            return 2
     out = os.path.abspath(a.out_dir)
     if os.path.exists(out) and os.listdir(out):
         print(f"pool_check: {a.out_dir} is not an empty directory", file=sys.stderr)
@@ -75,15 +94,17 @@ def main(argv=None):
         argv_ += ["--out", report]
         if j:
             argv_ += ["--jobs", str(j)]
-        if a.memory_limit:
+        if limit_given is not None:
             argv_ += ["--memory-limit", a.memory_limit]
         cmds.append("$ " + shown(" ".join(shlex.quote(x) for x in argv_)))
         t = time.monotonic()
         p = subprocess.run(argv_, stdin=subprocess.DEVNULL, capture_output=True, text=True)
         wall = time.monotonic() - t
-        # /usr/bin/time -l writes its lines after the program's stderr.
-        k = p.stderr.find("real")
-        k = p.stderr.rfind("\n", 0, k) + 1 if k >= 0 else len(p.stderr)
+        # /usr/bin/time -l writes its lines after the program's stderr, from its last
+        # "<s> real <s> user <s> sys" line on.
+        times = list(re.finditer(r"^[ \t]*[0-9.]+ real[ \t]+[0-9.]+ user[ \t]+[0-9.]+ sys[ \t]*$",
+                                 p.stderr, re.M))
+        k = times[-1].start() if times else len(p.stderr)
         for name, text in (("stdout.txt", p.stdout), ("stderr.txt", p.stderr[:k]),
                            ("time.txt", p.stderr[k:])):
             with open(os.path.join(d, name), "w") as f:
@@ -104,21 +125,27 @@ def main(argv=None):
     problems, pairs_check = [], []
     for r in runs:
         rep = r["report"]
+        if r["exit"] != 0:
+            problems.append(f"jobs {r['jobs_given']}: mirage_vmaf exited with status "
+                            f"{r['exit']}")
         if rep is None:
             problems.append(f"jobs {r['jobs_given']}: no report")
         elif rep.get("status") != "complete":
             problems.append(f"jobs {r['jobs_given']}: the run is {rep.get('status')}")
+        if limit_given is None:
+            continue
         limit = ((rep or {}).get("pool") or {}).get("memory_limit")
-        if a.memory_limit and limit is None:
+        if limit is None:
             problems.append(f"jobs {r['jobs_given']}: the report gives no memory limit")
-        elif limit is not None:
-            for what, peak in (("the report's peak resident memory",
-                                ((rep or {}).get("pool") or {}).get("peak_resident")),
-                               ("/usr/bin/time -l's maximum resident set size",
-                                r["max_rss_time_l"])):
-                if peak is None or peak > limit:
-                    problems.append(f"jobs {r['jobs_given']}: {what}, {peak}, is over the "
-                                    f"memory limit, {limit}")
+        elif limit != limit_given:
+            problems.append(f"jobs {r['jobs_given']}: the report gives the memory limit {limit}, "
+                            f"not the {limit_given} given")
+        for what, peak in (("the report's peak resident memory",
+                            ((rep or {}).get("pool") or {}).get("peak_resident")),
+                           ("/usr/bin/time -l's maximum resident set size", r["max_rss_time_l"])):
+            if peak is None or peak > limit_given:
+                problems.append(f"jobs {r['jobs_given']}: {what}, {peak}, is over the memory "
+                                f"limit, {limit_given}")
     if first is not None:
         for k, p0 in enumerate(first.get("pairs") or []):
             row = {"index": p0.get("index"), "dis": shown((p0.get("dis") or {}).get("url") or ""),
@@ -139,7 +166,7 @@ def main(argv=None):
                     problems.append(f"jobs {r['jobs_given']}: {key} differs")
     verdict = "PASS" if not problems else "FAIL"
     summary = {"verdict": verdict, "problems": problems, "frames": a.frames,
-               "memory_limit_given": a.memory_limit,
+               "memory_limit_given": a.memory_limit, "memory_limit_bytes": limit_given,
                "runs": [{k: v for k, v in r.items() if k != "report"} |
                         {"pool": (r["report"] or {}).get("pool"),
                          "pairs_complete": len((r["report"] or {}).get("pairs") or []),
@@ -151,8 +178,13 @@ def main(argv=None):
              f"- Ladder: `<ladder>`, " + (f"the first {a.frames} frame pairs of each pair"
                                            if a.frames else "every frame pair of each pair")
              + " (`cmd.txt`).",
-             "- PASS when every run is complete and each pair's frames (indices, timestamps, "
-             "scores at full precision) and pooled values are the same in every run.", "",
+             "- PASS when every run exits 0 with a complete report, each pair's frames "
+             "(indices, timestamps, scores at full precision) and pooled values are the same "
+             "in every run"
+             + (f", and with --memory-limit {a.memory_limit}, {limit_given} bytes, every "
+                "report gives that limit and neither its peak resident memory nor "
+                "/usr/bin/time -l's maximum resident set size is over it"
+                if limit_given is not None else "") + ".", "",
              "| --jobs | exit | status | pool size | most at once | pair memory (report) | "
              "memory limit | peak resident (report) | max RSS (time -l) | wall s |",
              "|---|---|---|---|---|---|---|---|---|---|"]
@@ -162,12 +194,13 @@ def main(argv=None):
                      f"{pool.get('jobs')} | {pool.get('max_running')} | "
                      f"{pool.get('pair_memory') or '-'} | {pool.get('memory_limit') or '-'} | "
                      f"{pool.get('peak_resident')} | {r['max_rss_time_l']} | {r['wall_s']} |")
-    lines += ["", "| pair | distorted | frames | " +
-              " | ".join(f"same at --jobs {r['jobs_given'] or 'default'}" for r in runs[1:]) + " |",
-              "|---|---|---|" + "---|" * (len(runs) - 1)]
+    head = ["pair", "distorted", "frames"] + [f"same at --jobs {r['jobs_given'] or 'default'}"
+                                             for r in runs[1:]]
+    lines += ["", "| " + " | ".join(head) + " |", "|" + "---|" * len(head)]
     for row in pairs_check:
-        lines.append(f"| {row['index']} | `{row['dis']}` | {row['frames']} | " +
-                     " | ".join("yes" if s["same"] else "NO" for s in row["same_in"]) + " |")
+        cells = [str(row["index"]), f"`{row['dis']}`", str(row["frames"])]
+        cells += ["yes" if s["same"] else "NO" for s in row["same_in"]]
+        lines.append("| " + " | ".join(cells) + " |")
     if problems:
         lines += ["", "Problems:"] + [f"- {x}" for x in problems]
     with open(os.path.join(out, "check.md"), "w") as f:
