@@ -63,6 +63,16 @@ Master playlist: <https://devstreaming-cdn.apple.com/videos/streaming/examples/i
 - ffprobe: h264 High, yuv420p, **no color tags** (range, matrix, primaries and transfer all unset), frame rate 30/1 for `v2` to `v4` and 60/1 for `v5` to `v9`, time base 1/90000, and a start of 10.033333 s at 30 fps and 10.016667 s at 60 fps.
 - So its pairs would exercise D-016's handling of untagged inputs, which D-021 decided for a yuv420p reference, as these playlists are: an untagged input is taken as BT.601 with limited range (D-033 confirmed P-014); and, between a 60 fps reference and the 30 fps playlists, a frame-rate mismatch and inputs that start at different times, which Mirage's pairing in decode order did not detect; since D-028 it pairs by timestamp, on the coarser grid and with times from each input's start (`src/VMAFAlign.h`). No committed run has scored these playlists.
 
+**On `vmaf/phase-2`** (a note of 2026-10-29; the text above is Phase 1's): D-049 made it §2's acceptance ladder. Its runs across pool sizes read a local copy of its first segments ("The local copy of the advanced sample" below), and its runs over every frame read Apple's CDN (`eval/ladder/`; `docs/PHASE2_STATUS.md`), so the statements above that nothing committed has scored it describe Phase 1 only.
+
+### The local copy of the advanced sample (D-049)
+
+`eval/streams/local-advanced-2026-10-26/` is the record of the copy `eval/streams/local_copy.py` made on 2026-10-26 (`copy.md`): the master as fetched, and each of its 8 video playlists cut after its first 2 segments, with an `EXT-X-ENDLIST`. The copy itself, media included, isn't in the repository.
+
+- **What its SHA256SUMS checks.** It lists the copy's 25 files by their paths in the copy, the segments included, so that it checks a copy made again: from that copy's directory, `shasum -a 256 -c <repo>/eval/streams/local-advanced-2026-10-26/SHA256SUMS`.
+- **In the record itself** it can't be checked as it stands, since the segments aren't there. The record's `playlists/` holds the master and the 8 cut playlists at the copy's paths, so from there `shasum -a 256 -c --ignore-missing ../SHA256SUMS` checks those 9 files and leaves out the segments. `copy.json` and `copy.md` are in no checksum file.
+- The record stays as committed (D-060). The SHA256SUMS of the fetch of 2026-10-23 next to it, `eval/streams/fetched-2026-10-23/`, lists that record's own files instead.
+
 ## Named by the work order, not examined
 
 §8 of the work order also lists DASH-IF test vectors and Unified Streaming demo streams. None of them was examined in this work, so no URL or property is recorded here (MEASUREMENT PENDING).

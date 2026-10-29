@@ -6,6 +6,8 @@ Each entry records the decision, the alternatives, the rationale, who decided an
 
 **Only the owner makes design decisions** (hard rule 3 of the work order). The agent only makes measurement and process choices. Those entries are listed separately below and stay marked as pending until the owner confirms them.
 
+A pending entry is append-only (D-060): what is found after it was written goes in dated lines of its own before its **Who**, such as `- **Correction** (date): …`, and the text above them stays as written. Since D-060 the entries say "agent" alone in their **Who** lines; `docs/AI_CONTRIBUTIONS.md` names the model.
+
 ---
 
 ## Design decisions (owner)

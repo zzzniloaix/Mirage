@@ -5,7 +5,7 @@
 - Surveyed: commit `d3a7a63` of `vmaf/phase-1`, Phase 1's work, which isn't merged yet; Phase 2 is the branch `vmaf/phase-2`, made from it
 - Written by: the agent (Claude), for the owner's review
 
-Every number here comes from a committed output or the code, named next to it; where there is none, it says MEASUREMENT PENDING. The owner's decisions on it are D-042 to D-049 in `docs/DECISIONS.md`; the text below is as the owner decided it, with the measurements added since.
+Every number here comes from a committed output or the code, named next to it; where there is none, it says MEASUREMENT PENDING. The owner's decisions on it are D-042 to D-049 in `docs/DECISIONS.md`; the text below is as the owner decided it, with the measurements added since. It is a snapshot as of `f8781f2`, its last commit before this line, and isn't updated: the measurements since, M2 and M3 and the advanced sample's runs among them, are in `docs/PHASE2_STATUS.md` (D-060).
 
 ## What §2 asks
 
