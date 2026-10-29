@@ -46,22 +46,31 @@ extern "C" {
 
 namespace {
 
-// Set by SIGINT and SIGTERM during a ladder run.
-volatile std::sig_atomic_t g_signal = 0;
+// Set by SIGINT and SIGTERM during a ladder run, on whatever thread takes
+// the signal, and read by the thread that passes it on: a lock-free
+// atomic, which a signal handler may set.
+std::atomic<int> g_signal{ 0 };
+static_assert(std::atomic<int>::is_always_lock_free);
 
-extern "C" void on_signal(int sig) { g_signal = sig; }
+extern "C" void on_signal(int sig) { g_signal.store(sig, std::memory_order_relaxed); }
 
 // The pairs of the ladder `args` names, scored and reported (D-029, D-047).
 int score_ladder(const vmafcli::Args& args, const VMAFOptions& opts, vmafreport::RunInfo run)
 {
     // SIGINT and SIGTERM cancel the run: a handler may only set a flag, which
-    // this thread passes on to the run's stop source (D-047).
+    // this thread passes on to the run's stop source (D-047). The handlers
+    // stay until the report is written, so that another signal meanwhile
+    // doesn't end the program without it.
     std::stop_source cancel;
     std::signal(SIGINT, on_signal);
     std::signal(SIGTERM, on_signal);
+    const auto default_signals = [] {
+        std::signal(SIGINT, SIG_DFL);
+        std::signal(SIGTERM, SIG_DFL);
+    };
     std::jthread watch([&](std::stop_token st) {
         while (!st.stop_requested()) {
-            if (g_signal != 0) {
+            if (g_signal.load(std::memory_order_relaxed) != 0) {
                 cancel.request_stop();
                 return;
             }
@@ -84,14 +93,13 @@ int score_ladder(const vmafcli::Args& args, const VMAFOptions& opts, vmafreport:
         });
     watch.request_stop();
     watch.join();
-    std::signal(SIGINT, SIG_DFL);
-    std::signal(SIGTERM, SIG_DFL);
 
     for (const std::string& w : ladder.plan.warnings)
         std::fprintf(stderr, "mirage_vmaf: warning: %s\n", w.c_str());
     for (const std::string& w : ladder.pool_warnings)
         std::fprintf(stderr, "mirage_vmaf: warning: %s\n", w.c_str());
     if (ladder.status.empty()) {   // the master couldn't be read or planned: no report
+        default_signals();
         std::fprintf(stderr, "mirage_vmaf: %s\n", ladder.error.c_str());
         return 1;
     }
@@ -99,7 +107,10 @@ int score_ladder(const vmafcli::Args& args, const VMAFOptions& opts, vmafreport:
 
     run.reference_mode = ladder.plan.reference_mode;
     std::string err;
-    if (!vmafreport::write_file(args.out, vmafreport::ladder_to_json(ladder, run), err)) {
+    const bool written =
+        vmafreport::write_file(args.out, vmafreport::ladder_to_json(ladder, run), err);
+    default_signals();
+    if (!written) {
         std::fprintf(stderr, "mirage_vmaf: %s\n", err.c_str());
         return 1;
     }

@@ -24,7 +24,9 @@
 #include <fstream>
 #include <functional>
 #include <iterator>
+#include <stop_token>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -271,9 +273,11 @@ struct ToolRun {
 
 // Runs the built mirage_vmaf with `args`, SIGINT and SIGTERM at their
 // defaults, and reads its stdout as it comes: `on_line` gets each line and
-// the process's id.
+// the process's id, and `on_end` is called once its stdout has ended, before
+// the process is waited for.
 ToolRun run_tool(std::vector<std::string> args,
-                 const std::function<void(const std::string&, pid_t)>& on_line = {})
+                 const std::function<void(const std::string&, pid_t)>& on_line = {},
+                 const std::function<void()>& on_end = {})
 {
     static int runs = 0;
     const fs::path err_path = testtemp::path(std::format("mirage_vmaf_stderr_{}.txt", ++runs));
@@ -325,6 +329,7 @@ ToolRun run_tool(std::vector<std::string> args,
     }
     run.out += pending;
     ::close(out[0]);
+    if (on_end) on_end();
     while (::waitpid(pid, &run.status, 0) < 0 && errno == EINTR) {}
     run.err = read_text(err_path);
     return run;
@@ -1155,6 +1160,52 @@ TEST_CASE("mirage_vmaf --ladder: SIGINT cancels the run, which exits 1 with the 
                                      "\"status\": \"stopped\", \"why\": null}}",
                                      held)));
     CHECK(contains(run.out, "; the run is cancelled; report written to " + report + "\n"));
+    fs::remove_all(dir);
+}
+
+TEST_CASE("mirage_vmaf --ladder: SIGINTs that keep coming don't lose the report",
+          "[ladder][vmaf][vmafnet]")
+{
+    // As above, with the long ladder's pairs, whose report takes longer to
+    // write, and SIGINT every 200 us from the second pair's end until the
+    // program has ended: the handlers stay until the report is written.
+    const LongLadder& l = long_ladder();
+    SilentServer server;
+    REQUIRE(server.ok());
+    const fs::path dir = testtemp::path("mirage_test_tool_sigints");
+    fs::create_directories(dir);
+    const std::string master = (dir / "master.m3u8").string();
+    const std::string held   = server.url("held/index.m3u8");
+    write_text(master, master_of({ { held, 600000 }, { l.low, 300000 }, { l.top, 900000 } }));
+    const std::string report = (dir / "report.json").string();
+    std::jthread signals;
+    const ToolRun run = run_tool(
+        { "--ladder", master, "--jobs", "2", "--out", report },
+        [&](const std::string& line, pid_t pid) {
+            if (!line.starts_with("mirage_vmaf: pair 2 of 2, ")) return;
+            signals = std::jthread([pid](std::stop_token st) {
+                while (!st.stop_requested()) {
+                    ::kill(pid, SIGINT);
+                    std::this_thread::sleep_for(std::chrono::microseconds(200));
+                }
+            });
+        },
+        [&] {
+            REQUIRE(signals.joinable());
+            signals.request_stop();
+            signals.join();
+        });
+    INFO(run.out << run.err);
+    // Exited 1, or ended by a SIGINT once the report was written.
+    if (WIFEXITED(run.status))
+        CHECK(WEXITSTATUS(run.status) == 1);
+    else
+        CHECK((WIFSIGNALED(run.status) && WTERMSIG(run.status) == SIGINT));
+    const std::string text = read_text(report);
+    CHECK(text.starts_with("{\n  \"status\": \"cancelled\",\n  \"error\": \"the run was cancelled: "
+                           "1 of 2 pairs complete\",\n"));
+    CHECK(text.ends_with("]\n}\n"));
+    CHECK_FALSE(fs::exists(report + ".partial"));
     fs::remove_all(dir);
 }
 
