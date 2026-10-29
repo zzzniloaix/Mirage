@@ -146,7 +146,8 @@ void Aligner::push(Input in, int64_t timestamp)
         e.t = ticks(s, timestamp);
         if (s.has_last) {
             e.repeats = e.t == s.last_t;
-            if (e.t < s.last_t || e.t - s.last_t > jump_) {
+            // In 128 bits: two saturated times are 2^63 ticks apart.
+            if (e.t < s.last_t || static_cast<i128>(e.t) - s.last_t > jump_) {
                 // The input's next discontinuity sequence, measured from this
                 // frame (D-046).
                 ++counts_.discontinuities;

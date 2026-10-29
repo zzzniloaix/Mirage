@@ -12,6 +12,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <limits>
 #include <string>
 #include <utility>
 #include <vector>
@@ -537,6 +538,18 @@ TEST_CASE("vmafalign: on the distorted input's coarser grid, jumps a grid frame 
                                                                  { 6, 3 } });
     CHECK(stop.counts.extra_distorted == 1);
     CHECK(stop.counts.after_discontinuity == 13);   // distorted frames 5 to 9, reference 7 to 14
+}
+
+TEST_CASE("vmafalign: a jump between saturated times is a discontinuity", "[vmafalign]")
+{
+    // Times more than 2^62 ticks either way of where they are measured from
+    // saturate there: a frame at the lowest and the next at the highest are
+    // 2^63 ticks apart, more than a 64-bit difference holds. Only corrupt
+    // timestamps get that far.
+    Aligner a(kMkv25, kMkv25);
+    a.push(kRef, std::numeric_limits<int64_t>::min() + 1);
+    a.push(kRef, std::numeric_limits<int64_t>::max());
+    CHECK(a.counts().discontinuities == 1);
 }
 
 TEST_CASE("vmafalign: frames without timestamps fail", "[vmafalign]")
