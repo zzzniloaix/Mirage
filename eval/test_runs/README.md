@@ -7,7 +7,8 @@ Records of the unit test suites run at a commit, for the PR descriptions that qu
 - in the records of 2026-10-23, whether the gitignored fixture of the subtitle test is present: it is in the main working tree, not in a clean checkout (`docs/BUILD.md`, step 4); since D-032 the test writes its fixture itself (P-036), and the records of 2026-10-24 and 2026-10-26 show that no source or test names the fixture's directory;
 - `mirage_tests` without the `[audio]` tests, in the form of `docs/BUILD.md` step 4, and a second run only if the first fails;
 - the four Python suites of `eval/` (`eval/README.md`, "Tests"), and on `vmaf/phase-2` a fifth, `eval/ladder/tests`, in the records of 2026-10-24 and later with `TMPDIR` in a scratch directory outside the repository;
-- the working tree's state afterwards.
+- the working tree's state afterwards;
+- since `macos-2026-10-29-93acc4d.txt`, `uptime` first and last: the machine's load averages, of which what else was running takes its share.
 
 Local paths appear as `<repo>`, `<home>`, `<tmp>` and `<scratch>`.
 
@@ -20,6 +21,7 @@ Local paths appear as `<repo>`, `<home>`, `<tmp>` and `<scratch>`.
 | `macos-2026-10-26-bbc669d.txt` | `bbc669dfeae9febd6f609f5f1e7b4f1489a57182` | `mirage_tests '~[audio]'`: all tests passed, 112082 assertions in 317 test cases, at the first run; the Python suites: 28, 136, 11 and 16 tests, all OK (P-066) |
 | `macos-2026-10-27-1db7b89.txt` | `1db7b89d3cd34fb8f1db97ee60bb56083d3d6a16` (`vmaf/phase-2`) | `mirage_tests '~[audio]'`: all tests passed, 112439 assertions in 325 test cases, at the first run; the Python suites: 28, 136, 11, 16 and 8 tests, all OK (P-073) |
 | `macos-2026-10-27-57b5ea5.txt` | `57b5ea555a6cacc29533fcb5a8e8c791cb0adf6c` (`vmaf/phase-2`) | `mirage_tests '~[audio]'`: all tests passed, 112445 assertions in 325 test cases, at the first run; the Python suites: 28, 136, 11, 16 and 8 tests, all OK (P-074) |
+| `macos-2026-10-29-93acc4d.txt` | `93acc4dca8b5863c08de86fba8164c7b85ddb9dc` (`vmaf/phase-2`) | `mirage_tests '~[audio]'`: all tests passed, 118170 assertions in 335 test cases, at the first run; the Python suites: 28, 136, 11, 16 and 14 tests, all OK; load averages 4.92, 7.75 and 15.31 at the start (P-077) |
 
 ## Repeated runs of one test (P-031)
 
