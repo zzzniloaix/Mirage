@@ -1290,6 +1290,17 @@ TEST_CASE("VMAFAnalyzer::analyze: MPEG-TS timestamps that restart midway, in one
     CHECK(r.alignment.exceeded);
     CHECK(r.ref_info.ended);
     CHECK(r.dis_info.ended);
+    // Each input's discontinuity sequences, with the PTS of their first frames (D-057).
+    REQUIRE(r.alignment.ref_sequences.size() == 1);
+    CHECK(r.alignment.ref_sequences[0].first_index == 0);
+    CHECK(r.alignment.ref_sequences[0].frames == 12);
+    REQUIRE(r.alignment.dis_sequences.size() == 2);
+    CHECK(r.alignment.dis_sequences[0].first_index == 0);
+    CHECK(r.alignment.dis_sequences[0].frames == 6);
+    CHECK(r.alignment.dis_sequences[0].first_pts == r.dis_pts[0]);
+    CHECK(r.alignment.dis_sequences[1].first_index == 6);
+    CHECK(r.alignment.dis_sequences[1].frames == 6);
+    CHECK(r.alignment.dis_sequences[1].first_pts == r.alignment.dis_sequences[0].first_pts);
 
     // Both inputs restart at frame 6, as two rungs at an EXT-X-DISCONTINUITY:
     // every frame pairs, each sequence in its own libvmaf context.

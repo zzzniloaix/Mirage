@@ -339,6 +339,16 @@ void record_alignment(VMAFAlignment& out, const vmafalign::Aligner& a,
     };
     input(Input::Reference, ref, ref_clock, out.ref_frame_rate, out.ref_start, out.ref_start_from);
     input(Input::Distorted, dis, dis_clock, out.dis_frame_rate, out.dis_start, out.dis_start_from);
+    const auto sequences = [&](Input in, const DecodeCtx& ctx) {
+        std::vector<VMAFSequence> list;
+        for (const vmafalign::Sequence& s : a.sequences(in))
+            list.push_back({ .first_index = s.first_index,
+                             .first_pts   = ctx.seconds(s.first_timestamp),
+                             .frames      = s.frames });
+        return list;
+    };
+    out.ref_sequences = sequences(Input::Reference, ref);
+    out.dis_sequences = sequences(Input::Distorted, dis);
 
     const vmafalign::Counts& c = a.counts();
     out.paired              = c.paired;

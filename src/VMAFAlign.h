@@ -62,7 +62,10 @@
 //   later sequence, or it has ended, the other input's frames of the
 //   current sequence pair with nothing; then both go on to the next
 //   sequence either has. The sequences of an input left after the other
-//   has ended pair with nothing.
+//   has ended pair with nothing. Each input's sequences, where each starts
+//   and how many frames it has, are kept for the report (sequences(),
+//   D-057), where frames missing at a sequence's start show as an offset
+//   between the two inputs' sequences of the same rank.
 //   (D-028's option (a), which stopped pairing at the first discontinuity
 //   and counted the rest as failed, is the rule until D-046.) FFmpeg's hls
 //   demuxer gives each segment's own timestamps, unchanged at an
@@ -143,6 +146,16 @@ struct Failure {
     Reason  reason;
 };
 
+// One discontinuity sequence of an input (D-046), as the report gives it
+// (D-057): where it starts, and how many of its frames were pushed.
+struct Sequence {
+    int64_t first_index     = 0;              // its first frame's position in its input
+    int64_t first_timestamp = kNoTimestamp;   // that frame's, as given; kNoTimestamp: none
+    int64_t frames          = 0;
+
+    bool operator==(const Sequence&) const = default;
+};
+
 struct Counts {
     int64_t paired              = 0;
     int64_t unmatched_reference = 0;
@@ -206,6 +219,9 @@ public:
     const Counts&               counts()   const { return counts_; }
     // In the order the frames were counted.
     const std::vector<Failure>& failures() const { return failures_; }
+    // `in`'s discontinuity sequences in its order, the first from its first
+    // frame: those of the frames pushed so far.
+    const std::vector<Sequence>& sequences(Input in) const { return side(in).sequences; }
 
 private:
     struct Entry {
@@ -228,6 +244,7 @@ private:
         int64_t           seq        = 0;      // the discontinuity sequence of its last frame
         std::vector<int64_t> ends;             // ends[k]: the ticks of sequence k's last frame,
                                                // once sequence k + 1 has started (D-050)
+        std::vector<Sequence> sequences;       // the input's, as sequences() gives them
     };
 
     Side&       side(Input in) { return in == Input::Reference ? ref_ : dis_; }

@@ -161,6 +161,9 @@ void Aligner::push(Input in, int64_t timestamp)
         s.has_last = true;
         s.last_t   = e.t;
     }
+    if (s.sequences.size() <= static_cast<std::size_t>(e.seq))
+        s.sequences.push_back({ .first_index = e.index, .first_timestamp = timestamp });
+    ++s.sequences.back().frames;
     s.queue.push_back(e);
 }
 

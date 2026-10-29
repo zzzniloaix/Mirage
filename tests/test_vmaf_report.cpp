@@ -263,6 +263,8 @@ VMAFResult sample_result()
     r.alignment.ref_start_from = "container";
     r.alignment.dis_start      = 10.0;
     r.alignment.dis_start_from = "first-frame";
+    r.alignment.ref_sequences  = { { .first_index = 0, .first_pts = 10.0, .frames = 4 } };
+    r.alignment.dis_sequences  = { { .first_index = 0, .first_pts = 10.0, .frames = 3 } };
     r.alignment.paired         = 3;
     r.alignment.unmatched_reference = 1;
     r.alignment.failed         = 1;
@@ -537,6 +539,15 @@ TEST_CASE("vmafreport::to_json: how the frames were paired by timestamp (D-028)"
     CHECK(a["reference"]["start"].num == 10.0);
     CHECK(a["reference"]["start_from"].str == "container");
     CHECK(a["distorted"]["start_from"].str == "first-frame");
+    // Each input's discontinuity sequences (D-057).
+    for (const auto& [key, frames] : { std::pair{ "reference", 4 }, std::pair{ "distorted", 3 } }) {
+        INFO(key);
+        const Value& seqs = a[key]["sequences"];
+        REQUIRE(seqs.arr.size() == 1);
+        CHECK(seqs.arr[0]["first_index"].num == 0);
+        CHECK(seqs.arr[0]["first_pts"].num == 10.0);
+        CHECK(seqs.arr[0]["frames"].num == frames);
+    }
     CHECK(a["paired"].num == 3);
     CHECK(a["failed"].num == 1);
     CHECK(a["failure_rate"].num == 0.25);
@@ -569,6 +580,7 @@ TEST_CASE("vmafreport::to_json: how the frames were paired by timestamp (D-028)"
     // Nothing paired or failed: no failure rate; a start not known: null.
     VMAFResult none = sample_result();
     none.alignment = VMAFAlignment{};
+    none.alignment.dis_sequences = { { .first_index = 0, .frames = 2 } };   // a first frame without a PTS
     const auto empty = parse(vmafreport::to_json(none, kRun));
     REQUIRE(empty);
     const Value& e = (*empty)["alignment"];
@@ -578,6 +590,11 @@ TEST_CASE("vmafreport::to_json: how the frames were paired by timestamp (D-028)"
     CHECK(e["failures"].kind == Value::Kind::Array);
     CHECK(e["failures"].arr.empty());
     CHECK(e["vmaf_contexts"].arr.empty());
+    CHECK(e["reference"]["sequences"].kind == Value::Kind::Array);
+    CHECK(e["reference"]["sequences"].arr.empty());
+    REQUIRE(e["distorted"]["sequences"].arr.size() == 1);
+    CHECK(e["distorted"]["sequences"].arr[0]["first_pts"].kind == Value::Kind::Null);
+    CHECK(e["distorted"]["sequences"].arr[0]["frames"].num == 2);
 }
 
 TEST_CASE("vmafreport::to_json: one entry per frame pair, full precision", "[vmafreport]")

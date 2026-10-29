@@ -108,6 +108,16 @@ struct VMAFAlignmentFailure {
                           // "duplicate_distorted", "no_timestamp", "after_discontinuity"
 };
 
+// One discontinuity sequence of an input (DECISIONS.md D-046), where it
+// starts and how many frames it has (D-057): an input that lacks frames at
+// the start of a sequence starts it later than the other input's of the same
+// rank.
+struct VMAFSequence {
+    int64_t first_index = 0;   // its first frame's position in its input, from 0
+    double  first_pts   = std::numeric_limits<double>::quiet_NaN();   // seconds; NaN without one
+    int64_t frames      = 0;   // its frames the analysis read
+};
+
 // One libvmaf context of a pair: the pairs it scored, from first_index on.
 // A new one starts after each gap in the reference's frames (D-028) and at
 // each discontinuity sequence but the first (D-046).
@@ -134,6 +144,8 @@ struct VMAFAlignment {
     double      ref_start = std::numeric_limits<double>::quiet_NaN();
     double      dis_start = std::numeric_limits<double>::quiet_NaN();
     std::string ref_start_from, dis_start_from;
+    // Each input's discontinuity sequences, in its order (D-057).
+    std::vector<VMAFSequence> ref_sequences, dis_sequences;
     int64_t     paired              = 0;
     int64_t     unmatched_reference = 0;
     int64_t     extra_distorted     = 0;

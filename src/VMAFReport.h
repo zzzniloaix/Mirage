@@ -43,7 +43,9 @@
 //   alignment {            how the frames were paired by timestamp (D-028,
 //                          src/VMAFAlign.h; VMAFResult::alignment)
 //     rule, timestamp_origin, grid, tolerance (seconds),
-//     reference / distorted { frame_rate, start (seconds), start_from },
+//     reference / distorted { frame_rate, start (seconds), start_from,
+//                             sequences [ { first_index, first_pts (seconds),
+//                                           frames } ] }   (D-057)
 //     paired, failed, failure_rate, threshold, exceeded,
 //     unmatched_reference, extra_distorted, duplicate_distorted,
 //     no_timestamp, after_discontinuity, discontinuities,

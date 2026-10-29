@@ -66,10 +66,19 @@ std::string texts_json(const std::vector<std::string>& list, const std::string& 
     return out + (list.empty() ? "]" : "\n" + ind + "]");
 }
 
-std::string clock_json(const std::string& rate, double start, const std::string& from)
+// An input's timing in the alignment: its frame rate, where its times are
+// measured from, and its discontinuity sequences (D-057).
+std::string clock_json(const std::string& rate, double start, const std::string& from,
+                       const std::vector<VMAFSequence>& sequences)
 {
-    return std::format("{{\"frame_rate\": {}, \"start\": {}, \"start_from\": {}}}", quote(rate),
-                       number(start), from.empty() ? "null" : quote(from));
+    std::string out = std::format("{{\"frame_rate\": {}, \"start\": {}, \"start_from\": {}, "
+                                  "\"sequences\": [",
+                                  quote(rate), number(start), from.empty() ? "null" : quote(from));
+    for (std::size_t i = 0; i < sequences.size(); ++i)
+        out += std::format("{}{{\"first_index\": {}, \"first_pts\": {}, \"frames\": {}}}",
+                           i == 0 ? "" : ", ", sequences[i].first_index,
+                           number(sequences[i].first_pts), sequences[i].frames);
+    return out + "]}";
 }
 
 std::string alignment_json(const VMAFAlignment& a, const std::string& ind)
@@ -87,8 +96,9 @@ std::string alignment_json(const VMAFAlignment& a, const std::string& ind)
         "\"off_grid_distorted\": {},\n"
         "{}\"vmaf_contexts\": [",
         quote(a.rule), quote(a.timestamp_origin), quote(a.grid), number(a.tolerance),
-        in1, clock_json(a.ref_frame_rate, a.ref_start, a.ref_start_from),
-        in1, clock_json(a.dis_frame_rate, a.dis_start, a.dis_start_from), in1, a.paired, a.failed,
+        in1, clock_json(a.ref_frame_rate, a.ref_start, a.ref_start_from, a.ref_sequences),
+        in1, clock_json(a.dis_frame_rate, a.dis_start, a.dis_start_from, a.dis_sequences), in1,
+        a.paired, a.failed,
         number(a.failure_rate), number(a.threshold), a.exceeded, in1, a.unmatched_reference,
         a.extra_distorted, a.duplicate_distorted, a.no_timestamp, a.after_discontinuity,
         in1, a.discontinuities, number(a.discontinuity_jump), a.off_grid_reference,

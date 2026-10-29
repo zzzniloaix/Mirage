@@ -59,6 +59,7 @@ struct Run {
     bool done = false;
     vmafalign::Counts    counts;
     std::vector<Failure> failures;
+    std::vector<vmafalign::Sequence> ref_sequences, dis_sequences;
 };
 
 Run align(const std::vector<int64_t>& ref, const std::vector<int64_t>& dis,
@@ -89,8 +90,10 @@ Run align(const std::vector<int64_t>& ref, const std::vector<int64_t>& dis,
         case Step::Kind::Done:          out.done = true; break;
         }
     }
-    out.counts   = a.counts();
-    out.failures = a.failures();
+    out.counts        = a.counts();
+    out.failures      = a.failures();
+    out.ref_sequences = a.sequences(kRef);
+    out.dis_sequences = a.sequences(kDis);
     return out;
 }
 
@@ -397,6 +400,60 @@ TEST_CASE("vmafalign: each discontinuity sequence pairs with the other input's o
                                { 9, 8 }, { 10, 9 }, { 11, 10 } });
     CHECK(dropped.counts.unmatched_reference == 1);
     CHECK(dropped.new_contexts == std::vector<std::size_t>{ 6, 8 });
+}
+
+TEST_CASE("vmafalign: each input's sequences, and an input that ends instead of jumping (D-057)",
+          "[vmafalign]")
+{
+    using vmafalign::Sequence;
+    // Both inputs restart after their frame 5, the distorted input without
+    // the first 2 frames of its second sequence. The jumps are at the same
+    // place, so the second sequences pair from their own starts, offset by
+    // the 2 frames, which the sequences' first timestamps show (D-057).
+    std::vector<int64_t> ref = frames(6), dis = frames(6);
+    for (int64_t t : frames(6)) ref.push_back(t);
+    for (int64_t t : frames(4, 40, 80)) dis.push_back(t);
+    const Run offset = align(ref, dis);
+    CHECK(offset.done);
+    CHECK(offset.pairs == diagonal(0, 10));
+    CHECK(offset.new_contexts == std::vector<std::size_t>{ 6 });
+    CHECK(offset.counts.discontinuities == 2);
+    CHECK(offset.counts.unmatched_reference == 2);   // its frames 10 and 11
+    CHECK(offset.counts.after_discontinuity == 0);
+    CHECK(offset.ref_sequences == std::vector<Sequence>{ { 0, 0, 6 }, { 6, 0, 6 } });
+    CHECK(offset.dis_sequences == std::vector<Sequence>{ { 0, 0, 6 }, { 6, 80, 4 } });
+
+    // The reference restarts after its frame 5, and the distorted input ends
+    // there instead. An end isn't a jump, so pairing doesn't stop (D-050):
+    // the reference's second sequence pairs with nothing, its frames
+    // unmatched, as D-046 has them (D-057).
+    std::vector<int64_t> restart = frames(6);
+    for (int64_t t : frames(6)) restart.push_back(t);
+    const Run dis_ends = align(restart, frames(6));
+    CHECK(dis_ends.done);
+    CHECK(dis_ends.pairs == diagonal(0, 6));
+    CHECK(dis_ends.counts.discontinuities == 1);
+    CHECK(dis_ends.counts.unmatched_reference == 6);
+    CHECK(dis_ends.counts.extra_distorted == 0);
+    CHECK(dis_ends.counts.after_discontinuity == 0);
+    CHECK(same(dis_ends.failures[0], kRef, 6, 0, Reason::UnmatchedReference));
+    CHECK(dis_ends.ref_sequences == std::vector<Sequence>{ { 0, 0, 6 }, { 6, 0, 6 } });
+    CHECK(dis_ends.dis_sequences == std::vector<Sequence>{ { 0, 0, 6 } });
+
+    // The other way round: the distorted input's second sequence is extra.
+    const Run ref_ends = align(frames(6), restart);
+    CHECK(ref_ends.pairs == diagonal(0, 6));
+    CHECK(ref_ends.counts.extra_distorted == 6);
+    CHECK(ref_ends.counts.unmatched_reference == 0);
+    CHECK(ref_ends.counts.after_discontinuity == 0);
+    CHECK(same(ref_ends.failures[0], kDis, 6, 0, Reason::ExtraDistorted));
+
+    // A first frame without a timestamp starts the first sequence.
+    Aligner a(kMkv25, kMkv25);
+    a.push(kRef, kNoTimestamp);
+    a.push(kRef, 40);
+    CHECK(a.sequences(kRef) == std::vector<Sequence>{ { 0, kNoTimestamp, 2 } });
+    CHECK(a.sequences(kDis).empty());
 }
 
 TEST_CASE("vmafalign: a jump in one input alone stops the pairing", "[vmafalign]")
