@@ -1,6 +1,6 @@
 # Phase 1: decisions pending for the owner
 
-What is still open for the owner after the decisions of 2026-10-26 (`docs/DECISIONS.md` D-034 to D-041), which adopted the agent's recommendations of this document as of `b2d2824`: D-011's clips and encoding parameters, and D-008's question with the license texts next to glad's loader; the agent's process choice P-066; and the differences between the work order and the implementation (hard rule 4). The decisions are the owner's (hard rule 3 of the work order); every recommendation below is labeled as the agent's. Every number comes from a committed output, named next to it; where there is none, it says MEASUREMENT PENDING. The state of each section of Phase 1 is in `docs/PHASE1_STATUS.md`, and the statements the paper's method text has to make, with their evidence, in `docs/PAPER_METHOD_NOTES.md`.
+What is still open for the owner after the decisions of 2026-10-26 (`docs/DECISIONS.md` D-034 to D-041), which adopted the agent's recommendations of this document as of `b2d2824`: D-011's clips and encoding parameters, and D-008's question with the license texts next to glad's loader; the agent's process choice P-066; and the differences between the work order and the implementation (the work order's engineering constraints). The decisions are the owner's (hard rule 3 of the work order); every recommendation below is labeled as the agent's. Every number comes from a committed output, named next to it; where there is none, it says MEASUREMENT PENDING. The state of each section of Phase 1 is in `docs/PHASE1_STATUS.md`, and the statements the paper's method text has to make, with their evidence, in `docs/PAPER_METHOD_NOTES.md`.
 
 The items decided on 2026-10-26 follow, in "Decided on 2026-10-26 (D-034 to D-041)", and the packages decided on 2026-10-23 at the end, in "Decided on 2026-10-23 (D-020 to D-033)", each with the text it had when it was decided, as the record of its options, and a note at its start on what was decided and where the work is.
 
@@ -450,7 +450,9 @@ D-033 confirmed P-006 to P-032 (listed in the decided section below). The measur
 | P-064 | `run.cmd.txt` names the options its command line gave, besides every option the run had | the arguments with their values; the same line in `delta.json` | |
 | P-065 | the records after the review fixes: the unit tests at `a4692a2`, and a rerun of every step at `a4692a2`, which the machine's sleep cut short, committed with the failed run's reports, logs, sleep and wake events and the stalled processes' CPU times; its two unfinished steps rerun on their own | the whole rerun again; the processes left to the 6 h limit | "A network read without a time limit" |
 
-## Differences between the work order and the implementation found in this work (hard rule 4)
+**Agent's recommendation**: confirm them all, with the open questions above decided as recommended there.
+
+## Differences between the work order and the implementation found in this work (the work order's engineering constraints)
 
 Reported, not edited:
 
@@ -580,6 +582,8 @@ For a matrix libswscale lacks: (a) refuse, as the code, the player's included, d
 - Not measured: the effect on a ladder encoded from one source (D-011's clips), and over every frame (MEASUREMENT PENDING).
 
 **A difference from the work order** (hard rule 4; nothing was edited to hide it): §1.3 suggests bicubic as the default "so that the §5 consistency check can pass". The runs show that §5 passes with each of the three scalers when both sides use the same one; the scaler decides the scores, not whether the two tools agree.
+
+**Correction** (2026-10-29): the rule that a difference is reported, not edited away, is among the work order's engineering constraints; its hard rule 4 asks for the decision log (D-060, recorded on `vmaf/phase-2`).
 
 **Options.**
 
