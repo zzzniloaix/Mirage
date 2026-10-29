@@ -1977,3 +1977,28 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: agent (Claude)
 - **Date**: 2026-10-28
 - **Status**: pending owner confirmation
+
+### P-077 How the audit's first batch is implemented, and the unit tests after it
+
+- **Choice**
+  - On 2026-10-28 the owner had both branches audited, read-only, and sent the audit's handoff, in three batches: corrections and fixes that need no decision, which the owner approved by sending it; questions for the owner (`docs/PHASE2_DECISIONS_PENDING.md`); and what not to do. Each item of the first batch was checked at `daecb37` before it was changed, by its committed evidence, or by a change to the code at `daecb37` in a scratch worktree that the item's new test catches; every item held (the runs aren't committed; `docs/AI_CONTRIBUTIONS.md`).
+  - The docs (`1b22148`): correction lines in P-068, P-070, P-072, P-073, P-075 and P-076, Rationale lines in P-075 and P-076, and corrections and disclosures in the status, the pending document, the method notes, `docs/BUILD.md` and `docs/AI_CONTRIBUTIONS.md`.
+  - `mirage_vmaf --help` (`7ee3724`): the Pairing paragraph gives D-050's stop, the Ladder and Exit status paragraphs the pool and D-047's report, the network paragraph the limits without calling them the player's, and the `--memory-limit` row the pool's rule and the suffixes' binary units; its test pins the wording, and the prose's width at 80 columns.
+  - Tests of decided behaviour (`002e976`): the pool's warm-up, on rungs of 20 `kWarmUp` frames; two pairs at once (D-043); a pair stopped, not failed, by a cancel or by another pair's failure while it waits for a server that sends nothing; `mirage_vmaf --ladder` run as a program, its exit status and report when complete, when a pair can't be scored and after SIGINT; and D-050 on a distorted input at half the reference's rate. `vmafladder::warm_up()` takes `score()`'s rule for when a pair has warmed up out of it, so that a test reaches it: with `--frames` under `kWarmUp`, a pair warms up only as it ends, which no test of `score()` can see.
+  - The analyzer reads its stop token once at the end of an analysis, so that a stop can't keep the scores without their pooled values (`d14b3c0`).
+  - `mirage_vmaf`'s signal flag is a lock-free `std::atomic<int>`, and its handlers stay until the report is written (`e8acff1`).
+  - `vmafladder::read_master()` takes the run's stop token, and a cancel ends a read of the master once it has gone on for 100 ms, the interval at which FFmpeg's network reads check the interrupt callback while they wait. A read that doesn't wait, as a local file's, isn't ended, so a run cancelled before it starts still has its plan, as the test of D-047's cancel has it (`8797343`; P-066's correction).
+  - With no pair complete, a ladder report gives the settings the run asked for, `vmaf_settings()` of its options, `model_sha256` null (`e2af02d`).
+  - The jump between two saturated times is taken in 128 bits (`9aced58`).
+  - `eval/ladder/pool_check.py` fails a run that exits non-zero, checks the peaks against the limit given and fails a report that gives another, refuses a SIZE `mirage_vmaf` wouldn't read, names every criterion in check.md's PASS line, takes `time.txt` from `/usr/bin/time -l`'s last "real" line, and writes a valid table for one run (`93acc4d`). The committed records keep the check they were made with.
+  - The unit test record at `93acc4d`, the last commit that changes code, tests or scripts, with the load averages first and last (`eval/test_runs/macos-2026-10-29-93acc4d.txt`, `4e5a4d3`).
+- **Alternatives**
+  - For the master's read: a callback without the grace, which ends a local file's read too, so that a run cancelled before it starts has no plan and no report, against the test of D-047's cancel; the callback for network URLs only, which leaves the same for a network master.
+  - For the settings with no pair complete: a failed pair's, which may hold the model file's SHA-256; none in the report.
+  - For when a pair has warmed up: a test of `score()` alone, which can't reach the rule.
+  - For `pool_check.py`: the limit as the report gives it, as before.
+- **Rationale**: each change is the audit's recommended action where it gives one, made so that no decided or tested behaviour changes: a run cancelled before it starts keeps its plan, the reports keep their layout, and the records keep their checks.
+- **Result** of the unit tests (`eval/test_runs/macos-2026-10-29-93acc4d.txt`): `mirage_tests '~[audio]'` passed at the first run, 118170 assertions in 335 test cases, and the five Python suites passed, 28, 136, 11, 16 and 14 tests; the load averages were 4.92, 7.75 and 15.31 at the start and 6.98, 7.75 and 14.71 at the end.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-29
+- **Status**: pending owner confirmation

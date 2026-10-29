@@ -1,14 +1,182 @@
 # Phase 2: decisions pending for the owner
 
-What is open for the owner on `vmaf/phase-2`, §2 of the VMAF work order, after the decisions of 2026-10-26 on the survey (`docs/DECISIONS.md` D-042 to D-049) and of 2026-10-27 on what the measurements found (D-050 to D-053). The decisions are the owner's (hard rule 3 of the work order); every recommendation below is labeled as the agent's. Every number comes from a committed output, named next to it; where there is none, it says MEASUREMENT PENDING. The state of each item of §2 is in `docs/PHASE2_STATUS.md`.
+What is open for the owner on `vmaf/phase-2`, §2 of the VMAF work order, after the decisions of 2026-10-26 on the survey (`docs/DECISIONS.md` D-042 to D-049) and of 2026-10-27 on what the measurements found (D-050 to D-053), and after the audit of both branches of 2026-10-28, which the owner asked for (`docs/AI_CONTRIBUTIONS.md`). The decisions are the owner's (hard rule 3 of the work order); every recommendation below is labeled as the agent's. Every number comes from a committed output, named next to it; where there is none, it says MEASUREMENT PENDING. The state of each item of §2 is in `docs/PHASE2_STATUS.md`.
 
 ## Open
 
-Nothing is open for the owner but the agent's choices to confirm, below; the questions of 2026-10-27 are decided, after them.
+The audit of 2026-10-28 raised the questions below; the agent's choices to confirm follow them, and the questions of 2026-10-27, decided, follow those.
 
 **For information.** With a memory limit, once the first pairs had ended the others ran one at a time in each run at 1 GiB over 300 frame pairs but the first, in which all 7 started at once (`eval/ladder/advanced-local-300-mem1g-1cc1ab0/`), and in the run over every frame with D-051's 10%; in the run over every frame with D-053's 25%, the next two pairs ran together once the first two had ended, and only the last three one at a time (`eval/ladder/advanced-cdn-full-b706ed3/README.md`). The report's `pair_memory` at 300 frames was more than three times one pair's peak, so at times the resident memory still counted memory of pairs that had ended (`eval/ladder/advanced-local-300-mem1g-b706ed3/README.md`; P-074). Which of the process's memory measures drops when a pair ends, and when, is MEASUREMENT PENDING.
 
-## The agent's choices to confirm: P-067 to P-076
+### A segment the hls demuxer skips (D-036; P-066)
+
+**What the code and the records show.** D-036 gives each network read 5 s (`src/VMAFNet.h`). When a segment's request waits longer, FFmpeg's hls demuxer goes on to the next segment: its `seg_max_retry` is 0 unless set (`ffmpeg -h demuxer=hls`), and the analyzer sets none (`DecodeCtx::open()` in `src/VMAFAnalyzer.cpp`), where the player's demuxer sets 10 (`src/Demuxer.cpp`). D-036's option 2 said a failed read makes the demuxer skip the segment (`docs/PHASE1_DECISIONS_PENDING.md`, "A network read without a time limit"). The read returns no error, so `vmafreport::incomplete()` finds nothing wrong: the pair ends complete, with exit 0, and so does a ladder run. In D-049's run over every frame from Apple's CDN a read timed out once, and FFmpeg's retry with a new connection recovered it (`eval/ladder/advanced-cdn-full-af17121/jobs-default/stderr.txt`, lines 8 to 10).
+
+**Why it matters.** A segment lost in one input shows only as frames that don't pair, which warn above 1% (D-028); since each input's times are measured from its own start (D-028), a first segment lost in one input would offset every pair of it. A segment lost in both inputs at the same place leaves no failure: the frames on either side pair, in one libvmaf context across the hole. No committed record has a skipped segment; what one does to a pair's scores is MEASUREMENT PENDING.
+
+**Question.** What should a skipped segment do to a pair, and to a run?
+
+**Options.**
+
+1. As now, D-036's option 2: the segment is skipped, and only the pairing's counts can show it.
+2. Retries, as the player's demuxer has them: `seg_max_retry` 10 on the analyzer's HLS inputs, so that a segment is tried again before it is skipped. This reopens D-036, which chose option 2 over the player's options; FFmpeg's side of the §5 check would still skip.
+3. A skipped segment as a read error: the pair is incomplete, so it fails, and a ladder run fails (D-047). FFmpeg reports the skip only in its log, so the analyzer would catch it there, or in the demuxer's `io_open` callback, through which every segment is opened.
+4. A gap in both inputs' timestamps at the same place reported: counted and warned of in the pairing's record, with a new libvmaf context after it.
+
+**Agent's recommendation.** Options 2 and 3 together: a segment is tried again as the player tries it, and one that is still lost fails the pair, so that no report is complete without it; option 4 later, for gaps that are in the source itself. Tests on a local server that holds a segment in the middle and a first segment follow the decision.
+
+### The options of an rtmp input (D-036; P-066)
+
+**What the code says.** `vmafnet::set_io_limits()` gives every http(s), rtmp and rtsp URL FFmpeg's `timeout` and `rw_timeout`, 5 s (`src/VMAFNet.h`), the rule of `src/FfOpen.cpp`, which `src/Demuxer.cpp` follows; a test asserts both values for an rtmp URL (`tests/test_vmaf_analyzer.cpp`, "vmafnet: network URLs get the read limits, local inputs none"). For FFmpeg 8.1.1's own rtmp protocol, `timeout` is the "Maximum timeout (in seconds) to wait for incoming connections" and "Implies -rtmp_listen 1" (`ffmpeg -h protocol=rtmp`): with it an input listens on its URL's host and port instead of connecting to them, and the 5 s isn't a limit on its reads. No committed record has an rtmp input; what `mirage_vmaf` does with one is MEASUREMENT PENDING.
+
+**Question.** Which options should an rtmp input get?
+
+**Options.**
+
+1. As now: `timeout` and `rw_timeout` for every network input, as D-036 words it.
+2. `rw_timeout` only for rtmp, which implies no listening, in `src/VMAFNet.h`, `src/FfOpen.cpp` and `src/Demuxer.cpp` alike; `--help`, P-066's statement of the limits and the test follow, and a test on a local rtmp server checks it end to end.
+3. No rtmp input in `mirage_vmaf`: refused, as a protocol it doesn't support.
+
+**Agent's recommendation.** Option 2: D-036's intent, that a read that waits longer fails, then holds for rtmp, and the player keeps the analyzer's rule.
+
+### Frames missing at a sequence's start, and the reasons of the frames D-050 counts (D-050; P-073)
+
+**What the code says.** Each discontinuity sequence after the first is measured from its own first frame (D-046), and D-050 compares only where the inputs' sequences before it end (`src/VMAFAlign.h`, "Jumps at different places").
+
+- When one input lacks the first frames after a jump that is at the same place in both inputs, the two sequences still pair, offset by the frames the one lacks. The frames that don't pair warn only above 1% (D-028), and nothing in the report shows the offset. No test or committed record has such a case: how often it happens, and its effect on the scores, is MEASUREMENT PENDING.
+- Two kinds of frames D-050 counts keep D-046's reasons. The other input's frame within a frame of the coarser input of the first input's jump pairs with nothing, an unmatched reference or extra distorted frame, before pairing stops (P-073; `tests/test_vmaf_align.cpp`, "a jump in one input alone stops the pairing"). Where one input ends instead of jumping, pairing doesn't stop, and the other input's frames count as unmatched or extra, not as after a discontinuity.
+
+**Questions.** (a) Should the pairing check, or the report show, where each pair of sequences starts? (b) Should those frames keep D-046's reasons?
+
+**Options.**
+
+- (a)
+  1. As now, the limitation stated in `--help` and the method notes.
+  2. The report gives each input's sequences, where each starts and how many frames it has, so that an offset shows; no pair changes.
+  3. The pairing compares the k-th sequences' first timestamps as the inputs give them as well: where they differ by more than a frame of the coarser input, the input that starts later lacks frames, which fail, and the sequences pair from where both have frames. It relies on RFC 8216's matching timestamps in every rung (§6.2.4), as D-050 does.
+- (b)
+  1. D-046's reasons, as P-073 implements them.
+  2. After a discontinuity, as D-028's rule counts them.
+
+**Agent's recommendation.** (a) Option 2 now, which changes no score and shows an offset where there is one; option 3 once a committed case shows one. (b) Option 1, which P-073 states, with a test of an input that ends.
+
+### What `pool.pair_memory` gives, and what `--memory-limit` is (D-045, D-051, D-053; P-074)
+
+**What the records show.** The rule measures a pair as the process's resident memory gained since the run began, shared out among the pairs running, and keeps the largest measure (`vmafladder::admits()`); the report gives that as `pool.pair_memory` (P-074). At 1 GiB over 300 frame pairs it was more than three times one pair's peak, since the resident memory still counted memory of pairs that had ended (`eval/ladder/advanced-local-300-mem1g-b706ed3/README.md`; "For information" above). D-053 has the report give what the rule measured "so that a run shows how far its pairs went beyond it", which a measure kept at its largest can't show. The limit decides when a pair starts; running pairs aren't stopped, and the peak can pass it: with D-051's margin the run over every frame from Apple's CDN peaked 2.1% over 1 GiB (`eval/ladder/advanced-cdn-full-af17121/`; P-073). `--help` states the rule (`7ee3724`).
+
+**Questions.** (a) What should `pool.pair_memory` give? (b) Should `--memory-limit` stay a rule for starting pairs, or become a cap?
+
+**Options.**
+
+- (a)
+  1. As now, the largest measure.
+  2. The measure of the first pairs once they had warmed up, P-074's alternative.
+  3. Each admission's measure, with the pair it let start, in the report's pool section.
+- (b)
+  1. A rule for starting pairs, as D-045 to D-053 have it.
+  2. A cap: a running pair that would take the process over it paused, or stopped and started again later.
+  3. Each pair in a process of its own, whose memory is measured and limited on its own, which the audit's reviews asked for.
+
+**Agent's recommendation.** (a) Option 3: each admission's measure is what D-053 asks the field to show, and the largest can be read from it. (b) Option 1: with D-053's margin the run over every frame stayed under the limit (P-075), and a cap would stop pairs that have done much of their work.
+
+### A memory limit when the memory can't be read (D-045; P-067)
+
+**What the code says.** `vmafproc::resident_bytes()` gives 0 when the process's memory can't be read, when `task_info()` fails on macOS or `/proc/self/statm` can't be read on Linux (`src/VMAFProcess.cpp`). With a limit set, `admits()` then lets a pair start once none is warming up, and the warning of a pair over the limit on its own isn't given (`src/VMAFLadder.cpp`); neither the report nor stderr says that the limit wasn't applied. One assertion tests it (`tests/test_vmaf_ladder.cpp`, "vmafladder::admits: the memory limit's rule"), and no D- or P-entry records it.
+
+**Question.** What should a run with a memory limit do when its memory can't be read?
+
+**Options.**
+
+1. As now: pairs start as the warm-up allows, and nothing says so.
+2. As now, with a warning on stderr and in the report's pool warnings.
+3. Refused: a run whose memory can't be read before its first pair fails then; a reading that fails later holds the next pair back until one succeeds.
+
+**Agent's recommendation.** Option 3: a run that was given a limit doesn't run without one.
+
+### Whether a pending P-entry may grow (P-073, P-074)
+
+**What the history shows.** While they were pending, P-073 got a bullet on the unit tests in `61f711c` and one on `a07_restart` in `4587c2d`, and P-074's Result a sentence in `9a72fed`; each added fact rests on a committed record or says MEASUREMENT PENDING. `docs/DECISIONS.md` says the agent's entries "stay marked as pending until the owner confirms them", and not whether their text may change meanwhile. The corrections of 2026-10-28 and 2026-10-29 are lines of their own, `- **Correction** (date): …`, before an entry's **Who**.
+
+**Question.** May a pending P-entry's text change before the owner confirms it?
+
+**Options.**
+
+1. Append-only: what is found later goes in dated lines, Correction or Status, and the text above them stays as written.
+2. Frozen: what is found later goes in new P-entries only.
+3. Free to change until it is confirmed, git keeping the history.
+
+**Agent's recommendation.** Option 1, the corrections' form: an entry shows what was chosen and, dated, what was found after it, in one place.
+
+### The streams record's checksums (D-049; P-069)
+
+**What the record shows.** `eval/streams/local-advanced-2026-10-26/SHA256SUMS` lists the files of the local copy, media included, which isn't in the repository, so that a copy made again can be checked (`eval/streams/local_copy.py`, `copy.md`). It can't be checked in the record's own directory, and `copy.json` and `copy.md` are in no checksum file; the SHA256SUMS of the record of 2026-10-23 next to it lists that record's own files (`eval/streams/fetched-2026-10-23/`).
+
+**Question.** Should the record get checksums that can be checked in place? Committed records are never edited, and an addition to a record's directory is the owner's call.
+
+**Options.**
+
+1. As now, with `eval/streams.md` saying what the record's SHA256SUMS checks, and how.
+2. A second file in the record, its own files' checksums under a name of its own: an addition to a committed record.
+3. A README in the record's directory: an addition too.
+
+**Agent's recommendation.** Option 1: the record stays as committed, and the note goes where the streams are described.
+
+### `docs/PHASE2_SURVEY.md`, a snapshot or updated (D-042)
+
+**What the file says.** Its header says the text is as the owner decided it, "with the measurements added since"; it still gives M2 and M3 as MEASUREMENT PENDING, and says no committed run has scored the advanced sample. M2 and M3 are in `eval/phase2-survey/m2-m3/record.txt`, and the sample's runs in `eval/ladder/advanced-local-300/` and those after it (P-071; `docs/PHASE2_STATUS.md`).
+
+**Question.** Should the survey stay as it was decided, or follow the measurements?
+
+**Options.**
+
+1. A dated snapshot, as of its last commit, its header pointing to `docs/PHASE2_STATUS.md` for the measurements since.
+2. Updated: M2, M3 and the sample's runs where it has them pending.
+
+**Agent's recommendation.** Option 1: it is what D-042 to D-049 were decided on, and the status file has what came after.
+
+### The recommendation line of P-033 to P-065 in Phase 1's pending document (D-041)
+
+**What the history shows.** `34e6faa`, on `vmaf/phase-1`, moved the package of P-033 to P-065 under "Decided" in `docs/PHASE1_DECISIONS_PENDING.md` without its last line, "**Agent's recommendation**: confirm them all, with the open questions above decided as recommended there." (`b2d2824`), though the file keeps each decided item "with the text it had when it was decided"; the package of P-006 to P-032 kept its line. Neither the commit's message nor `docs/AI_CONTRIBUTIONS.md` says so.
+
+**Question.** Should the line come back?
+
+**Options.**
+
+1. Restored on `vmaf/phase-1`, in a new commit: an addition.
+2. A note where it was, saying that `34e6faa` left it out and what it said.
+3. As now, with a disclosure in `docs/AI_CONTRIBUTIONS.md`.
+
+**Agent's recommendation.** Option 1, on `vmaf/phase-1` with the other Phase 1 text the audit found, the two citations of "hard rule 4" for the differences list, so that Phase 1's PR carries them.
+
+### The model's name, and the survey's rendering of §2 (D-013)
+
+**What the files say.** `docs/PHASE2_SURVEY.md` has the byline "Written by: the agent (Claude)", as `docs/VMAF_GAP_REPORT.md` has, and the agent's P-entries say "**Who**: agent (Claude)"; the hard rules put the AI's involvement in `docs/AI_CONTRIBUTIONS.md`, which names the model. The survey also gives the work order's §2 requirements in its own words ("What §2 asks"), while D-013 keeps the work order out of the repository.
+
+**Questions.** (a) Should files other than `docs/AI_CONTRIBUTIONS.md` name the model? (b) Is the survey's rendering of §2 within D-013?
+
+**Options.**
+
+- (a)
+  1. As now: "agent (Claude)" in bylines and **Who** lines.
+  2. "agent" only from now on, the model named in `docs/AI_CONTRIBUTIONS.md` alone; what is written stays.
+- (b)
+  1. Within D-013: the requirements in the survey's words, no passage of the work order quoted.
+  2. Shortened to the items' names, their text left to the work order.
+
+**Agent's recommendation.** (a) Option 2, which keeps the AI's involvement in the one file the hard rules name, without editing what is written. (b) Option 1: D-013 keeps the work order's text out, and the survey states what the owner decided on.
+
+### The reviews' asks that touch decisions (for information)
+
+The audit's reviews, a video engineer's and a UI designer's, asked for changes that touch decided items (the audit's report, which isn't committed, §8.4 and §9). Options are written for them only if the owner asks:
+
+- a forward jump in one input taken as a gap: pairing by time, with a new libvmaf context, and the 10 s threshold an option (§8.4, rank 1; D-046, D-050);
+- the temporal origin of inputs at different frame rates checked, by a search for the offset (§8.4, rank 2; D-028);
+- the pool's default size from the cores and libvmaf's threads, with `--threads` and `--subsample`, and M4 measured (§8.4, rank 8; D-044);
+- the memory measured per pair, in a process of its own, or presented as a heuristic (§8.4, rank 7; D-045, D-051, D-053, and the question on `pool.pair_memory` above);
+- HDR and Dolby Vision inputs refused unless forced (§8.4, rank 9; D-021);
+- a report with `schema_version`, `tool_version` and `git_commit` (§8.4, rank 9; §9.2, item 3; §9.4; the work order's §7).
+
+## The agent's choices to confirm: P-067 to P-077
 
 | Entry | What |
 |---|---|
@@ -22,8 +190,9 @@ Nothing is open for the owner but the agent's choices to confirm, below; the que
 | P-074 | how D-053 is implemented, and its run at 300 frames |
 | P-075 | D-049's run over every frame with D-053's margin |
 | P-076 | the rerun of every committed Phase 1 measurement with the Phase 2 program, cut short by the machine's sleep |
+| P-077 | how the audit's first batch is implemented, and the unit tests after it |
 
-**Agent's recommendation**: confirm P-067 to P-076, as D-050, D-051 and D-053 change what P-068 and P-072 implement.
+**Agent's recommendation**: confirm P-067 to P-077, as D-050, D-051 and D-053 change what P-068 and P-072 implement.
 
 ## Decided on 2026-10-27 (D-050 to D-053)
 
