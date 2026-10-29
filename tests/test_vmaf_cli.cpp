@@ -204,6 +204,9 @@ TEST_CASE("vmafcli::usage: lists every option", "[vmafcli]")
     // D-056: rtmp's own timeout would make it listen.
     CHECK(contains(flat, "and an rtmp URL with rw_timeout alone"));
     CHECK_FALSE(contains(flat, "an http(s), rtmp or rtsp URL"));
+    // D-059: a memory limit whose memory can't be read.
+    CHECK(contains(flat, "When the process's resident memory can't be read before the first "
+                         "pair, the run fails then"));
     // D-057: each input's discontinuity sequences in the report.
     CHECK(contains(flat, "each input's discontinuity sequences, with the position and PTS of each "
                          "one's first frame and its number of frames"));

@@ -1053,6 +1053,46 @@ TEST_CASE("vmafladder::score: a pair starts once the running one has warmed up",
     CHECK(one.pairs[1].started >= one.pairs[0].ended);
 }
 
+TEST_CASE("vmafladder::score: a memory limit whose memory can't be read", "[ladder][vmaf]")
+{
+    const LongLadder& l = long_ladder();
+    constexpr std::uint64_t kLimit = std::uint64_t{ 1 } << 30;
+
+    // Never read: the run fails before its first pair (D-059).
+    std::atomic<int> reads{ 0 };
+    const vmafladder::Result none = vmafladder::score(
+        l.master, "", {},
+        { .jobs = 2, .memory_limit = kLimit, .resident = [&] {
+              ++reads;
+              return std::uint64_t{ 0 };
+          } });
+    CHECK(none.status == "failed");
+    CHECK(none.error == "the process's resident memory can't be read, so the memory limit of "
+                        "1073741824 bytes can't be applied: no pair was started");
+    CHECK(reads == 1);
+    CHECK(none.max_running == 0);
+    REQUIRE(none.pairs.size() == 2);
+    for (const vmafladder::PairRun& p : none.pairs)
+        CHECK(p.status == vmafladder::PairStatus::NotStarted);
+
+    // Read before the run, never after: while a pair runs the next is held
+    // back, so they run one at a time, though two may run and the limit
+    // would let them.
+    reads = 0;
+    const vmafladder::Result later = vmafladder::score(
+        l.master, "", {},
+        { .jobs = 2, .memory_limit = kLimit, .resident = [&] {
+              return reads.fetch_add(1) == 0 ? std::uint64_t{ 100 } : 0;
+          } });
+    CHECK(later.status == "complete");
+    CHECK(later.baseline == 100);
+    CHECK(later.max_running == 1);
+    CHECK(later.admissions.empty());
+    CHECK(later.pool_warnings.empty());
+    REQUIRE(later.pairs.size() == 2);
+    CHECK(later.pairs[1].started >= later.pairs[0].ended);
+}
+
 TEST_CASE("vmafladder::score: a cancel stops the pairs that are running", "[ladder][vmaf][vmafnet]")
 {
     // The first pair's rung is on a server that sends nothing: the pair waits
@@ -1141,8 +1181,9 @@ TEST_CASE("vmafladder::admits: the memory limit's rule", "[ladder]")
     CHECK_FALSE(admits(std::uint64_t{ 1 } << 30, 2100, 100, 2, 1, per_pair));
     CHECK(per_pair == 1000);
 
-    // Unknown memory, none warming up: the limit can't hold a pair back.
-    CHECK(admits(1500, 0, 100, 2, 0, per_pair));
+    // Unknown memory, none warming up: held back until a reading succeeds (D-059).
+    CHECK_FALSE(admits(std::uint64_t{ 1 } << 30, 0, 100, 2, 0, per_pair));
+    CHECK(per_pair == 1000);
     // Memory that hasn't grown measures nothing, and no pair starts.
     std::uint64_t none = 0;
     CHECK_FALSE(admits(1500, 100, 100, 1, 0, none));

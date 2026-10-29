@@ -45,7 +45,9 @@
 //   the memory before the run, plus what a pair uses as measured then and
 //   kMarginPercent more for each running pair and the new one, stays under
 //   it (admits). Running pairs aren't stopped, and with none running a pair
-//   always starts (D-045, D-051, D-053).
+//   always starts (D-045, D-051, D-053). A run whose resident memory can't
+//   be read before its first pair fails then, and a reading that fails
+//   later holds the next pair back until one succeeds (D-059).
 // - The end (D-047). A cancel, or the first pair whose analysis is
 //   incomplete (vmafreport::incomplete) or whose settings aren't those of the
 //   first pair to complete, which only a model file that changes during the
@@ -193,8 +195,8 @@ inline constexpr std::uint64_t kMarginPercent = 25;
 // measured yet), is the memory gained since the run began shared out among
 // the pairs running, kept at its largest; a pair starts while `baseline`
 // plus that and kMarginPercent more for each running pair and the new one
-// stays within `limit`. With no limit or none running it always starts, and
-// with the memory unknown once no pair is warming up.
+// stays within `limit`. With no limit or none running it always starts; with
+// the memory unknown (`now` 0) and pairs running it doesn't (D-059).
 bool admits(std::uint64_t limit, std::uint64_t now, std::uint64_t baseline, unsigned running,
             unsigned warming, std::uint64_t& per_pair);
 

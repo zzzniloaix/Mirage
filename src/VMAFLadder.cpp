@@ -349,7 +349,7 @@ bool admits(std::uint64_t limit, std::uint64_t now, std::uint64_t baseline, unsi
 {
     if (limit == 0 || running == 0) return true;
     if (warming > 0) return false;   // what it uses doesn't show yet
-    if (now == 0) return true;       // unknown: the limit can't hold a pair back
+    if (now == 0) return false;      // unknown: held back until a reading succeeds (D-059)
     per_pair = std::max(per_pair, (now > baseline ? now - baseline : 0) / running);
     if (per_pair == 0) return false;   // nothing measured
     const std::uint64_t counted = per_pair + per_pair * kMarginPercent / 100;   // D-051, D-053
@@ -400,6 +400,15 @@ Result score(const std::string& ladder, const std::string& mezzanine, const VMAF
     };
     const std::uint64_t baseline = out.memory_limit > 0 ? resident() : 0;
     out.baseline = baseline;
+    // A run given a limit doesn't run without one: when the memory can't be
+    // read before the first pair, the run fails then, no pair started (D-059).
+    if (out.memory_limit > 0 && baseline == 0) {
+        out.status = kFailed;
+        out.error  = std::format("the process's resident memory can't be read, so the memory "
+                                 "limit of {} bytes can't be applied: no pair was started",
+                                 out.memory_limit);
+        return out;
+    }
     bool alone_warned = false;
     // The frame pairs each pair has scored, and how many a pair scores before
     // what it uses shows in the resident memory (D-045).
