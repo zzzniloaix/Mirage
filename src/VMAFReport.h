@@ -69,7 +69,10 @@
 //   tool, reference_mode ("top-rung" | "mezzanine"), libvmaf_version,
 //   libvmaf_package_version, ffmpeg_libraries, config_file, model,
 //   model_source, model_sha256, scaler, n_threads, n_subsample, frame_limit
-//                          as in a pair's report, once for every pair
+//                          as in a pair's report, once for every pair: the
+//                          first complete pair's settings, or with none
+//                          complete those the run asked for
+//                          (vmafladder::Result::settings; model_sha256 null)
 //   ladder { url, location, sha256,     the master playlist as given, where
 //                                       it was read from, and its SHA-256
 //            entries [ { index, line, uri, url, bandwidth, average_bandwidth,

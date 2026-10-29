@@ -360,7 +360,8 @@ Result score(const std::string& ladder, const std::string& mezzanine, const VMAF
              const Pool& pool, std::stop_token cancel, const OnPair& on_pair)
 {
     Result out;
-    out.ladder  = ladder;
+    out.ladder   = ladder;
+    out.settings = vmaf_settings(opts);
     out.fetched = read_master(ladder, cancel);
     if (!out.fetched.error.empty()) {
         out.error = std::format("cannot read the master playlist {}: {}", ladder,

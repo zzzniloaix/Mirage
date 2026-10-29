@@ -930,6 +930,7 @@ TEST_CASE("vmafladder::score: a cancel keeps the complete pairs and starts no ot
     REQUIRE(e.pairs.size() == 2);
     CHECK(e.pairs[0].status == vmafladder::PairStatus::NotStarted);
     CHECK(e.pairs[1].status == vmafladder::PairStatus::NotStarted);
+    CHECK(e.settings == vmaf_settings({}));   // for the report, with no pair complete
 }
 
 TEST_CASE("vmafladder::score: the memory limit holds pairs back", "[ladder][vmaf]")
@@ -1160,6 +1161,22 @@ TEST_CASE("mirage_vmaf --ladder: exit 0 when complete, 1 with the report when a 
                                      "\"why\": \"cannot open distorted: {}\"}}",
                                      missing, missing)));
     CHECK(contains(bad.out, "; the run is failed; report written to " + failed + "\n"));
+
+    // Its only pair can't be scored: no pair is complete, and the report has
+    // the settings asked for.
+    write_text(master, master_of({ { missing, 200000 }, { l.top, 900000 } }));
+    const std::string none = (dir / "none.json").string();
+    const ToolRun empty = run_tool({ "--ladder", master, "--scaler", "lanczos", "--model",
+                                     "vmaf_v0.6.1neg", "--out", none });
+    INFO(empty.out << empty.err);
+    REQUIRE(WIFEXITED(empty.status));
+    CHECK(WEXITSTATUS(empty.status) == 1);
+    const std::string settings = read_text(none);
+    CHECK(contains(settings,
+                   "\n  \"model\": \"vmaf_v0.6.1neg\",\n  \"model_source\": \"built-in\",\n"));
+    CHECK(contains(settings,
+                   "\n  \"scaler\": \"lanczos\",\n  \"n_threads\": 4,\n  \"n_subsample\": 1,\n"));
+    CHECK(contains(settings, "\n  \"pairs\": [],\n"));
     fs::remove_all(dir);
 }
 

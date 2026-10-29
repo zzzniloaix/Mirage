@@ -236,6 +236,8 @@ struct Result {
     std::vector<PairRun> pairs;     // one per plan.pairs, in the plan's order
     std::string          status;    // kComplete | kCancelled | kFailed; empty = nothing scored
     std::string          error;     // why the run isn't complete; empty = complete
+    VMAFSettings         settings;  // what the run asked for (vmaf_settings()), which
+                                    // its report gives when no pair is complete
     unsigned             jobs = 0;           // the pool's size
     std::uint64_t        memory_limit  = 0;  // 0 = none
     unsigned             max_running   = 0;  // the most pairs scored at once

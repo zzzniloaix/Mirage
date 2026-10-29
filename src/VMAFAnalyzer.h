@@ -181,6 +181,11 @@ struct VMAFLibraryVersion {
 // FFmpeg 8.1.1 (DECISIONS.md D-021).
 std::vector<VMAFLibraryVersion> vmaf_ffmpeg_libraries();
 
+// The settings an analysis with `opts` scores with, as VMAFResult::settings
+// records them, but for a model file's SHA-256, which only the analysis
+// reads: empty here.
+VMAFSettings vmaf_settings(const VMAFOptions& opts);
+
 // Per-variant (or single-file) VMAF result.
 struct VMAFResult {
     std::string  ref_url;

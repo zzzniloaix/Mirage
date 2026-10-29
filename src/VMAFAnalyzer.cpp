@@ -347,6 +347,22 @@ void record_alignment(VMAFAlignment& out, const vmafalign::Aligner& a,
 
 }  // namespace
 
+// ── The settings ─────────────────────────────────────────────────────────────
+
+VMAFSettings vmaf_settings(const VMAFOptions& opts)
+{
+    const bool model_file = !opts.model.path.empty();
+    return {
+        .model        = model_file ? opts.model.path : opts.model.version,
+        .model_source = model_file ? "file" : "built-in",
+        .scaler       = std::string(vmaf_scaler_name(opts.scaler)),
+        .pix_fmt      = name_or_unknown(av_get_pix_fmt_name(kScorePixFmt)),
+        .bit_depth    = static_cast<int>(kScoreBpc),
+        .n_threads    = static_cast<int>(kThreads),
+        .n_subsample  = static_cast<int>(kSubsample),
+    };
+}
+
 // ── FFmpeg's versions ────────────────────────────────────────────────────────
 
 std::vector<VMAFLibraryVersion> vmaf_ffmpeg_libraries()
@@ -386,15 +402,7 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
     result.ref_info = ref_ctx.info();
     result.dis_info = dis_ctx.info();
     const bool model_file = !opts.model.path.empty();
-    result.settings = {
-        .model        = model_file ? opts.model.path : opts.model.version,
-        .model_source = model_file ? "file" : "built-in",
-        .scaler       = std::string(vmaf_scaler_name(opts.scaler)),
-        .pix_fmt      = name_or_unknown(av_get_pix_fmt_name(kScorePixFmt)),
-        .bit_depth    = static_cast<int>(kScoreBpc),
-        .n_threads    = static_cast<int>(kThreads),
-        .n_subsample  = static_cast<int>(kSubsample),
-    };
+    result.settings = vmaf_settings(opts);
 
     // A yuv420p reference is used as it is, as FFmpeg's graph passes it on:
     // copied at its own size.

@@ -830,6 +830,36 @@ TEST_CASE("vmafreport::ladder_to_json: a run that ended early lists the complete
     CHECK(others.arr[1]["why"].kind == Value::Kind::Null);
 }
 
+TEST_CASE("vmafreport::ladder_to_json: with no pair complete, the settings the run asked for",
+          "[vmafreport]")
+{
+    vmafladder::Result l = sample_ladder();
+    l.pairs[0].status = vmafladder::PairStatus::Stopped;
+    l.pairs[1].status = vmafladder::PairStatus::NotStarted;
+    l.status          = "cancelled";
+    l.error           = "the run was cancelled: 0 of 2 pairs complete";
+    l.settings        = vmaf_settings({ .scaler = VMAFScaler::Lanczos,
+                                        .model  = { .path = "models/vmaf_v0.6.1neg.json" } });
+    const auto doc = parse(vmafreport::ladder_to_json(l, kRun));
+    REQUIRE(doc);
+    const Value& d = *doc;
+    CHECK(d["pairs"].arr.empty());
+    CHECK(d["not_scored"].arr.size() == 2);
+    CHECK(d["model"].str == "models/vmaf_v0.6.1neg.json");
+    CHECK(d["model_source"].str == "file");
+    CHECK(d["model_sha256"].kind == Value::Kind::Null);   // not read for the report
+    CHECK(d["scaler"].str == "lanczos");
+    CHECK(d["n_threads"].num == 4);
+    CHECK(d["n_subsample"].num == 1);
+
+    // With a pair complete, its settings, not the run's.
+    l.pairs[1].status = vmafladder::PairStatus::Complete;
+    const auto one = parse(vmafreport::ladder_to_json(l, kRun));
+    REQUIRE(one);
+    CHECK((*one)["model"].str == l.pairs[1].result.settings.model);
+    CHECK((*one)["scaler"].str == l.pairs[1].result.settings.scaler);
+}
+
 TEST_CASE("vmafreport::ladder_to_json: each pair has the keys of its own pair's report", "[vmafreport]")
 {
     const vmafladder::Result l = sample_ladder();

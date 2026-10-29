@@ -243,13 +243,14 @@ std::string ladder_to_json(const vmafladder::Result& ladder, const RunInfo& run)
                        ladder.pair_memory > 0 ? std::to_string(ladder.pair_memory) : "null",
                        ladder.peak_resident > 0 ? std::to_string(ladder.peak_resident) : "null",
                        texts_json(ladder.pool_warnings, "  "));
-    // The settings are those of the first complete pair in the plan's order.
+    // The settings are those of the first complete pair in the plan's order,
+    // and with none complete those the run asked for.
     const auto first = std::find_if(ladder.pairs.begin(), ladder.pairs.end(),
                                     [](const vmafladder::PairRun& p) {
                                         return p.status == vmafladder::PairStatus::Complete;
                                     });
     run_fields(out, run, plan.reference_mode,
-               first == ladder.pairs.end() ? VMAFSettings{} : first->result.settings);
+               first == ladder.pairs.end() ? ladder.settings : first->result.settings);
     out += std::format("  \"frame_limit\": {},\n", frame_limit_json(run));
 
     out += std::format("  \"ladder\": {{\"url\": {}, \"location\": {}, \"sha256\": {}, "

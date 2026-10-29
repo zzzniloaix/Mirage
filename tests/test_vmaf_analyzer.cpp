@@ -521,6 +521,7 @@ TEST_CASE("VMAFAnalyzer::analyze: frame limit, paired PTS, settings and inputs",
     CHECK(r.settings.bit_depth == 8);
     CHECK(r.settings.n_threads == 4);
     CHECK(r.settings.n_subsample == 1);
+    CHECK(r.settings == vmaf_settings({ .max_frames = 5 }));   // what it asked for
     CHECK(r.width == 192);
     CHECK(r.height == 108);
 
@@ -888,6 +889,11 @@ TEST_CASE("VMAFAnalyzer::analyze: a model file, identified by its SHA-256", "[vm
     CHECK(a.settings.model_sha256 == filehash::sha256_file(file.string(), err));
     CHECK(b.settings.model_sha256 == filehash::sha256_file(copy.string(), err));
     CHECK(a.settings.model_sha256 != b.settings.model_sha256);
+    // What it asked for, but the SHA-256, which only the analysis reads.
+    VMAFSettings asked = vmaf_settings({ .model = { .path = file.string() } });
+    CHECK(asked.model_sha256.empty());
+    asked.model_sha256 = a.settings.model_sha256;
+    CHECK(a.settings == asked);
     CHECK(a.per_frame == b.per_frame);
     CHECK(a.per_frame != VMAFAnalyzer::analyze(colored_ref_clip(), dis).per_frame);
     fs::remove(copy);
