@@ -50,7 +50,11 @@ int open_input(AVFormatContext** out, const std::string& url, const std::stop_to
 
     AVDictionary* opts = nullptr;
     if (is_network_url(url)) {
-        av_dict_set(&opts, "timeout",    "5000000", 0);   // 5 s socket connect/recv
+        // Not for rtmp, whose own `timeout` is how long to wait for a
+        // connection to it, which makes it listen instead of connecting
+        // (DECISIONS.md D-056); TCP's 5 s limit on a connection attempt holds.
+        if (!url.starts_with("rtmp://"))
+            av_dict_set(&opts, "timeout", "5000000", 0);   // 5 s socket connect/recv
         av_dict_set(&opts, "rw_timeout", "5000000", 0);   // 5 s cap on any single I/O
         av_dict_set(&opts, "allowed_segment_extensions", "ALL", 0);
         av_dict_set(&opts, "extension_picky",            "0",   0);

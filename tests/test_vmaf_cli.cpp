@@ -201,6 +201,9 @@ TEST_CASE("vmafcli::usage: lists every option", "[vmafcli]")
     CHECK_FALSE(contains(flat, "a pair couldn't be scored (no report is left behind)"));
     // The 5 s limits aren't the player's playback limits, and SIZE's suffixes are binary.
     CHECK_FALSE(contains(flat, "the player's: a connection attempt"));
+    // D-056: rtmp's own timeout would make it listen.
+    CHECK(contains(flat, "and an rtmp URL with rw_timeout alone"));
+    CHECK_FALSE(contains(flat, "an http(s), rtmp or rtsp URL"));
     CHECK(contains(flat, "K, M, G or T for KiB, MiB, GiB or TiB"));
     // No help line is wider than the options' rows.
     std::size_t from = 0;

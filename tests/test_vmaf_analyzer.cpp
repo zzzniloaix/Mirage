@@ -1337,9 +1337,10 @@ TEST_CASE("VMAFAnalyzer::start: the player's analysis records the alignment and 
 TEST_CASE("vmafnet: network URLs get the read limits, local inputs none", "[vmaf][vmafnet]")
 {
     for (const char* url : { "http://example.com/a.m3u8", "https://example.com/a.m3u8",
-                             "rtmp://example.com/live", "rtsp://example.com/live" }) {
+                             "rtsp://example.com/live" }) {
         INFO(url);
         CHECK(vmafnet::is_network_url(url));
+        CHECK(vmafnet::timeout_limits_io(url));
         AVDictionary* opts = nullptr;
         vmafnet::set_io_limits(&opts, url);
         const AVDictionaryEntry* timeout    = av_dict_get(opts, "timeout", nullptr, 0);
@@ -1348,6 +1349,21 @@ TEST_CASE("vmafnet: network URLs get the read limits, local inputs none", "[vmaf
         REQUIRE(rw_timeout);
         CHECK(std::string(timeout->value) == "5000000");
         CHECK(std::string(rw_timeout->value) == "5000000");
+        av_dict_free(&opts);
+    }
+    // rtmp's timeout would make the input listen instead of connecting
+    // (DECISIONS.md D-056): rw_timeout alone (tests/test_rtmp_input.cpp).
+    {
+        const std::string url = "rtmp://example.com/live";
+        CHECK(vmafnet::is_network_url(url));
+        CHECK_FALSE(vmafnet::timeout_limits_io(url));
+        AVDictionary* opts = nullptr;
+        vmafnet::set_io_limits(&opts, url);
+        CHECK(av_dict_get(opts, "timeout", nullptr, 0) == nullptr);
+        const AVDictionaryEntry* rw_timeout = av_dict_get(opts, "rw_timeout", nullptr, 0);
+        REQUIRE(rw_timeout);
+        CHECK(std::string(rw_timeout->value) == "5000000");
+        CHECK(av_dict_count(opts) == 1);
         av_dict_free(&opts);
     }
     for (const char* url : { "clip.mkv", "file:clip.mkv", "dir/a.m3u8", "data:text/plain,x" }) {
