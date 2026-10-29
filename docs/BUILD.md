@@ -127,6 +127,8 @@ The versions the committed measurements were made with, from the environment cap
 | Python for glad's loader | glad 2.0.8 generated it; `regenerate.sh` uses Homebrew's python@3.13 3.13.1, in a venv with Jinja2 3.1.6, MarkupSafe 3.0.4 and pip 24.3.1 | build checks |
 | Python for the eval scripts | `python3` 3.14.7 (Homebrew's python@3.14); the scripts use the standard library only | the §5 runs' `environment.txt` |
 
+On 2026-10-29 the machine was updated to macOS 26.6.2 (25G83). The records made on it say so: on `vmaf/phase-2`, the unit test record at `90153d6` (`eval/test_runs/macos-2026-10-29-90153d6.txt`) and the rerun of the 300-frame steps that read Apple's CDN, with FFmpeg 8.1.1 and libvmaf 3.1.0 as above (`eval/run_all/2026-10-29-d055/consistency/defaults-300/plain/environment.txt`; `docs/DECISIONS.md` P-078).
+
 The FetchContent dependencies: how `CMakeLists.txt` pins each one, and the commit the Phase 0 build fetched:
 
 | Dependency | Pin in `CMakeLists.txt` | Commit fetched |
