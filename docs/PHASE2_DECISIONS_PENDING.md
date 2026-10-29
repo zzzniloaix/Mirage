@@ -154,6 +154,8 @@ The owner's answers to the questions of the audit of 2026-10-28, and the confirm
 
 **What the history shows.** While they were pending, P-073 got a bullet on the unit tests in `61f711c` and one on `a07_restart` in `4587c2d`, and P-074's Result a sentence in `9a72fed`; each added fact rests on a committed record or says MEASUREMENT PENDING. `docs/DECISIONS.md` says the agent's entries "stay marked as pending until the owner confirms them", and not whether their text may change meanwhile. The corrections of 2026-10-28 and 2026-10-29 are lines of their own, `- **Correction** (date): …`, before an entry's **Who**.
 
+**Correction** (2026-10-29): the history has a change of another kind, which the paragraph above leaves out: `1aa12d6`, once P-075 was committed, replaced P-074's "D-049's run over every frame with D-053's margin is MEASUREMENT PENDING: the owner set the long runs for later on 2026-10-27" with "... is P-075's"; that text was replaced, not added to.
+
 **Question.** May a pending P-entry's text change before the owner confirms it?
 
 **Options.**
