@@ -981,7 +981,8 @@ TEST_CASE("vmafladder::score: the memory limit holds pairs back", "[ladder][vmaf
     CHECK(held.status == "complete");
     CHECK(held.memory_limit == 1500);
     CHECK(held.max_running == 1);
-    CHECK(held.pair_memory == 0);
+    CHECK(held.baseline == 100);
+    CHECK(held.admissions.empty());   // each pair started with none running (D-058)
     CHECK(held.pool_warnings.empty());   // never over the limit on its own
 
     // Under 500 nothing fits: a pair alone still runs, with a warning.
@@ -990,7 +991,7 @@ TEST_CASE("vmafladder::score: the memory limit holds pairs back", "[ladder][vmaf
         l.master, mezzanine, {}, { .jobs = 3, .memory_limit = 500, .resident = resident });
     CHECK(over.status == "complete");
     CHECK(over.max_running == 1);
-    CHECK(over.pair_memory == 0);
+    CHECK(over.admissions.empty());
     REQUIRE(over.pool_warnings.size() == 1);
     CHECK(over.pool_warnings[0].find("over the memory limit on its own: 1000 bytes of resident "
                                      "memory, the limit 500") != std::string::npos);
@@ -1015,7 +1016,8 @@ TEST_CASE("vmafladder::score: a pair starts once the running one has warmed up",
     const vmafladder::Result free = vmafladder::score(l.master, "", {}, { .jobs = 2 });
     CHECK(free.status == "complete");
     CHECK(free.max_running == 2);
-    CHECK(free.pair_memory == 0);
+    CHECK(free.baseline == 0);
+    CHECK(free.admissions.empty());
 
     // The first pair has warmed up once it has scored kWarmUp of its frame
     // pairs, and is measured then: 1000 - 100 = 900 bytes, counted at 1125 with
@@ -1025,7 +1027,14 @@ TEST_CASE("vmafladder::score: a pair starts once the running one has warmed up",
     const vmafladder::Result two = vmafladder::score(
         l.master, "", {}, { .jobs = 2, .memory_limit = 2350, .resident = resident });
     CHECK(two.status == "complete");
-    CHECK(two.pair_memory == 900);
+    CHECK(two.baseline == 100);
+    // The rule let the second pair start while the first ran, and the
+    // report gives what it read and measured then (D-058).
+    REQUIRE(two.admissions.size() == 1);
+    CHECK(two.admissions[0].pair == 1);
+    CHECK(two.admissions[0].running == 1);
+    CHECK(two.admissions[0].resident == 1000);
+    CHECK(two.admissions[0].measure == 900);
     CHECK(two.max_running == 2);
     REQUIRE(two.pairs.size() == 2);
     CHECK(two.pairs[1].started < two.pairs[0].ended);
@@ -1036,7 +1045,9 @@ TEST_CASE("vmafladder::score: a pair starts once the running one has warmed up",
     const vmafladder::Result one = vmafladder::score(
         l.master, "", {}, { .jobs = 2, .memory_limit = 2349, .resident = resident });
     CHECK(one.status == "complete");
-    CHECK(one.pair_memory == 900);
+    // The rule held the second pair back, and it started once none ran: no
+    // admission of the rule's.
+    CHECK(one.admissions.empty());
     CHECK(one.max_running == 1);
     REQUIRE(one.pairs.size() == 2);
     CHECK(one.pairs[1].started >= one.pairs[0].ended);

@@ -245,13 +245,21 @@ std::string ladder_to_json(const vmafladder::Result& ladder, const RunInfo& run)
     std::string out = "{\n";
     out += std::format("  \"status\": {},\n  \"error\": {},\n", quote(ladder.status),
                        ladder.error.empty() ? std::string("null") : quote(ladder.error));
-    out += std::format("  \"pool\": {{\"jobs\": {}, \"memory_limit\": {}, \"max_running\": {}, "
-                       "\"pair_memory\": {}, \"peak_resident\": {}, \"warnings\": {}}},\n",
-                       ladder.jobs,
-                       ladder.memory_limit > 0 ? std::to_string(ladder.memory_limit) : "null",
-                       ladder.max_running,
-                       ladder.pair_memory > 0 ? std::to_string(ladder.pair_memory) : "null",
-                       ladder.peak_resident > 0 ? std::to_string(ladder.peak_resident) : "null",
+    const auto bytes = [](std::uint64_t n) { return n > 0 ? std::to_string(n) : "null"; };
+    out += std::format("  \"pool\": {{\"jobs\": {}, \"memory_limit\": {}, \"baseline\": {}, "
+                       "\"max_running\": {}, \"pair_memory\": [",
+                       ladder.jobs, bytes(ladder.memory_limit),
+                       ladder.memory_limit > 0 ? bytes(ladder.baseline) : "null",
+                       ladder.max_running);
+    for (std::size_t i = 0; i < ladder.admissions.size(); ++i) {
+        const vmafladder::Admission& a = ladder.admissions[i];
+        out += std::format("{}{{\"pair\": {}, \"running\": {}, \"resident\": {}, "
+                           "\"measure\": {}}}",
+                           i == 0 ? "\n    " : ",\n    ", a.pair, a.running, a.resident,
+                           a.measure);
+    }
+    out += std::format("{}, \"peak_resident\": {}, \"warnings\": {}}},\n",
+                       ladder.admissions.empty() ? "]" : "\n  ]", bytes(ladder.peak_resident),
                        texts_json(ladder.pool_warnings, "  "));
     // The settings are those of the first complete pair in the plan's order,
     // and with none complete those the run asked for.

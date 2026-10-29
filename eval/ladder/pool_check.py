@@ -185,14 +185,17 @@ def main(argv=None):
                 "report gives that limit and neither its peak resident memory nor "
                 "/usr/bin/time -l's maximum resident set size is over it"
                 if limit_given is not None else "") + ".", "",
-             "| --jobs | exit | status | pool size | most at once | pair memory (report) | "
-             "memory limit | peak resident (report) | max RSS (time -l) | wall s |",
-             "|---|---|---|---|---|---|---|---|---|---|"]
+             "| --jobs | exit | status | pool size | most at once | pair memory at each "
+             "admission (report) | memory limit | memory before the run (report) | "
+             "peak resident (report) | max RSS (time -l) | wall s |",
+             "|---|---|---|---|---|---|---|---|---|---|---|"]
     for r in summary["runs"]:
         pool = r["pool"] or {}
+        admitted = "; ".join(f"pair {x.get('pair')}: {x.get('measure')}"
+                             for x in pool.get("pair_memory") or [])
         lines.append(f"| {r['jobs_given'] or 'default'} | {r['exit']} | {r['status']} | "
-                     f"{pool.get('jobs')} | {pool.get('max_running')} | "
-                     f"{pool.get('pair_memory') or '-'} | {pool.get('memory_limit') or '-'} | "
+                     f"{pool.get('jobs')} | {pool.get('max_running')} | {admitted or '-'} | "
+                     f"{pool.get('memory_limit') or '-'} | {pool.get('baseline') or '-'} | "
                      f"{pool.get('peak_resident')} | {r['max_rss_time_l']} | {r['wall_s']} |")
     head = ["pair", "distorted", "frames"] + [f"same at --jobs {r['jobs_given'] or 'default'}"
                                              for r in runs[1:]]

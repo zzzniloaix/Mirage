@@ -222,6 +222,15 @@ struct PairRun {
     double      ended   = -1.0;
 };
 
+// A pair the memory limit's rule let start while others ran, and what the
+// rule read then (D-058): the report's pool.pair_memory lists them.
+struct Admission {
+    std::size_t   pair     = 0;   // its index in the plan's pairs
+    unsigned      running  = 0;   // the pairs running when it started
+    std::uint64_t resident = 0;   // the process's resident memory the rule read, in bytes
+    std::uint64_t measure  = 0;   // what a pair uses, as the rule measured it then (admits)
+};
+
 // How a run that scored ended.
 constexpr std::string_view kComplete  = "complete";
 constexpr std::string_view kCancelled = "cancelled";
@@ -242,8 +251,10 @@ struct Result {
     std::uint64_t        memory_limit  = 0;  // 0 = none
     unsigned             max_running   = 0;  // the most pairs scored at once
     std::uint64_t        peak_resident = 0;  // vmafproc::peak_resident_bytes() at the end
-    std::uint64_t        pair_memory   = 0;  // with a limit, what a pair was measured to
-                                             // use, at its largest (admits); 0 = never (D-053)
+    std::uint64_t        baseline      = 0;  // with a limit, the resident memory before the
+                                             // first pair (admits); 0 = no limit
+    std::vector<Admission> admissions;       // with a limit, in the order the pairs started
+                                             // (D-053, D-058)
     std::vector<std::string> pool_warnings;  // a pair over the memory limit on its own
 };
 

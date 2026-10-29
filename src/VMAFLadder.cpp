@@ -399,6 +399,7 @@ Result score(const std::string& ladder, const std::string& mezzanine, const VMAF
         return std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
     };
     const std::uint64_t baseline = out.memory_limit > 0 ? resident() : 0;
+    out.baseline = baseline;
     bool alone_warned = false;
     // The frame pairs each pair has scored, and how many a pair scores before
     // what it uses shows in the resident memory (D-045).
@@ -429,10 +430,16 @@ Result score(const std::string& ladder, const std::string& mezzanine, const VMAF
         return w;
     };
 
-    // With the lock held: whether one more pair may start (D-045).
+    // With the lock held: whether one more pair may start (D-045), and, when
+    // the rule let it start while others ran, what it read (D-058).
+    std::optional<Admission> admitted;
     const auto admit = [&] {
+        admitted.reset();
         if (out.memory_limit == 0 || running == 0) return true;
-        return admits(out.memory_limit, resident(), baseline, running, warming(), per_pair);
+        const std::uint64_t now = resident();
+        if (!admits(out.memory_limit, now, baseline, running, warming(), per_pair)) return false;
+        admitted = Admission{ .running = running, .resident = now, .measure = per_pair };
+        return true;
     };
 
     // With the lock held: what becomes of pair k once its analysis returned.
@@ -478,6 +485,10 @@ Result score(const std::string& ladder, const std::string& mezzanine, const VMAF
                 cv.wait_for(lk, std::chrono::milliseconds(20));
             if (stop.stop_requested() || next >= n) return;
             const std::size_t k = next++;
+            if (admitted) {
+                admitted->pair = k;
+                out.admissions.push_back(*admitted);
+            }
             ++running;
             active[k] = true;
             out.max_running = std::max(out.max_running, running);
@@ -531,7 +542,6 @@ Result score(const std::string& ladder, const std::string& mezzanine, const VMAF
         sampler.join();
     }
     out.peak_resident = vmafproc::peak_resident_bytes();
-    out.pair_memory   = per_pair;
 
     const std::size_t complete = static_cast<std::size_t>(std::count_if(
         out.pairs.begin(), out.pairs.end(),

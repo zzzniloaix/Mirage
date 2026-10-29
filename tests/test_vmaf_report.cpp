@@ -787,7 +787,9 @@ TEST_CASE("vmafreport::ladder_to_json: the run, the master and the plan", "[vmaf
     CHECK(d["pool"]["jobs"].num == 2);
     CHECK(d["pool"]["memory_limit"].kind == Value::Kind::Null);
     CHECK(d["pool"]["max_running"].num == 2);
-    CHECK(d["pool"]["pair_memory"].kind == Value::Kind::Null);   // no limit, never measured
+    CHECK(d["pool"]["baseline"].kind == Value::Kind::Null);   // no limit
+    CHECK(d["pool"]["pair_memory"].kind == Value::Kind::Array);   // no limit, no admission
+    CHECK(d["pool"]["pair_memory"].arr.empty());
     CHECK(d["pool"]["peak_resident"].num == 123456789);
     CHECK(d["pool"]["warnings"].arr.empty());
     CHECK(d["not_scored"].kind == Value::Kind::Array);
@@ -821,7 +823,9 @@ TEST_CASE("vmafreport::ladder_to_json: a run that ended early lists the complete
                         "https://cdn.example.com/hls/top/p.m3u8: cannot open distorted: "
                         "https://cdn.example.com/hls/low/p.m3u8";
     l.memory_limit    = 8u << 20;
-    l.pair_memory     = 3u << 20;
+    l.baseline        = 1u << 20;
+    l.admissions      = { { .pair = 1, .running = 1, .resident = 4u << 20, .measure = 3u << 20 },
+                          { .pair = 2, .running = 2, .resident = 7u << 20, .measure = 3u << 20 } };
     l.pool_warnings   = { "pair 2 of 3 took the process over the memory limit on its own" };
     const auto doc = parse(vmafreport::ladder_to_json(l, kRun));
     REQUIRE(doc);
@@ -829,7 +833,18 @@ TEST_CASE("vmafreport::ladder_to_json: a run that ended early lists the complete
     CHECK(d["status"].str == "failed");
     CHECK(d["error"].str == l.error);
     CHECK(d["pool"]["memory_limit"].num == 8 << 20);
-    CHECK(d["pool"]["pair_memory"].num == 3 << 20);   // D-053
+    CHECK(d["pool"]["baseline"].num == 1 << 20);
+    // Each pair the rule let start while others ran (D-053, D-058).
+    const Value& admitted = d["pool"]["pair_memory"];
+    REQUIRE(admitted.arr.size() == 2);
+    CHECK(admitted.arr[0]["pair"].num == 1);
+    CHECK(admitted.arr[0]["running"].num == 1);
+    CHECK(admitted.arr[0]["resident"].num == 4 << 20);
+    CHECK(admitted.arr[0]["measure"].num == 3 << 20);
+    CHECK(admitted.arr[1]["pair"].num == 2);
+    CHECK(admitted.arr[1]["running"].num == 2);
+    CHECK(admitted.arr[1]["resident"].num == 7 << 20);
+    CHECK(admitted.arr[1]["measure"].num == 3 << 20);
     REQUIRE(d["pool"]["warnings"].arr.size() == 1);
     CHECK(d["pool"]["warnings"].arr[0].str == l.pool_warnings[0]);
     REQUIRE(d["pairs"].arr.size() == 1);   // the complete one only, with its own index
