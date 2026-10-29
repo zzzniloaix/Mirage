@@ -204,6 +204,9 @@ TEST_CASE("vmafcli::usage: lists every option", "[vmafcli]")
     // D-056: rtmp's own timeout would make it listen.
     CHECK(contains(flat, "and an rtmp URL with rw_timeout alone"));
     CHECK_FALSE(contains(flat, "an http(s), rtmp or rtsp URL"));
+    // D-055: the segments' retries, and a file gone without fails the analysis.
+    CHECK(contains(flat, "tries a segment it can't open 10 more times"));
+    CHECK(contains(flat, "ends the input there, as a read error does: the analysis fails"));
     CHECK(contains(flat, "K, M, G or T for KiB, MiB, GiB or TiB"));
     // No help line is wider than the options' rows.
     std::size_t from = 0;

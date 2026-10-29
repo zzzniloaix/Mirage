@@ -787,6 +787,35 @@ TEST_CASE("vmafladder::score: a pair that can't be scored ends the run", "[ladde
     fs::remove_all(dir);
 }
 
+TEST_CASE("vmafladder::score: a pair whose hls demuxer goes on without a segment ends the run",
+          "[ladder][vmaf][segments]")
+{
+    const Ladder& l = ladder();
+    const fs::path dir = testtemp::path("mirage_test_ladder_lost_segment");
+    // The low rung's playlist lists a second segment, which doesn't exist:
+    // the demuxer tries it 11 times and goes on without it (D-055).
+    make_rung(dir / "low", 96, 54);
+    write_text(dir / "low/index.m3u8",
+               "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:1\n#EXT-X-MEDIA-SEQUENCE:0\n"
+               "#EXT-X-PLAYLIST-TYPE:VOD\n#EXTINF:0.480000,\nseg0.ts\n#EXTINF:0.480000,\n"
+               "gone.ts\n#EXT-X-ENDLIST\n");
+    const std::string low    = (dir / "low/index.m3u8").string();
+    const std::string master = (dir / "master.m3u8").string();
+    write_text(master, master_of({ { l.top, 900000 }, { low, 300000 }, { l.mid, 600000 } }));
+    const vmafladder::Result r = vmafladder::score(master, "", {}, { .jobs = 1 });
+    const std::string why = std::format(
+        "reading the distorted input stopped on an error: the hls demuxer went on without {}, "
+        "which it couldn't open in 11 tries: No such file or directory",
+        (dir / "low/gone.ts").string());
+    CHECK(r.status == "failed");
+    CHECK(r.error == std::format("pair 1 of 2, {} against {}: {}", low, l.top, why));
+    REQUIRE(r.pairs.size() == 2);
+    CHECK(r.pairs[0].status == vmafladder::PairStatus::Failed);
+    CHECK(r.pairs[0].why == why);
+    CHECK(r.pairs[1].status == vmafladder::PairStatus::NotStarted);
+    fs::remove_all(dir);
+}
+
 TEST_CASE("vmafladder::score: a model file that changes during the run ends it", "[ladder][vmaf]")
 {
     const fs::path file = fs::path(MIRAGE_LIBVMAF_MODEL_DIR) / "vmaf_v0.6.1.json";

@@ -291,6 +291,7 @@ add_executable(mirage_tests
     tests/test_vmaf_ladder.cpp
     tests/test_vmaf_pool.cpp
     tests/test_rtmp_input.cpp
+    tests/test_vmaf_segments.cpp
     tests/test_file_hash.cpp
     src/Demuxer.cpp
     src/NetworkLogger.cpp

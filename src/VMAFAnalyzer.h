@@ -78,7 +78,9 @@ struct VMAFInputInfo {
     int         time_base_num = 0;   // stream time base the frame timestamps are in
     int         time_base_den = 0;
     bool        ended = false;       // decoding reached the end of the input
-    std::string end_error;           // FFmpeg error that ended it; empty = clean end or not ended
+    // FFmpeg error that ended it, or the file its hls demuxer went on without
+    // (src/VMAFSegments.h, DECISIONS.md D-055); empty = clean end or not ended
+    std::string end_error;
 };
 
 // How one input's frames' color was converted before scoring, as FFmpeg's

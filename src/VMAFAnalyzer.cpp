@@ -5,6 +5,7 @@
 #include "VMAFAlign.h"
 #include "VMAFColor.h"
 #include "VMAFNet.h"
+#include "VMAFSegments.h"
 
 #include <algorithm>
 #include <cstring>
@@ -150,6 +151,7 @@ struct DecodeCtx {
     int              vid_idx   = -1;
     DecodeState      state     = DecodeState::Reading;
     int              error     = 0;   // FFmpeg error that ended decoding; 0 = clean EOF / not ended
+    vmafsegments::SegmentWatch segments;   // the files the input's demuxer reads (D-055)
 
     DecodeCtx() = default;
     ~DecodeCtx() { close(); }
@@ -158,15 +160,19 @@ struct DecodeCtx {
 
     // A network input's reads wait at most 5 s, and a stop requested on `st`
     // interrupts a blocking call (src/VMAFNet.h, DECISIONS.md D-036). `st`
-    // must outlive the context: it is the interrupt callback's opaque.
+    // must outlive the context: it is the interrupt callback's opaque. An
+    // HLS input's segments are tried again as the player tries them, and
+    // the files its demuxer reads are watched (src/VMAFSegments.h, D-055).
     [[nodiscard]] bool open(const std::string& url, const std::stop_token& st)
     {
         fmt_ctx = avformat_alloc_context();
         if (!fmt_ctx) return false;
         fmt_ctx->interrupt_callback.callback = vmafnet::stop_requested;
         fmt_ctx->interrupt_callback.opaque   = const_cast<std::stop_token*>(&st);
+        segments.watch(fmt_ctx);
         AVDictionary* opts = nullptr;
         vmafnet::set_io_limits(&opts, url);
+        vmafsegments::set_hls_options(&opts);
         // On failure avformat_open_input frees fmt_ctx and nulls the pointer.
         const int r = avformat_open_input(&fmt_ctx, url.c_str(), nullptr, &opts);
         av_dict_free(&opts);
@@ -206,11 +212,17 @@ struct DecodeCtx {
                 continue;
             }
 
-            // Read the next video packet and feed it
+            // Read the next video packet and feed it. A file the hls demuxer
+            // went on without ends the input there, as a read error does
+            // (src/VMAFSegments.h, DECISIONS.md D-055).
             while (true) {
                 r = av_read_frame(fmt_ctx, pkt);
-                if (r < 0) {
-                    if (r != AVERROR_EOF) error = r;   // still drained like EOF
+                if (r == AVERROR_EOF) segments.ended();
+                if (r < 0 || !segments.lost().empty()) {
+                    if (r >= 0)
+                        av_packet_unref(pkt);   // read after the file gone without: not decoded
+                    else if (r != AVERROR_EOF)
+                        error = r;              // still drained like EOF
                     avcodec_send_packet(codec_ctx, nullptr);
                     state = DecodeState::Flushing;
                     break;
@@ -236,6 +248,15 @@ struct DecodeCtx {
         vid_idx = -1;
         state   = DecodeState::Reading;
         error   = 0;
+    }
+
+    // Why decoding ended on an error, for VMAFInputInfo::end_error: the file
+    // the hls demuxer went on without (D-055), else FFmpeg's error; empty
+    // for a clean end, or before the end.
+    std::string end_error() const
+    {
+        if (!segments.lost().empty()) return segments.lost();
+        return error ? av_error_text(error) : std::string();
     }
 
     int           width()   const { return codec_ctx ? codec_ctx->width   : 0; }
@@ -754,7 +775,7 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
     // How each input ended (before cleanup() resets the decode contexts).
     auto record_end = [](const DecodeCtx& ctx, VMAFInputInfo& info) {
         info.ended     = ctx.state == DecodeState::Done;
-        info.end_error = ctx.error ? av_error_text(ctx.error) : std::string();
+        info.end_error = ctx.end_error();
     };
     record_end(ref_ctx, result.ref_info);
     record_end(dis_ctx, result.dis_info);
