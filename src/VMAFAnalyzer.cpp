@@ -709,15 +709,18 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
     }
 
     // Flush feature extractors, and collect the last context's scores. A
-    // cancelled analysis has none.
-    finish_context(!st.stop_requested());
-    if (st.stop_requested()) {
+    // cancelled analysis has none. The stop is read once: one requested
+    // after it leaves the analysis complete, its scores and pooled values
+    // both, not scores without pooled values.
+    const bool cancelled = st.stop_requested();
+    finish_context(!cancelled);
+    if (cancelled) {
         result.per_frame.clear();
         result.alignment.contexts.clear();
     }
 
     // Pooled stats
-    if (frame_idx > 0 && !st.stop_requested()) {
+    if (frame_idx > 0 && !cancelled) {
         // Pooled from the per-frame scores, with libvmaf's formulas for the
         // mean, the harmonic mean and the minimum, so that a pair scored in
         // one libvmaf context gets vmaf_score_pooled()'s values and one
