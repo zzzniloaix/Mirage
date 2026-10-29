@@ -551,6 +551,77 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: owner (Jiayu Lin), adopting the agent's recommendation
 - **Date**: 2026-10-27
 
+### D-054 The audit's questions: the agent's recommendations adopted
+
+- **Decision**: the owner adopts every recommendation labeled as the agent's in `docs/PHASE2_DECISIONS_PENDING.md` as of `d9c690a`: those on the questions the audit of 2026-10-28 raised, and the confirmation of P-067 to P-077. D-055 to D-061 record each decision.
+- **Owner's words**, translated by the agent: "yea, I think they can all go by your recommendations", in answer to the agent's summary of the questions, each with its recommendation.
+- **Not covered, still open**: the reviews' asks that touch decided items, which the pending document lists for information without a recommendation; options are written for them only if the owner asks.
+- **Alternatives**: deciding each question separately.
+- **Who**: owner (Jiayu Lin)
+- **Date**: 2026-10-29
+
+### D-055 A segment the hls demuxer can't read is tried again, and one it still goes on without fails the pair
+
+- **Decision**: the analyzer gives FFmpeg's hls demuxer `seg_max_retry` 10, the player's value (`src/Demuxer.cpp`), so that a segment that can't be opened is tried again before the demuxer goes on to the next one; a segment it still goes on without fails the pair, as a read error does, so that no report is complete without it, and with it a ladder run fails (D-047) (options 2 and 3 of "A segment the hls demuxer skips" in `docs/PHASE2_DECISIONS_PENDING.md`). This changes D-036, which left the player's segment retries out. A gap at the same place in both inputs' timestamps, reported and scored in a new libvmaf context (option 4), is for later, for gaps that are in the source itself.
+- **Alternatives**: the segment skipped, as D-036 has it, so that only the pairing's counts can show it; the retries alone; the skip taken as a failure alone; the gap reported.
+- **Rationale**: with D-036's 5 s limit a segment whose request waits longer is skipped, and the read returns no error, so the pair ended complete, with exit 0. A segment lost in one input shows only as frames that don't pair, which warn above 1% (D-028), and since each input's times are measured from its own start (D-028), a first segment lost in one input offsets every pair; one lost in both at the same place leaves no failure. FFmpeg's side of the §5 check still skips such a segment.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-054)
+- **Date**: 2026-10-29
+
+### D-056 An rtmp input gets FFmpeg's rw_timeout alone
+
+- **Decision**: an rtmp URL is opened with FFmpeg's `rw_timeout` alone, without `timeout`, which FFmpeg's own rtmp protocol takes as the time to wait for an incoming connection, and which makes it listen on the URL's host and port instead of connecting to them (`ffmpeg -h protocol=rtmp`): in `src/VMAFNet.h`, `src/FfOpen.cpp` and `src/Demuxer.cpp` alike, the player keeping the analyzer's rule. `--help`, P-066's statement of the limits and the tests follow, and a test on a local rtmp server checks it end to end (option 2 of "The options of an rtmp input"). This changes D-036's `timeout` for rtmp inputs.
+- **Alternatives**: `timeout` and `rw_timeout` for every network input, as D-036 words it; rtmp refused by `mirage_vmaf`, as a protocol it doesn't support.
+- **Rationale**: D-036's intent, that a read that waits longer fails, then holds for rtmp: with `timeout` an rtmp input listened instead of connecting, and its 5 s weren't a limit on its reads.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-054)
+- **Date**: 2026-10-29
+
+### D-057 The report gives each input's discontinuity sequences, and the frames D-050 counts keep D-046's reasons
+
+- **Decision**
+  - The report gives each input's discontinuity sequences, where each starts and how many frames it has, so that frames missing at the start of a sequence show as an offset between the two inputs' sequences of the same rank; no pair changes (option 2 of (a) of "Frames missing at a sequence's start, and the reasons of the frames D-050 counts"). A check in the pairing of the sequences' first timestamps, which would fail the frames an input lacks (option 3), waits for a committed case that shows such an offset.
+  - The frames D-050 counts keep D-046's reasons, as P-073 implements them: the other input's frame within a frame of the coarser input of the first input's jump is an unmatched reference or extra distorted frame, and where one input ends instead of jumping pairing doesn't stop, and the other input's frames are unmatched or extra; a test covers an input that ends (option 1 of (b)).
+- **Alternatives**: (a) the limitation stated in `--help` and the method notes only; the pairing checking the sequences' first timestamps now. (b) those frames counted as after a discontinuity, as D-028's rule counts them.
+- **Rationale**: each sequence after the first is measured from its own first frame (D-046), so an input that lacks the first frames after a jump that is at the same place in both inputs pairs offset by the frames it lacks, and the frames that don't pair warn only above 1% (D-028); the report shows the offset without changing a score.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-054)
+- **Date**: 2026-10-29
+
+### D-058 The report gives the memory limit's measure at each pair it let start, and the limit stays a rule for starting pairs
+
+- **Decision**
+  - The report's `pool.pair_memory` gives each admission of the memory limit's rule, the pair it let start with what the rule counted a pair at then, instead of the largest measure alone (option 3 of (a) of "What `pool.pair_memory` gives, and what `--memory-limit` is").
+  - `--memory-limit` stays a rule for starting pairs, as D-045 to D-053 have it: running pairs aren't stopped, and the peak can pass the limit (option 1 of (b)).
+- **Alternatives**: (a) the largest measure, as P-074 has it; the measure of the first pairs once they had warmed up. (b) a cap, a running pair that would take the process over it paused, or stopped and started again later; each pair in a process of its own, measured and limited on its own.
+- **Rationale**: D-053 has the report give what the rule measured a pair to use "so that a run shows how far its pairs went beyond it", which a measure kept at its largest can't show, and the largest can be read from each admission's; with D-053's margin the run over every frame stayed under the limit (P-075), and a cap would stop pairs that have done much of their work.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-054)
+- **Date**: 2026-10-29
+
+### D-059 A run with a memory limit whose memory can't be read is refused
+
+- **Decision**: with a memory limit, a ladder run whose resident memory can't be read before its first pair fails then, and a reading that fails later holds the next pair back until one succeeds (option 3 of "A memory limit when the memory can't be read").
+- **Alternatives**: pairs started as the warm-up allows, and nothing said, as P-067 implements it; the same, with a warning on stderr and in the report.
+- **Rationale**: a run that was given a limit doesn't run without one.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-054)
+- **Date**: 2026-10-29
+
+### D-060 The decision log, the records and the documents after the audit
+
+- **Decision**
+  - A pending P-entry is append-only: what is found after it goes in dated lines of its own before its **Who**, and the text above them stays as written (option 1 of "Whether a pending P-entry may grow").
+  - `eval/streams/local-advanced-2026-10-26/` stays as committed, and `eval/streams.md` says what its SHA256SUMS checks, and how (option 1 of "The streams record's checksums").
+  - `docs/PHASE2_SURVEY.md` is a snapshot as of its last commit, its header pointing to `docs/PHASE2_STATUS.md` for the measurements since (option 1 of "`docs/PHASE2_SURVEY.md`, a snapshot or updated").
+  - The line of the agent's recommendation that `34e6faa` left out of the package of P-033 to P-065 is restored in `docs/PHASE1_DECISIONS_PENDING.md` on `vmaf/phase-1`, in a new commit, with the citations of "hard rule 4" for the differences list corrected there, so that Phase 1's PR carries them (option 1 of "The recommendation line of P-033 to P-065 in Phase 1's pending document").
+  - From now on the files other than `docs/AI_CONTRIBUTIONS.md` say "agent" alone, in bylines and **Who** lines, and that file alone names the model; what is written stays (option 2 of (a) of "The model's name, and the survey's rendering of §2"). The survey's rendering of §2, the requirements in its own words with no passage of the work order quoted, is within D-013 (option 1 of (b)).
+- **Alternatives**: as the pending document lists them for each.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-054)
+- **Date**: 2026-10-29
+
+### D-061 The process choices P-067 to P-077 are confirmed
+
+- **Decision**: the agent's measurement and process choices P-067 to P-077 are confirmed as their entries state them, with their corrections; D-050, D-051 and D-053 change what P-068 and P-072 implement.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-054)
+- **Date**: 2026-10-29
+
 ---
 
 ## Measurement / process choices (proposed by the agent, confirmed by the owner)
@@ -1846,7 +1917,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Rationale**: each follows its decision with the least machinery: the plan's order keeps the report the same at every size; the admission rule measures the memory the limit is about, and needs no model of a pair's memory; `ru_maxrss` is the system's own peak, which `/usr/bin/time -l` reports too.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-26
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-29, D-061)
 
 ### P-068 How D-046 is implemented: the discontinuity sequences come from the timestamps
 
@@ -1857,7 +1928,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Correction** (2026-10-28): the Result's statement on the alignment case `a07_restart`, its failures as 5 unmatched reference and 5 extra distorted frames, was made from the code under D-046. D-050 has changed the rule since, and no committed output gives how the case's failures are counted now: MEASUREMENT PENDING (P-073).
 - **Who**: agent (Claude)
 - **Date**: 2026-10-26
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-29, D-061)
 
 ### P-069 Phase 2's measurements so far: the machine, M5, and the local copy of the acceptance ladder
 
@@ -1870,7 +1941,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Rationale**: the smallest inputs that show the behavior each measurement is about, from FFmpeg alone, as the earlier synthetic cases are made.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-26
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-29, D-061)
 
 ### P-070 M5's gaps: discontinuity sequences that don't line up, and the report's start after a discontinuity
 
@@ -1887,7 +1958,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Correction** (2026-10-28): "No committed record has these fields for an input with a discontinuity" means no record made with a program between `f988091` and `7ad0929`, whose start was wrong; `eval/phase2-survey/m5-gaps/record.txt`, made after `7ad0929`, gives the inputs' starts next to their discontinuities.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-27
-- **Status**: pending owner confirmation; the question the result raises is the owner's ("Discontinuity sequences that don't line up" in `docs/PHASE2_DECISIONS_PENDING.md`)
+- **Status**: confirmed by the owner (2026-10-29, D-061); the question the result raised was decided by D-050
 
 ### P-071 Phase 2's measurements: M2, M3, the acceptance across pool sizes at 300 frames, and the memory limit
 
@@ -1904,7 +1975,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - One pair's peak alone (`warm_up.txt` of `dfed5a3`): 128729088 bytes after 1 frame pair, then 271597568 after 5, 284639232 after 30 and 293208064 after 300; and in another run each, 293306368 after 300, 294453248 after 450, 295059456 after 600 and 301056000 over all 720 frame pairs of the copy (`eval/ladder/advanced-local-pair-memory/record.txt`).
 - **Who**: agent (Claude)
 - **Date**: 2026-10-27
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-29, D-061)
 
 ### P-072 The memory limit's rule: a pair's memory measured once it has warmed up
 
@@ -1917,7 +1988,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Correction** (2026-10-28): the warning's "pair 4 of 7" counts pairs from 1, as `mirage_vmaf`'s other messages do, where the report's `index` counts from 0. It is the pair of index 3, which ran alone from 8.399 s to 8.746 s, when the other three of the first wave had ended, not one of the pairs after the first four (`eval/ladder/advanced-local-300-mem1g-dfed5a3/jobs-default/report.json.xz`). The record's README places it as the Result does; it stays as committed.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-27
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-29, D-061)
 
 ### P-073 How D-050 to D-052 are implemented, and their runs
 
@@ -1939,7 +2010,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Correction** (2026-10-28): the rerun of P-076 compared `a07_restart`'s verdict, frame totals and per-frame scores, as committed, and kept none of its reports, so how its failures are counted under D-050 is still MEASUREMENT PENDING; a rerun of `align-cases-d028` that keeps its reports would measure it.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-27
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-29, D-061)
 
 ### P-074 How D-053 is implemented, and its run at 300 frames
 
@@ -1948,7 +2019,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Result**: PASS: at the default size 3 pairs at once and a peak of 913162240 bytes, under the limit of 1073741824. The report's `pair_memory`, 896270336 bytes, is more than three times one pair's peak, 292896768 bytes after 300 frame pairs (`warm_up.txt`): the rule measures a pair as the memory gained since the run began shared out among the pairs running, and once the first pairs had ended, the resident memory still counted memory they had used, shared out among fewer pairs. D-049's run over every frame with D-053's margin is P-075's. The unit tests (`eval/test_runs/macos-2026-10-27-57b5ea5.txt`), in a clean worktree at `57b5ea5`, whose code and tests are those of `b706ed3`: `mirage_tests '~[audio]'` passed at the first run, 112445 assertions in 325 test cases, and the five Python suites passed, 28, 136, 11, 16 and 8 tests.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-27
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-29, D-061)
 
 ### P-075 D-049's run over every frame with D-053's margin
 
@@ -1959,7 +2030,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Correction** (2026-10-28): "with nothing else running" doesn't hold. Another Claude Code session, auditing the branches, configured, built and ran tests on the same machine during part of the run; their times are in no committed file. The pairs, scores, pairs at once and peak don't depend on that load, but the wall time does, so the run's 2129.9 s doesn't compare with P-073's 1907.7 s.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-27
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-29, D-061)
 
 ### P-076 The rerun of every committed Phase 1 measurement with the Phase 2 program, which the machine's sleep cut short
 
@@ -1976,7 +2047,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - The agent stopped D-039's queue before it took the samples and asked the owner, so that the experiments wouldn't start on a machine that might sleep again; the owner's "Stop for now" came after. When the owner answered, when the queue was stopped and when the agent's usage-limit pause began are in no committed file; the run's last steps ran from 2026-10-28T04:16:25Z to 04:16:30Z (`run_all.json`).
 - **Who**: agent (Claude)
 - **Date**: 2026-10-28
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-29, D-061)
 
 ### P-077 How the audit's first batch is implemented, and the unit tests after it
 
@@ -2001,4 +2072,4 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Result** of the unit tests (`eval/test_runs/macos-2026-10-29-93acc4d.txt`): `mirage_tests '~[audio]'` passed at the first run, 118170 assertions in 335 test cases, and the five Python suites passed, 28, 136, 11, 16 and 14 tests; the load averages were 4.92, 7.75 and 15.31 at the start and 6.98, 7.75 and 14.71 at the end.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-29
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-29, D-061)

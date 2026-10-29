@@ -1,14 +1,31 @@
 # Phase 2: decisions pending for the owner
 
-What is open for the owner on `vmaf/phase-2`, §2 of the VMAF work order, after the decisions of 2026-10-26 on the survey (`docs/DECISIONS.md` D-042 to D-049) and of 2026-10-27 on what the measurements found (D-050 to D-053), and after the audit of both branches of 2026-10-28, which the owner asked for (`docs/AI_CONTRIBUTIONS.md`). The decisions are the owner's (hard rule 3 of the work order); every recommendation below is labeled as the agent's. Every number comes from a committed output, named next to it; where there is none, it says MEASUREMENT PENDING. The state of each item of §2 is in `docs/PHASE2_STATUS.md`.
+What is open for the owner on `vmaf/phase-2`, §2 of the VMAF work order, after the decisions of 2026-10-26 on the survey (`docs/DECISIONS.md` D-042 to D-049) and of 2026-10-27 on what the measurements found (D-050 to D-053), and after the audit of both branches of 2026-10-28, which the owner asked for (`docs/AI_CONTRIBUTIONS.md`), and the owner's answers of 2026-10-29 to the questions it raised (D-054 to D-061). The decisions are the owner's (hard rule 3 of the work order); every recommendation below is labeled as the agent's. Every number comes from a committed output, named next to it; where there is none, it says MEASUREMENT PENDING. The state of each item of §2 is in `docs/PHASE2_STATUS.md`.
 
 ## Open
 
-The audit of 2026-10-28 raised the questions below; the agent's choices to confirm follow them, and the questions of 2026-10-27, decided, follow those.
+Nothing is open for the owner's decision: on 2026-10-29 the owner answered the questions of the audit of 2026-10-28 and confirmed P-067 to P-077 (`docs/DECISIONS.md` D-054 to D-061), in "Decided on 2026-10-29" below; the questions of 2026-10-27, decided, follow those.
 
 **For information.** With a memory limit, once the first pairs had ended the others ran one at a time in each run at 1 GiB over 300 frame pairs but the first, in which all 7 started at once (`eval/ladder/advanced-local-300-mem1g-1cc1ab0/`), and in the run over every frame with D-051's 10%; in the run over every frame with D-053's 25%, the next two pairs ran together once the first two had ended, and only the last three one at a time (`eval/ladder/advanced-cdn-full-b706ed3/README.md`). The report's `pair_memory` at 300 frames was more than three times one pair's peak, so at times the resident memory still counted memory of pairs that had ended (`eval/ladder/advanced-local-300-mem1g-b706ed3/README.md`; P-074). Which of the process's memory measures drops when a pair ends, and when, is MEASUREMENT PENDING.
 
+### The reviews' asks that touch decisions (for information)
+
+The audit's reviews, a video engineer's and a UI designer's, asked for changes that touch decided items (the audit's report, which isn't committed, §8.4 and §9). Options are written for them only if the owner asks:
+
+- a forward jump in one input taken as a gap: pairing by time, with a new libvmaf context, and the 10 s threshold an option (§8.4, rank 1; D-046, D-050);
+- the temporal origin of inputs at different frame rates checked, by a search for the offset (§8.4, rank 2; D-028);
+- the pool's default size from the cores and libvmaf's threads, with `--threads` and `--subsample`, and M4 measured (§8.4, rank 8; D-044);
+- the memory measured per pair, in a process of its own, or presented as a heuristic (§8.4, rank 7; D-045, D-051, D-053, and the question on `pool.pair_memory` below, which D-058 decided);
+- HDR and Dolby Vision inputs refused unless forced (§8.4, rank 9; D-021);
+- a report with `schema_version`, `tool_version` and `git_commit` (§8.4, rank 9; §9.2, item 3; §9.4; the work order's §7).
+
+## Decided on 2026-10-29 (D-054 to D-061)
+
+The owner's answers to the questions of the audit of 2026-10-28, and the confirmation of P-067 to P-077 (`docs/DECISIONS.md` D-054 to D-061: D-054 adopted every recommendation labeled as the agent's here as of `d9c690a`), each item with the text it had when it was decided, as the record of its options, and a note at its start on what was decided.
+
 ### A segment the hls demuxer skips (D-036; P-066)
+
+**Decided** (2026-10-29): D-055, options 2 and 3: the analyzer gives FFmpeg's hls demuxer `seg_max_retry` 10, as the player's demuxer has it, and a segment the demuxer still goes on without fails the pair; option 4 later.
 
 **What the code and the records show.** D-036 gives each network read 5 s (`src/VMAFNet.h`). When a segment's request waits longer, FFmpeg's hls demuxer goes on to the next segment: its `seg_max_retry` is 0 unless set (`ffmpeg -h demuxer=hls`), and the analyzer sets none (`DecodeCtx::open()` in `src/VMAFAnalyzer.cpp`), where the player's demuxer sets 10 (`src/Demuxer.cpp`). D-036's option 2 said a failed read makes the demuxer skip the segment (`docs/PHASE1_DECISIONS_PENDING.md`, "A network read without a time limit"). The read returns no error, so `vmafreport::incomplete()` finds nothing wrong: the pair ends complete, with exit 0, and so does a ladder run. In D-049's run over every frame from Apple's CDN a read timed out once, and FFmpeg's retry with a new connection recovered it (`eval/ladder/advanced-cdn-full-af17121/jobs-default/stderr.txt`, lines 8 to 10).
 
@@ -27,6 +44,8 @@ The audit of 2026-10-28 raised the questions below; the agent's choices to confi
 
 ### The options of an rtmp input (D-036; P-066)
 
+**Decided** (2026-10-29): D-056, option 2.
+
 **What the code says.** `vmafnet::set_io_limits()` gives every http(s), rtmp and rtsp URL FFmpeg's `timeout` and `rw_timeout`, 5 s (`src/VMAFNet.h`), the rule of `src/FfOpen.cpp`, which `src/Demuxer.cpp` follows; a test asserts both values for an rtmp URL (`tests/test_vmaf_analyzer.cpp`, "vmafnet: network URLs get the read limits, local inputs none"). For FFmpeg 8.1.1's own rtmp protocol, `timeout` is the "Maximum timeout (in seconds) to wait for incoming connections" and "Implies -rtmp_listen 1" (`ffmpeg -h protocol=rtmp`): with it an input listens on its URL's host and port instead of connecting to them, and the 5 s isn't a limit on its reads. No committed record has an rtmp input; what `mirage_vmaf` does with one is MEASUREMENT PENDING.
 
 **Question.** Which options should an rtmp input get?
@@ -40,6 +59,8 @@ The audit of 2026-10-28 raised the questions below; the agent's choices to confi
 **Agent's recommendation.** Option 2: D-036's intent, that a read that waits longer fails, then holds for rtmp, and the player keeps the analyzer's rule.
 
 ### Frames missing at a sequence's start, and the reasons of the frames D-050 counts (D-050; P-073)
+
+**Decided** (2026-10-29): D-057: (a) option 2, and option 3 once a committed case shows an offset; (b) option 1, with a test of an input that ends.
 
 **What the code says.** Each discontinuity sequence after the first is measured from its own first frame (D-046), and D-050 compares only where the inputs' sequences before it end (`src/VMAFAlign.h`, "Jumps at different places").
 
@@ -62,6 +83,8 @@ The audit of 2026-10-28 raised the questions below; the agent's choices to confi
 
 ### What `pool.pair_memory` gives, and what `--memory-limit` is (D-045, D-051, D-053; P-074)
 
+**Decided** (2026-10-29): D-058: (a) option 3; (b) option 1.
+
 **What the records show.** The rule measures a pair as the process's resident memory gained since the run began, shared out among the pairs running, and keeps the largest measure (`vmafladder::admits()`); the report gives that as `pool.pair_memory` (P-074). At 1 GiB over 300 frame pairs it was more than three times one pair's peak, since the resident memory still counted memory of pairs that had ended (`eval/ladder/advanced-local-300-mem1g-b706ed3/README.md`; "For information" above). D-053 has the report give what the rule measured "so that a run shows how far its pairs went beyond it", which a measure kept at its largest can't show. The limit decides when a pair starts; running pairs aren't stopped, and the peak can pass it: with D-051's margin the run over every frame from Apple's CDN peaked 2.1% over 1 GiB (`eval/ladder/advanced-cdn-full-af17121/`; P-073). `--help` states the rule (`7ee3724`).
 
 **Questions.** (a) What should `pool.pair_memory` give? (b) Should `--memory-limit` stay a rule for starting pairs, or become a cap?
@@ -81,6 +104,8 @@ The audit of 2026-10-28 raised the questions below; the agent's choices to confi
 
 ### A memory limit when the memory can't be read (D-045; P-067)
 
+**Decided** (2026-10-29): D-059, option 3.
+
 **What the code says.** `vmafproc::resident_bytes()` gives 0 when the process's memory can't be read, when `task_info()` fails on macOS or `/proc/self/statm` can't be read on Linux (`src/VMAFProcess.cpp`). With a limit set, `admits()` then lets a pair start once none is warming up, and the warning of a pair over the limit on its own isn't given (`src/VMAFLadder.cpp`); neither the report nor stderr says that the limit wasn't applied. One assertion tests it (`tests/test_vmaf_ladder.cpp`, "vmafladder::admits: the memory limit's rule"), and no D- or P-entry records it.
 
 **Question.** What should a run with a memory limit do when its memory can't be read?
@@ -94,6 +119,8 @@ The audit of 2026-10-28 raised the questions below; the agent's choices to confi
 **Agent's recommendation.** Option 3: a run that was given a limit doesn't run without one.
 
 ### Whether a pending P-entry may grow (P-073, P-074)
+
+**Decided** (2026-10-29): D-060, option 1.
 
 **What the history shows.** While they were pending, P-073 got a bullet on the unit tests in `61f711c` and one on `a07_restart` in `4587c2d`, and P-074's Result a sentence in `9a72fed`; each added fact rests on a committed record or says MEASUREMENT PENDING. `docs/DECISIONS.md` says the agent's entries "stay marked as pending until the owner confirms them", and not whether their text may change meanwhile. The corrections of 2026-10-28 and 2026-10-29 are lines of their own, `- **Correction** (date): …`, before an entry's **Who**.
 
@@ -109,6 +136,8 @@ The audit of 2026-10-28 raised the questions below; the agent's choices to confi
 
 ### The streams record's checksums (D-049; P-069)
 
+**Decided** (2026-10-29): D-060, option 1.
+
 **What the record shows.** `eval/streams/local-advanced-2026-10-26/SHA256SUMS` lists the files of the local copy, media included, which isn't in the repository, so that a copy made again can be checked (`eval/streams/local_copy.py`, `copy.md`). It can't be checked in the record's own directory, and `copy.json` and `copy.md` are in no checksum file; the SHA256SUMS of the record of 2026-10-23 next to it lists that record's own files (`eval/streams/fetched-2026-10-23/`).
 
 **Question.** Should the record get checksums that can be checked in place? Committed records are never edited, and an addition to a record's directory is the owner's call.
@@ -123,6 +152,8 @@ The audit of 2026-10-28 raised the questions below; the agent's choices to confi
 
 ### `docs/PHASE2_SURVEY.md`, a snapshot or updated (D-042)
 
+**Decided** (2026-10-29): D-060, option 1.
+
 **What the file says.** Its header says the text is as the owner decided it, "with the measurements added since"; it still gives M2 and M3 as MEASUREMENT PENDING, and says no committed run has scored the advanced sample. M2 and M3 are in `eval/phase2-survey/m2-m3/record.txt`, and the sample's runs in `eval/ladder/advanced-local-300/` and those after it (P-071; `docs/PHASE2_STATUS.md`).
 
 **Question.** Should the survey stay as it was decided, or follow the measurements?
@@ -135,6 +166,8 @@ The audit of 2026-10-28 raised the questions below; the agent's choices to confi
 **Agent's recommendation.** Option 1: it is what D-042 to D-049 were decided on, and the status file has what came after.
 
 ### The recommendation line of P-033 to P-065 in Phase 1's pending document (D-041)
+
+**Decided** (2026-10-29): D-060, option 1, in a new commit on `vmaf/phase-1`.
 
 **What the history shows.** `34e6faa`, on `vmaf/phase-1`, moved the package of P-033 to P-065 under "Decided" in `docs/PHASE1_DECISIONS_PENDING.md` without its last line, "**Agent's recommendation**: confirm them all, with the open questions above decided as recommended there." (`b2d2824`), though the file keeps each decided item "with the text it had when it was decided"; the package of P-006 to P-032 kept its line. Neither the commit's message nor `docs/AI_CONTRIBUTIONS.md` says so.
 
@@ -149,6 +182,8 @@ The audit of 2026-10-28 raised the questions below; the agent's choices to confi
 **Agent's recommendation.** Option 1, on `vmaf/phase-1` with the other Phase 1 text the audit found, the two citations of "hard rule 4" for the differences list, so that Phase 1's PR carries them.
 
 ### The model's name, and the survey's rendering of §2 (D-013)
+
+**Decided** (2026-10-29): D-060: (a) option 2; (b) option 1.
 
 **What the files say.** `docs/PHASE2_SURVEY.md` has the byline "Written by: the agent (Claude)", as `docs/VMAF_GAP_REPORT.md` has, and the agent's P-entries say "**Who**: agent (Claude)"; the hard rules put the AI's involvement in `docs/AI_CONTRIBUTIONS.md`, which names the model. The survey also gives the work order's §2 requirements in its own words ("What §2 asks"), while D-013 keeps the work order out of the repository.
 
@@ -165,18 +200,9 @@ The audit of 2026-10-28 raised the questions below; the agent's choices to confi
 
 **Agent's recommendation.** (a) Option 2, which keeps the AI's involvement in the one file the hard rules name, without editing what is written. (b) Option 1: D-013 keeps the work order's text out, and the survey states what the owner decided on.
 
-### The reviews' asks that touch decisions (for information)
+### The agent's choices to confirm: P-067 to P-077
 
-The audit's reviews, a video engineer's and a UI designer's, asked for changes that touch decided items (the audit's report, which isn't committed, §8.4 and §9). Options are written for them only if the owner asks:
-
-- a forward jump in one input taken as a gap: pairing by time, with a new libvmaf context, and the 10 s threshold an option (§8.4, rank 1; D-046, D-050);
-- the temporal origin of inputs at different frame rates checked, by a search for the offset (§8.4, rank 2; D-028);
-- the pool's default size from the cores and libvmaf's threads, with `--threads` and `--subsample`, and M4 measured (§8.4, rank 8; D-044);
-- the memory measured per pair, in a process of its own, or presented as a heuristic (§8.4, rank 7; D-045, D-051, D-053, and the question on `pool.pair_memory` above);
-- HDR and Dolby Vision inputs refused unless forced (§8.4, rank 9; D-021);
-- a report with `schema_version`, `tool_version` and `git_commit` (§8.4, rank 9; §9.2, item 3; §9.4; the work order's §7).
-
-## The agent's choices to confirm: P-067 to P-077
+**Decided** (2026-10-29): D-061 confirmed P-067 to P-077 as their entries state them.
 
 | Entry | What |
 |---|---|
