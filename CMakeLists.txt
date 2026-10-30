@@ -138,6 +138,7 @@ add_executable(mirage
     src/DemuxRetry.cpp
     src/PipelineState.cpp
     src/KeyframeIndex.cpp
+    src/FrameScan.cpp
 )
 
 target_include_directories(mirage PRIVATE
@@ -191,6 +192,7 @@ add_executable(mirage_tests
     tests/test_keyframe_index.cpp
     tests/test_scrub_follow.cpp
     tests/test_hls_align.cpp
+    tests/test_frame_scan.cpp
     src/Demuxer.cpp
     src/NetworkLogger.cpp
     src/NetDescribe.cpp
@@ -214,6 +216,7 @@ add_executable(mirage_tests
     src/PipelineState.cpp
     src/KeyframeIndex.cpp
     src/ScrubDecoder.cpp
+    src/FrameScan.cpp
 )
 
 target_include_directories(mirage_tests PRIVATE
