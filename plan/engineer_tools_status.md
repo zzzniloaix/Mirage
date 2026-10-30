@@ -127,6 +127,101 @@ measured).
 - A GPU version of the scopes that reads the frame's textures, so 4K60 is
   measured on every frame.
 
+## B — Frame sizes / GOP
+
+**What it does.** `B` (also View › Frame Sizes / GOP and the overlays
+popover) opens a card along the bottom:
+
+- a bar per frame in display order, its height the frame's size, coloured
+  by picture type (I red, P blue, B violet, H.264 B-frames nothing refers to
+  lighter), around the frame on screen; keyframes (GOP starts) marked; the
+  rolling one-second bitrate over the bars; the mouse wheel zooms (20 frames
+  to the whole stream);
+- an overview of the whole stream's bitrate below, the span in view marked;
+- a summary: frames by type, keyframe interval (frames and seconds, min to
+  max), mean and peak one-second bitrate;
+- hovering a bar names the frame (type, keyframe, size, pts / dts, bitrate);
+  clicking it, or the overview, seeks there (the same frame-accurate seek as
+  the seek bar).
+
+**How it works.** `FrameScan` reads the playing video stream again on a
+thread of its own — every packet, nothing decoded — and types each frame with
+libavcodec's parser for the codec (I/P/B for H.264, HEVC, MPEG-2, MPEG-4
+Part 2; I/P for VP8, VP9, AV1). A local file is scanned when the card opens;
+a network input only on request ("Scan this stream"), since a scan downloads
+every segment of the variant. `FramesModel` copies new records as they come
+and rebuilds the display order at most twice a second while the scan runs.
+Code: `src/FrameScan.*` (with `tests/test_frame_scan.cpp`), `src/FramesPanel.*`.
+
+**Checked.**
+
+- `mirage_tests '[framescan]'`: 14 test cases (generated H.264 in MKV, MP4
+  and MPEG-TS, MPEG-2, raw video, an MP4 cut inside a GOP, stop mid-scan,
+  the helpers). Its author also ran them under ThreadSanitizer and
+  AddressSanitizer + UBSan in scratch builds; this branch's checks did not
+  repeat that.
+- Scripted runs: the x264 clip (GOP of 50, B-frames: the summary and the bar
+  pattern match the encode) and a five-minute 1080p H.264 file (the view
+  follows the frame on screen; the frame numbers agree with the frame
+  inspector's).
+
+**Not checked.** Clicking (seek on click) in a scripted run — it sets the
+same absolute seek the seek bar uses; HLS scans; a video track switch during
+a scan (a local file is rescanned for the new stream).
+
+**To finish.** Live and HLS: feed the view from the playback demuxer's own
+packets instead of a second read; a frame table (StreamEye-style list); a
+VBV / bandwidth-cap line.
+
+## L — Loudness
+
+**What it does.** `L` (also View › Loudness Meters and the overlays popover)
+opens a card with what is heard: momentary, short-term and integrated
+loudness (LUFS), loudness range (LU), the maximum true peak (dBTP), a verdict
+against a delivery target (EBU R128 −23 LUFS ±0.5 LU / −1 dBTP, ATSC A/85
+−24 LKFS ±2 LU / −2 dBTP, streaming −16 or −14 LUFS ±1 LU / −1 dBTP), a minute
+of short-term and momentary history, per-channel peak (one-second hold), RMS
+and true peak labelled from the channel layout (LFE marked as not counted),
+and the phase correlation of the first two channels. Reset restarts
+integrated loudness, LRA and the true-peak maximum; seeks restart them too,
+and the card says since when they count.
+
+**How it works.** `LoudnessTap` takes every frame the audio decoder decodes,
+as decoded — its own layout and rate, before the stereo downmix, the speed
+change and the volume — but only while the card is open: `AudioDecoder` got a
+tap pointer and calls it after each decode and on flush / reopen, nothing
+else changed in it. Non-planar-float input is converted to planar float;
+BS.1770 weights come from the layout (LFE 0, side / back / surround 1.41, the
+rest 1.0); a layout without channel order gets FFmpeg's default for its
+channel count, as the ffmpeg command line guesses. `LoudnessMeter` measures
+on the audio thread and publishes 100 ms blocks; the card shows the block at
+the audio clock, i.e. what has just been heard. Code: `src/LoudnessMeter.*`
+(with `tests/test_loudness_meter.cpp`), `src/LoudnessTap.*`,
+`src/LoudnessPanel.*`.
+
+**Checked.**
+
+- `mirage_tests '[loudness]'`: 18 test cases — the K-weighting coefficients
+  against BS.1770-4's 48 kHz table, EBU Tech 3341 cases 1–5, channel weights,
+  44.1 and 96 kHz, Tech 3342 LRA cases, true peak of an fs/4 sine, block
+  timing, resets, the Feed, and a cross-check against FFmpeg's `ebur128` on
+  generated stereo and 5.1 signals.
+- Scripted runs against `ffmpeg -af ebur128=peak=true` on the same file:
+  - a 5.1 PCM clip (1 kHz on the fronts and surrounds at set levels, a loud
+    50 Hz LFE, no channel order in the file): integrated loudness, LRA and
+    maximum true peak read as FFmpeg's to the 0.1 shown; the LFE is excluded;
+  - the stereo AAC clip: integrated loudness and LRA as FFmpeg's. Its maximum
+    true peak read lower than FFmpeg's whole-file figure: the card's
+    measurement began half a second in, FFmpeg's at the start.
+
+**Not checked.** 7.1 and other layouts in the app; speed changes while
+metering (the tap is before the speed change, so the readings are in media
+time); a track switch while the card is open.
+
+**To finish.** Channel solo / mute (the LFE is inaudible through the
+stereo downmix today), a loudness strip on the seek bar from a background
+scan, and a headless `--loudness-report`.
+
 ## Found while checking
 
 - **A seek into the second half of a concatenated HEVC MPEG-TS never shows a

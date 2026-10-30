@@ -3,6 +3,7 @@
 #include "UiTheme.h"
 #include "UiWidgets.h"
 
+#include "imgui_internal.h"   // GImGui->MovingWindow: the card is being dragged
 #include <glad/gl.h>
 
 #include <algorithm>
@@ -181,7 +182,9 @@ ScopesOut ScopesPanel::draw(const ScopesInputs& in)
     const float inner_w = card_w - 2.0f * kPadX;
 
     // Bottom left above the controls when it opens; movable while open.
-    ImGui::SetNextWindowPos(ImVec2(16.0f, in.win_h - in.bottom_inset - 12.0f), ImGuiCond_Appearing, ImVec2(0.0f, 1.0f));
+    // Docked bottom left above the controls (it grows upward) until dragged.
+    if (!moved_)
+        ImGui::SetNextWindowPos(ImVec2(16.0f, in.win_h - in.bottom_inset - 12.0f), ImGuiCond_Always, ImVec2(0.0f, 1.0f));
     ImGui::SetNextWindowSize(ImVec2(card_w, 0.0f));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(kPadX, 14.0f));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, th::kRadiusPanel);
@@ -191,6 +194,8 @@ ScopesOut ScopesPanel::draw(const ScopesInputs& in)
                      ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
                      ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoNav |
                      ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_AlwaysAutoResize)) {
+        if (ImGui::IsWindowAppearing()) moved_ = false;
+        if (ImGui::GetCurrentContext()->MovingWindow == ImGui::GetCurrentWindow()) moved_ = true;
         ImDrawList* dl = ImGui::GetWindowDrawList();
         ImGui::PushFont(ui_fonts().title);
         ImGui::TextUnformatted("Scopes");

@@ -40,6 +40,7 @@ private:
     unsigned      tex_ = 0;
     int           tex_w_ = 0, tex_h_ = 0;
     std::uint64_t tex_serial_ = 0;   // result uploaded
+    bool          moved_ = false;    // dragged by the user: no longer docked
 };
 
 struct ProbeInputs {

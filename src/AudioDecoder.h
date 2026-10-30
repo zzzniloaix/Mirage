@@ -2,6 +2,7 @@
 
 #include "Decoder.h"
 #include "AudioPlayer.h"
+#include "LoudnessTap.h"
 
 #include <atomic>
 
@@ -54,7 +55,13 @@ public:
     // speed in [0.25, 4.0] — uses two chained atempo stages if needed.
     void set_speed(double speed) { requested_speed_.store(speed); }
 
+    // The loudness meters' tap (LoudnessTap.h): every decoded frame, as
+    // decoded, before the resampler; told of every flush / reopen. Set
+    // before the decode thread starts; null = none.
+    void set_tap(LoudnessTap* tap) { tap_ = tap; }
+
 private:
+    LoudnessTap* tap_ = nullptr;
     Decoder     decoder_;
     SwrContext* swr_    = nullptr;
     AVFrame*    frame_  = nullptr;   // raw decoded frame (resampled input)

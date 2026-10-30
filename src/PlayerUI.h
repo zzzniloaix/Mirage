@@ -47,6 +47,8 @@ struct PlayerUIState {
     bool toggle_frameinfo = false;   // P key: frame inspector
     bool toggle_scopes    = false;   // S key: scopes
     bool toggle_probe     = false;   // X key: pixel probe
+    bool toggle_frames    = false;   // B key: frame sizes / GOP
+    bool toggle_loudness  = false;   // L key: loudness meters
 
     // VMAF analysis triggers (set to true for exactly one frame)
     bool vmaf_pick_ref         = false;  // open file picker to choose reference
@@ -64,7 +66,8 @@ struct PlayerUIInputs {
     bool   has_audio = false;
     bool   show_hud = false, show_inspector = false, show_drift = false, show_tracks = false,
            show_waveform = false, show_network = false, show_help = false, show_vmaf = false,
-           show_filmstrip = false, show_frameinfo = false, show_scopes = false, show_probe = false;
+           show_filmstrip = false, show_frameinfo = false, show_scopes = false, show_probe = false,
+           show_frames = false, show_loudness = false;
     bool   has_manifest_variants = false, fullscreen = false;
 
     struct Info {

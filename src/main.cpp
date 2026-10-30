@@ -19,6 +19,8 @@
 #include "TrackPanel.h"
 #include "FrameInspector.h"
 #include "ScopesPanel.h"
+#include "FramesPanel.h"
+#include "LoudnessPanel.h"
 #include "ManifestParser.h"
 #include "PlayerUI.h"
 #include "VMAFAnalyzer.h"
@@ -92,6 +94,8 @@ static std::atomic<bool>   s_show_frameinfo{ false };   // P: frame inspector
 static std::atomic<bool>   s_show_scopes{ false };      // S: scopes
 static std::atomic<int>    s_scope_cycle{ 0 };          // Shift+S requests: next scope
 static std::atomic<bool>   s_show_probe{ false };       // X: pixel probe
+static std::atomic<bool>   s_show_frames{ false };      // B: frame sizes / GOP
+static std::atomic<bool>   s_show_loudness{ false };    // L: loudness meters
 static std::atomic<double> s_cursor_x{ -1.0 };   // window-space cursor, always updated
 static std::atomic<double> s_cursor_y{ -1.0 };
 static std::atomic<double> s_click_x{ -1.0 };    // window-space left-click (consumed once)
@@ -156,7 +160,7 @@ static bool parse_speed_seq(const std::string& spec, std::vector<SpeedStep>& out
         } else if (what == "esc") {
             step.kind = SpeedStep::Esc;
         } else if (what.starts_with("panel:") && what.size() == 7
-                   && std::string_view("DIGTWNHVPSX").find(static_cast<char>(std::toupper(
+                   && std::string_view("DIGTWNHVPSXBL").find(static_cast<char>(std::toupper(
                           static_cast<unsigned char>(what[6])))) != std::string_view::npos) {
             step.kind  = SpeedStep::Panel;
             step.speed = std::toupper(static_cast<unsigned char>(what[6]));
@@ -289,6 +293,8 @@ static void on_key(GLFWwindow* window, int key, int /*scancode*/, int action, in
     else if (key == GLFW_KEY_S && (mods & GLFW_MOD_SHIFT)) { s_show_scopes.store(true); s_scope_cycle.fetch_add(1); }
     else if (key == GLFW_KEY_S) s_show_scopes.store(!s_show_scopes.load());
     else if (key == GLFW_KEY_X) s_show_probe.store(!s_show_probe.load());
+    else if (key == GLFW_KEY_B) s_show_frames.store(!s_show_frames.load());
+    else if (key == GLFW_KEY_L) s_show_loudness.store(!s_show_loudness.load());
     else if (key == GLFW_KEY_O) s_open_dialog.fetch_add(1);
     // Shift+. / Shift+, → single-frame advance / step-back (frame-accurate).
     // Plain . / , = keyframe step.
@@ -1416,12 +1422,13 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         bool               was_open  = false;
         std::uint64_t      opened_at = 0;
     };
-    std::array<EscPanel, 11> esc_panels{ { { &s_show_hud, "HUD" },          { &s_show_inspector, "stream inspector" },
+    std::array<EscPanel, 13> esc_panels{ { { &s_show_hud, "HUD" },          { &s_show_inspector, "stream inspector" },
                                           { &s_show_drift, "A/V drift graph" }, { &s_show_waveform, "waveform" },
                                           { &s_show_vmaf, "VMAF" },         { &s_show_network, "network inspector" },
                                           { &s_show_tracks, "tracks" },     { &s_show_help, "help" },
                                           { &s_show_frameinfo, "frame inspector" }, { &s_show_scopes, "scopes" },
-                                          { &s_show_probe, "pixel probe" } } };
+                                          { &s_show_probe, "pixel probe" }, { &s_show_frames, "frame sizes" },
+                                          { &s_show_loudness, "loudness" } } };
     std::uint64_t esc_seq = 0;
 
     // Navigating while paused without a seek (frame steps, a track switch)
@@ -1674,6 +1681,12 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
     // Pixel probe (X): the frame on screen mapped for reading, per frame.
     PixelView      probe_view;
     std::uint64_t  probe_serial = 0;
+    // Frame sizes / GOP (B): a read of the video stream of its own.
+    FramesModel    frames_model;
+    FramesPanel    frames_panel;
+    // Loudness (L): ms.loudness_tap measures on the audio thread while it is open.
+    LoudnessPanel                loudness_panel;
+    std::vector<loudness::Block> loudness_hist;
 
     // Current video geometry / rate (change with a video track switch).
     int    shown_w = coded_w, shown_h = coded_h;
@@ -1821,6 +1834,8 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             case 'P': s_show_frameinfo.store(true); break;
             case 'S': s_show_scopes.store(true);    break;
             case 'X': s_show_probe.store(true);     break;
+            case 'B': s_show_frames.store(true);    break;
+            case 'L': s_show_loudness.store(true);  break;
             default: break;
         }
     }
@@ -1844,6 +1859,8 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         { &s_show_vmaf,      "VMAF",      false }, { &s_show_filmstrip, "Filmstrip", false },
         { &s_show_frameinfo, "Frame inspector", false }, { &s_show_scopes, "Scopes", false },
         { &s_show_probe,     "Pixel probe",     false },
+        { &s_show_frames,    "Frame sizes",     false },
+        { &s_show_loudness,  "Loudness",        false },
     };
     for (auto& f : overlay_flags) f.prev = f.flag->load();
 
@@ -2270,6 +2287,8 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                             case 'P': s_show_frameinfo.store(!s_show_frameinfo.load()); break;
                             case 'S': s_show_scopes.store(!s_show_scopes.load());       break;
                             case 'X': s_show_probe.store(!s_show_probe.load());         break;
+                            case 'B': s_show_frames.store(!s_show_frames.load());       break;
+                            case 'L': s_show_loudness.store(!s_show_loudness.load());   break;
                             default: break;
                         }
                         break;
@@ -3131,6 +3150,8 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             in.show_frameinfo   = s_show_frameinfo.load();
             in.show_scopes      = s_show_scopes.load();
             in.show_probe       = s_show_probe.load();
+            in.show_frames      = s_show_frames.load();
+            in.show_loudness    = s_show_loudness.load();
             in.has_manifest_variants = !manifest.variants().empty();
             in.fullscreen       = s_fullscreen.load();
             in.info             = ui_info;
@@ -3220,6 +3241,32 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 }
             }
 
+            // ── Frame sizes / GOP (B) ─────────────────────────────────────────
+            float frames_h = 0.0f;   // logical px the card takes above the controls
+            if (s_show_frames.load()) {
+                const bool network = ffopen::is_network_url(open_path);
+                const int  vstream = shown_stream >= 0 ? shown_stream : demuxer.video_stream_index();
+                // A local file is scanned at once (the scan reads packets, decodes
+                // nothing); a network input only when asked: it downloads all of it.
+                if (!network && (!frames_model.started() || frames_model.stream() != vstream))
+                    frames_model.start(open_path, vstream, ms.hls_master());
+                frames_model.update(glfwGetTime());
+                FramesPanelInputs bi;
+                bi.model   = &frames_model;
+                bi.cur_pts = has_frame ? frame_pts_sec(shown_frame.get()) : last_pts;
+                bi.network = network;
+                const ImVec2 disp = ImGui::GetIO().DisplaySize;
+                bi.win_w        = disp.x;
+                bi.win_h        = disp.y;
+                bi.bottom_inset = global_ps > 0.0f ? (bottom_stack_base_fb + strips_fb) / global_ps : 0.0f;
+                bi.right_inset  = net_side_logical;
+                const auto bo = frames_panel.draw(bi);
+                frames_h = bo.height;
+                if (bo.close)      s_show_frames.store(false);
+                if (bo.start_scan) frames_model.start(open_path, vstream, ms.hls_master());
+                if (bo.seek_to >= 0.0 && !scrubbing) s_seek_to.store(bo.seek_to);
+            }
+
             // ── Frame inspector (P) ───────────────────────────────────────────
             if (s_show_frameinfo.load()) {
                 if (has_frame && report_serial != shown_serial) {
@@ -3242,6 +3289,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 fi.win_h        = disp.y;
                 fi.top_inset    = PlayerUI::top_inset_logical();
                 fi.bottom_inset = global_ps > 0.0f ? (bottom_stack_base_fb + strips_fb) / global_ps : 0.0f;
+                fi.bottom_inset += frames_h;
                 fi.right_inset  = net_side_logical;
                 const auto fo = draw_frame_inspector(fi);
                 if (fo.close)  s_show_frameinfo.store(false);
@@ -3279,10 +3327,38 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 si.win_h        = disp.y;
                 si.top_inset    = PlayerUI::top_inset_logical();
                 si.bottom_inset = global_ps > 0.0f ? (bottom_stack_base_fb + strips_fb) / global_ps : 0.0f;
+                si.bottom_inset += frames_h;
                 si.right_inset  = net_side_logical;
                 const auto so = scopes_panel.draw(si);
                 if (so.close)     s_show_scopes.store(false);
                 if (so.mode >= 0) scope_mode = static_cast<scopes::Mode>(so.mode);
+            }
+
+            // ── Loudness (L) ──────────────────────────────────────────────────
+            ms.loudness_tap.set_enabled(s_show_loudness.load() && has_audio);
+            if (s_show_loudness.load()) {
+                LoudnessTap& lt = ms.loudness_tap;
+                // What is heard now: the block at the audio clock (decoding runs ahead).
+                const double clock = has_audio ? audio_player.clock() : last_pts;
+                loudness::Block heard;
+                const bool have = has_audio && lt.at(clock, heard);
+                lt.history(clock - 61.0, clock, loudness_hist);
+                const LoudnessTap::Layout lay = lt.layout();
+                LoudnessInputs li;
+                li.block     = have ? &heard : nullptr;
+                li.history   = &loudness_hist;
+                li.layout    = &lay;
+                li.now_pts   = clock;
+                li.has_audio = has_audio;
+                const ImVec2 disp = ImGui::GetIO().DisplaySize;
+                li.win_w        = disp.x;
+                li.win_h        = disp.y;
+                li.top_inset    = PlayerUI::top_inset_logical();
+                li.bottom_inset = (global_ps > 0.0f ? (bottom_stack_base_fb + strips_fb) / global_ps : 0.0f) + frames_h;
+                li.right_inset  = net_side_logical;
+                const auto lo = loudness_panel.draw(li);
+                if (lo.close) s_show_loudness.store(false);
+                if (lo.reset) lt.request_reset();
             }
 
             // ── Pixel probe (X) ───────────────────────────────────────────────
@@ -3348,7 +3424,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 // on top of it: it is a window of its own).
                 const ImRect btn(pos, ImVec2(pos.x + kSz, pos.y + kSz));
                 for (const char* card : { "##helpcard", "##trackpanel", "VMAF Analysis", "##opencard",
-                                          "##net_inspector", "##loading", "##frameinspector", "##scopes" }) {
+                                          "##net_inspector", "##loading", "##frameinspector", "##scopes", "##frames", "##loudness" }) {
                     const ImGuiWindow* w = ImGui::FindWindowByName(card);
                     if (w && (w->Active || w->WasActive)
                         && ImRect(w->Pos, ImVec2(w->Pos.x + w->Size.x, w->Pos.y + w->Size.y)).Overlaps(btn))
@@ -3552,6 +3628,8 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             if (ui.toggle_frameinfo) s_show_frameinfo.store(!s_show_frameinfo.load());
             if (ui.toggle_scopes)    s_show_scopes.store(!s_show_scopes.load());
             if (ui.toggle_probe)     s_show_probe.store(!s_show_probe.load());
+            if (ui.toggle_frames)    s_show_frames.store(!s_show_frames.load());
+            if (ui.toggle_loudness)  s_show_loudness.store(!s_show_loudness.load());
 
             // VMAF triggers
             if (ui.vmaf_pick_ref && !vmaf_analyzer.running()) {

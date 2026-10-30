@@ -562,6 +562,8 @@ void PlayerUI::build_menu_popup(const PlayerUIInputs& in, PlayerUIState& out)
         v = in.show_frameinfo; if (ImGui::MenuItem("Frame Inspector",    "P", &v)) out.toggle_frameinfo = true;
         v = in.show_scopes;    if (ImGui::MenuItem("Scopes",             "S", &v)) out.toggle_scopes    = true;
         v = in.show_probe;     if (ImGui::MenuItem("Pixel Probe",        "X", &v)) out.toggle_probe     = true;
+        v = in.show_frames;    if (ImGui::MenuItem("Frame Sizes / GOP",  "B", &v)) out.toggle_frames    = true;
+        v = in.show_loudness;  if (ImGui::MenuItem("Loudness Meters",    "L", &v)) out.toggle_loudness  = true;
         ImGui::Separator();
         v = in.fullscreen;     if (ImGui::MenuItem("Fullscreen",         "F", &v)) out.toggle_fullscreen = true;
         ImGui::EndMenu();
@@ -955,6 +957,8 @@ void PlayerUI::build_overlays_popup(const PlayerUIInputs& in, PlayerUIState& out
         { "##ov_p", "Frame inspector",   "P", in.show_frameinfo, &out.toggle_frameinfo },
         { "##ov_s", "Scopes",            "S", in.show_scopes,    &out.toggle_scopes },
         { "##ov_x", "Pixel probe",       "X", in.show_probe,     &out.toggle_probe },
+        { "##ov_b", "Frame sizes / GOP", "B", in.show_frames,    &out.toggle_frames },
+        { "##ov_l", "Loudness",          "L", in.show_loudness,  &out.toggle_loudness },
     };
     for (const auto& it : items)
         if (menu_row(it.id, it.label, { .value = it.key, .tail = RowTail::Toggle, .on = it.on }))
@@ -992,6 +996,8 @@ void PlayerUI::build_help_card(PlayerUIState& out, float win_w, float win_h)
         { "P",            "Frame inspector" },
         { "S  ⇧S",   "Scopes / next scope" },
         { "X",            "Pixel probe (code values)" },
+        { "B",            "Frame sizes / GOP" },
+        { "L",            "Loudness meters" },
         { "H  ?",         "This help" },
         { "Esc",          "Close the last panel / exit fullscreen" },
         { "Q",            "Quit" },

@@ -104,6 +104,7 @@ add_executable(mirage
     src/Demuxer.cpp
     src/Decoder.cpp
     src/AudioDecoder.cpp
+    src/LoudnessTap.cpp
     src/AudioPlayer.cpp
     src/VideoRenderer.cpp
     src/ScrubBar.cpp
@@ -122,6 +123,8 @@ add_executable(mirage
     src/PixelView.cpp
     src/Scopes.cpp
     src/ScopesPanel.cpp
+    src/FramesPanel.cpp
+    src/LoudnessPanel.cpp
     src/TrackGroups.cpp
     src/ManifestParser.cpp
     src/PlayerUI.cpp
@@ -214,6 +217,7 @@ add_executable(mirage_tests
     src/Sync.cpp
     src/AudioPlayer.cpp
     src/AudioDecoder.cpp
+    src/LoudnessTap.cpp
     src/Decoder.cpp
     src/UiFormat.cpp
     src/SubtitleSelect.cpp

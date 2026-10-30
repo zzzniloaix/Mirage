@@ -82,6 +82,9 @@ public:
     VMAFAnalyzer     vmaf_analyzer;
     Decoder          video_decoder;
     AudioPlayer      audio_player;
+    // Loudness meters (L): fed by audio_decoder on the audio thread while
+    // enabled. Before audio_decoder, which keeps a pointer to it.
+    LoudnessTap      loudness_tap;
     AudioDecoder     audio_decoder;
     VideoRenderer    renderer;
     // Keyframes of the video streams as the demuxer and the scrub decoder
@@ -114,6 +117,9 @@ public:
     // demuxer's program p is EXT-X-STREAM-INF hls_kept[p] of `manifest`.
     // Empty: the master as served (program p = variant p).
     std::vector<int> hls_kept;
+    // The master copy playback opened (empty: as served), for helpers that
+    // open the input again and must see the same stream indices.
+    const std::string& hls_master() const { return hls_master_; }
     std::chrono::steady_clock::time_point started_at{};   // start(): opened, threads running
 
     // Stream inspector panel content (static, built once); the Decode line is
