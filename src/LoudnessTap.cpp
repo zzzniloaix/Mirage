@@ -17,7 +17,13 @@ LoudnessTap::~LoudnessTap()
 
 void LoudnessTap::set_enabled(bool on)
 {
-    if (on && !enabled_.load()) restart_.store(true);   // a fresh start: nothing measured while off
+    // A fresh start: nothing was measured while off. The feed goes now, not
+    // at the next decoded frame — paused, that may be long after, and the
+    // card would show the last block from before it was closed.
+    if (on && !enabled_.load()) {
+        restart_.store(true);
+        feed_.clear();
+    }
     enabled_.store(on);
 }
 

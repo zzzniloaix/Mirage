@@ -6,6 +6,7 @@
 #include "imgui.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <format>
 
@@ -13,17 +14,57 @@ namespace th = ui::theme;
 
 // ── Model ─────────────────────────────────────────────────────────────────────
 
+namespace {
+
+FramesModel::View build_view(std::vector<framescan::Frame> read, double fps)
+{
+    FramesModel::View v;
+    v.count = read.size();
+    for (const auto& f : framescan::display_order(read))
+        if (!f.discard) v.shown.push_back(f);
+    // display_order() sorts by pts and keeps a frame without one behind the
+    // frame read before it: carry the last pts forward a frame at a time.
+    const double step = fps > 0.0 ? 1.0 / fps : 0.0;
+    v.times.resize(v.shown.size());
+    double t = framescan::kNaN;
+    for (std::size_t i = 0; i < v.shown.size(); ++i) {
+        const double p = v.shown[i].pts;
+        if (std::isfinite(p) && (!std::isfinite(t) || p >= t)) t = p;
+        else { t = std::isfinite(t) ? t + step : static_cast<double>(i) * step; v.timed_by_rate = true; }
+        v.times[i] = t;
+    }
+    // Bitrates need times: where a frame has no pts (raw elementary streams
+    // have none at all), use the one just made up for it.
+    if (v.timed_by_rate && step > 0.0) {
+        std::vector<framescan::Frame> timed = v.shown;
+        for (std::size_t i = 0; i < timed.size(); ++i)
+            if (!std::isfinite(timed[i].pts)) timed[i].pts = v.times[i];
+        v.bitrate = framescan::rolling_bitrate(timed, 1.0);
+        v.summary = framescan::summarize(timed, 1.0);
+    } else {
+        v.bitrate = framescan::rolling_bitrate(v.shown, 1.0);
+        v.summary = framescan::summarize(v.shown, 1.0);
+    }
+    return v;
+}
+
+} // namespace
+
+FramesModel::~FramesModel()
+{
+    if (pending_.valid()) pending_.wait();
+}
+
 void FramesModel::start(const std::string& url, int stream, const std::string& master)
 {
+    if (pending_.valid()) pending_.wait();   // of the scan replaced: dropped
+    pending_ = {};
     scan_.start(url, stream, master);
     read_.clear();
-    shown_.clear();
-    bitrate_.clear();
-    summary_      = {};
+    view_         = {};
     info_.reset();
     seen_version_ = 0;
     built_at_     = -1.0;
-    built_count_  = 0;
     started_      = true;
     stream_       = stream;
 }
@@ -36,18 +77,17 @@ void FramesModel::update(double now_s, double rebuild_s)
         scan_.copy(read_, read_.size());
         if (!info_) info_ = scan_.info();
     }
+    if (pending_.valid()) {
+        if (pending_.wait_for(std::chrono::seconds(0)) != std::future_status::ready) return;   // one at a time
+        view_ = pending_.get();
+    }
     const bool ended = scan_.done();
-    if (read_.size() == built_count_ || (!ended && built_at_ >= 0.0 && now_s - built_at_ < rebuild_s)) return;
+    if (read_.size() == view_.count || (!ended && built_at_ >= 0.0 && now_s - built_at_ < rebuild_s)) return;
 
-    // Sorting is O(n log n): not for every batch of a long scan.
-    shown_.clear();
-    for (const auto& f : framescan::display_order(read_))
-        if (!f.discard) shown_.push_back(f);
-    bitrate_     = framescan::rolling_bitrate(shown_, 1.0);
-    summary_     = framescan::summarize(shown_, 1.0);
-    built_at_    = now_s;
-    built_count_ = read_.size();
-    info_        = scan_.info();
+    // Sorting is O(n log n): on a task of its own, from a copy of the records.
+    built_at_ = now_s;
+    info_     = scan_.info();
+    pending_  = std::async(std::launch::async, build_view, read_, info_ ? info_->frame_rate : 0.0);
 }
 
 // ── Panel ─────────────────────────────────────────────────────────────────────
@@ -88,12 +128,12 @@ std::string rate_text(double bps)
     return std::format("{:.0f} kb/s", bps / 1e3);
 }
 
-// The frame on screen: the last one shown at or before `pts`.
-int frame_at(const std::vector<framescan::Frame>& fr, double pts)
+// The frame on screen: the last one shown at or before `pts`, looked up in
+// FramesModel::times() (never decreasing, unlike pts with gaps).
+int frame_at(const std::vector<double>& times, double pts)
 {
-    const auto it = std::upper_bound(fr.begin(), fr.end(), pts + 1e-6,
-                                     [](double t, const framescan::Frame& f) { return t < f.pts; });
-    return std::clamp(static_cast<int>(it - fr.begin()) - 1, 0, std::max(0, static_cast<int>(fr.size()) - 1));
+    const auto it = std::upper_bound(times.begin(), times.end(), pts + 1e-6);
+    return std::clamp(static_cast<int>(it - times.begin()) - 1, 0, std::max(0, static_cast<int>(times.size()) - 1));
 }
 
 } // namespace
@@ -147,6 +187,7 @@ FramesPanelOut FramesPanel::draw(const FramesPanelInputs& in)
                                     s.max_frames, s.avg_s);
             tail += std::format("· {} mean · {} peak (1 s)", rate_text(s.mean_bps), rate_text(s.peak_bps));
             if (!m->info() || !m->info()->parser) tail += " · no parser: types unknown";
+            if (m->timed_by_rate()) tail += " · no timestamps on some frames: times from the frame rate";
             if (m->state() == FrameScan::State::Running)
                 tail += std::format(" · scanning {:.0f}%", m->progress() * 100.0);
             ImGui::TextColored(th::vec4(th::kTextDim), "%s", tail.c_str());
@@ -167,10 +208,12 @@ FramesPanelOut FramesPanel::draw(const FramesPanelInputs& in)
         // ── Nothing to draw yet ──────────────────────────────────────────────
         if (!m || !m->started() || m->frames().empty()) {
             ImGui::PushFont(fo.ui_small);
-            if (in.network && (!m || !m->started())) {
-                ImGui::TextColored(th::vec4(th::kTextDim),
-                                   "A scan reads the whole stream: for HLS, every segment of this variant is downloaded.");
-                if (ImGui::Button("Scan this stream")) out.start_scan = true;
+            const bool cut = m && m->started() && m->state() == FrameScan::State::Stopped;
+            if (in.network && (!m || !m->started() || cut)) {
+                ImGui::TextColored(th::vec4(th::kTextDim), "%s",
+                                   cut ? "The scan stopped when the card closed."
+                                       : "A scan reads the whole stream: for HLS, every segment of this variant is downloaded.");
+                if (ImGui::Button(cut ? "Scan again" : "Scan this stream")) out.start_scan = true;
             } else if (m && m->state() == FrameScan::State::Failed) {
                 ImGui::TextColored(th::vec4(th::kError), "Scan failed: %s", m->error().c_str());
             } else {
@@ -181,7 +224,8 @@ FramesPanelOut FramesPanel::draw(const FramesPanelInputs& in)
             const auto& fr   = m->frames();
             const auto& rate = m->bitrate();
             const int   n    = static_cast<int>(fr.size());
-            const int   cur  = frame_at(fr, in.cur_pts);
+            const auto& times = m->times();
+            const int   cur  = frame_at(times, in.cur_pts);
 
             // ── Chart: the frames around the one on screen ───────────────────
             const ImVec2 c0 = ImGui::GetCursorScreenPos();
@@ -228,7 +272,9 @@ FramesPanelOut FramesPanel::draw(const FramesPanelInputs& in)
                 // the "strongest" type among them (I over P over B).
                 const int cols = static_cast<int>(cs.x);
                 for (int x = 0; x < cols; ++x) {
-                    const int a = first + x * span / cols, b = std::max(a + 1, first + (x + 1) * span / cols);
+                    // 64-bit: span × cols passes 2^31 for a long stream fully zoomed out.
+                    const int a = first + static_cast<int>(static_cast<long long>(x) * span / cols);
+                    const int b = std::max(a + 1, first + static_cast<int>(static_cast<long long>(x + 1) * span / cols));
                     std::uint32_t big = 0;
                     const framescan::Frame* pick = nullptr;
                     for (int i = a; i < b && i < last; ++i) {
@@ -281,7 +327,7 @@ FramesPanelOut FramesPanel::draw(const FramesPanelInputs& in)
                     tip += std::format("\n1 s bitrate {}", rate_text(rate[static_cast<std::size_t>(i)]));
                 tip += "\nclick: show this frame · wheel: zoom";
                 ImGui::SetTooltip("%s", tip.c_str());
-                if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && std::isfinite(f.pts)) out.seek_to = f.pts;
+                if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) out.seek_to = std::isfinite(f.pts) ? f.pts : times[static_cast<std::size_t>(i)];
             }
 
             // ── Overview: the whole stream, the view's span marked ───────────
@@ -315,10 +361,10 @@ FramesPanelOut FramesPanel::draw(const FramesPanelInputs& in)
             dl->AddLine(ImVec2(px, o0.y), ImVec2(px, o0.y + os.y), C(th::kText), 1.0f);
             if (ohov) {
                 const int i = std::clamp(static_cast<int>((io.MousePos.x - o0.x) / os.x * n), 0, n - 1);
-                ImGui::SetTooltip("#%d · %.3f s · peak 1 s bitrate here %s\nclick: go there", i, fr[static_cast<std::size_t>(i)].pts,
+                ImGui::SetTooltip("#%d · %.3f s · peak 1 s bitrate here %s\nclick: go there", i, times[static_cast<std::size_t>(i)],
                                   rate_text(over_[static_cast<std::size_t>(std::clamp(static_cast<int>(io.MousePos.x - o0.x), 0, ocols - 1))]).c_str());
-                if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && std::isfinite(fr[static_cast<std::size_t>(i)].pts))
-                    out.seek_to = fr[static_cast<std::size_t>(i)].pts;
+                if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
+                    out.seek_to = times[static_cast<std::size_t>(i)];
             }
         }
         if (ImGui::IsWindowFocused() && !ImGui::IsAnyItemActive()) ImGui::SetWindowFocus(nullptr);

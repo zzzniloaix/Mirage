@@ -301,3 +301,17 @@ TEST_CASE("scopes::Worker: the newest submitted frame is measured", "[scopes]")
     CHECK(r.stats.y_min == 200);
     CHECK(r.pts == 2.0);
 }
+
+TEST_CASE("scopes::compute: codes used are counted exactly above 12 bits", "[scopes]")
+{
+    auto f = make_frame(AV_PIX_FMT_YUV420P16LE, 64, 64);
+    fill(f.get(), [](int x, int y) { return 1000 + x + 64 * y; }, 32768, 32768);   // 4096 distinct codes, 1 apart
+    PixelView v;
+    REQUIRE(v.map(f.get()));
+    const auto r = scopes::compute(v, { scopes::Mode::Histogram, AVCOL_SPC_BT2020_NCL, AVCOL_RANGE_MPEG });
+    REQUIRE(r.ok);
+    CHECK(r.stats.depth == 16);
+    CHECK(r.stats.codes_total == 65536);
+    CHECK(r.stats.codes_used == 4096);   // the histogram's 4096 bins would merge them 16 to a bin
+    CHECK_FALSE(r.stats.lsb_unused);
+}

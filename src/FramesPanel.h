@@ -10,20 +10,27 @@
 #include "FrameScan.h"
 
 #include <cstdint>
+#include <future>
 #include <optional>
 #include <string>
 #include <vector>
 
 // What the panel shows, kept on the main thread: the scan's records copied
-// as they come, and in display order with their bitrate and summary.
+// as they come, and in display order with their bitrate and summary. The
+// display-order view is rebuilt on a task of its own (sorting a long
+// stream's frames takes longer than a frame of the render loop).
 class FramesModel {
 public:
+    ~FramesModel();   // waits for a rebuild in flight
+
     void start(const std::string& url, int stream, const std::string& master = {});
+    // Ends a running scan: the frames read so far stay (the card closed —
+    // a network scan must not go on downloading).
     void stop() { scan_.stop(); }
 
-    // Copy what the scan added; rebuild the display-order view when it
-    // changed (at most every `rebuild_s` while the scan runs, at once when
-    // it ends). `now_s`: a steady clock in seconds.
+    // Copy what the scan added; take a finished rebuild; start the next one
+    // when the records changed (at most every `rebuild_s` while the scan
+    // runs, at once when it ends). `now_s`: a steady clock in seconds.
     void update(double now_s, double rebuild_s = 0.5);
 
     [[nodiscard]] bool started() const { return started_; }
@@ -34,20 +41,33 @@ public:
     [[nodiscard]] const std::optional<FrameScan::StreamInfo>& info() const { return info_; }
 
     // Display order, without the frames never shown (cut by an edit list).
-    [[nodiscard]] const std::vector<framescan::Frame>& frames()  const { return shown_; }
-    [[nodiscard]] const std::vector<double>&           bitrate() const { return bitrate_; }   // 1 s window
-    [[nodiscard]] const framescan::GopSummary&         summary() const { return summary_; }
+    [[nodiscard]] const std::vector<framescan::Frame>& frames()  const { return view_.shown; }
+    [[nodiscard]] const std::vector<double>&           bitrate() const { return view_.bitrate; }   // 1 s window
+    // Per frame, a time that never decreases: its pts, else the last one
+    // carried forward a frame at a time (frames without a pts — raw
+    // elementary streams have none — keep their read position), so the
+    // frame on screen can be looked up by time.
+    [[nodiscard]] const std::vector<double>&           times()   const { return view_.times; }
+    [[nodiscard]] const framescan::GopSummary&         summary() const { return view_.summary; }
+
+    struct View {
+        std::vector<framescan::Frame> shown;
+        std::vector<double>           bitrate;
+        std::vector<double>           times;
+        framescan::GopSummary         summary;
+        std::size_t                   count = 0;   // records it was built from
+        bool timed_by_rate = false;   // some frames had no pts: times (and bitrates) from the frame rate
+    };
+    [[nodiscard]] bool timed_by_rate() const { return view_.timed_by_rate; }
 
 private:
     FrameScan                              scan_;
     std::vector<framescan::Frame>          read_;      // read order, as copied
-    std::vector<framescan::Frame>          shown_;
-    std::vector<double>                    bitrate_;
-    framescan::GopSummary                  summary_;
+    View                                   view_;
+    std::future<View>                      pending_;   // a rebuild in flight
     std::optional<FrameScan::StreamInfo>   info_;
     std::uint64_t seen_version_ = 0;
     double        built_at_     = -1.0;
-    std::size_t   built_count_  = 0;
     bool          started_      = false;
     int           stream_       = -1;
 };

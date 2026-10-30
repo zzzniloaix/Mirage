@@ -82,6 +82,7 @@ Result compute(const PixelView& v, const Params& p)
     st.limited = limited;
     st.y_min   = INT_MAX;
     std::vector<std::uint32_t> hist(static_cast<std::size_t>(1) << std::min(d, 12), 0);
+    std::vector<std::uint8_t>  seen(static_cast<std::size_t>(1) << d, 0);   // every Y′ code, exactly (the histogram bins 13-16 bits)
     unsigned      lsb_or = 0;
     std::uint64_t below = 0, above = 0, cout_n = 0, csamples = 0;
     double        ysum = 0.0;
@@ -121,6 +122,7 @@ Result compute(const PixelView& v, const Params& p)
             st.y_min = std::min(st.y_min, yv);
             st.y_max = std::max(st.y_max, yv);
             ++hist[static_cast<std::size_t>(yv >> hshift)];
+            seen[static_cast<std::size_t>(yv)] = 1;
             lsb_or |= static_cast<unsigned>(yv);
             if (limited) {
                 below += yv < lo_y;
@@ -171,7 +173,7 @@ Result compute(const PixelView& v, const Params& p)
     }
     if (csamples > 0) st.chroma_out = static_cast<double>(cout_n) / static_cast<double>(csamples);
     st.codes_total = 1 << d;
-    st.codes_used  = static_cast<int>(std::count_if(hist.begin(), hist.end(), [](std::uint32_t c) { return c > 0; }));
+    st.codes_used  = static_cast<int>(std::count(seen.begin(), seen.end(), std::uint8_t{ 1 }));
     st.lsb_unused  = d > 8 && st.samples > 0 && (lsb_or & (static_cast<unsigned>(s) - 1u)) == 0;
 
     // Images: black, bins lit by how many samples fell in them.

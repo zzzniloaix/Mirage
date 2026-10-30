@@ -3247,8 +3247,10 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 const bool network = ffopen::is_network_url(open_path);
                 const int  vstream = shown_stream >= 0 ? shown_stream : demuxer.video_stream_index();
                 // A local file is scanned at once (the scan reads packets, decodes
-                // nothing); a network input only when asked: it downloads all of it.
-                if (!network && (!frames_model.started() || frames_model.stream() != vstream))
+                // nothing) — again if closing the card stopped it part-way; a
+                // network input only when asked: it downloads all of it.
+                const bool cut = frames_model.started() && frames_model.state() == FrameScan::State::Stopped;
+                if (!network && (!frames_model.started() || frames_model.stream() != vstream || cut))
                     frames_model.start(open_path, vstream, ms.hls_master());
                 frames_model.update(glfwGetTime());
                 FramesPanelInputs bi;
@@ -3265,6 +3267,8 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 if (bo.close)      s_show_frames.store(false);
                 if (bo.start_scan) frames_model.start(open_path, vstream, ms.hls_master());
                 if (bo.seek_to >= 0.0 && !scrubbing) s_seek_to.store(bo.seek_to);
+            } else if (frames_model.started() && frames_model.state() == FrameScan::State::Running) {
+                frames_model.stop();   // closed: the scan must not go on reading (a network one downloads)
             }
 
             // ── Frame inspector (P) ───────────────────────────────────────────

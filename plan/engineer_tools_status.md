@@ -152,9 +152,15 @@ thread of its own — every packet, nothing decoded — and types each frame wit
 libavcodec's parser for the codec (I/P/B for H.264, HEVC, MPEG-2, MPEG-4
 Part 2; I/P for VP8, VP9, AV1). A local file is scanned when the card opens;
 a network input only on request ("Scan this stream"), since a scan downloads
-every segment of the variant. `FramesModel` copies new records as they come
-and rebuilds the display order at most twice a second while the scan runs.
-Code: `src/FrameScan.*` (with `tests/test_frame_scan.cpp`), `src/FramesPanel.*`.
+every segment of the variant. Closing the card stops a scan still running
+(reopening restarts a local one; a network one offers "Scan again").
+`FramesModel` copies new records as they come and rebuilds the display order,
+bitrate and summary on a task of its own, at most twice a second while the
+scan runs. The frame on screen is looked up by a time that never decreases:
+the pts, else the last one carried forward a frame at a time (raw elementary
+streams have no timestamps at all; their bitrates use those times too, and
+the summary says so). Code: `src/FrameScan.*` (with
+`tests/test_frame_scan.cpp`), `src/FramesPanel.*`.
 
 **Checked.**
 
@@ -164,9 +170,11 @@ Code: `src/FrameScan.*` (with `tests/test_frame_scan.cpp`), `src/FramesPanel.*`.
   AddressSanitizer + UBSan in scratch builds; this branch's checks did not
   repeat that.
 - Scripted runs: the x264 clip (GOP of 50, B-frames: the summary and the bar
-  pattern match the encode) and a five-minute 1080p H.264 file (the view
+  pattern match the encode), a five-minute 1080p H.264 file (the view
   follows the frame on screen; the frame numbers agree with the frame
-  inspector's).
+  inspector's) and a raw H.264 elementary stream (no timestamps: the frame on
+  screen is found by frame-rate times, the bitrates and GOP durations come
+  from them).
 
 **Not checked.** Clicking (seek on click) in a scripted run — it sets the
 same absolute seek the seek bar uses; HLS scans; a video track switch during
@@ -224,6 +232,24 @@ time); a track switch while the card is open.
 **To finish.** Channel solo / mute (the LFE is inaudible through the
 stereo downmix today), a loudness strip on the seek bar from a background
 scan, and a headless `--loudness-report`.
+
+## Review
+
+A review of the branch (`git diff main...HEAD`, read by someone who had not
+written it) found nothing that changes playback while the panels are closed,
+and six defects, all fixed after it:
+
+| Panel | Defect | Fix |
+|---|---|---|
+| B | Closing the card left a scan running: an HLS scan kept downloading the variant, a live one never ended | the scan stops when the card closes |
+| B | The display order, bitrate and summary were rebuilt on the render thread twice a second while scanning — a long stream's sort stalls a debug build's frames | built on a task of its own and swapped in |
+| B | The frame on screen was looked up by pts with a binary search; frames without a pts (NaN) broke it (raw streams: always the last frame) | a never-decreasing time per frame (above) |
+| B | Fully zoomed out, `span × columns` overflowed `int` on very long streams (millions of frames) | 64-bit arithmetic, as the overview had |
+| S | Above 12 bits, "codes used" counted the histogram's 4096 bins against 2^depth codes | an exact count of the codes |
+| L | Reopened while paused, the card showed the last block from before it was closed until playback resumed | the history clears when the card opens |
+
+Still as the review left it: a file on a network share counts as local, so
+opening `B` scans it at once over the share.
 
 ## Found while checking
 
