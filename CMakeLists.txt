@@ -144,6 +144,7 @@ add_executable(mirage
     src/PipelineState.cpp
     src/KeyframeIndex.cpp
     src/FrameScan.cpp
+    src/LoudnessMeter.cpp
 )
 
 target_include_directories(mirage PRIVATE
@@ -200,6 +201,7 @@ add_executable(mirage_tests
     tests/test_scrub_follow.cpp
     tests/test_hls_align.cpp
     tests/test_frame_scan.cpp
+    tests/test_loudness_meter.cpp
     src/Demuxer.cpp
     src/NetworkLogger.cpp
     src/NetDescribe.cpp
@@ -227,6 +229,7 @@ add_executable(mirage_tests
     src/KeyframeIndex.cpp
     src/ScrubDecoder.cpp
     src/FrameScan.cpp
+    src/LoudnessMeter.cpp
 )
 
 target_include_directories(mirage_tests PRIVATE
