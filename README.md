@@ -127,7 +127,14 @@ Drag the seek bar at the bottom of the window. A thumbnail strip appears showing
 | `W` | Waveform strip — full-width peak display |
 | `N` | Network log + manifest tag inspector + timeline tick strip |
 | `V` | VMAF panel — per-variant scores + per-frame graph |
+| `P` | Frame inspector — the frame on screen: type, timestamps, colour tags vs the renderer's, HDR10 / HDR10+ / Dolby Vision metadata, side data, encoder settings |
+| `S` / `⇧S` | Scopes — luma waveform, R′G′B′ parade, vectorscope, histogram from the frame's code values; `⇧S` picks the next |
+| `X` | Pixel probe — Y′CbCr codes, R′G′B′ and PQ/HLG nits under the mouse |
+| `B` | Frame sizes / GOP — a bar per frame coloured I/P/B, keyframes, rolling bitrate, whole-stream overview; click to seek |
+| `L` | Loudness — EBU R128 momentary / short-term / integrated, LRA, true peak against a delivery target; per-channel meters |
 | `H` | Key bindings help overlay |
+
+The `P`, `S`, `X`, `B` and `L` panels are proofs of concept: `plan/engineer_tools_status.md` says what each checks and what is left.
 
 ### VMAF analysis (Analyze menu)
 

@@ -3,7 +3,10 @@
 The POCs listed in `plan/engineer_tools_ideas.md`, what each one does now, how
 it was checked, and what is left. Checks marked "scripted run" used the
 player's QA hooks (`--qa-no-focus`, `--ui-overlays`, `--ui-snapshot`) on
-clips generated with FFmpeg's `testsrc2` source.
+clips generated with FFmpeg's `testsrc2` source;
+`tests/engineer_tools_snapshots.sh [build_dir] [out_dir]` makes those clips
+again, writes the same snapshots and prints FFmpeg's `ebur128` reading of the
+loudness clips (it needs a display, like `pathb_snapshot_regression.sh`).
 
 ## P — Frame inspector
 
