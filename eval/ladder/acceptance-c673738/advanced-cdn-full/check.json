@@ -1,0 +1,83 @@
+{
+ "verdict": "PASS",
+ "problems": [],
+ "frames": 0,
+ "memory_limit_given": "1G",
+ "memory_limit_bytes": 1073741824,
+ "runs": [
+  {
+   "jobs_given": 0,
+   "exit": 0,
+   "wall_s": 1882.86,
+   "max_rss_time_l": 1068269568,
+   "pool": {
+    "jobs": 11,
+    "memory_limit": 1073741824,
+    "baseline": 26935296,
+    "max_running": 3,
+    "pair_memory": [
+     {
+      "pair": 1,
+      "running": 1,
+      "resident": 296648704,
+      "measure": 269713408
+     },
+     {
+      "pair": 2,
+      "running": 2,
+      "resident": 542277632,
+      "measure": 269713408
+     }
+    ],
+    "peak_resident": 1068269568,
+    "warnings": []
+   },
+   "pairs_complete": 7,
+   "status": "complete"
+  }
+ ],
+ "pairs": [
+  {
+   "index": 0,
+   "dis": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v5/prog_index.m3u8",
+   "frames": 36000,
+   "same_in": []
+  },
+  {
+   "index": 1,
+   "dis": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v8/prog_index.m3u8",
+   "frames": 36000,
+   "same_in": []
+  },
+  {
+   "index": 2,
+   "dis": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v7/prog_index.m3u8",
+   "frames": 36000,
+   "same_in": []
+  },
+  {
+   "index": 3,
+   "dis": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v6/prog_index.m3u8",
+   "frames": 36000,
+   "same_in": []
+  },
+  {
+   "index": 4,
+   "dis": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v4/prog_index.m3u8",
+   "frames": 18000,
+   "same_in": []
+  },
+  {
+   "index": 5,
+   "dis": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v3/prog_index.m3u8",
+   "frames": 18000,
+   "same_in": []
+  },
+  {
+   "index": 6,
+   "dis": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v2/prog_index.m3u8",
+   "frames": 18000,
+   "same_in": []
+  }
+ ]
+}

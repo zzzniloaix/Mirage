@@ -2159,3 +2159,19 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: agent
 - **Date**: 2026-10-30
 - **Status**: pending owner confirmation
+
+### P-080 §2's acceptance checks rerun with the program of Phase 2's PR
+
+- **Choice**
+  - After D-063's rerun had ended, a script of the agent's (`runner.sh`) built `mirage_vmaf` in a new clean worktree of `c673738`, whose code and scripts are those of `e8e3a10`, the code Phase 2's PR brings; made the local copy of Apple's advanced sample again with `eval/streams/local_copy.py --segments 2` and checked it against the committed copy's checksums; and ran §2's three acceptance checks with `eval/ladder/pool_check.py` as their committed records ran them: the pool sizes 1, 2, 4 and the default over the first 300 frame pairs of the copy (`eval/ladder/advanced-local-300/`), the sizes 1 and the default with `--memory-limit 1G` on the same (`advanced-local-300-mem1g-b706ed3/`), and the default size with `--memory-limit 1G` over every frame from Apple's CDN (`advanced-cdn-full-b706ed3/`), on AC power with the lid open.
+  - The record, `eval/ladder/acceptance-c673738/`, keeps the build's files, the copy's record and check, the three runs under the names of the records they rerun, the runner's script and log, the power log's extract, and a comparison of every pair's frames and pooled values with the committed records, made by a script of the agent's, with the script (`comparison.txt`).
+- **Alternatives**: the committed acceptance outputs pasted into the PR as they are, made with the programs of `1cc1ab0` and `b706ed3`, before D-055 to D-059 changed the analyzer's network inputs and the report; the checks rerun from the branch's own worktree.
+- **Rationale**: the PR carries its acceptance outputs (hard rule 5), and these come from the program it brings; the comparison shows whether what changed since the committed runs moved any score.
+- **Result** (`eval/ladder/acceptance-c673738/`)
+  - All three PASS, and every pair's frames and pooled values are those of the committed records: 8400 frames in the four runs at 300 frames, 4200 in the two with the limit and 198000 over every frame (`comparison.txt`). The copy's 25 files have the committed SHA-256s (`copy_check.txt`). The program's SHA-256 is that of D-063's rerun, `454db2ed6be26319975df2130b53fc4fd5a60ed6660cbdfef6278ba88dc8435b`.
+  - Over every frame from Apple's CDN, 3 pairs ran at once, where the committed run of `b706ed3` had at most 2, and the process peaked at 1068269568 bytes, where the committed run peaked at 730497024. The limit let pairs 1 and 2 start at a measure of 269713408 bytes a pair, with 26935296 bytes before the run, so that for three pairs the rule counted 1038360576 bytes; the peak was 29908992 bytes above that count and 5472256 bytes, 0.51%, under the limit of 1073741824. D-053's margin kept the peak under the limit in both runs; in this one the peak was above the rule's count, and the limit held by the 35381248 bytes the count left under it.
+  - At 300 frames with the limit, 3 pairs at once and a peak of 874905600 bytes, where the committed run peaked at 913162240 bytes with 3 at once; at the pool sizes 1, 2, 4 and the default, peaks of 305266688, 604913664, 1187807232 and 2082406400 bytes.
+  - No sleep or wake event during the checks (`power_log.txt`). Their runner logged the load averages only at each check's start and end (`run.log`).
+- **Who**: agent
+- **Date**: 2026-10-30
+- **Status**: pending owner confirmation

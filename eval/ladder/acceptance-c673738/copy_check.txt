@@ -1,0 +1,26 @@
+# The local copy of Apple's advanced sample made for these checks, `python3 -I -B eval/streams/local_copy.py <copy_dir> <copy_record> --segments 2`, checked against the committed copy's checksums: `(cd <copy_dir> && shasum -a 256 -c <worktree>/eval/streams/local-advanced-2026-10-26/SHA256SUMS)`, its output.
+master.m3u8: OK
+v2/fileSequence0.ts: OK
+v2/fileSequence1.ts: OK
+v2/prog_index.m3u8: OK
+v3/fileSequence0.ts: OK
+v3/fileSequence1.ts: OK
+v3/prog_index.m3u8: OK
+v4/fileSequence0.ts: OK
+v4/fileSequence1.ts: OK
+v4/prog_index.m3u8: OK
+v5/fileSequence0.ts: OK
+v5/fileSequence1.ts: OK
+v5/prog_index.m3u8: OK
+v6/fileSequence0.ts: OK
+v6/fileSequence1.ts: OK
+v6/prog_index.m3u8: OK
+v7/fileSequence0.ts: OK
+v7/fileSequence1.ts: OK
+v7/prog_index.m3u8: OK
+v8/fileSequence0.ts: OK
+v8/fileSequence1.ts: OK
+v8/prog_index.m3u8: OK
+v9/fileSequence0.ts: OK
+v9/fileSequence1.ts: OK
+v9/prog_index.m3u8: OK
