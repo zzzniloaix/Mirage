@@ -44,6 +44,7 @@ struct PlayerUIState {
     bool toggle_help      = false;
     bool toggle_vmaf      = false;   // V key / View menu
     bool toggle_filmstrip = false;   // K key
+    bool toggle_frameinfo = false;   // P key: frame inspector
 
     // VMAF analysis triggers (set to true for exactly one frame)
     bool vmaf_pick_ref         = false;  // open file picker to choose reference
@@ -61,7 +62,7 @@ struct PlayerUIInputs {
     bool   has_audio = false;
     bool   show_hud = false, show_inspector = false, show_drift = false, show_tracks = false,
            show_waveform = false, show_network = false, show_help = false, show_vmaf = false,
-           show_filmstrip = false;
+           show_filmstrip = false, show_frameinfo = false;
     bool   has_manifest_variants = false, fullscreen = false;
 
     struct Info {

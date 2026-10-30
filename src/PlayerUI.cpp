@@ -559,6 +559,8 @@ void PlayerUI::build_menu_popup(const PlayerUIInputs& in, PlayerUIState& out)
         v = in.show_vmaf;      if (ImGui::MenuItem("VMAF Panel",         "V", &v)) out.toggle_vmaf      = true;
         v = in.show_filmstrip; if (ImGui::MenuItem("Keyframe Filmstrip", "K", &v)) out.toggle_filmstrip = true;
         ImGui::Separator();
+        v = in.show_frameinfo; if (ImGui::MenuItem("Frame Inspector",    "P", &v)) out.toggle_frameinfo = true;
+        ImGui::Separator();
         v = in.fullscreen;     if (ImGui::MenuItem("Fullscreen",         "F", &v)) out.toggle_fullscreen = true;
         ImGui::EndMenu();
     }
@@ -948,6 +950,7 @@ void PlayerUI::build_overlays_popup(const PlayerUIInputs& in, PlayerUIState& out
         { "##ov_v", "VMAF",              "V", in.show_vmaf,      &out.toggle_vmaf },
         { "##ov_h", "Help",              "H", in.show_help,      &out.toggle_help },
         { "##ov_k", "Keyframe filmstrip","K", in.show_filmstrip, &out.toggle_filmstrip },
+        { "##ov_p", "Frame inspector",   "P", in.show_frameinfo, &out.toggle_frameinfo },
     };
     for (const auto& it : items)
         if (menu_row(it.id, it.label, { .value = it.key, .tail = RowTail::Toggle, .on = it.on }))
@@ -982,6 +985,7 @@ void PlayerUI::build_help_card(PlayerUIState& out, float win_w, float win_h)
         { "W",            "Audio waveform" },
         { "N",            "Network inspector" },
         { "V",            "VMAF panel" },
+        { "P",            "Frame inspector" },
         { "H  ?",         "This help" },
         { "Esc",          "Close the last panel / exit fullscreen" },
         { "Q",            "Quit" },

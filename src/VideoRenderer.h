@@ -50,6 +50,20 @@ public:
     // 0=PQ, 1=HLG, -1 if SDR. Useful for debug HUD.
     [[nodiscard]] int hdr_mode() const { return hdr_mode_; }
 
+    // The colour interpretation frames are converted with: the stream's tags
+    // at init(), an unspecified matrix replaced by init()'s default, any range
+    // but full treated as limited. Primaries are reported, not used.
+    struct Interpretation {
+        AVColorSpace                  cs;
+        AVColorRange                  range;
+        AVColorTransferCharacteristic trc;
+        AVColorPrimaries              primaries;
+    };
+    [[nodiscard]] Interpretation interpretation() const
+    {
+        return { cs_, range_ == AVCOL_RANGE_JPEG ? AVCOL_RANGE_JPEG : AVCOL_RANGE_MPEG, trc_, primaries_ };
+    }
+
 private:
     GLuint vao_     = 0;
     GLuint program_ = 0;    // SW path (SDR passthrough or HDR tonemap on RGB texture)
@@ -73,6 +87,8 @@ private:
     // Cached stream color params — used to build the HW-path YUV→RGB uniforms.
     AVColorSpace cs_    = AVCOL_SPC_UNSPECIFIED;
     AVColorRange range_ = AVCOL_RANGE_UNSPECIFIED;
+    AVColorTransferCharacteristic trc_       = AVCOL_TRC_UNSPECIFIED;   // as given to init()
+    AVColorPrimaries              primaries_ = AVCOL_PRI_UNSPECIFIED;   // as given to init()
 
     struct SwsContext* sws_        = nullptr;
     AVFrame*           converted_  = nullptr;   // RGB24 (SDR) or RGB48LE (HDR)
