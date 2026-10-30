@@ -624,6 +624,31 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-054)
 - **Date**: 2026-10-29
 
+### D-062 Phase 1's PR states D-055's and D-056's limits, and Phase 2's brings the fixes
+
+- **Decision**: D-055 and D-056 stay on `vmaf/phase-2`, which brings them to `main` with Phase 2's PR; `vmaf/phase-1` gets neither, and Phase 1's PR states both as known limits of its analyzer: an rtmp URL gets FFmpeg's `timeout`, with which the input listens on the URL's host and port instead of connecting to them, and a segment FFmpeg's hls demuxer goes on without, after one try, leaves the pair complete (option 1 of "D-055 and D-056 on Phase 1's branch" in `docs/PHASE2_DECISIONS_PENDING.md`).
+- **Owner's words**: "No, PR states them (Recommended)", the owner's answer to the agent's question.
+- **Alternatives**: D-056 alone on `vmaf/phase-1`; both on `vmaf/phase-1`, each with its tests and a new unit test record.
+- **Rationale**: neither changes a committed measurement (`eval/run_all/2026-10-29-d055/`), rtmp inputs are outside the work order's scope, and a port would change Phase 1's code after its records were made.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Date**: 2026-10-30
+
+### D-063 Every step is rerun on macOS 26.6.2 with the long runs
+
+- **Decision**: the committed measurements are rerun on macOS 26.6.2 with the long runs, at the time the owner sets for them: every step of `eval/run_all.sh` with the Phase 2 program, the four over every frame included, in place of the rerun of `acceptance-full` and `pooling-full` left for another time, with the machine on AC power and its lid open (option 1 of "The committed measurements on macOS 26.6.2").
+- **Owner's words**: "With the long runs (Recommended)".
+- **Alternatives**: the rerun now, on its own; none before the PRs, each record stating its macOS version.
+- **Rationale**: one rerun of every step checks the Phase 2 program and the new macOS together; on 26.6.2 the 300-frame steps that read Apple's CDN found everything as committed (P-078).
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Date**: 2026-10-30
+
+### D-064 The process choice P-078 is confirmed
+
+- **Decision**: the agent's measurement and process choices P-078 are confirmed as the entry states them.
+- **Owner's words**: "Confirm (Recommended)".
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Date**: 2026-10-30
+
 ---
 
 ## Measurement / process choices (proposed by the agent, confirmed by the owner)
@@ -2104,4 +2129,4 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - The rerun of the 300-frame steps that read Apple's CDN (`eval/run_all/2026-10-29-d055/rerun_check.md`): everything compared is as committed, every verdict, Mirage's per-frame scores at full precision, every libvmaf metric of FFmpeg's logs and every pooling series, in 109.8 s with the build. On those inputs neither D-055's options nor the update to macOS 26.6.2 changed what was compared. The steps that read local files, and those over every frame, weren't rerun on macOS 26.6.2 (MEASUREMENT PENDING).
 - **Who**: agent
 - **Date**: 2026-10-29
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-30, D-064)

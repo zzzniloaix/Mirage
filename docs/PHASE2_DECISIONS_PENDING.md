@@ -1,14 +1,31 @@
 # Phase 2: decisions pending for the owner
 
-What is open for the owner on `vmaf/phase-2`, §2 of the VMAF work order, after the decisions of 2026-10-26 on the survey (`docs/DECISIONS.md` D-042 to D-049) and of 2026-10-27 on what the measurements found (D-050 to D-053), and after the audit of both branches of 2026-10-28, which the owner asked for (`docs/AI_CONTRIBUTIONS.md`), and the owner's answers of 2026-10-29 to the questions it raised (D-054 to D-061), whose implementation is P-078. The decisions are the owner's (hard rule 3 of the work order); every recommendation below is labeled as the agent's. Every number comes from a committed output, named next to it; where there is none, it says MEASUREMENT PENDING. The state of each item of §2 is in `docs/PHASE2_STATUS.md`.
+What is open for the owner on `vmaf/phase-2`, §2 of the VMAF work order, after the decisions of 2026-10-26 on the survey (`docs/DECISIONS.md` D-042 to D-049) and of 2026-10-27 on what the measurements found (D-050 to D-053), and after the audit of both branches of 2026-10-28, which the owner asked for (`docs/AI_CONTRIBUTIONS.md`), and the owner's answers of 2026-10-29 to the questions it raised (D-054 to D-061), whose implementation is P-078, and of 2026-10-30 to the two questions after it (D-062 to D-064). The decisions are the owner's (hard rule 3 of the work order); every recommendation below is labeled as the agent's. Every number comes from a committed output, named next to it; where there is none, it says MEASUREMENT PENDING. The state of each item of §2 is in `docs/PHASE2_STATUS.md`.
 
 ## Open
 
-For the owner: P-078, the agent's choices in implementing D-055 to D-060 and the records after them, pending confirmation (`docs/DECISIONS.md`), and the two questions below. On 2026-10-29 the owner answered the questions of the audit of 2026-10-28 and confirmed P-067 to P-077 (D-054 to D-061), in "Decided on 2026-10-29" below; the questions of 2026-10-27, decided, follow those.
+Nothing is open for the owner's decision: on 2026-10-30 the owner answered the two questions after D-055 to D-060 and confirmed P-078 (`docs/DECISIONS.md` D-062 to D-064), in "Decided on 2026-10-30" below; the questions decided on 2026-10-29 and 2026-10-27 follow it.
 
 **For information.** With a memory limit, once the first pairs had ended the others ran one at a time in each run at 1 GiB over 300 frame pairs but the first, in which all 7 started at once (`eval/ladder/advanced-local-300-mem1g-1cc1ab0/`), and in the run over every frame with D-051's 10%; in the run over every frame with D-053's 25%, the next two pairs ran together once the first two had ended, and only the last three one at a time (`eval/ladder/advanced-cdn-full-b706ed3/README.md`). The report's `pair_memory` at 300 frames was more than three times one pair's peak, so at times the resident memory still counted memory of pairs that had ended (`eval/ladder/advanced-local-300-mem1g-b706ed3/README.md`; P-074). Which of the process's memory measures drops when a pair ends, and when, is MEASUREMENT PENDING.
 
+### The reviews' asks that touch decisions (for information)
+
+The audit's reviews, a video engineer's and a UI designer's, asked for changes that touch decided items (the audit's report, which isn't committed, §8.4 and §9). Options are written for them only if the owner asks:
+
+- a forward jump in one input taken as a gap: pairing by time, with a new libvmaf context, and the 10 s threshold an option (§8.4, rank 1; D-046, D-050);
+- the temporal origin of inputs at different frame rates checked, by a search for the offset (§8.4, rank 2; D-028);
+- the pool's default size from the cores and libvmaf's threads, with `--threads` and `--subsample`, and M4 measured (§8.4, rank 8; D-044);
+- the memory measured per pair, in a process of its own, or presented as a heuristic (§8.4, rank 7; D-045, D-051, D-053, and the question on `pool.pair_memory` below, which D-058 decided);
+- HDR and Dolby Vision inputs refused unless forced (§8.4, rank 9; D-021);
+- a report with `schema_version`, `tool_version` and `git_commit` (§8.4, rank 9; §9.2, item 3; §9.4; the work order's §7).
+
+## Decided on 2026-10-30 (D-062 to D-064)
+
+The owner's answers to the agent's two questions after D-055 to D-060, and the confirmation of P-078 (`docs/DECISIONS.md` D-062 to D-064, D-064 confirming P-078 as its entry states it), each item with the text it had when it was decided, as the record of its options, and a note at its start on what was decided.
+
 ### D-055 and D-056 on Phase 1's branch (D-055, D-056; P-078)
+
+**Decided** (2026-10-30): D-062, option 1: Phase 1's PR states both limits, and Phase 2's PR brings the fixes.
 
 **What the branches have.** D-055 and D-056 are implemented on `vmaf/phase-2` only (`95772f0`, `9f37798`). On `vmaf/phase-1`, whose PR comes first (hard rule 5), the analyzer still gives an rtmp URL FFmpeg's `timeout`, with which the input listens on the URL's host and port instead of connecting to them, and a segment FFmpeg's hls demuxer goes on without, after one try, leaves the pair complete. The work order scores VOD ladders and local files, live streams being out of its scope, and no committed record has an rtmp input. With D-055's options the 300-frame steps that read Apple's CDN found everything as committed (`eval/run_all/2026-10-29-d055/`; P-078).
 
@@ -24,6 +41,8 @@ For the owner: P-078, the agent's choices in implementing D-055 to D-060 and the
 
 ### The committed measurements on macOS 26.6.2 (P-078)
 
+**Decided** (2026-10-30): D-063, option 1: every step is rerun with the long runs, at the time the owner sets for them.
+
 **What the records show.** Every committed environment capture until 2026-10-29 gives macOS 26.2 (25C56); that day the machine was updated to 26.6.2 (25G83). FFmpeg is still 8.1.1 and libvmaf 3.1.0 (`eval/run_all/2026-10-29-d055/consistency/defaults-300/plain/environment.txt`), and CMake identifies the same compiler, AppleClang 21.0.0.21000101, in every configure log of `eval/run_all/`. The 300-frame steps that read Apple's CDN found everything as committed on 26.6.2 (P-078); the other steps, the four over every frame among them, haven't been rerun on it (MEASUREMENT PENDING).
 
 **Question.** When should every step be rerun on the new macOS?
@@ -35,17 +54,6 @@ For the owner: P-078, the agent's choices in implementing D-055 to D-060 and the
 3. Not before the PRs; each record states its macOS version.
 
 **Agent's recommendation.** Option 1: one rerun of every step checks the Phase 2 program and the new macOS together, at the time the owner sets for the long runs.
-
-### The reviews' asks that touch decisions (for information)
-
-The audit's reviews, a video engineer's and a UI designer's, asked for changes that touch decided items (the audit's report, which isn't committed, §8.4 and §9). Options are written for them only if the owner asks:
-
-- a forward jump in one input taken as a gap: pairing by time, with a new libvmaf context, and the 10 s threshold an option (§8.4, rank 1; D-046, D-050);
-- the temporal origin of inputs at different frame rates checked, by a search for the offset (§8.4, rank 2; D-028);
-- the pool's default size from the cores and libvmaf's threads, with `--threads` and `--subsample`, and M4 measured (§8.4, rank 8; D-044);
-- the memory measured per pair, in a process of its own, or presented as a heuristic (§8.4, rank 7; D-045, D-051, D-053, and the question on `pool.pair_memory` below, which D-058 decided);
-- HDR and Dolby Vision inputs refused unless forced (§8.4, rank 9; D-021);
-- a report with `schema_version`, `tool_version` and `git_commit` (§8.4, rank 9; §9.2, item 3; §9.4; the work order's §7).
 
 ## Decided on 2026-10-29 (D-054 to D-061)
 
