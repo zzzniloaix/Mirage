@@ -1,0 +1,2 @@
+Preparing worktree (detached HEAD e2169f5)
+HEAD is now at e2169f5 run_all: keep the build records in builds/, which .gitignore leaves in

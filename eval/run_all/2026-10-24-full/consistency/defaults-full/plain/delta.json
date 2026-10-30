@@ -1,0 +1,272 @@
+{
+  "report_version": 1,
+  "tool": "eval/consistency/run_delta.py",
+  "variant": "plain",
+  "status": "FAIL",
+  "pairs_total": 4,
+  "pairs_failed": [
+    "gear2_vs_gear5",
+    "gear1_vs_gear5"
+  ],
+  "parameters": {
+    "variant": "plain",
+    "frames": null,
+    "threshold": 0.01,
+    "model": "vmaf_v0.6.1",
+    "scaler": "bicubic",
+    "threads": 4,
+    "model_file": null
+  },
+  "command": "eval/consistency/run_delta.sh <mirage_vmaf> <out_dir> --jobs 4 --pairs eval/consistency/pairs/bipbop16x9.txt --scaler bicubic --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --ffmpeg <ffmpeg> --ffprobe <ffprobe> --timeout 21600",
+  "started_utc": "2026-10-24T19:43:40Z",
+  "ended_utc": "2026-10-24T23:43:05Z",
+  "git": {
+    "head_start": "61241e211b8b5ad18eb0ba0667857a1dd3dd7fc2",
+    "head_end": "61241e211b8b5ad18eb0ba0667857a1dd3dd7fc2",
+    "clean_start": true,
+    "clean_end": true
+  },
+  "environment": {
+    "os": "macOS 26.2 (25C56)",
+    "cpu": "Apple M3 Pro",
+    "logical_cpus": "12",
+    "kernel": "Darwin 25.2.0 arm64",
+    "python": "3.14.7",
+    "ffmpeg_version": "ffmpeg version 8.1.1 Copyright (c) 2000-2026 the FFmpeg developers",
+    "ffmpeg_libraries": {
+      "libavutil": "60.26.101",
+      "libavcodec": "62.28.101",
+      "libavformat": "62.12.101",
+      "libavdevice": "62.3.101",
+      "libavfilter": "11.14.101",
+      "libswscale": "9.5.101",
+      "libswresample": "6.3.101"
+    },
+    "ffprobe_version": "ffprobe version 8.1.1 Copyright (c) 2007-2026 the FFmpeg developers",
+    "ffmpeg_libvmaf": "/opt/homebrew/Cellar/libvmaf/3.1.0/lib/libvmaf.3.dylib",
+    "ffmpeg_libvmaf_package_version": "3.1.0"
+  },
+  "mirage_vmaf": {
+    "path": "(a local path outside the repository)",
+    "sha256": "9f04085f73440a9c9969f9bf6a86767eaf9ade89ae8ca393f8b6c99bb78b9b06",
+    "libvmaf": "/opt/homebrew/Cellar/libvmaf/3.1.0/lib/libvmaf.3.dylib",
+    "options": [
+      "--config",
+      "--dis",
+      "--frames",
+      "--ladder",
+      "--mezzanine",
+      "--model",
+      "--model-file",
+      "--out",
+      "--ref",
+      "--scaler"
+    ],
+    "libvmaf_version": "3.0.0",
+    "libvmaf_package_version": "3.1.0",
+    "ffmpeg_libraries": {
+      "libavutil": "60.26.101",
+      "libavcodec": "62.28.101",
+      "libavformat": "62.12.101",
+      "libswscale": "9.5.101",
+      "libavfilter": "11.14.101"
+    }
+  },
+  "ffmpeg_libvmaf": {
+    "libvmaf_version": "3.0.0",
+    "libvmaf_package_version": "3.1.0"
+  },
+  "pairs_file": {
+    "path": "eval/consistency/pairs/bipbop16x9.txt",
+    "sha256": "7f772689e4e111d1c82d8dcc83aa2b5ac953a68a2d088c9a4a5ab3cf20f18b77"
+  },
+  "warnings": [],
+  "pairs": [
+    {
+      "pair": "gear4_vs_gear5",
+      "status": "PASS",
+      "fail_reasons": [],
+      "warnings": [],
+      "frames": {
+        "mirage": 53946,
+        "ffmpeg": 53946,
+        "compared": 53946,
+        "counts_match": true
+      },
+      "pairing": {
+        "both": 53946,
+        "only_mirage": 0,
+        "only_ffmpeg": 0,
+        "other_times": 0,
+        "frames_treated_differently": 0,
+        "mirage_failed": 0,
+        "mirage_failure_rate": 0
+      },
+      "max_abs": 4.99980956192303e-07,
+      "max_abs_index": 52357,
+      "mean_abs": 2.4912645996687337e-07,
+      "mean_signed": 1.7044150501878877e-09,
+      "over_threshold": 0,
+      "pooled": {
+        "mirage": {
+          "mean": 84.21578954441404,
+          "min": 79.61383719363732,
+          "harmonic_mean": 84.21304882008998
+        },
+        "ffmpeg": {
+          "mean": 84.21579,
+          "min": 79.613837,
+          "harmonic_mean": 84.213049
+        },
+        "difference": {
+          "mean": -4.555859618449176e-07,
+          "min": 1.9363731951216323e-07,
+          "harmonic_mean": -1.799100175503554e-07
+        }
+      },
+      "relabel": null,
+      "ffmpeg_conversions": [],
+      "ffmpeg_distorted_csp": "bt709 -> bt709",
+      "mirage_distorted_csp": "bt709 -> bt709",
+      "ffmpeg_reference_csp": "-",
+      "mirage_reference_csp": "-"
+    },
+    {
+      "pair": "gear3_vs_gear5",
+      "status": "PASS",
+      "fail_reasons": [],
+      "warnings": [],
+      "frames": {
+        "mirage": 53946,
+        "ffmpeg": 53946,
+        "compared": 53946,
+        "counts_match": true
+      },
+      "pairing": {
+        "both": 53946,
+        "only_mirage": 0,
+        "only_ffmpeg": 0,
+        "other_times": 0,
+        "frames_treated_differently": 0,
+        "mirage_failed": 0,
+        "mirage_failure_rate": 0
+      },
+      "max_abs": 4.999880971467974e-07,
+      "max_abs_index": 39489,
+      "mean_abs": 2.4972627406482564e-07,
+      "mean_signed": 2.7754916077707042e-09,
+      "over_threshold": 0,
+      "pooled": {
+        "mirage": {
+          "mean": 64.20591109842762,
+          "min": 56.84453353023001,
+          "harmonic_mean": 64.1949022900204
+        },
+        "ffmpeg": {
+          "mean": 64.205911,
+          "min": 56.844534,
+          "harmonic_mean": 64.194902
+        },
+        "difference": {
+          "mean": 9.842761983236414e-08,
+          "min": -4.697699935718447e-07,
+          "harmonic_mean": 2.9002039525494183e-07
+        }
+      },
+      "relabel": null,
+      "ffmpeg_conversions": [],
+      "ffmpeg_distorted_csp": "bt709 -> bt709",
+      "mirage_distorted_csp": "bt709 -> bt709",
+      "ffmpeg_reference_csp": "-",
+      "mirage_reference_csp": "-"
+    },
+    {
+      "pair": "gear2_vs_gear5",
+      "status": "FAIL",
+      "fail_reasons": [
+        "mirage_vmaf exited with status -15"
+      ],
+      "warnings": [],
+      "frames": {
+        "mirage": null,
+        "ffmpeg": null,
+        "compared": 0,
+        "counts_match": false
+      },
+      "pairing": null,
+      "max_abs": null,
+      "max_abs_index": null,
+      "mean_abs": null,
+      "mean_signed": null,
+      "over_threshold": null,
+      "pooled": null,
+      "relabel": null,
+      "ffmpeg_conversions": [
+        "Parsed_scale_0: color_space smpte170m -> bt709"
+      ],
+      "ffmpeg_distorted_csp": "smpte170m -> bt709",
+      "mirage_distorted_csp": "-",
+      "ffmpeg_reference_csp": "-",
+      "mirage_reference_csp": "-"
+    },
+    {
+      "pair": "gear1_vs_gear5",
+      "status": "FAIL",
+      "fail_reasons": [
+        "FRAME COUNT MISMATCH: Mirage scored 28525 frame pairs, FFmpeg 28704; only the 28440 pairs both scored are compared",
+        "PAIRING MISMATCH: 85 of Mirage's 28525 pairs are not among FFmpeg's, and 264 of FFmpeg's 28704 not among Mirage's (the same pair: the same reference and distorted frames); only the pairs both scored are compared",
+        "2 of 28440 frames have |delta| > 0.01"
+      ],
+      "warnings": [
+        "mirage_vmaf: 1.37% of the frames failed to pair by timestamp (395 of 28920: 1 unmatched reference, 46 extra distorted, 348 after a discontinuity), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 28525 frame pairs that paired",
+        "the two sides' pairing treats 566 frames differently, Mirage's failures included (the pair's delta.md, \"Pairing by timestamp\")"
+      ],
+      "frames": {
+        "mirage": 28525,
+        "ffmpeg": 28704,
+        "compared": 28440,
+        "counts_match": false
+      },
+      "pairing": {
+        "both": 28440,
+        "only_mirage": 85,
+        "only_ffmpeg": 264,
+        "other_times": 0,
+        "frames_treated_differently": 566,
+        "mirage_failed": 395,
+        "mirage_failure_rate": 0.013658367911479945
+      },
+      "max_abs": 2.46878726369442,
+      "max_abs_index": 28439,
+      "mean_abs": 0.00010614783854828246,
+      "mean_signed": 0.0001059091717967325,
+      "over_threshold": 2,
+      "pooled": {
+        "mirage": {
+          "mean": 6.043395615270262,
+          "min": 0,
+          "harmonic_mean": 4.919686980485429
+        },
+        "ffmpeg": {
+          "mean": 5.988805,
+          "min": 0.0,
+          "harmonic_mean": 4.668739
+        },
+        "difference": {
+          "mean": 0.054590615270261544,
+          "min": 0.0,
+          "harmonic_mean": 0.2509479804854289
+        }
+      },
+      "relabel": null,
+      "ffmpeg_conversions": [
+        "Parsed_scale_0: color_space smpte170m -> bt709"
+      ],
+      "ffmpeg_distorted_csp": "smpte170m -> bt709",
+      "mirage_distorted_csp": "smpte170m -> bt709",
+      "ffmpeg_reference_csp": "-",
+      "mirage_reference_csp": "-"
+    }
+  ],
+  "redactions": {}
+}

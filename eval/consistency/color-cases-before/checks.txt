@@ -1,0 +1,35 @@
+# Checks on the runs in this directory, made after them from <repo>: each command, then its output.
+
+# 1. FFmpeg's per-frame scores of cases whose clips have the same pixels: whether they are equal, frame by frame (the pixels of all clips of one size are the same, clips.txt).
+
+$ python3 -I -c 'import json, sys
+def scores(case):
+    return [f["metrics"]["vmaf"] for f in json.load(open("eval/consistency/color-cases-before/main/" + case + "/ffmpeg.json"))["frames"]]
+for pair in sys.argv[1:]:
+    a, b = pair.split(":")
+    print(a, "and", b, "equal:", scores(a) == scores(b))' m03_bt709_vs_untagged:m01_bt709_vs_smpte170m r03_norange_vs_pc:r01_tv_vs_pc r04_pc_vs_norange:r02_pc_vs_tv m05_untagged_vs_smpte170m:m02_bt709_vs_bt709 m06_untagged_vs_untagged:m02_bt709_vs_bt709 m07_smpte170m_vs_bt470bg:m02_bt709_vs_bt709 r05_norange_vs_tv:m02_bt709_vs_bt709 r06_tv_vs_norange:m02_bt709_vs_bt709 x02_primaries_transfer:m02_bt709_vs_bt709 x03_chroma_topleft:m02_bt709_vs_bt709 x04_interlaced_tff:m02_bt709_vs_bt709 m01_bt709_vs_smpte170m:m02_bt709_vs_bt709
+m03_bt709_vs_untagged and m01_bt709_vs_smpte170m equal: True
+r03_norange_vs_pc and r01_tv_vs_pc equal: True
+r04_pc_vs_norange and r02_pc_vs_tv equal: True
+m05_untagged_vs_smpte170m and m02_bt709_vs_bt709 equal: True
+m06_untagged_vs_untagged and m02_bt709_vs_bt709 equal: True
+m07_smpte170m_vs_bt470bg and m02_bt709_vs_bt709 equal: True
+r05_norange_vs_tv and m02_bt709_vs_bt709 equal: True
+r06_tv_vs_norange and m02_bt709_vs_bt709 equal: True
+x02_primaries_transfer and m02_bt709_vs_bt709 equal: True
+x03_chroma_topleft and m02_bt709_vs_bt709 equal: True
+x04_interlaced_tff and m02_bt709_vs_bt709 equal: True
+m01_bt709_vs_smpte170m and m02_bt709_vs_bt709 equal: False
+
+# 2. The output stream line of FFmpeg's log (the distorted frames as the libvmaf filter passes them on) in the cases with other primaries, transfer, chroma siting or interlacing on the distorted input.
+
+$ grep -h 'wrapped_avframe' eval/consistency/color-cases-before/main/x0[234]_*/ffmpeg_colorspace_lines.txt
+  Stream #0:0: Video: wrapped_avframe, 1 reference frame, yuv420p(tv, bt709/bt470bg/bt470bg, progressive), 1920x1080 [SAR 1:1 DAR 16:9], q=2-31, 200 kb/s, 29.97 fps, 29.97 tbn
+  Stream #0:0: Video: wrapped_avframe, 1 reference frame, yuv420p(tv, bt709/unknown/unknown, progressive), 1920x1080 [SAR 1:1 DAR 16:9], q=2-31, 200 kb/s, 29.97 fps, 29.97 tbn
+  Stream #0:0: Video: wrapped_avframe, 1 reference frame, yuv420p(tv, bt709/unknown/unknown, top coded first (swapped)), 1920x1080 [SAR 1:1 DAR 16:9], q=2-31, 200 kb/s, 29.97 fps, 29.97 tbn
+
+# 3. The runs' checksums.
+
+$ for d in main refused; do (cd eval/consistency/color-cases-before/$d && printf "%s: " $d && shasum -a 256 -c SHA256SUMS | awk '{n[$NF]++} END {for (k in n) printf "%d %s\n", n[k], k}'); done
+main: 203 OK
+refused: 25 OK

@@ -1,0 +1,48 @@
+{
+  "tool": "mirage_vmaf",
+  "reference_mode": "explicit-pair",
+  "libvmaf_version": "3.0.0",
+  "libvmaf_package_version": "3.1.0",
+  "ffmpeg_libraries": {"libavutil": "60.26.101", "libavcodec": "62.28.101", "libavformat": "62.12.101", "libswscale": "9.5.101", "libavfilter": "11.14.101"},
+  "config_file": null,
+  "model": "vmaf_v0.6.1",
+  "model_source": "built-in",
+  "model_sha256": null,
+  "scaler": "bicubic",
+  "n_threads": 4,
+  "n_subsample": 1,
+  "scored_as": {"width": 1920, "height": 1080, "pix_fmt": "yuv420p", "bit_depth": 8},
+  "dis_conversion": [
+    {"from": {"color_space": "bt709", "color_range": "tv"}, "to": {"color_space": "bt709", "color_range": "tv"}, "matrix_changed": false, "range_changed": false, "first_index": 0, "pairs": 9}
+  ],
+  "ref_conversion": [],
+  "warnings": [
+    "10.00% of the frames failed to pair by timestamp (1 of 10: 1 extra distorted), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 9 frame pairs that paired"
+  ],
+  "frame_limit": null,
+  "frames_scored": 9,
+  "pooled": {"mean": 74.61823884628183, "harmonic_mean": 74.61189332082343, "min": 72.68777672835482, "min_without_first_frame": 74.77789802017037, "p1": 72.85498643170007, "p5": 73.52382524508104, "p10": 74.35987376180726, "p25": 74.78632698606295, "p50": 74.82474274215905},
+  "alignment": {"rule": "reference-timeline", "timestamp_origin": "input-start", "grid": "reference", "tolerance": 0.016683333333333335,
+    "reference": {"frame_rate": "30000/1001", "start": 0, "start_from": "container"},
+    "distorted": {"frame_rate": "30000/1001", "start": 0, "start_from": "container"},
+    "paired": 9, "failed": 1, "failure_rate": 0.1, "threshold": 0.01, "exceeded": true,
+    "unmatched_reference": 0, "extra_distorted": 1, "duplicate_distorted": 0, "no_timestamp": 0, "after_discontinuity": 0,
+    "discontinuities": 0, "discontinuity_jump": 10, "off_grid_reference": 0, "off_grid_distorted": 0,
+    "vmaf_contexts": [{"first_index": 0, "pairs": 9}],
+    "failures": [
+      {"input": "distorted", "index": 5, "pts": 0.167, "reason": "extra_distorted"}
+    ]},
+  "ref": {"url": "<tmp>/align_clips/ref_drop5.mkv", "width": 1920, "height": 1080, "pix_fmt": "yuv420p", "color_space": "bt709", "color_range": "tv", "color_primaries": "unknown", "color_trc": "unknown", "time_base": "1/1000", "ended": true},
+  "dis": {"url": "<tmp>/align_clips/dis.mkv", "width": 640, "height": 360, "pix_fmt": "yuv420p", "color_space": "bt709", "color_range": "tv", "color_primaries": "unknown", "color_trc": "unknown", "time_base": "1/1000", "ended": true},
+  "frames": [
+    {"index": 0, "ref_index": 0, "dis_index": 0, "ref_pts": 0, "dis_pts": 0, "vmaf": 72.68777672835482},
+    {"index": 1, "ref_index": 1, "dis_index": 1, "ref_pts": 0.033, "dis_pts": 0.033, "vmaf": 74.77789802017037},
+    {"index": 2, "ref_index": 2, "dis_index": 2, "ref_pts": 0.067, "dis_pts": 0.067, "vmaf": 74.94005632463738},
+    {"index": 3, "ref_index": 3, "dis_index": 3, "ref_pts": 0.1, "dis_pts": 0.1, "vmaf": 74.91278468178199},
+    {"index": 4, "ref_index": 4, "dis_index": 4, "ref_pts": 0.133, "dis_pts": 0.133, "vmaf": 74.9322319648982},
+    {"index": 5, "ref_index": 5, "dis_index": 6, "ref_pts": 0.2, "dis_pts": 0.2, "vmaf": 74.78632698606295},
+    {"index": 6, "ref_index": 6, "dis_index": 7, "ref_pts": 0.234, "dis_pts": 0.234, "vmaf": 74.82474274215905},
+    {"index": 7, "ref_index": 7, "dis_index": 8, "ref_pts": 0.267, "dis_pts": 0.267, "vmaf": 74.88682112186238},
+    {"index": 8, "ref_index": 8, "dis_index": 9, "ref_pts": 0.3, "dis_pts": 0.3, "vmaf": 74.81551104660922}
+  ]
+}

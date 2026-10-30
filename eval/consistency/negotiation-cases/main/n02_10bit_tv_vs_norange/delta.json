@@ -1,0 +1,356 @@
+{
+  "report_version": 1,
+  "pair": "n02_10bit_tv_vs_norange",
+  "reference": "<tmp>/negotiation_clips/ref_ffv1-yuv420p10le_bt709-tv.mkv",
+  "distorted": "<tmp>/negotiation_clips/dis_bt709-unknown.mkv",
+  "variant": "plain",
+  "status": "PASS",
+  "fail_reasons": [],
+  "warnings": [],
+  "threshold": 0.01,
+  "frame_limit": 10,
+  "frames": {
+    "mirage": 10,
+    "ffmpeg": 10,
+    "compared": 10,
+    "counts_match": true
+  },
+  "delta": {
+    "compared": 10,
+    "max_abs": 3.24637383641857e-07,
+    "max_abs_index": 2,
+    "mean_abs": 1.741760968343442e-07,
+    "mean_signed": -2.6113372086911112e-08,
+    "over_threshold": 0,
+    "over_threshold_ranges": [],
+    "worst": [
+      {
+        "index": 2,
+        "ffmpeg_index": 2,
+        "mirage": 74.94005632463738,
+        "ffmpeg": 74.940056,
+        "delta": 3.24637383641857e-07
+      },
+      {
+        "index": 3,
+        "ffmpeg_index": 3,
+        "mirage": 74.91278468178199,
+        "ffmpeg": 74.912785,
+        "delta": -3.182180137173418e-07
+      },
+      {
+        "index": 0,
+        "ffmpeg_index": 0,
+        "mirage": 72.68777672835482,
+        "ffmpeg": 72.687777,
+        "delta": -2.716451774631423e-07
+      },
+      {
+        "index": 7,
+        "ffmpeg_index": 7,
+        "mirage": 74.82474274215905,
+        "ffmpeg": 74.824743,
+        "delta": -2.578409521447611e-07
+      },
+      {
+        "index": 5,
+        "ffmpeg_index": 5,
+        "mirage": 75.04153022703426,
+        "ffmpeg": 75.04153,
+        "delta": 2.2703426338921417e-07
+      }
+    ],
+    "mean_mirage": 74.65861977388663,
+    "mean_ffmpeg": 74.6586198
+  },
+  "alignment": {
+    "compared_by": "the same reference and distorted frames (their positions in the inputs), at the same timestamps (seconds from each input's start)",
+    "tolerance": 0.016683333333333335,
+    "tolerance_from": "the reference's frame rate in mirage_vmaf's alignment",
+    "mirage": {
+      "pairs": 10,
+      "reference_in_several_pairs": 0,
+      "distorted_in_several_pairs": 0,
+      "pairs_beyond_tolerance": 0,
+      "rule": "reference-timeline",
+      "grid": "reference",
+      "failed": 0,
+      "failure_rate": 0,
+      "threshold": 0.01,
+      "exceeded": false,
+      "unmatched_reference": 0,
+      "extra_distorted": 0,
+      "duplicate_distorted": 0,
+      "no_timestamp": 0,
+      "after_discontinuity": 0,
+      "discontinuities": 0,
+      "off_grid_reference": 0,
+      "off_grid_distorted": 0,
+      "vmaf_contexts": 1,
+      "reference_in_no_pair": 0,
+      "distorted_in_no_pair": 0,
+      "start": {
+        "reference": 0.0,
+        "distorted": 0.0
+      },
+      "start_from": {
+        "reference": "the report's alignment, start_from container",
+        "distorted": "the report's alignment, start_from container"
+      }
+    },
+    "ffmpeg": {
+      "pairs": 10,
+      "reference_in_several_pairs": 0,
+      "distorted_in_several_pairs": 0,
+      "pairs_beyond_tolerance": 0,
+      "reference_in_no_pair": 0,
+      "distorted_in_no_pair": 0,
+      "unscored": 0,
+      "by_reference": 0,
+      "rule": "framesync: each distorted frame with the reference frame at or before its time; the last frame of an input that has ended repeated",
+      "start": {
+        "reference": 0.0,
+        "distorted": 0.0
+      },
+      "time_base": {
+        "reference": "1/1000",
+        "distorted": "1/1000",
+        "framesync": "1/1000"
+      },
+      "frames": {
+        "reference": 10,
+        "distorted": 10
+      },
+      "corrections": 0
+    },
+    "pairs": {
+      "both": 10,
+      "only_mirage": 0,
+      "only_ffmpeg": 0,
+      "other_times": 0
+    },
+    "only_mirage": [],
+    "only_ffmpeg": [],
+    "other_times": [],
+    "frames_treated_differently": 0,
+    "frames": []
+  },
+  "pooled": {
+    "mirage": {
+      "mean": 74.65861977388663,
+      "min": 72.68777672835482,
+      "harmonic_mean": 74.65270397760193
+    },
+    "ffmpeg": {
+      "mean": 74.65862,
+      "min": 72.687777,
+      "harmonic_mean": 74.652704
+    },
+    "difference": {
+      "mean": -2.2611337158195965e-07,
+      "min": -2.716451774631423e-07,
+      "harmonic_mean": -2.2398069177143043e-08
+    }
+  },
+  "relabel": null,
+  "ffmpeg_color": {
+    "graph_inputs": [
+      {
+        "input": 0,
+        "stream": 0,
+        "color_space": "bt709",
+        "color_range": "unknown"
+      },
+      {
+        "input": 1,
+        "stream": 0,
+        "color_space": "bt709",
+        "color_range": "tv"
+      }
+    ],
+    "scale": [
+      {
+        "filter": "Parsed_scale_1",
+        "in": {
+          "width": 640,
+          "height": 360,
+          "pix_fmt": "yuv420p",
+          "color_space": "bt709",
+          "color_range": "unknown"
+        },
+        "out": {
+          "width": 1920,
+          "height": 1080,
+          "pix_fmt": "yuv420p",
+          "color_space": "bt709",
+          "color_range": "tv"
+        },
+        "flags": "0x00000004"
+      },
+      {
+        "filter": "auto_scale_0",
+        "in": {
+          "width": 1920,
+          "height": 1080,
+          "pix_fmt": "yuv420p10le",
+          "color_space": "bt709",
+          "color_range": "tv"
+        },
+        "out": {
+          "width": 1920,
+          "height": 1080,
+          "pix_fmt": "yuv420p",
+          "color_space": "bt709",
+          "color_range": "tv"
+        },
+        "flags": "0x00000004"
+      }
+    ],
+    "conversions": [
+      "Parsed_scale_1: color_range unknown -> tv",
+      "auto_scale_0: pix_fmt yuv420p10le -> yuv420p"
+    ]
+  },
+  "mirage_color": {
+    "dis_conversion": [
+      {
+        "from": {
+          "color_space": "bt709",
+          "color_range": "unknown"
+        },
+        "to": {
+          "color_space": "bt709",
+          "color_range": "tv"
+        },
+        "matrix_changed": false,
+        "range_changed": false,
+        "first_index": 0,
+        "pairs": 10
+      }
+    ],
+    "ref_conversion": [
+      {
+        "from": {
+          "color_space": "bt709",
+          "color_range": "tv"
+        },
+        "to": {
+          "color_space": "bt709",
+          "color_range": "tv"
+        },
+        "matrix_changed": false,
+        "range_changed": false,
+        "first_index": 0,
+        "pairs": 10
+      }
+    ]
+  },
+  "inputs": {
+    "ref": {
+      "ffprobe": {
+        "codec_name": "ffv1",
+        "width": 1920,
+        "height": 1080,
+        "pix_fmt": "yuv420p10le",
+        "color_space": "bt709",
+        "color_range": "tv",
+        "color_primaries": null,
+        "color_transfer": null,
+        "time_base": "1/1000",
+        "r_frame_rate": "30000/1001",
+        "avg_frame_rate": "30000/1001",
+        "start_time": "0.000000"
+      },
+      "mirage_vmaf": {
+        "url": "<tmp>/negotiation_clips/ref_ffv1-yuv420p10le_bt709-tv.mkv",
+        "width": 1920,
+        "height": 1080,
+        "pix_fmt": "yuv420p10le",
+        "color_space": "bt709",
+        "color_range": "tv",
+        "color_primaries": "unknown",
+        "color_trc": "unknown",
+        "time_base": "1/1000",
+        "ended": false
+      }
+    },
+    "dis": {
+      "ffprobe": {
+        "codec_name": "rawvideo",
+        "width": 640,
+        "height": 360,
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_range": null,
+        "color_primaries": null,
+        "color_transfer": null,
+        "time_base": "1/1000",
+        "r_frame_rate": "30000/1001",
+        "avg_frame_rate": "30000/1001",
+        "start_time": "0.000000"
+      },
+      "mirage_vmaf": {
+        "url": "<tmp>/negotiation_clips/dis_bt709-unknown.mkv",
+        "width": 640,
+        "height": 360,
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_range": "unknown",
+        "color_primaries": "unknown",
+        "color_trc": "unknown",
+        "time_base": "1/1000",
+        "ended": false
+      }
+    }
+  },
+  "mirage_vmaf": {
+    "exit_code": 0,
+    "elapsed_s": 0.393,
+    "tool": "mirage_vmaf",
+    "reference_mode": "explicit-pair",
+    "libvmaf_version": "3.0.0",
+    "libvmaf_package_version": "3.1.0",
+    "ffmpeg_libraries": {
+      "libavutil": "60.26.101",
+      "libavcodec": "62.28.101",
+      "libavformat": "62.12.101",
+      "libswscale": "9.5.101",
+      "libavfilter": "11.14.101"
+    },
+    "model": "vmaf_v0.6.1",
+    "model_source": "built-in",
+    "model_sha256": null,
+    "scaler": "bicubic",
+    "n_threads": 4,
+    "n_subsample": 1,
+    "scored_as": {
+      "width": 1920,
+      "height": 1080,
+      "pix_fmt": "yuv420p",
+      "bit_depth": 8
+    },
+    "frame_limit": 10,
+    "frames_scored": 10,
+    "ref_ended": false,
+    "dis_ended": false,
+    "first_ref_pts": 0.0,
+    "last_ref_pts": 0.3,
+    "pairs_with_different_pts": 0,
+    "warnings": []
+  },
+  "ffmpeg": {
+    "exit_code": 0,
+    "elapsed_s": 0.291,
+    "libvmaf_version": "3.0.0",
+    "libvmaf_package_version": "3.1.0",
+    "ffmpeg_libraries": {
+      "libavutil": "60.26.101",
+      "libavcodec": "62.28.101",
+      "libavformat": "62.12.101",
+      "libavdevice": "62.3.101",
+      "libavfilter": "11.14.101",
+      "libswscale": "9.5.101",
+      "libswresample": "6.3.101"
+    }
+  }
+}

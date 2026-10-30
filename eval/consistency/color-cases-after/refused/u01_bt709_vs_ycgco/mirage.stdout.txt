@@ -1,0 +1,1 @@
+[WARN]  VMAFAnalyzer: the distorted input has the color matrix ycgco, which FFmpeg's scale filter does not convert, so the pair can't be scored as FFmpeg scores it (DECISIONS.md D-016)

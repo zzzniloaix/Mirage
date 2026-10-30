@@ -1,0 +1,209 @@
+{
+  "report_version": 1,
+  "pair": "gear2_vs_gear5",
+  "reference": "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear5/prog_index.m3u8",
+  "distorted": "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear2/prog_index.m3u8",
+  "variant": "plain",
+  "status": "FAIL",
+  "fail_reasons": [
+    "300 of 300 frames have |delta| > 0.01"
+  ],
+  "warnings": [],
+  "threshold": 0.01,
+  "frame_limit": 300,
+  "frames": {
+    "mirage": 300,
+    "ffmpeg": 300,
+    "compared": 300,
+    "counts_match": true
+  },
+  "delta": {
+    "compared": 300,
+    "max_abs": 5.674685020702157,
+    "max_abs_index": 105,
+    "mean_abs": 5.279836326174176,
+    "mean_signed": 5.279836326174176,
+    "over_threshold": 300,
+    "over_threshold_ranges": [
+      [
+        0,
+        299
+      ]
+    ],
+    "worst": [
+      {
+        "index": 105,
+        "mirage": 35.340352020702156,
+        "ffmpeg": 29.665667,
+        "delta": 5.674685020702157
+      },
+      {
+        "index": 45,
+        "mirage": 35.10299570746343,
+        "ffmpeg": 29.461384,
+        "delta": 5.641611707463429
+      },
+      {
+        "index": 107,
+        "mirage": 35.31323685266435,
+        "ffmpeg": 29.679197,
+        "delta": 5.634039852664355
+      },
+      {
+        "index": 41,
+        "mirage": 36.18003202454803,
+        "ffmpeg": 30.547382,
+        "delta": 5.6326500245480275
+      },
+      {
+        "index": 101,
+        "mirage": 36.3405078572877,
+        "ffmpeg": 30.714147,
+        "delta": 5.626360857287697
+      }
+    ],
+    "mean_mirage": 33.83277156950751,
+    "mean_ffmpeg": 28.552935243333334
+  },
+  "pooled": {
+    "mirage": {
+      "mean": 33.83277156950753,
+      "min": 20.05232199627934
+    },
+    "ffmpeg": {
+      "mean": 28.552935,
+      "min": 16.070202
+    },
+    "difference": {
+      "mean": 5.279836569507527,
+      "min": 3.9821199962793408
+    }
+  },
+  "relabel": null,
+  "ffmpeg_color": {
+    "graph_inputs": [
+      {
+        "input": 0,
+        "stream": 1,
+        "color_space": "smpte170m",
+        "color_range": "tv"
+      },
+      {
+        "input": 1,
+        "stream": 1,
+        "color_space": "bt709",
+        "color_range": "tv"
+      }
+    ],
+    "scale": [
+      {
+        "filter": "Parsed_scale_1",
+        "in": {
+          "width": 640,
+          "height": 360,
+          "pix_fmt": "yuv420p",
+          "color_space": "smpte170m",
+          "color_range": "tv"
+        },
+        "out": {
+          "width": 1920,
+          "height": 1080,
+          "pix_fmt": "yuv420p",
+          "color_space": "bt709",
+          "color_range": "tv"
+        },
+        "flags": "0x00000002"
+      }
+    ],
+    "conversions": [
+      "Parsed_scale_1: color_space smpte170m -> bt709"
+    ]
+  },
+  "inputs": {
+    "ref": {
+      "ffprobe": {
+        "codec_name": "h264",
+        "width": 1920,
+        "height": 1080,
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_range": "tv",
+        "color_primaries": "bt709",
+        "color_transfer": "bt709",
+        "time_base": "1/90000",
+        "r_frame_rate": "30000/1001",
+        "avg_frame_rate": "30000/1001",
+        "start_time": "10.000000"
+      },
+      "mirage_vmaf": {
+        "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear5/prog_index.m3u8",
+        "width": 1920,
+        "height": 1080,
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_range": "tv",
+        "color_primaries": "bt709",
+        "color_trc": "bt709",
+        "time_base": "1/90000",
+        "ended": false
+      }
+    },
+    "dis": {
+      "ffprobe": {
+        "codec_name": "h264",
+        "width": 640,
+        "height": 360,
+        "pix_fmt": "yuv420p",
+        "color_space": "smpte170m",
+        "color_range": "tv",
+        "color_primaries": "smpte170m",
+        "color_transfer": "bt709",
+        "time_base": "1/90000",
+        "r_frame_rate": "30000/1001",
+        "avg_frame_rate": "30000/1001",
+        "start_time": "10.000000"
+      },
+      "mirage_vmaf": {
+        "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear2/prog_index.m3u8",
+        "width": 640,
+        "height": 360,
+        "pix_fmt": "yuv420p",
+        "color_space": "smpte170m",
+        "color_range": "tv",
+        "color_primaries": "smpte170m",
+        "color_trc": "bt709",
+        "time_base": "1/90000",
+        "ended": false
+      }
+    }
+  },
+  "mirage_vmaf": {
+    "exit_code": 0,
+    "elapsed_s": 4.697,
+    "tool": "mirage_vmaf",
+    "libvmaf_version": "3.0.0",
+    "libvmaf_package_version": "3.1.0",
+    "model": "vmaf_v0.6.1",
+    "scaler": "bilinear",
+    "n_threads": 4,
+    "n_subsample": 1,
+    "scored_as": {
+      "width": 1920,
+      "height": 1080,
+      "pix_fmt": "yuv420p",
+      "bit_depth": 8
+    },
+    "frame_limit": 300,
+    "frames_scored": 300,
+    "ref_ended": false,
+    "dis_ended": false,
+    "first_ref_pts": 10.0,
+    "last_ref_pts": 19.976644444444446,
+    "pairs_with_different_pts": 0
+  },
+  "ffmpeg": {
+    "exit_code": 0,
+    "elapsed_s": 4.529,
+    "libvmaf_version": "3.0.0"
+  }
+}

@@ -14,7 +14,7 @@ Dependencies are managed via **homebrew** (macOS) and fetched at configure time 
 
 ```bash
 # First-time setup (homebrew deps)
-brew install ffmpeg glfw ninja pkg-config libvmaf
+brew install ffmpeg-full glfw ninja pkg-config libvmaf
 
 # Configure
 cmake --preset macos-debug
@@ -27,6 +27,8 @@ cmake --build --preset macos-debug
 ```
 
 Build output lands in `build/macos-debug/` (debug) or `build/macos-release/` (release).
+
+The build as it was checked, with the versions the evaluation used and the Python 3.13 workaround for glad, is in `docs/BUILD.md`.
 
 > **Note:** glad2 requires `jinja2` for Python 3. If the configure step fails with `ModuleNotFoundError: No module named 'jinja2'`, run:
 > `pip3 install jinja2 --break-system-packages`

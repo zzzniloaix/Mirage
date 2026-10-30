@@ -18,6 +18,7 @@
 #include "KeyframeIndex.h"
 #include "ManifestParser.h"
 #include "ScrubDecoder.h"
+#include "TestTemp.h"
 
 #include <atomic>
 #include <chrono>
@@ -115,7 +116,7 @@ void make_video_playlist(const fs::path& dir, int w, int h, double ts_offset = 0
 
 fs::path make_master()
 {
-    const fs::path root = fs::temp_directory_path() / "mirage_test_scrub_follow";
+    const fs::path root = testtemp::path("mirage_test_scrub_follow");
     static bool made = false;   // once per test run, never a stale fixture
     if (made) return root;
     made = true;
@@ -132,7 +133,7 @@ fs::path make_master()
 // One variant whose timestamps start at ~10 s.
 fs::path make_offset_master()
 {
-    const fs::path root = fs::temp_directory_path() / "mirage_test_seek_offset";
+    const fs::path root = testtemp::path("mirage_test_seek_offset");
     static bool made = false;
     if (made) return root;
     made = true;

@@ -1,0 +1,1096 @@
+"""Unit tests of eval/consistency/vmafdelta.py.
+
+python3 -I -B -m unittest discover -s eval/consistency/tests -v
+"""
+
+import fractions
+import hashlib
+import json
+import lzma
+import os
+import shlex
+import sys
+import tempfile
+import unittest
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
+sys.dont_write_bytecode = True
+sys.path.insert(0, os.path.dirname(HERE))
+import vmafdelta as vd  # noqa: E402
+
+REF = "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear5/prog_index.m3u8"
+DIS = "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear2/prog_index.m3u8"
+
+# Lines of an FFmpeg 8.1.1 verbose log of a 640x360 smpte170m rung against
+# a 1920x1080 bt709 one, as run_delta.py runs it.
+LOG = """\
+[Parsed_scale_1 @ 0x9c50880c0] w:1920 h:1080 flags:'bilinear' interl:0
+  Stream #0:1[0x0]: Video: h264 (Main), 1 reference frame ([27][0][0][0] / 0x001B), yuv420p(tv, smpte170m/smpte170m/bt709, topleft), 640x360, 29.97 fps, 29.97 tbr, 90k tbn, start 10.000000
+  Stream #1:1[0x0]: Video: h264 (Main), 1 reference frame ([27][0][0][0] / 0x001B), yuv420p(tv, bt709, topleft), 1920x1080, 29.97 fps, 29.97 tbr, 90k tbn, start 10.000000
+  Stream #0:0[0x0]: Audio: aac (LC) ([15][0][0][0] / 0x000F), 22050 Hz, stereo, fltp, start 10.000000
+[Parsed_scale_1 @ 0x9c508bf00] w:1920 h:1080 flags:'bilinear' interl:0
+[graph 0 input from stream 0:1 @ 0x9c84446c0] w:640 h:360 pixfmt:yuv420p tb:1/90000 fr:30000/1001 sar:0/1 csp:smpte170m range:tv alpha:unspecified
+[graph 0 input from stream 1:1 @ 0x9c8444840] w:1920 h:1080 pixfmt:yuv420p tb:1/90000 fr:30000/1001 sar:0/1 csp:bt709 range:tv alpha:unspecified
+[Parsed_scale_1 @ 0x9c508bf00] w:640 h:360 fmt:yuv420p csp:smpte170m range:tv sar:0/1 -> w:1920 h:1080 fmt:yuv420p csp:bt709 range:tv sar:0/1 flags:0x00000002
+[Parsed_scale_1 @ 0x9c508bf00] [framesync @ 0x9c508c790] Selected 1/90000 time base
+[swscaler @ 0x9c9ba4000] YUV color matrix differs for YUV->YUV, using intermediate RGB to convert
+  Stream #0:0: Video: wrapped_avframe, 1 reference frame, yuv420p(tv, bt709/smpte170m/bt709, progressive), 1920x1080, q=2-31, 200 kb/s, 29.97 fps, 29.97 tbn
+[Parsed_libvmaf_5 @ 0x9c8444240] VMAF score: 26.276917
+"""
+
+PARAMS = {"variant": vd.VARIANT_PLAIN, "frames": 3, "threshold": 0.01,
+          "model": "vmaf_v0.6.1", "scaler": "bilinear", "threads": 4}
+
+PROBE_REF = {"codec_name": "h264", "width": 1920, "height": 1080, "pix_fmt": "yuv420p",
+             "color_space": "bt709", "color_range": "tv", "color_primaries": "bt709",
+             "color_transfer": "bt709", "time_base": "1/90000", "r_frame_rate": "30000/1001",
+             "avg_frame_rate": "30000/1001", "start_time": "10.000000"}
+PROBE_DIS = dict(PROBE_REF, width=640, height=360, color_space="smpte170m",
+                 color_primaries="smpte170m")
+
+
+def mirage_report(scores, frame_limit=3, **settings):
+    """A mirage_vmaf report (src/VMAFReport.h) with these per-frame scores."""
+    def info(url, probe):
+        return {"url": url, "width": probe["width"], "height": probe["height"],
+                "pix_fmt": "yuv420p", "color_space": probe["color_space"], "color_range": "tv",
+                "color_primaries": probe["color_primaries"], "color_trc": "bt709",
+                "time_base": "1/90000", "ended": False}
+    rep = {"tool": "mirage_vmaf", "libvmaf_version": "3.0.0", "libvmaf_package_version": "3.1.0",
+           "model": "vmaf_v0.6.1", "scaler": "bilinear", "n_threads": 4, "n_subsample": 1,
+           "scored_as": {"width": 1920, "height": 1080, "pix_fmt": "yuv420p", "bit_depth": 8},
+           "frame_limit": frame_limit, "frames_scored": len(scores),
+           "pooled": {"mean": sum(scores) / len(scores) if scores else None,
+                      "min": min(scores) if scores else None},
+           "ref": info(REF, PROBE_REF), "dis": info(DIS, PROBE_DIS),
+           "frames": [{"index": i, "ref_pts": 10 + i / 30, "dis_pts": 10 + i / 30, "vmaf": v}
+                      for i, v in enumerate(scores)]}
+    rep.update(settings)
+    return rep
+
+
+def ffmpeg_log(scores, version="3.0.0"):
+    """FFmpeg's libvmaf JSON log with these per-frame scores."""
+    return {"version": version, "fps": 1.0,
+            "frames": [{"frameNum": i, "metrics": {"integer_motion2": 0.0, "vmaf": v}}
+                       for i, v in enumerate(scores)],
+            "pooled_metrics": {"vmaf": {"min": min(scores), "max": max(scores),
+                                        "mean": sum(scores) / len(scores),
+                                        "harmonic_mean": 0.0}},
+            "aggregate_metrics": {}}
+
+
+# The lines of FFmpeg 8.1.1's verbose log that state each input file's start.
+INPUT_LINES = ("Input #0, hls, from 'dis':\n  Duration: 00:30:00.01, start: 10.000000, "
+               "bitrate: 0 kb/s\nInput #1, hls, from 'ref':\n  Duration: 00:30:00.01, "
+               "start: 10.000000, bitrate: 0 kb/s\n")
+
+
+def showinfo_lines(dis, ref, out=None, tb="1/90000", indices=(3, 6, 8)):
+    """The lines filtergraph()'s three showinfo filters log, in the form of
+    FFmpeg 8.1.1's vf_showinfo.c, for frames with these pts (None: NOPTS):
+    the distorted input's chain, the reference's, and libvmaf's output (by
+    default the distorted frames again, as for inputs whose frames line up)."""
+    lines = []
+    for k, (idx, frames) in enumerate(zip(indices, (dis, ref, dis if out is None else out))):
+        tag = f"[Parsed_showinfo_{idx} @ 0x{k + 1}a0]"
+        lines.append(f"{tag} config in time_base: {tb}, frame_rate: 30000/1001")
+        lines.append(f"{tag} config out time_base: 0/0, frame_rate: 0/0")
+        for n, pts in enumerate(frames):
+            shown = "NOPTS" if pts is None else str(pts)
+            lines.append(f"{tag} n:{n:4d} pts:{shown:>7} pts_time:0       duration:   3003 "
+                         "duration_time:0.0333667 fmt:yuv420p cl:left sar:1/1 s:1920x1080 i:P "
+                         "iskey:1 type:I ")
+            lines.append(f"{tag} color_range:tv color_space:bt709 color_primaries:bt709 "
+                         "color_trc:bt709")
+    return "\n".join(lines) + "\n"
+
+
+def aligned(n, step=3000):
+    """The pts of n frames that line up, from 0 at 90 kHz."""
+    return [step * i for i in range(n)]
+
+
+def sides(m_scores, f_scores, m_exit=0, f_exit=0, stderr=LOG, showinfo=True, **rep_settings):
+    """The sides of a pair. FFmpeg's verbose log is `stderr` with the input
+    lines and, with `showinfo` True, showinfo lines in which both inputs
+    have as many frames, lined up, as FFmpeg scored; or `showinfo` itself."""
+    run = lambda rc: {"exit_code": rc, "timed_out": False, "timeout_s": 60,  # noqa: E731
+                      "error": None, "elapsed_s": 1.0}
+    if showinfo is True:
+        showinfo = showinfo_lines(aligned(len(f_scores)), aligned(len(f_scores)))
+    return {"probe": {"ref": PROBE_REF, "dis": PROBE_DIS, "errors": []},
+            "relabel": None, "relabel_warnings": [],
+            "mirage": {"run": run(m_exit), "error": None,
+                       "report": mirage_report(m_scores, **rep_settings)},
+            "ffmpeg": {"run": run(f_exit), "error": None, "log": ffmpeg_log(f_scores),
+                       "stderr": INPUT_LINES + stderr + (showinfo or "")}}
+
+
+PAIR = vd.Pair("gear2_vs_gear5", REF, DIS)
+
+
+class ParsePairs(unittest.TestCase):
+    def test_lines_comments_and_blank_lines(self):
+        pairs = vd.parse_pairs("# a comment\n\n  a_1 r1 d1 \nb.2\tr2   d2\n")
+        self.assertEqual(pairs, [vd.Pair("a_1", "r1", "d1"), vd.Pair("b.2", "r2", "d2")])
+
+    def test_errors(self):
+        for text, part in (("a r\n", "found 2 fields"), ("a r d x\n", "found 4 fields"),
+                           ("../x r d\n", "may only use"), ("a/b r d\n", "may only use"),
+                           ("a r d\na r2 d2\n", "used twice"), ("# only\n\n", "no pairs")):
+            with self.subTest(text=text):
+                with self.assertRaises(ValueError) as cm:
+                    vd.parse_pairs(text)
+                self.assertIn(part, str(cm.exception))
+
+    def test_committed_pairs_file(self):
+        with open(os.path.join(os.path.dirname(HERE), "pairs", "bipbop16x9.txt")) as f:
+            pairs = vd.parse_pairs(f.read())
+        self.assertEqual([p.label for p in pairs],
+                         ["gear4_vs_gear5", "gear3_vs_gear5", "gear2_vs_gear5", "gear1_vs_gear5"])
+        base = "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/"
+        for p in pairs:
+            self.assertEqual(p.ref, base + "gear5/prog_index.m3u8")
+            self.assertEqual(p.dis, base + p.label[:5] + "/prog_index.m3u8")
+        with open(os.path.join(os.path.dirname(HERE), "pairs", "bipbop16x9_gear2.txt")) as f:
+            self.assertEqual(vd.parse_pairs(f.read()), [pairs[2]])
+
+
+class Commands(unittest.TestCase):
+    def test_graph_is_phase_0s(self):
+        # The FFmpeg command of Phase 0's diagnostic comparison (P-005), with the
+        # showinfo filters that log every frame's timestamp (D-028) and change none.
+        path = os.path.join(REPO, "eval", "baseline", "diagnostics",
+                            "ffmpeg_libvmaf_gear2_vs_gear5_first300.cmd.txt")
+        with open(path) as f:
+            argv = shlex.split(f.read())
+        graph = argv[argv.index("-lavfi") + 1]
+        log_path = graph.rsplit("log_path=", 1)[1]
+        mine = vd.filtergraph(1920, 1080, "bilinear", "vmaf_v0.6.1", 4, log_path=log_path)
+        self.assertEqual(mine.count(vd.SHOWINFO), 3)
+        self.assertTrue(mine.endswith(f",{vd.SHOWINFO}"))
+        self.assertIn(f",format=yuv420p,{vd.SHOWINFO}[d];", mine)
+        self.assertIn(f",{vd.SHOWINFO}[r];", mine)
+        self.assertEqual(mine.replace(f",{vd.SHOWINFO}", ""), graph)
+        # Input 0 is the distorted rung there and here.
+        inputs = [argv[i + 1] for i, a in enumerate(argv) if a == "-i"]
+        cmd = vd.ffmpeg_command("ffmpeg", REF, DIS, graph)
+        self.assertEqual([cmd[i + 1] for i, a in enumerate(cmd) if a == "-i"], inputs)
+        self.assertEqual(inputs, [DIS, REF])
+
+    def test_graph_with_frames_and_relabel(self):
+        g = vd.filtergraph(1920, 1080, "bicubic", "vmaf_v0.6.1neg", 8, frames=300,
+                           relabel="setparams=colorspace=bt709")
+        self.assertEqual(g, "[0:v]trim=end_frame=300,setparams=colorspace=bt709,"
+                            "scale=1920:1080:flags=bicubic,format=yuv420p,showinfo=checksum=0[d];"
+                            "[1:v]trim=end_frame=300,format=yuv420p,showinfo=checksum=0[r];"
+                            "[d][r]libvmaf=model=version=vmaf_v0.6.1neg:n_threads=8"
+                            ":log_fmt=json:log_path=ffmpeg.json,showinfo=checksum=0")
+
+    def test_graph_with_a_model_file(self):
+        g = vd.filtergraph(1920, 1080, "lanczos", None, 4, model_file="/m/vmaf_v0.6.1neg.json")
+        self.assertEqual(g, "[0:v]scale=1920:1080:flags=lanczos,format=yuv420p,"
+                            "showinfo=checksum=0[d];[1:v]format=yuv420p,showinfo=checksum=0[r];"
+                            "[d][r]libvmaf=model=path=/m/vmaf_v0.6.1neg.json:n_threads=4"
+                            ":log_fmt=json:log_path=ffmpeg.json,showinfo=checksum=0")
+
+    def test_filter_safe(self):
+        self.assertTrue(vd.filter_safe("/opt/homebrew/share/libvmaf/model/vmaf_v0.6.1.json"))
+        for bad in ("", "a:b", "a b", "a,b", "a;b", "a=b", "a[b]", "a'b", "a\\b", "a|b", "a%b",
+                    "a\tb"):
+            with self.subTest(bad=bad):
+                self.assertFalse(vd.filter_safe(bad))
+
+    def test_ffmpeg_command(self):
+        cmd = vd.ffmpeg_command("/x/ffmpeg", REF, DIS, "G")
+        self.assertEqual(cmd, ["/x/ffmpeg", "-hide_banner", "-nostdin", "-nostats", "-v",
+                               "verbose", "-i", DIS, "-i", REF, "-an", "-lavfi", "G",
+                               "-f", "null", "-"])
+
+    def test_mirage_command(self):
+        self.assertEqual(vd.mirage_command("m", REF, DIS),
+                         ["m", "--ref", REF, "--dis", DIS, "--out", "mirage.json"])
+        self.assertEqual(vd.mirage_command("m", REF, DIS, frames=300, options=["--x", "y"]),
+                         ["m", "--ref", REF, "--dis", DIS, "--out", "mirage.json",
+                          "--frames", "300", "--x", "y"])
+
+    def test_probe_command_and_parse(self):
+        cmd = vd.probe_command("ffprobe", REF)
+        self.assertEqual(cmd[-1], REF)
+        self.assertIn("stream=" + ",".join(vd.PROBE_FIELDS), cmd)
+        text = json.dumps({"programs": [], "streams": [{"width": 640, "height": 360,
+                                                        "color_space": "smpte170m"}]})
+        info = vd.parse_probe(text)
+        self.assertEqual((info["width"], info["height"], info["color_space"]),
+                         (640, 360, "smpte170m"))
+        self.assertIsNone(info["color_range"])
+        for bad in ("not json", "{}", '{"streams": []}', '{"streams": [{"width": 640}]}'):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                vd.parse_probe(bad)
+
+    def test_shell_line(self):
+        self.assertEqual(vd.shell_line(["/a b/ffmpeg", "-lavfi", "[0:v]scale=1:2[d];x", "-"],
+                                       "<ffmpeg>"),
+                         "<ffmpeg> -lavfi '[0:v]scale=1:2[d];x' -")
+        self.assertEqual(vd.shell_line(["a b", REF]), f"'a b' {REF}")
+
+    def test_help_options_and_forwarding(self):
+        text = ("Usage: mirage_vmaf --ref <url|path> --dis <url|path> --out <report.json>\n\n"
+                "Options:\n  --ref <url|path>      reference\n  --frames N            limit\n"
+                "  -h, --help            help\nThe --scaler option is not here.\n")
+        self.assertEqual(vd.help_options(text), {"--ref", "--frames"})
+        self.assertEqual(vd.forwarded_options({"--ref"}, "bicubic", "m"), [])
+        self.assertEqual(vd.forwarded_options({"--scaler", "--model"}, "bicubic", "m"),
+                         ["--scaler", "bicubic", "--model", "m"])
+        both = {"--scaler", "--model", "--model-file"}
+        self.assertEqual(vd.forwarded_options(both, "bilinear", None, "/m/x.json"),
+                         ["--scaler", "bilinear", "--model-file", "/m/x.json"])
+        # Without --model-file the file is not passed on, nor the default model instead.
+        self.assertEqual(vd.forwarded_options({"--model"}, "bilinear", None, "/m/x.json"), [])
+
+
+class Relabel(unittest.TestCase):
+    def test_same_tags(self):
+        self.assertEqual(vd.relabel_filter(PROBE_REF, dict(PROBE_REF, width=1)), (None, []))
+
+    def test_color_space_differs(self):
+        self.assertEqual(vd.relabel_filter(PROBE_REF, PROBE_DIS),
+                         ("setparams=colorspace=bt709", []))
+
+    def test_range_differs_too(self):
+        self.assertEqual(vd.relabel_filter(PROBE_REF, dict(PROBE_DIS, color_range="pc")),
+                         ("setparams=colorspace=bt709:range=tv", []))
+
+    def test_untagged_reference(self):
+        f, warnings = vd.relabel_filter(dict(PROBE_REF, color_space="unknown"), PROBE_DIS)
+        self.assertIsNone(f)
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("no color_space tag", warnings[0])
+
+
+class Redaction(unittest.TestCase):
+    def test_longest_first_text_and_bytes(self):
+        r = vd.Redactor([("/u/me", "<home>"), ("/u/me/repo", "<repo>"), (None, "<x>")])
+        self.assertEqual(r.text("/u/me/repo/a /u/me/b /u/other"),
+                         ("<repo>/a <home>/b /u/other", 2))
+        self.assertEqual(r.data(b"x /u/me/repo"), (b"x <repo>", 1))
+        self.assertEqual(r.text("nothing"), ("nothing", 0))
+
+    def test_real_path_too(self):
+        with tempfile.TemporaryDirectory() as d:
+            real = os.path.join(d, "real")
+            os.mkdir(real)
+            link = os.path.join(d, "link")
+            os.symlink(real, link)
+            r = vd.Redactor([(link, "<out_dir>")])
+            text, n = r.text(f"{os.path.realpath(real)}/x {os.path.abspath(link)}/y")
+            self.assertEqual((text, n), ("<out_dir>/x <out_dir>/y", 2))
+
+    def test_local_strings(self):
+        needles = [("/scratch/", "a local path"), ("host9", "the host name"), ("", "x")]
+        self.assertEqual(vd.local_strings("a /scratch/b host9", needles),
+                         ["a local path", "the host name"])
+        self.assertEqual(vd.local_strings("clean", needles), [])
+
+
+class Scores(unittest.TestCase):
+    def test_mirage_scores(self):
+        self.assertEqual(vd.mirage_scores(mirage_report([1, 2.5])), [1.0, 2.5])
+        bad = mirage_report([1, 2])
+        bad["frames"][1]["index"] = 5
+        with self.assertRaisesRegex(ValueError, "frame 1 has index 5"):
+            vd.mirage_scores(bad)
+        bad = mirage_report([1, 2])
+        bad["frames"][0]["vmaf"] = None
+        with self.assertRaisesRegex(ValueError, "frame 0 has no score"):
+            vd.mirage_scores(bad)
+
+    def test_ffmpeg_scores(self):
+        self.assertEqual(vd.ffmpeg_scores(ffmpeg_log([3, 4])), [3.0, 4.0])
+        bad = ffmpeg_log([3, 4])
+        bad["frames"][0]["frameNum"] = 1
+        with self.assertRaisesRegex(ValueError, "frameNum 1"):
+            vd.ffmpeg_scores(bad)
+        bad = ffmpeg_log([3, 4])
+        del bad["frames"][1]["metrics"]["vmaf"]
+        with self.assertRaisesRegex(ValueError, "no vmaf score"):
+            vd.ffmpeg_scores(bad)
+
+    def test_compare(self):
+        c = vd.compare_scores([1.0, 2.5, 3.0, 4.0], [1.0, 2.0, 3.25, 4.0], 0.01, worst=2)
+        self.assertEqual(c["compared"], 4)
+        self.assertEqual((c["max_abs"], c["max_abs_index"]), (0.5, 1))
+        self.assertEqual(c["mean_abs"], 0.1875)
+        self.assertEqual(c["mean_signed"], 0.0625)
+        self.assertEqual((c["over_threshold"], c["over_threshold_ranges"]), (2, [[1, 2]]))
+        self.assertEqual(c["worst"], [{"index": 1, "ffmpeg_index": 1, "mirage": 2.5,
+                                       "ffmpeg": 2.0, "delta": 0.5},
+                                      {"index": 2, "ffmpeg_index": 2, "mirage": 3.0,
+                                       "ffmpeg": 3.25, "delta": -0.25}])
+        self.assertEqual((c["mean_mirage"], c["mean_ffmpeg"]), (2.625, 2.5625))
+
+    def test_compare_pairs_named_by_both_sides(self):
+        # Pairs matched by compare_pairings(): Mirage's pairs 0, 2, 3 with FFmpeg's 0, 3, 4.
+        c = vd.compare_scores([1.0, 2.0, 3.5], [1.0, 2.0, 3.0], 0.01, indices=[0, 2, 3],
+                              ffmpeg_indices=[0, 3, 4])
+        self.assertEqual((c["max_abs_index"], c["over_threshold_ranges"]), (3, [[3, 3]]))
+        self.assertEqual(c["worst"][0], {"index": 3, "ffmpeg_index": 4, "mirage": 3.5,
+                                         "ffmpeg": 3.0, "delta": 0.5})
+
+    def test_threshold_is_exclusive(self):
+        # D-019: a frame fails if |delta| > threshold; exactly at it passes.
+        c = vd.compare_scores([1.25, 1.2500001], [1.0, 1.0], 0.25)
+        self.assertEqual(c["over_threshold_ranges"], [[1, 1]])
+
+    def test_unequal_lengths_and_empty(self):
+        c = vd.compare_scores([1.0, 2.0, 3.0], [1.0, 2.0], 0.01)
+        self.assertEqual((c["compared"], c["max_abs"]), (2, 0.0))
+        e = vd.compare_scores([], [1.0], 0.01)
+        self.assertEqual((e["compared"], e["max_abs"], e["mean_abs"], e["worst"]),
+                         (0, None, None, []))
+
+    def test_index_ranges(self):
+        self.assertEqual(vd.index_ranges([]), [])
+        self.assertEqual(vd.index_ranges([0, 1, 2, 5, 7, 8]), [[0, 2], [5, 5], [7, 8]])
+
+
+class Log(unittest.TestCase):
+    def test_colorspace_lines(self):
+        lines = vd.colorspace_lines(LOG)
+        self.assertEqual(len(lines), 7)
+        self.assertTrue(lines[0].startswith("  Stream #0:1[0x0]: Video: h264"))
+        self.assertTrue(lines[2].startswith("[graph 0 input from stream 0:1"))
+        self.assertTrue(lines[4].startswith("[Parsed_scale_1 @ 0x9c508bf00] w:640 h:360"))
+        self.assertTrue(lines[5].startswith("[swscaler @"))
+        self.assertTrue(lines[6].startswith("  Stream #0:0: Video: wrapped_avframe"))
+        self.assertFalse(any("Audio" in l or "interl" in l or "framesync" in l for l in lines))
+
+    def test_colorspace_lines_warnings_and_refusals(self):
+        # Lines in the form FFmpeg 8.1.1 writes them (libavfilter/vf_libvmaf.c,
+        # libavfilter/avfiltergraph.c): libvmaf's warning, and the error of a
+        # graph whose distorted input has a matrix libswscale lacks.
+        warning = ("[Parsed_libvmaf_5 @ 0x7c4c25080] distorted and reference frames use "
+                   "different color ranges (pc != tv)")
+        refusal = ("Impossible to convert between the formats supported by the filter "
+                   "'Parsed_trim_0' and the filter 'auto_scale_0'")
+        prefixed = "[fc#0 @ 0x6000] " + refusal
+        other = "[Parsed_libvmaf_5 @ 0x7c4c25080] VMAF score: 26.276917"
+        text = "\n".join([warning, other, refusal, prefixed, "[fc#0 @ 0x6000] Error "
+                          "reinitializing filters!"])
+        self.assertEqual(vd.colorspace_lines(text), [warning, refusal, prefixed])
+
+    def test_scale_lines_and_conversions(self):
+        scales = vd.scale_lines(LOG)
+        self.assertEqual(scales, [{
+            "filter": "Parsed_scale_1",
+            "in": {"width": 640, "height": 360, "pix_fmt": "yuv420p",
+                   "color_space": "smpte170m", "color_range": "tv"},
+            "out": {"width": 1920, "height": 1080, "pix_fmt": "yuv420p",
+                    "color_space": "bt709", "color_range": "tv"},
+            "flags": "0x00000002"}])
+        self.assertEqual(vd.conversions(scales + scales),
+                         ["Parsed_scale_1: color_space smpte170m -> bt709"])
+        auto = ("[auto_scale_0 @ 0x1] w:1920 h:1080 fmt:yuv420p csp:bt709 range:tv sar:1/1 -> "
+                "w:1920 h:1080 fmt:yuv420p csp:bt709 range:pc sar:1/1")
+        self.assertEqual(vd.conversions(vd.scale_lines(auto)),
+                         ["auto_scale_0: color_range tv -> pc"])
+
+    def test_library_versions(self):
+        # Two lines of `ffmpeg -version`: the version built with, then the one run with.
+        text = ("ffmpeg version 8.1.1 Copyright (c) 2000-2025 the FFmpeg developers\n"
+                "libavutil      60. 26.101 / 60. 26.101\n"
+                "libswscale      9.  5.101 /  9.  6.100\n")
+        self.assertEqual(vd.library_versions(text), {"libavutil": "60.26.101",
+                                                     "libswscale": "9.6.100"})
+        self.assertEqual(vd.library_versions("ffmpeg version fake\n"), {})
+
+    def test_graph_inputs(self):
+        self.assertEqual(vd.graph_inputs(LOG), [
+            {"input": 0, "stream": 1, "color_space": "smpte170m", "color_range": "tv"},
+            {"input": 1, "stream": 1, "color_space": "bt709", "color_range": "tv"}])
+
+
+class EvaluatePair(unittest.TestCase):
+    def test_equal_scores_pass(self):
+        r = vd.evaluate_pair(PAIR, PARAMS, sides([50.0, 60.0, 70.0], [50.0, 60.0, 70.0]))
+        self.assertEqual(r["status"], "PASS", r["fail_reasons"])
+        self.assertEqual(r["fail_reasons"], [])
+        self.assertEqual(r["frames"], {"mirage": 3, "ffmpeg": 3, "compared": 3,
+                                       "counts_match": True})
+        self.assertEqual(r["delta"]["max_abs"], 0.0)
+        # The report has no harmonic mean, as before D-027.
+        self.assertEqual(r["pooled"]["difference"], {"mean": 0.0, "min": 0.0,
+                                                     "harmonic_mean": None})
+        self.assertEqual(r["ffmpeg_color"]["conversions"],
+                         ["Parsed_scale_1: color_space smpte170m -> bt709"])
+        self.assertEqual(r["mirage_vmaf"]["pairs_with_different_pts"], 0)
+        self.assertEqual(r["warnings"], [])
+        json.loads(vd.to_json(r))
+
+    def test_pooled_values_of_both_sides(self):
+        # D-027: mirage_vmaf's harmonic mean next to that of FFmpeg's log.
+        scores = [50.0, 60.0, 70.0]
+        hm = 3 / (1 / 51 + 1 / 61 + 1 / 71) - 1
+        s = sides(scores, scores, pooled={"mean": 60.0, "min": 50.0, "harmonic_mean": hm,
+                                          "min_without_first_frame": 60.0})
+        s["ffmpeg"]["log"]["pooled_metrics"]["vmaf"]["harmonic_mean"] = round(hm, 6)
+        r = vd.evaluate_pair(PAIR, PARAMS, s)
+        self.assertEqual(r["status"], "PASS", r["fail_reasons"])
+        self.assertEqual(r["pooled"]["mirage"], {"mean": 60.0, "min": 50.0, "harmonic_mean": hm})
+        self.assertEqual(r["pooled"]["ffmpeg"]["harmonic_mean"], round(hm, 6))
+        self.assertAlmostEqual(r["pooled"]["difference"]["harmonic_mean"], hm - round(hm, 6), 12)
+        md = vd.pair_markdown(r)
+        self.assertIn(f"| pooled harmonic mean (libvmaf) | {hm:.6f} | {hm:.6f} | 0.000000 |", md)
+
+    def test_frames_over_the_threshold_fail(self):
+        r = vd.evaluate_pair(PAIR, PARAMS, sides([50.0, 60.02, 70.0], [50.0, 60.0, 70.0]))
+        self.assertEqual(r["status"], "FAIL")
+        self.assertEqual(r["fail_reasons"], ["1 of 3 frames have |delta| > 0.01"])
+        self.assertEqual(r["delta"]["over_threshold_ranges"], [[1, 1]])
+
+    def test_frame_count_mismatch_fails_first(self):
+        r = vd.evaluate_pair(PAIR, PARAMS, sides([50.0, 60.0, 70.0], [50.0, 60.0, 70.0, 80.0]))
+        self.assertEqual(r["status"], "FAIL")
+        self.assertTrue(r["fail_reasons"][0].startswith(
+            "FRAME COUNT MISMATCH: Mirage scored 3 frame pairs, FFmpeg 4"))
+        self.assertEqual(r["frames"]["compared"], 3)
+        self.assertIn("**MISMATCH**", vd.pair_markdown(r))
+
+    def test_settings_mismatch_fails(self):
+        r = vd.evaluate_pair(PAIR, dict(PARAMS, scaler="bicubic"),
+                             sides([50.0, 60.0, 70.0], [50.0, 60.0, 70.0]))
+        self.assertEqual(r["status"], "FAIL")
+        self.assertIn("SETTINGS MISMATCH: mirage_vmaf's report has scaler 'bilinear', "
+                      "FFmpeg's run 'bicubic'", r["fail_reasons"])
+        # FFmpeg's scale line has bilinear's flags, which the report flags too.
+        self.assertTrue(any("flags 0x00000002" in w for w in r["warnings"]))
+        for key, value in (("model", "vmaf_v0.6.1neg"), ("n_threads", 1), ("n_subsample", 2),
+                           ("frame_limit", None)):
+            with self.subTest(key=key):
+                r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0], [1.0], **{key: value}))
+                self.assertTrue(any(x.startswith(f"SETTINGS MISMATCH: mirage_vmaf's report "
+                                                 f"has {key}") for x in r["fail_reasons"]))
+
+    def test_failed_runs(self):
+        r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0], [1.0], m_exit=1))
+        self.assertEqual(r["fail_reasons"], ["mirage_vmaf exited with status 1"])
+        self.assertIsNone(r["delta"])
+        s = sides([1.0], [1.0])
+        s["ffmpeg"] = {"run": None, "error": "the reference's size is unknown"}
+        r = vd.evaluate_pair(PAIR, PARAMS, s)
+        self.assertEqual(r["fail_reasons"], ["FFmpeg was not run: the reference's size is unknown"])
+        s = sides([1.0], [1.0])
+        s["ffmpeg"]["run"]["timed_out"] = True
+        s["ffmpeg"]["run"]["exit_code"] = None
+        r = vd.evaluate_pair(PAIR, PARAMS, s)
+        self.assertEqual(r["fail_reasons"], ["FFmpeg was stopped after 60 s"])
+
+    def test_warnings_do_not_fail(self):
+        s = sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0])
+        s["ffmpeg"]["log"]["version"] = "3.1.0"
+        s["mirage"]["report"]["dis"]["color_space"] = "bt470bg"
+        r = vd.evaluate_pair(PAIR, PARAMS, s)
+        self.assertEqual(r["status"], "PASS")
+        self.assertEqual(len(r["warnings"]), 2, r["warnings"])
+        self.assertTrue(any(w.startswith("libvmaf versions differ") for w in r["warnings"]))
+        self.assertTrue(any(w.startswith("dis: mirage_vmaf's decoder has color_space")
+                            for w in r["warnings"]))
+
+    def test_a_pair_at_another_timestamp_fails(self):
+        # Since D-028 the two sides' pairs are compared by their frames' timestamps
+        # too, where P-009 only warned about a Mirage pair of two different PTS.
+        s = sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0])
+        s["mirage"]["report"]["frames"][2]["dis_pts"] = 99.0
+        r = vd.evaluate_pair(PAIR, PARAMS, s)
+        self.assertEqual(r["fail_reasons"], ["TIMESTAMP MISMATCH: 1 of the pairs both scored have "
+                                             "other timestamps on the two sides"])
+        self.assertEqual(r["mirage_vmaf"]["pairs_with_different_pts"], 1)
+        e = r["alignment"]["other_times"][0]
+        self.assertEqual((e["index"], e["frame"], e["mirage"]["dis_time"], e["ffmpeg"]["dis_time"]),
+                         (2, 2, 89.0, 2 / 30))
+        self.assertIn("- 2 / 2, reference 2 with distorted 2: Mirage 0.066667 / 89.000000 s, "
+                      "FFmpeg 0.066667 / 0.066667 s", vd.pair_markdown(r))
+
+    def test_mirage_vmafs_own_warnings(self):
+        w = "the reference's frames are yuv422p, not yuv420p: ..."
+        r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0],
+                                                 warnings=[w]))
+        self.assertEqual(r["status"], "PASS")
+        self.assertEqual(r["warnings"], ["mirage_vmaf: " + w])
+        self.assertEqual(r["mirage_vmaf"]["warnings"], [w])
+        self.assertIn("mirage_vmaf: " + w, vd.pair_markdown(r))
+        # A report without the field, as mirage_vmaf wrote before it had one.
+        r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0]))
+        self.assertEqual((r["warnings"], r["mirage_vmaf"]["warnings"]), ([], []))
+
+    def test_model_file_settings(self):
+        params = dict(PARAMS, model=None, model_file={"path": "/m/x.json", "sha256": "ab12"})
+        good = sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0], model="/m/x.json", model_source="file",
+                     model_sha256="ab12")
+        r = vd.evaluate_pair(PAIR, params, good)
+        self.assertEqual(r["status"], "PASS", r["fail_reasons"])
+        self.assertEqual(r["mirage_vmaf"]["model_sha256"], "ab12")
+        self.assertIn("mirage_vmaf: model file /m/x.json (sha256 ab12), scaler bilinear",
+                      vd.pair_markdown(r))
+        other = sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0], model="/m/x.json", model_source="file",
+                      model_sha256="cd34")
+        r = vd.evaluate_pair(PAIR, params, other)
+        self.assertIn("SETTINGS MISMATCH: mirage_vmaf's report has model_sha256 'cd34', "
+                      "FFmpeg's run 'ab12'", r["fail_reasons"])
+        # A mirage_vmaf without the model options scored with its built-in model.
+        r = vd.evaluate_pair(PAIR, params, sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0]))
+        self.assertIn("SETTINGS MISMATCH: mirage_vmaf's report has model_source None, "
+                      "FFmpeg's run 'file'", r["fail_reasons"])
+
+    def test_a_model_file_where_ffmpeg_had_a_built_in_model(self):
+        r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0], [1.0], model_source="file",
+                                                 model_sha256="ab12"))
+        self.assertIn("SETTINGS MISMATCH: mirage_vmaf's report has model_source 'file', "
+                      "FFmpeg's run 'built-in'", r["fail_reasons"])
+        ok = vd.evaluate_pair(PAIR, PARAMS, sides([1.0], [1.0], model_source="built-in",
+                                                  model_sha256=None,
+                                                  reference_mode="explicit-pair"))
+        self.assertEqual(ok["status"], "PASS", ok["fail_reasons"])
+        md = vd.pair_markdown(ok)
+        self.assertIn("mirage_vmaf: model vmaf_v0.6.1 (built-in), scaler bilinear", md)
+        self.assertIn("reference mode explicit-pair", md)
+
+    def test_both_libvmaf_versions_of_both_sides(self):
+        # D-006: the run time version and the package version, Mirage's and FFmpeg's.
+        s = sides([1.0], [1.0])
+        s["ffmpeg"]["libvmaf_package_version"] = "3.1.0"
+        r = vd.evaluate_pair(PAIR, PARAMS, s)
+        self.assertEqual(r["ffmpeg"]["libvmaf_version"], "3.0.0")
+        self.assertEqual(r["ffmpeg"]["libvmaf_package_version"], "3.1.0")
+        md = vd.pair_markdown(r)
+        self.assertIn("| libvmaf version (run time) | 3.0.0 | 3.0.0 | |", md)
+        self.assertIn("| libvmaf package version | 3.1.0 | 3.1.0 | |", md)
+
+    def test_the_ffmpeg_libraries_of_both_sides(self):
+        # D-021: mirage_vmaf's report and FFmpeg's `-version` output.
+        libs = {"libavutil": "60.26.101", "libswscale": "9.5.101"}
+        s = sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0], ffmpeg_libraries=libs)
+        s["ffmpeg"]["ffmpeg_libraries"] = dict(libs, libavdevice="62.3.101")
+        r = vd.evaluate_pair(PAIR, PARAMS, s)
+        self.assertEqual(r["warnings"], [])
+        self.assertEqual(r["mirage_vmaf"]["ffmpeg_libraries"], libs)
+        self.assertEqual(r["ffmpeg"]["ffmpeg_libraries"]["libavdevice"], "62.3.101")
+        md = vd.pair_markdown(r)
+        self.assertIn("| libavutil version (run time) | 60.26.101 | 60.26.101 | |", md)
+        self.assertIn("| libavdevice version (run time) | - | 62.3.101 | |", md)
+        s["ffmpeg"]["ffmpeg_libraries"]["libswscale"] = "9.6.100"
+        r = vd.evaluate_pair(PAIR, PARAMS, s)
+        self.assertEqual(r["status"], "PASS")
+        self.assertEqual(r["warnings"], ["FFmpeg library versions differ: libswscale "
+                                         "mirage_vmaf '9.5.101', FFmpeg '9.6.100'"])
+        # A report without the field, as mirage_vmaf wrote before D-021.
+        r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0]))
+        self.assertEqual((r["warnings"], r["mirage_vmaf"]["ffmpeg_libraries"]), ([], None))
+
+    def test_frames_scored_must_match_the_frames(self):
+        r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0],
+                                                 frames_scored=4))
+        self.assertEqual(r["status"], "FAIL")
+
+
+F = fractions.Fraction
+
+
+def alignment(pairs, failures=(), start=10.0, rate="30000/1001", **counts):
+    """A mirage_vmaf report's alignment (src/VMAFReport.h) for these pairs."""
+    a = {"rule": "reference-timeline", "timestamp_origin": "input-start", "grid": "reference",
+         "tolerance": 1001 / 60000,
+         "reference": {"frame_rate": rate, "start": start, "start_from": "container"},
+         "distorted": {"frame_rate": rate, "start": start, "start_from": "container"},
+         "paired": pairs, "failed": len(failures), "threshold": 0.01,
+         "unmatched_reference": 0, "extra_distorted": 0, "duplicate_distorted": 0,
+         "no_timestamp": 0, "after_discontinuity": 0, "discontinuities": 0,
+         "discontinuity_jump": 10, "off_grid_reference": 0, "off_grid_distorted": 0,
+         "vmaf_contexts": [{"first_index": 0, "pairs": pairs}], "failures": list(failures)}
+    a["failure_rate"] = len(failures) / (pairs + len(failures)) if pairs + len(failures) else None
+    a["exceeded"] = bool(a["failure_rate"] and a["failure_rate"] > 0.01)
+    a.update(counts)
+    return a
+
+
+class Pairing(unittest.TestCase):
+    """FFmpeg's pairs, from the showinfo filters of its log (D-028)."""
+
+    def test_showinfo_log(self):
+        log = showinfo_lines([0, 3000, None], [0, 3000], out=[0, 3000, None], tb="1/1000")
+        f = vd.showinfo_log(LOG + log)
+        self.assertEqual(sorted(f), [3, 6, 8])
+        self.assertEqual(f[3], {"time_base": F(1, 1000), "configs": 1, "frames": [0, 3000, None]})
+        self.assertEqual(f[6]["frames"], [0, 3000])
+        bad = log.replace("n:   1 pts:   3000", "n:   2 pts:   3000", 1)
+        with self.assertRaisesRegex(ValueError, "n:2 after 1 frames"):
+            vd.showinfo_log(bad)
+        # A frame's line that follows another thread's message before it ended.
+        joined = log.replace("\n[Parsed_showinfo_3 @ 0x1a0] n:   1",
+                             "\n[h264 @ 0x9] a message [Parsed_showinfo_3 @ 0x1a0] n:   1", 1)
+        self.assertEqual(vd.showinfo_log(joined)[3]["frames"], [0, 3000, None])
+
+    def test_input_starts(self):
+        text = (INPUT_LINES.replace("start: 10.000000", "start: -0.023220", 1)
+                + "Input #2, matroska,webm, from 'x.mkv':\n  Metadata:\n    ENCODER : Lavf\n"
+                  "  Duration: N/A, bitrate: N/A\n")
+        self.assertEqual(vd.input_starts(text), {0: -23220, 1: 10000000, 2: None})
+
+    def test_rescale_and_framesync_time_base(self):
+        self.assertEqual(vd.rescale(1433367, F(1, 1000000), F(1, 90000)), 129003)
+        self.assertEqual(vd.rescale(5, F(1, 10), F(1, 1)), 1)      # halves away from zero
+        self.assertEqual(vd.rescale(-5, F(1, 10), F(1, 1)), -1)
+        self.assertEqual(vd.rescale(3003, F(1, 90000), F(1, 1000)), 33)
+        self.assertEqual(vd.framesync_time_base(F(1, 1000), F(1, 90000)), F(1, 90000))
+        self.assertEqual(vd.framesync_time_base(F(1001, 30000), F(1001, 60000)), F(1001, 60000))
+        # A common time base finer than AV_TIME_BASE / 2 falls back to microseconds.
+        self.assertEqual(vd.framesync_time_base(F(1, 1000), F(1, 999)), F(1, 1000000))
+
+    def test_framesync_events(self):
+        ev = lambda dis, ref: [(d, r, b) for d, r, _, b in vd.framesync_events(dis, ref)]  # noqa
+        # Frames that line up pair frame for frame.
+        self.assertEqual(ev([0, 1, 2], [0, 1, 2]), [(0, 0, False), (1, 1, False), (2, 2, False)])
+        # A reference frame missing: the distorted frame of its time pairs with the one before.
+        self.assertEqual(ev([0, 1, 2, 3], [0, 1, 3]),
+                         [(0, 0, False), (1, 1, False), (2, 1, False), (3, 2, False)])
+        # A distorted frame missing: the reference frame of its time pairs with none.
+        self.assertEqual(ev([0, 2], [0, 1, 2]), [(0, 0, False), (1, 2, False)])
+        # Two distorted frames of one time both pair with its reference frame.
+        self.assertEqual(ev([0, 1, 1, 2], [0, 1, 2]),
+                         [(0, 0, False), (1, 1, False), (2, 1, False), (3, 2, False)])
+        # Once the distorted input has ended, each later reference frame makes an
+        # event with the last distorted frame.
+        self.assertEqual(ev([0, 2], [0, 1, 2, 3, 4]),
+                         [(0, 0, False), (1, 2, False), (1, 3, True), (1, 4, True)])
+        # Once the reference has ended, its last frame is repeated.
+        self.assertEqual(ev([0, 1, 2], [0]), [(0, 0, False), (1, 0, False), (2, 0, False)])
+        # Distorted frames before the reference's first frame have no reference frame.
+        self.assertEqual(ev([0, 1, 2], [1, 2]), [(0, None, False), (1, 0, False), (2, 1, False)])
+        # A frame without a timestamp comes first; a distorted input without frames
+        # makes no event.
+        self.assertEqual(ev([None, 1], [0, 1]), [(0, None, False), (1, 1, False)])
+        self.assertEqual(ev([], [0, 1]), [])
+
+    def test_ffmpeg_pairing(self):
+        # The distorted input without its frame 1 (of 3000-tick frames): two pairs.
+        log = showinfo_lines([0, 6000], [0, 3000, 6000])
+        p, why = vd.ffmpeg_pairing(INPUT_LINES + log, 2)
+        self.assertIsNone(why)
+        self.assertEqual([(x["frame"], x["ref"], x["dis"], x["ref_time"], x["dis_time"])
+                          for x in p["pairs"]], [(0, 0, 0, 0, 0), (1, 2, 1, F(1, 15), F(1, 15))])
+        self.assertEqual(p["frames"]["reference"], [0, F(1, 30), F(1, 15)])
+        self.assertEqual((p["unscored"], p["corrections"]), ([], 0))
+        self.assertEqual(p["time_base"]["framesync"], F(1, 90000))
+        # After the distorted input's end, events of the reference with its last frame.
+        log = showinfo_lines([0], [0, 3000], out=[0, 3000])
+        p, _ = vd.ffmpeg_pairing(log, 2)
+        self.assertEqual([(x["ref"], x["dis"], x["by_reference"]) for x in p["pairs"]],
+                         [(0, 0, False), (1, 0, True)])
+        # A distorted frame before the reference's first: passed on unscored.
+        p, _ = vd.ffmpeg_pairing(showinfo_lines([0, 3000], [3000]), 1)
+        self.assertEqual((p["unscored"], [(x["ref"], x["dis"]) for x in p["pairs"]]),
+                         ([0], [(0, 1)]))
+        # FFmpeg's corrections of timestamp discontinuities are counted.
+        jump = ("[vist#0:0/mpeg2video @ 0x947070180] timestamp discontinuity (stream id=256): "
+                "-166834, new offset= 166834\n")
+        p, _ = vd.ffmpeg_pairing(jump + showinfo_lines([0], [0]), 1)
+        self.assertEqual(p["corrections"], 1)
+
+    def test_ffmpeg_pairing_that_cant_be_established(self):
+        for text, scored, why in (
+                (LOG, 3, "the frames of 0 showinfo filters, not of the 3"),
+                (showinfo_lines([0], [0], out=[0, 3000]), 1, "the 1 events its libvmaf filter's "
+                 "framesync makes of the 1 distorted and 1 reference frames its log shows are "
+                 "not the 2 frames the filter passed on"),
+                (showinfo_lines([0, 3000], [0, 3000]), 3, "its libvmaf log has 3 frames, but 2 "
+                 "of the events"),
+                (showinfo_lines([0], [0]) * 2, 1, "its filter graph was configured more than "
+                 "once"),
+                (showinfo_lines([0, 3000], [0, 3000]).replace("n:   1", "n:   2"), 2,
+                 "Parsed_showinfo_3 logs frame n:2 after 1 frames")):
+            with self.subTest(why=why):
+                p, problem = vd.ffmpeg_pairing(text, scored)
+                self.assertIsNone(p)
+                self.assertIn(why, problem)
+
+    def test_mirage_pairing(self):
+        # A report since D-028: positions and starts from the report.
+        failure = {"input": "reference", "index": 1, "pts": 10 + 1 / 30,
+                   "reason": "unmatched_reference"}
+        rep = mirage_report([1.0, 2.0], frame_limit=None,
+                            alignment=alignment(2, failures=[failure]))
+        rep["frames"][1].update(ref_index=2, dis_index=1, ref_pts=10 + 2 / 30, dis_pts=10 + 2 / 30)
+        rep["frames"][0].update(ref_index=0, dis_index=0)
+        m = vd.mirage_pairing(rep, {"reference": 0, "distorted": 0})   # FFmpeg's starts unused
+        self.assertEqual([(p["index"], p["ref"], p["dis"], p["ref_time"], p["dis_time"])
+                          for p in m["pairs"]], [(0, 0, 0, 0, 0), (1, 2, 1, F(1, 15), F(1, 15))])
+        self.assertEqual(m["failures"], [{"input": "reference", "index": 1, "time": F(1, 30),
+                                          "reason": "unmatched_reference"}])
+        self.assertEqual(m["start"], {"reference": 10, "distorted": 10})
+        self.assertTrue(m["counts_failures"])
+        self.assertIn("alignment, start_from container", m["start_from"]["reference"])
+        # A report from before D-028: pairs in decode order, times from FFmpeg's starts.
+        old = mirage_report([1.0, 2.0], frame_limit=None)
+        m = vd.mirage_pairing(old, {"reference": 10000000, "distorted": 9000000})
+        self.assertEqual([(p["ref"], p["dis"], p["ref_time"], p["dis_time"]) for p in m["pairs"]],
+                         [(0, 0, 0, 1), (1, 1, F(1, 30), 1 + F(1, 30))])
+        self.assertFalse(m["counts_failures"])
+        self.assertEqual(m["failures"], [])
+        # Without a time base or a start there are no times.
+        m = vd.mirage_pairing(old, {})
+        self.assertEqual(m["pairs"][0]["ref_time"], None)
+
+    def test_compare_pairings(self):
+        # FFmpeg pairs distorted frame 2 with reference 1 (rule B) where Mirage counts it
+        # as extra (rule A); both pair the others alike.
+        mine = {"pairs": [{"index": 0, "ref": 0, "dis": 0, "ref_time": F(0), "dis_time": F(0)},
+                          {"index": 1, "ref": 1, "dis": 1, "ref_time": F(1), "dis_time": F(1)},
+                          {"index": 2, "ref": 2, "dis": 3, "ref_time": F(3), "dis_time": F(3)}],
+                "failures": [{"input": "distorted", "index": 2, "time": F(2),
+                              "reason": "extra_distorted"}], "counts_failures": True}
+        theirs = {"pairs": [{"frame": 0, "ref": 0, "dis": 0, "ref_time": F(0), "dis_time": F(0),
+                             "by_reference": False},
+                            {"frame": 1, "ref": 1, "dis": 1, "ref_time": F(1), "dis_time": F(1),
+                             "by_reference": False},
+                            {"frame": 2, "ref": 1, "dis": 2, "ref_time": F(1), "dis_time": F(2),
+                             "by_reference": False},
+                            {"frame": 3, "ref": 2, "dis": 3, "ref_time": F(3), "dis_time": F(3),
+                             "by_reference": False}],
+                  "frames": {"reference": [F(0), F(1), F(3)],
+                             "distorted": [F(0), F(1), F(2), F(3)]}, "unscored": []}
+        c = vd.compare_pairings(mine, theirs, tolerance=F(1, 2))
+        self.assertEqual(c["matched"], [(0, 0), (1, 1), (2, 3)])
+        self.assertEqual((c["both"], c["only_mirage"], c["other_times"]), (3, [], []))
+        self.assertEqual(c["only_ffmpeg"], [{"frame": 2, "ref": 1, "dis": 2, "ref_time": F(1),
+                                             "dis_time": F(2), "by_reference": False}])
+        self.assertEqual(c["frames"], [
+            {"input": "reference", "index": 1, "time": F(1), "mirage": "paired with distorted 1",
+             "ffmpeg": "paired with distorted 1, 2 (in 2 pairs)"},
+            {"input": "distorted", "index": 2, "time": F(2), "mirage": "failed: extra_distorted",
+             "ffmpeg": "paired with reference 1"}])
+        self.assertEqual(c["mirage"], {"pairs": 3, "reference_in_several_pairs": 0,
+                                       "distorted_in_several_pairs": 0,
+                                       "pairs_beyond_tolerance": 0})
+        self.assertEqual(c["ffmpeg"], {"pairs": 4, "reference_in_several_pairs": 1,
+                                       "distorted_in_several_pairs": 0,
+                                       "pairs_beyond_tolerance": 1, "reference_in_no_pair": 0,
+                                       "distorted_in_no_pair": 0, "unscored": 0,
+                                       "by_reference": 0})
+        # The same frames at other times on the two sides.
+        theirs["pairs"][3]["dis_time"] = F(7, 2)
+        c = vd.compare_pairings(mine, theirs)
+        self.assertEqual([(e["index"], e["frame"]) for e in c["other_times"]], [(2, 3)])
+        self.assertIsNone(c["mirage"]["pairs_beyond_tolerance"])
+
+
+class PairingInTheReports(unittest.TestCase):
+    """evaluate_pair() and the Markdown reports with pairs that don't line up."""
+
+    def dropped_reference(self):
+        """A reference without its frame 1, against 3 distorted frames: Mirage pairs
+        0-0 and 2-2 and counts distorted frame 1 as extra (rule A); FFmpeg pairs it
+        with reference frame 0, at or before its time (rule B)."""
+        s = sides([50.0, 52.0], [50.0, 21.0, 52.0], showinfo=showinfo_lines(
+            aligned(3), [0, 6000]), frame_limit=None,
+            alignment=alignment(2, failures=[{"input": "distorted", "index": 1,
+                                              "pts": 10 + 1 / 30, "reason": "extra_distorted"}],
+                                extra_distorted=1))
+        rep = s["mirage"]["report"]
+        rep["frames"][0].update(ref_index=0, dis_index=0)
+        rep["frames"][1].update(ref_index=1, dis_index=2, ref_pts=10 + 2 / 30, dis_pts=10 + 2 / 30)
+        return s
+
+    def test_pairs_only_one_side_scored_fail_the_pair(self):
+        r = vd.evaluate_pair(PAIR, dict(PARAMS, frames=None), self.dropped_reference())
+        self.assertEqual(r["status"], "FAIL")
+        self.assertEqual(r["fail_reasons"][:2], [
+            "FRAME COUNT MISMATCH: Mirage scored 2 frame pairs, FFmpeg 3; only the 2 pairs both "
+            "scored are compared",
+            "PAIRING MISMATCH: 0 of Mirage's 2 pairs are not among FFmpeg's, and 1 of FFmpeg's 3 "
+            "not among Mirage's (the same pair: the same reference and distorted frames); only the "
+            "pairs both scored are compared"])
+        self.assertEqual(len(r["fail_reasons"]), 2)   # the pairs both scored agree
+        self.assertEqual((r["delta"]["compared"], r["delta"]["max_abs"]), (2, 0.0))
+        self.assertEqual([(w["index"], w["ffmpeg_index"]) for w in r["delta"]["worst"]],
+                         [(0, 0), (1, 2)])
+        self.assertEqual(r["warnings"], [
+            "the two sides' pairing treats 2 frames differently, Mirage's failures included (the "
+            "pair's delta.md, \"Pairing by timestamp\")"])
+        a = r["alignment"]
+        self.assertEqual(a["pairs"], {"both": 2, "only_mirage": 0, "only_ffmpeg": 1,
+                                      "other_times": 0})
+        self.assertEqual(a["only_ffmpeg"], [{"frame": 1, "ref": 0, "dis": 1, "ref_time": 0.0,
+                                             "dis_time": 1 / 30, "by_reference": False}])
+        self.assertEqual(a["tolerance"], 1001 / 60000)
+        self.assertEqual(a["ffmpeg"]["pairs_beyond_tolerance"], 1)
+        self.assertEqual(a["mirage"]["pairs_beyond_tolerance"], 0)
+        self.assertEqual((a["mirage"]["failed"], a["mirage"]["extra_distorted"],
+                          a["mirage"]["distorted_in_no_pair"]), (1, 1, 1))
+        self.assertEqual(a["ffmpeg"]["start"], {"reference": 10.0, "distorted": 10.0})
+        self.assertEqual(a["ffmpeg"]["time_base"]["framesync"], "1/90000")
+        json.loads(vd.to_json(r))
+
+        md = vd.pair_markdown(r)
+        self.assertIn("| pairs only this side scored | 0 | 1 |", md)
+        self.assertIn("| frames counted as failed | 1 (extra_distorted 1); failure rate 0.333333, "
+                      "above the threshold 0.01 | none: FFmpeg counts no failures |", md)
+        self.assertIn("Pairs only FFmpeg scored (its frame):\n- 1: reference 0 (0.000000 s) with "
+                      "distorted 1 (0.033333 s)\n", md)
+        self.assertIn("| reference | 0 | 0.000000 | paired with distorted 0 | paired with "
+                      "distorted 0, 1 (in 2 pairs) |", md)
+        self.assertIn("| distorted | 1 | 0.033333 | failed: extra_distorted | paired with "
+                      "reference 0 |", md)
+        self.assertLess(md.index("Pairing by timestamp"), md.index("Per frame, over the 2 frame "
+                                                                     "pairs both sides scored"))
+        summary = vd.pair_summary(r)["pairing"]
+        self.assertEqual(summary, {"both": 2, "only_mirage": 0, "only_ffmpeg": 1, "other_times": 0,
+                                   "frames_treated_differently": 2, "mirage_failed": 1,
+                                   "mirage_failure_rate": 1 / 3})
+        o = vd.overall_report(dict(PARAMS, frames=None), [r], {})
+        self.assertIn("| gear2_vs_gear5 | FAIL | 2 / 3 **MISMATCH** | 2 / 0 / 1 | 1 (0.333333) |",
+                      vd.overall_markdown(o))
+
+    def test_a_failure_both_sides_skip_passes_with_a_warning(self):
+        # The reference's first frame, unmatched in Mirage (rule A) and in no pair in
+        # FFmpeg, which pairs distorted frames only at or after the reference's start.
+        s = sides([50.0, 51.0], [50.0, 51.0], showinfo=showinfo_lines([3000, 6000], aligned(3)),
+                  frame_limit=None, alignment=alignment(2, failures=[
+                      {"input": "reference", "index": 0, "pts": 10.0,
+                       "reason": "unmatched_reference"}], unmatched_reference=1))
+        for k in (0, 1):
+            s["mirage"]["report"]["frames"][k].update(ref_index=k + 1, dis_index=k,
+                                                      ref_pts=10 + (k + 1) / 30,
+                                                      dis_pts=10 + (k + 1) / 30)
+        r = vd.evaluate_pair(PAIR, dict(PARAMS, frames=None), s)
+        self.assertEqual(r["status"], "PASS", r["fail_reasons"])
+        self.assertEqual(r["alignment"]["frames"], [
+            {"input": "reference", "index": 0, "time": 0.0, "mirage": "failed: unmatched_reference",
+             "ffmpeg": "in no pair"}])
+        self.assertEqual(len(r["warnings"]), 1)
+
+    def test_ffmpeg_pairs_that_cant_be_established_fail_the_pair(self):
+        r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0], showinfo=None))
+        self.assertEqual(r["fail_reasons"], [
+            "FFmpeg's pairs could not be established from its log: its log has the frames of 0 "
+            "showinfo filters, not of the 3 its filter graph has; without them the two sides' "
+            "scores are not compared"])
+        self.assertIsNone(r["delta"])
+        self.assertIsNone(r["alignment"])
+        self.assertIsNone(vd.pair_summary(r)["pairing"])
+        self.assertNotIn("Pairing by timestamp", vd.pair_markdown(r))
+
+    def test_ffmpegs_corrections_are_a_warning(self):
+        jump = ("[vist#0:0/mpeg2video @ 0x947070180] timestamp discontinuity (stream id=256): "
+                "-166834, new offset= 166834\n")
+        r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0],
+                                                 stderr=LOG + jump))
+        self.assertEqual(r["status"], "PASS", r["fail_reasons"])
+        self.assertEqual(r["warnings"], ["FFmpeg corrected 1 timestamp discontinuity of its "
+                                         "inputs (its log), which mirage_vmaf doesn't (D-028)"])
+        self.assertIn("| timestamp discontinuities | - found, none corrected | 1 corrected "
+                      "(its log) |", vd.pair_markdown(r))
+
+
+# The dis_conversion of a mirage_vmaf report that converts as LOG's FFmpeg does.
+CONVERTED = [{"from": {"color_space": "smpte170m", "color_range": "tv"},
+              "to": {"color_space": "bt709", "color_range": "tv"},
+              "matrix_changed": True, "range_changed": False, "first_index": 0, "pairs": 3}]
+
+
+class Conversions(unittest.TestCase):
+    def test_both_sides_listed(self):
+        self.assertEqual(vd.scale_conversions(vd.scale_lines(LOG)),
+                         ["smpte170m/tv -> bt709/tv"])
+        self.assertEqual(vd.mirage_conversions(CONVERTED), ["smpte170m/tv -> bt709/tv"])
+        self.assertEqual(vd.mirage_conversions([]), [])
+
+    def test_the_same_conversion_is_no_warning(self):
+        r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0],
+                                                 dis_conversion=CONVERTED))
+        self.assertEqual(r["warnings"], [])
+        self.assertEqual(r["mirage_color"], {"dis_conversion": CONVERTED, "ref_conversion": None})
+        self.assertEqual(vd.pair_summary(r)["mirage_distorted_csp"], "smpte170m -> bt709")
+        md = vd.pair_markdown(r)
+        self.assertIn("- smpte170m/tv -> bt709/tv: matrix changed; 3 pairs from index 0", md)
+
+    def test_another_conversion_is_a_warning(self):
+        kept = [dict(CONVERTED[0], to={"color_space": "smpte170m", "color_range": "tv"},
+                     matrix_changed=False)]
+        r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0],
+                                                 dis_conversion=kept))
+        self.assertEqual(r["status"], "PASS")
+        self.assertEqual(r["warnings"], [
+            "the distorted frames' color conversions differ: mirage_vmaf "
+            "smpte170m/tv -> smpte170m/tv, FFmpeg's scale filter smpte170m/tv -> bt709/tv"])
+        self.assertIn("- smpte170m/tv -> smpte170m/tv: matrix and range unchanged; 3 pairs "
+                      "from index 0", vd.pair_markdown(r))
+
+    def test_a_report_without_conversions(self):
+        r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0]))
+        self.assertEqual(r["mirage_color"], {"dis_conversion": None, "ref_conversion": None})
+        self.assertEqual(vd.pair_summary(r)["mirage_distorted_csp"], "-")
+        self.assertIn("- not in the report: this mirage_vmaf does not record a conversion",
+                      vd.pair_markdown(r))
+
+
+# FFmpeg's log of a 10-bit bt709 reference against a 640x360 smpte170m rung:
+# the scale filter FFmpeg inserts converts the reference to the distorted
+# frames' tags, which the distorted input's scale filter keeps.
+LOG_INSERTED = LOG.replace(
+    "csp:smpte170m range:tv sar:0/1 -> w:1920 h:1080 fmt:yuv420p csp:bt709 range:tv",
+    "csp:smpte170m range:tv sar:0/1 -> w:1920 h:1080 fmt:yuv420p csp:smpte170m range:tv") + \
+    ("[auto_scale_0 @ 0x9c508c000] w:1920 h:1080 fmt:yuv420p10le csp:bt709 range:tv sar:1/1 -> "
+     "w:1920 h:1080 fmt:yuv420p csp:smpte170m range:tv sar:1/1 flags:0x00000004\n")
+KEPT = [dict(CONVERTED[0], to={"color_space": "smpte170m", "color_range": "tv"},
+             matrix_changed=False)]
+REF_CONVERTED = [{"from": {"color_space": "bt709", "color_range": "tv"},
+                  "to": {"color_space": "smpte170m", "color_range": "tv"},
+                  "matrix_changed": True, "range_changed": False, "first_index": 0, "pairs": 3}]
+
+
+class ReferenceConversions(unittest.TestCase):
+    def test_the_inserted_scale_filter(self):
+        scales = vd.scale_lines(LOG_INSERTED)
+        self.assertEqual(vd.inserted_conversions(scales), ["bt709/tv -> smpte170m/tv"])
+        self.assertEqual(vd.scale_conversions(scales), ["smpte170m/tv -> smpte170m/tv"])
+        self.assertEqual(vd.inserted_conversions(vd.scale_lines(LOG)), [])
+
+    def test_the_same_conversions_are_no_warning(self):
+        r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0],
+                                                 stderr=LOG_INSERTED, dis_conversion=KEPT,
+                                                 ref_conversion=REF_CONVERTED))
+        self.assertEqual(r["warnings"], [])
+        self.assertEqual(r["mirage_color"]["ref_conversion"], REF_CONVERTED)
+        summary = vd.pair_summary(r)
+        self.assertEqual(summary["ffmpeg_reference_csp"], "bt709 -> smpte170m")
+        self.assertEqual(summary["mirage_reference_csp"], "bt709 -> smpte170m")
+        self.assertEqual(summary["ffmpeg_distorted_csp"], "smpte170m -> smpte170m")
+        md = vd.pair_markdown(r)
+        self.assertIn("Mirage's color handling of the reference frames (mirage_vmaf's report, "
+                      "ref_conversion; DECISIONS.md D-022):\n- bt709/tv -> smpte170m/tv: matrix "
+                      "changed; 3 pairs from index 0", md)
+
+    def test_other_conversions_are_a_warning(self):
+        # A reference converted where FFmpeg passes it on, and the reverse.
+        r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0],
+                                                 dis_conversion=CONVERTED,
+                                                 ref_conversion=REF_CONVERTED))
+        self.assertEqual(r["status"], "PASS")
+        self.assertEqual(r["warnings"], [
+            "the reference frames' color conversions differ: mirage_vmaf bt709/tv -> "
+            "smpte170m/tv, FFmpeg's inserted scale filter none"])
+        r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0],
+                                                 stderr=LOG_INSERTED, dis_conversion=KEPT,
+                                                 ref_conversion=[]))
+        self.assertEqual(r["warnings"], [
+            "the reference frames' color conversions differ: mirage_vmaf none, FFmpeg's "
+            "inserted scale filter bt709/tv -> smpte170m/tv"])
+        self.assertIn("- none: the reference's frames are used as they are", vd.pair_markdown(r))
+
+    def test_a_report_without_reference_conversions(self):
+        # As mirage_vmaf wrote them before D-022: nothing to compare.
+        r = vd.evaluate_pair(PAIR, PARAMS, sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0],
+                                                 stderr=LOG_INSERTED, dis_conversion=KEPT))
+        self.assertEqual(r["warnings"], [])
+        self.assertEqual(vd.pair_summary(r)["mirage_reference_csp"], "-")
+        self.assertIn("- not in the report: this mirage_vmaf does not record one",
+                      vd.pair_markdown(r))
+
+
+class Reports(unittest.TestCase):
+    def reports(self):
+        ok = vd.evaluate_pair(vd.Pair("gear3_vs_gear5", REF, DIS), PARAMS,
+                              sides([1.0, 2.0, 3.0], [1.0, 2.0, 3.0]))
+        bad = vd.evaluate_pair(PAIR, PARAMS, sides([6.0, 7.0, 8.0], [1.0, 2.0, 3.0]))
+        return ok, bad
+
+    def test_pair_markdown(self):
+        ok, bad = self.reports()
+        md = vd.pair_markdown(bad)
+        self.assertTrue(md.startswith("# gear2_vs_gear5: Mirage vs FFmpeg's libvmaf filter\n"))
+        self.assertIn("**FAIL**:\n- 3 of 3 frames have \\|delta\\| > 0.01\n", md)
+        self.assertIn("- max \\|delta\\|: 5.000000 (index 0)", md)
+        self.assertIn("(index 0-2)", md)
+        self.assertIn("Converts: Parsed_scale_1: color_space smpte170m -> bt709", md)
+        self.assertIn("| color_space | bt709 | smpte170m |", md)
+        self.assertIn("**PASS**\n", vd.pair_markdown(ok))
+
+    def test_overall_report_and_markdown(self):
+        ok, bad = self.reports()
+        o = vd.overall_report(PARAMS, [ok, bad], {"started_utc": "s", "ended_utc": "e",
+                                                  "git": {"head_start": "abc", "head_end": "abc",
+                                                          "clean_start": True,
+                                                          "clean_end": True}})
+        self.assertEqual((o["status"], o["pairs_total"], o["pairs_failed"]),
+                         ("FAIL", 2, ["gear2_vs_gear5"]))
+        self.assertEqual(o["pairs"][1]["ffmpeg_distorted_csp"], "smpte170m -> bt709")
+        md = vd.overall_markdown(o)
+        self.assertIn("**Overall: FAIL**: 1 of 2 pairs fail.", md)
+        # The pairs both scored / only Mirage / only FFmpeg, and no alignment failures in a
+        # report without an alignment.
+        self.assertIn("| gear3_vs_gear5 | PASS | 3 / 3 | 3 / 0 / 0 | - | 0.000000 | 0.000000 | 0 "
+                      "| 2.000000 | 2.000000 | 0.000000 | smpte170m -> bt709 | - |\n", md)
+        self.assertIn("- gear2_vs_gear5: 3 of 3 frames have \\|delta\\| > 0.01", md)
+        self.assertIn("the working tree was clean at the start of the run and clean at its end",
+                      md)
+        json.loads(vd.to_json(o))
+
+    def test_overall_markdown_states_both_libvmaf_versions(self):
+        ok, _ = self.reports()
+        o = vd.overall_report(PARAMS, [ok], {
+            "environment": {"ffmpeg_version": "ffmpeg version 8.1.1",
+                            "ffmpeg_libvmaf_package_version": "3.1.0", "os": "o", "cpu": "c"},
+            "mirage_vmaf": {"sha256": "s", "libvmaf_version": "3.0.0",
+                            "libvmaf_package_version": "3.1.0"},
+            "ffmpeg_libvmaf": {"libvmaf_version": "3.0.0", "libvmaf_package_version": "3.1.0"}})
+        md = vd.overall_markdown(o)
+        self.assertIn("- mirage_vmaf: sha256 s; libvmaf 3.0.0 at run time, package 3.1.0.", md)
+        self.assertNotIn("FFmpeg libraries at run time", md)
+        o["mirage_vmaf"]["ffmpeg_libraries"] = {"libavutil": "60.26.101"}
+        o["environment"]["ffmpeg_libraries"] = {"libavutil": "60.26.101", "libavdevice": "62.3.101"}
+        self.assertIn("- FFmpeg libraries at run time: mirage_vmaf libavutil 60.26.101; FFmpeg "
+                      "libavutil 60.26.101, libavdevice 62.3.101.", vd.overall_markdown(o))
+        self.assertIn("- FFmpeg: ffmpeg version 8.1.1; libvmaf 3.0.0 at run time (its libvmaf "
+                      "logs), package 3.1.0.", md)
+        o = vd.overall_report(dict(PARAMS, model=None,
+                                   model_file={"path": "/m/x.json", "sha256": "ab12"}), [ok], {})
+        self.assertIn("- Settings given to FFmpeg: model file /m/x.json (sha256 ab12), scaler "
+                      "bilinear, n_threads 4.", vd.overall_markdown(o))
+
+    def test_relabel_variant_is_labeled(self):
+        ok, _ = self.reports()
+        o = vd.overall_report(dict(PARAMS, variant=vd.VARIANT_RELABEL), [ok], {})
+        self.assertIn("Variant: DIAGNOSTIC, not the section 5 comparison", vd.overall_markdown(o))
+
+    def test_numbers(self):
+        self.assertEqual(vd.num(None), "-")
+        self.assertEqual(vd.num(3), "3")
+        self.assertEqual(vd.num(-1e-9), "0.000000")
+        self.assertEqual(vd.num(-0.5), "-0.500000")
+        self.assertEqual(vd.num(-10.0), "-10.000000")
+        self.assertEqual(vd.num(1.23456, 1), "1.2")
+        self.assertEqual(vd.cell("a|b\nc"), "a\\|b c")
+
+
+class Files(unittest.TestCase):
+    def test_xz_round_trip(self):
+        data = b"Invalid timestamps\n" * 1000
+        packed = vd.xz(data)
+        self.assertTrue(packed.startswith(b"\xfd7zXZ\x00"))
+        self.assertEqual(lzma.decompress(packed), data)
+
+    def test_sha256sums(self):
+        with tempfile.TemporaryDirectory() as d:
+            os.mkdir(os.path.join(d, "p"))
+            for rel, data in (("b.txt", b"b"), ("p/a.json", b"{}"), ("SHA256SUMS", b"old")):
+                with open(os.path.join(d, rel), "wb") as f:
+                    f.write(data)
+            self.assertEqual(vd.sha256sums(d),
+                             f"{hashlib.sha256(b'b').hexdigest()}  b.txt\n"
+                             f"{hashlib.sha256(b'{}').hexdigest()}  p/a.json\n")
+
+
+if __name__ == "__main__":
+    unittest.main()

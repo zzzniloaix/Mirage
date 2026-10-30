@@ -1,0 +1,36 @@
+{
+  "tool": "mirage_vmaf",
+  "reference_mode": "explicit-pair",
+  "libvmaf_version": "3.0.0",
+  "libvmaf_package_version": "3.1.0",
+  "model": "vmaf_v0.6.1",
+  "model_source": "built-in",
+  "model_sha256": null,
+  "scaler": "bilinear",
+  "n_threads": 4,
+  "n_subsample": 1,
+  "scored_as": {"width": 1920, "height": 1080, "pix_fmt": "yuv420p", "bit_depth": 8},
+  "dis_conversion": [
+    {"from": {"color_space": "bt709", "color_range": "tv"}, "to": {"color_space": "bt709", "color_range": "pc"}, "matrix_changed": false, "range_changed": true, "first_index": 0, "pairs": 10}
+  ],
+  "warnings": [
+    "the reference's frames are yuvj420p, not yuv420p: FFmpeg's section 5 graph then converts the reference to the distorted input's color matrix and range, where Mirage converts the distorted frames to the reference's, so the scores can differ from FFmpeg's (docs/PHASE1_DECISIONS_PENDING.md)"
+  ],
+  "frame_limit": 10,
+  "frames_scored": 10,
+  "pooled": {"mean": 100, "min": 100},
+  "ref": {"url": "<tmp>/format_clips/ref_libx264-yuvj420p_bt709-pc.mkv", "width": 1920, "height": 1080, "pix_fmt": "yuvj420p", "color_space": "bt709", "color_range": "pc", "color_primaries": "unknown", "color_trc": "unknown", "time_base": "1/1000", "ended": false},
+  "dis": {"url": "<tmp>/format_clips/dis_bt709-tv.mkv", "width": 640, "height": 360, "pix_fmt": "yuv420p", "color_space": "bt709", "color_range": "tv", "color_primaries": "unknown", "color_trc": "unknown", "time_base": "1/1000", "ended": false},
+  "frames": [
+    {"index": 0, "ref_pts": 0, "dis_pts": 0, "vmaf": 100},
+    {"index": 1, "ref_pts": 0.033, "dis_pts": 0.033, "vmaf": 100},
+    {"index": 2, "ref_pts": 0.067, "dis_pts": 0.067, "vmaf": 100},
+    {"index": 3, "ref_pts": 0.1, "dis_pts": 0.1, "vmaf": 100},
+    {"index": 4, "ref_pts": 0.133, "dis_pts": 0.133, "vmaf": 100},
+    {"index": 5, "ref_pts": 0.167, "dis_pts": 0.167, "vmaf": 100},
+    {"index": 6, "ref_pts": 0.2, "dis_pts": 0.2, "vmaf": 100},
+    {"index": 7, "ref_pts": 0.234, "dis_pts": 0.234, "vmaf": 100},
+    {"index": 8, "ref_pts": 0.267, "dis_pts": 0.267, "vmaf": 100},
+    {"index": 9, "ref_pts": 0.3, "dis_pts": 0.3, "vmaf": 100}
+  ]
+}

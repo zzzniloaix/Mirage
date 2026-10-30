@@ -1,0 +1,76 @@
+# The clips of eval/consistency/color_cases.py --set negotiation, made in <clips_dir>: for each, the command that made it, its stream as <ffprobe> reads it back, and the MD5 of its decoded frames.
+
+## ref_libx264-yuvj420p_bt709-pc.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -frames:v 10 -vf format=yuv420p,setparams=colorspace=bt709:range=pc -c:v libx264 -qp 0 -f matroska <clips_dir>/ref_libx264-yuvj420p_bt709-pc.mkv
+$ <ffprobe> -v error -select_streams v:0 -show_entries stream=width,height,pix_fmt,color_space,color_range,color_primaries,color_transfer,chroma_location,field_order -of default=noprint_wrappers=1 <clips_dir>/ref_libx264-yuvj420p_bt709-pc.mkv
+width=1920
+height=1080
+pix_fmt=yuvj420p
+color_range=pc
+color_space=bt709
+color_transfer=unknown
+color_primaries=unknown
+chroma_location=left
+field_order=progressive
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/ref_libx264-yuvj420p_bt709-pc.mkv -map 0:v:0 -c:v rawvideo -f md5 -
+MD5=d4a3f7e48e1e38381a738a75240e9844
+
+## ref_ffv1-yuv420p10le_bt709-tv.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -frames:v 10 -vf format=yuv420p10le,setparams=colorspace=bt709:range=tv -c:v ffv1 -f matroska <clips_dir>/ref_ffv1-yuv420p10le_bt709-tv.mkv
+$ <ffprobe> -v error -select_streams v:0 -show_entries stream=width,height,pix_fmt,color_space,color_range,color_primaries,color_transfer,chroma_location,field_order -of default=noprint_wrappers=1 <clips_dir>/ref_ffv1-yuv420p10le_bt709-tv.mkv
+width=1920
+height=1080
+pix_fmt=yuv420p10le
+color_range=tv
+color_space=bt709
+color_transfer=unknown
+color_primaries=unknown
+chroma_location=unspecified
+field_order=progressive
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/ref_ffv1-yuv420p10le_bt709-tv.mkv -map 0:v:0 -c:v rawvideo -f md5 -
+MD5=0307aa275a0dd75d9f1b98e56ec7d35b
+
+## dis_bt709-unknown.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -frames:v 10 -vf scale=640:360:flags=bicubic,format=yuv420p,setparams=colorspace=bt709:range=unknown -c:v rawvideo -f matroska <clips_dir>/dis_bt709-unknown.mkv
+$ <ffprobe> -v error -select_streams v:0 -show_entries stream=width,height,pix_fmt,color_space,color_range,color_primaries,color_transfer,chroma_location,field_order -of default=noprint_wrappers=1 <clips_dir>/dis_bt709-unknown.mkv
+width=640
+height=360
+pix_fmt=yuv420p
+color_range=unknown
+color_space=bt709
+color_transfer=unknown
+color_primaries=unknown
+chroma_location=unspecified
+field_order=progressive
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/dis_bt709-unknown.mkv -map 0:v:0 -c:v rawvideo -f md5 -
+MD5=0c0d489dac71f877f7c7599f9f56be0e
+
+## dis_ffv1-gray_bt709-tv.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -frames:v 10 -vf scale=640:360:flags=bicubic,format=gray,setparams=colorspace=bt709:range=tv -c:v ffv1 -f matroska <clips_dir>/dis_ffv1-gray_bt709-tv.mkv
+$ <ffprobe> -v error -select_streams v:0 -show_entries stream=width,height,pix_fmt,color_space,color_range,color_primaries,color_transfer,chroma_location,field_order -of default=noprint_wrappers=1 <clips_dir>/dis_ffv1-gray_bt709-tv.mkv
+width=640
+height=360
+pix_fmt=gray
+color_range=tv
+color_space=bt709
+color_transfer=unknown
+color_primaries=unknown
+chroma_location=unspecified
+field_order=progressive
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/dis_ffv1-gray_bt709-tv.mkv -map 0:v:0 -c:v rawvideo -f md5 -
+MD5=5e77630510bf04d34704b2362b68abd0
+
+## dis_ffv1-bgr0_gbr-pc.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -frames:v 10 -vf scale=640:360:flags=bicubic,format=gbrp,setparams=colorspace=gbr:range=pc -c:v ffv1 -f matroska <clips_dir>/dis_ffv1-bgr0_gbr-pc.mkv
+$ <ffprobe> -v error -select_streams v:0 -show_entries stream=width,height,pix_fmt,color_space,color_range,color_primaries,color_transfer,chroma_location,field_order -of default=noprint_wrappers=1 <clips_dir>/dis_ffv1-bgr0_gbr-pc.mkv
+width=640
+height=360
+pix_fmt=bgr0
+color_range=pc
+color_space=gbr
+color_transfer=unknown
+color_primaries=unknown
+chroma_location=unspecified
+field_order=progressive
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/dis_ffv1-bgr0_gbr-pc.mkv -map 0:v:0 -c:v rawvideo -f md5 -
+MD5=29d91a8b6956395219ef1bd7c93089d0

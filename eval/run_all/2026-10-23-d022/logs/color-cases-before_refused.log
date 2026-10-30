@@ -1,0 +1,7 @@
+u01_bt709_vs_ycgco: FFmpeg exit 178 after 0.1 s
+u02_ycgco_vs_bt709: FFmpeg exit 178 after 0.1 s
+u01_bt709_vs_ycgco: mirage_vmaf exit 0 after 0.2 s
+u02_ycgco_vs_bt709: mirage_vmaf exit 0 after 0.3 s
+u01_bt709_vs_ycgco: FAIL  frames None / None  max |delta| -  over 0.01: -
+u02_ycgco_vs_bt709: FAIL  frames None / None  max |delta| -  over 0.01: -
+overall: FAIL; reports in <out_dir>/consistency/color-cases-before/refused/delta.md

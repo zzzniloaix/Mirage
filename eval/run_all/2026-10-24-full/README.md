@@ -1,0 +1,20 @@
+# eval/run_all.sh, every step, at 61241e2
+
+`eval/run_all.sh <out_dir> --jobs 4`, every step, the four over every frame included, from a new clean worktree of `61241e2`, with its output directory and `TMPDIR` outside the repository (docs/DECISIONS.md P-060, P-062). Its command, programs and steps are in `run_all.md`, the comparison with the committed outputs in `rerun_check.md`.
+
+**Result**: every step but two found everything as committed, `acceptance-full` and `pooling-full` included. `defaults-full` did not: two of its four pairs, `gear4_vs_gear5` and `gear3_vs_gear5`, have every verdict and per-frame score of both sides as committed, and the other two failed because the machine went to sleep while they were being scored. `pooling-defaults-full`, which reads `defaults-full`'s reports, did not run, since `gear2_vs_gear5` has none. The two steps were run again on their own (docs/DECISIONS.md P-062).
+
+Besides the files every record in `eval/run_all/` keeps, this one has:
+
+- `consistency/defaults-full/plain/`: the files of the failed `defaults-full` run that show why it failed, at the paths the run wrote them under `<out_dir>`: the run's `delta.md`, `delta.json`, `environment.txt`, `run.cmd.txt` and `pairs.txt`, and of the two failed pairs their `cmd.txt`, `delta.md`, `delta.json`, both programs' stderr logs and, for `gear1_vs_gear5`, `mirage_vmaf`'s stdout. Not the pairs' JSON outputs, nor the two pairs that ran as committed.
+- `power_log.txt`: the machine's sleep and wake events during the run, from `pmset -g log`, in UTC.
+
+**What happened** (the files above):
+
+- `defaults-full` started at 2026-10-24T19:43:40Z (`consistency/defaults-full/plain/delta.md`). With `--jobs 4` the delta tool runs four of its eight scoring processes at a time, in the pairs' order (`eval/consistency/run_delta.py`), so `gear2_vs_gear5` and `gear1_vs_gear5` started when the processes of `gear4_vs_gear5` and `gear3_vs_gear5` had ended.
+- At 2026-10-24T20:16:34Z the machine went to sleep because its lid was closed, on battery ("Clamshell Sleep", `power_log.txt`). It woke at 2026-10-24T22:19:35Z, when the lid was opened. In between it woke only for the system's maintenance ("DarkWake"), for 5 to 19 s at a time. `caffeinate -i`, under which the run was started, keeps a Mac from sleeping when idle, not when its lid is closed.
+- After the lid was closed the programs reached no server: TLS reads timed out and the CDN's host name did not resolve (their stderr logs). FFmpeg's hls demuxer, in the `ffmpeg` program and in `mirage_vmaf`, then skipped each segment it could not open ("Failed to open segment"; 190 such lines in the `ffmpeg` log of `gear1_vs_gear5`, 197 in its `mirage_vmaf` log, 183 in the `ffmpeg` log of `gear2_vs_gear5`), so these inputs ended early. Of `gear1_vs_gear5`, `mirage_vmaf` scored 28525 frame pairs and FFmpeg 28704, and the two sides' pairs differ after the gap (`gear1_vs_gear5/delta.md`); of `gear2_vs_gear5`, FFmpeg scored 29597 (`rerun_check.md`).
+- `mirage_vmaf` of `gear2_vs_gear5` logged no error: its stderr log has no line with "error", "fail" or "timed out", and ends with the same timestamp warnings as before. It made no progress after the machine woke either: the workflow that ran this rerun saw its CPU time and its log stay unchanged, and stopped it with SIGTERM shortly before the run ended at 2026-10-24T23:43:05Z (`delta.md`: "mirage_vmaf exited with status -15"). That observation is not in a file. `src/VMAFAnalyzer.cpp` opens its inputs without FFmpeg's `timeout` and `rw_timeout` options or an interrupt callback, and FFmpeg 8.1.1's TCP reads then wait without a time limit; the stall is an open item in `docs/PHASE1_DECISIONS_PENDING.md`.
+- The times the tools record count only the time the machine was awake. They come from Python's `time.monotonic()`, which on macOS is `mach_absolute_time()`, a clock that stops while the machine sleeps. `run_all.md` gives 10127.3 s in all, for a run whose start and end are 4 h 50 min apart; `logs/defaults-full_plain.log` gives 5801.1 s for the `mirage_vmaf` of `gear2_vs_gear5`.
+
+`SHA256SUMS` covers every file here.

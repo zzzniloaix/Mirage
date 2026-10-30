@@ -1,0 +1,41 @@
+{
+    "programs": [
+        {
+            "streams": [
+                {
+                    "codec_name": "h264",
+                    "width": 1920,
+                    "height": 1080,
+                    "pix_fmt": "yuv420p",
+                    "color_range": "tv",
+                    "color_space": "bt709",
+                    "color_transfer": "bt709",
+                    "color_primaries": "bt709",
+                    "r_frame_rate": "30000/1001",
+                    "avg_frame_rate": "30000/1001",
+                    "time_base": "1/90000",
+                    "start_time": "10.000000"
+                }
+            ]
+        }
+    ],
+    "stream_groups": [
+
+    ],
+    "streams": [
+        {
+            "codec_name": "h264",
+            "width": 1920,
+            "height": 1080,
+            "pix_fmt": "yuv420p",
+            "color_range": "tv",
+            "color_space": "bt709",
+            "color_transfer": "bt709",
+            "color_primaries": "bt709",
+            "r_frame_rate": "30000/1001",
+            "avg_frame_rate": "30000/1001",
+            "time_base": "1/90000",
+            "start_time": "10.000000"
+        }
+    ]
+}

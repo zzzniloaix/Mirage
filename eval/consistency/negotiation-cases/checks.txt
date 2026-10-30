@@ -1,0 +1,99 @@
+# Checks on the run in this directory, made after it from <repo>: each command, then its output. <tmp>/negotiation_clips is the directory eval/consistency/color_cases.py --set negotiation made the clips in for this run (clips.txt).
+
+# 1. The repository when these checks were made: HEAD and the working tree's state.
+
+$ git rev-parse HEAD && git status --porcelain && echo '(end of git status)'
+00ce3f3cf868eb853fe560f58a514b31d8e893b5
+(end of git status)
+
+# 2. The clips: each one's decoded pixel format, range and matrix as <ffprobe> read them back when color_cases.py made them (clips.txt).
+
+$ grep -E '^## |^pix_fmt=|^color_range=|^color_space=' eval/consistency/negotiation-cases/clips.txt
+## ref_libx264-yuvj420p_bt709-pc.mkv
+pix_fmt=yuvj420p
+color_range=pc
+color_space=bt709
+## ref_ffv1-yuv420p10le_bt709-tv.mkv
+pix_fmt=yuv420p10le
+color_range=tv
+color_space=bt709
+## dis_bt709-unknown.mkv
+pix_fmt=yuv420p
+color_range=unknown
+color_space=bt709
+## dis_ffv1-gray_bt709-tv.mkv
+pix_fmt=gray
+color_range=tv
+color_space=bt709
+## dis_ffv1-bgr0_gbr-pc.mkv
+pix_fmt=bgr0
+color_range=pc
+color_space=gbr
+
+# 3. Every case: each scale filter of FFmpeg's graph, as its verbose log states it, with its input format and tags -> output size, format and tags, and its swscale flags (as format-cases-d022/checks.txt, check 3). Parsed_scale_1 is the distorted input's scale filter, auto_scale_0 the one FFmpeg inserts for the reference.
+
+$ python3 -I -c 'import re, sys
+for d in sys.argv[1:]:
+    for line in open(d + "/ffmpeg_colorspace_lines.txt"):
+        m = re.match(r"\[((?:Parsed|auto)_scale_\d+) @ [^\]]*\] w:\d+ h:\d+ fmt:(\S+) csp:(\S+) range:(\S+) sar:\S+ -> w:(\d+) h:(\d+) fmt:(\S+) csp:(\S+) range:(\S+) sar:\S+ flags:(\S+)", line)
+        if m:
+            g = m.groups()
+            print(d.split("/")[-1], g[0], g[1] + " " + g[2] + "/" + g[3], "->", g[4] + "x" + g[5], g[6] + " " + g[7] + "/" + g[8], "flags", g[9])' eval/consistency/negotiation-cases/main/n[0-9]*
+n01_yuvj_pc_vs_norange Parsed_scale_1 yuv420p bt709/unknown -> 1920x1080 yuv420p bt709/pc flags 0x00000004
+n01_yuvj_pc_vs_norange auto_scale_0 yuvj420p bt709/pc -> 1920x1080 yuv420p bt709/pc flags 0x00000004
+n02_10bit_tv_vs_norange Parsed_scale_1 yuv420p bt709/unknown -> 1920x1080 yuv420p bt709/tv flags 0x00000004
+n02_10bit_tv_vs_norange auto_scale_0 yuv420p10le bt709/tv -> 1920x1080 yuv420p bt709/tv flags 0x00000004
+n03_10bit_bt709_vs_gray Parsed_scale_1 gray unknown/pc -> 1920x1080 yuv420p bt709/tv flags 0x00000004
+n03_10bit_bt709_vs_gray auto_scale_0 yuv420p10le bt709/tv -> 1920x1080 yuv420p bt709/tv flags 0x00000004
+n03_10bit_bt709_vs_gray Parsed_scale_1 gray unknown/pc -> 1920x1080 yuv420p bt709/tv flags 0x00000004
+n03_10bit_bt709_vs_gray Parsed_scale_1 gray unknown/pc -> 1920x1080 yuv420p bt709/tv flags 0x00000004
+n03_10bit_bt709_vs_gray Parsed_scale_1 gray bt709/tv -> 1920x1080 yuv420p bt709/tv flags 0x00000004
+n04_10bit_bt709_vs_rgb Parsed_scale_1 bgr0 gbr/pc -> 1920x1080 yuv420p bt709/tv flags 0x00000004
+n04_10bit_bt709_vs_rgb auto_scale_0 yuv420p10le bt709/tv -> 1920x1080 yuv420p bt709/tv flags 0x00000004
+
+# 4. Every case: frame pairs on each side, and frames whose Mirage score, written with the 6 decimals of FFmpeg's log, is FFmpeg's.
+
+$ python3 -I -c 'import json, sys
+for d in sys.argv[1:]:
+    m = json.load(open(d + "/mirage.json"))["frames"]
+    f = json.load(open(d + "/ffmpeg.json"))["frames"]
+    same = sum(format(a["vmaf"], ".6f") == format(b["metrics"]["vmaf"], ".6f") for a, b in zip(m, f))
+    print(d.split("/")[-1], len(m), len(f), same)' eval/consistency/negotiation-cases/main/n[0-9]*
+n01_yuvj_pc_vs_norange 10 10 10
+n02_10bit_tv_vs_norange 10 10 10
+n03_10bit_bt709_vs_gray 10 10 10
+n04_10bit_bt709_vs_rgb 10 10 10
+
+# 5. Every case: the conversions of mirage_vmaf's report, the reference's (ref_conversion) and the distorted frames' (dis_conversion), as from -> to and pairs, both inputs' pixel formats, and the report's warnings (as format-cases-d022/checks.txt, check 6).
+
+$ python3 -I -c 'import json, sys
+conv = lambda c: ", ".join(x["from"]["color_space"] + "/" + x["from"]["color_range"] + " -> " + x["to"]["color_space"] + "/" + x["to"]["color_range"] + " (" + str(x["pairs"]) + ")" for x in c) or "none"
+for d in sys.argv[1:]:
+    r = json.load(open(d + "/mirage.json"))
+    print(d.split("/")[-1], "| ref", r["ref"]["pix_fmt"], "| dis", r["dis"]["pix_fmt"], "| ref_conversion", conv(r["ref_conversion"]), "| dis_conversion", conv(r["dis_conversion"]), "| warnings", r["warnings"])' eval/consistency/negotiation-cases/main/n[0-9]*
+n01_yuvj_pc_vs_norange | ref yuvj420p | dis yuv420p | ref_conversion bt709/pc -> bt709/pc (10) | dis_conversion bt709/unknown -> bt709/pc (10) | warnings []
+n02_10bit_tv_vs_norange | ref yuv420p10le | dis yuv420p | ref_conversion bt709/tv -> bt709/tv (10) | dis_conversion bt709/unknown -> bt709/tv (10) | warnings []
+n03_10bit_bt709_vs_gray | ref yuv420p10le | dis gray | ref_conversion bt709/tv -> bt709/tv (10) | dis_conversion bt709/tv -> bt709/tv (10) | warnings []
+n04_10bit_bt709_vs_rgb | ref yuv420p10le | dis bgr0 | ref_conversion bt709/tv -> bt709/tv (10) | dis_conversion gbr/pc -> bt709/tv (10) | warnings ["the distorted input's frames are bgr0, a pixel format whose conversion isn't checked against FFmpeg's section 5 graph (vmafcolor::verified), so the scores can differ from FFmpeg's"]
+
+# 6. The verdicts and warnings of the delta report, and the FFmpeg libraries on both sides (D-021), from main/delta.json.
+
+$ python3 -I -c 'import json, sys
+o = json.load(open(sys.argv[1] + "/delta.json"))
+print(o["status"], "pairs", o["pairs_total"], "failed", o["pairs_failed"], "warnings of the run", o["warnings"])
+for p in o["pairs"]:
+    print(p["pair"], p["status"], "| warnings", p["warnings"])
+print("mirage_vmaf:", o["mirage_vmaf"]["ffmpeg_libraries"])
+print("FFmpeg:", o["environment"]["ffmpeg_libraries"])' eval/consistency/negotiation-cases/main
+PASS pairs 4 failed [] warnings of the run []
+n01_yuvj_pc_vs_norange PASS | warnings []
+n02_10bit_tv_vs_norange PASS | warnings []
+n03_10bit_bt709_vs_gray PASS | warnings ["the distorted frames' color conversions differ: mirage_vmaf bt709/tv -> bt709/tv, FFmpeg's scale filter bt709/tv -> bt709/tv, unknown/pc -> bt709/tv"]
+n04_10bit_bt709_vs_rgb PASS | warnings ["mirage_vmaf: the distorted input's frames are bgr0, a pixel format whose conversion isn't checked against FFmpeg's section 5 graph (vmafcolor::verified), so the scores can differ from FFmpeg's"]
+mirage_vmaf: {'libavutil': '60.26.101', 'libavcodec': '62.28.101', 'libavformat': '62.12.101', 'libswscale': '9.5.101', 'libavfilter': '11.14.101'}
+FFmpeg: {'libavutil': '60.26.101', 'libavcodec': '62.28.101', 'libavformat': '62.12.101', 'libavdevice': '62.3.101', 'libavfilter': '11.14.101', 'libswscale': '9.5.101', 'libswresample': '6.3.101'}
+
+# 7. The run's checksums.
+
+$ (cd eval/consistency/negotiation-cases/main && shasum -a 256 -c SHA256SUMS | awk '{n[$NF]++} END {for (k in n) printf "%d %s\n", n[k], k}')
+49 OK

@@ -1,0 +1,133 @@
+# Checks on the run in this directory, made after it from <repo>: each command, then its output. The run is top-rung/, made by eval/consistency/ladder_check.py with the mirage_vmaf of build.txt.
+
+# 1. The repository when these checks were made: HEAD and the working tree's state.
+
+$ git rev-parse HEAD && git status --porcelain && echo '(end of git status)'
+f983bacc56e9f21dc2d76cbf122383f89479c70f
+(end of git status)
+
+# 2. The program and the run's repository: the SHA-256 that build.txt records and that the run's environment.txt repeats; the commit of the run and the state of its working tree at the start and the end of the run (environment.txt).
+
+$ grep -h -E '^[0-9a-f]+  build/macos-release/mirage_vmaf$' eval/consistency/ladder-300/build.txt && grep '^sha256:' eval/consistency/ladder-300/top-rung/environment.txt && grep -A1 -E '^\$ git -C <repo> (rev-parse HEAD|status --porcelain)' eval/consistency/ladder-300/top-rung/environment.txt
+eab1651cc09237fce5451fd1de0c236c2d589b2d3b2d2848065b675e8e35a4c7  build/macos-release/mirage_vmaf
+sha256: eab1651cc09237fce5451fd1de0c236c2d589b2d3b2d2848065b675e8e35a4c7
+$ git -C <repo> rev-parse HEAD
+7fbaa8c56cf830471e9dc6ec802619a8390a072c
+--
+$ git -C <repo> status --porcelain   (start of the run)
+(no output: the working tree is clean)
+--
+$ git -C <repo> rev-parse HEAD
+7fbaa8c56cf830471e9dc6ec802619a8390a072c
+--
+$ git -C <repo> status --porcelain   (end of the run)
+(no output: the working tree is clean)
+
+# 3. What mirage_vmaf --ladder read: the master playlist as given, the URL it was read from and the SHA-256 of its bytes (the ladder report, ladder/mirage.json), against the SHA-256 of the copy eval/streams/fetch_streams.py fetched (eval/streams/fetched-2026-10-23); then each entry as the report gives it, its URI resolved, its BANDWIDTH, RESOLUTION and CODECS, and whether it has video, against the same entry of fetch_streams.py's record (streams.json: its URL, BANDWIDTH and video flag).
+
+$ shasum -a 256 eval/streams/fetched-2026-10-23/bipbop_16x9__bipbop_16x9_variant.m3u8 && python3 -I -c 'import json, sys
+r = json.load(open(sys.argv[1]))
+s = json.load(open(sys.argv[2]))["streams"][0]
+lad = r["ladder"]
+print("master", lad["url"], "| read from", lad["location"], "| sha256", lad["sha256"])
+for e, f in zip(lad["entries"], s["entries"]):
+    same = (e["uri"], e["url"], str(e["bandwidth"]), e["video"]) == (f["uri"], f["url"], f["attributes"].get("BANDWIDTH"), f["video"])
+    print("entry", e["index"], "line", e["line"], e["uri"], "| BANDWIDTH", e["bandwidth"], "| RESOLUTION", e["resolution"], "| CODECS", e["codecs"], "| video", e["video"], "| as streams.json:", "yes" if same else "NO")
+print("entries", len(lad["entries"]), "| in streams.json", len(s["entries"]))' eval/consistency/ladder-300/top-rung/ladder/mirage.json eval/streams/fetched-2026-10-23/streams.json
+abccb34314f7228107ed03077c5150424a3aecff0275767a6b7f64c0fd99ff36  eval/streams/fetched-2026-10-23/bipbop_16x9__bipbop_16x9_variant.m3u8
+master https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8 | read from https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8 | sha256 abccb34314f7228107ed03077c5150424a3aecff0275767a6b7f64c0fd99ff36
+entry 0 line 17 gear1/prog_index.m3u8 | BANDWIDTH 263851 | RESOLUTION 416x234 | CODECS mp4a.40.2, avc1.4d400d | video True | as streams.json: yes
+entry 1 line 21 gear2/prog_index.m3u8 | BANDWIDTH 577610 | RESOLUTION 640x360 | CODECS mp4a.40.2, avc1.4d401e | video True | as streams.json: yes
+entry 2 line 25 gear3/prog_index.m3u8 | BANDWIDTH 915905 | RESOLUTION 960x540 | CODECS mp4a.40.2, avc1.4d401f | video True | as streams.json: yes
+entry 3 line 29 gear4/prog_index.m3u8 | BANDWIDTH 1030138 | RESOLUTION 1280x720 | CODECS mp4a.40.2, avc1.4d401f | video True | as streams.json: yes
+entry 4 line 33 gear5/prog_index.m3u8 | BANDWIDTH 1924009 | RESOLUTION 1920x1080 | CODECS mp4a.40.2, avc1.4d401f | video True | as streams.json: yes
+entry 5 line 37 gear0/prog_index.m3u8 | BANDWIDTH 41457 | RESOLUTION None | CODECS mp4a.40.2 | video False | as streams.json: yes
+entries 6 | in streams.json 6
+
+# 4. What mirage_vmaf --ladder planned: the reference mode, the reference and the entries naming it, each pair's entries and distorted playlist, the skipped entries with their reasons, and the warnings (the ladder report).
+
+$ python3 -I -c 'import json, sys
+r = json.load(open(sys.argv[1]))
+print("reference_mode", r["reference_mode"])
+print("reference", r["reference"]["url"], "| entries", r["reference"]["entries"])
+for p in r["pairs"]:
+    print("pair", p["index"], "| entries", p["entries"], "|", p["dis"]["url"], "against", p["ref"]["url"], "| frames scored", p["frames_scored"])
+for s in r["skipped"]:
+    print("skipped: entry", s["entry"], "|", s["reason"])
+print("warnings", r["warnings"])' eval/consistency/ladder-300/top-rung/ladder/mirage.json
+reference_mode top-rung
+reference https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear5/prog_index.m3u8 | entries [4]
+pair 0 | entries [0] | https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear1/prog_index.m3u8 against https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear5/prog_index.m3u8 | frames scored 300
+pair 1 | entries [1] | https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear2/prog_index.m3u8 against https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear5/prog_index.m3u8 | frames scored 300
+pair 2 | entries [2] | https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear3/prog_index.m3u8 against https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear5/prog_index.m3u8 | frames scored 300
+pair 3 | entries [3] | https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear4/prog_index.m3u8 against https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear5/prog_index.m3u8 | frames scored 300
+skipped: entry 5 | no video
+warnings []
+
+# 5. The check's own verdict (check.json): its status and problems, and for each pair of pairs.txt the ladder pair it matched, that pair's entries, the frames each report scored, and the keys that differ.
+
+$ python3 -I -c 'import json, sys
+c = json.load(open(sys.argv[1]))
+print("status", c["status"], "| problems", c["problems"], "| extra pairs", c["extra_pairs"], "| every entry once", c["entries_accounted_once"])
+for p in c["pairs"]:
+    print(p["pair"], p["status"], "| ladder pair", p["ladder_index"], "| entries", p["entries"], "| frames", p["frames"]["ladder"], "/", p["frames"]["alone"], "| differing", p["differing"], "| frames that differ", p["differing_frames"])' eval/consistency/ladder-300/top-rung/check.json
+status PASS | problems [] | extra pairs [] | every entry once True
+gear4_vs_gear5 SAME | ladder pair 3 | entries [3] | frames 300 / 300 | differing [] | frames that differ 0
+gear3_vs_gear5 SAME | ladder pair 2 | entries [2] | frames 300 / 300 | differing [] | frames that differ 0
+gear2_vs_gear5 SAME | ladder pair 1 | entries [1] | frames 300 / 300 | differing [] | frames that differ 0
+gear1_vs_gear5 SAME | ladder pair 0 | entries [0] | frames 300 / 300 | differing [] | frames that differ 0
+
+# 6. The same without ladder_check.py: for each pair of pairs.txt, the ladder pair with its reference and distorted URLs, and against the pair's own report (<pair>/mirage.json) the frames each scored, the frames whose score, PTS and positions in the inputs are all the same at full precision, and whether the pooled values, the alignment and the distorted frames' conversions are the same.
+
+$ grep -v '^#' eval/consistency/ladder-300/top-rung/pairs.txt | while read label ref dis; do python3 -I -c 'import json, sys
+label, ref, dis = sys.argv[3:6]
+lad = json.load(open(sys.argv[1]))
+own = json.load(open(sys.argv[2] + "/" + label + "/mirage.json"))
+(p,) = [x for x in lad["pairs"] if x["ref"]["url"] == ref and x["dis"]["url"] == dis]
+same = sum(a == b for a, b in zip(p["frames"], own["frames"]))
+print(label, "| ladder pair", p["index"], "| frames", len(p["frames"]), "/", len(own["frames"]), "all the same", same, "| pooled", p["pooled"] == own["pooled"], "| alignment", p["alignment"] == own["alignment"], "| dis_conversion", p["dis_conversion"] == own["dis_conversion"], "| reference_mode", lad["reference_mode"], "/", own["reference_mode"])' eval/consistency/ladder-300/top-rung/ladder/mirage.json eval/consistency/ladder-300/top-rung "$label" "$ref" "$dis"; done
+gear4_vs_gear5 | ladder pair 3 | frames 300 / 300 all the same 300 | pooled True | alignment True | dis_conversion True | reference_mode top-rung / explicit-pair
+gear3_vs_gear5 | ladder pair 2 | frames 300 / 300 all the same 300 | pooled True | alignment True | dis_conversion True | reference_mode top-rung / explicit-pair
+gear2_vs_gear5 | ladder pair 1 | frames 300 / 300 all the same 300 | pooled True | alignment True | dis_conversion True | reference_mode top-rung / explicit-pair
+gear1_vs_gear5 | ladder pair 0 | frames 300 / 300 all the same 300 | pooled True | alignment True | dis_conversion True | reference_mode top-rung / explicit-pair
+
+# 7. Against defaults-300 (eval/consistency/defaults-300/plain), the run of run_delta.sh on the same four pairs, first 300 frames, with the same defaults, made by the mirage_vmaf of 02ebed5, before D-028 and D-029: for each pair, the frames whose score in the ladder report is the same as in defaults-300's mirage.json at full precision, and the frames whose score, written with the 6 decimals of FFmpeg's libvmaf log, is the same as FFmpeg's in defaults-300's ffmpeg.json.
+
+$ grep -v '^#' eval/consistency/ladder-300/top-rung/pairs.txt | while read label ref dis; do python3 -I -c 'import json, sys
+label, ref, dis = sys.argv[3:6]
+lad = json.load(open(sys.argv[1]))
+(p,) = [x for x in lad["pairs"] if x["ref"]["url"] == ref and x["dis"]["url"] == dis]
+m = [x["vmaf"] for x in p["frames"]]
+old = [x["vmaf"] for x in json.load(open(sys.argv[2] + "/" + label + "/mirage.json"))["frames"]]
+f = [x["metrics"]["vmaf"] for x in json.load(open(sys.argv[2] + "/" + label + "/ffmpeg.json"))["frames"]]
+print(label, "| frames", len(m), "| as defaults-300 Mirage", sum(a == b for a, b in zip(m, old)), "of", len(old), "| as FFmpeg at 6 decimals", sum(format(a, ".6f") == format(b, ".6f") for a, b in zip(m, f)), "of", len(f))' eval/consistency/ladder-300/top-rung/ladder/mirage.json eval/consistency/defaults-300/plain "$label" "$ref" "$dis"; done
+gear4_vs_gear5 | frames 300 | as defaults-300 Mirage 300 of 300 | as FFmpeg at 6 decimals 300 of 300
+gear3_vs_gear5 | frames 300 | as defaults-300 Mirage 300 of 300 | as FFmpeg at 6 decimals 300 of 300
+gear2_vs_gear5 | frames 300 | as defaults-300 Mirage 300 of 300 | as FFmpeg at 6 decimals 300 of 300
+gear1_vs_gear5 | frames 300 | as defaults-300 Mirage 300 of 300 | as FFmpeg at 6 decimals 300 of 300
+
+# 8. Each mirage_vmaf run of the check, its exit status and wall time (check.json), and what the ladder run wrote on its stdout.
+
+$ python3 -I -c 'import json, sys
+c = json.load(open(sys.argv[1]))
+for name, r in c["runs"].items():
+    print(name, "| exit status", r["exit_code"], "| timed out", r["timed_out"], "| wall time", r["elapsed_s"], "s")' eval/consistency/ladder-300/top-rung/check.json && cat eval/consistency/ladder-300/top-rung/ladder/mirage.stdout.txt
+ladder | exit status 0 | timed out False | wall time 19.536 s
+gear4_vs_gear5 | exit status 0 | timed out False | wall time 6.01 s
+gear3_vs_gear5 | exit status 0 | timed out False | wall time 7.163 s
+gear2_vs_gear5 | exit status 0 | timed out False | wall time 6.817 s
+gear1_vs_gear5 | exit status 0 | timed out False | wall time 7.026 s
+[INFO]  VMAFAnalyzer: 300 frames  mean=6.78  min=0.00  p5=5.41  [Analysis]
+mirage_vmaf: pair 1 of 4, https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear1/prog_index.m3u8: 300 frame pairs scored
+[INFO]  VMAFAnalyzer: 300 frames  mean=36.82  min=23.49  p5=35.38  [Analysis]
+mirage_vmaf: pair 2 of 4, https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear2/prog_index.m3u8: 300 frame pairs scored
+[INFO]  VMAFAnalyzer: 300 frames  mean=64.84  min=56.84  p5=63.88  [Analysis]
+mirage_vmaf: pair 3 of 4, https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear3/prog_index.m3u8: 300 frame pairs scored
+[INFO]  VMAFAnalyzer: 300 frames  mean=84.26  min=79.61  p5=83.43  [Analysis]
+mirage_vmaf: pair 4 of 4, https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear4/prog_index.m3u8: 300 frame pairs scored
+mirage_vmaf: 4 pairs of the ladder scored against https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear5/prog_index.m3u8 (top-rung), 1 entry skipped, report written to mirage.json
+
+# 9. The run's checksums.
+
+$ (cd eval/consistency/ladder-300/top-rung && shasum -a 256 -c SHA256SUMS | awk '{n[$NF]++} END {for (k in n) printf "%d %s\n", n[k], k}')
+25 OK

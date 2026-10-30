@@ -1,0 +1,53 @@
+# Checks on the run in this directory, made after it from <repo>: each command, then its output.
+
+# 1. Every pair: frame pairs on each side, and frames whose Mirage score, written with the 6 decimals of FFmpeg's log, is FFmpeg's.
+
+$ python3 -I -c 'import json, sys
+for d in sys.argv[1:]:
+    m = json.load(open(d + "/mirage.json"))["frames"]
+    f = json.load(open(d + "/ffmpeg.json"))["frames"]
+    same = sum(format(a["vmaf"], ".6f") == format(b["metrics"]["vmaf"], ".6f") for a, b in zip(m, f))
+    print(d, len(m), len(f), same)' eval/consistency/diag-after-300/plain/*_vs_gear5
+eval/consistency/diag-after-300/plain/gear1_vs_gear5 300 300 300
+eval/consistency/diag-after-300/plain/gear2_vs_gear5 300 300 300
+eval/consistency/diag-after-300/plain/gear3_vs_gear5 300 300 300
+eval/consistency/diag-after-300/plain/gear4_vs_gear5 300 300 300
+
+# 2. mirage_vmaf's scores in this run against those of the plain run before D-016 (diag-before-300/plain), at full precision: frames on each side, and frames with the same score.
+
+$ python3 -I -c 'import json, sys
+for name in sys.argv[1:]:
+    a = json.load(open("eval/consistency/diag-after-300/plain/" + name + "/mirage.json"))["frames"]
+    b = json.load(open("eval/consistency/diag-before-300/plain/" + name + "/mirage.json"))["frames"]
+    print(name, len(a), len(b), sum(x["vmaf"] == y["vmaf"] for x, y in zip(a, b)))' gear4_vs_gear5 gear3_vs_gear5 gear2_vs_gear5 gear1_vs_gear5
+gear4_vs_gear5 300 300 300
+gear3_vs_gear5 300 300 300
+gear2_vs_gear5 300 300 0
+gear1_vs_gear5 300 300 10
+
+# 3. FFmpeg's side of this run against that of the plain run before D-016: frames on each side, and frames with every libvmaf metric equal.
+
+$ python3 -I -c 'import json, sys
+for name in sys.argv[1:]:
+    a = json.load(open("eval/consistency/diag-after-300/plain/" + name + "/ffmpeg.json"))["frames"]
+    b = json.load(open("eval/consistency/diag-before-300/plain/" + name + "/ffmpeg.json"))["frames"]
+    print(name, len(a), len(b), sum(x["metrics"] == y["metrics"] for x, y in zip(a, b)))' gear4_vs_gear5 gear3_vs_gear5 gear2_vs_gear5 gear1_vs_gear5
+gear4_vs_gear5 300 300 300
+gear3_vs_gear5 300 300 300
+gear2_vs_gear5 300 300 300
+gear1_vs_gear5 300 300 300
+
+# 4. The distorted frames' color conversion in each mirage_vmaf report (dis_conversion).
+
+$ python3 -I -c 'import json, sys
+for p in sys.argv[1:]:
+    print(p, json.dumps(json.load(open(p))["dis_conversion"]))' eval/consistency/diag-after-300/plain/*_vs_gear5/mirage.json
+eval/consistency/diag-after-300/plain/gear1_vs_gear5/mirage.json [{"from": {"color_space": "smpte170m", "color_range": "tv"}, "to": {"color_space": "bt709", "color_range": "tv"}, "matrix_changed": true, "range_changed": false, "first_index": 0, "pairs": 300}]
+eval/consistency/diag-after-300/plain/gear2_vs_gear5/mirage.json [{"from": {"color_space": "smpte170m", "color_range": "tv"}, "to": {"color_space": "bt709", "color_range": "tv"}, "matrix_changed": true, "range_changed": false, "first_index": 0, "pairs": 300}]
+eval/consistency/diag-after-300/plain/gear3_vs_gear5/mirage.json [{"from": {"color_space": "bt709", "color_range": "tv"}, "to": {"color_space": "bt709", "color_range": "tv"}, "matrix_changed": false, "range_changed": false, "first_index": 0, "pairs": 300}]
+eval/consistency/diag-after-300/plain/gear4_vs_gear5/mirage.json [{"from": {"color_space": "bt709", "color_range": "tv"}, "to": {"color_space": "bt709", "color_range": "tv"}, "matrix_changed": false, "range_changed": false, "first_index": 0, "pairs": 300}]
+
+# 5. The run's checksums.
+
+$ cd eval/consistency/diag-after-300/plain && shasum -a 256 -c SHA256SUMS | awk '{n[$NF]++} END {for (k in n) print n[k], k}'
+49 OK

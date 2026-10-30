@@ -1,0 +1,482 @@
+{
+  "report_version": 1,
+  "pair": "a08_ms_vs_90khz",
+  "reference": "<tmp>/align_clips/ref.mkv",
+  "distorted": "<tmp>/align_clips/dis_ts.ts",
+  "variant": "plain",
+  "status": "FAIL",
+  "fail_reasons": [
+    "PAIRING MISMATCH: 4 of Mirage's 10 pairs are not among FFmpeg's, and 4 of FFmpeg's 10 not among Mirage's (the same pair: the same reference and distorted frames); only the pairs both scored are compared",
+    "5 of 6 frames have |delta| > 0.01"
+  ],
+  "warnings": [
+    "the two sides' pairing treats 11 frames differently, Mirage's failures included (the pair's delta.md, \"Pairing by timestamp\")"
+  ],
+  "threshold": 0.01,
+  "frame_limit": null,
+  "frames": {
+    "mirage": 10,
+    "ffmpeg": 10,
+    "compared": 6,
+    "counts_match": true
+  },
+  "delta": {
+    "compared": 6,
+    "max_abs": 2.13116976914435,
+    "max_abs_index": 1,
+    "mean_abs": 1.0643746258207873,
+    "mean_signed": 1.0383951324882783,
+    "over_threshold": 5,
+    "over_threshold_ranges": [
+      [
+        1,
+        1
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        6,
+        6
+      ],
+      [
+        9,
+        9
+      ]
+    ],
+    "worst": [
+      {
+        "index": 1,
+        "ffmpeg_index": 1,
+        "mirage": 72.29448376914435,
+        "ffmpeg": 70.163314,
+        "delta": 2.13116976914435
+      },
+      {
+        "index": 4,
+        "ffmpeg_index": 4,
+        "mirage": 72.38420917285315,
+        "ffmpeg": 70.267518,
+        "delta": 2.1166911728531517
+      },
+      {
+        "index": 6,
+        "ffmpeg_index": 6,
+        "mirage": 72.2558683329297,
+        "ffmpeg": 70.19542,
+        "delta": 2.0604483329296954
+      },
+      {
+        "index": 9,
+        "ffmpeg_index": 9,
+        "mirage": 72.16980840665032,
+        "ffmpeg": 72.230536,
+        "delta": -0.06072759334968225
+      },
+      {
+        "index": 3,
+        "ffmpeg_index": 3,
+        "mirage": 72.17076442410391,
+        "ffmpeg": 72.187975,
+        "delta": -0.017210575896086766
+      }
+    ],
+    "mean_mirage": 71.89910213248828,
+    "mean_ffmpeg": 70.860707
+  },
+  "alignment": {
+    "compared_by": "the same reference and distorted frames (their positions in the inputs), at the same timestamps (seconds from each input's start)",
+    "tolerance": 0.016683333333333335,
+    "tolerance_from": "the reference's frame rate in mirage_vmaf's alignment",
+    "mirage": {
+      "pairs": 10,
+      "reference_in_several_pairs": 0,
+      "distorted_in_several_pairs": 0,
+      "pairs_beyond_tolerance": 0,
+      "rule": "reference-timeline",
+      "grid": "reference",
+      "failed": 0,
+      "failure_rate": 0,
+      "threshold": 0.01,
+      "exceeded": false,
+      "unmatched_reference": 0,
+      "extra_distorted": 0,
+      "duplicate_distorted": 0,
+      "no_timestamp": 0,
+      "after_discontinuity": 0,
+      "discontinuities": 0,
+      "off_grid_reference": 0,
+      "off_grid_distorted": 0,
+      "vmaf_contexts": 1,
+      "reference_in_no_pair": 0,
+      "distorted_in_no_pair": 0,
+      "start": {
+        "reference": 0.0,
+        "distorted": 1.4333666666666667
+      },
+      "start_from": {
+        "reference": "the report's alignment, start_from container",
+        "distorted": "the report's alignment, start_from container"
+      }
+    },
+    "ffmpeg": {
+      "pairs": 10,
+      "reference_in_several_pairs": 3,
+      "distorted_in_several_pairs": 0,
+      "pairs_beyond_tolerance": 4,
+      "reference_in_no_pair": 3,
+      "distorted_in_no_pair": 0,
+      "unscored": 0,
+      "by_reference": 0,
+      "rule": "framesync: each distorted frame with the reference frame at or before its time; the last frame of an input that has ended repeated",
+      "start": {
+        "reference": 0.0,
+        "distorted": 1.433367
+      },
+      "time_base": {
+        "reference": "1/1000",
+        "distorted": "1/90000",
+        "framesync": "1/90000"
+      },
+      "frames": {
+        "reference": 10,
+        "distorted": 10
+      },
+      "corrections": 0
+    },
+    "pairs": {
+      "both": 6,
+      "only_mirage": 4,
+      "only_ffmpeg": 4,
+      "other_times": 0
+    },
+    "only_mirage": [
+      {
+        "index": 2,
+        "ref": 2,
+        "dis": 2,
+        "ref_time": 0.067,
+        "dis_time": 0.06673333333333334
+      },
+      {
+        "index": 5,
+        "ref": 5,
+        "dis": 5,
+        "ref_time": 0.167,
+        "dis_time": 0.16683333333333333
+      },
+      {
+        "index": 7,
+        "ref": 7,
+        "dis": 7,
+        "ref_time": 0.234,
+        "dis_time": 0.23356666666666667
+      },
+      {
+        "index": 8,
+        "ref": 8,
+        "dis": 8,
+        "ref_time": 0.267,
+        "dis_time": 0.26693333333333336
+      }
+    ],
+    "only_ffmpeg": [
+      {
+        "frame": 2,
+        "ref": 1,
+        "dis": 2,
+        "ref_time": 0.033,
+        "dis_time": 0.06673333333333334,
+        "by_reference": false
+      },
+      {
+        "frame": 5,
+        "ref": 4,
+        "dis": 5,
+        "ref_time": 0.133,
+        "dis_time": 0.16683333333333333,
+        "by_reference": false
+      },
+      {
+        "frame": 7,
+        "ref": 6,
+        "dis": 7,
+        "ref_time": 0.2,
+        "dis_time": 0.23356666666666667,
+        "by_reference": false
+      },
+      {
+        "frame": 8,
+        "ref": 7,
+        "dis": 8,
+        "ref_time": 0.234,
+        "dis_time": 0.26693333333333336,
+        "by_reference": false
+      }
+    ],
+    "other_times": [],
+    "frames_treated_differently": 11,
+    "frames": [
+      {
+        "input": "reference",
+        "index": 1,
+        "time": 0.033,
+        "mirage": "paired with distorted 1",
+        "ffmpeg": "paired with distorted 1, 2 (in 2 pairs)"
+      },
+      {
+        "input": "reference",
+        "index": 2,
+        "time": 0.067,
+        "mirage": "paired with distorted 2",
+        "ffmpeg": "in no pair"
+      },
+      {
+        "input": "reference",
+        "index": 4,
+        "time": 0.133,
+        "mirage": "paired with distorted 4",
+        "ffmpeg": "paired with distorted 4, 5 (in 2 pairs)"
+      },
+      {
+        "input": "reference",
+        "index": 5,
+        "time": 0.167,
+        "mirage": "paired with distorted 5",
+        "ffmpeg": "in no pair"
+      },
+      {
+        "input": "reference",
+        "index": 6,
+        "time": 0.2,
+        "mirage": "paired with distorted 6",
+        "ffmpeg": "paired with distorted 6, 7 (in 2 pairs)"
+      },
+      {
+        "input": "reference",
+        "index": 7,
+        "time": 0.234,
+        "mirage": "paired with distorted 7",
+        "ffmpeg": "paired with distorted 8"
+      },
+      {
+        "input": "reference",
+        "index": 8,
+        "time": 0.267,
+        "mirage": "paired with distorted 8",
+        "ffmpeg": "in no pair"
+      },
+      {
+        "input": "distorted",
+        "index": 2,
+        "time": 0.06673333333333334,
+        "mirage": "paired with reference 2",
+        "ffmpeg": "paired with reference 1"
+      },
+      {
+        "input": "distorted",
+        "index": 5,
+        "time": 0.16683333333333333,
+        "mirage": "paired with reference 5",
+        "ffmpeg": "paired with reference 4"
+      },
+      {
+        "input": "distorted",
+        "index": 7,
+        "time": 0.23356666666666667,
+        "mirage": "paired with reference 7",
+        "ffmpeg": "paired with reference 6"
+      },
+      {
+        "input": "distorted",
+        "index": 8,
+        "time": 0.26693333333333336,
+        "mirage": "paired with reference 8",
+        "ffmpeg": "paired with reference 7"
+      }
+    ]
+  },
+  "pooled": {
+    "mirage": {
+      "mean": 72.07961730599548,
+      "min": 70.11947868924824,
+      "harmonic_mean": 72.07340330617419
+    },
+    "ffmpeg": {
+      "mean": 51.260499,
+      "min": 20.525705,
+      "harmonic_mean": 37.611608
+    },
+    "difference": {
+      "mean": 20.81911830599548,
+      "min": 49.59377368924824,
+      "harmonic_mean": 34.46179530617419
+    }
+  },
+  "relabel": null,
+  "ffmpeg_color": {
+    "graph_inputs": [
+      {
+        "input": 0,
+        "stream": 0,
+        "color_space": "bt709",
+        "color_range": "tv"
+      },
+      {
+        "input": 1,
+        "stream": 0,
+        "color_space": "bt709",
+        "color_range": "tv"
+      }
+    ],
+    "scale": [
+      {
+        "filter": "Parsed_scale_0",
+        "in": {
+          "width": 640,
+          "height": 360,
+          "pix_fmt": "yuv420p",
+          "color_space": "bt709",
+          "color_range": "tv"
+        },
+        "out": {
+          "width": 1920,
+          "height": 1080,
+          "pix_fmt": "yuv420p",
+          "color_space": "bt709",
+          "color_range": "tv"
+        },
+        "flags": "0x00000004"
+      }
+    ],
+    "conversions": []
+  },
+  "mirage_color": {
+    "dis_conversion": [
+      {
+        "from": {
+          "color_space": "bt709",
+          "color_range": "tv"
+        },
+        "to": {
+          "color_space": "bt709",
+          "color_range": "tv"
+        },
+        "matrix_changed": false,
+        "range_changed": false,
+        "first_index": 0,
+        "pairs": 10
+      }
+    ],
+    "ref_conversion": []
+  },
+  "inputs": {
+    "ref": {
+      "ffprobe": {
+        "codec_name": "rawvideo",
+        "width": 1920,
+        "height": 1080,
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_range": "tv",
+        "color_primaries": null,
+        "color_transfer": null,
+        "time_base": "1/1000",
+        "r_frame_rate": "30000/1001",
+        "avg_frame_rate": "30000/1001",
+        "start_time": "0.000000"
+      },
+      "mirage_vmaf": {
+        "url": "<tmp>/align_clips/ref.mkv",
+        "width": 1920,
+        "height": 1080,
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_range": "tv",
+        "color_primaries": "unknown",
+        "color_trc": "unknown",
+        "time_base": "1/1000",
+        "ended": true
+      }
+    },
+    "dis": {
+      "ffprobe": {
+        "codec_name": "mpeg2video",
+        "width": 640,
+        "height": 360,
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_range": "tv",
+        "color_primaries": null,
+        "color_transfer": null,
+        "time_base": "1/90000",
+        "r_frame_rate": "30000/1001",
+        "avg_frame_rate": "30000/1001",
+        "start_time": "1.433367"
+      },
+      "mirage_vmaf": {
+        "url": "<tmp>/align_clips/dis_ts.ts",
+        "width": 640,
+        "height": 360,
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_range": "tv",
+        "color_primaries": "unknown",
+        "color_trc": "unknown",
+        "time_base": "1/90000",
+        "ended": true
+      }
+    }
+  },
+  "mirage_vmaf": {
+    "exit_code": 0,
+    "elapsed_s": 0.251,
+    "tool": "mirage_vmaf",
+    "reference_mode": "explicit-pair",
+    "libvmaf_version": "3.0.0",
+    "libvmaf_package_version": "3.1.0",
+    "ffmpeg_libraries": {
+      "libavutil": "60.26.101",
+      "libavcodec": "62.28.101",
+      "libavformat": "62.12.101",
+      "libswscale": "9.5.101",
+      "libavfilter": "11.14.101"
+    },
+    "model": "vmaf_v0.6.1",
+    "model_source": "built-in",
+    "model_sha256": null,
+    "scaler": "bicubic",
+    "n_threads": 4,
+    "n_subsample": 1,
+    "scored_as": {
+      "width": 1920,
+      "height": 1080,
+      "pix_fmt": "yuv420p",
+      "bit_depth": 8
+    },
+    "frame_limit": null,
+    "frames_scored": 10,
+    "ref_ended": true,
+    "dis_ended": true,
+    "first_ref_pts": 0.0,
+    "last_ref_pts": 0.3,
+    "pairs_with_different_pts": 10,
+    "warnings": []
+  },
+  "ffmpeg": {
+    "exit_code": 0,
+    "elapsed_s": 0.205,
+    "libvmaf_version": "3.0.0",
+    "libvmaf_package_version": "3.1.0",
+    "ffmpeg_libraries": {
+      "libavutil": "60.26.101",
+      "libavcodec": "62.28.101",
+      "libavformat": "62.12.101",
+      "libavdevice": "62.3.101",
+      "libavfilter": "11.14.101",
+      "libswscale": "9.5.101",
+      "libswresample": "6.3.101"
+    }
+  }
+}

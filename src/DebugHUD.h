@@ -165,6 +165,7 @@ public:
         std::vector<double> per_frame;      // empty until done
         bool                done   = false;
         std::string         error;
+        std::string         warning;        // too many frames failed to pair by timestamp (D-028)
     };
 
     // Draw the compact VMAF stats panel in the bottom-right corner.

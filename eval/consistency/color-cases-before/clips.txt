@@ -1,0 +1,286 @@
+# The clips of eval/consistency/color_cases.py, made in <clips_dir>: for each, the command that made it, its stream as <ffprobe> reads it back, and the MD5 of its decoded frames.
+
+## ref_bt709-tv.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -frames:v 10 -vf format=yuv420p,setparams=colorspace=bt709:range=tv -c:v rawvideo -f matroska <clips_dir>/ref_bt709-tv.mkv
+$ <ffprobe> -v error -select_streams v:0 -show_entries stream=width,height,pix_fmt,color_space,color_range,color_primaries,color_transfer,chroma_location,field_order -of default=noprint_wrappers=1 <clips_dir>/ref_bt709-tv.mkv
+width=1920
+height=1080
+pix_fmt=yuv420p
+color_range=tv
+color_space=bt709
+color_transfer=unknown
+color_primaries=unknown
+chroma_location=unspecified
+field_order=progressive
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/ref_bt709-tv.mkv -map 0:v:0 -c:v rawvideo -f md5 -
+MD5=d4a3f7e48e1e38381a738a75240e9844
+
+## ref_unknown-unknown.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -frames:v 10 -vf format=yuv420p,setparams=colorspace=unknown:range=unknown -c:v rawvideo -f matroska <clips_dir>/ref_unknown-unknown.mkv
+$ <ffprobe> -v error -select_streams v:0 -show_entries stream=width,height,pix_fmt,color_space,color_range,color_primaries,color_transfer,chroma_location,field_order -of default=noprint_wrappers=1 <clips_dir>/ref_unknown-unknown.mkv
+width=1920
+height=1080
+pix_fmt=yuv420p
+color_range=unknown
+color_space=unknown
+color_transfer=unknown
+color_primaries=unknown
+chroma_location=unspecified
+field_order=progressive
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/ref_unknown-unknown.mkv -map 0:v:0 -c:v rawvideo -f md5 -
+MD5=d4a3f7e48e1e38381a738a75240e9844
+
+## ref_smpte170m-tv.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -frames:v 10 -vf format=yuv420p,setparams=colorspace=smpte170m:range=tv -c:v rawvideo -f matroska <clips_dir>/ref_smpte170m-tv.mkv
+$ <ffprobe> -v error -select_streams v:0 -show_entries stream=width,height,pix_fmt,color_space,color_range,color_primaries,color_transfer,chroma_location,field_order -of default=noprint_wrappers=1 <clips_dir>/ref_smpte170m-tv.mkv
+width=1920
+height=1080
+pix_fmt=yuv420p
+color_range=tv
+color_space=smpte170m
+color_transfer=unknown
+color_primaries=unknown
+chroma_location=unspecified
+field_order=progressive
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/ref_smpte170m-tv.mkv -map 0:v:0 -c:v rawvideo -f md5 -
+MD5=d4a3f7e48e1e38381a738a75240e9844
+
+## ref_bt2020nc-tv.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -frames:v 10 -vf format=yuv420p,setparams=colorspace=bt2020nc:range=tv -c:v rawvideo -f matroska <clips_dir>/ref_bt2020nc-tv.mkv
+$ <ffprobe> -v error -select_streams v:0 -show_entries stream=width,height,pix_fmt,color_space,color_range,color_primaries,color_transfer,chroma_location,field_order -of default=noprint_wrappers=1 <clips_dir>/ref_bt2020nc-tv.mkv
+width=1920
+height=1080
+pix_fmt=yuv420p
+color_range=tv
+color_space=bt2020nc
+color_transfer=unknown
+color_primaries=unknown
+chroma_location=unspecified
+field_order=progressive
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/ref_bt2020nc-tv.mkv -map 0:v:0 -c:v rawvideo -f md5 -
+MD5=d4a3f7e48e1e38381a738a75240e9844
+
+## ref_bt709-pc.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -frames:v 10 -vf format=yuv420p,setparams=colorspace=bt709:range=pc -c:v rawvideo -f matroska <clips_dir>/ref_bt709-pc.mkv
+$ <ffprobe> -v error -select_streams v:0 -show_entries stream=width,height,pix_fmt,color_space,color_range,color_primaries,color_transfer,chroma_location,field_order -of default=noprint_wrappers=1 <clips_dir>/ref_bt709-pc.mkv
+width=1920
+height=1080
+pix_fmt=yuv420p
+color_range=pc
+color_space=bt709
+color_transfer=unknown
+color_primaries=unknown
+chroma_location=unspecified
+field_order=progressive
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/ref_bt709-pc.mkv -map 0:v:0 -c:v rawvideo -f md5 -
+MD5=d4a3f7e48e1e38381a738a75240e9844
+
+## ref_bt709-unknown.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -frames:v 10 -vf format=yuv420p,setparams=colorspace=bt709:range=unknown -c:v rawvideo -f matroska <clips_dir>/ref_bt709-unknown.mkv
+$ <ffprobe> -v error -select_streams v:0 -show_entries stream=width,height,pix_fmt,color_space,color_range,color_primaries,color_transfer,chroma_location,field_order -of default=noprint_wrappers=1 <clips_dir>/ref_bt709-unknown.mkv
+width=1920
+height=1080
+pix_fmt=yuv420p
+color_range=unknown
+color_space=bt709
+color_transfer=unknown
+color_primaries=unknown
+chroma_location=unspecified
+field_order=progressive
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/ref_bt709-unknown.mkv -map 0:v:0 -c:v rawvideo -f md5 -
+MD5=d4a3f7e48e1e38381a738a75240e9844
+
+## ref_bt709-tv-bt709-bt709.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -frames:v 10 -vf format=yuv420p,setparams=colorspace=bt709:range=tv:color_primaries=bt709:color_trc=bt709 -c:v rawvideo -f matroska <clips_dir>/ref_bt709-tv-bt709-bt709.mkv
+$ <ffprobe> -v error -select_streams v:0 -show_entries stream=width,height,pix_fmt,color_space,color_range,color_primaries,color_transfer,chroma_location,field_order -of default=noprint_wrappers=1 <clips_dir>/ref_bt709-tv-bt709-bt709.mkv
+width=1920
+height=1080
+pix_fmt=yuv420p
+color_range=tv
+color_space=bt709
+color_transfer=bt709
+color_primaries=bt709
+chroma_location=unspecified
+field_order=progressive
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/ref_bt709-tv-bt709-bt709.mkv -map 0:v:0 -c:v rawvideo -f md5 -
+MD5=d4a3f7e48e1e38381a738a75240e9844
+
+## ref_ycgco-tv.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -frames:v 10 -vf format=yuv420p,setparams=colorspace=ycgco:range=tv -c:v rawvideo -f matroska <clips_dir>/ref_ycgco-tv.mkv
+$ <ffprobe> -v error -select_streams v:0 -show_entries stream=width,height,pix_fmt,color_space,color_range,color_primaries,color_transfer,chroma_location,field_order -of default=noprint_wrappers=1 <clips_dir>/ref_ycgco-tv.mkv
+width=1920
+height=1080
+pix_fmt=yuv420p
+color_range=tv
+color_space=ycgco
+color_transfer=unknown
+color_primaries=unknown
+chroma_location=unspecified
+field_order=progressive
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/ref_ycgco-tv.mkv -map 0:v:0 -c:v rawvideo -f md5 -
+MD5=d4a3f7e48e1e38381a738a75240e9844
+
+## dis_smpte170m-tv.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -frames:v 10 -vf scale=640:360:flags=bicubic,format=yuv420p,setparams=colorspace=smpte170m:range=tv -c:v rawvideo -f matroska <clips_dir>/dis_smpte170m-tv.mkv
+$ <ffprobe> -v error -select_streams v:0 -show_entries stream=width,height,pix_fmt,color_space,color_range,color_primaries,color_transfer,chroma_location,field_order -of default=noprint_wrappers=1 <clips_dir>/dis_smpte170m-tv.mkv
+width=640
+height=360
+pix_fmt=yuv420p
+color_range=tv
+color_space=smpte170m
+color_transfer=unknown
+color_primaries=unknown
+chroma_location=unspecified
+field_order=progressive
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/dis_smpte170m-tv.mkv -map 0:v:0 -c:v rawvideo -f md5 -
+MD5=0c0d489dac71f877f7c7599f9f56be0e
+
+## dis_bt709-tv.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -frames:v 10 -vf scale=640:360:flags=bicubic,format=yuv420p,setparams=colorspace=bt709:range=tv -c:v rawvideo -f matroska <clips_dir>/dis_bt709-tv.mkv
+$ <ffprobe> -v error -select_streams v:0 -show_entries stream=width,height,pix_fmt,color_space,color_range,color_primaries,color_transfer,chroma_location,field_order -of default=noprint_wrappers=1 <clips_dir>/dis_bt709-tv.mkv
+width=640
+height=360
+pix_fmt=yuv420p
+color_range=tv
+color_space=bt709
+color_transfer=unknown
+color_primaries=unknown
+chroma_location=unspecified
+field_order=progressive
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/dis_bt709-tv.mkv -map 0:v:0 -c:v rawvideo -f md5 -
+MD5=0c0d489dac71f877f7c7599f9f56be0e
+
+## dis_unknown-unknown.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -frames:v 10 -vf scale=640:360:flags=bicubic,format=yuv420p,setparams=colorspace=unknown:range=unknown -c:v rawvideo -f matroska <clips_dir>/dis_unknown-unknown.mkv
+$ <ffprobe> -v error -select_streams v:0 -show_entries stream=width,height,pix_fmt,color_space,color_range,color_primaries,color_transfer,chroma_location,field_order -of default=noprint_wrappers=1 <clips_dir>/dis_unknown-unknown.mkv
+width=640
+height=360
+pix_fmt=yuv420p
+color_range=unknown
+color_space=unknown
+color_transfer=unknown
+color_primaries=unknown
+chroma_location=unspecified
+field_order=progressive
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/dis_unknown-unknown.mkv -map 0:v:0 -c:v rawvideo -f md5 -
+MD5=0c0d489dac71f877f7c7599f9f56be0e
+
+## dis_bt470bg-tv.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -frames:v 10 -vf scale=640:360:flags=bicubic,format=yuv420p,setparams=colorspace=bt470bg:range=tv -c:v rawvideo -f matroska <clips_dir>/dis_bt470bg-tv.mkv
+$ <ffprobe> -v error -select_streams v:0 -show_entries stream=width,height,pix_fmt,color_space,color_range,color_primaries,color_transfer,chroma_location,field_order -of default=noprint_wrappers=1 <clips_dir>/dis_bt470bg-tv.mkv
+width=640
+height=360
+pix_fmt=yuv420p
+color_range=tv
+color_space=bt470bg
+color_transfer=unknown
+color_primaries=unknown
+chroma_location=unspecified
+field_order=progressive
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/dis_bt470bg-tv.mkv -map 0:v:0 -c:v rawvideo -f md5 -
+MD5=0c0d489dac71f877f7c7599f9f56be0e
+
+## dis_bt709-pc.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -frames:v 10 -vf scale=640:360:flags=bicubic,format=yuv420p,setparams=colorspace=bt709:range=pc -c:v rawvideo -f matroska <clips_dir>/dis_bt709-pc.mkv
+$ <ffprobe> -v error -select_streams v:0 -show_entries stream=width,height,pix_fmt,color_space,color_range,color_primaries,color_transfer,chroma_location,field_order -of default=noprint_wrappers=1 <clips_dir>/dis_bt709-pc.mkv
+width=640
+height=360
+pix_fmt=yuv420p
+color_range=pc
+color_space=bt709
+color_transfer=unknown
+color_primaries=unknown
+chroma_location=unspecified
+field_order=progressive
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/dis_bt709-pc.mkv -map 0:v:0 -c:v rawvideo -f md5 -
+MD5=0c0d489dac71f877f7c7599f9f56be0e
+
+## dis_bt709-unknown.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -frames:v 10 -vf scale=640:360:flags=bicubic,format=yuv420p,setparams=colorspace=bt709:range=unknown -c:v rawvideo -f matroska <clips_dir>/dis_bt709-unknown.mkv
+$ <ffprobe> -v error -select_streams v:0 -show_entries stream=width,height,pix_fmt,color_space,color_range,color_primaries,color_transfer,chroma_location,field_order -of default=noprint_wrappers=1 <clips_dir>/dis_bt709-unknown.mkv
+width=640
+height=360
+pix_fmt=yuv420p
+color_range=unknown
+color_space=bt709
+color_transfer=unknown
+color_primaries=unknown
+chroma_location=unspecified
+field_order=progressive
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/dis_bt709-unknown.mkv -map 0:v:0 -c:v rawvideo -f md5 -
+MD5=0c0d489dac71f877f7c7599f9f56be0e
+
+## dis_smpte170m-pc.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -frames:v 10 -vf scale=640:360:flags=bicubic,format=yuv420p,setparams=colorspace=smpte170m:range=pc -c:v rawvideo -f matroska <clips_dir>/dis_smpte170m-pc.mkv
+$ <ffprobe> -v error -select_streams v:0 -show_entries stream=width,height,pix_fmt,color_space,color_range,color_primaries,color_transfer,chroma_location,field_order -of default=noprint_wrappers=1 <clips_dir>/dis_smpte170m-pc.mkv
+width=640
+height=360
+pix_fmt=yuv420p
+color_range=pc
+color_space=smpte170m
+color_transfer=unknown
+color_primaries=unknown
+chroma_location=unspecified
+field_order=progressive
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/dis_smpte170m-pc.mkv -map 0:v:0 -c:v rawvideo -f md5 -
+MD5=0c0d489dac71f877f7c7599f9f56be0e
+
+## dis_bt709-tv-bt470bg-bt470bg.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -frames:v 10 -vf scale=640:360:flags=bicubic,format=yuv420p,setparams=colorspace=bt709:range=tv:color_primaries=bt470bg:color_trc=bt470bg -c:v rawvideo -f matroska <clips_dir>/dis_bt709-tv-bt470bg-bt470bg.mkv
+$ <ffprobe> -v error -select_streams v:0 -show_entries stream=width,height,pix_fmt,color_space,color_range,color_primaries,color_transfer,chroma_location,field_order -of default=noprint_wrappers=1 <clips_dir>/dis_bt709-tv-bt470bg-bt470bg.mkv
+width=640
+height=360
+pix_fmt=yuv420p
+color_range=tv
+color_space=bt709
+color_transfer=bt470bg
+color_primaries=bt470bg
+chroma_location=unspecified
+field_order=progressive
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/dis_bt709-tv-bt470bg-bt470bg.mkv -map 0:v:0 -c:v rawvideo -f md5 -
+MD5=0c0d489dac71f877f7c7599f9f56be0e
+
+## dis_bt709-tv-topleft.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -frames:v 10 -vf scale=640:360:flags=bicubic,format=yuv420p,setparams=colorspace=bt709:range=tv:chroma_location=topleft -c:v rawvideo -f matroska <clips_dir>/dis_bt709-tv-topleft.mkv
+$ <ffprobe> -v error -select_streams v:0 -show_entries stream=width,height,pix_fmt,color_space,color_range,color_primaries,color_transfer,chroma_location,field_order -of default=noprint_wrappers=1 <clips_dir>/dis_bt709-tv-topleft.mkv
+width=640
+height=360
+pix_fmt=yuv420p
+color_range=tv
+color_space=bt709
+color_transfer=unknown
+color_primaries=unknown
+chroma_location=topleft
+field_order=progressive
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/dis_bt709-tv-topleft.mkv -map 0:v:0 -c:v rawvideo -f md5 -
+MD5=0c0d489dac71f877f7c7599f9f56be0e
+
+## dis_bt709-tv-tff.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -frames:v 10 -vf scale=640:360:flags=bicubic,format=yuv420p,setparams=colorspace=bt709:range=tv:field_mode=tff -c:v rawvideo -f matroska <clips_dir>/dis_bt709-tv-tff.mkv
+$ <ffprobe> -v error -select_streams v:0 -show_entries stream=width,height,pix_fmt,color_space,color_range,color_primaries,color_transfer,chroma_location,field_order -of default=noprint_wrappers=1 <clips_dir>/dis_bt709-tv-tff.mkv
+width=640
+height=360
+pix_fmt=yuv420p
+color_range=tv
+color_space=bt709
+color_transfer=unknown
+color_primaries=unknown
+chroma_location=unspecified
+field_order=tb
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/dis_bt709-tv-tff.mkv -map 0:v:0 -c:v rawvideo -f md5 -
+MD5=0c0d489dac71f877f7c7599f9f56be0e
+
+## dis_ycgco-tv.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -frames:v 10 -vf scale=640:360:flags=bicubic,format=yuv420p,setparams=colorspace=ycgco:range=tv -c:v rawvideo -f matroska <clips_dir>/dis_ycgco-tv.mkv
+$ <ffprobe> -v error -select_streams v:0 -show_entries stream=width,height,pix_fmt,color_space,color_range,color_primaries,color_transfer,chroma_location,field_order -of default=noprint_wrappers=1 <clips_dir>/dis_ycgco-tv.mkv
+width=640
+height=360
+pix_fmt=yuv420p
+color_range=tv
+color_space=ycgco
+color_transfer=unknown
+color_primaries=unknown
+chroma_location=unspecified
+field_order=progressive
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/dis_ycgco-tv.mkv -map 0:v:0 -c:v rawvideo -f md5 -
+MD5=0c0d489dac71f877f7c7599f9f56be0e

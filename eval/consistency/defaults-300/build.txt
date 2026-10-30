@@ -1,0 +1,32 @@
+# The mirage_vmaf of the run in this directory (defaults-300), made after D-024, D-027 and D-030, built in a new worktree of commit 02ebed5103f612dad302da0162cc28c2a2cd48bf (docs/DECISIONS.md P-041): each command, then its output or exit status. <worktree> is that worktree.
+
+$ git worktree add --detach <worktree> 02ebed5103f612dad302da0162cc28c2a2cd48bf
+exit status 0
+
+$ git -C <worktree> rev-parse HEAD
+02ebed5103f612dad302da0162cc28c2a2cd48bf
+
+$ git -C <worktree> status --porcelain
+(no output)
+
+$ cmake --preset macos-release
+exit status 0 after 78.1 s; its line on libvmaf: -- libvmaf package version: 3.1.0
+
+$ cmake --build --preset macos-release --target mirage_vmaf
+[1/9] Building CXX object CMakeFiles/mirage_vmaf.dir/src/FileHash.cpp.o
+[2/9] Building CXX object CMakeFiles/mirage_vmaf.dir/src/VMAFPool.cpp.o
+[3/9] Building CXX object CMakeFiles/mirage_vmaf.dir/src/VMAFColor.cpp.o
+[4/9] Building CXX object CMakeFiles/mirage_vmaf.dir/tools/mirage_vmaf.cpp.o
+[5/9] Building CXX object CMakeFiles/mirage_vmaf.dir/src/JsonText.cpp.o
+[6/9] Building CXX object CMakeFiles/mirage_vmaf.dir/src/VMAFReport.cpp.o
+[7/9] Building CXX object CMakeFiles/mirage_vmaf.dir/src/VMAFCli.cpp.o
+[8/9] Building CXX object CMakeFiles/mirage_vmaf.dir/src/VMAFAnalyzer.cpp.o
+[9/9] Linking CXX executable mirage_vmaf
+exit status 0
+
+$ cmake --build --preset macos-release --target mirage_vmaf
+ninja: no work to do.
+exit status 0
+
+$ shasum -a 256 build/macos-release/mirage_vmaf
+85535c5c0ea56865816a71ea9aef837753e0a995d4892be51b863943f6854c5f  build/macos-release/mirage_vmaf

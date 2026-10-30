@@ -1,0 +1,32 @@
+{
+  "tool": "mirage_vmaf",
+  "reference_mode": "explicit-pair",
+  "libvmaf_version": "3.0.0",
+  "libvmaf_package_version": "3.1.0",
+  "ffmpeg_libraries": {"libavutil": "60.26.101", "libavcodec": "62.28.101", "libavformat": "62.12.101", "libswscale": "9.5.101", "libavfilter": "11.14.101"},
+  "config_file": null,
+  "model": "vmaf_v0.6.1",
+  "model_source": "built-in",
+  "model_sha256": null,
+  "scaler": "bicubic",
+  "n_threads": 4,
+  "n_subsample": 1,
+  "scored_as": {"width": 1920, "height": 1080, "pix_fmt": "yuv420p", "bit_depth": 8},
+  "dis_conversion": [
+    {"from": {"color_space": "bt709", "color_range": "tv"}, "to": {"color_space": "bt709", "color_range": "tv"}, "matrix_changed": false, "range_changed": false, "first_index": 0, "pairs": 5}
+  ],
+  "ref_conversion": [],
+  "warnings": [],
+  "frame_limit": null,
+  "frames_scored": 5,
+  "pooled": {"mean": 32.383049160644276, "harmonic_mean": 25.837304124438912, "min": 20.136385674206306, "min_without_first_frame": 20.136385674206306, "p1": 20.169750470914856, "p5": 20.303209657749054, "p10": 20.4700336412918, "p25": 20.97050559192004, "p50": 23.16417233205615},
+  "ref": {"url": "<tmp>/align_clips/ref.mkv", "width": 1920, "height": 1080, "pix_fmt": "yuv420p", "color_space": "bt709", "color_range": "tv", "color_primaries": "unknown", "color_trc": "unknown", "time_base": "1/1000", "ended": false},
+  "dis": {"url": "<tmp>/align_clips/dis_half.mkv", "width": 640, "height": 360, "pix_fmt": "yuv420p", "color_space": "bt709", "color_range": "tv", "color_primaries": "unknown", "color_trc": "unknown", "time_base": "1/1000", "ended": true},
+  "frames": [
+    {"index": 0, "ref_pts": 0, "dis_pts": 0, "vmaf": 72.68777672835482},
+    {"index": 1, "ref_pts": 0.033, "dis_pts": 0.067, "vmaf": 24.956405476684058},
+    {"index": 2, "ref_pts": 0.067, "dis_pts": 0.133, "vmaf": 23.16417233205615},
+    {"index": 3, "ref_pts": 0.1, "dis_pts": 0.2, "vmaf": 20.97050559192004},
+    {"index": 4, "ref_pts": 0.133, "dis_pts": 0.267, "vmaf": 20.136385674206306}
+  ]
+}

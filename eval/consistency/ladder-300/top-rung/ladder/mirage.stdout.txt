@@ -1,0 +1,9 @@
+[INFO]  VMAFAnalyzer: 300 frames  mean=6.78  min=0.00  p5=5.41  [Analysis]
+mirage_vmaf: pair 1 of 4, https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear1/prog_index.m3u8: 300 frame pairs scored
+[INFO]  VMAFAnalyzer: 300 frames  mean=36.82  min=23.49  p5=35.38  [Analysis]
+mirage_vmaf: pair 2 of 4, https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear2/prog_index.m3u8: 300 frame pairs scored
+[INFO]  VMAFAnalyzer: 300 frames  mean=64.84  min=56.84  p5=63.88  [Analysis]
+mirage_vmaf: pair 3 of 4, https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear3/prog_index.m3u8: 300 frame pairs scored
+[INFO]  VMAFAnalyzer: 300 frames  mean=84.26  min=79.61  p5=83.43  [Analysis]
+mirage_vmaf: pair 4 of 4, https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear4/prog_index.m3u8: 300 frame pairs scored
+mirage_vmaf: 4 pairs of the ladder scored against https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear5/prog_index.m3u8 (top-rung), 1 entry skipped, report written to mirage.json

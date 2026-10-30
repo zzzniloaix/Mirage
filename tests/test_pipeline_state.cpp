@@ -7,6 +7,7 @@
 
 #include "PipelineState.h"
 #include "Demuxer.h"
+#include "TestTemp.h"
 
 #include <chrono>
 #include <filesystem>
@@ -150,7 +151,7 @@ constexpr int kFps = 25, kRate = 8000, kAudioFrame = 400;   // 50 ms PCM packets
 // 2 s of 16x8 gray rawvideo + mono PCM, interleaved: 50 video + 40 audio packets.
 std::string make_av_file()
 {
-    const auto path = std::filesystem::temp_directory_path() / "mirage_test_pipeline_state.nut";
+    const auto path = testtemp::path("mirage_test_pipeline_state.nut");
     AVFormatContext* oc = nullptr;
     REQUIRE(avformat_alloc_output_context2(&oc, nullptr, "nut", path.c_str()) >= 0);
     AVStream* vs = avformat_new_stream(oc, nullptr);

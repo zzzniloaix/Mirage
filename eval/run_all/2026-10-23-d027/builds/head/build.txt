@@ -1,0 +1,21 @@
+# The mirage_vmaf of every run made after D-016 except format-cases-after, built by eval/run_all.py in a temporary worktree of commit 0496b212a409f9179abe79f8ee918eb81a71b9cf: each command, then its output or exit status.
+
+$ git -C <repo> worktree add --detach <worktree> 0496b212a409f9179abe79f8ee918eb81a71b9cf
+exit code: 0
+
+$ git -C <worktree> rev-parse HEAD
+0496b212a409f9179abe79f8ee918eb81a71b9cf
+
+$ git -C <worktree> status --porcelain
+(no output: the working tree is clean)
+
+$ cmake --preset macos-release
+exit code: 0 (log: builds/head/configure.log)
+
+$ cmake --build --preset macos-release --target mirage_vmaf
+exit code: 0 (log: builds/head/build.log)
+
+$ shasum -a 256 build/macos-release/mirage_vmaf
+85535c5c0ea56865816a71ea9aef837753e0a995d4892be51b863943f6854c5f  build/macos-release/mirage_vmaf
+
+Kept as <out_dir>/builds/head/mirage_vmaf.

@@ -1,0 +1,29 @@
+# The mirage_vmaf of the runs in this directory (format-cases-before), made before D-016: commit 83c8ed6, whose program converts no color, built in a new worktree of commit 83c8ed6b497783cc6dd265637e7b2298399ba41a (docs/DECISIONS.md P-029): each command, then its output or exit status. <worktree> is that worktree.
+
+$ git worktree add --detach <worktree> 83c8ed6b497783cc6dd265637e7b2298399ba41a
+exit status 0
+
+$ git -C <worktree> rev-parse HEAD
+83c8ed6b497783cc6dd265637e7b2298399ba41a
+
+$ git -C <worktree> status --porcelain
+(no output)
+
+$ cmake --preset macos-release
+exit status 0 after 94.4 s; its line on libvmaf: -- libvmaf package version: 3.1.0
+
+$ cmake --build --preset macos-release --target mirage_vmaf
+[1/6] Building CXX object CMakeFiles/mirage_vmaf.dir/tools/mirage_vmaf.cpp.o
+[2/6] Building CXX object CMakeFiles/mirage_vmaf.dir/src/JsonText.cpp.o
+[3/6] Building CXX object CMakeFiles/mirage_vmaf.dir/src/VMAFCli.cpp.o
+[4/6] Building CXX object CMakeFiles/mirage_vmaf.dir/src/VMAFReport.cpp.o
+[5/6] Building CXX object CMakeFiles/mirage_vmaf.dir/src/VMAFAnalyzer.cpp.o
+[6/6] Linking CXX executable mirage_vmaf
+exit status 0
+
+$ cmake --build --preset macos-release --target mirage_vmaf
+ninja: no work to do.
+exit status 0
+
+$ shasum -a 256 build/macos-release/mirage_vmaf
+4bb0fc2bec6bd240463e3f183204c426bbff1652eadd342733917d8fc58f84c0  build/macos-release/mirage_vmaf

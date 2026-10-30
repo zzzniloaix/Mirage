@@ -1,0 +1,179 @@
+# Checks on the run in this directory, made after it from <repo>: each command, then its output. <tmp>/align_clips is the directory eval/consistency/align_cases.py made the clips in for this run and the other of the alignment cases (align-cases-before/clips.txt); the clips are not in the repository.
+
+# 1. The repository when these checks were made: HEAD and the working tree's state.
+
+$ git rev-parse HEAD && git status --porcelain && echo '(end of git status)'
+d45372db160f84675d3fb783032805e6979b4132
+(end of git status)
+
+# 2. The clips of the runs: clips.txt, as eval/consistency/align_cases.py wrote it in <tmp>/align_clips for this run and align-cases-d028/, against the one in this directory; then each clip's frames as the script checked them (picture@slot: the pattern's picture each frame shows, and the frame slot whose time it has).
+
+$ cmp <tmp>/align_clips/clips.txt eval/consistency/align-cases-before/clips.txt && echo 'clips.txt: the same bytes' && grep -E '^## |^frames as checked' eval/consistency/align-cases-before/clips.txt
+clips.txt: the same bytes
+## ref.mkv
+frames as checked (picture@slot): 0@0 1@1 2@2 3@3 4@4 5@5 6@6 7@7 8@8 9@9
+## ref_ts.ts
+frames as checked (picture@slot): 0@0 1@1 2@2 3@3 4@4 5@5 6@6 7@7 8@8 9@9
+## dis.mkv
+frames as checked (picture@slot): 0@0 1@1 2@2 3@3 4@4 5@5 6@6 7@7 8@8 9@9
+## dis_ts.ts
+frames as checked (picture@slot): 0@0 1@1 2@2 3@3 4@4 5@5 6@6 7@7 8@8 9@9
+## ref_drop5.mkv
+frames as checked (picture@slot): 0@0 1@1 2@2 3@3 4@4 6@6 7@7 8@8 9@9
+## dis_drop5.mkv
+frames as checked (picture@slot): 0@0 1@1 2@2 3@3 4@4 6@6 7@7 8@8 9@9
+## dis_dup5.mkv
+frames as checked (picture@slot): 0@0 1@1 2@2 3@3 4@4 5@5 5@5 6@6 7@7 8@8 9@9
+## dis_half.mkv
+frames as checked (picture@slot): 0@0 2@2 4@4 6@6 8@8
+## dis_from3.mkv
+frames as checked (picture@slot): 3@3 4@4 5@5 6@6 7@7 8@8 9@9
+## dis_from3_audio.mkv
+frames as checked (picture@slot): 3@3 4@4 5@5 6@6 7@7 8@8 9@9
+## dis_ts_restart5.ts
+frames as checked (picture@slot): 0@0 1@1 2@2 3@3 4@4 5@0 6@1 7@2 8@3 9@4
+
+# 3. The program: the SHA-256 that build.txt records and that the run's environment.txt repeats, against defaults-300/build.txt, whose program was built at 02ebed5; and the changes to the code mirage_vmaf is built from between e8b867f and 02ebed5 (none).
+
+$ grep -h 'build/macos-release/mirage_vmaf$' eval/consistency/align-cases-before/build.txt eval/consistency/defaults-300/build.txt && grep '^sha256:' eval/consistency/align-cases-before/main/environment.txt && git diff --stat e8b867fc371ccca2a099e941eeaf808a96b078dc 02ebed5103f612dad302da0162cc28c2a2cd48bf -- src tools tests CMakeLists.txt CMakePresets.json cmake && echo '(end of the diff)'
+$ shasum -a 256 build/macos-release/mirage_vmaf
+85535c5c0ea56865816a71ea9aef837753e0a995d4892be51b863943f6854c5f  build/macos-release/mirage_vmaf
+$ shasum -a 256 build/macos-release/mirage_vmaf
+85535c5c0ea56865816a71ea9aef837753e0a995d4892be51b863943f6854c5f  build/macos-release/mirage_vmaf
+sha256: 85535c5c0ea56865816a71ea9aef837753e0a995d4892be51b863943f6854c5f
+(end of the diff)
+
+# 4. This mirage_vmaf pairs the inputs' frames in decode order: for each case, mirage_vmaf's pairs as reference frame / distorted frame (positions in the inputs: the k-th of each), their times from each input's start in milliseconds (the pair's delta.json, which measures them from FFmpeg's input starts for a report without an alignment), and the pairs whose two frames are more than half a frame apart; and whether the report has warnings.
+
+$ python3 -I -c 'import json, sys
+o = json.load(open(sys.argv[1] + "/delta.json"))
+for p in o["pairs"]:
+    rep = json.load(open(sys.argv[1] + "/" + p["pair"] + "/mirage.json"))
+    r = json.load(open(sys.argv[1] + "/" + p["pair"] + "/delta.json"))
+    a = r["alignment"]
+    start = {k: a["mirage"]["start"][k] for k in ("reference", "distorted")}
+    rel = [(round((x["ref_pts"] - start["reference"]) * 1000, 3), round((x["dis_pts"] - start["distorted"]) * 1000, 3)) for x in rep["frames"]]
+    print(p["pair"], "| pairs", len(rel), "| beyond the tolerance", a["mirage"]["pairs_beyond_tolerance"], "| warnings", rep.get("warnings", "(no field)"), "| alignment", "alignment" in rep)
+    print("   ms:", " ".join(f"{x:g}/{y:g}" for x, y in rel))' eval/consistency/align-cases-before/main
+a00_aligned | pairs 10 | beyond the tolerance 0 | warnings [] | alignment False
+   ms: 0/0 33/33 67/67 100/100 133/133 167/167 200/200 234/234 267/267 300/300
+a01_dropped_distorted | pairs 9 | beyond the tolerance 4 | warnings [] | alignment False
+   ms: 0/0 33/33 67/67 100/100 133/133 167/200 200/234 234/267 267/300
+a02_dropped_reference | pairs 9 | beyond the tolerance 4 | warnings [] | alignment False
+   ms: 0/0 33/33 67/67 100/100 133/133 200/167 234/200 267/234 300/267
+a03_duplicated_timestamp | pairs 10 | beyond the tolerance 4 | warnings [] | alignment False
+   ms: 0/0 33/33 67/67 100/100 133/133 167/167 200/167 234/200 267/234 300/267
+a04_half_rate | pairs 5 | beyond the tolerance 4 | warnings [] | alignment False
+   ms: 0/0 33/67 67/133 100/200 133/267
+a05_later_start | pairs 7 | beyond the tolerance 0 | warnings [] | alignment False
+   ms: 0/0 33/33 67/67 100/100 133/134 167/167 200/200
+a06_later_start_audio | pairs 7 | beyond the tolerance 7 | warnings [] | alignment False
+   ms: 0/100 33/133 67/167 100/200 133/234 167/267 200/300
+a07_restart | pairs 10 | beyond the tolerance 5 | warnings [] | alignment False
+   ms: 0/0 33.367/33.367 66.733/66.733 100.1/100.1 133.467/133.467 166.833/0 200.2/33.367 233.567/66.733 266.933/100.1 300.3/133.467
+a08_ms_vs_90khz | pairs 10 | beyond the tolerance 0 | warnings [] | alignment False
+   ms: 0/0 33/33.367 67/66.733 100/100.1 133/133.467 167/166.833 200/200.2 234/233.567 267/266.933 300/300.3
+
+# 5. Section 1.4's acceptance stream, a01_dropped_distorted, before D-028: each pair's frames (the pair's index is both frames' position), their PTS in seconds as the report gives them, and its score at full precision; and FFmpeg's scores of the same run, its frames numbered as its log numbers them.
+
+$ python3 -I -c 'import json, sys
+d = sys.argv[1] + "/a01_dropped_distorted"
+rep = json.load(open(d + "/mirage.json"))
+for x in rep["frames"]:
+    print(x["index"], x["ref_pts"], x["dis_pts"], repr(x["vmaf"]))
+print("FFmpeg:", [x["metrics"]["vmaf"] for x in json.load(open(d + "/ffmpeg.json"))["frames"]])' eval/consistency/align-cases-before/main
+0 0 0 72.68777672835482
+1 0.033 0.033 74.77789802017037
+2 0.067 0.067 74.94005632463738
+3 0.1 0.1 74.91278468178199
+4 0.133 0.133 74.91274986019386
+5 0.167 0.2 22.60936545198697
+6 0.2 0.234 23.09027273650086
+7 0.234 0.267 24.064283302195246
+8 0.267 0.3 24.44081146511655
+FFmpeg: [72.687777, 74.777898, 74.940056, 74.912785, 74.932232, 74.786327, 74.824743, 74.886821, 74.815511]
+
+# 6. The two sides' pairing and the verdict of each case (the pair's delta.json): the pairs of each side, those both scored and those one side scored alone, the pairs whose two frames are further apart than the tolerance, half the reference's frame duration; mirage_vmaf's failures, which a report from before D-028 doesn't count (None), and FFmpeg's frames in no pair or in several; the pairs both scored, compared, and the reasons a case fails.
+
+$ python3 -I -c 'import json, sys
+o = json.load(open(sys.argv[1] + "/delta.json"))
+for p in o["pairs"]:
+    r = json.load(open(sys.argv[1] + "/" + p["pair"] + "/delta.json"))
+    a, d = r["alignment"], r["delta"] or {}
+    m, f = a["mirage"], a["ffmpeg"]
+    kinds = ", ".join(k + " " + str(m[k]) for k in ("unmatched_reference", "extra_distorted", "duplicate_distorted", "no_timestamp", "after_discontinuity") if m.get(k))
+    print(p["pair"], p["status"])
+    print("   pairs: Mirage", m["pairs"], "FFmpeg", f["pairs"], "| both", a["pairs"]["both"], "only Mirage", a["pairs"]["only_mirage"], "only FFmpeg", a["pairs"]["only_ffmpeg"], "other times", a["pairs"]["other_times"], "| pairs beyond the tolerance: Mirage", m["pairs_beyond_tolerance"], "FFmpeg", f["pairs_beyond_tolerance"])
+    print("   Mirage:", "failed", m.get("failed"), "(" + kinds + ")" if kinds else "", "rate", m.get("failure_rate"), "exceeded", m.get("exceeded"), "| off the grid", m.get("off_grid_reference"), "/", m.get("off_grid_distorted"), "| contexts", m.get("vmaf_contexts"), "| grid", m.get("grid"))
+    print("   FFmpeg: reference frames in no pair", f["reference_in_no_pair"], "in several", f["reference_in_several_pairs"], "| distorted in no pair", f["distorted_in_no_pair"], "in several", f["distorted_in_several_pairs"], "| unscored", f["unscored"], "| made by the reference after the distorted end", f["by_reference"], "| corrected discontinuities", f["corrections"])
+    print("   compared", d.get("compared"), "| max |delta|", None if d.get("max_abs") is None else format(d["max_abs"], ".6f"), "| over 0.01", d.get("over_threshold"), "at Mirage pair", d.get("over_threshold_ranges"), "| frames treated differently", a["frames_treated_differently"])
+    for x in p["fail_reasons"]:
+        print("   FAIL:", x)' eval/consistency/align-cases-before/main
+a00_aligned PASS
+   pairs: Mirage 10 FFmpeg 10 | both 10 only Mirage 0 only FFmpeg 0 other times 0 | pairs beyond the tolerance: Mirage 0 FFmpeg 0
+   Mirage: failed None  rate None exceeded None | off the grid None / None | contexts None | grid None
+   FFmpeg: reference frames in no pair 0 in several 0 | distorted in no pair 0 in several 0 | unscored 0 | made by the reference after the distorted end 0 | corrected discontinuities 0
+   compared 10 | max |delta| 0.000000 | over 0.01 0 at Mirage pair [] | frames treated differently 0
+a01_dropped_distorted FAIL
+   pairs: Mirage 9 FFmpeg 9 | both 5 only Mirage 4 only FFmpeg 4 other times 0 | pairs beyond the tolerance: Mirage 4 FFmpeg 0
+   Mirage: failed None  rate None exceeded None | off the grid None / None | contexts None | grid None
+   FFmpeg: reference frames in no pair 1 in several 0 | distorted in no pair 0 in several 0 | unscored 0 | made by the reference after the distorted end 0 | corrected discontinuities 0
+   compared 5 | max |delta| 0.019482 | over 0.01 1 at Mirage pair [[4, 4]] | frames treated differently 9
+   FAIL: PAIRING MISMATCH: 4 of Mirage's 9 pairs are not among FFmpeg's, and 4 of FFmpeg's 9 not among Mirage's (the same pair: the same reference and distorted frames); only the pairs both scored are compared
+   FAIL: 1 of 5 frames have |delta| > 0.01
+a02_dropped_reference FAIL
+   pairs: Mirage 9 FFmpeg 10 | both 5 only Mirage 4 only FFmpeg 5 other times 0 | pairs beyond the tolerance: Mirage 4 FFmpeg 1
+   Mirage: failed None  rate None exceeded None | off the grid None / None | contexts None | grid None
+   FFmpeg: reference frames in no pair 0 in several 1 | distorted in no pair 0 in several 0 | unscored 0 | made by the reference after the distorted end 0 | corrected discontinuities 0
+   compared 5 | max |delta| 2.151021 | over 0.01 1 at Mirage pair [[4, 4]] | frames treated differently 10
+   FAIL: FRAME COUNT MISMATCH: Mirage scored 9 frame pairs, FFmpeg 10; only the 5 pairs both scored are compared
+   FAIL: PAIRING MISMATCH: 4 of Mirage's 9 pairs are not among FFmpeg's, and 5 of FFmpeg's 10 not among Mirage's (the same pair: the same reference and distorted frames); only the pairs both scored are compared
+   FAIL: 1 of 5 frames have |delta| > 0.01
+a03_duplicated_timestamp FAIL
+   pairs: Mirage 10 FFmpeg 11 | both 6 only Mirage 4 only FFmpeg 5 other times 0 | pairs beyond the tolerance: Mirage 4 FFmpeg 0
+   Mirage: failed None  rate None exceeded None | off the grid None / None | contexts None | grid None
+   FFmpeg: reference frames in no pair 0 in several 1 | distorted in no pair 0 in several 0 | unscored 0 | made by the reference after the distorted end 0 | corrected discontinuities 0
+   compared 6 | max |delta| 2.124530 | over 0.01 1 at Mirage pair [[5, 5]] | frames treated differently 10
+   FAIL: FRAME COUNT MISMATCH: Mirage scored 10 frame pairs, FFmpeg 11; only the 6 pairs both scored are compared
+   FAIL: PAIRING MISMATCH: 4 of Mirage's 10 pairs are not among FFmpeg's, and 5 of FFmpeg's 11 not among Mirage's (the same pair: the same reference and distorted frames); only the pairs both scored are compared
+   FAIL: 1 of 6 frames have |delta| > 0.01
+a04_half_rate FAIL
+   pairs: Mirage 5 FFmpeg 6 | both 1 only Mirage 4 only FFmpeg 5 other times 0 | pairs beyond the tolerance: Mirage 4 FFmpeg 1
+   Mirage: failed None  rate None exceeded None | off the grid None / None | contexts None | grid None
+   FFmpeg: reference frames in no pair 4 in several 0 | distorted in no pair 0 in several 1 | unscored 0 | made by the reference after the distorted end 1 | corrected discontinuities 0
+   compared 1 | max |delta| 0.000000 | over 0.01 0 at Mirage pair [] | frames treated differently 11
+   FAIL: FRAME COUNT MISMATCH: Mirage scored 5 frame pairs, FFmpeg 6; only the 1 pairs both scored are compared
+   FAIL: PAIRING MISMATCH: 4 of Mirage's 5 pairs are not among FFmpeg's, and 5 of FFmpeg's 6 not among Mirage's (the same pair: the same reference and distorted frames); only the pairs both scored are compared
+a05_later_start FAIL
+   pairs: Mirage 7 FFmpeg 10 | both 7 only Mirage 0 only FFmpeg 3 other times 0 | pairs beyond the tolerance: Mirage 0 FFmpeg 3
+   Mirage: failed None  rate None exceeded None | off the grid None / None | contexts None | grid None
+   FFmpeg: reference frames in no pair 0 in several 0 | distorted in no pair 0 in several 1 | unscored 0 | made by the reference after the distorted end 3 | corrected discontinuities 0
+   compared 7 | max |delta| 0.042191 | over 0.01 1 at Mirage pair [[6, 6]] | frames treated differently 4
+   FAIL: FRAME COUNT MISMATCH: Mirage scored 7 frame pairs, FFmpeg 10; only the 7 pairs both scored are compared
+   FAIL: PAIRING MISMATCH: 0 of Mirage's 7 pairs are not among FFmpeg's, and 3 of FFmpeg's 10 not among Mirage's (the same pair: the same reference and distorted frames); only the pairs both scored are compared
+   FAIL: 1 of 7 frames have |delta| > 0.01
+a06_later_start_audio FAIL
+   pairs: Mirage 7 FFmpeg 7 | both 0 only Mirage 7 only FFmpeg 7 other times 0 | pairs beyond the tolerance: Mirage 7 FFmpeg 0
+   Mirage: failed None  rate None exceeded None | off the grid None / None | contexts None | grid None
+   FFmpeg: reference frames in no pair 3 in several 0 | distorted in no pair 0 in several 0 | unscored 0 | made by the reference after the distorted end 0 | corrected discontinuities 0
+   compared 0 | max |delta| None | over 0.01 0 at Mirage pair [] | frames treated differently 17
+   FAIL: PAIRING MISMATCH: 7 of Mirage's 7 pairs are not among FFmpeg's, and 7 of FFmpeg's 7 not among Mirage's (the same pair: the same reference and distorted frames); only the pairs both scored are compared
+   FAIL: no frame pair to compare
+a07_restart FAIL
+   pairs: Mirage 10 FFmpeg 10 | both 10 only Mirage 0 only FFmpeg 0 other times 5 | pairs beyond the tolerance: Mirage 5 FFmpeg 0
+   Mirage: failed None  rate None exceeded None | off the grid None / None | contexts None | grid None
+   FFmpeg: reference frames in no pair 0 in several 0 | distorted in no pair 0 in several 0 | unscored 0 | made by the reference after the distorted end 0 | corrected discontinuities 1
+   compared 10 | max |delta| 0.000000 | over 0.01 0 at Mirage pair [] | frames treated differently 0
+   FAIL: TIMESTAMP MISMATCH: 5 of the pairs both scored have other timestamps on the two sides
+a08_ms_vs_90khz FAIL
+   pairs: Mirage 10 FFmpeg 10 | both 6 only Mirage 4 only FFmpeg 4 other times 0 | pairs beyond the tolerance: Mirage 0 FFmpeg 4
+   Mirage: failed None  rate None exceeded None | off the grid None / None | contexts None | grid None
+   FFmpeg: reference frames in no pair 3 in several 3 | distorted in no pair 0 in several 0 | unscored 0 | made by the reference after the distorted end 0 | corrected discontinuities 0
+   compared 6 | max |delta| 2.131170 | over 0.01 5 at Mirage pair [[1, 1], [3, 4], [6, 6], [9, 9]] | frames treated differently 11
+   FAIL: PAIRING MISMATCH: 4 of Mirage's 10 pairs are not among FFmpeg's, and 4 of FFmpeg's 10 not among Mirage's (the same pair: the same reference and distorted frames); only the pairs both scored are compared
+   FAIL: 5 of 6 frames have |delta| > 0.01
+
+# 7. The run's checksums.
+
+$ (cd eval/consistency/align-cases-before/main && shasum -a 256 -c SHA256SUMS | awk '{n[$NF]++} END {for (k in n) printf "%d %s\n", n[k], k}')
+104 OK

@@ -1,0 +1,6 @@
+  Stream #0:1[0x0]: Video: h264 (Main), 1 reference frame ([27][0][0][0] / 0x001B), yuv420p(tv, bt709, topleft), 960x540, 29.97 fps, 29.97 tbr, 90k tbn, start 10.000000
+  Stream #1:1[0x0]: Video: h264 (Main), 1 reference frame ([27][0][0][0] / 0x001B), yuv420p(tv, bt709, topleft), 1920x1080, 29.97 fps, 29.97 tbr, 90k tbn, start 10.000000
+[graph 0 input from stream 0:1 @ 0xa3d367c00] w:960 h:540 pixfmt:yuv420p tb:1/90000 fr:30000/1001 sar:0/1 csp:bt709 range:tv alpha:unspecified
+[graph 0 input from stream 1:1 @ 0xa3d367d80] w:1920 h:1080 pixfmt:yuv420p tb:1/90000 fr:30000/1001 sar:0/1 csp:bt709 range:tv alpha:unspecified
+[Parsed_scale_1 @ 0xa3d367480] w:960 h:540 fmt:yuv420p csp:bt709 range:tv sar:0/1 -> w:1920 h:1080 fmt:yuv420p csp:bt709 range:tv sar:0/1 flags:0x00000002
+  Stream #0:0: Video: wrapped_avframe, 1 reference frame, yuv420p(tv, bt709, progressive), 1920x1080, q=2-31, 200 kb/s, 29.97 fps, 29.97 tbn

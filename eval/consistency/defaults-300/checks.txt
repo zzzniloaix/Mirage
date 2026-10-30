@@ -1,0 +1,170 @@
+# Checks on the run in this directory, made after it from <repo>: each command, then its output. <worktree> is the worktree of build.txt, whose build/macos-release/mirage_vmaf made the run and the direct runs of check 4; <tmp> is a temporary directory outside the repository, which those runs wrote to.
+
+# 1. The repository when these checks were made: HEAD and the working tree's state.
+
+$ git rev-parse HEAD && git status --porcelain && echo '(end of git status)'
+9d8c1732316a74303de2696f7d8de3ac804f53f6
+(end of git status)
+
+# 2. The scaler each side was given. The run was made without --scaler, so with run_delta.sh's default since D-024, bicubic: run.cmd.txt records the scaler run_delta.sh used; for each pair, the --scaler given to mirage_vmaf and the flags= of FFmpeg's scale filter (cmd.txt), the scaler and model of mirage_vmaf's report, and the swscale flags FFmpeg's scale filter states in its verbose log (0x00000004 is SWS_BICUBIC).
+
+$ grep '^\$' eval/consistency/defaults-300/plain/run.cmd.txt && python3 -I -c 'import json, re, sys
+for d in sys.argv[1:]:
+    cmd = open(d + "/cmd.txt").read()
+    mirage = [l for l in cmd.splitlines() if l.startswith("$ <mirage_vmaf>")][0]
+    given = re.search(r" --scaler (\S+)", mirage)
+    flags = re.search(r"scale=\d+:\d+:flags=(\w+)", cmd).group(1)
+    r = json.load(open(d + "/mirage.json"))
+    log = [l for l in open(d + "/ffmpeg_colorspace_lines.txt") if l.startswith("[Parsed_scale_1 ") and " -> " in l]
+    print(d.split("/")[-1], "| mirage_vmaf --scaler", given.group(1) if given else "(none)", "| FFmpeg flags=" + flags, "| report scaler", r["scaler"], "model", r["model"], r["model_source"], "| FFmpeg scale line", log[0].split()[-1] if log else "(none)")' eval/consistency/defaults-300/plain/gear[1-4]_vs_gear5
+$ eval/consistency/run_delta.sh <mirage_vmaf> <out_dir> --frames 300 --jobs 1 --pairs eval/consistency/pairs/bipbop16x9.txt --scaler bicubic --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --ffmpeg <ffmpeg> --ffprobe <ffprobe> --timeout 21600
+gear1_vs_gear5 | mirage_vmaf --scaler bicubic | FFmpeg flags=bicubic | report scaler bicubic model vmaf_v0.6.1 built-in | FFmpeg scale line flags:0x00000004
+gear2_vs_gear5 | mirage_vmaf --scaler bicubic | FFmpeg flags=bicubic | report scaler bicubic model vmaf_v0.6.1 built-in | FFmpeg scale line flags:0x00000004
+gear3_vs_gear5 | mirage_vmaf --scaler bicubic | FFmpeg flags=bicubic | report scaler bicubic model vmaf_v0.6.1 built-in | FFmpeg scale line flags:0x00000004
+gear4_vs_gear5 | mirage_vmaf --scaler bicubic | FFmpeg flags=bicubic | report scaler bicubic model vmaf_v0.6.1 built-in | FFmpeg scale line flags:0x00000004
+
+# 3. Against scalers-300/bicubic, made by the mirage_vmaf of 8cc06a7 with --scaler bicubic given: for each pair, the frames of each side, frames whose Mirage score is the same at full precision, and frames whose FFmpeg metrics (every libvmaf metric of the frame) are the same.
+
+$ python3 -I -c 'import json, sys
+for p in sys.argv[2:]:
+    new = "eval/consistency/defaults-300/plain/" + p
+    old = sys.argv[1] + "/" + p
+    m = [x["vmaf"] for x in json.load(open(new + "/mirage.json"))["frames"]]
+    mo = [x["vmaf"] for x in json.load(open(old + "/mirage.json"))["frames"]]
+    f = [x["metrics"] for x in json.load(open(new + "/ffmpeg.json"))["frames"]]
+    fo = [x["metrics"] for x in json.load(open(old + "/ffmpeg.json"))["frames"]]
+    print(p, "| Mirage", len(m), "/", len(mo), "same", sum(a == b for a, b in zip(m, mo)), "| FFmpeg", len(f), "/", len(fo), "same", sum(a == b for a, b in zip(f, fo)))' eval/consistency/scalers-300/bicubic gear4_vs_gear5 gear3_vs_gear5 gear2_vs_gear5 gear1_vs_gear5
+gear4_vs_gear5 | Mirage 300 / 300 same 300 | FFmpeg 300 / 300 same 300
+gear3_vs_gear5 | Mirage 300 / 300 same 300 | FFmpeg 300 / 300 same 300
+gear2_vs_gear5 | Mirage 300 / 300 same 300 | FFmpeg 300 / 300 same 300
+gear1_vs_gear5 | Mirage 300 / 300 same 300 | FFmpeg 300 / 300 same 300
+
+# 4. mirage_vmaf's own default, without run_delta.sh: <mirage_vmaf>, the program of build.txt, run on each pair of pairs.txt with --frames 300 and no --scaler, and on gear2 once more with its settings in a config file (D-030), the file shown first. For each report, its scaler, its config_file, and the frames whose score equals that of plain/ at full precision; then the config file's SHA-256 as shasum computes it.
+
+$ shasum -a 256 <worktree>/build/macos-release/mirage_vmaf | cut -d' ' -f1 && mkdir -p <tmp>/direct && cd <tmp>/direct && grep -v '^#' <repo>/eval/consistency/defaults-300/plain/pairs.txt | while read label ref dis; do <worktree>/build/macos-release/mirage_vmaf --ref "$ref" --dis "$dis" --out $label.json --frames 300 > $label.log 2>&1 || echo "$label: exit status $?"; done && grep '^gear2_vs_gear5 ' <repo>/eval/consistency/defaults-300/plain/pairs.txt | while read label ref dis; do printf '# gear2 against gear5, the first 300 frames\nref = %s\ndis = %s\nout = gear2_config.json\nframes = 300\n' "$ref" "$dis" > gear2.cfg; done && cat gear2.cfg && { <worktree>/build/macos-release/mirage_vmaf --config gear2.cfg > gear2_config.log 2>&1 || echo "config run: exit status $?"; } && python3 -I -c 'import json, sys
+for name, pair in [(p, p) for p in ("gear4_vs_gear5", "gear3_vs_gear5", "gear2_vs_gear5", "gear1_vs_gear5")] + [("gear2_config", "gear2_vs_gear5")]:
+    r = json.load(open(name + ".json"))
+    m = [x["vmaf"] for x in r["frames"]]
+    old = [x["vmaf"] for x in json.load(open(sys.argv[1] + "/" + pair + "/mirage.json"))["frames"]]
+    print(name, "| scaler", r["scaler"], "| config_file", r["config_file"], "| frames", len(m), "same as plain/" + pair, sum(a == b for a, b in zip(m, old)))' <repo>/eval/consistency/defaults-300/plain && shasum -a 256 gear2.cfg
+85535c5c0ea56865816a71ea9aef837753e0a995d4892be51b863943f6854c5f
+# gear2 against gear5, the first 300 frames
+ref = https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear5/prog_index.m3u8
+dis = https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear2/prog_index.m3u8
+out = gear2_config.json
+frames = 300
+gear4_vs_gear5 | scaler bicubic | config_file None | frames 300 same as plain/gear4_vs_gear5 300
+gear3_vs_gear5 | scaler bicubic | config_file None | frames 300 same as plain/gear3_vs_gear5 300
+gear2_vs_gear5 | scaler bicubic | config_file None | frames 300 same as plain/gear2_vs_gear5 300
+gear1_vs_gear5 | scaler bicubic | config_file None | frames 300 same as plain/gear1_vs_gear5 300
+gear2_config | scaler bicubic | config_file {'path': 'gear2.cfg', 'sha256': '938f8e1eaaabfa144bc862b3199ae4185bf8be404fe7f17049cf2a4c5dc54b26'} | frames 300 same as plain/gear2_vs_gear5 300
+938f8e1eaaabfa144bc862b3199ae4185bf8be404fe7f17049cf2a4c5dc54b26  gear2.cfg
+
+# 5. The pooled values against libvmaf's vmaf_score_pooled(): each report's pooled mean and min against those of scalers-300/bicubic's reports, which the mirage_vmaf of 8cc06a7 took from vmaf_score_pooled() for the same per-frame scores (check 3), at full precision.
+
+$ python3 -I -c 'import json, sys
+for p in sys.argv[2:]:
+    new = json.load(open("eval/consistency/defaults-300/plain/" + p + "/mirage.json"))["pooled"]
+    old = json.load(open(sys.argv[1] + "/" + p + "/mirage.json"))["pooled"]
+    print(p, "| mean", repr(new["mean"]), "same" if new["mean"] == old["mean"] else "DIFFERENT " + repr(old["mean"]), "| min", repr(new["min"]), "same" if new["min"] == old["min"] else "DIFFERENT " + repr(old["min"]))' eval/consistency/scalers-300/bicubic gear4_vs_gear5 gear3_vs_gear5 gear2_vs_gear5 gear1_vs_gear5
+gear4_vs_gear5 | mean 84.25806034787456 same | min 79.61383719363732 same
+gear3_vs_gear5 | mean 64.84300242620918 same | min 56.84453353023001 same
+gear2_vs_gear5 | mean 36.81766319253449 same | min 23.48869176425057 same
+gear1_vs_gear5 | mean 6.781917868878007 same | min 0 same
+
+# 6. The pooled values against FFmpeg's libvmaf log, whose pooled_metrics libvmaf computes from FFmpeg's own scores: for each pair, the mean, min and harmonic mean of mirage_vmaf's report and of FFmpeg's log, at the log's 6 decimals.
+
+$ python3 -I -c 'import json, sys
+for d in sys.argv[1:]:
+    m = json.load(open(d + "/mirage.json"))["pooled"]
+    f = json.load(open(d + "/ffmpeg.json"))["pooled_metrics"]["vmaf"]
+    print(d.split("/")[-1], " | ".join(k + " " + format(m[k], ".6f") + " / " + format(f[k], ".6f") + (" same" if format(m[k], ".6f") == format(f[k], ".6f") else " DIFFERENT") for k in ("mean", "min", "harmonic_mean")))' eval/consistency/defaults-300/plain/gear[1-4]_vs_gear5
+gear1_vs_gear5 mean 6.781918 / 6.781918 same | min 0.000000 / 0.000000 same | harmonic_mean 5.439755 / 5.439755 same
+gear2_vs_gear5 mean 36.817663 / 36.817663 same | min 23.488692 / 23.488692 same | harmonic_mean 36.714504 / 36.714504 same
+gear3_vs_gear5 mean 64.843002 / 64.843002 same | min 56.844534 / 56.844534 same | harmonic_mean 64.830991 / 64.830991 same
+gear4_vs_gear5 mean 84.258060 / 84.258060 same | min 79.613837 / 79.613837 same | harmonic_mean 84.254740 / 84.254740 same
+
+# 7. The pooled values against eval/pooling/pooling.py on the same per-frame scores (eval/pooling/defaults-300/pooling.json, made with --check-pooled from this run): for each Mirage series, pooling.py's check, and each value of D-027 as pooling.py computes it and as mirage_vmaf's report gives it, in full.
+
+$ python3 -I -c 'import json
+r = json.load(open("eval/pooling/defaults-300/pooling.json"))
+for s in r["sources"][0]["series"]:
+    if "d027" not in s:
+        continue
+    print(s["label"], "| equal at full precision:", s["checks"]["mirage_vmaf_pooled_values_equal_d027_at_full_precision"])
+    for k, v in s["d027"]["computed"].items():
+        print("   ", k, repr(v), repr(s["d027"]["reported"][k]))'
+gear4_vs_gear5, Mirage | equal at full precision: True
+    mean 84.25806034787456 84.25806034787456
+    harmonic_mean 84.25474044599248 84.25474044599248
+    min 79.61383719363732 79.61383719363732
+    min_without_first_frame 82.96900123118027 82.96900123118027
+    p1 83.06332214560709 83.06332214560709
+    p5 83.43371510695411 83.43371510695411
+    p10 83.63887864587936 83.63887864587936
+    p25 83.94728432428214 83.94728432428214
+    p50 84.33321313174153 84.33321313174153
+gear3_vs_gear5, Mirage | equal at full precision: True
+    mean 64.84300242620918 64.84300242620918
+    harmonic_mean 64.83099106400168 64.83099106400168
+    min 56.84453353023001 56.84453353023001
+    min_without_first_frame 61.370428813368356 61.370428813368356
+    p1 61.562967176307566 61.562967176307566
+    p5 63.88108462155041 63.88108462155041
+    p10 64.06506553364387 64.06506553364387
+    p25 64.43381624055772 64.43381624055772
+    p50 64.89974942984854 64.89974942984854
+gear2_vs_gear5, Mirage | equal at full precision: True
+    mean 36.81766319253449 36.81766319253449
+    harmonic_mean 36.714504032332385 36.714504032332385
+    min 23.48869176425057 23.48869176425057
+    min_without_first_frame 27.36034402228314 27.36034402228314
+    p1 27.561856061293092 27.561856061293092
+    p5 35.380421992925115 35.380421992925115
+    p10 35.85245130499851 35.85245130499851
+    p25 36.42421603002845 36.42421603002845
+    p50 37.065727226214364 37.065727226214364
+gear1_vs_gear5, Mirage | equal at full precision: True
+    mean 6.781917868878007 6.781917868878007
+    harmonic_mean 5.4397552874537904 5.4397552874537904
+    min 0.0 0
+    min_without_first_frame 0.0 0
+    p1 0.0 0
+    p5 5.408971200598931 5.408971200598931
+    p10 5.735875609447621 5.735875609447621
+    p25 6.25257925520248 6.25257925520248
+    p50 7.062058614957513 7.062058614957513
+
+# 8. The delta reports: each run's verdict and warnings, and each pair's verdict, warnings, largest |delta| and its pooled rows (Mirage, FFmpeg, difference).
+
+$ python3 -I -c 'import json, sys
+o = json.load(open(sys.argv[1] + "/delta.json"))
+print("run", o["status"], "| warnings", o["warnings"], "| parameters", {k: o["parameters"][k] for k in ("frames", "scaler", "model", "threads", "threshold")})
+for p in o["pairs"]:
+    print(p["pair"], p["status"], "| warnings", p["warnings"], "| max |delta|", format(p["max_abs"], ".6f"))' eval/consistency/defaults-300/plain && grep -h -E '^# |pooled (mean|min|harmonic mean)' eval/consistency/defaults-300/plain/gear[1-4]_vs_gear5/delta.md
+run PASS | warnings [] | parameters {'frames': 300, 'scaler': 'bicubic', 'model': 'vmaf_v0.6.1', 'threads': 4, 'threshold': 0.01}
+gear4_vs_gear5 PASS | warnings [] | max |delta| 0.000000
+gear3_vs_gear5 PASS | warnings [] | max |delta| 0.000000
+gear2_vs_gear5 PASS | warnings [] | max |delta| 0.000000
+gear1_vs_gear5 PASS | warnings [] | max |delta| 0.000000
+# gear1_vs_gear5: Mirage vs FFmpeg's libvmaf filter
+| pooled mean (libvmaf) | 6.781918 | 6.781918 | 0.000000 |
+| pooled min (libvmaf) | 0 | 0.000000 | 0.000000 |
+| pooled harmonic mean (libvmaf) | 5.439755 | 5.439755 | 0.000000 |
+# gear2_vs_gear5: Mirage vs FFmpeg's libvmaf filter
+| pooled mean (libvmaf) | 36.817663 | 36.817663 | 0.000000 |
+| pooled min (libvmaf) | 23.488692 | 23.488692 | 0.000000 |
+| pooled harmonic mean (libvmaf) | 36.714504 | 36.714504 | 0.000000 |
+# gear3_vs_gear5: Mirage vs FFmpeg's libvmaf filter
+| pooled mean (libvmaf) | 64.843002 | 64.843002 | 0.000000 |
+| pooled min (libvmaf) | 56.844534 | 56.844534 | 0.000000 |
+| pooled harmonic mean (libvmaf) | 64.830991 | 64.830991 | 0.000000 |
+# gear4_vs_gear5: Mirage vs FFmpeg's libvmaf filter
+| pooled mean (libvmaf) | 84.258060 | 84.258060 | 0.000000 |
+| pooled min (libvmaf) | 79.613837 | 79.613837 | 0.000000 |
+| pooled harmonic mean (libvmaf) | 84.254740 | 84.254740 | 0.000000 |
+
+# 9. The run's checksums.
+
+$ (cd eval/consistency/defaults-300/plain && shasum -a 256 -c SHA256SUMS | awk '{n[$NF]++} END {for (k in n) printf "%d %s\n", n[k], k}')
+49 OK

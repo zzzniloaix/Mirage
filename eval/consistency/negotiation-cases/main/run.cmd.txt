@@ -1,0 +1,3 @@
+# The command of this eval/consistency/run_delta.py run, from <repo>; the programs behind the placeholders are in environment.txt, and <pairs>, if it appears, is the pairs file copied to pairs.txt. It has every option; those the command line didn't give had run_delta.sh's defaults.
+# Given on the command line: --frames --pairs
+$ eval/consistency/run_delta.sh <mirage_vmaf> <out_dir> --frames 10 --jobs 1 --pairs <tmp>/negotiation_clips/pairs.txt --scaler bicubic --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --ffmpeg <ffmpeg> --ffprobe <ffprobe> --timeout 21600

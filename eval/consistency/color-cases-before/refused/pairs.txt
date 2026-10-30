@@ -1,0 +1,6 @@
+# Color tag cases that FFmpeg's section 5 graph refuses (docs/DECISIONS.md D-016).
+# Made by eval/consistency/color_cases.py; <label> <reference> <distorted>. The cases:
+#   u01_bt709_vs_ycgco: a YCgCo distorted input
+#   u02_ycgco_vs_bt709: a YCgCo reference
+u01_bt709_vs_ycgco <tmp>/clips/ref_bt709-tv.mkv <tmp>/clips/dis_ycgco-tv.mkv
+u02_ycgco_vs_bt709 <tmp>/clips/ref_ycgco-tv.mkv <tmp>/clips/dis_bt709-tv.mkv

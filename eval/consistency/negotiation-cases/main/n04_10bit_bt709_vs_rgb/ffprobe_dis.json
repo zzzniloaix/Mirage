@@ -1,0 +1,22 @@
+{
+    "programs": [
+
+    ],
+    "stream_groups": [
+
+    ],
+    "streams": [
+        {
+            "codec_name": "ffv1",
+            "width": 640,
+            "height": 360,
+            "pix_fmt": "bgr0",
+            "color_range": "pc",
+            "color_space": "gbr",
+            "r_frame_rate": "30000/1001",
+            "avg_frame_rate": "30000/1001",
+            "time_base": "1/1000",
+            "start_time": "0.000000"
+        }
+    ]
+}

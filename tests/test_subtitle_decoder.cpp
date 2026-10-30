@@ -2,12 +2,14 @@
 
 #include "SubtitleDecoder.h"
 #include "SidecarSubtitles.h"
+#include "TestTemp.h"
 
 #include <array>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <filesystem>
+#include <fstream>
 #include <string>
 #include <vector>
 
@@ -173,10 +175,16 @@ TEST_CASE("SubtitleDecoder — at() joins overlapping cues in start order",
     CHECK(f.dec.at(10.0).empty());
 }
 
-TEST_CASE("SidecarSubtitles — decodes data/sub_test/test.srt", "[subtitle][sidecar]")
+TEST_CASE("SidecarSubtitles — decodes an SRT file", "[subtitle][sidecar]")
 {
-    const auto path = std::filesystem::path(__FILE__).parent_path().parent_path()
-                    / "data" / "sub_test" / "test.srt";
+    // Written at run time, as the other media tests write their inputs
+    // (DECISIONS.md D-032): three cues, one in italics over two lines, one
+    // with an em dash (U+2014) in UTF-8.
+    const auto path = testtemp::path("sidecar_test.srt");
+    std::ofstream(path, std::ios::binary)
+        << "1\n00:00:01,000 --> 00:00:04,000\nHello from bitmap subtitle line 1\n\n"
+           "2\n00:00:05,000 --> 00:00:08,000\nSecond cue with <i>italics</i>\nand a line break\n\n"
+           "3\n00:00:09,000 --> 00:00:12,000\nThird caption \xe2\x80\x94 bottom of screen\n\n";
     SubtitleDecoder dec;
     dec.set_persistent(true);
     REQUIRE(SidecarSubtitles::decode_file(path.string(), dec));

@@ -1,0 +1,113 @@
+# Checks on the runs in this directory, made after them from <repo>: each command, then its output. <tmp>/clips is the directory eval/consistency/color_cases.py made the clips in (color-cases-before/clips.txt); the clips are not in the repository.
+
+# 1. The clips are those of color-cases-before: the MD5 of each clip's decoded frames against color-cases-before/clips.txt.
+
+$ cd <tmp>/clips && for f in *.mkv; do want=$(awk -v h="## $f" '$0==h{on=1} on && /^MD5=/{print; exit}' <repo>/eval/consistency/color-cases-before/clips.txt); got=$(/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -hide_banner -nostdin -v error -i "$f" -map 0:v:0 -c:v rawvideo -f md5 -); [ -n "$want" ] && [ "$want" = "$got" ] && echo same || echo "DIFFERENT $f"; done | sort | uniq -c
+  19 same
+
+# 2. Every case: frame pairs on each side, and frames whose Mirage score, written with the 6 decimals of FFmpeg's log, is FFmpeg's.
+
+$ python3 -I -c 'import json, sys
+for d in sys.argv[1:]:
+    m = json.load(open(d + "/mirage.json"))["frames"]
+    f = json.load(open(d + "/ffmpeg.json"))["frames"]
+    same = sum(format(a["vmaf"], ".6f") == format(b["metrics"]["vmaf"], ".6f") for a, b in zip(m, f))
+    print(d.split("/")[-1], len(m), len(f), same)' eval/consistency/color-cases-after/main/[mrx][0-9]*
+m01_bt709_vs_smpte170m 10 10 10
+m02_bt709_vs_bt709 10 10 10
+m03_bt709_vs_untagged 10 10 10
+m04_untagged_vs_bt709 10 10 10
+m05_untagged_vs_smpte170m 10 10 10
+m06_untagged_vs_untagged 10 10 10
+m07_smpte170m_vs_bt470bg 10 10 10
+m08_bt2020nc_vs_bt709 10 10 10
+r01_tv_vs_pc 10 10 10
+r02_pc_vs_tv 10 10 10
+r03_norange_vs_pc 10 10 10
+r04_pc_vs_norange 10 10 10
+r05_norange_vs_tv 10 10 10
+r06_tv_vs_norange 10 10 10
+x01_bt709tv_vs_smpte170mpc 10 10 10
+x02_primaries_transfer 10 10 10
+x03_chroma_topleft 10 10 10
+x04_interlaced_tff 10 10 10
+
+# 3. Every case: mirage_vmaf's scores against those of the run before D-016 (color-cases-before/main) at full precision (frames, frames with the same score), the dis_conversion of the report (from -> to, matrix and range changed), and whether FFmpeg's log has swscale's note that it converts the matrix through RGB.
+
+$ python3 -I -c 'import json, sys
+for name in sys.argv[1:]:
+    a = json.load(open("eval/consistency/color-cases-after/main/" + name + "/mirage.json"))
+    b = json.load(open("eval/consistency/color-cases-before/main/" + name + "/mirage.json"))
+    same = sum(x["vmaf"] == y["vmaf"] for x, y in zip(a["frames"], b["frames"]))
+    lines = open("eval/consistency/color-cases-after/main/" + name + "/ffmpeg_colorspace_lines.txt").read()
+    for c in a["dis_conversion"]:
+        print(name, len(a["frames"]), same, "|", c["from"]["color_space"] + "/" + c["from"]["color_range"], "->",
+              c["to"]["color_space"] + "/" + c["to"]["color_range"], "| matrix", c["matrix_changed"], "range", c["range_changed"],
+              "| pairs", c["pairs"], "| FFmpeg via RGB:", "using intermediate RGB" in lines)' $(cd eval/consistency/color-cases-after/main && ls -d [mrx][0-9]*)
+m01_bt709_vs_smpte170m 10 0 | smpte170m/tv -> bt709/tv | matrix True range False | pairs 10 | FFmpeg via RGB: True
+m02_bt709_vs_bt709 10 10 | bt709/tv -> bt709/tv | matrix False range False | pairs 10 | FFmpeg via RGB: False
+m03_bt709_vs_untagged 10 0 | unknown/unknown -> bt709/tv | matrix True range False | pairs 10 | FFmpeg via RGB: True
+m04_untagged_vs_bt709 10 0 | bt709/tv -> unknown/tv | matrix True range False | pairs 10 | FFmpeg via RGB: True
+m05_untagged_vs_smpte170m 10 10 | smpte170m/tv -> unknown/tv | matrix False range False | pairs 10 | FFmpeg via RGB: False
+m06_untagged_vs_untagged 10 10 | unknown/unknown -> unknown/unknown | matrix False range False | pairs 10 | FFmpeg via RGB: False
+m07_smpte170m_vs_bt470bg 10 10 | bt470bg/tv -> smpte170m/tv | matrix False range False | pairs 10 | FFmpeg via RGB: False
+m08_bt2020nc_vs_bt709 10 0 | bt709/tv -> bt2020nc/tv | matrix True range False | pairs 10 | FFmpeg via RGB: True
+r01_tv_vs_pc 10 0 | bt709/pc -> bt709/tv | matrix False range True | pairs 10 | FFmpeg via RGB: False
+r02_pc_vs_tv 10 0 | bt709/tv -> bt709/pc | matrix False range True | pairs 10 | FFmpeg via RGB: False
+r03_norange_vs_pc 10 0 | bt709/pc -> bt709/unknown | matrix False range True | pairs 10 | FFmpeg via RGB: False
+r04_pc_vs_norange 10 0 | bt709/unknown -> bt709/pc | matrix False range True | pairs 10 | FFmpeg via RGB: False
+r05_norange_vs_tv 10 10 | bt709/tv -> bt709/tv | matrix False range False | pairs 10 | FFmpeg via RGB: False
+r06_tv_vs_norange 10 10 | bt709/unknown -> bt709/tv | matrix False range False | pairs 10 | FFmpeg via RGB: False
+x01_bt709tv_vs_smpte170mpc 10 0 | smpte170m/pc -> bt709/tv | matrix True range True | pairs 10 | FFmpeg via RGB: True
+x02_primaries_transfer 10 10 | bt709/tv -> bt709/tv | matrix False range False | pairs 10 | FFmpeg via RGB: False
+x03_chroma_topleft 10 10 | bt709/tv -> bt709/tv | matrix False range False | pairs 10 | FFmpeg via RGB: False
+x04_interlaced_tff 10 10 | bt709/tv -> bt709/tv | matrix False range False | pairs 10 | FFmpeg via RGB: False
+
+# 4. FFmpeg's side of every case against that of the run before D-016: frames on each side, and frames with every libvmaf metric equal.
+
+$ python3 -I -c 'import json, sys
+for name in sys.argv[1:]:
+    a = json.load(open("eval/consistency/color-cases-after/main/" + name + "/ffmpeg.json"))["frames"]
+    b = json.load(open("eval/consistency/color-cases-before/main/" + name + "/ffmpeg.json"))["frames"]
+    print(name, len(a), len(b), sum(x["metrics"] == y["metrics"] for x, y in zip(a, b)))' $(cd eval/consistency/color-cases-after/main && ls -d [mrx][0-9]*)
+m01_bt709_vs_smpte170m 10 10 10
+m02_bt709_vs_bt709 10 10 10
+m03_bt709_vs_untagged 10 10 10
+m04_untagged_vs_bt709 10 10 10
+m05_untagged_vs_smpte170m 10 10 10
+m06_untagged_vs_untagged 10 10 10
+m07_smpte170m_vs_bt470bg 10 10 10
+m08_bt2020nc_vs_bt709 10 10 10
+r01_tv_vs_pc 10 10 10
+r02_pc_vs_tv 10 10 10
+r03_norange_vs_pc 10 10 10
+r04_pc_vs_norange 10 10 10
+r05_norange_vs_tv 10 10 10
+r06_tv_vs_norange 10 10 10
+x01_bt709tv_vs_smpte170mpc 10 10 10
+x02_primaries_transfer 10 10 10
+x03_chroma_topleft 10 10 10
+x04_interlaced_tff 10 10 10
+
+# 5. The refused cases, after and before D-016: why each pair fails, and mirage_vmaf's message.
+
+$ python3 -I -c 'import json, lzma, sys
+for run in ("color-cases-after", "color-cases-before"):
+    for name in sys.argv[1:]:
+        d = "eval/consistency/" + run + "/refused/" + name
+        print(run, name, json.load(open(d + "/delta.json"))["fail_reasons"])
+        print("  mirage_vmaf stderr:", lzma.open(d + "/mirage.stderr.log.xz", "rt").read().strip() or "(empty)")' u01_bt709_vs_ycgco u02_ycgco_vs_bt709
+color-cases-after u01_bt709_vs_ycgco ['mirage_vmaf exited with status 1', 'FFmpeg exited with status 178']
+  mirage_vmaf stderr: mirage_vmaf: the distorted input has the color matrix ycgco, which FFmpeg's scale filter does not convert, so the pair can't be scored as FFmpeg scores it (DECISIONS.md D-016)
+color-cases-after u02_ycgco_vs_bt709 ['mirage_vmaf exited with status 1', 'FFmpeg exited with status 178']
+  mirage_vmaf stderr: mirage_vmaf: the reference has the color matrix ycgco, which FFmpeg's scale filter does not convert, so the pair can't be scored as FFmpeg scores it (DECISIONS.md D-016)
+color-cases-before u01_bt709_vs_ycgco ['FFmpeg exited with status 178']
+  mirage_vmaf stderr: (empty)
+color-cases-before u02_ycgco_vs_bt709 ['FFmpeg exited with status 178']
+  mirage_vmaf stderr: (empty)
+
+# 6. The runs' checksums.
+
+$ for d in main refused; do (cd eval/consistency/color-cases-after/$d && printf "%s: " $d && shasum -a 256 -c SHA256SUMS | awk '{n[$NF]++} END {for (k in n) printf "%d %s\n", n[k], k}'); done
+main: 203 OK
+refused: 23 OK

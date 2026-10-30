@@ -1,0 +1,3 @@
+    SWS_BILINEAR      = 1 <<  1, ///< bilinear filtering
+    SWS_BICUBIC       = 1 <<  2, ///< 2-tap cubic B-spline
+ *              For SWS_BICUBIC param[0] and [1] tune the shape of the basis

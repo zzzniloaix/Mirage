@@ -1,0 +1,10 @@
+# Negotiation cases that FFmpeg's section 5 graph scores (docs/DECISIONS.md D-016).
+# Made by eval/consistency/color_cases.py; <label> <reference> <distorted>. The cases:
+#   n01_yuvj_pc_vs_norange: (a) a full range H.264 reference, decoded as yuvj420p; a distorted input without a range tag
+#   n02_10bit_tv_vs_norange: (a)'s control: a limited range 10-bit reference, a distorted input without a range tag
+#   n03_10bit_bt709_vs_gray: (b) a 10-bit reference, a gray distorted input
+#   n04_10bit_bt709_vs_rgb: (b) a 10-bit reference, an RGB distorted input
+n01_yuvj_pc_vs_norange <tmp>/negotiation_clips/ref_libx264-yuvj420p_bt709-pc.mkv <tmp>/negotiation_clips/dis_bt709-unknown.mkv
+n02_10bit_tv_vs_norange <tmp>/negotiation_clips/ref_ffv1-yuv420p10le_bt709-tv.mkv <tmp>/negotiation_clips/dis_bt709-unknown.mkv
+n03_10bit_bt709_vs_gray <tmp>/negotiation_clips/ref_ffv1-yuv420p10le_bt709-tv.mkv <tmp>/negotiation_clips/dis_ffv1-gray_bt709-tv.mkv
+n04_10bit_bt709_vs_rgb <tmp>/negotiation_clips/ref_ffv1-yuv420p10le_bt709-tv.mkv <tmp>/negotiation_clips/dis_ffv1-bgr0_gbr-pc.mkv

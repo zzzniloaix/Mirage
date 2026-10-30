@@ -1,0 +1,73 @@
+# f07_444_bt709_vs_smpte170m: Mirage vs FFmpeg's libvmaf filter
+
+**PASS**
+
+- Variant: plain FFmpeg: the section 5 comparison.
+- Reference: <tmp>/format_clips/ref_ffv1-yuv444p_bt709-tv.mkv
+- Distorted: <tmp>/format_clips/dis_smpte170m-tv.mkv
+- Frames: the first 10 frame pairs.
+- A frame fails if \|delta\| > 0.01, with delta = Mirage - FFmpeg (docs/DECISIONS.md D-019).
+
+| | Mirage (mirage_vmaf) | FFmpeg (libvmaf filter) | Mirage - FFmpeg |
+|---|---|---|---|
+| frame pairs scored | 10 | 10 |  |
+| pooled mean (libvmaf) | 84.440183 | 84.440183 | 0.000000 |
+| pooled min (libvmaf) | 80.876901 | 80.876901 | 0.000000 |
+| mean of the compared frames | 84.440183 | 84.440183 | 0.000000 |
+| libvmaf version (run time) | 3.0.0 | 3.0.0 | |
+| libvmaf package version | 3.1.0 | 3.1.0 | |
+| libavutil version (run time) | 60.26.101 | 60.26.101 | |
+| libavcodec version (run time) | 62.28.101 | 62.28.101 | |
+| libavformat version (run time) | 62.12.101 | 62.12.101 | |
+| libswscale version (run time) | 9.5.101 | 9.5.101 | |
+| libavfilter version (run time) | 11.14.101 | 11.14.101 | |
+| libavdevice version (run time) | - | 62.3.101 | |
+| libswresample version (run time) | - | 6.3.101 | |
+| exit status | 0 | 0 | |
+| wall time, s | 0.3 | 0.3 | |
+
+Per frame, over the 10 compared frames (index 0-9):
+- max \|delta\|: 0.000000 (index 4)
+- mean \|delta\|: 0.000000
+- mean delta: 0.000000
+- frames with \|delta\| > 0.01: 0
+
+Largest \|delta\|:
+
+| index | Mirage | FFmpeg | delta |
+|---|---|---|---|
+| 4 | 84.807756 | 84.807756 | 0.000000 |
+| 9 | 85.861059 | 85.861059 | 0.000000 |
+| 2 | 84.060932 | 84.060932 | 0.000000 |
+| 7 | 85.272071 | 85.272071 | 0.000000 |
+| 0 | 80.876901 | 80.876901 | 0.000000 |
+
+FFmpeg's color handling (its verbose log; the lines are in ffmpeg_colorspace_lines.txt):
+- filter graph input 0 (distorted): csp:smpte170m range:tv
+- filter graph input 1 (reference): csp:bt709 range:tv
+- Parsed_scale_1: 640x360 yuv420p csp:smpte170m range:tv -> 1920x1080 yuv420p csp:smpte170m range:tv flags:0x00000002
+- auto_scale_0: 1920x1080 yuv444p csp:bt709 range:tv -> 1920x1080 yuv420p csp:smpte170m range:tv flags:0x00000004
+- Converts: auto_scale_0: color_space bt709 -> smpte170m, auto_scale_0: pix_fmt yuv444p -> yuv420p
+
+Mirage's color handling of the distorted frames (mirage_vmaf's report, dis_conversion; DECISIONS.md D-016):
+- smpte170m/tv -> smpte170m/tv: matrix and range unchanged; 10 pairs from index 0
+
+Mirage's color handling of the reference frames (mirage_vmaf's report, ref_conversion; DECISIONS.md D-022):
+- bt709/tv -> smpte170m/tv: matrix changed; 10 pairs from index 0
+
+Inputs (ffprobe / mirage_vmaf's decoder):
+
+| | reference | distorted |
+|---|---|---|
+| width | 1920 | 640 |
+| height | 1080 | 360 |
+| pix_fmt | yuv444p | yuv420p |
+| color_space | bt709 | smpte170m |
+| color_range | tv | tv |
+| color_primaries | None | None |
+| color_trc | None | None |
+| time_base | 1/1000 | 1/1000 |
+
+mirage_vmaf: model vmaf_v0.6.1 (built-in), scaler bilinear, n_threads 4, n_subsample 1, libvmaf package 3.1.0, reference mode explicit-pair; reference PTS 0.000000 to 0.300000 s; pairs with different PTS: 0.
+
+The commands are in cmd.txt, the raw outputs next to this file (eval/consistency/README.md lists them).

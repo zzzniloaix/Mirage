@@ -1,0 +1,30 @@
+{
+  "tool": "mirage_vmaf",
+  "libvmaf_version": "3.0.0",
+  "libvmaf_package_version": "3.1.0",
+  "model": "vmaf_v0.6.1",
+  "scaler": "bilinear",
+  "n_threads": 4,
+  "n_subsample": 1,
+  "scored_as": {"width": 1920, "height": 1080, "pix_fmt": "yuv420p", "bit_depth": 8},
+  "dis_conversion": [
+    {"from": {"color_space": "bt709", "color_range": "tv"}, "to": {"color_space": "bt709", "color_range": "pc"}, "matrix_changed": false, "range_changed": true, "first_index": 0, "pairs": 10}
+  ],
+  "frame_limit": 10,
+  "frames_scored": 10,
+  "pooled": {"mean": 88.03413259459114, "min": 85.70042411897475},
+  "ref": {"url": "<tmp>/clips/ref_bt709-pc.mkv", "width": 1920, "height": 1080, "pix_fmt": "yuv420p", "color_space": "bt709", "color_range": "pc", "color_primaries": "unknown", "color_trc": "unknown", "time_base": "1/1000", "ended": false},
+  "dis": {"url": "<tmp>/clips/dis_bt709-tv.mkv", "width": 640, "height": 360, "pix_fmt": "yuv420p", "color_space": "bt709", "color_range": "tv", "color_primaries": "unknown", "color_trc": "unknown", "time_base": "1/1000", "ended": false},
+  "frames": [
+    {"index": 0, "ref_pts": 0, "dis_pts": 0, "vmaf": 85.70042411897475},
+    {"index": 1, "ref_pts": 0.033, "dis_pts": 0.033, "vmaf": 88.36315080224958},
+    {"index": 2, "ref_pts": 0.067, "dis_pts": 0.067, "vmaf": 88.225129953305},
+    {"index": 3, "ref_pts": 0.1, "dis_pts": 0.1, "vmaf": 88.21938265386015},
+    {"index": 4, "ref_pts": 0.133, "dis_pts": 0.133, "vmaf": 88.57624751048672},
+    {"index": 5, "ref_pts": 0.167, "dis_pts": 0.167, "vmaf": 88.52175906225564},
+    {"index": 6, "ref_pts": 0.2, "dis_pts": 0.2, "vmaf": 87.68023345397866},
+    {"index": 7, "ref_pts": 0.234, "dis_pts": 0.234, "vmaf": 88.32183399808272},
+    {"index": 8, "ref_pts": 0.267, "dis_pts": 0.267, "vmaf": 88.19721972110763},
+    {"index": 9, "ref_pts": 0.3, "dis_pts": 0.3, "vmaf": 88.53594467161047}
+  ]
+}

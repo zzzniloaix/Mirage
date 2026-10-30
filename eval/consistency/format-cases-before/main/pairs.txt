@@ -1,0 +1,26 @@
+# Reference format cases that FFmpeg's section 5 graph scores (docs/DECISIONS.md D-016).
+# Made by eval/consistency/color_cases.py; <label> <reference> <distorted>. The cases:
+#   f01_10bit_bt709_vs_smpte170m: a 10-bit reference, another matrix
+#   f02_10bit_smpte170m_vs_bt709: a 10-bit BT.601 reference, a BT.709 distorted input
+#   f03_10bit_nomatrix_vs_bt709: a 10-bit reference without a matrix tag
+#   f04_10bit_bt709_vs_bt709: a 10-bit reference, the same tags
+#   f05_422_bt709_vs_smpte170m: a 4:2:2 reference, another matrix
+#   f06_422_bt709_vs_bt709: a 4:2:2 reference, the same tags
+#   f07_444_bt709_vs_smpte170m: a 4:4:4 reference, another matrix
+#   f08_444_bt709_vs_bt709: a 4:4:4 reference, the same tags
+#   j01_yuvj_pc_vs_tv: a full range H.264 reference, decoded as yuvj420p; a limited range distorted input
+#   j02_yuvj_pc_vs_pc: a full range H.264 reference, decoded as yuvj420p; a full range distorted input
+#   d01_bt709_vs_10bit_smpte170m: a yuv420p reference, a 10-bit distorted input with another matrix
+#   d02_bt709tv_vs_yuvj_pc: a yuv420p reference, a full range H.264 distorted input, decoded as yuvj420p
+f01_10bit_bt709_vs_smpte170m <tmp>/format_clips/ref_ffv1-yuv420p10le_bt709-tv.mkv <tmp>/format_clips/dis_smpte170m-tv.mkv
+f02_10bit_smpte170m_vs_bt709 <tmp>/format_clips/ref_ffv1-yuv420p10le_smpte170m-tv.mkv <tmp>/format_clips/dis_bt709-tv.mkv
+f03_10bit_nomatrix_vs_bt709 <tmp>/format_clips/ref_ffv1-yuv420p10le_unknown-tv.mkv <tmp>/format_clips/dis_bt709-tv.mkv
+f04_10bit_bt709_vs_bt709 <tmp>/format_clips/ref_ffv1-yuv420p10le_bt709-tv.mkv <tmp>/format_clips/dis_bt709-tv.mkv
+f05_422_bt709_vs_smpte170m <tmp>/format_clips/ref_ffv1-yuv422p_bt709-tv.mkv <tmp>/format_clips/dis_smpte170m-tv.mkv
+f06_422_bt709_vs_bt709 <tmp>/format_clips/ref_ffv1-yuv422p_bt709-tv.mkv <tmp>/format_clips/dis_bt709-tv.mkv
+f07_444_bt709_vs_smpte170m <tmp>/format_clips/ref_ffv1-yuv444p_bt709-tv.mkv <tmp>/format_clips/dis_smpte170m-tv.mkv
+f08_444_bt709_vs_bt709 <tmp>/format_clips/ref_ffv1-yuv444p_bt709-tv.mkv <tmp>/format_clips/dis_bt709-tv.mkv
+j01_yuvj_pc_vs_tv <tmp>/format_clips/ref_libx264-yuvj420p_bt709-pc.mkv <tmp>/format_clips/dis_bt709-tv.mkv
+j02_yuvj_pc_vs_pc <tmp>/format_clips/ref_libx264-yuvj420p_bt709-pc.mkv <tmp>/format_clips/dis_bt709-pc.mkv
+d01_bt709_vs_10bit_smpte170m <tmp>/format_clips/ref_bt709-tv.mkv <tmp>/format_clips/dis_ffv1-yuv420p10le_smpte170m-tv.mkv
+d02_bt709tv_vs_yuvj_pc <tmp>/format_clips/ref_bt709-tv.mkv <tmp>/format_clips/dis_libx264-yuvj420p_bt709-pc.mkv

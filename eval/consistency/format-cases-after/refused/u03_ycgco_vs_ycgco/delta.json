@@ -1,0 +1,83 @@
+{
+  "report_version": 1,
+  "pair": "u03_ycgco_vs_ycgco",
+  "reference": "<tmp>/format_clips/ref_ycgco-tv.mkv",
+  "distorted": "<tmp>/format_clips/dis_ycgco-tv.mkv",
+  "variant": "plain",
+  "status": "FAIL",
+  "fail_reasons": [
+    "mirage_vmaf exited with status 1",
+    "FFmpeg exited with status 178"
+  ],
+  "warnings": [],
+  "threshold": 0.01,
+  "frame_limit": 10,
+  "frames": {
+    "mirage": null,
+    "ffmpeg": null,
+    "compared": 0,
+    "counts_match": false
+  },
+  "delta": null,
+  "pooled": null,
+  "relabel": null,
+  "ffmpeg_color": {
+    "graph_inputs": [
+      {
+        "input": 0,
+        "stream": 0,
+        "color_space": "ycgco",
+        "color_range": "tv"
+      },
+      {
+        "input": 1,
+        "stream": 0,
+        "color_space": "ycgco",
+        "color_range": "tv"
+      }
+    ],
+    "scale": [],
+    "conversions": []
+  },
+  "mirage_color": {
+    "dis_conversion": null
+  },
+  "inputs": {
+    "ref": {
+      "ffprobe": {
+        "codec_name": "rawvideo",
+        "width": 1920,
+        "height": 1080,
+        "pix_fmt": "yuv420p",
+        "color_space": "ycgco",
+        "color_range": "tv",
+        "color_primaries": null,
+        "color_transfer": null,
+        "time_base": "1/1000",
+        "r_frame_rate": "30000/1001",
+        "avg_frame_rate": "30000/1001",
+        "start_time": "0.000000"
+      },
+      "mirage_vmaf": null
+    },
+    "dis": {
+      "ffprobe": {
+        "codec_name": "rawvideo",
+        "width": 640,
+        "height": 360,
+        "pix_fmt": "yuv420p",
+        "color_space": "ycgco",
+        "color_range": "tv",
+        "color_primaries": null,
+        "color_transfer": null,
+        "time_base": "1/1000",
+        "r_frame_rate": "30000/1001",
+        "avg_frame_rate": "30000/1001",
+        "start_time": "0.000000"
+      },
+      "mirage_vmaf": null
+    }
+  },
+  "mirage_vmaf": null,
+  "ffmpeg": null
+}

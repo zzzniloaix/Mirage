@@ -1,0 +1,70 @@
+# Checks on the runs in this directory, made after them from <repo>: each command, then its output.
+
+# 1. The repository when these checks and model_effect.* were made: HEAD and the working tree's state.
+
+$ git rev-parse HEAD && git status --porcelain && echo '(end of git status)'
+35613dc7669b788e7bea81bc4b0a143a9d24f135
+(end of git status)
+
+# 2. model_effect.md and model_effect.json: how far each side's scores move from the vmaf_v0.6.1 run's (eval/consistency/compare_runs.py).
+
+$ python3 -I -B eval/consistency/compare_runs.py --base vmaf_v0.6.1=eval/consistency/models-300/vmaf_v0.6.1 --run vmaf_v0.6.1neg=eval/consistency/models-300/vmaf_v0.6.1neg --run vmaf_4k_v0.6.1=eval/consistency/models-300/vmaf_4k_v0.6.1 --run file_vmaf_v0.6.1=eval/consistency/models-300/file_vmaf_v0.6.1 --out eval/consistency/models-300/model_effect
+compare_runs: wrote eval/consistency/models-300/model_effect.json and eval/consistency/models-300/model_effect.md
+
+# 3. Every run: frame pairs on each side, and frames whose Mirage score, written with the 6 decimals of FFmpeg's log, is FFmpeg's.
+
+$ python3 -I -c 'import json, sys
+for d in sys.argv[1:]:
+    m = json.load(open(d + "/mirage.json"))["frames"]
+    f = json.load(open(d + "/ffmpeg.json"))["frames"]
+    same = sum(format(a["vmaf"], ".6f") == format(b["metrics"]["vmaf"], ".6f") for a, b in zip(m, f))
+    print(d, len(m), len(f), same)' eval/consistency/models-300/*/gear2_vs_gear5
+eval/consistency/models-300/file_vmaf_v0.6.1/gear2_vs_gear5 300 300 300
+eval/consistency/models-300/vmaf_4k_v0.6.1/gear2_vs_gear5 300 300 300
+eval/consistency/models-300/vmaf_v0.6.1/gear2_vs_gear5 300 300 300
+eval/consistency/models-300/vmaf_v0.6.1neg/gear2_vs_gear5 300 300 300
+
+# 4. The model each mirage_vmaf report names, and the SHA-256 of the model file of the file_vmaf_v0.6.1 run.
+
+$ python3 -I -c 'import json, sys
+for p in sys.argv[1:]:
+    r = json.load(open(p))
+    print(p, r["model"], r["model_source"], r["model_sha256"], r["reference_mode"])' eval/consistency/models-300/*/gear2_vs_gear5/mirage.json && shasum -a 256 /opt/homebrew/opt/libvmaf/share/libvmaf/model/vmaf_v0.6.1.json
+eval/consistency/models-300/file_vmaf_v0.6.1/gear2_vs_gear5/mirage.json /opt/homebrew/opt/libvmaf/share/libvmaf/model/vmaf_v0.6.1.json file 5950d61fa1f861bd45d8149d80539ed9f3376cfc2495b8f0fa8e9f57cb131ee3 explicit-pair
+eval/consistency/models-300/vmaf_4k_v0.6.1/gear2_vs_gear5/mirage.json vmaf_4k_v0.6.1 built-in None explicit-pair
+eval/consistency/models-300/vmaf_v0.6.1/gear2_vs_gear5/mirage.json vmaf_v0.6.1 built-in None explicit-pair
+eval/consistency/models-300/vmaf_v0.6.1neg/gear2_vs_gear5/mirage.json vmaf_v0.6.1neg built-in None explicit-pair
+5950d61fa1f861bd45d8149d80539ed9f3376cfc2495b8f0fa8e9f57cb131ee3  /opt/homebrew/opt/libvmaf/share/libvmaf/model/vmaf_v0.6.1.json
+
+# 5. The libvmaf metrics in each run's FFmpeg log, for the first frame: which features FFmpeg's libvmaf filter computed for the model it was given.
+
+$ python3 -I -c 'import json, sys
+for p in sys.argv[1:]:
+    print(p, " ".join(sorted(json.load(open(p))["frames"][0]["metrics"])))' eval/consistency/models-300/*/gear2_vs_gear5/ffmpeg.json
+eval/consistency/models-300/file_vmaf_v0.6.1/gear2_vs_gear5/ffmpeg.json integer_adm2 integer_adm_scale0 integer_adm_scale1 integer_adm_scale2 integer_adm_scale3 integer_motion integer_motion2 integer_vif_scale0 integer_vif_scale1 integer_vif_scale2 integer_vif_scale3 vmaf
+eval/consistency/models-300/vmaf_4k_v0.6.1/gear2_vs_gear5/ffmpeg.json integer_adm2 integer_adm_scale0 integer_adm_scale1 integer_adm_scale2 integer_adm_scale3 integer_motion integer_motion2 integer_vif_scale0 integer_vif_scale1 integer_vif_scale2 integer_vif_scale3 vmaf
+eval/consistency/models-300/vmaf_v0.6.1/gear2_vs_gear5/ffmpeg.json integer_adm2 integer_adm_scale0 integer_adm_scale1 integer_adm_scale2 integer_adm_scale3 integer_motion integer_motion2 integer_vif_scale0 integer_vif_scale1 integer_vif_scale2 integer_vif_scale3 vmaf
+eval/consistency/models-300/vmaf_v0.6.1neg/gear2_vs_gear5/ffmpeg.json integer_adm2_egl_1 integer_adm_scale0_egl_1 integer_adm_scale1_egl_1 integer_adm_scale2_egl_1 integer_adm_scale3_egl_1 integer_motion integer_motion2 integer_vif_scale0_egl_1 integer_vif_scale1_egl_1 integer_vif_scale2_egl_1 integer_vif_scale3_egl_1 vmaf
+
+# 6. The vmaf_v0.6.1 run against gear2 of scalers-300/bilinear (the same settings), and the model file run against the vmaf_v0.6.1 run: frames on each side, frames with the same mirage_vmaf score at full precision, and frames with every libvmaf metric of FFmpeg's log equal.
+
+$ python3 -I -c 'import json, sys
+pairs = [("eval/consistency/models-300/vmaf_v0.6.1", "eval/consistency/scalers-300/bilinear"),
+         ("eval/consistency/models-300/file_vmaf_v0.6.1", "eval/consistency/models-300/vmaf_v0.6.1")]
+for x, y in pairs:
+    a = json.load(open(x + "/gear2_vs_gear5/mirage.json"))["frames"]
+    b = json.load(open(y + "/gear2_vs_gear5/mirage.json"))["frames"]
+    c = json.load(open(x + "/gear2_vs_gear5/ffmpeg.json"))["frames"]
+    d = json.load(open(y + "/gear2_vs_gear5/ffmpeg.json"))["frames"]
+    print(x, y, len(a), len(b), sum(p["vmaf"] == q["vmaf"] for p, q in zip(a, b)),
+          len(c), len(d), sum(p["metrics"] == q["metrics"] for p, q in zip(c, d)))'
+eval/consistency/models-300/vmaf_v0.6.1 eval/consistency/scalers-300/bilinear 300 300 300 300 300 300
+eval/consistency/models-300/file_vmaf_v0.6.1 eval/consistency/models-300/vmaf_v0.6.1 300 300 300 300 300 300
+
+# 7. Each run's checksums.
+
+$ for r in vmaf_v0.6.1 vmaf_v0.6.1neg vmaf_4k_v0.6.1 file_vmaf_v0.6.1; do (cd eval/consistency/models-300/$r && printf '%s ' $r && shasum -a 256 -c SHA256SUMS | awk '{n[$NF]++} END {for (k in n) print n[k], k}'); done
+vmaf_v0.6.1 16 OK
+vmaf_v0.6.1neg 16 OK
+vmaf_4k_v0.6.1 16 OK
+file_vmaf_v0.6.1 16 OK

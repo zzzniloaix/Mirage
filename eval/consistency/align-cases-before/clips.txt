@@ -1,0 +1,572 @@
+# The clips of eval/consistency/align_cases.py, made in <clips_dir>: for each, the commands that made it, its streams as <ffprobe> reads them back, each frame's pts in its stream's time base, the MD5 of each decoded frame, and the frames as checked: picture@slot, the pattern's picture each shows and the frame slot whose time it has.
+
+## ref.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -vf trim=end_frame=10,format=yuv420p,setparams=colorspace=bt709:range=tv -c:v rawvideo -f matroska <clips_dir>/ref.mkv
+$ <ffprobe> -v error -show_entries format=start_time:stream=index,codec_type,codec_name,width,height,pix_fmt,color_space,color_range,time_base,r_frame_rate,avg_frame_rate,start_time -of default=noprint_wrappers=1 <clips_dir>/ref.mkv
+index=0
+codec_name=rawvideo
+codec_type=video
+width=1920
+height=1080
+pix_fmt=yuv420p
+color_range=tv
+color_space=bt709
+r_frame_rate=30000/1001
+avg_frame_rate=30000/1001
+time_base=1/1000
+start_time=0.000000
+start_time=0.000000
+$ <ffprobe> -v error -select_streams v:0 -show_entries frame=pts -of csv=p=0 <clips_dir>/ref.mkv
+0
+33
+67
+100
+133
+167
+200
+234
+267
+300
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/ref.mkv -map 0:v:0 -fps_mode passthrough -c:v rawvideo -f framemd5 -
+#format: frame checksums
+#version: 2
+#hash: MD5
+#software: Lavf62.12.101
+#tb 0: 1001/30000
+#media_type 0: video
+#codec_id 0: rawvideo
+#dimensions 0: 1920x1080
+#sar 0: 1/1
+#stream#, dts,        pts, duration,     size, hash
+0,          0,          0,        1,  3110400, c0dd9a66107bb0cecbe42851ecd29d4b
+0,          1,          1,        1,  3110400, efbc4ece761cb421db1ddc9bf78a6e3b
+0,          2,          2,        1,  3110400, 7198ecfa595a6a5f8438335ccf7f75a9
+0,          3,          3,        1,  3110400, a80d8e34e8337e908965b879a781a0d9
+0,          4,          4,        1,  3110400, 5f5169f93dd2f15ff1fac098871d0eae
+0,          5,          5,        1,  3110400, 7d52537e0a6d64f5e00ec56532d62c59
+0,          6,          6,        1,  3110400, d14334d68c9812796c15d68988ee4fa0
+0,          7,          7,        1,  3110400, d1ad89e79673329ab5efaf86ab6c715f
+0,          8,          8,        1,  3110400, 4c01f0bfa1e982d4c69930d7dda2aabc
+0,          9,          9,        1,  3110400, a2db7cc147b4a8701e1d47f3bba1afcd
+frames as checked (picture@slot): 0@0 1@1 2@2 3@3 4@4 5@5 6@6 7@7 8@8 9@9
+
+## ref_ts.ts
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -vf trim=end_frame=10,format=yuv420p,setparams=colorspace=bt709:range=tv -c:v mpeg2video -q:v 2 -g 1 -bf 0 -f mpegts <clips_dir>/ref_ts.ts
+$ <ffprobe> -v error -show_entries format=start_time:stream=index,codec_type,codec_name,width,height,pix_fmt,color_space,color_range,time_base,r_frame_rate,avg_frame_rate,start_time -of default=noprint_wrappers=1 <clips_dir>/ref_ts.ts
+index=0
+codec_name=mpeg2video
+codec_type=video
+width=1920
+height=1080
+pix_fmt=yuv420p
+color_range=tv
+color_space=bt709
+r_frame_rate=30000/1001
+avg_frame_rate=30000/1001
+time_base=1/90000
+start_time=1.433367
+index=0
+codec_name=mpeg2video
+codec_type=video
+width=1920
+height=1080
+pix_fmt=yuv420p
+color_range=tv
+color_space=bt709
+r_frame_rate=30000/1001
+avg_frame_rate=30000/1001
+time_base=1/90000
+start_time=1.433367
+start_time=1.433367
+$ <ffprobe> -v error -select_streams v:0 -show_entries frame=pts -of csv=p=0 <clips_dir>/ref_ts.ts
+129003,
+132006,
+135009,
+138012,
+141015,
+144018,
+147021,
+150024,
+153027,
+156030,
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/ref_ts.ts -map 0:v:0 -fps_mode passthrough -c:v rawvideo -f framemd5 -
+#format: frame checksums
+#version: 2
+#hash: MD5
+#software: Lavf62.12.101
+#tb 0: 1001/30000
+#media_type 0: video
+#codec_id 0: rawvideo
+#dimensions 0: 1920x1080
+#sar 0: 1/1
+#stream#, dts,        pts, duration,     size, hash
+0,          0,          0,        1,  3110400, e998fe41eb4b6ac1be501517634e87e7
+0,          1,          1,        1,  3110400, b0aab277cfc13e6b43f98611ab67476f
+0,          2,          2,        1,  3110400, c55e68ca3b85ca43c59200930c447719
+0,          3,          3,        1,  3110400, 164337d3ce0266fe55fee420c736a475
+0,          4,          4,        1,  3110400, 12b49a636d075c0e61a4d940a3d3f5f9
+0,          5,          5,        1,  3110400, 81f33213382e23bb13fdd532ff89e922
+0,          6,          6,        1,  3110400, 80b07f6c2bedf8bc9f13825157fa6481
+0,          7,          7,        1,  3110400, 5d0f1cb065f564b94024a7b61e2a62ca
+0,          8,          8,        1,  3110400, b420e8178ec053a72f4dc670ee5dd7c0
+0,          9,          9,        1,  3110400, 375ec6abe105b46d148f73afe6d42484
+frames as checked (picture@slot): 0@0 1@1 2@2 3@3 4@4 5@5 6@6 7@7 8@8 9@9
+
+## dis.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -vf trim=end_frame=10,scale=640:360:flags=bicubic,format=yuv420p,setparams=colorspace=bt709:range=tv -c:v rawvideo -f matroska <clips_dir>/dis.mkv
+$ <ffprobe> -v error -show_entries format=start_time:stream=index,codec_type,codec_name,width,height,pix_fmt,color_space,color_range,time_base,r_frame_rate,avg_frame_rate,start_time -of default=noprint_wrappers=1 <clips_dir>/dis.mkv
+index=0
+codec_name=rawvideo
+codec_type=video
+width=640
+height=360
+pix_fmt=yuv420p
+color_range=tv
+color_space=bt709
+r_frame_rate=30000/1001
+avg_frame_rate=30000/1001
+time_base=1/1000
+start_time=0.000000
+start_time=0.000000
+$ <ffprobe> -v error -select_streams v:0 -show_entries frame=pts -of csv=p=0 <clips_dir>/dis.mkv
+0
+33
+67
+100
+133
+167
+200
+234
+267
+300
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/dis.mkv -map 0:v:0 -fps_mode passthrough -c:v rawvideo -f framemd5 -
+#format: frame checksums
+#version: 2
+#hash: MD5
+#software: Lavf62.12.101
+#tb 0: 1001/30000
+#media_type 0: video
+#codec_id 0: rawvideo
+#dimensions 0: 640x360
+#sar 0: 1/1
+#stream#, dts,        pts, duration,     size, hash
+0,          0,          0,        1,   345600, 896a12375902a36836da958cc7ac56be
+0,          1,          1,        1,   345600, fa25138d5d25a25356632a4fa07bd69d
+0,          2,          2,        1,   345600, 8d211b86f82d101fb19ac2d3f1a92fd5
+0,          3,          3,        1,   345600, 3f798f1eca9688aa12214e6d07d27259
+0,          4,          4,        1,   345600, 4da01aa58ccaf0a57894cf8a6f2319d7
+0,          5,          5,        1,   345600, 8a76647bf4e83251780b4c0fbf0796a3
+0,          6,          6,        1,   345600, 438c2863a0d6ab842f0badac503aac9d
+0,          7,          7,        1,   345600, a78e4da1c7abd2af4ffff4bc82ea7af6
+0,          8,          8,        1,   345600, acf0e0d410dba69bd11383962eedbcd5
+0,          9,          9,        1,   345600, c5fe0b95740c418b4c5bec9162c5e147
+frames as checked (picture@slot): 0@0 1@1 2@2 3@3 4@4 5@5 6@6 7@7 8@8 9@9
+
+## dis_ts.ts
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -vf trim=end_frame=10,scale=640:360:flags=bicubic,format=yuv420p,setparams=colorspace=bt709:range=tv -c:v mpeg2video -q:v 2 -g 1 -bf 0 -f mpegts <clips_dir>/dis_ts.ts
+$ <ffprobe> -v error -show_entries format=start_time:stream=index,codec_type,codec_name,width,height,pix_fmt,color_space,color_range,time_base,r_frame_rate,avg_frame_rate,start_time -of default=noprint_wrappers=1 <clips_dir>/dis_ts.ts
+index=0
+codec_name=mpeg2video
+codec_type=video
+width=640
+height=360
+pix_fmt=yuv420p
+color_range=tv
+color_space=bt709
+r_frame_rate=30000/1001
+avg_frame_rate=30000/1001
+time_base=1/90000
+start_time=1.433367
+index=0
+codec_name=mpeg2video
+codec_type=video
+width=640
+height=360
+pix_fmt=yuv420p
+color_range=tv
+color_space=bt709
+r_frame_rate=30000/1001
+avg_frame_rate=30000/1001
+time_base=1/90000
+start_time=1.433367
+start_time=1.433367
+$ <ffprobe> -v error -select_streams v:0 -show_entries frame=pts -of csv=p=0 <clips_dir>/dis_ts.ts
+129003,
+132006,
+135009,
+138012,
+141015,
+144018,
+147021,
+150024,
+153027,
+156030,
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/dis_ts.ts -map 0:v:0 -fps_mode passthrough -c:v rawvideo -f framemd5 -
+#format: frame checksums
+#version: 2
+#hash: MD5
+#software: Lavf62.12.101
+#tb 0: 1001/30000
+#media_type 0: video
+#codec_id 0: rawvideo
+#dimensions 0: 640x360
+#sar 0: 1/1
+#stream#, dts,        pts, duration,     size, hash
+0,          0,          0,        1,   345600, 8dffcfb8d6ff9f2be85a03855b52e2ca
+0,          1,          1,        1,   345600, f20ff0b52f8ee09047edfe6af8d5dc21
+0,          2,          2,        1,   345600, 01c4a31ebdc15bfe0d02103b7ab83dd6
+0,          3,          3,        1,   345600, a79293727f0297a37239e82c3fdaddca
+0,          4,          4,        1,   345600, 0ae10c431b592caf9535c9aca868c2c3
+0,          5,          5,        1,   345600, ba41535fee83a3832d98e5714793b070
+0,          6,          6,        1,   345600, 81d9b99bad672a52778ccd9645375f41
+0,          7,          7,        1,   345600, beab543a32a74bc7c767f453ee7fdf1a
+0,          8,          8,        1,   345600, 37704af41d41774b0530e099e5a5d562
+0,          9,          9,        1,   345600, 41bb9aada1e56f84dbcd11842f7da014
+frames as checked (picture@slot): 0@0 1@1 2@2 3@3 4@4 5@5 6@6 7@7 8@8 9@9
+
+## ref_drop5.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -vf 'trim=end_frame=10,format=yuv420p,setparams=colorspace=bt709:range=tv,select=not(eq(n\,5))' -c:v rawvideo -f matroska <clips_dir>/ref_drop5.mkv
+$ <ffprobe> -v error -show_entries format=start_time:stream=index,codec_type,codec_name,width,height,pix_fmt,color_space,color_range,time_base,r_frame_rate,avg_frame_rate,start_time -of default=noprint_wrappers=1 <clips_dir>/ref_drop5.mkv
+index=0
+codec_name=rawvideo
+codec_type=video
+width=1920
+height=1080
+pix_fmt=yuv420p
+color_range=tv
+color_space=bt709
+r_frame_rate=30000/1001
+avg_frame_rate=30000/1001
+time_base=1/1000
+start_time=0.000000
+start_time=0.000000
+$ <ffprobe> -v error -select_streams v:0 -show_entries frame=pts -of csv=p=0 <clips_dir>/ref_drop5.mkv
+0
+33
+67
+100
+133
+200
+234
+267
+300
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/ref_drop5.mkv -map 0:v:0 -fps_mode passthrough -c:v rawvideo -f framemd5 -
+#format: frame checksums
+#version: 2
+#hash: MD5
+#software: Lavf62.12.101
+#tb 0: 1001/30000
+#media_type 0: video
+#codec_id 0: rawvideo
+#dimensions 0: 1920x1080
+#sar 0: 1/1
+#stream#, dts,        pts, duration,     size, hash
+0,          0,          0,        1,  3110400, c0dd9a66107bb0cecbe42851ecd29d4b
+0,          1,          1,        1,  3110400, efbc4ece761cb421db1ddc9bf78a6e3b
+0,          2,          2,        1,  3110400, 7198ecfa595a6a5f8438335ccf7f75a9
+0,          3,          3,        1,  3110400, a80d8e34e8337e908965b879a781a0d9
+0,          4,          4,        1,  3110400, 5f5169f93dd2f15ff1fac098871d0eae
+0,          6,          6,        1,  3110400, d14334d68c9812796c15d68988ee4fa0
+0,          7,          7,        1,  3110400, d1ad89e79673329ab5efaf86ab6c715f
+0,          8,          8,        1,  3110400, 4c01f0bfa1e982d4c69930d7dda2aabc
+0,          9,          9,        1,  3110400, a2db7cc147b4a8701e1d47f3bba1afcd
+frames as checked (picture@slot): 0@0 1@1 2@2 3@3 4@4 6@6 7@7 8@8 9@9
+
+## dis_drop5.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -vf 'trim=end_frame=10,scale=640:360:flags=bicubic,format=yuv420p,setparams=colorspace=bt709:range=tv,select=not(eq(n\,5))' -c:v rawvideo -f matroska <clips_dir>/dis_drop5.mkv
+$ <ffprobe> -v error -show_entries format=start_time:stream=index,codec_type,codec_name,width,height,pix_fmt,color_space,color_range,time_base,r_frame_rate,avg_frame_rate,start_time -of default=noprint_wrappers=1 <clips_dir>/dis_drop5.mkv
+index=0
+codec_name=rawvideo
+codec_type=video
+width=640
+height=360
+pix_fmt=yuv420p
+color_range=tv
+color_space=bt709
+r_frame_rate=30000/1001
+avg_frame_rate=30000/1001
+time_base=1/1000
+start_time=0.000000
+start_time=0.000000
+$ <ffprobe> -v error -select_streams v:0 -show_entries frame=pts -of csv=p=0 <clips_dir>/dis_drop5.mkv
+0
+33
+67
+100
+133
+200
+234
+267
+300
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/dis_drop5.mkv -map 0:v:0 -fps_mode passthrough -c:v rawvideo -f framemd5 -
+#format: frame checksums
+#version: 2
+#hash: MD5
+#software: Lavf62.12.101
+#tb 0: 1001/30000
+#media_type 0: video
+#codec_id 0: rawvideo
+#dimensions 0: 640x360
+#sar 0: 1/1
+#stream#, dts,        pts, duration,     size, hash
+0,          0,          0,        1,   345600, 896a12375902a36836da958cc7ac56be
+0,          1,          1,        1,   345600, fa25138d5d25a25356632a4fa07bd69d
+0,          2,          2,        1,   345600, 8d211b86f82d101fb19ac2d3f1a92fd5
+0,          3,          3,        1,   345600, 3f798f1eca9688aa12214e6d07d27259
+0,          4,          4,        1,   345600, 4da01aa58ccaf0a57894cf8a6f2319d7
+0,          6,          6,        1,   345600, 438c2863a0d6ab842f0badac503aac9d
+0,          7,          7,        1,   345600, a78e4da1c7abd2af4ffff4bc82ea7af6
+0,          8,          8,        1,   345600, acf0e0d410dba69bd11383962eedbcd5
+0,          9,          9,        1,   345600, c5fe0b95740c418b4c5bec9162c5e147
+frames as checked (picture@slot): 0@0 1@1 2@2 3@3 4@4 6@6 7@7 8@8 9@9
+
+## dis_dup5.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -vf 'trim=end_frame=10,scale=640:360:flags=bicubic,format=yuv420p,setparams=colorspace=bt709:range=tv,loop=loop=1:size=1:start=6,setpts=(N-gt(N\,5))/(FRAME_RATE*TB)' -fps_mode passthrough -c:v rawvideo -f matroska <clips_dir>/dis_dup5.mkv
+$ <ffprobe> -v error -show_entries format=start_time:stream=index,codec_type,codec_name,width,height,pix_fmt,color_space,color_range,time_base,r_frame_rate,avg_frame_rate,start_time -of default=noprint_wrappers=1 <clips_dir>/dis_dup5.mkv
+index=0
+codec_name=rawvideo
+codec_type=video
+width=640
+height=360
+pix_fmt=yuv420p
+color_range=tv
+color_space=bt709
+r_frame_rate=30000/1001
+avg_frame_rate=30000/1001
+time_base=1/1000
+start_time=0.000000
+start_time=0.000000
+$ <ffprobe> -v error -select_streams v:0 -show_entries frame=pts -of csv=p=0 <clips_dir>/dis_dup5.mkv
+0
+33
+67
+100
+133
+167
+167
+200
+234
+267
+300
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/dis_dup5.mkv -map 0:v:0 -fps_mode passthrough -c:v rawvideo -f framemd5 -
+#format: frame checksums
+#version: 2
+#hash: MD5
+#software: Lavf62.12.101
+#tb 0: 1001/30000
+#media_type 0: video
+#codec_id 0: rawvideo
+#dimensions 0: 640x360
+#sar 0: 1/1
+#stream#, dts,        pts, duration,     size, hash
+0,          0,          0,        1,   345600, 896a12375902a36836da958cc7ac56be
+0,          1,          1,        1,   345600, fa25138d5d25a25356632a4fa07bd69d
+0,          2,          2,        1,   345600, 8d211b86f82d101fb19ac2d3f1a92fd5
+0,          3,          3,        1,   345600, 3f798f1eca9688aa12214e6d07d27259
+0,          4,          4,        1,   345600, 4da01aa58ccaf0a57894cf8a6f2319d7
+0,          5,          5,        1,   345600, 8a76647bf4e83251780b4c0fbf0796a3
+0,          5,          5,        1,   345600, 8a76647bf4e83251780b4c0fbf0796a3
+0,          6,          6,        1,   345600, 438c2863a0d6ab842f0badac503aac9d
+0,          7,          7,        1,   345600, a78e4da1c7abd2af4ffff4bc82ea7af6
+0,          8,          8,        1,   345600, acf0e0d410dba69bd11383962eedbcd5
+0,          9,          9,        1,   345600, c5fe0b95740c418b4c5bec9162c5e147
+frames as checked (picture@slot): 0@0 1@1 2@2 3@3 4@4 5@5 5@5 6@6 7@7 8@8 9@9
+
+## dis_half.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -vf trim=end_frame=10,scale=640:360:flags=bicubic,format=yuv420p,setparams=colorspace=bt709:range=tv,fps=15000/1001 -c:v rawvideo -f matroska <clips_dir>/dis_half.mkv
+$ <ffprobe> -v error -show_entries format=start_time:stream=index,codec_type,codec_name,width,height,pix_fmt,color_space,color_range,time_base,r_frame_rate,avg_frame_rate,start_time -of default=noprint_wrappers=1 <clips_dir>/dis_half.mkv
+index=0
+codec_name=rawvideo
+codec_type=video
+width=640
+height=360
+pix_fmt=yuv420p
+color_range=tv
+color_space=bt709
+r_frame_rate=15000/1001
+avg_frame_rate=15000/1001
+time_base=1/1000
+start_time=0.000000
+start_time=0.000000
+$ <ffprobe> -v error -select_streams v:0 -show_entries frame=pts -of csv=p=0 <clips_dir>/dis_half.mkv
+0
+67
+133
+200
+267
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/dis_half.mkv -map 0:v:0 -fps_mode passthrough -c:v rawvideo -f framemd5 -
+#format: frame checksums
+#version: 2
+#hash: MD5
+#software: Lavf62.12.101
+#tb 0: 1001/15000
+#media_type 0: video
+#codec_id 0: rawvideo
+#dimensions 0: 640x360
+#sar 0: 1/1
+#stream#, dts,        pts, duration,     size, hash
+0,          0,          0,        1,   345600, 896a12375902a36836da958cc7ac56be
+0,          1,          1,        1,   345600, 8d211b86f82d101fb19ac2d3f1a92fd5
+0,          2,          2,        1,   345600, 4da01aa58ccaf0a57894cf8a6f2319d7
+0,          3,          3,        1,   345600, 438c2863a0d6ab842f0badac503aac9d
+0,          4,          4,        1,   345600, acf0e0d410dba69bd11383962eedbcd5
+frames as checked (picture@slot): 0@0 2@2 4@4 6@6 8@8
+
+## dis_from3.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -vf 'trim=end_frame=10,scale=640:360:flags=bicubic,format=yuv420p,setparams=colorspace=bt709:range=tv,select=gte(n\,3)' -c:v rawvideo -f matroska <clips_dir>/dis_from3.mkv
+$ <ffprobe> -v error -show_entries format=start_time:stream=index,codec_type,codec_name,width,height,pix_fmt,color_space,color_range,time_base,r_frame_rate,avg_frame_rate,start_time -of default=noprint_wrappers=1 <clips_dir>/dis_from3.mkv
+index=0
+codec_name=rawvideo
+codec_type=video
+width=640
+height=360
+pix_fmt=yuv420p
+color_range=tv
+color_space=bt709
+r_frame_rate=30000/1001
+avg_frame_rate=30000/1001
+time_base=1/1000
+start_time=0.100000
+start_time=0.100000
+$ <ffprobe> -v error -select_streams v:0 -show_entries frame=pts -of csv=p=0 <clips_dir>/dis_from3.mkv
+100
+133
+167
+200
+234
+267
+300
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/dis_from3.mkv -map 0:v:0 -fps_mode passthrough -c:v rawvideo -f framemd5 -
+#format: frame checksums
+#version: 2
+#hash: MD5
+#software: Lavf62.12.101
+#tb 0: 1001/30000
+#media_type 0: video
+#codec_id 0: rawvideo
+#dimensions 0: 640x360
+#sar 0: 1/1
+#stream#, dts,        pts, duration,     size, hash
+0,          0,          0,        1,   345600, 3f798f1eca9688aa12214e6d07d27259
+0,          1,          1,        1,   345600, 4da01aa58ccaf0a57894cf8a6f2319d7
+0,          2,          2,        1,   345600, 8a76647bf4e83251780b4c0fbf0796a3
+0,          3,          3,        1,   345600, 438c2863a0d6ab842f0badac503aac9d
+0,          4,          4,        1,   345600, a78e4da1c7abd2af4ffff4bc82ea7af6
+0,          5,          5,        1,   345600, acf0e0d410dba69bd11383962eedbcd5
+0,          6,          6,        1,   345600, c5fe0b95740c418b4c5bec9162c5e147
+frames as checked (picture@slot): 3@3 4@4 5@5 6@6 7@7 8@8 9@9
+
+## dis_from3_audio.mkv
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -f lavfi -i anullsrc=r=48000:cl=mono -filter_complex '[0:v]trim=end_frame=10,scale=640:360:flags=bicubic,format=yuv420p,setparams=colorspace=bt709:range=tv,select=gte(n\,3)[v];[1:a]atrim=end_sample=16016[a]' -map '[v]' -map '[a]' -c:a pcm_s16le -c:v rawvideo -f matroska <clips_dir>/dis_from3_audio.mkv
+$ <ffprobe> -v error -show_entries format=start_time:stream=index,codec_type,codec_name,width,height,pix_fmt,color_space,color_range,time_base,r_frame_rate,avg_frame_rate,start_time -of default=noprint_wrappers=1 <clips_dir>/dis_from3_audio.mkv
+index=0
+codec_name=rawvideo
+codec_type=video
+width=640
+height=360
+pix_fmt=yuv420p
+color_range=tv
+color_space=bt709
+r_frame_rate=30000/1001
+avg_frame_rate=30000/1001
+time_base=1/1000
+start_time=0.100000
+index=1
+codec_name=pcm_s16le
+codec_type=audio
+r_frame_rate=0/0
+avg_frame_rate=0/0
+time_base=1/1000
+start_time=0.000000
+start_time=0.000000
+$ <ffprobe> -v error -select_streams v:0 -show_entries frame=pts -of csv=p=0 <clips_dir>/dis_from3_audio.mkv
+100
+133
+167
+200
+234
+267
+300
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/dis_from3_audio.mkv -map 0:v:0 -fps_mode passthrough -c:v rawvideo -f framemd5 -
+#format: frame checksums
+#version: 2
+#hash: MD5
+#software: Lavf62.12.101
+#tb 0: 1001/30000
+#media_type 0: video
+#codec_id 0: rawvideo
+#dimensions 0: 640x360
+#sar 0: 1/1
+#stream#, dts,        pts, duration,     size, hash
+0,          3,          3,        1,   345600, 3f798f1eca9688aa12214e6d07d27259
+0,          4,          4,        1,   345600, 4da01aa58ccaf0a57894cf8a6f2319d7
+0,          5,          5,        1,   345600, 8a76647bf4e83251780b4c0fbf0796a3
+0,          6,          6,        1,   345600, 438c2863a0d6ab842f0badac503aac9d
+0,          7,          7,        1,   345600, a78e4da1c7abd2af4ffff4bc82ea7af6
+0,          8,          8,        1,   345600, acf0e0d410dba69bd11383962eedbcd5
+0,          9,          9,        1,   345600, c5fe0b95740c418b4c5bec9162c5e147
+frames as checked (picture@slot): 3@3 4@4 5@5 6@6 7@7 8@8 9@9
+
+## dis_ts_restart5.ts
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -vf trim=end_frame=5,scale=640:360:flags=bicubic,format=yuv420p,setparams=colorspace=bt709:range=tv -c:v mpeg2video -q:v 2 -g 1 -bf 0 -f mpegts <clips_dir>/dis_ts_restart5.ts.part1
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -vf trim=start_frame=5:end_frame=10,setpts=PTS-STARTPTS,scale=640:360:flags=bicubic,format=yuv420p,setparams=colorspace=bt709:range=tv -mpegts_flags +initial_discontinuity -c:v mpeg2video -q:v 2 -g 1 -bf 0 -f mpegts <clips_dir>/dis_ts_restart5.ts.part2
+$ cat <clips_dir>/dis_ts_restart5.ts.part1 <clips_dir>/dis_ts_restart5.ts.part2 > <clips_dir>/dis_ts_restart5.ts
+$ <ffprobe> -v error -show_entries format=start_time:stream=index,codec_type,codec_name,width,height,pix_fmt,color_space,color_range,time_base,r_frame_rate,avg_frame_rate,start_time -of default=noprint_wrappers=1 <clips_dir>/dis_ts_restart5.ts
+index=0
+codec_name=mpeg2video
+codec_type=video
+width=640
+height=360
+pix_fmt=yuv420p
+color_range=tv
+color_space=bt709
+r_frame_rate=30000/1001
+avg_frame_rate=30000/1001
+time_base=1/90000
+start_time=1.433367
+index=0
+codec_name=mpeg2video
+codec_type=video
+width=640
+height=360
+pix_fmt=yuv420p
+color_range=tv
+color_space=bt709
+r_frame_rate=30000/1001
+avg_frame_rate=30000/1001
+time_base=1/90000
+start_time=1.433367
+start_time=1.433367
+$ <ffprobe> -v error -select_streams v:0 -show_entries frame=pts -of csv=p=0 <clips_dir>/dis_ts_restart5.ts
+129003,
+132006,
+135009,
+138012,
+141015,
+129003,
+132006,
+135009,
+138012,
+141015,
+$ <ffmpeg> -hide_banner -nostdin -v error -i <clips_dir>/dis_ts_restart5.ts -map 0:v:0 -fps_mode passthrough -c:v rawvideo -f framemd5 -
+#format: frame checksums
+#version: 2
+#hash: MD5
+#software: Lavf62.12.101
+#tb 0: 1001/30000
+#media_type 0: video
+#codec_id 0: rawvideo
+#dimensions 0: 640x360
+#sar 0: 1/1
+#stream#, dts,        pts, duration,     size, hash
+0,          0,          0,        1,   345600, 8dffcfb8d6ff9f2be85a03855b52e2ca
+0,          1,          1,        1,   345600, f20ff0b52f8ee09047edfe6af8d5dc21
+0,          2,          2,        1,   345600, 01c4a31ebdc15bfe0d02103b7ab83dd6
+0,          3,          3,        1,   345600, a79293727f0297a37239e82c3fdaddca
+0,          4,          4,        1,   345600, 0ae10c431b592caf9535c9aca868c2c3
+0,          5,          5,        1,   345600, ba41535fee83a3832d98e5714793b070
+0,          6,          6,        1,   345600, 81d9b99bad672a52778ccd9645375f41
+0,          7,          7,        1,   345600, beab543a32a74bc7c767f453ee7fdf1a
+0,          8,          8,        1,   345600, 37704af41d41774b0530e099e5a5d562
+0,          9,          9,        1,   345600, 41bb9aada1e56f84dbcd11842f7da014
+frames as checked (picture@slot): 0@0 1@1 2@2 3@3 4@4 5@0 6@1 7@2 8@3 9@4

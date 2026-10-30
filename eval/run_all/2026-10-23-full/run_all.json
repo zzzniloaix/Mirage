@@ -1,0 +1,221 @@
+{
+ "report_version": 1,
+ "tool": "eval/run_all.py",
+ "command": "eval/run_all.sh <out_dir> --only pooling-full --jobs 4",
+ "started_utc": "2026-10-23T14:29:36Z",
+ "ended_utc": "2026-10-23T15:14:43Z",
+ "elapsed_s": 2707.1,
+ "git": {
+  "head_start": "e0beb49d42f3331681fad2d76a282ddf95fd8d7e",
+  "clean_start": true,
+  "head_end": "e0beb49d42f3331681fad2d76a282ddf95fd8d7e",
+  "clean_end": true
+ },
+ "ffmpeg": "/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg",
+ "ffprobe": "/opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+ "binaries": [
+  {
+   "name": "head",
+   "commit": "e0beb49d42f3331681fad2d76a282ddf95fd8d7e",
+   "purpose": "the runs made after D-016",
+   "built": true,
+   "sha256": "3633c43eaf4261e567ef2fb3a24d015e3e00b9a8ee354ddef88b6330aca4938c",
+   "path": "builds/head/mirage_vmaf",
+   "worktree_head": "e0beb49d42f3331681fad2d76a282ddf95fd8d7e",
+   "worktree_clean": true
+  }
+ ],
+ "steps": [
+  {
+   "name": "acceptance-full",
+   "ran": true,
+   "elapsed_s": 2614.8,
+   "out": "consistency/acceptance-full",
+   "committed": "eval/consistency/acceptance-full",
+   "binary_sha256": "3633c43eaf4261e567ef2fb3a24d015e3e00b9a8ee354ddef88b6330aca4938c",
+   "committed_binary_sha256": "3633c43eaf4261e567ef2fb3a24d015e3e00b9a8ee354ddef88b6330aca4938c",
+   "comparison": {
+    "what": "each run's verdict, and every pair's verdict and per-frame scores on both sides",
+    "runs": {
+     "plain": {
+      "status": {
+       "rerun": "PASS",
+       "committed": "PASS"
+      },
+      "pairs": [
+       {
+        "pair": "gear4_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 53946,
+         "committed": 53946,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 53946,
+         "committed": 53946,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear3_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 53946,
+         "committed": 53946,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 53946,
+         "committed": 53946,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear2_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 53946,
+         "committed": 53946,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 53946,
+         "committed": 53946,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear1_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 53946,
+         "committed": 53946,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 53946,
+         "committed": 53946,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       }
+      ],
+      "extra_pairs": [],
+      "identical": true
+     }
+    },
+    "identical": true
+   }
+  },
+  {
+   "name": "pooling-full",
+   "ran": true,
+   "elapsed_s": 1.7,
+   "out": "pooling/acceptance-full",
+   "committed": "eval/pooling/acceptance-full",
+   "comparison": {
+    "what": "every series and skipped entry of pooling.json",
+    "sources": {
+     "rerun": 1,
+     "committed": 1
+    },
+    "differing_sources": [],
+    "identical": true
+   }
+  }
+ ],
+ "commands": [
+  {
+   "step": "build head",
+   "command": "git -C <repo> worktree add --detach <worktree> e0beb49d42f3331681fad2d76a282ddf95fd8d7e",
+   "cwd": ".",
+   "log": "builds/head/worktree_add.log",
+   "started_utc": "2026-10-23T14:29:36Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 0.3,
+   "ended_utc": "2026-10-23T14:29:36Z"
+  },
+  {
+   "step": "build head",
+   "command": "cmake --preset macos-release",
+   "cwd": "<worktree>",
+   "log": "builds/head/configure.log",
+   "started_utc": "2026-10-23T14:29:36Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 85.3,
+   "ended_utc": "2026-10-23T14:31:02Z"
+  },
+  {
+   "step": "build head",
+   "command": "cmake --build --preset macos-release --target mirage_vmaf",
+   "cwd": "<worktree>",
+   "log": "builds/head/build.log",
+   "started_utc": "2026-10-23T14:31:02Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 2.0,
+   "ended_utc": "2026-10-23T14:31:04Z"
+  },
+  {
+   "step": "acceptance-full",
+   "command": "eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/acceptance-full/plain --pairs eval/consistency/pairs/bipbop16x9.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+   "cwd": ".",
+   "log": "logs/acceptance-full_plain.log",
+   "started_utc": "2026-10-23T14:31:04Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 2614.8,
+   "ended_utc": "2026-10-23T15:14:39Z"
+  },
+  {
+   "step": "pooling-full",
+   "command": "/opt/homebrew/opt/python@3.14/bin/python3.14 -I -B eval/pooling/pooling.py --delta-run <out_dir>/consistency/acceptance-full/plain --out <out_dir>/pooling/acceptance-full/pooling",
+   "cwd": ".",
+   "log": "logs/pooling-full.log",
+   "started_utc": "2026-10-23T15:14:41Z",
+   "exit_code": 0,
+   "timed_out": false,
+   "error": null,
+   "elapsed_s": 1.7,
+   "ended_utc": "2026-10-23T15:14:43Z"
+  }
+ ]
+}
