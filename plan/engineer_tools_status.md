@@ -70,6 +70,63 @@ interlaced content.
 - Number frames from the stream start everywhere: the timecode's frame mode
   and the frame-step toasts still use absolute PTS × fps.
 
+## S / X — Scopes and pixel probe
+
+**What they do.**
+
+- `S` opens the scopes card (also View › Scopes and the overlays popover);
+  `Shift+S` or the chips pick the scope:
+  - luma waveform, graticule at the legal levels (16/235 at 8 bits, 64/940
+    at 10) and 50 %, and for PQ a nits scale (100, 203, 1,000, 4,000 cd/m²);
+  - R′G′B′ parade on the same graticule;
+  - vectorscope with the 75 % and 100 % targets computed from the matrix in
+    use, the extent of the RGB cube and the skin-tone line;
+  - luma histogram at the stream's bit depth, illegal codes shaded.
+  Below them: Y′ min/max/average, the share of samples below black, above
+  white and with chroma out of range, how many Y′ codes are used, and a
+  warning when a 10/12-bit frame never uses its low bits (an 8-bit source).
+- `X` turns the probe on: at the mouse over the video, the coded pixel, its
+  Y′CbCr codes at the stream's bit depth, the normalised values, unclamped
+  R′G′B′, display light for PQ and HLG (BT.2100, HLG at 1,000 cd/m²), and
+  flags for sub-black, super-white, chroma out of range and R′G′B′ outside
+  EBU R103's −1…101 %.
+- `--scope-mode` and `--ui-probe <fx>,<fy>` stage both for `--ui-snapshot`.
+
+**How it works.** Both read code values, not the picture on screen:
+`PixelView` reads a software frame as decoded and maps a VideoToolbox frame
+(`av_hwframe_map`, the pixel buffer locked for reading) — on the SW path the
+renderer's RGB has already clipped and quantised. The scopes run on a worker
+thread of their own, one measure at a time of the newest frame; frames above
+1920 × 1080 are sampled on a grid (every second pixel and row of 4K). The
+probe maps the frame on screen once per new frame while it is on. Code:
+`src/PixelView.*`, `src/Scopes.*` (pure parts unit-tested),
+`src/ScopesPanel.*`.
+
+**Checked.**
+
+- `mirage_tests '[scopes]'`: 11 test cases — code values to R′G′B′ (10-bit
+  reference white is exactly 1.0), PQ grey at 100 cd/m² and HLG 75 % at
+  about 203 cd/m², P010 written by hand and read back, chroma lookup for
+  4:2:0 / NV12 / 4:2:2 / 4:4:4, refused formats, a flat frame's waveform and
+  histogram, legality shares, unused low bits, the vectorscope bin and the
+  parade levels of BT.709 red, grey frames, the worker answering the newest
+  frame.
+- Scripted runs: x264 SDR (waveform, parade, vectorscope: the pattern's
+  100 % bars fall on the computed 100 % targets), x265 HDR10 (waveform with
+  the nits scale, histogram), and a 4K PQ AV1 file decoded by VideoToolbox
+  into P010 (waveform; the probe on a face).
+
+**Not checked.** HLG content in the app (HLG only in a unit test); 4:2:2 /
+4:4:4 VideoToolbox buffers; rotated video (the probe maps the cursor as if
+the picture were not rotated); how often the worker keeps up at 4K60 (not
+measured).
+
+**To finish.**
+
+- Probe: pin points (Shift+click), average over 3×3 / 5×5, copy.
+- A GPU version of the scopes that reads the frame's textures, so 4K60 is
+  measured on every frame.
+
 ## Found while checking
 
 - **A seek into the second half of a concatenated HEVC MPEG-TS never shows a

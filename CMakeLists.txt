@@ -119,6 +119,9 @@ add_executable(mirage
     src/TrackPanel.cpp
     src/FrameInfo.cpp
     src/FrameInspector.cpp
+    src/PixelView.cpp
+    src/Scopes.cpp
+    src/ScopesPanel.cpp
     src/TrackGroups.cpp
     src/ManifestParser.cpp
     src/PlayerUI.cpp
@@ -178,6 +181,7 @@ add_executable(mirage_tests
     tests/test_subtitle_decoder.cpp
     tests/test_yuv_matrix.cpp
     tests/test_frame_info.cpp
+    tests/test_scopes.cpp
     tests/test_sync.cpp
     tests/test_audio_player.cpp
     tests/test_audio_decoder.cpp
@@ -200,6 +204,8 @@ add_executable(mirage_tests
     src/NetProbe.cpp
     src/ManifestParser.cpp
     src/FrameInfo.cpp
+    src/PixelView.cpp
+    src/Scopes.cpp
     src/SubtitleDecoder.cpp
     src/Sync.cpp
     src/AudioPlayer.cpp
