@@ -1,0 +1,53 @@
+{
+  "tool": "mirage_vmaf",
+  "reference_mode": "explicit-pair",
+  "libvmaf_version": "3.0.0",
+  "libvmaf_package_version": "3.1.0",
+  "ffmpeg_libraries": {"libavutil": "60.26.101", "libavcodec": "62.28.101", "libavformat": "62.12.101", "libswscale": "9.5.101", "libavfilter": "11.14.101"},
+  "config_file": null,
+  "model": "vmaf_v0.6.1",
+  "model_source": "built-in",
+  "model_sha256": null,
+  "scaler": "bicubic",
+  "n_threads": 4,
+  "n_subsample": 1,
+  "scored_as": {"width": 1920, "height": 1080, "pix_fmt": "yuv420p", "bit_depth": 8},
+  "dis_conversion": [
+    {"from": {"color_space": "bt709", "color_range": "tv"}, "to": {"color_space": "bt709", "color_range": "tv"}, "matrix_changed": false, "range_changed": false, "first_index": 0, "pairs": 5}
+  ],
+  "ref_conversion": [],
+  "warnings": [
+    "66.67% of the frames failed to pair by timestamp (10 of 15: 10 after a discontinuity), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 5 frame pairs that paired"
+  ],
+  "frame_limit": null,
+  "frames_scored": 5,
+  "pooled": {"mean": 72.39941867751818, "harmonic_mean": 72.3883615427631, "min": 70.62378907263775, "min_without_first_frame": 72.68182488026352, "p1": 70.70611050494279, "p5": 71.0353962341629, "p10": 71.44700339568806, "p25": 72.68182488026352, "p50": 72.81585666341999},
+  "alignment": {"rule": "reference-timeline", "timestamp_origin": "input-start", "grid": "reference", "tolerance": 0.016683333333333335,
+    "reference": {"frame_rate": "30000/1001", "start": 1.4333666666666667, "start_from": "container"},
+    "distorted": {"frame_rate": "30000/1001", "start": 1.4333666666666667, "start_from": "container"},
+    "paired": 5, "failed": 10, "failure_rate": 0.6666666666666666, "threshold": 0.01, "exceeded": true,
+    "unmatched_reference": 0, "extra_distorted": 0, "duplicate_distorted": 0, "no_timestamp": 0, "after_discontinuity": 10,
+    "discontinuities": 1, "discontinuity_jump": 10, "off_grid_reference": 0, "off_grid_distorted": 0,
+    "vmaf_contexts": [{"first_index": 0, "pairs": 5}],
+    "failures": [
+      {"input": "reference", "index": 5, "pts": 1.6002, "reason": "after_discontinuity"},
+      {"input": "distorted", "index": 5, "pts": 1.4333666666666667, "reason": "after_discontinuity"},
+      {"input": "reference", "index": 6, "pts": 1.6335666666666666, "reason": "after_discontinuity"},
+      {"input": "reference", "index": 7, "pts": 1.6669333333333334, "reason": "after_discontinuity"},
+      {"input": "reference", "index": 8, "pts": 1.7003, "reason": "after_discontinuity"},
+      {"input": "reference", "index": 9, "pts": 1.7336666666666667, "reason": "after_discontinuity"},
+      {"input": "distorted", "index": 6, "pts": 1.4667333333333332, "reason": "after_discontinuity"},
+      {"input": "distorted", "index": 7, "pts": 1.5001, "reason": "after_discontinuity"},
+      {"input": "distorted", "index": 8, "pts": 1.5334666666666668, "reason": "after_discontinuity"},
+      {"input": "distorted", "index": 9, "pts": 1.5668333333333333, "reason": "after_discontinuity"}
+    ]},
+  "ref": {"url": "<tmp>/align_clips/ref_ts.ts", "width": 1920, "height": 1080, "pix_fmt": "yuv420p", "color_space": "bt709", "color_range": "tv", "color_primaries": "unknown", "color_trc": "unknown", "time_base": "1/90000", "ended": true},
+  "dis": {"url": "<tmp>/align_clips/dis_ts_restart5.ts", "width": 640, "height": 360, "pix_fmt": "yuv420p", "color_space": "bt709", "color_range": "tv", "color_primaries": "unknown", "color_trc": "unknown", "time_base": "1/90000", "ended": true},
+  "frames": [
+    {"index": 0, "ref_index": 0, "dis_index": 0, "ref_pts": 1.4333666666666667, "dis_pts": 1.4333666666666667, "vmaf": 70.62378907263775},
+    {"index": 1, "ref_index": 1, "dis_index": 1, "ref_pts": 1.4667333333333332, "dis_pts": 1.4667333333333332, "vmaf": 72.81585666341999},
+    {"index": 2, "ref_index": 2, "dis_index": 2, "ref_pts": 1.5001, "dis_pts": 1.5001, "vmaf": 72.92989326293412},
+    {"index": 3, "ref_index": 3, "dis_index": 3, "ref_pts": 1.5334666666666668, "dis_pts": 1.5334666666666668, "vmaf": 72.68182488026352},
+    {"index": 4, "ref_index": 4, "dis_index": 4, "ref_pts": 1.5668333333333333, "dis_pts": 1.5668333333333333, "vmaf": 72.94572950833556}
+  ]
+}

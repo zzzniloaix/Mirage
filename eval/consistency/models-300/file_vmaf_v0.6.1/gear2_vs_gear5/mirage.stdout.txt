@@ -1,0 +1,2 @@
+[INFO]  VMAFAnalyzer: 300 frames  mean=28.55  min=16.07  p5=27.43  [Analysis]
+mirage_vmaf: 300 frame pairs scored, report written to mirage.json

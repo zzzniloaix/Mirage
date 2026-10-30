@@ -1,0 +1,22 @@
+# VMAF consistency check: Mirage vs FFmpeg's libvmaf filter
+
+**Overall: PASS**: all 4 pairs pass.
+
+- Variant: plain FFmpeg: the section 5 comparison.
+- Frames: the first 300 frame pairs of each pair (--frames 300).
+- A frame fails if \|delta\| > 0.01, with delta = Mirage - FFmpeg (docs/DECISIONS.md D-019). A pair passes only if both sides ran to the end, used the same settings, scored the same number of frames and no frame fails.
+- Settings given to FFmpeg: model vmaf_v0.6.1, scaler bilinear, n_threads 4.
+- mirage_vmaf: sha256 420b8776e9708329b2f32cf6d2b0f924ee67db6f82f3e05d8e172d28cd243acd; libvmaf 3.0.0 at run time, package 3.1.0.
+- FFmpeg: ffmpeg version 8.1.1 Copyright (c) 2000-2026 the FFmpeg developers; libvmaf package 3.1.0.
+- Machine: macOS 26.2 (25C56), Apple M3 Pro.
+- Code: commit 5263061c3dfa7b3134763669443977b436ab1003; the working tree was clean at the start of the run and clean at its end (environment.txt).
+- Run: 2026-10-23T11:26:27Z to 2026-10-23T11:27:13Z (UTC).
+
+| pair | status | frame pairs (Mirage / FFmpeg) | max \|delta\| | mean \|delta\| | frames over | pooled mean Mirage | pooled mean FFmpeg | difference | FFmpeg's scale: distorted csp | Mirage: distorted csp |
+|---|---|---|---|---|---|---|---|---|---|---|
+| gear4_vs_gear5 | PASS | 300 / 300 | 0.000000 | 0.000000 | 0 | 74.640607 | 74.640607 | 0.000000 | bt709 -> bt709 | bt709 -> bt709 |
+| gear3_vs_gear5 | PASS | 300 / 300 | 0.000000 | 0.000000 | 0 | 53.729092 | 53.729092 | 0.000000 | bt709 -> bt709 | bt709 -> bt709 |
+| gear2_vs_gear5 | PASS | 300 / 300 | 0.000000 | 0.000000 | 0 | 28.552935 | 28.552935 | 0.000000 | smpte170m -> bt709 | smpte170m -> bt709 |
+| gear1_vs_gear5 | PASS | 300 / 300 | 0.000000 | 0.000000 | 0 | 0.006117 | 0.006117 | 0.000000 | smpte170m -> bt709 | smpte170m -> bt709 |
+
+Each pair's directory has its delta report (delta.md, delta.json), the commands (cmd.txt) and both sides' raw outputs. environment.txt records the machine, the programs and the git state; SHA256SUMS covers every file.

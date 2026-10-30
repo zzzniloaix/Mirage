@@ -1,0 +1,3 @@
+[WARN]  VMAFAnalyzer: the distorted input's frames are bgr0, a pixel format whose conversion isn't checked against FFmpeg's section 5 graph (vmafcolor::verified), so the scores can differ from FFmpeg's
+[INFO]  VMAFAnalyzer: 10 frames  mean=95.98  min=92.20  p5=93.36  [Analysis]
+mirage_vmaf: 10 frame pairs scored, report written to mirage.json

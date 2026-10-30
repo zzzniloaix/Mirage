@@ -1,0 +1,411 @@
+# Build check for docs/BUILD.md
+
+## Machine and tools
+
+$ date -u +%Y-%m-%dT%H:%M:%SZ
+2026-10-24T14:17:29Z
+
+$ sw_vers
+ProductName:		macOS
+ProductVersion:		26.2
+BuildVersion:		25C56
+
+$ uname -m
+arm64
+
+$ sysctl -n machdep.cpu.brand_string
+Apple M3 Pro
+
+$ clang --version
+Apple clang version 21.0.0 (clang-2100.1.1.101)
+Target: arm64-apple-darwin25.2.0
+Thread model: posix
+InstalledDir: /Library/Developer/CommandLineTools/usr/bin
+
+$ cmake --version
+cmake version 4.3.0
+
+CMake suite maintained and supported by Kitware (kitware.com/cmake).
+
+$ ninja --version
+1.13.2
+
+$ env HOMEBREW_NO_AUTO_UPDATE=1 brew list --versions cmake ninja pkgconf ffmpeg ffmpeg-full libvmaf glfw x264 python@3.13 python@3.14
+cmake 4.3.0
+ffmpeg 8.1.1
+ffmpeg-full 8.1.1
+glfw 3.4
+libvmaf 3.1.0
+ninja 1.13.2
+pkgconf 2.5.1
+python@3.13 3.13.1
+python@3.14 3.14.7
+x264 r3222
+
+$ brew info --json=v2 ffmpeg-full libvmaf glfw x264  (installed vs current stable)
+ffmpeg-full installed 8.1.1 | current stable 9.0.2
+libvmaf installed 3.1.0 | current stable 3.2.1
+glfw installed 3.4 | current stable 3.5.1
+x264 installed r3222 | current stable r3222
+
+$ env PKG_CONFIG_PATH=/opt/homebrew/opt/ffmpeg-full/lib/pkgconfig pkg-config --modversion libavformat libavcodec libavutil libswscale libswresample libavfilter libvmaf glfw3
+62.12.101
+62.28.101
+60.26.101
+9.5.101
+6.3.101
+11.14.101
+3.0.0
+3.4.0
+
+$ /opt/homebrew/opt/python@3.13/bin/python3.13 --version
+Python 3.13.1
+
+$ env HOMEBREW_NO_AUTO_UPDATE=1 brew --version
+Homebrew 5.1.12
+
+What Homebrew offers for versions:
+$ brew help pin
+Usage: brew pin [--formula] [--cask] installed_formula|installed_cask [...]
+
+Pin the specified package, preventing it from being upgraded when issuing the
+brew upgrade formula or cask command. See also unpin.
+
+Note: Other packages which depend on newer versions of a pinned formula might
+not install or run correctly. Pinned casks with auto_updates true may update
+themselves outside Homebrew.
+
+      --formula, --formulae        Treat all named arguments as formulae.
+      --cask, --casks              Treat all named arguments as casks.
+  -d, --debug                      Display any debugging information.
+  -q, --quiet                      Make some output more quiet.
+  -v, --verbose                    Make some output more verbose.
+  -h, --help                       Show this message.
+
+$ brew help extract
+Usage: brew extract [--version=] [--git-revision=] [--force] formula tap
+
+Look through repository history to find the most recent version of formula and
+create a copy in tap. Specifically, the command will create the new formula
+file at tap/Formula/formula@version.rb. If the tap is not installed
+yet, attempt to install/clone the tap before continuing. To extract a formula
+from a tap that is not homebrew/core use its fully-qualified form of
+user/repo/formula.
+
+      --git-revision               Search for the specified version of
+                                   formula starting at revision instead of
+                                   HEAD.
+      --version                    Extract the specified version of formula
+                                   instead of the most recent.
+  -f, --force                      Overwrite the destination formula if it
+                                   already exists.
+  -d, --debug                      Display any debugging information.
+  -q, --quiet                      Make some output more quiet.
+  -v, --verbose                    Make some output more verbose.
+  -h, --help                       Show this message.
+
+
+## The sources of the installed ffmpeg-full, libvmaf and x264
+
+Each formula as it was installed (the copy Homebrew keeps in the keg): the
+source it names and its checksum or commit, which docker/Dockerfile pins; and
+which x264 and libvmaf ffmpeg-full's libraries link.
+
+$ grep -n -E '^  (url|sha256|version) |revision:' /opt/homebrew/opt/ffmpeg-full/.brew/ffmpeg-full.rb
+4:  url "https://ffmpeg.org/releases/ffmpeg-8.1.1.tar.xz"
+5:  sha256 "b6863adde98898f42602017462871b5f6333e65aec803fdd7a6308639c52edf3"
+
+$ grep -n -E '^  (url|sha256|version) |revision:' /opt/homebrew/opt/libvmaf/.brew/libvmaf.rb
+4:  url "https://github.com/Netflix/vmaf/archive/refs/tags/v3.1.0.tar.gz"
+5:  sha256 "80090e29d7fd0db472ddc663513f5be89bc936815e62b767e630c1d627279fe2"
+
+$ grep -n -E '^  (url|sha256|version) |revision:' /opt/homebrew/opt/x264/.brew/x264.rb
+5:  url "https://code.videolan.org/videolan/x264.git",
+6:      revision: "b35605ace3ddf7c1a5d67a2eb553f034aef41d55"
+7:  version "r3222"
+
+$ otool -L /opt/homebrew/opt/ffmpeg-full/lib/libavcodec.dylib | grep -E 'x264|vmaf'
+	/opt/homebrew/opt/libvmaf/lib/libvmaf.3.dylib (compatibility version 3.0.0, current version 3.0.0)
+	/opt/homebrew/opt/x264/lib/libx264.165.dylib (compatibility version 0.0.0, current version 0.0.0)
+
+$ otool -L /opt/homebrew/opt/ffmpeg-full/lib/libavfilter.dylib | grep -E 'x264|vmaf'
+	/opt/homebrew/opt/libvmaf/lib/libvmaf.3.dylib (compatibility version 3.0.0, current version 3.0.0)
+	/opt/homebrew/opt/x264/lib/libx264.165.dylib (compatibility version 0.0.0, current version 0.0.0)
+
+
+## Commit
+
+$ git -C <repo> rev-parse HEAD
+5ae44a4551c1ba27ee73c1a2b9056483b11ab225
+
+$ git -C <repo> status --porcelain
+(no output: the working tree is clean)
+
+$ git -C <repo> worktree add --detach <worktree> HEAD
+Preparing worktree (detached HEAD 5ae44a4)
+HEAD is now at 5ae44a4 Build check: both presets without a glad venv, the headless preset, glad's regeneration (D-031)
+
+$ git -C <worktree> rev-parse HEAD
+5ae44a4551c1ba27ee73c1a2b9056483b11ab225
+
+The presets CMake offers on this machine:
+$ cmake --list-presets
+Available configure presets:
+
+  "macos-debug"    - macOS Debug
+  "macos-release"  - macOS Release
+  "macos-headless" - macOS Release, mirage_vmaf and mirage_tests only
+
+
+## Release preset
+
+$ cmake --preset macos-release
+exit code: 0 (log: <scratch>/logs/configure_release.log)
+-- libvmaf package version: 3.1.0
+$ cmake --build --preset macos-release
+exit code: 0 (log: <scratch>/logs/build_release.log)
+
+## Debug preset
+
+$ cmake --preset macos-debug
+exit code: 0 (log: <scratch>/logs/configure_debug.log)
+$ cmake --build --preset macos-debug
+exit code: 0 (log: <scratch>/logs/build_debug.log)
+
+## Headless preset (MIRAGE_HEADLESS)
+
+$ cmake --preset macos-headless
+exit code: 0 (log: <scratch>/logs/configure_headless.log)
+$ grep -E '^MIRAGE_HEADLESS' build/macos-headless/CMakeCache.txt
+MIRAGE_HEADLESS:BOOL=ON
+
+$ cmake --build --preset macos-headless
+exit code: 0 (log: <scratch>/logs/build_headless.log)
+The dependencies each configuration fetched (FetchContent's _deps directories):
+$ ls build/macos-release/_deps build/macos-headless/_deps
+build/macos-headless/_deps:
+catch2-build
+catch2-src
+catch2-subbuild
+miniaudio-build
+miniaudio-src
+miniaudio-subbuild
+pugixml-build
+pugixml-src
+pugixml-subbuild
+
+build/macos-release/_deps:
+catch2-build
+catch2-src
+catch2-subbuild
+imgui-build
+imgui-src
+imgui-subbuild
+miniaudio-build
+miniaudio-src
+miniaudio-subbuild
+nfd-build
+nfd-src
+nfd-subbuild
+pugixml-build
+pugixml-src
+pugixml-subbuild
+stb-build
+stb-src
+stb-subbuild
+
+
+## Python in the configure and the build
+
+Every line that names Python in each configuration's configure log, CMake cache
+and Ninja build file.
+
+<scratch>/logs/configure_release.log: 0 line(s) naming Python
+build/macos-release/CMakeCache.txt: 0 line(s) naming Python
+build/macos-release/build.ninja: 0 line(s) naming Python
+<scratch>/logs/configure_debug.log: 0 line(s) naming Python
+build/macos-debug/CMakeCache.txt: 0 line(s) naming Python
+build/macos-debug/build.ninja: 0 line(s) naming Python
+<scratch>/logs/configure_headless.log: 0 line(s) naming Python
+build/macos-headless/CMakeCache.txt: 0 line(s) naming Python
+build/macos-headless/build.ninja: 0 line(s) naming Python
+
+## Unit tests (debug build)
+
+$ perl -e 'alarm 900; exec @ARGV' build/macos-debug/mirage_tests '~[audio]'
+exit code: 0 (log: <scratch>/logs/tests_debug.log)
+All tests passed (111765 assertions in 311 test cases)
+
+
+## Unit tests (headless build)
+
+$ perl -e 'alarm 900; exec @ARGV' build/macos-headless/mirage_tests '~[audio]'
+exit code: 0 (log: <scratch>/logs/tests_headless.log)
+All tests passed (111752 assertions in 311 test cases)
+
+
+## Built programs
+
+$ ls build/macos-release/mirage build/macos-release/mirage_vmaf build/macos-release/mirage_tests build/macos-release/snapshot_diff
+build/macos-release/mirage
+build/macos-release/mirage_tests
+build/macos-release/mirage_vmaf
+build/macos-release/snapshot_diff
+
+$ ls build/macos-headless | grep -x -E 'mirage|mirage_vmaf|mirage_tests|snapshot_diff'
+mirage_tests
+mirage_vmaf
+
+$ otool -L build/macos-release/mirage_vmaf
+build/macos-release/mirage_vmaf:
+	/opt/homebrew/opt/ffmpeg-full/lib/libavfilter.11.dylib (compatibility version 11.0.0, current version 11.14.101)
+	/opt/homebrew/opt/ffmpeg-full/lib/libswscale.9.dylib (compatibility version 9.0.0, current version 9.5.101)
+	/opt/homebrew/opt/ffmpeg-full/lib/libavformat.62.dylib (compatibility version 62.0.0, current version 62.12.101)
+	/opt/homebrew/opt/ffmpeg-full/lib/libavcodec.62.dylib (compatibility version 62.0.0, current version 62.28.101)
+	/opt/homebrew/opt/ffmpeg-full/lib/libswresample.6.dylib (compatibility version 6.0.0, current version 6.3.101)
+	/opt/homebrew/opt/ffmpeg-full/lib/libavutil.60.dylib (compatibility version 60.0.0, current version 60.26.101)
+	/opt/homebrew/opt/libvmaf/lib/libvmaf.3.dylib (compatibility version 3.0.0, current version 3.0.0)
+	/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 2100.43.0)
+	/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1356.0.0)
+
+$ build/macos-release/mirage_vmaf --help
+exit code: 0 (log: <scratch>/logs/vmaf_help.log)
+Usage: mirage_vmaf --ref <url|path> --dis <url|path> --out <report.json> [--frames N] [--scaler NAME] [--model NAME] [--model-file <model.json>] [--config <file>]
+$ shasum -a 256 build/macos-release/mirage_vmaf build/macos-headless/mirage_vmaf build/macos-debug/mirage_vmaf
+9f04085f73440a9c9969f9bf6a86767eaf9ade89ae8ca393f8b6c99bb78b9b06  build/macos-release/mirage_vmaf
+9f04085f73440a9c9969f9bf6a86767eaf9ade89ae8ca393f8b6c99bb78b9b06  build/macos-headless/mirage_vmaf
+ac7329a43f15a7eb7e59aaec642a1556337775fe07e5a4d4db709face2431f69  build/macos-debug/mirage_vmaf
+
+The release and headless builds' mirage_vmaf are identical (cmp).
+
+## Dependencies fetched at configure time (release build)
+
+For each FetchContent_Declare in CMakeLists.txt: the GIT_TAG it asks for, the commit
+the release build fetched and its commit date, the release tag at that commit, and
+origin/HEAD of the fetched clone: the upstream default branch when this check fetched
+it. For a dependency pinned by commit, the upstream commits after the pinned one
+follow, each with the files it changes.
+
+miniaudio (https://github.com/mackron/miniaudio.git)
+  GIT_TAG:            9634bedb5b5a2ca38c1ee7108a9358a4e233f14d
+  fetched:            9634bedb5b5a2ca38c1ee7108a9358a4e233f14d (2026-03-04)
+  tag at that commit: 0.11.25
+  origin/HEAD:        9634bedb5b5a2ca38c1ee7108a9358a4e233f14d, 0 commits after the fetched one
+pugixml (https://github.com/zeux/pugixml.git)
+  GIT_TAG:            v1.14
+  fetched:            db78afc2b7d8f043b4bc6b185635d949ea2ed2a8 (2023-09-07)
+  tag at that commit: v1.14
+  origin/HEAD:        f0a3faa76e04f35110257ca8713363dee3c890e8, 147 commits after the fetched one
+Catch2 (https://github.com/catchorg/Catch2.git)
+  GIT_TAG:            v3.7.1
+  fetched:            fa43b77429ba76c462b1898d6cd2f2d7a9416b14 (2024-09-17)
+  tag at that commit: v3.7.1
+  origin/HEAD:        08092139210881f01a34e60c5f2fd6afa0ea4024, 293 commits after the fetched one
+stb (https://github.com/nothings/stb.git)
+  GIT_TAG:            a7d4c2175630e1ea5b6f8dd00ab96fed0b97b96d
+  fetched:            a7d4c2175630e1ea5b6f8dd00ab96fed0b97b96d (2026-10-19)
+  tag at that commit: none
+  origin/HEAD:        003501f6d7a8668ce8b6d875e34dd97ad0d5d5b5, 2 commits after the fetched one
+    003501f 2026-10-22 Update CONTRIBUTING.md
+      CONTRIBUTING.md
+    f7b2fcb 2026-10-22 Update CONTRIBUTING.md
+      CONTRIBUTING.md
+imgui (https://github.com/ocornut/imgui.git)
+  GIT_TAG:            v1.91.9
+  fetched:            97428e8ac99e339ce05eee531cf55b77b29ea709 (2025-03-14)
+  tag at that commit: v1.91.9
+  origin/HEAD:        4e99c0ab1a28c2b3d1f250ec0266dbf1e455ef58, 1527 commits after the fetched one
+nfd (https://github.com/btzy/nativefiledialog-extended.git)
+  GIT_TAG:            v1.2.1
+  fetched:            86d5f2005fe1c00747348a12070fec493ea2407e (2024-08-03)
+  tag at that commit: v1.2.1
+  origin/HEAD:        65b2f070a0fcfee0d453a64e770a217ab0b6ff4f, 26 commits after the fetched one
+
+## glad's committed loader
+
+include/KHR/khrplatform.h: 11131 bytes, sha256 7b1e01aaa7ad8f6fc34b5c7bdf79ebf5189bb09e2c4d2e79fc5d350623d11e83
+include/glad/gl.h: 872844 bytes, sha256 8f2f478178ca52184df72159043528b5779e8e737d66c7fbdc9d455d523d38ea
+src/gl.c: 623188 bytes, sha256 a80f95deb20c0880ad14cf8d79e73e42c0e9edc2f4eff5822c3561dd99a7b792
+
+$ grep -m 2 -E 'Loader generated by|SPDX-License-Identifier' third_party/glad/include/glad/gl.h
+ * Loader generated by glad 2.0.8 on -
+ * SPDX-License-Identifier: (WTFPL OR CC0-1.0) AND Apache-2.0
+
+$ third_party/glad/regenerate.sh /opt/homebrew/opt/python@3.13/bin/python3.13 <scratch>/glad
+# glad's OpenGL 4.1 core loader, regenerated and compared with <worktree>/third_party/glad
+
+$ /opt/homebrew/opt/python@3.13/bin/python3.13 --version
+Python 3.13.1
+
+$ /opt/homebrew/opt/python@3.13/bin/python3.13 -m venv <scratch>/glad/venv
+exit code: 0 (log: <scratch>/glad/logs/venv.log)
+$ <scratch>/glad/venv/bin/pip install --disable-pip-version-check jinja2==3.1.6 markupsafe==3.0.4
+exit code: 0 (log: <scratch>/glad/logs/pip.log)
+$ <scratch>/glad/venv/bin/python --version
+Python 3.13.1
+
+$ <scratch>/glad/venv/bin/pip list --format=freeze --disable-pip-version-check
+Jinja2==3.1.6
+MarkupSafe==3.0.4
+pip==24.3.1
+
+$ git clone --quiet --no-checkout https://github.com/Dav1dde/glad.git <scratch>/glad/glad
+exit code: 0 (log: <scratch>/glad/logs/clone.log)
+$ git -C <scratch>/glad/glad rev-parse v2.0.8^{commit}
+73db193f853e2ee079bf3ca8a64aa2eaf6459043
+$ git -C <scratch>/glad/glad checkout --quiet --detach 73db193f853e2ee079bf3ca8a64aa2eaf6459043
+exit code: 0 (log: <scratch>/glad/logs/checkout.log)
+$ cd <scratch>/glad/glad && <scratch>/glad/venv/bin/python -m glad --out-path <scratch>/glad/out --api gl:core=4.1 --reproducible c
+exit code: 0 (log: <scratch>/glad/logs/generate.log)
+
+include/KHR/khrplatform.h: 11131 bytes, sha256 7b1e01aaa7ad8f6fc34b5c7bdf79ebf5189bb09e2c4d2e79fc5d350623d11e83; the committed file: identical
+include/glad/gl.h: 872844 bytes, sha256 8f2f478178ca52184df72159043528b5779e8e737d66c7fbdc9d455d523d38ea; the committed file: identical
+src/gl.c: 623188 bytes, sha256 a80f95deb20c0880ad14cf8d79e73e42c0e9edc2f4eff5822c3561dd99a7b792; the committed file: identical
+
+The generated files are identical to the committed ones.
+exit code: 0
+
+## LICENSE
+
+$ shasum -a 256 LICENSE
+3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986  LICENSE
+
+GPLv3 texts in Homebrew's packages: files named COPYING* or LICENSE* up to three
+levels below /opt/homebrew/Cellar whose first five lines name the GNU General Public
+License, Version 3, 29 June 2007, by SHA-256:
+  identical to LICENSE: 3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986 /opt/homebrew/Cellar/gnutls/3.8.13_1/COPYING
+  identical to LICENSE: 3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986 /opt/homebrew/Cellar/libidn2/2.3.8/COPYING
+  identical to LICENSE: 3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986 /opt/homebrew/Cellar/libtasn1/4.21.0/COPYING
+  identical to LICENSE: 3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986 /opt/homebrew/Cellar/libunistring/1.4.2/COPYING
+  identical to LICENSE: 3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986 /opt/homebrew/Cellar/m4/1.4.21/COPYING
+  identical to LICENSE: 3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986 /opt/homebrew/Cellar/xz/5.8.3/COPYING.GPLv3
+  other text: 8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903 /opt/homebrew/Cellar/ffmpeg-full/8.1.1/COPYING.GPLv3
+  other text: 8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903 /opt/homebrew/Cellar/ffmpeg/8.1.1/COPYING.GPLv3
+  other text: 8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903 /opt/homebrew/Cellar/gmp/6.3.0/COPYING
+  other text: 8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903 /opt/homebrew/Cellar/readline/8.3.3/COPYING
+  other text: 8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903 /opt/homebrew/Cellar/siege/4.1.7/COPYING
+  other text: e79e9c8a0c85d735ff98185918ec94ed7d175efc377012787aebcf3b80f0d90b /opt/homebrew/Cellar/gettext/1.0/COPYING
+
+$ diff LICENSE /opt/homebrew/Cellar/ffmpeg-full/8.1.1/COPYING.GPLv3
+4c4
+<  Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
+---
+>  Copyright (C) 2007 Free Software Foundation, Inc. <http://fsf.org/>
+648c648
+<     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+---
+>     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+667c667
+< <https://www.gnu.org/licenses/>.
+---
+> <http://www.gnu.org/licenses/>.
+674c674
+< <https://www.gnu.org/licenses/why-not-lgpl.html>.
+---
+> <http://www.gnu.org/philosophy/why-not-lgpl.html>.
+
+$ diff LICENSE /opt/homebrew/Cellar/gettext/1.0/COPYING
+674c674
+< <https://www.gnu.org/licenses/why-not-lgpl.html>.
+---
+> <https://www.gnu.org/philosophy/why-not-lgpl.html>.

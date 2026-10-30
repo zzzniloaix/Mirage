@@ -1,0 +1,5 @@
+# docker/Dockerfile builds from the repository's history alone: it clones the
+# .git directory of the build context (docker/README.md). Nothing else of the
+# context is sent.
+*
+!.git

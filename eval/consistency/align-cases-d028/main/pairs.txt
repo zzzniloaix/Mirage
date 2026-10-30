@@ -1,0 +1,20 @@
+# Alignment cases (docs/DECISIONS.md D-028).
+# Made by eval/consistency/align_cases.py; <label> <reference> <distorted>. The cases:
+#   a00_aligned: the frames line up (a control)
+#   a01_dropped_distorted: the distorted input without its frame 5, the others' timestamps kept (section 1.4's acceptance stream)
+#   a02_dropped_reference: the reference without its frame 5, the others' timestamps kept
+#   a03_duplicated_timestamp: the distorted input's frame 5 twice, under its timestamp
+#   a04_half_rate: the distorted input at half the frame rate, every other picture
+#   a05_later_start: the distorted input without its first 3 frames, the others' timestamps kept; its container starts at its first frame
+#   a06_later_start_audio: the same, with an audio track from 0, so that its container starts at 0
+#   a07_restart: MPEG-TS whose distorted timestamps restart at frame 5, against an MPEG-TS reference
+#   a08_ms_vs_90khz: the frames line up, the reference's timestamps in milliseconds (Matroska) and the distorted input's at 90 kHz (MPEG-TS) (a control of time bases)
+a00_aligned <tmp>/align_clips/ref.mkv <tmp>/align_clips/dis.mkv
+a01_dropped_distorted <tmp>/align_clips/ref.mkv <tmp>/align_clips/dis_drop5.mkv
+a02_dropped_reference <tmp>/align_clips/ref_drop5.mkv <tmp>/align_clips/dis.mkv
+a03_duplicated_timestamp <tmp>/align_clips/ref.mkv <tmp>/align_clips/dis_dup5.mkv
+a04_half_rate <tmp>/align_clips/ref.mkv <tmp>/align_clips/dis_half.mkv
+a05_later_start <tmp>/align_clips/ref.mkv <tmp>/align_clips/dis_from3.mkv
+a06_later_start_audio <tmp>/align_clips/ref.mkv <tmp>/align_clips/dis_from3_audio.mkv
+a07_restart <tmp>/align_clips/ref_ts.ts <tmp>/align_clips/dis_ts_restart5.ts
+a08_ms_vs_90khz <tmp>/align_clips/ref.mkv <tmp>/align_clips/dis_ts.ts

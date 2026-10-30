@@ -1,0 +1,1426 @@
+{
+ "report_version": 1,
+ "tool": "eval/streams/fetch_streams.py",
+ "started_utc": "2026-10-23T12:49:56Z",
+ "ended_utc": "2026-10-23T12:50:11Z",
+ "git": {
+  "head_start": "a1dec9ff62166594eb55bb0b074afbaefaa71d99",
+  "clean_start": true,
+  "head_end": "a1dec9ff62166594eb55bb0b074afbaefaa71d99",
+  "clean_end": true
+ },
+ "ffprobe": {
+  "version": "ffprobe version 8.1.1 Copyright (c) 2007-2026 the FFmpeg developers"
+ },
+ "streams_file": "eval/streams/streams.txt",
+ "errors": [],
+ "streams": [
+  {
+   "name": "bipbop_16x9",
+   "master": {
+    "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8",
+    "file": "bipbop_16x9__bipbop_16x9_variant.m3u8",
+    "status": 200,
+    "headers": {
+     "Last-Modified": "Mon, 29 Jan 2024 21:26:16 GMT",
+     "ETag": "\"f2a2619dff2042649d4539e1ef3d790c\"",
+     "Content-Length": "3286",
+     "Content-Type": "application/x-mpegURL"
+    },
+    "bytes": 3286,
+    "sha256": "abccb34314f7228107ed03077c5150424a3aecff0275767a6b7f64c0fd99ff36",
+    "phase0_copy": "same",
+    "error": null
+   },
+   "entries": [
+    {
+     "attributes": {
+      "BANDWIDTH": "263851",
+      "CODECS": "mp4a.40.2, avc1.4d400d",
+      "RESOLUTION": "416x234",
+      "AUDIO": "bipbop_audio",
+      "SUBTITLES": "subs"
+     },
+     "uri": "gear1/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear1/prog_index.m3u8",
+     "video": true
+    },
+    {
+     "attributes": {
+      "BANDWIDTH": "577610",
+      "CODECS": "mp4a.40.2, avc1.4d401e",
+      "RESOLUTION": "640x360",
+      "AUDIO": "bipbop_audio",
+      "SUBTITLES": "subs"
+     },
+     "uri": "gear2/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear2/prog_index.m3u8",
+     "video": true
+    },
+    {
+     "attributes": {
+      "BANDWIDTH": "915905",
+      "CODECS": "mp4a.40.2, avc1.4d401f",
+      "RESOLUTION": "960x540",
+      "AUDIO": "bipbop_audio",
+      "SUBTITLES": "subs"
+     },
+     "uri": "gear3/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear3/prog_index.m3u8",
+     "video": true
+    },
+    {
+     "attributes": {
+      "BANDWIDTH": "1030138",
+      "CODECS": "mp4a.40.2, avc1.4d401f",
+      "RESOLUTION": "1280x720",
+      "AUDIO": "bipbop_audio",
+      "SUBTITLES": "subs"
+     },
+     "uri": "gear4/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear4/prog_index.m3u8",
+     "video": true
+    },
+    {
+     "attributes": {
+      "BANDWIDTH": "1924009",
+      "CODECS": "mp4a.40.2, avc1.4d401f",
+      "RESOLUTION": "1920x1080",
+      "AUDIO": "bipbop_audio",
+      "SUBTITLES": "subs"
+     },
+     "uri": "gear5/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear5/prog_index.m3u8",
+     "video": true
+    },
+    {
+     "attributes": {
+      "BANDWIDTH": "41457",
+      "CODECS": "mp4a.40.2",
+      "AUDIO": "bipbop_audio",
+      "SUBTITLES": "subs"
+     },
+     "uri": "gear0/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear0/prog_index.m3u8",
+     "video": false
+    }
+   ],
+   "iframe_entries": [
+    {
+     "BANDWIDTH": "28451",
+     "CODECS": "avc1.4d400d",
+     "URI": "gear1/iframe_index.m3u8"
+    },
+    {
+     "BANDWIDTH": "181534",
+     "CODECS": "avc1.4d401e",
+     "URI": "gear2/iframe_index.m3u8"
+    },
+    {
+     "BANDWIDTH": "297056",
+     "CODECS": "avc1.4d401f",
+     "URI": "gear3/iframe_index.m3u8"
+    },
+    {
+     "BANDWIDTH": "339492",
+     "CODECS": "avc1.4d401f",
+     "URI": "gear4/iframe_index.m3u8"
+    },
+    {
+     "BANDWIDTH": "669554",
+     "CODECS": "avc1.4d401f",
+     "URI": "gear5/iframe_index.m3u8"
+    }
+   ],
+   "media": [
+    {
+     "TYPE": "AUDIO",
+     "GROUP-ID": "bipbop_audio",
+     "LANGUAGE": "eng",
+     "NAME": "BipBop Audio 1",
+     "AUTOSELECT": "YES",
+     "DEFAULT": "YES"
+    },
+    {
+     "TYPE": "AUDIO",
+     "GROUP-ID": "bipbop_audio",
+     "LANGUAGE": "eng",
+     "NAME": "BipBop Audio 2",
+     "AUTOSELECT": "NO",
+     "DEFAULT": "NO",
+     "URI": "alternate_audio_aac/prog_index.m3u8"
+    },
+    {
+     "TYPE": "SUBTITLES",
+     "GROUP-ID": "subs",
+     "NAME": "English",
+     "DEFAULT": "YES",
+     "AUTOSELECT": "YES",
+     "FORCED": "NO",
+     "LANGUAGE": "en",
+     "CHARACTERISTICS": "public.accessibility.transcribes-spoken-dialog, public.accessibility.describes-music-and-sound",
+     "URI": "subtitles/eng/prog_index.m3u8"
+    },
+    {
+     "TYPE": "SUBTITLES",
+     "GROUP-ID": "subs",
+     "NAME": "English (Forced)",
+     "DEFAULT": "NO",
+     "AUTOSELECT": "NO",
+     "FORCED": "YES",
+     "LANGUAGE": "en",
+     "URI": "subtitles/eng_forced/prog_index.m3u8"
+    },
+    {
+     "TYPE": "SUBTITLES",
+     "GROUP-ID": "subs",
+     "NAME": "Français",
+     "DEFAULT": "NO",
+     "AUTOSELECT": "YES",
+     "FORCED": "NO",
+     "LANGUAGE": "fr",
+     "CHARACTERISTICS": "public.accessibility.transcribes-spoken-dialog, public.accessibility.describes-music-and-sound",
+     "URI": "subtitles/fra/prog_index.m3u8"
+    },
+    {
+     "TYPE": "SUBTITLES",
+     "GROUP-ID": "subs",
+     "NAME": "Français (Forced)",
+     "DEFAULT": "NO",
+     "AUTOSELECT": "NO",
+     "FORCED": "YES",
+     "LANGUAGE": "fr",
+     "URI": "subtitles/fra_forced/prog_index.m3u8"
+    },
+    {
+     "TYPE": "SUBTITLES",
+     "GROUP-ID": "subs",
+     "NAME": "Español",
+     "DEFAULT": "NO",
+     "AUTOSELECT": "YES",
+     "FORCED": "NO",
+     "LANGUAGE": "es",
+     "CHARACTERISTICS": "public.accessibility.transcribes-spoken-dialog, public.accessibility.describes-music-and-sound",
+     "URI": "subtitles/spa/prog_index.m3u8"
+    },
+    {
+     "TYPE": "SUBTITLES",
+     "GROUP-ID": "subs",
+     "NAME": "Español (Forced)",
+     "DEFAULT": "NO",
+     "AUTOSELECT": "NO",
+     "FORCED": "YES",
+     "LANGUAGE": "es",
+     "URI": "subtitles/spa_forced/prog_index.m3u8"
+    },
+    {
+     "TYPE": "SUBTITLES",
+     "GROUP-ID": "subs",
+     "NAME": "日本語",
+     "DEFAULT": "NO",
+     "AUTOSELECT": "YES",
+     "FORCED": "NO",
+     "LANGUAGE": "ja",
+     "CHARACTERISTICS": "public.accessibility.transcribes-spoken-dialog, public.accessibility.describes-music-and-sound",
+     "URI": "subtitles/jpn/prog_index.m3u8"
+    },
+    {
+     "TYPE": "SUBTITLES",
+     "GROUP-ID": "subs",
+     "NAME": "日本語 (Forced)",
+     "DEFAULT": "NO",
+     "AUTOSELECT": "NO",
+     "FORCED": "YES",
+     "LANGUAGE": "ja",
+     "URI": "subtitles/jpn_forced/prog_index.m3u8"
+    }
+   ],
+   "playlists": [
+    {
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear1/prog_index.m3u8",
+     "file": "bipbop_16x9__gear1__prog_index.m3u8",
+     "status": 200,
+     "headers": {
+      "Last-Modified": "Mon, 29 Jan 2024 20:43:45 GMT",
+      "ETag": "\"a2831dcd22eb5e1ebc3477230f14806a\"",
+      "Content-Length": "10484",
+      "Content-Type": "application/x-mpegURL"
+     },
+     "bytes": 10484,
+     "sha256": "38717b678125bcfff9c4b78de0d9f5e6a1f21b30d98ae744ce6a3e2cae1eba58",
+     "phase0_copy": "same",
+     "error": null,
+     "video": true,
+     "media": {
+      "version": "4",
+      "target_duration": "11",
+      "media_sequence": "0",
+      "playlist_type": "VOD",
+      "endlist": true,
+      "segments": 181,
+      "duration": "1800.0453",
+      "first_extinf": "9.9766",
+      "last_extinf": "4.2485",
+      "discontinuities": 0,
+      "byte_ranges": 181,
+      "maps": 0,
+      "segment_files": 1
+     },
+     "probe": {
+      "file": "bipbop_16x9__gear1__prog_index.m3u8.ffprobe.json",
+      "exit_code": 0,
+      "stream": {
+       "codec_name": "h264",
+       "profile": "Main",
+       "width": 416,
+       "height": 234,
+       "pix_fmt": "yuv420p",
+       "color_range": "tv",
+       "color_space": "smpte170m",
+       "color_primaries": "smpte170m",
+       "color_transfer": "bt709",
+       "field_order": null,
+       "r_frame_rate": "30000/1001",
+       "avg_frame_rate": "30000/1001",
+       "time_base": "1/90000",
+       "start_time": "10.000000"
+      },
+      "error": null
+     }
+    },
+    {
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear2/prog_index.m3u8",
+     "file": "bipbop_16x9__gear2__prog_index.m3u8",
+     "status": 200,
+     "headers": {
+      "Last-Modified": "Mon, 29 Jan 2024 20:43:40 GMT",
+      "ETag": "\"7217faddbf6ba3baa2125dbcf46201d6\"",
+      "Content-Length": "10537",
+      "Content-Type": "application/x-mpegURL"
+     },
+     "bytes": 10537,
+     "sha256": "62e1594a5cb0bdbc9587911bdcedc31dc1fc3b12ab95cbea66a8b089383e179e",
+     "phase0_copy": null,
+     "error": null,
+     "video": true,
+     "media": {
+      "version": "4",
+      "target_duration": "11",
+      "media_sequence": "0",
+      "playlist_type": "VOD",
+      "endlist": true,
+      "segments": 181,
+      "duration": "1800.0119",
+      "first_extinf": "9.9766",
+      "last_extinf": "4.2151",
+      "discontinuities": 0,
+      "byte_ranges": 181,
+      "maps": 0,
+      "segment_files": 1
+     },
+     "probe": {
+      "file": "bipbop_16x9__gear2__prog_index.m3u8.ffprobe.json",
+      "exit_code": 0,
+      "stream": {
+       "codec_name": "h264",
+       "profile": "Main",
+       "width": 640,
+       "height": 360,
+       "pix_fmt": "yuv420p",
+       "color_range": "tv",
+       "color_space": "smpte170m",
+       "color_primaries": "smpte170m",
+       "color_transfer": "bt709",
+       "field_order": null,
+       "r_frame_rate": "30000/1001",
+       "avg_frame_rate": "30000/1001",
+       "time_base": "1/90000",
+       "start_time": "10.000000"
+      },
+      "error": null
+     }
+    },
+    {
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear3/prog_index.m3u8",
+     "file": "bipbop_16x9__gear3__prog_index.m3u8",
+     "status": 200,
+     "headers": {
+      "Last-Modified": "Mon, 29 Jan 2024 20:43:31 GMT",
+      "ETag": "\"0aab61329265f365c15629b90c6061bc\"",
+      "Content-Length": "10775",
+      "Content-Type": "application/x-mpegURL"
+     },
+     "bytes": 10775,
+     "sha256": "0a794daa7ee80502d452c7521891935cb4158f3da1c7afd59355267b96801637",
+     "phase0_copy": null,
+     "error": null,
+     "video": true,
+     "media": {
+      "version": "4",
+      "target_duration": "11",
+      "media_sequence": "0",
+      "playlist_type": "VOD",
+      "endlist": true,
+      "segments": 181,
+      "duration": "1800.0119",
+      "first_extinf": "9.9766",
+      "last_extinf": "4.2151",
+      "discontinuities": 0,
+      "byte_ranges": 181,
+      "maps": 0,
+      "segment_files": 1
+     },
+     "probe": {
+      "file": "bipbop_16x9__gear3__prog_index.m3u8.ffprobe.json",
+      "exit_code": 0,
+      "stream": {
+       "codec_name": "h264",
+       "profile": "Main",
+       "width": 960,
+       "height": 540,
+       "pix_fmt": "yuv420p",
+       "color_range": "tv",
+       "color_space": "bt709",
+       "color_primaries": "bt709",
+       "color_transfer": "bt709",
+       "field_order": null,
+       "r_frame_rate": "30000/1001",
+       "avg_frame_rate": "30000/1001",
+       "time_base": "1/90000",
+       "start_time": "10.000000"
+      },
+      "error": null
+     }
+    },
+    {
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear4/prog_index.m3u8",
+     "file": "bipbop_16x9__gear4__prog_index.m3u8",
+     "status": 200,
+     "headers": {
+      "Last-Modified": "Mon, 29 Jan 2024 20:43:35 GMT",
+      "ETag": "\"96420a92ca40fc841b85c6a5d997ccd2\"",
+      "Content-Length": "10787",
+      "Content-Type": "application/x-mpegURL"
+     },
+     "bytes": 10787,
+     "sha256": "8ccc32dfba944ae5fea02c4c09f384d4ffdbbe8e09cc7d2db1356bed3ab58295",
+     "phase0_copy": null,
+     "error": null,
+     "video": true,
+     "media": {
+      "version": "4",
+      "target_duration": "11",
+      "media_sequence": "0",
+      "playlist_type": "VOD",
+      "endlist": true,
+      "segments": 181,
+      "duration": "1800.0119",
+      "first_extinf": "9.9766",
+      "last_extinf": "4.2151",
+      "discontinuities": 0,
+      "byte_ranges": 181,
+      "maps": 0,
+      "segment_files": 1
+     },
+     "probe": {
+      "file": "bipbop_16x9__gear4__prog_index.m3u8.ffprobe.json",
+      "exit_code": 0,
+      "stream": {
+       "codec_name": "h264",
+       "profile": "Main",
+       "width": 1280,
+       "height": 720,
+       "pix_fmt": "yuv420p",
+       "color_range": "tv",
+       "color_space": "bt709",
+       "color_primaries": "bt709",
+       "color_transfer": "bt709",
+       "field_order": null,
+       "r_frame_rate": "30000/1001",
+       "avg_frame_rate": "30000/1001",
+       "time_base": "1/90000",
+       "start_time": "10.000000"
+      },
+      "error": null
+     }
+    },
+    {
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear5/prog_index.m3u8",
+     "file": "bipbop_16x9__gear5__prog_index.m3u8",
+     "status": 200,
+     "headers": {
+      "Last-Modified": "Mon, 29 Jan 2024 20:43:38 GMT",
+      "ETag": "\"054506e2861bdaedef3bac784e535d0d\"",
+      "Content-Length": "10830",
+      "Content-Type": "application/x-mpegURL"
+     },
+     "bytes": 10830,
+     "sha256": "cd4341587b76b7ee86abcbba40d68efb748da9fb7f56048eb90c01baa26803fd",
+     "phase0_copy": "same",
+     "error": null,
+     "video": true,
+     "media": {
+      "version": "4",
+      "target_duration": "11",
+      "media_sequence": "0",
+      "playlist_type": "VOD",
+      "endlist": true,
+      "segments": 181,
+      "duration": "1800.0119",
+      "first_extinf": "9.9766",
+      "last_extinf": "4.2151",
+      "discontinuities": 0,
+      "byte_ranges": 181,
+      "maps": 0,
+      "segment_files": 1
+     },
+     "probe": {
+      "file": "bipbop_16x9__gear5__prog_index.m3u8.ffprobe.json",
+      "exit_code": 0,
+      "stream": {
+       "codec_name": "h264",
+       "profile": "Main",
+       "width": 1920,
+       "height": 1080,
+       "pix_fmt": "yuv420p",
+       "color_range": "tv",
+       "color_space": "bt709",
+       "color_primaries": "bt709",
+       "color_transfer": "bt709",
+       "field_order": null,
+       "r_frame_rate": "30000/1001",
+       "avg_frame_rate": "30000/1001",
+       "time_base": "1/90000",
+       "start_time": "10.000000"
+      },
+      "error": null
+     }
+    },
+    {
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear0/prog_index.m3u8",
+     "file": "bipbop_16x9__gear0__prog_index.m3u8",
+     "status": 200,
+     "headers": {
+      "Last-Modified": "Mon, 29 Jan 2024 20:43:44 GMT",
+      "ETag": "\"31129e2840fef77c8e6e729096c79187\"",
+      "Content-Length": "10348",
+      "Content-Type": "application/x-mpegURL"
+     },
+     "bytes": 10348,
+     "sha256": "be05d465806ded349e7d08d926843a9cf60c56adc9bad66b3b3311bd063ef4f7",
+     "phase0_copy": null,
+     "error": null,
+     "video": false,
+     "media": {
+      "version": "4",
+      "target_duration": "11",
+      "media_sequence": "0",
+      "playlist_type": "VOD",
+      "endlist": true,
+      "segments": 180,
+      "duration": "1799.9191",
+      "first_extinf": "9.9846",
+      "last_extinf": "9.9381",
+      "discontinuities": 0,
+      "byte_ranges": 180,
+      "maps": 0,
+      "segment_files": 1
+     }
+    }
+   ]
+  },
+  {
+   "name": "img_bipbop_adv_example_ts",
+   "master": {
+    "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/master.m3u8",
+    "file": "img_bipbop_adv_example_ts__master.m3u8",
+    "status": 200,
+    "headers": {
+     "Last-Modified": "Mon, 29 Jan 2024 21:26:12 GMT",
+     "ETag": "\"242d0b61f7ca733605d1c5fd94c64093\"",
+     "Content-Length": "6289",
+     "Content-Type": "application/x-mpegURL"
+    },
+    "bytes": 6289,
+    "sha256": "f2177c1350130e087f9d81af82f092ababfcfb34e5b01e52ff146a08b241e849",
+    "phase0_copy": "same",
+    "error": null
+   },
+   "entries": [
+    {
+     "attributes": {
+      "AVERAGE-BANDWIDTH": "2218327",
+      "BANDWIDTH": "2227464",
+      "CODECS": "avc1.640020,mp4a.40.2",
+      "RESOLUTION": "960x540",
+      "FRAME-RATE": "60.000",
+      "CLOSED-CAPTIONS": "cc1",
+      "AUDIO": "aud1",
+      "SUBTITLES": "sub1"
+     },
+     "uri": "v5/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v5/prog_index.m3u8",
+     "video": true
+    },
+    {
+     "attributes": {
+      "AVERAGE-BANDWIDTH": "8144656",
+      "BANDWIDTH": "8178040",
+      "CODECS": "avc1.64002a,mp4a.40.2",
+      "RESOLUTION": "1920x1080",
+      "FRAME-RATE": "60.000",
+      "CLOSED-CAPTIONS": "cc1",
+      "AUDIO": "aud1",
+      "SUBTITLES": "sub1"
+     },
+     "uri": "v9/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v9/prog_index.m3u8",
+     "video": true
+    },
+    {
+     "attributes": {
+      "AVERAGE-BANDWIDTH": "6307144",
+      "BANDWIDTH": "6453202",
+      "CODECS": "avc1.64002a,mp4a.40.2",
+      "RESOLUTION": "1920x1080",
+      "FRAME-RATE": "60.000",
+      "CLOSED-CAPTIONS": "cc1",
+      "AUDIO": "aud1",
+      "SUBTITLES": "sub1"
+     },
+     "uri": "v8/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v8/prog_index.m3u8",
+     "video": true
+    },
+    {
+     "attributes": {
+      "AVERAGE-BANDWIDTH": "4775338",
+      "BANDWIDTH": "5054232",
+      "CODECS": "avc1.64002a,mp4a.40.2",
+      "RESOLUTION": "1920x1080",
+      "FRAME-RATE": "60.000",
+      "CLOSED-CAPTIONS": "cc1",
+      "AUDIO": "aud1",
+      "SUBTITLES": "sub1"
+     },
+     "uri": "v7/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v7/prog_index.m3u8",
+     "video": true
+    },
+    {
+     "attributes": {
+      "AVERAGE-BANDWIDTH": "3240596",
+      "BANDWIDTH": "3289288",
+      "CODECS": "avc1.640020,mp4a.40.2",
+      "RESOLUTION": "1280x720",
+      "FRAME-RATE": "60.000",
+      "CLOSED-CAPTIONS": "cc1",
+      "AUDIO": "aud1",
+      "SUBTITLES": "sub1"
+     },
+     "uri": "v6/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v6/prog_index.m3u8",
+     "video": true
+    },
+    {
+     "attributes": {
+      "AVERAGE-BANDWIDTH": "1292926",
+      "BANDWIDTH": "1296989",
+      "CODECS": "avc1.64001e,mp4a.40.2",
+      "RESOLUTION": "768x432",
+      "FRAME-RATE": "30.000",
+      "CLOSED-CAPTIONS": "cc1",
+      "AUDIO": "aud1",
+      "SUBTITLES": "sub1"
+     },
+     "uri": "v4/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v4/prog_index.m3u8",
+     "video": true
+    },
+    {
+     "attributes": {
+      "AVERAGE-BANDWIDTH": "914722",
+      "BANDWIDTH": "922242",
+      "CODECS": "avc1.64001e,mp4a.40.2",
+      "RESOLUTION": "640x360",
+      "FRAME-RATE": "30.000",
+      "CLOSED-CAPTIONS": "cc1",
+      "AUDIO": "aud1",
+      "SUBTITLES": "sub1"
+     },
+     "uri": "v3/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v3/prog_index.m3u8",
+     "video": true
+    },
+    {
+     "attributes": {
+      "AVERAGE-BANDWIDTH": "541239",
+      "BANDWIDTH": "553010",
+      "CODECS": "avc1.640015,mp4a.40.2",
+      "RESOLUTION": "480x270",
+      "FRAME-RATE": "30.000",
+      "CLOSED-CAPTIONS": "cc1",
+      "AUDIO": "aud1",
+      "SUBTITLES": "sub1"
+     },
+     "uri": "v2/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v2/prog_index.m3u8",
+     "video": true
+    },
+    {
+     "attributes": {
+      "AVERAGE-BANDWIDTH": "2439704",
+      "BANDWIDTH": "2448841",
+      "CODECS": "avc1.640020,ac-3",
+      "RESOLUTION": "960x540",
+      "FRAME-RATE": "60.000",
+      "CLOSED-CAPTIONS": "cc1",
+      "AUDIO": "aud2",
+      "SUBTITLES": "sub1"
+     },
+     "uri": "v5/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v5/prog_index.m3u8",
+     "video": true
+    },
+    {
+     "attributes": {
+      "AVERAGE-BANDWIDTH": "8366033",
+      "BANDWIDTH": "8399417",
+      "CODECS": "avc1.64002a,ac-3",
+      "RESOLUTION": "1920x1080",
+      "FRAME-RATE": "60.000",
+      "CLOSED-CAPTIONS": "cc1",
+      "AUDIO": "aud2",
+      "SUBTITLES": "sub1"
+     },
+     "uri": "v9/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v9/prog_index.m3u8",
+     "video": true
+    },
+    {
+     "attributes": {
+      "AVERAGE-BANDWIDTH": "6528521",
+      "BANDWIDTH": "6674579",
+      "CODECS": "avc1.64002a,ac-3",
+      "RESOLUTION": "1920x1080",
+      "FRAME-RATE": "60.000",
+      "CLOSED-CAPTIONS": "cc1",
+      "AUDIO": "aud2",
+      "SUBTITLES": "sub1"
+     },
+     "uri": "v8/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v8/prog_index.m3u8",
+     "video": true
+    },
+    {
+     "attributes": {
+      "AVERAGE-BANDWIDTH": "4996715",
+      "BANDWIDTH": "5275609",
+      "CODECS": "avc1.64002a,ac-3",
+      "RESOLUTION": "1920x1080",
+      "FRAME-RATE": "60.000",
+      "CLOSED-CAPTIONS": "cc1",
+      "AUDIO": "aud2",
+      "SUBTITLES": "sub1"
+     },
+     "uri": "v7/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v7/prog_index.m3u8",
+     "video": true
+    },
+    {
+     "attributes": {
+      "AVERAGE-BANDWIDTH": "3461973",
+      "BANDWIDTH": "3510665",
+      "CODECS": "avc1.640020,ac-3",
+      "RESOLUTION": "1280x720",
+      "FRAME-RATE": "60.000",
+      "CLOSED-CAPTIONS": "cc1",
+      "AUDIO": "aud2",
+      "SUBTITLES": "sub1"
+     },
+     "uri": "v6/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v6/prog_index.m3u8",
+     "video": true
+    },
+    {
+     "attributes": {
+      "AVERAGE-BANDWIDTH": "1514303",
+      "BANDWIDTH": "1518366",
+      "CODECS": "avc1.64001e,ac-3",
+      "RESOLUTION": "768x432",
+      "FRAME-RATE": "30.000",
+      "CLOSED-CAPTIONS": "cc1",
+      "AUDIO": "aud2",
+      "SUBTITLES": "sub1"
+     },
+     "uri": "v4/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v4/prog_index.m3u8",
+     "video": true
+    },
+    {
+     "attributes": {
+      "AVERAGE-BANDWIDTH": "1136099",
+      "BANDWIDTH": "1143619",
+      "CODECS": "avc1.64001e,ac-3",
+      "RESOLUTION": "640x360",
+      "FRAME-RATE": "30.000",
+      "CLOSED-CAPTIONS": "cc1",
+      "AUDIO": "aud2",
+      "SUBTITLES": "sub1"
+     },
+     "uri": "v3/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v3/prog_index.m3u8",
+     "video": true
+    },
+    {
+     "attributes": {
+      "AVERAGE-BANDWIDTH": "762616",
+      "BANDWIDTH": "774387",
+      "CODECS": "avc1.640015,ac-3",
+      "RESOLUTION": "480x270",
+      "FRAME-RATE": "30.000",
+      "CLOSED-CAPTIONS": "cc1",
+      "AUDIO": "aud2",
+      "SUBTITLES": "sub1"
+     },
+     "uri": "v2/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v2/prog_index.m3u8",
+     "video": true
+    },
+    {
+     "attributes": {
+      "AVERAGE-BANDWIDTH": "2247704",
+      "BANDWIDTH": "2256841",
+      "CODECS": "avc1.640020,ec-3",
+      "RESOLUTION": "960x540",
+      "FRAME-RATE": "60.000",
+      "CLOSED-CAPTIONS": "cc1",
+      "AUDIO": "aud3",
+      "SUBTITLES": "sub1"
+     },
+     "uri": "v5/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v5/prog_index.m3u8",
+     "video": true
+    },
+    {
+     "attributes": {
+      "AVERAGE-BANDWIDTH": "8174033",
+      "BANDWIDTH": "8207417",
+      "CODECS": "avc1.64002a,ec-3",
+      "RESOLUTION": "1920x1080",
+      "FRAME-RATE": "60.000",
+      "CLOSED-CAPTIONS": "cc1",
+      "AUDIO": "aud3",
+      "SUBTITLES": "sub1"
+     },
+     "uri": "v9/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v9/prog_index.m3u8",
+     "video": true
+    },
+    {
+     "attributes": {
+      "AVERAGE-BANDWIDTH": "6336521",
+      "BANDWIDTH": "6482579",
+      "CODECS": "avc1.64002a,ec-3",
+      "RESOLUTION": "1920x1080",
+      "FRAME-RATE": "60.000",
+      "CLOSED-CAPTIONS": "cc1",
+      "AUDIO": "aud3",
+      "SUBTITLES": "sub1"
+     },
+     "uri": "v8/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v8/prog_index.m3u8",
+     "video": true
+    },
+    {
+     "attributes": {
+      "AVERAGE-BANDWIDTH": "4804715",
+      "BANDWIDTH": "5083609",
+      "CODECS": "avc1.64002a,ec-3",
+      "RESOLUTION": "1920x1080",
+      "FRAME-RATE": "60.000",
+      "CLOSED-CAPTIONS": "cc1",
+      "AUDIO": "aud3",
+      "SUBTITLES": "sub1"
+     },
+     "uri": "v7/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v7/prog_index.m3u8",
+     "video": true
+    },
+    {
+     "attributes": {
+      "AVERAGE-BANDWIDTH": "3269973",
+      "BANDWIDTH": "3318665",
+      "CODECS": "avc1.640020,ec-3",
+      "RESOLUTION": "1280x720",
+      "FRAME-RATE": "60.000",
+      "CLOSED-CAPTIONS": "cc1",
+      "AUDIO": "aud3",
+      "SUBTITLES": "sub1"
+     },
+     "uri": "v6/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v6/prog_index.m3u8",
+     "video": true
+    },
+    {
+     "attributes": {
+      "AVERAGE-BANDWIDTH": "1322303",
+      "BANDWIDTH": "1326366",
+      "CODECS": "avc1.64001e,ec-3",
+      "RESOLUTION": "768x432",
+      "FRAME-RATE": "30.000",
+      "CLOSED-CAPTIONS": "cc1",
+      "AUDIO": "aud3",
+      "SUBTITLES": "sub1"
+     },
+     "uri": "v4/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v4/prog_index.m3u8",
+     "video": true
+    },
+    {
+     "attributes": {
+      "AVERAGE-BANDWIDTH": "944099",
+      "BANDWIDTH": "951619",
+      "CODECS": "avc1.64001e,ec-3",
+      "RESOLUTION": "640x360",
+      "FRAME-RATE": "30.000",
+      "CLOSED-CAPTIONS": "cc1",
+      "AUDIO": "aud3",
+      "SUBTITLES": "sub1"
+     },
+     "uri": "v3/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v3/prog_index.m3u8",
+     "video": true
+    },
+    {
+     "attributes": {
+      "AVERAGE-BANDWIDTH": "570616",
+      "BANDWIDTH": "582387",
+      "CODECS": "avc1.640015,ec-3",
+      "RESOLUTION": "480x270",
+      "FRAME-RATE": "30.000",
+      "CLOSED-CAPTIONS": "cc1",
+      "AUDIO": "aud3",
+      "SUBTITLES": "sub1"
+     },
+     "uri": "v2/prog_index.m3u8",
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v2/prog_index.m3u8",
+     "video": true
+    }
+   ],
+   "iframe_entries": [
+    {
+     "AVERAGE-BANDWIDTH": "182077",
+     "BANDWIDTH": "186522",
+     "CODECS": "avc1.64002a",
+     "RESOLUTION": "1920x1080",
+     "URI": "v7/iframe_index.m3u8"
+    },
+    {
+     "AVERAGE-BANDWIDTH": "129936",
+     "BANDWIDTH": "133856",
+     "CODECS": "avc1.640020",
+     "RESOLUTION": "1280x720",
+     "URI": "v6/iframe_index.m3u8"
+    },
+    {
+     "AVERAGE-BANDWIDTH": "94286",
+     "BANDWIDTH": "98136",
+     "CODECS": "avc1.640020",
+     "RESOLUTION": "960x540",
+     "URI": "v5/iframe_index.m3u8"
+    },
+    {
+     "AVERAGE-BANDWIDTH": "74767",
+     "BANDWIDTH": "76704",
+     "CODECS": "avc1.64001e",
+     "RESOLUTION": "768x432",
+     "URI": "v4/iframe_index.m3u8"
+    },
+    {
+     "AVERAGE-BANDWIDTH": "62251",
+     "BANDWIDTH": "64078",
+     "CODECS": "avc1.64001e",
+     "RESOLUTION": "640x360",
+     "URI": "v3/iframe_index.m3u8"
+    },
+    {
+     "AVERAGE-BANDWIDTH": "37866",
+     "BANDWIDTH": "38728",
+     "CODECS": "avc1.640015",
+     "RESOLUTION": "480x270",
+     "URI": "v2/iframe_index.m3u8"
+    }
+   ],
+   "media": [
+    {
+     "TYPE": "AUDIO",
+     "GROUP-ID": "aud1",
+     "LANGUAGE": "en",
+     "NAME": "English",
+     "AUTOSELECT": "YES",
+     "DEFAULT": "YES",
+     "CHANNELS": "2",
+     "URI": "a1/prog_index.m3u8"
+    },
+    {
+     "TYPE": "AUDIO",
+     "GROUP-ID": "aud2",
+     "LANGUAGE": "en",
+     "NAME": "English",
+     "AUTOSELECT": "YES",
+     "DEFAULT": "YES",
+     "CHANNELS": "6",
+     "URI": "a2/prog_index.m3u8"
+    },
+    {
+     "TYPE": "AUDIO",
+     "GROUP-ID": "aud3",
+     "LANGUAGE": "en",
+     "NAME": "English",
+     "AUTOSELECT": "YES",
+     "DEFAULT": "YES",
+     "CHANNELS": "6",
+     "URI": "a3/prog_index.m3u8"
+    },
+    {
+     "TYPE": "CLOSED-CAPTIONS",
+     "GROUP-ID": "cc1",
+     "LANGUAGE": "en",
+     "NAME": "English",
+     "AUTOSELECT": "YES",
+     "DEFAULT": "YES",
+     "INSTREAM-ID": "CC1"
+    },
+    {
+     "TYPE": "SUBTITLES",
+     "GROUP-ID": "sub1",
+     "LANGUAGE": "en",
+     "NAME": "English",
+     "AUTOSELECT": "YES",
+     "DEFAULT": "YES",
+     "FORCED": "NO",
+     "URI": "s1/en/prog_index.m3u8"
+    }
+   ],
+   "playlists": [
+    {
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v5/prog_index.m3u8",
+     "file": "img_bipbop_adv_example_ts__v5__prog_index.m3u8",
+     "status": 200,
+     "headers": {
+      "Last-Modified": "Mon, 29 Jan 2024 21:18:23 GMT",
+      "ETag": "\"c685ab04451daa430da4f127328aa3cc\"",
+      "Content-Length": "5731",
+      "Content-Type": "application/x-mpegURL"
+     },
+     "bytes": 5731,
+     "sha256": "d8826e49de47db9e196abfe49c5f1b453961c8449b7d1c862bce79bb893f01f5",
+     "phase0_copy": null,
+     "error": null,
+     "video": true,
+     "media": {
+      "version": "3",
+      "target_duration": "6",
+      "media_sequence": "0",
+      "playlist_type": "VOD",
+      "endlist": true,
+      "segments": 100,
+      "duration": "600.00000",
+      "first_extinf": "6.00000",
+      "last_extinf": "6.00000",
+      "discontinuities": 0,
+      "byte_ranges": 0,
+      "maps": 0,
+      "segment_files": 100
+     },
+     "probe": {
+      "file": "img_bipbop_adv_example_ts__v5__prog_index.m3u8.ffprobe.json",
+      "exit_code": 0,
+      "stream": {
+       "codec_name": "h264",
+       "profile": "High",
+       "width": 960,
+       "height": 540,
+       "pix_fmt": "yuv420p",
+       "color_range": null,
+       "color_space": null,
+       "color_primaries": null,
+       "color_transfer": null,
+       "field_order": null,
+       "r_frame_rate": "60/1",
+       "avg_frame_rate": "60/1",
+       "time_base": "1/90000",
+       "start_time": "10.016667"
+      },
+      "error": null
+     }
+    },
+    {
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v9/prog_index.m3u8",
+     "file": "img_bipbop_adv_example_ts__v9__prog_index.m3u8",
+     "status": 200,
+     "headers": {
+      "Last-Modified": "Mon, 29 Jan 2024 21:22:38 GMT",
+      "ETag": "\"d381b0d062975a50b9615c00f600758f\"",
+      "Content-Length": "5731",
+      "Content-Type": "application/x-mpegURL"
+     },
+     "bytes": 5731,
+     "sha256": "2ac1e472de0a58045059af9a867fee82db944590afdc07752f590cefb80a6980",
+     "phase0_copy": null,
+     "error": null,
+     "video": true,
+     "media": {
+      "version": "3",
+      "target_duration": "6",
+      "media_sequence": "0",
+      "playlist_type": "VOD",
+      "endlist": true,
+      "segments": 100,
+      "duration": "600.00000",
+      "first_extinf": "6.00000",
+      "last_extinf": "6.00000",
+      "discontinuities": 0,
+      "byte_ranges": 0,
+      "maps": 0,
+      "segment_files": 100
+     },
+     "probe": {
+      "file": "img_bipbop_adv_example_ts__v9__prog_index.m3u8.ffprobe.json",
+      "exit_code": 0,
+      "stream": {
+       "codec_name": "h264",
+       "profile": "High",
+       "width": 1920,
+       "height": 1080,
+       "pix_fmt": "yuv420p",
+       "color_range": null,
+       "color_space": null,
+       "color_primaries": null,
+       "color_transfer": null,
+       "field_order": null,
+       "r_frame_rate": "60/1",
+       "avg_frame_rate": "60/1",
+       "time_base": "1/90000",
+       "start_time": "10.016667"
+      },
+      "error": null
+     }
+    },
+    {
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v8/prog_index.m3u8",
+     "file": "img_bipbop_adv_example_ts__v8__prog_index.m3u8",
+     "status": 200,
+     "headers": {
+      "Last-Modified": "Mon, 29 Jan 2024 21:23:41 GMT",
+      "ETag": "\"0b7b3241a2bbf128299405aeb7f650bd\"",
+      "Content-Length": "5731",
+      "Content-Type": "application/x-mpegURL"
+     },
+     "bytes": 5731,
+     "sha256": "22f265fbf3ee93522fdf57df690ee2a49db6d3cad1a3be1d5b01deadcaded20a",
+     "phase0_copy": null,
+     "error": null,
+     "video": true,
+     "media": {
+      "version": "3",
+      "target_duration": "6",
+      "media_sequence": "0",
+      "playlist_type": "VOD",
+      "endlist": true,
+      "segments": 100,
+      "duration": "600.00000",
+      "first_extinf": "6.00000",
+      "last_extinf": "6.00000",
+      "discontinuities": 0,
+      "byte_ranges": 0,
+      "maps": 0,
+      "segment_files": 100
+     },
+     "probe": {
+      "file": "img_bipbop_adv_example_ts__v8__prog_index.m3u8.ffprobe.json",
+      "exit_code": 0,
+      "stream": {
+       "codec_name": "h264",
+       "profile": "High",
+       "width": 1920,
+       "height": 1080,
+       "pix_fmt": "yuv420p",
+       "color_range": null,
+       "color_space": null,
+       "color_primaries": null,
+       "color_transfer": null,
+       "field_order": null,
+       "r_frame_rate": "60/1",
+       "avg_frame_rate": "60/1",
+       "time_base": "1/90000",
+       "start_time": "10.016667"
+      },
+      "error": null
+     }
+    },
+    {
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v7/prog_index.m3u8",
+     "file": "img_bipbop_adv_example_ts__v7__prog_index.m3u8",
+     "status": 200,
+     "headers": {
+      "Last-Modified": "Mon, 29 Jan 2024 21:21:42 GMT",
+      "ETag": "\"8a64d39803c30c109e0bada4369de64d\"",
+      "Content-Length": "5731",
+      "Content-Type": "application/x-mpegURL"
+     },
+     "bytes": 5731,
+     "sha256": "7b7d5974f7d500fd6b80802ae00e6e3109639ae31d6cacd318e01100a3f7d8ae",
+     "phase0_copy": null,
+     "error": null,
+     "video": true,
+     "media": {
+      "version": "3",
+      "target_duration": "6",
+      "media_sequence": "0",
+      "playlist_type": "VOD",
+      "endlist": true,
+      "segments": 100,
+      "duration": "600.00000",
+      "first_extinf": "6.00000",
+      "last_extinf": "6.00000",
+      "discontinuities": 0,
+      "byte_ranges": 0,
+      "maps": 0,
+      "segment_files": 100
+     },
+     "probe": {
+      "file": "img_bipbop_adv_example_ts__v7__prog_index.m3u8.ffprobe.json",
+      "exit_code": 0,
+      "stream": {
+       "codec_name": "h264",
+       "profile": "High",
+       "width": 1920,
+       "height": 1080,
+       "pix_fmt": "yuv420p",
+       "color_range": null,
+       "color_space": null,
+       "color_primaries": null,
+       "color_transfer": null,
+       "field_order": null,
+       "r_frame_rate": "60/1",
+       "avg_frame_rate": "60/1",
+       "time_base": "1/90000",
+       "start_time": "10.016667"
+      },
+      "error": null
+     }
+    },
+    {
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v6/prog_index.m3u8",
+     "file": "img_bipbop_adv_example_ts__v6__prog_index.m3u8",
+     "status": 200,
+     "headers": {
+      "Last-Modified": "Mon, 29 Jan 2024 21:25:23 GMT",
+      "ETag": "\"4b9d253d5df6e72b0c38771e584d0ec5\"",
+      "Content-Length": "5731",
+      "Content-Type": "application/x-mpegURL"
+     },
+     "bytes": 5731,
+     "sha256": "6e75c4435d15fa290ed7558a32a81e5c88bd3381c3bc2c878411afb59c0a44c2",
+     "phase0_copy": null,
+     "error": null,
+     "video": true,
+     "media": {
+      "version": "3",
+      "target_duration": "6",
+      "media_sequence": "0",
+      "playlist_type": "VOD",
+      "endlist": true,
+      "segments": 100,
+      "duration": "600.00000",
+      "first_extinf": "6.00000",
+      "last_extinf": "6.00000",
+      "discontinuities": 0,
+      "byte_ranges": 0,
+      "maps": 0,
+      "segment_files": 100
+     },
+     "probe": {
+      "file": "img_bipbop_adv_example_ts__v6__prog_index.m3u8.ffprobe.json",
+      "exit_code": 0,
+      "stream": {
+       "codec_name": "h264",
+       "profile": "High",
+       "width": 1280,
+       "height": 720,
+       "pix_fmt": "yuv420p",
+       "color_range": null,
+       "color_space": null,
+       "color_primaries": null,
+       "color_transfer": null,
+       "field_order": null,
+       "r_frame_rate": "60/1",
+       "avg_frame_rate": "60/1",
+       "time_base": "1/90000",
+       "start_time": "10.016667"
+      },
+      "error": null
+     }
+    },
+    {
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v4/prog_index.m3u8",
+     "file": "img_bipbop_adv_example_ts__v4__prog_index.m3u8",
+     "status": 200,
+     "headers": {
+      "Last-Modified": "Mon, 29 Jan 2024 21:17:29 GMT",
+      "ETag": "\"c728f772e995770adffa4d9f4db5f3c7\"",
+      "Content-Length": "5731",
+      "Content-Type": "application/x-mpegURL"
+     },
+     "bytes": 5731,
+     "sha256": "deae1dc2813f3fa604ea614d44fd8c4c6c9ec2031d1747444bec82ee282d1e5a",
+     "phase0_copy": null,
+     "error": null,
+     "video": true,
+     "media": {
+      "version": "3",
+      "target_duration": "6",
+      "media_sequence": "0",
+      "playlist_type": "VOD",
+      "endlist": true,
+      "segments": 100,
+      "duration": "600.00000",
+      "first_extinf": "6.00000",
+      "last_extinf": "6.00000",
+      "discontinuities": 0,
+      "byte_ranges": 0,
+      "maps": 0,
+      "segment_files": 100
+     },
+     "probe": {
+      "file": "img_bipbop_adv_example_ts__v4__prog_index.m3u8.ffprobe.json",
+      "exit_code": 0,
+      "stream": {
+       "codec_name": "h264",
+       "profile": "High",
+       "width": 768,
+       "height": 432,
+       "pix_fmt": "yuv420p",
+       "color_range": null,
+       "color_space": null,
+       "color_primaries": null,
+       "color_transfer": null,
+       "field_order": null,
+       "r_frame_rate": "30/1",
+       "avg_frame_rate": "30/1",
+       "time_base": "1/90000",
+       "start_time": "10.033333"
+      },
+      "error": null
+     }
+    },
+    {
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v3/prog_index.m3u8",
+     "file": "img_bipbop_adv_example_ts__v3__prog_index.m3u8",
+     "status": 200,
+     "headers": {
+      "Last-Modified": "Mon, 29 Jan 2024 21:16:37 GMT",
+      "ETag": "\"ebf334dd2b2a04244247ea6636adc6c7\"",
+      "Content-Length": "5631",
+      "Content-Type": "application/x-mpegURL"
+     },
+     "bytes": 5631,
+     "sha256": "22316c7e8f17533db19b2dede508162c440659f46a5ef0dcdc411fd4a684bc8c",
+     "phase0_copy": null,
+     "error": null,
+     "video": true,
+     "media": {
+      "version": "3",
+      "target_duration": "6",
+      "media_sequence": "0",
+      "playlist_type": "VOD",
+      "endlist": true,
+      "segments": 100,
+      "duration": "600.00000",
+      "first_extinf": "6.00000",
+      "last_extinf": "6.00000",
+      "discontinuities": 0,
+      "byte_ranges": 0,
+      "maps": 0,
+      "segment_files": 100
+     },
+     "probe": {
+      "file": "img_bipbop_adv_example_ts__v3__prog_index.m3u8.ffprobe.json",
+      "exit_code": 0,
+      "stream": {
+       "codec_name": "h264",
+       "profile": "High",
+       "width": 640,
+       "height": 360,
+       "pix_fmt": "yuv420p",
+       "color_range": null,
+       "color_space": null,
+       "color_primaries": null,
+       "color_transfer": null,
+       "field_order": null,
+       "r_frame_rate": "30/1",
+       "avg_frame_rate": "30/1",
+       "time_base": "1/90000",
+       "start_time": "10.033333"
+      },
+      "error": null
+     }
+    },
+    {
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v2/prog_index.m3u8",
+     "file": "img_bipbop_adv_example_ts__v2__prog_index.m3u8",
+     "status": 200,
+     "headers": {
+      "Last-Modified": "Mon, 29 Jan 2024 21:19:16 GMT",
+      "ETag": "\"b0fc43c9dd146974cbeb43f8eca775df\"",
+      "Content-Length": "5631",
+      "Content-Type": "application/x-mpegURL"
+     },
+     "bytes": 5631,
+     "sha256": "6a3c45a436cfb5e9e754bfd3ecd377bed0df9637be9f1eb60a8298efc1324cf2",
+     "phase0_copy": null,
+     "error": null,
+     "video": true,
+     "media": {
+      "version": "3",
+      "target_duration": "6",
+      "media_sequence": "0",
+      "playlist_type": "VOD",
+      "endlist": true,
+      "segments": 100,
+      "duration": "600.00000",
+      "first_extinf": "6.00000",
+      "last_extinf": "6.00000",
+      "discontinuities": 0,
+      "byte_ranges": 0,
+      "maps": 0,
+      "segment_files": 100
+     },
+     "probe": {
+      "file": "img_bipbop_adv_example_ts__v2__prog_index.m3u8.ffprobe.json",
+      "exit_code": 0,
+      "stream": {
+       "codec_name": "h264",
+       "profile": "High",
+       "width": 480,
+       "height": 270,
+       "pix_fmt": "yuv420p",
+       "color_range": null,
+       "color_space": null,
+       "color_primaries": null,
+       "color_transfer": null,
+       "field_order": null,
+       "r_frame_rate": "30/1",
+       "avg_frame_rate": "30/1",
+       "time_base": "1/90000",
+       "start_time": "10.033333"
+      },
+      "error": null
+     }
+    }
+   ]
+  }
+ ]
+}

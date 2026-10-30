@@ -1,0 +1,2 @@
+[INFO]  VMAFAnalyzer: 10 frames  mean=61.98  min=60.98  p5=60.98  [Analysis]
+mirage_vmaf: 10 frame pairs scored, report written to mirage.json

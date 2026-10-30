@@ -1,0 +1,2 @@
+# gear1_vs_gear5: the command eval/consistency/ladder_check.py ran, in <out_dir>/gear1_vs_gear5. Its stderr log is kept xz-compressed (mirage.stderr.log.xz), as is a report over 1 MiB (mirage.json.xz).
+$ <mirage_vmaf> --ref https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear5/prog_index.m3u8 --dis https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear1/prog_index.m3u8 --out mirage.json --frames 300 --scaler bicubic --model vmaf_v0.6.1 > mirage.stdout.txt 2> mirage.stderr.log

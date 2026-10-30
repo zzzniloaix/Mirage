@@ -1,0 +1,7 @@
+  Stream #0:0: Video: rawvideo, 1 reference frame (I420 / 0x30323449), yuv420p(pc, smpte170m/unknown/unknown, progressive), 640x360, SAR 1:1 DAR 16:9, 29.97 fps, 29.97 tbr, 1k tbn
+  Stream #1:0: Video: rawvideo, 1 reference frame (I420 / 0x30323449), yuv420p(tv, bt709/unknown/unknown, progressive), 1920x1080, SAR 1:1 DAR 16:9, 29.97 fps, 29.97 tbr, 1k tbn
+[graph 0 input from stream 0:0 @ 0x8f500d680] w:640 h:360 pixfmt:yuv420p tb:1/1000 fr:30000/1001 sar:1/1 csp:smpte170m range:pc alpha:unspecified
+[graph 0 input from stream 1:0 @ 0x8f500d800] w:1920 h:1080 pixfmt:yuv420p tb:1/1000 fr:30000/1001 sar:1/1 csp:bt709 range:tv alpha:unspecified
+[Parsed_scale_1 @ 0x8f500d200] w:640 h:360 fmt:yuv420p csp:smpte170m range:pc sar:1/1 -> w:1920 h:1080 fmt:yuv420p csp:bt709 range:tv sar:1/1 flags:0x00000002
+[swscaler @ 0x8f57e4000] YUV color matrix differs for YUV->YUV, using intermediate RGB to convert
+  Stream #0:0: Video: wrapped_avframe, 1 reference frame, yuv420p(tv, bt709/unknown/unknown, progressive), 1920x1080 [SAR 1:1 DAR 16:9], q=2-31, 200 kb/s, 29.97 fps, 29.97 tbn

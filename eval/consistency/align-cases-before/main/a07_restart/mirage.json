@@ -1,0 +1,37 @@
+{
+  "tool": "mirage_vmaf",
+  "reference_mode": "explicit-pair",
+  "libvmaf_version": "3.0.0",
+  "libvmaf_package_version": "3.1.0",
+  "ffmpeg_libraries": {"libavutil": "60.26.101", "libavcodec": "62.28.101", "libavformat": "62.12.101", "libswscale": "9.5.101", "libavfilter": "11.14.101"},
+  "config_file": null,
+  "model": "vmaf_v0.6.1",
+  "model_source": "built-in",
+  "model_sha256": null,
+  "scaler": "bicubic",
+  "n_threads": 4,
+  "n_subsample": 1,
+  "scored_as": {"width": 1920, "height": 1080, "pix_fmt": "yuv420p", "bit_depth": 8},
+  "dis_conversion": [
+    {"from": {"color_space": "bt709", "color_range": "tv"}, "to": {"color_space": "bt709", "color_range": "tv"}, "matrix_changed": false, "range_changed": false, "first_index": 0, "pairs": 10}
+  ],
+  "ref_conversion": [],
+  "warnings": [],
+  "frame_limit": null,
+  "frames_scored": 10,
+  "pooled": {"mean": 72.60122643958476, "harmonic_mean": 72.59494424096587, "min": 70.62378907263775, "min_without_first_frame": 72.56764232032896, "p1": 70.79873586492995, "p5": 71.4985230340988, "p10": 72.37325699555984, "p25": 72.69004896695625, "p50": 72.81999983633055},
+  "ref": {"url": "<tmp>/align_clips/ref_ts.ts", "width": 1920, "height": 1080, "pix_fmt": "yuv420p", "color_space": "bt709", "color_range": "tv", "color_primaries": "unknown", "color_trc": "unknown", "time_base": "1/90000", "ended": true},
+  "dis": {"url": "<tmp>/align_clips/dis_ts_restart5.ts", "width": 640, "height": 360, "pix_fmt": "yuv420p", "color_space": "bt709", "color_range": "tv", "color_primaries": "unknown", "color_trc": "unknown", "time_base": "1/90000", "ended": true},
+  "frames": [
+    {"index": 0, "ref_pts": 1.4333666666666667, "dis_pts": 1.4333666666666667, "vmaf": 70.62378907263775},
+    {"index": 1, "ref_pts": 1.4667333333333332, "dis_pts": 1.4667333333333332, "vmaf": 72.81585666341999},
+    {"index": 2, "ref_pts": 1.5001, "dis_pts": 1.5001, "vmaf": 72.92989326293412},
+    {"index": 3, "ref_pts": 1.5334666666666668, "dis_pts": 1.5334666666666668, "vmaf": 72.68182488026352},
+    {"index": 4, "ref_pts": 1.5668333333333333, "dis_pts": 1.5668333333333333, "vmaf": 72.92635927208428},
+    {"index": 5, "ref_pts": 1.6002, "dis_pts": 1.4333666666666667, "vmaf": 73.05204366057255},
+    {"index": 6, "ref_pts": 1.6335666666666666, "dis_pts": 1.4667333333333332, "vmaf": 72.82414300924111},
+    {"index": 7, "ref_pts": 1.6669333333333334, "dis_pts": 1.5001, "vmaf": 72.56764232032896},
+    {"index": 8, "ref_pts": 1.7003, "dis_pts": 1.5334666666666668, "vmaf": 72.87599102733078},
+    {"index": 9, "ref_pts": 1.7336666666666667, "dis_pts": 1.5668333333333333, "vmaf": 72.71472122703446}
+  ]
+}

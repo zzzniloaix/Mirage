@@ -1,0 +1,17 @@
+# The mirage_vmaf of the runs in this directory, as checked right before them, from <repo>.
+# Stage 1 of Phase 1 built build/macos-release at 83c8ed6.
+$ git rev-parse HEAD
+ff98a1320b7f258a0856c3c8ba341b63c750d85a
+
+$ git status --porcelain
+(no output)
+
+$ git diff --stat 83c8ed6 HEAD -- src tools tests CMakeLists.txt CMakePresets.json vcpkg.json
+(no output)
+
+$ cmake --build --preset macos-release --target mirage_vmaf
+ninja: no work to do.
+
+$ shasum -a 256 build/macos-release/mirage_vmaf
+4bb0fc2bec6bd240463e3f183204c426bbff1652eadd342733917d8fc58f84c0  build/macos-release/mirage_vmaf
+

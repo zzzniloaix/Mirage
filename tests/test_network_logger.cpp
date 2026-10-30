@@ -2,6 +2,7 @@
 #include <catch2/matchers/catch_matchers_string.hpp>
 
 #include "NetworkLogger.h"
+#include "TestTemp.h"
 
 using namespace Catch::Matchers;
 
@@ -845,7 +846,7 @@ std::vector<NetRequest> inspector_requests(const NetworkLogger& log)
 TEST_CASE("NetProbe — fetches as inspector requests whose bodies the logger keeps", "[network_logger][probe]")
 {
     namespace fs = std::filesystem;
-    const fs::path dir = fs::temp_directory_path() / "mirage_test_net_probe";
+    const fs::path dir = testtemp::path("mirage_test_net_probe");
     fs::remove_all(dir);
     fs::create_directories(dir);
     const std::string seg = pattern(200000, 3);
@@ -908,7 +909,7 @@ TEST_CASE("NetworkLogger bodies — a local file read from a seek keeps its offs
     // hls.c opens a local EXT-X-BYTERANGE segment and seeks to its offset
     // (no Range header to log): the row's range is where the body begins.
     namespace fs = std::filesystem;
-    const fs::path dir = fs::temp_directory_path() / "mirage_test_local_range";
+    const fs::path dir = testtemp::path("mirage_test_local_range");
     fs::remove_all(dir);
     fs::create_directories(dir);
     const std::string data = pattern(300000, 5);

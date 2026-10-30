@@ -1,0 +1,38 @@
+# Color tag cases that FFmpeg's section 5 graph scores (docs/DECISIONS.md D-016).
+# Made by eval/consistency/color_cases.py; <label> <reference> <distorted>. The cases:
+#   m01_bt709_vs_smpte170m: another matrix, as bipbop's gear2 and gear1
+#   m02_bt709_vs_bt709: the same tags, as bipbop's gear4 and gear3
+#   m03_bt709_vs_untagged: a distorted input without matrix and range tags
+#   m04_untagged_vs_bt709: a reference without matrix and range tags
+#   m05_untagged_vs_smpte170m: a reference without tags, a BT.601 distorted input
+#   m06_untagged_vs_untagged: no tags on either input
+#   m07_smpte170m_vs_bt470bg: two names of BT.601
+#   m08_bt2020nc_vs_bt709: a BT.2020 reference
+#   r01_tv_vs_pc: a full range distorted input
+#   r02_pc_vs_tv: a full range reference
+#   r03_norange_vs_pc: a reference without a range tag, a full range distorted input
+#   r04_pc_vs_norange: a full range reference, a distorted input without a range tag
+#   r05_norange_vs_tv: a reference without a range tag, a limited range distorted input
+#   r06_tv_vs_norange: a distorted input without a range tag
+#   x01_bt709tv_vs_smpte170mpc: another matrix and another range
+#   x02_primaries_transfer: other primaries and transfer tags on the distorted input
+#   x03_chroma_topleft: a distorted input tagged with top-left chroma siting
+#   x04_interlaced_tff: a distorted input flagged interlaced, top field first
+m01_bt709_vs_smpte170m <tmp>/clips/ref_bt709-tv.mkv <tmp>/clips/dis_smpte170m-tv.mkv
+m02_bt709_vs_bt709 <tmp>/clips/ref_bt709-tv.mkv <tmp>/clips/dis_bt709-tv.mkv
+m03_bt709_vs_untagged <tmp>/clips/ref_bt709-tv.mkv <tmp>/clips/dis_unknown-unknown.mkv
+m04_untagged_vs_bt709 <tmp>/clips/ref_unknown-unknown.mkv <tmp>/clips/dis_bt709-tv.mkv
+m05_untagged_vs_smpte170m <tmp>/clips/ref_unknown-unknown.mkv <tmp>/clips/dis_smpte170m-tv.mkv
+m06_untagged_vs_untagged <tmp>/clips/ref_unknown-unknown.mkv <tmp>/clips/dis_unknown-unknown.mkv
+m07_smpte170m_vs_bt470bg <tmp>/clips/ref_smpte170m-tv.mkv <tmp>/clips/dis_bt470bg-tv.mkv
+m08_bt2020nc_vs_bt709 <tmp>/clips/ref_bt2020nc-tv.mkv <tmp>/clips/dis_bt709-tv.mkv
+r01_tv_vs_pc <tmp>/clips/ref_bt709-tv.mkv <tmp>/clips/dis_bt709-pc.mkv
+r02_pc_vs_tv <tmp>/clips/ref_bt709-pc.mkv <tmp>/clips/dis_bt709-tv.mkv
+r03_norange_vs_pc <tmp>/clips/ref_bt709-unknown.mkv <tmp>/clips/dis_bt709-pc.mkv
+r04_pc_vs_norange <tmp>/clips/ref_bt709-pc.mkv <tmp>/clips/dis_bt709-unknown.mkv
+r05_norange_vs_tv <tmp>/clips/ref_bt709-unknown.mkv <tmp>/clips/dis_bt709-tv.mkv
+r06_tv_vs_norange <tmp>/clips/ref_bt709-tv.mkv <tmp>/clips/dis_bt709-unknown.mkv
+x01_bt709tv_vs_smpte170mpc <tmp>/clips/ref_bt709-tv.mkv <tmp>/clips/dis_smpte170m-pc.mkv
+x02_primaries_transfer <tmp>/clips/ref_bt709-tv-bt709-bt709.mkv <tmp>/clips/dis_bt709-tv-bt470bg-bt470bg.mkv
+x03_chroma_topleft <tmp>/clips/ref_bt709-tv.mkv <tmp>/clips/dis_bt709-tv-topleft.mkv
+x04_interlaced_tff <tmp>/clips/ref_bt709-tv.mkv <tmp>/clips/dis_bt709-tv-tff.mkv

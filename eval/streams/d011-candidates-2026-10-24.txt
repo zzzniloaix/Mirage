@@ -1,0 +1,384 @@
+# Candidate source clips for D-011 (docs/PHASE1_DECISIONS_PENDING.md, "D-011: the source clips of the self-encoded ladders"; docs/DECISIONS.md P-061): what their official pages and files said on the day of this record. Made from <repo>, each command, then its output; the commands read only the pages, the listings, the headers and the first or last bytes of the files, never a whole clip. Nothing here chooses a clip: that is the owner's (D-011).
+
+# 1. The repository when this record was made: HEAD and the working tree's state.
+
+$ git rev-parse HEAD && git status --porcelain && echo '(end of git status)'
+dd9a0072ebfb476702954b2099b445df85c810a4
+(end of git status)
+
+# 2. The date and time (UTC), and the programs of the commands below.
+
+$ date -u +%Y-%m-%dT%H:%M:%SZ && curl --version | head -n 1 && /opt/homebrew/opt/ffmpeg-full/bin/ffprobe -hide_banner -version | head -n 1 && python3 -I --version
+2026-10-24T18:56:50Z
+curl 8.7.1 (x86_64-apple-darwin25.0) libcurl/8.7.1 (SecureTransport) LibreSSL/3.3.6 zlib/1.2.12 nghttp2/1.67.1
+ffprobe version 8.1.1 Copyright (c) 2007-2026 the FFmpeg developers
+Python 3.14.7
+
+# 3. License statements on the official pages, as each page's sentences that name a license, before any reader comments: Netflix's open content page; SVT's open content page, in Swedish (www.svt.se/open/en/content/ redirects to it); the Blender Foundation's pages of Sintel, Big Buck Bunny and Elephants Dream.
+
+$ echo '== https://opencontent.netflix.com/' && curl -sL --max-time 60 'https://opencontent.netflix.com/' | python3 -I -c 'import html, re, sys
+t = sys.stdin.buffer.read().decode("utf-8", "replace")
+t = re.sub(r"(?s)<script.*?</script>|<style.*?</style>", " ", t)
+t = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", t)))
+t = t.split(" Responses to ")[0]
+for s in re.split(r"(?<=[.!?])\s+(?=[A-Z“\"])", t):
+    if re.search(r"Creative Commons|licen[sc]", s, re.I):
+        print(">", s.strip()[:600])' && echo '== https://svt.github.io/content/' && curl -sL --max-time 60 'https://svt.github.io/content/' | python3 -I -c 'import html, re, sys
+t = sys.stdin.buffer.read().decode("utf-8", "replace")
+t = re.sub(r"(?s)<script.*?</script>|<style.*?</style>", " ", t)
+t = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", t)))
+t = t.split(" Responses to ")[0]
+for s in re.split(r"(?<=[.!?])\s+(?=[A-Z“\"])", t):
+    if re.search(r"Creative Commons|licen[sc]", s, re.I):
+        print(">", s.strip()[:600])' && echo '== https://durian.blender.org/about/' && curl -sL --max-time 60 'https://durian.blender.org/about/' | python3 -I -c 'import html, re, sys
+t = sys.stdin.buffer.read().decode("utf-8", "replace")
+t = re.sub(r"(?s)<script.*?</script>|<style.*?</style>", " ", t)
+t = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", t)))
+t = t.split(" Responses to ")[0]
+for s in re.split(r"(?<=[.!?])\s+(?=[A-Z“\"])", t):
+    if re.search(r"Creative Commons|licen[sc]", s, re.I):
+        print(">", s.strip()[:600])' && echo '== https://peach.blender.org/about/' && curl -sL --max-time 60 'https://peach.blender.org/about/' | python3 -I -c 'import html, re, sys
+t = sys.stdin.buffer.read().decode("utf-8", "replace")
+t = re.sub(r"(?s)<script.*?</script>|<style.*?</style>", " ", t)
+t = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", t)))
+t = t.split(" Responses to ")[0]
+for s in re.split(r"(?<=[.!?])\s+(?=[A-Z“\"])", t):
+    if re.search(r"Creative Commons|licen[sc]", s, re.I):
+        print(">", s.strip()[:600])' && echo '== https://orange.blender.org/blog/creative-commons-license-2/' && curl -sL --max-time 60 'https://orange.blender.org/blog/creative-commons-license-2/' | python3 -I -c 'import html, re, sys
+t = sys.stdin.buffer.read().decode("utf-8", "replace")
+t = re.sub(r"(?s)<script.*?</script>|<style.*?</style>", " ", t)
+t = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", t)))
+t = t.split(" Responses to ")[0]
+for s in re.split(r"(?<=[.!?])\s+(?=[A-Z“\"])", t):
+    if re.search(r"Creative Commons|licen[sc]", s, re.I):
+        print(">", s.strip()[:600])'
+== https://opencontent.netflix.com/
+> To provide a common reference for prototyping bleeding-edge technologies within entertainment, technology and academic circles without compromising the security of our original and licensed programming, we've developed test titles oriented around documentary, live action, and animation.
+> Our open source content is available under the Creative Commons Attribution 4.0 International Public License .
+> Download a single file (0.7 kB): Usage: aws s3 cp --no-sign-request <s3 URI> <local destination> Example: aws s3 cp --no-sign-request s3://download.opencontent.netflix.com/TechblogAssets/Sparks/sparks_license.txt .
+== https://svt.github.io/content/
+> Materialet kan delas, modifieras och användas fritt bara man följer villkoren i Creative Commons-license som materialet är släppt under.
+> Copyright SVT Open Content Video Test Suite 2022 - Natural Complexity är licensierat under Creative Commons Attribution 4.0 International License .
+== https://durian.blender.org/about/
+> “Sintel” is licensed as Creative Commons Attribution 3.0.
+> The movie itself, and all of the work of the Durian team in the past 18 months will be released under the Creative Commons Attribution license, free for everyone to distribute, learn from or re-use.
+> All of tools we use here for the film are open source, and everything we create, including the final result, is being delivered as free and open content under Creative Commons Attribution.
+== https://peach.blender.org/about/
+> Big Buck Bunny » About Trailer Team Press Gallery Events Download About About License information The results of the Peach open movie project has been licensed under the Creative Commons Attribution 3.0 license.
+> If any content on this site is not licensed as such, it will be clearly indicated.
+> The attribution is either one of the following cases 1) For this website and files on the DVD ROMs: Blender Foundation | www.blender.org 2) If you screen or broadcast the entire movie and/or documentary: Include the entire credits roll in ending. 3) If you re-use (or screen, broadcast) parts of the movie or documentary itself, or duplicate the DVDs: (c) copyright 2008, Blender Foundation / www.bigbuckbunny.org 4) Some of the texture files on the DVDs have an own Creative Commons attribution, these are indicated clearly.
+> Excluded from the Creative Commons is: – all logos on this website (including Blender logo, Creative Commons logo) and associated trademarks – the DVD cover (inlay) and DVD disc print Examples You are free to duplicate the DVDs and distribute or sell them, but in that case you have to make your own cover art and DVD prints for it, with of course the proper attribution as mentioned above in 3).
+> Peach Targets This Open movie project had as main targets: Developing tools in Blender for editing and rendering hair, fur or grass Improve character animation tools for cartoonish motion and deformation Test Blender with giant outdoor environments, with large grassy fields and many trees with leaves Further validate Blender as a professional animation creation suite And secondary: Create a great and good looking animation short, licensed freely as open content Provide content for other artists to learn from or to re-use, including documentation and tutorials And of course: Have lots of fun!
+== https://orange.blender.org/blog/creative-commons-license-2/
+> Elephants Dream » Archive » Creative Commons license 18 Apr Creative Commons license / by Ton The movie “Elephants Dream” and all data on the DVDs and almost all of the contents on this website is licensed under the Creative Commons Attribution license.
+> The attribution is either one of the following cases 1) For the orange.blender.org website and files on the DVD ROMs: Blender Foundation | www.blender.org 2) If you screen or broadcast the entire movie and/or documentary: Include the entire credits roll in ending. 3) If you re-use (or screen, broadcast) parts of the movie or documentary itself, or duplicate the DVDs: (c) copyright 2006, Blender Foundation / Netherlands Media Art Institute / www.elephantsdream.org 4) Some of the texture files on the DVDs have an own Creative Commons attribution, these are indicated clearly. 5) The additional so
+> Excluded from the Creative Commons is: – all logos on this website (including Blender logo, Orange logo, Creative Commons logo) and associated trademarks – the DVD cover (inlay) and DVD disc print Examples You are free to duplicate the DVDs and distribute or sell them, but in that case you have to make your own cover art and DVD prints for it, with of course the proper attribution as mentioned above in 3).
+
+# 4. Netflix's bucket, El Fuente: its files with their sizes in bytes (the S3 listing), and the first lines of the license file it holds.
+
+$ curl -s --max-time 60 'http://download.opencontent.netflix.com.s3.amazonaws.com/?prefix=ElFuente/' | python3 -I -c 'import re, sys
+for k, s in re.findall(r"<Key>([^<]+)</Key>.*?<Size>(\d+)</Size>", sys.stdin.read()):
+    print(k, s)' && curl -s --max-time 60 'http://download.opencontent.netflix.com.s3.amazonaws.com/ElFuente/creative-commons-attribution-4-intl-public-license.txt' | head -n 5
+ElFuente/ 0
+ElFuente/Netflix_Boat_4096x2160_60fps_10bit_420.y4m 7962625844
+ElFuente/Netflix_FoodMarket_4096x2160_60fps_10bit_420.y4m 15925251644
+ElFuente/creative-commons-attribution-4-intl-public-license.txt 105020
+ElFuente/subtitles/ 0
+ElFuente/subtitles/El_Fuente_da.stl 2688
+ElFuente/subtitles/El_Fuente_en.stl 2688
+ElFuente/subtitles/El_Fuente_es.stl 2688
+ElFuente/subtitles/El_Fuente_fi.stl 2688
+ElFuente/subtitles/El_Fuente_nb.stl 2816
+ElFuente/subtitles/El_Fuente_nl.stl 2816
+ElFuente/subtitles/El_Fuente_pt-BR.stl 2816
+ElFuente/subtitles/El_Fuente_sv.stl 2688
+Our open source content is available under the Creative Commons Attribution 4.0 International Public License. The license is included in its entirety in this file.
+
+English, Spanish, Portuguese, Chinese (simplified, traditional), Japanese, and Korean are included in this text file. Go to creativecommons.org for additional translations and FAQs related to translations. 
+
+--
+
+# 5. The copyright files that Xiph.org's test media collection holds next to its copies of the same two El Fuente sequences.
+
+$ echo '== https://media.xiph.org/video/derf/ElFuente/Netflix_Boat_Copyright.txt' && curl -s --max-time 60 'https://media.xiph.org/video/derf/ElFuente/Netflix_Boat_Copyright.txt' && echo '== https://media.xiph.org/video/derf/ElFuente/Netflix_FoodMarket_Copyright.txt' && curl -s --max-time 60 'https://media.xiph.org/video/derf/ElFuente/Netflix_FoodMarket_Copyright.txt'
+== https://media.xiph.org/video/derf/ElFuente/Netflix_Boat_Copyright.txt
+Digital Video Sequence "Boat"
+Copyright (C)  NETFLIX INC.  2015 
+
+4096x2160p, 10-bit, YCbCr 4:2:0, BT.709, 59.94 fps, 300 frames 
+
+COPYRIGHT AND LICENSE INFORMATION
+December, 2015
+
+NETFLIX INC.
+100 Winchester Circle, Los Gatos, CA 95032, USA
+
+The video sequence provided above and all intellectual property rights therein 
+remain the property of Netflix Inc. This video sequence is licensed under the 
+Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International 
+License. To view a copy of this license, visit 
+http://creativecommons.org/licenses/by-nc-nd/4.0/ 
+== https://media.xiph.org/video/derf/ElFuente/Netflix_FoodMarket_Copyright.txt
+Digital Video Sequence "Food Market"
+Copyright (C)  NETFLIX INC.  2015 
+
+4096x2160p, 10-bit, YCbCr 4:2:0, BT.709, 59.94 fps, 600 frames 
+
+COPYRIGHT AND LICENSE INFORMATION
+December, 2015
+
+NETFLIX INC.
+100 Winchester Circle, Los Gatos, CA 95032, USA
+
+The video sequence provided above and all intellectual property rights therein 
+remain the property of Netflix Inc. This video sequence is licensed under the 
+Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International 
+License. To view a copy of this license, visit 
+http://creativecommons.org/licenses/by-nc-nd/4.0/ 
+
+# 6. SVT's FTP server: the SDR (REC709) directory of the Natural Complexity suite, and the SHA-256 list it holds.
+
+$ curl -s --max-time 60 'ftp://svtopencontent.svt.se/pub/svt_videotestsuite_natural_complexity/REC709/' && curl -s --max-time 60 'ftp://svtopencontent.svt.se/pub/svt_videotestsuite_natural_complexity/REC709/sha256Sum.sha256'
+-rwxrw-r--    1 65534    60000    50277463796 Feb 14  2022 SVT-VIDEO-QUALITY-TEST.mov
+-rwxrw-r--    1 65534    60000    52722599566 Feb 14  2022 forest_lake_JPEG2000_SDR_3840x2160p50_YUV444_12bit_Lossless.mov
+-rw-rw-rw-    1 65534    60000         659 Apr 14  2022 md5Sum.md5
+-rwxrw-r--    1 65534    60000    51085968628 Feb 14  2022 midnight_sun_JPEG2000_SDR_3840x2160p50_YUV444_12bit_Lossless.mov
+-rwxrwxr-x    1 65534    60000    61549067624 Oct 14  2022 natural_complexity_JPEG2000_SDR_3840x2160p50_YUV444_12bit_Lossless.mov
+-rw-rw-rw-    1 65534    60000         883 Apr 14  2022 sha256Sum.sha256
+-rwxrw-r--    1 65534    60000    65988294935 Feb 14  2022 smithy_JPEG2000_SDR_3840x2160p50_YUV444_12bit_Lossless.mov
+-rwxrw-r--    1 65534    60000    42688158218 Feb 17  2022 smoke_sauna_JPEG2000_SDR_3840x2160p50_YUV444_12bit_Lossless.mov
+-rwxrw-r--    1 65534    60000    25453765853 Feb 14  2022 water_flyover_JPEG2000_SDR_3840x2160p50_YUV444_12bit_Lossless.mov
+-rwxrw-r--    1 65534    60000    66660052808 Feb 14  2022 waterfall_JPEG2000_SDR_3840x2160p50_YUV444_12bit_Lossless.mov
+0274b068d1e9307fb254cfd427df3babec4d1b250d5f0b369deea2a3d7fe1541  ./water_flyover_JPEG2000_SDR_3840x2160p50_YUV444_12bit_Lossless.mov
+c9059dd820c2394b9ccb9cb217c60b60e31993dd86932151d492d61cd4e69562  ./waterfall_JPEG2000_SDR_3840x2160p50_YUV444_12bit_Lossless.mov
+bc0a0eebc2b24415bfee7d49dfd93887e37d2b35ce39082d366a44ce8eb140d3  ./smithy_JPEG2000_SDR_3840x2160p50_YUV444_12bit_Lossless.mov
+0d46635fa95c12d17752ec43dbb5e32ae8701e5ebffd5f61f1a56a59dc9ffd62  ./midnight_sun_JPEG2000_SDR_3840x2160p50_YUV444_12bit_Lossless.mov
+01cbd19b6518b5b2869be74f71d74b3cf00285e9a41f08f776aa181fbd62860b  ./forest_lake_JPEG2000_SDR_3840x2160p50_YUV444_12bit_Lossless.mov
+c1ba6a7848ab078a60c0adcd6ac8dc02c2d408d75921b2573fd817df3f803b45  ./SVT-VIDEO-QUALITY-TEST.mov
+b5fed076e929e8b6a80f82260bc39be53e1e832dcb1923527b799ad3c5d32a52  ./smoke_sauna_JPEG2000_SDR_3840x2160p50_YUV444_12bit_Lossless.mov
+
+# 7. Three of the SDR sequences, as ffprobe reads them over FTP (the container's header and the first frames ffprobe reads to find the stream parameters).
+
+$ echo '== water_flyover' && /opt/homebrew/opt/ffmpeg-full/bin/ffprobe -v error -show_entries 'format=format_name,duration,size,bit_rate:stream=index,codec_type,codec_name,codec_tag_string,width,height,pix_fmt,bits_per_raw_sample,color_range,color_space,color_transfer,color_primaries,field_order,r_frame_rate,avg_frame_rate,nb_frames,duration' -of compact 'ftp://svtopencontent.svt.se/pub/svt_videotestsuite_natural_complexity/REC709/water_flyover_JPEG2000_SDR_3840x2160p50_YUV444_12bit_Lossless.mov' && echo '== smoke_sauna' && /opt/homebrew/opt/ffmpeg-full/bin/ffprobe -v error -show_entries 'format=format_name,duration,size,bit_rate:stream=index,codec_type,codec_name,codec_tag_string,width,height,pix_fmt,bits_per_raw_sample,color_range,color_space,color_transfer,color_primaries,field_order,r_frame_rate,avg_frame_rate,nb_frames,duration' -of compact 'ftp://svtopencontent.svt.se/pub/svt_videotestsuite_natural_complexity/REC709/smoke_sauna_JPEG2000_SDR_3840x2160p50_YUV444_12bit_Lossless.mov' && echo '== forest_lake' && /opt/homebrew/opt/ffmpeg-full/bin/ffprobe -v error -show_entries 'format=format_name,duration,size,bit_rate:stream=index,codec_type,codec_name,codec_tag_string,width,height,pix_fmt,bits_per_raw_sample,color_range,color_space,color_transfer,color_primaries,field_order,r_frame_rate,avg_frame_rate,nb_frames,duration' -of compact 'ftp://svtopencontent.svt.se/pub/svt_videotestsuite_natural_complexity/REC709/forest_lake_JPEG2000_SDR_3840x2160p50_YUV444_12bit_Lossless.mov'
+== water_flyover
+stream|index=0|codec_name=jpeg2000|codec_type=video|codec_tag_string=mjp2|width=3840|height=2160|pix_fmt=yuv444p12le|color_range=unknown|color_space=bt709|color_transfer=unknown|color_primaries=bt709|field_order=progressive|r_frame_rate=50/1|avg_frame_rate=50/1|duration=30.000000|bits_per_raw_sample=12|nb_frames=1500
+stream|index=1|codec_name=unknown|codec_type=data|codec_tag_string=tmcd|r_frame_rate=0/0|avg_frame_rate=12800/256|duration=30.000000|bits_per_raw_sample=N/A|nb_frames=1
+format|format_name=mov,mp4,m4a,3gp,3g2,mj2|duration=30.000000|size=25453765853|bit_rate=6787670894
+== smoke_sauna
+stream|index=0|codec_name=jpeg2000|codec_type=video|codec_tag_string=mjp2|width=3840|height=2160|pix_fmt=yuv444p12le|color_range=unknown|color_space=bt709|color_transfer=unknown|color_primaries=bt709|field_order=progressive|r_frame_rate=50/1|avg_frame_rate=50/1|duration=60.000000|bits_per_raw_sample=12|nb_frames=3000
+stream|index=1|codec_name=unknown|codec_type=data|codec_tag_string=tmcd|r_frame_rate=0/0|avg_frame_rate=12800/256|duration=60.000000|bits_per_raw_sample=N/A|nb_frames=1
+format|format_name=mov,mp4,m4a,3gp,3g2,mj2|duration=60.000000|size=42688158218|bit_rate=5691754429
+== forest_lake
+stream|index=0|codec_name=jpeg2000|codec_type=video|codec_tag_string=mjp2|width=3840|height=2160|pix_fmt=yuv444p12le|color_range=unknown|color_space=bt709|color_transfer=unknown|color_primaries=bt709|field_order=progressive|r_frame_rate=50/1|avg_frame_rate=50/1|duration=60.000000|bits_per_raw_sample=12|nb_frames=3000
+stream|index=1|codec_name=unknown|codec_type=data|codec_tag_string=tmcd|r_frame_rate=0/0|avg_frame_rate=12800/256|duration=60.000000|bits_per_raw_sample=N/A|nb_frames=1
+format|format_name=mov,mp4,m4a,3gp,3g2,mj2|duration=60.000000|size=52722599566|bit_rate=7029679942
+
+# 8. The YUV4MPEG2 files: each header line, read from the file's first bytes (for an .xz file decompressed from its first 256 KiB), the uncompressed size (for an .xz file from its index, read from its last bytes), and the frames that size holds. In YUV4MPEG2 'W' and 'H' are the size, 'F' the frame rate, 'I' the interlacing ('p' progressive), 'A' the pixel aspect ratio and 'C' the chroma format and bit depth ('420jpeg' is 8-bit 4:2:0); the format has no field for a color matrix, range, primaries or transfer.
+
+$ echo '== http://download.opencontent.netflix.com.s3.amazonaws.com/ElFuente/Netflix_Boat_4096x2160_60fps_10bit_420.y4m' && python3 -I -c 'import lzma, sys, urllib.request
+u = sys.argv[1]
+def get(a, b):
+    r = urllib.request.urlopen(urllib.request.Request(u, headers={"Range": f"bytes={a}-{b}"}), timeout=120)
+    return r.read(), int(r.headers["Content-Range"].rsplit("/", 1)[1])
+data, size = get(0, 262143)
+if u.endswith(".xz"):
+    head = lzma.LZMADecompressor().decompress(data).split(b"\n")[0].decode()
+    foot, _ = get(size - 12, size - 1)
+    assert foot[10:12] == b"YZ"
+    isize = (int.from_bytes(foot[4:8], "little") + 1) * 4
+    idx, _ = get(size - 12 - isize, size - 13)
+    def varint(b, i):
+        v = s = 0
+        while True:
+            c = b[i]; i += 1; v |= (c & 0x7F) << s; s += 7
+            if not c & 0x80:
+                return v, i
+    n, i = varint(idx, 1)
+    total = 0
+    for _ in range(n):
+        _, i = varint(idx, i); usize, i = varint(idx, i); total += usize
+    print("xz: bytes", size, "| blocks in its index", n, "| uncompressed bytes", total)
+else:
+    head = data.split(b"\n")[0].decode()
+    total = size
+f = {t[0]: t[1:] for t in head.split()[1:]}
+c = f.get("C", "420jpeg")
+bits = 10 if c.endswith("p10") else 12 if c.endswith("p12") else 8
+frame = int(int(f["W"]) * int(f["H"]) * {"420": 1.5, "422": 2, "444": 3}[c[:3]]) * (2 if bits > 8 else 1)
+n, rest = divmod(total - len(head) - 1, frame + 6)
+print(head, "| uncompressed bytes", total, "| bytes per picture", frame, "| frames", n, "| bytes left over", rest)' http://download.opencontent.netflix.com.s3.amazonaws.com/ElFuente/Netflix_Boat_4096x2160_60fps_10bit_420.y4m && echo '== http://download.opencontent.netflix.com.s3.amazonaws.com/ElFuente/Netflix_FoodMarket_4096x2160_60fps_10bit_420.y4m' && python3 -I -c 'import lzma, sys, urllib.request
+u = sys.argv[1]
+def get(a, b):
+    r = urllib.request.urlopen(urllib.request.Request(u, headers={"Range": f"bytes={a}-{b}"}), timeout=120)
+    return r.read(), int(r.headers["Content-Range"].rsplit("/", 1)[1])
+data, size = get(0, 262143)
+if u.endswith(".xz"):
+    head = lzma.LZMADecompressor().decompress(data).split(b"\n")[0].decode()
+    foot, _ = get(size - 12, size - 1)
+    assert foot[10:12] == b"YZ"
+    isize = (int.from_bytes(foot[4:8], "little") + 1) * 4
+    idx, _ = get(size - 12 - isize, size - 13)
+    def varint(b, i):
+        v = s = 0
+        while True:
+            c = b[i]; i += 1; v |= (c & 0x7F) << s; s += 7
+            if not c & 0x80:
+                return v, i
+    n, i = varint(idx, 1)
+    total = 0
+    for _ in range(n):
+        _, i = varint(idx, i); usize, i = varint(idx, i); total += usize
+    print("xz: bytes", size, "| blocks in its index", n, "| uncompressed bytes", total)
+else:
+    head = data.split(b"\n")[0].decode()
+    total = size
+f = {t[0]: t[1:] for t in head.split()[1:]}
+c = f.get("C", "420jpeg")
+bits = 10 if c.endswith("p10") else 12 if c.endswith("p12") else 8
+frame = int(int(f["W"]) * int(f["H"]) * {"420": 1.5, "422": 2, "444": 3}[c[:3]]) * (2 if bits > 8 else 1)
+n, rest = divmod(total - len(head) - 1, frame + 6)
+print(head, "| uncompressed bytes", total, "| bytes per picture", frame, "| frames", n, "| bytes left over", rest)' http://download.opencontent.netflix.com.s3.amazonaws.com/ElFuente/Netflix_FoodMarket_4096x2160_60fps_10bit_420.y4m && echo '== https://media.xiph.org/video/derf/y4m/sintel_trailer_2k_1080p24.y4m' && python3 -I -c 'import lzma, sys, urllib.request
+u = sys.argv[1]
+def get(a, b):
+    r = urllib.request.urlopen(urllib.request.Request(u, headers={"Range": f"bytes={a}-{b}"}), timeout=120)
+    return r.read(), int(r.headers["Content-Range"].rsplit("/", 1)[1])
+data, size = get(0, 262143)
+if u.endswith(".xz"):
+    head = lzma.LZMADecompressor().decompress(data).split(b"\n")[0].decode()
+    foot, _ = get(size - 12, size - 1)
+    assert foot[10:12] == b"YZ"
+    isize = (int.from_bytes(foot[4:8], "little") + 1) * 4
+    idx, _ = get(size - 12 - isize, size - 13)
+    def varint(b, i):
+        v = s = 0
+        while True:
+            c = b[i]; i += 1; v |= (c & 0x7F) << s; s += 7
+            if not c & 0x80:
+                return v, i
+    n, i = varint(idx, 1)
+    total = 0
+    for _ in range(n):
+        _, i = varint(idx, i); usize, i = varint(idx, i); total += usize
+    print("xz: bytes", size, "| blocks in its index", n, "| uncompressed bytes", total)
+else:
+    head = data.split(b"\n")[0].decode()
+    total = size
+f = {t[0]: t[1:] for t in head.split()[1:]}
+c = f.get("C", "420jpeg")
+bits = 10 if c.endswith("p10") else 12 if c.endswith("p12") else 8
+frame = int(int(f["W"]) * int(f["H"]) * {"420": 1.5, "422": 2, "444": 3}[c[:3]]) * (2 if bits > 8 else 1)
+n, rest = divmod(total - len(head) - 1, frame + 6)
+print(head, "| uncompressed bytes", total, "| bytes per picture", frame, "| frames", n, "| bytes left over", rest)' https://media.xiph.org/video/derf/y4m/sintel_trailer_2k_1080p24.y4m && echo '== https://media.xiph.org/video/derf/y4m/big_buck_bunny_1080p24.y4m.xz' && python3 -I -c 'import lzma, sys, urllib.request
+u = sys.argv[1]
+def get(a, b):
+    r = urllib.request.urlopen(urllib.request.Request(u, headers={"Range": f"bytes={a}-{b}"}), timeout=120)
+    return r.read(), int(r.headers["Content-Range"].rsplit("/", 1)[1])
+data, size = get(0, 262143)
+if u.endswith(".xz"):
+    head = lzma.LZMADecompressor().decompress(data).split(b"\n")[0].decode()
+    foot, _ = get(size - 12, size - 1)
+    assert foot[10:12] == b"YZ"
+    isize = (int.from_bytes(foot[4:8], "little") + 1) * 4
+    idx, _ = get(size - 12 - isize, size - 13)
+    def varint(b, i):
+        v = s = 0
+        while True:
+            c = b[i]; i += 1; v |= (c & 0x7F) << s; s += 7
+            if not c & 0x80:
+                return v, i
+    n, i = varint(idx, 1)
+    total = 0
+    for _ in range(n):
+        _, i = varint(idx, i); usize, i = varint(idx, i); total += usize
+    print("xz: bytes", size, "| blocks in its index", n, "| uncompressed bytes", total)
+else:
+    head = data.split(b"\n")[0].decode()
+    total = size
+f = {t[0]: t[1:] for t in head.split()[1:]}
+c = f.get("C", "420jpeg")
+bits = 10 if c.endswith("p10") else 12 if c.endswith("p12") else 8
+frame = int(int(f["W"]) * int(f["H"]) * {"420": 1.5, "422": 2, "444": 3}[c[:3]]) * (2 if bits > 8 else 1)
+n, rest = divmod(total - len(head) - 1, frame + 6)
+print(head, "| uncompressed bytes", total, "| bytes per picture", frame, "| frames", n, "| bytes left over", rest)' https://media.xiph.org/video/derf/y4m/big_buck_bunny_1080p24.y4m.xz && echo '== https://media.xiph.org/video/derf/y4m/elephants_dream_1080p24.y4m.xz' && python3 -I -c 'import lzma, sys, urllib.request
+u = sys.argv[1]
+def get(a, b):
+    r = urllib.request.urlopen(urllib.request.Request(u, headers={"Range": f"bytes={a}-{b}"}), timeout=120)
+    return r.read(), int(r.headers["Content-Range"].rsplit("/", 1)[1])
+data, size = get(0, 262143)
+if u.endswith(".xz"):
+    head = lzma.LZMADecompressor().decompress(data).split(b"\n")[0].decode()
+    foot, _ = get(size - 12, size - 1)
+    assert foot[10:12] == b"YZ"
+    isize = (int.from_bytes(foot[4:8], "little") + 1) * 4
+    idx, _ = get(size - 12 - isize, size - 13)
+    def varint(b, i):
+        v = s = 0
+        while True:
+            c = b[i]; i += 1; v |= (c & 0x7F) << s; s += 7
+            if not c & 0x80:
+                return v, i
+    n, i = varint(idx, 1)
+    total = 0
+    for _ in range(n):
+        _, i = varint(idx, i); usize, i = varint(idx, i); total += usize
+    print("xz: bytes", size, "| blocks in its index", n, "| uncompressed bytes", total)
+else:
+    head = data.split(b"\n")[0].decode()
+    total = size
+f = {t[0]: t[1:] for t in head.split()[1:]}
+c = f.get("C", "420jpeg")
+bits = 10 if c.endswith("p10") else 12 if c.endswith("p12") else 8
+frame = int(int(f["W"]) * int(f["H"]) * {"420": 1.5, "422": 2, "444": 3}[c[:3]]) * (2 if bits > 8 else 1)
+n, rest = divmod(total - len(head) - 1, frame + 6)
+print(head, "| uncompressed bytes", total, "| bytes per picture", frame, "| frames", n, "| bytes left over", rest)' https://media.xiph.org/video/derf/y4m/elephants_dream_1080p24.y4m.xz
+== http://download.opencontent.netflix.com.s3.amazonaws.com/ElFuente/Netflix_Boat_4096x2160_60fps_10bit_420.y4m
+YUV4MPEG2 W4096 H2160 F60:1 Ip A1:1 C420p10 | uncompressed bytes 7962625844 | bytes per picture 26542080 | frames 300 | bytes left over 0
+== http://download.opencontent.netflix.com.s3.amazonaws.com/ElFuente/Netflix_FoodMarket_4096x2160_60fps_10bit_420.y4m
+YUV4MPEG2 W4096 H2160 F60:1 Ip A1:1 C420p10 | uncompressed bytes 15925251644 | bytes per picture 26542080 | frames 600 | bytes left over 0
+== https://media.xiph.org/video/derf/y4m/sintel_trailer_2k_1080p24.y4m
+YUV4MPEG2 C420jpeg W1920 H1080 F24:1 Ip A1:1 | uncompressed bytes 3897338763 | bytes per picture 3110400 | frames 1253 | bytes left over 0
+== https://media.xiph.org/video/derf/y4m/big_buck_bunny_1080p24.y4m.xz
+xz: bytes 10842485720 | blocks in its index 1 | uncompressed bytes 44525461935
+YUV4MPEG2 C420jpeg W1920 H1080 F24:1 Ip A1:1 | uncompressed bytes 44525461935 | bytes per picture 3110400 | frames 14315 | bytes left over 0
+== https://media.xiph.org/video/derf/y4m/elephants_dream_1080p24.y4m.xz
+xz: bytes 7656985024 | blocks in its index 1 | uncompressed bytes 48805380591
+YUV4MPEG2 C420jpeg W1920 H1080 F24:1 Ip A1:1 | uncompressed bytes 48805380591 | bytes per picture 3110400 | frames 15691 | bytes left over 0
+
+# 9. The HTTP headers of each file: its size, last modification and entity tag, which identify the content a later download should get.
+
+$ echo '== http://download.opencontent.netflix.com.s3.amazonaws.com/ElFuente/Netflix_Boat_4096x2160_60fps_10bit_420.y4m' && curl -sI --max-time 60 'http://download.opencontent.netflix.com.s3.amazonaws.com/ElFuente/Netflix_Boat_4096x2160_60fps_10bit_420.y4m' | tr -d '\r' | grep -i -E '^(HTTP/|content-length|last-modified|etag)' && echo '== http://download.opencontent.netflix.com.s3.amazonaws.com/ElFuente/Netflix_FoodMarket_4096x2160_60fps_10bit_420.y4m' && curl -sI --max-time 60 'http://download.opencontent.netflix.com.s3.amazonaws.com/ElFuente/Netflix_FoodMarket_4096x2160_60fps_10bit_420.y4m' | tr -d '\r' | grep -i -E '^(HTTP/|content-length|last-modified|etag)' && echo '== https://media.xiph.org/video/derf/ElFuente/Netflix_Boat_4096x2160_60fps_10bit_420.y4m' && curl -sI --max-time 60 'https://media.xiph.org/video/derf/ElFuente/Netflix_Boat_4096x2160_60fps_10bit_420.y4m' | tr -d '\r' | grep -i -E '^(HTTP/|content-length|last-modified|etag)' && echo '== https://media.xiph.org/video/derf/ElFuente/Netflix_FoodMarket_4096x2160_60fps_10bit_420.y4m' && curl -sI --max-time 60 'https://media.xiph.org/video/derf/ElFuente/Netflix_FoodMarket_4096x2160_60fps_10bit_420.y4m' | tr -d '\r' | grep -i -E '^(HTTP/|content-length|last-modified|etag)' && echo '== https://media.xiph.org/video/derf/y4m/sintel_trailer_2k_1080p24.y4m' && curl -sI --max-time 60 'https://media.xiph.org/video/derf/y4m/sintel_trailer_2k_1080p24.y4m' | tr -d '\r' | grep -i -E '^(HTTP/|content-length|last-modified|etag)' && echo '== https://media.xiph.org/video/derf/y4m/big_buck_bunny_1080p24.y4m.xz' && curl -sI --max-time 60 'https://media.xiph.org/video/derf/y4m/big_buck_bunny_1080p24.y4m.xz' | tr -d '\r' | grep -i -E '^(HTTP/|content-length|last-modified|etag)' && echo '== https://media.xiph.org/video/derf/y4m/elephants_dream_1080p24.y4m.xz' && curl -sI --max-time 60 'https://media.xiph.org/video/derf/y4m/elephants_dream_1080p24.y4m.xz' | tr -d '\r' | grep -i -E '^(HTTP/|content-length|last-modified|etag)'
+== http://download.opencontent.netflix.com.s3.amazonaws.com/ElFuente/Netflix_Boat_4096x2160_60fps_10bit_420.y4m
+HTTP/1.1 200 OK
+Last-Modified: Fri, 21 Jun 2019 19:30:48 GMT
+ETag: "b635dec2acdfae173045e73107bf14cf-927"
+Content-Length: 7962625844
+== http://download.opencontent.netflix.com.s3.amazonaws.com/ElFuente/Netflix_FoodMarket_4096x2160_60fps_10bit_420.y4m
+HTTP/1.1 200 OK
+Last-Modified: Tue, 02 Jul 2019 20:53:29 GMT
+ETag: "409c70d44759721bedcebfebf112962a-1899"
+Content-Length: 15925251644
+== https://media.xiph.org/video/derf/ElFuente/Netflix_Boat_4096x2160_60fps_10bit_420.y4m
+HTTP/1.1 200 OK
+Last-Modified: Thu, 04 Feb 2016 02:23:42 GMT
+ETag: "1da9c0734-52ae86c576780"
+Content-Length: 7962625844
+== https://media.xiph.org/video/derf/ElFuente/Netflix_FoodMarket_4096x2160_60fps_10bit_420.y4m
+HTTP/1.1 200 OK
+Last-Modified: Thu, 04 Feb 2016 02:28:14 GMT
+ETag: "3b5380e3c-52ae87c8dcb80"
+Content-Length: 15925251644
+== https://media.xiph.org/video/derf/y4m/sintel_trailer_2k_1080p24.y4m
+HTTP/1.1 200 OK
+Last-Modified: Fri, 14 May 2010 21:28:00 GMT
+ETag: "e84cab8b-486948ca8d800"
+Content-Length: 3897338763
+== https://media.xiph.org/video/derf/y4m/big_buck_bunny_1080p24.y4m.xz
+HTTP/1.1 200 OK
+Last-Modified: Sun, 07 Feb 2010 13:51:52 GMT
+ETag: "2864333d8-47f02fca24e00"
+Content-Length: 10842485720
+== https://media.xiph.org/video/derf/y4m/elephants_dream_1080p24.y4m.xz
+HTTP/1.1 200 OK
+Last-Modified: Mon, 08 Feb 2010 13:02:26 GMT
+ETag: "1c86451c0-47f1669b01c80"
+Content-Length: 7656985024

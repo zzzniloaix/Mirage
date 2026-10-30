@@ -1,0 +1,201 @@
+{
+  "report_version": 1,
+  "tool": "eval/consistency/run_delta.py",
+  "variant": "plain",
+  "status": "PASS",
+  "pairs_total": 4,
+  "pairs_failed": [],
+  "parameters": {
+    "variant": "plain",
+    "frames": 300,
+    "threshold": 0.01,
+    "model": "vmaf_v0.6.1",
+    "scaler": "bilinear",
+    "threads": 4
+  },
+  "command": "eval/consistency/run_delta.sh <mirage_vmaf> <out_dir> --frames 300 --jobs 1 --pairs eval/consistency/pairs/bipbop16x9.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --ffmpeg <ffmpeg> --ffprobe <ffprobe> --timeout 21600",
+  "started_utc": "2026-10-23T11:26:27Z",
+  "ended_utc": "2026-10-23T11:27:13Z",
+  "git": {
+    "head_start": "5263061c3dfa7b3134763669443977b436ab1003",
+    "head_end": "5263061c3dfa7b3134763669443977b436ab1003",
+    "clean_start": true,
+    "clean_end": true
+  },
+  "environment": {
+    "os": "macOS 26.2 (25C56)",
+    "cpu": "Apple M3 Pro",
+    "logical_cpus": "12",
+    "kernel": "Darwin 25.2.0 arm64",
+    "python": "3.14.7",
+    "ffmpeg_version": "ffmpeg version 8.1.1 Copyright (c) 2000-2026 the FFmpeg developers",
+    "ffprobe_version": "ffprobe version 8.1.1 Copyright (c) 2007-2026 the FFmpeg developers",
+    "ffmpeg_libvmaf": "/opt/homebrew/Cellar/libvmaf/3.1.0/lib/libvmaf.3.dylib",
+    "ffmpeg_libvmaf_package_version": "3.1.0"
+  },
+  "mirage_vmaf": {
+    "path": "build/macos-release/mirage_vmaf",
+    "sha256": "420b8776e9708329b2f32cf6d2b0f924ee67db6f82f3e05d8e172d28cd243acd",
+    "libvmaf": "/opt/homebrew/Cellar/libvmaf/3.1.0/lib/libvmaf.3.dylib",
+    "options": [
+      "--dis",
+      "--frames",
+      "--out",
+      "--ref"
+    ],
+    "libvmaf_version": "3.0.0",
+    "libvmaf_package_version": "3.1.0"
+  },
+  "pairs_file": {
+    "path": "eval/consistency/pairs/bipbop16x9.txt",
+    "sha256": "7f772689e4e111d1c82d8dcc83aa2b5ac953a68a2d088c9a4a5ab3cf20f18b77"
+  },
+  "warnings": [],
+  "pairs": [
+    {
+      "pair": "gear4_vs_gear5",
+      "status": "PASS",
+      "fail_reasons": [],
+      "warnings": [],
+      "frames": {
+        "mirage": 300,
+        "ffmpeg": 300,
+        "compared": 300,
+        "counts_match": true
+      },
+      "max_abs": 4.996518043753895e-07,
+      "max_abs_index": 240,
+      "mean_abs": 2.6039720253834274e-07,
+      "mean_signed": 5.340532472549361e-09,
+      "over_threshold": 0,
+      "pooled": {
+        "mirage": {
+          "mean": 74.64060735867392,
+          "min": 69.74694538885507
+        },
+        "ffmpeg": {
+          "mean": 74.640607,
+          "min": 69.746945
+        },
+        "difference": {
+          "mean": 3.5867391545707505e-07,
+          "min": 3.888550708097682e-07
+        }
+      },
+      "relabel": null,
+      "ffmpeg_conversions": [],
+      "ffmpeg_distorted_csp": "bt709 -> bt709",
+      "mirage_distorted_csp": "bt709 -> bt709"
+    },
+    {
+      "pair": "gear3_vs_gear5",
+      "status": "PASS",
+      "fail_reasons": [],
+      "warnings": [],
+      "frames": {
+        "mirage": 300,
+        "ffmpeg": 300,
+        "compared": 300,
+        "counts_match": true
+      },
+      "max_abs": 4.94904483616665e-07,
+      "max_abs_index": 131,
+      "mean_abs": 2.381585107968931e-07,
+      "mean_signed": -8.693454276453849e-09,
+      "over_threshold": 0,
+      "pooled": {
+        "mirage": {
+          "mean": 53.72909239130659,
+          "min": 45.12443240061242
+        },
+        "ffmpeg": {
+          "mean": 53.729092,
+          "min": 45.124432
+        },
+        "difference": {
+          "mean": 3.913065853566877e-07,
+          "min": 4.006124214583906e-07
+        }
+      },
+      "relabel": null,
+      "ffmpeg_conversions": [],
+      "ffmpeg_distorted_csp": "bt709 -> bt709",
+      "mirage_distorted_csp": "bt709 -> bt709"
+    },
+    {
+      "pair": "gear2_vs_gear5",
+      "status": "PASS",
+      "fail_reasons": [],
+      "warnings": [],
+      "frames": {
+        "mirage": 300,
+        "ffmpeg": 300,
+        "compared": 300,
+        "counts_match": true
+      },
+      "max_abs": 4.992173678886047e-07,
+      "max_abs_index": 131,
+      "mean_abs": 2.621200335184426e-07,
+      "mean_signed": 5.062518451855643e-09,
+      "over_threshold": 0,
+      "pooled": {
+        "mirage": {
+          "mean": 28.552935248395844,
+          "min": 16.070202275139188
+        },
+        "ffmpeg": {
+          "mean": 28.552935,
+          "min": 16.070202
+        },
+        "difference": {
+          "mean": 2.483958425614219e-07,
+          "min": 2.75139189653828e-07
+        }
+      },
+      "relabel": null,
+      "ffmpeg_conversions": [
+        "Parsed_scale_1: color_space smpte170m -> bt709"
+      ],
+      "ffmpeg_distorted_csp": "smpte170m -> bt709",
+      "mirage_distorted_csp": "smpte170m -> bt709"
+    },
+    {
+      "pair": "gear1_vs_gear5",
+      "status": "PASS",
+      "fail_reasons": [],
+      "warnings": [],
+      "frames": {
+        "mirage": 300,
+        "ffmpeg": 300,
+        "compared": 300,
+        "counts_match": true
+      },
+      "max_abs": 4.436505882110531e-07,
+      "max_abs_index": 161,
+      "mean_abs": 6.936702179096328e-09,
+      "mean_signed": 1.0964732771271783e-09,
+      "over_threshold": 0,
+      "pooled": {
+        "mirage": {
+          "mean": 0.00611671442980661,
+          "min": 0
+        },
+        "ffmpeg": {
+          "mean": 0.006117,
+          "min": 0.0
+        },
+        "difference": {
+          "mean": -2.8557019338994183e-07,
+          "min": 0.0
+        }
+      },
+      "relabel": null,
+      "ffmpeg_conversions": [
+        "Parsed_scale_1: color_space smpte170m -> bt709"
+      ],
+      "ffmpeg_distorted_csp": "smpte170m -> bt709",
+      "mirage_distorted_csp": "smpte170m -> bt709"
+    }
+  ],
+  "redactions": {}
+}

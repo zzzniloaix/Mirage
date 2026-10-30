@@ -1,0 +1,2 @@
+[INFO]  VMAFAnalyzer: 53946 frames  mean=35.81  min=23.49  p5=33.98  [Analysis]
+mirage_vmaf: 53946 frame pairs scored, report written to mirage.json

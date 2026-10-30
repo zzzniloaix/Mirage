@@ -1,0 +1,73 @@
+# Environment of an eval/consistency/run_delta.py run. <mirage_vmaf>, <ffmpeg> and <ffprobe> are the programs below; <out_dir>, <repo>, <home> and <tmp> stand for local paths.
+<mirage_vmaf> = build/macos-release/mirage_vmaf
+<ffmpeg> = /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg
+<ffprobe> = /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+
+$ git -C <repo> rev-parse HEAD
+3650f83dbbc196e62a360c31c96789c86f34dc43
+
+$ git -C <repo> status --porcelain   (start of the run)
+(no output: the working tree is clean)
+
+$ sw_vers
+ProductName:		macOS
+ProductVersion:		26.2
+BuildVersion:		25C56
+
+$ sysctl -n machdep.cpu.brand_string
+Apple M3 Pro
+
+$ sysctl -n hw.ncpu
+12
+
+$ uname -srm
+Darwin 25.2.0 arm64
+
+$ python3 -I (the interpreter running run_delta.py)
+3.14.7 (main, Aug  5 2026, 10:29:49) [Clang 21.0.0 (clang-2100.1.1.101)]
+
+$ <ffmpeg> -hide_banner -version
+ffmpeg version 8.1.1 Copyright (c) 2000-2026 the FFmpeg developers
+built with Apple clang version 21.0.0 (clang-2100.0.123.102)
+configuration: --prefix=/opt/homebrew/Cellar/ffmpeg-full/8.1.1 --enable-shared --enable-pthreads --enable-version3 --cc=clang --host-cflags= --host-ldflags= --enable-ffplay --enable-gnutls --enable-gpl --enable-libaom --enable-libaribb24 --enable-libbluray --enable-libdav1d --enable-libharfbuzz --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librav1e --enable-librist --enable-librubberband --enable-libsnappy --enable-libsrt --enable-libssh --enable-libsvtav1 --enable-libtesseract --enable-libtheora --enable-libvidstab --enable-libvmaf --enable-libvorbis --enable-libvpx --enable-libwebp --enable-libx264 --enable-libx265 --enable-libxml2 --enable-libxvid --enable-lzma --enable-libfontconfig --enable-libfreetype --enable-frei0r --enable-libass --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenjpeg --enable-libspeex --enable-libsoxr --enable-libzmq --enable-libzimg --enable-whisper --disable-libjack --disable-indev=jack --enable-videotoolbox --enable-audiotoolbox --enable-neon
+libavutil      60. 26.101 / 60. 26.101
+libavcodec     62. 28.101 / 62. 28.101
+libavformat    62. 12.101 / 62. 12.101
+libavdevice    62.  3.101 / 62.  3.101
+libavfilter    11. 14.101 / 11. 14.101
+libswscale      9.  5.101 /  9.  5.101
+libswresample   6.  3.101 /  6.  3.101
+
+Exiting with exit code 0
+
+$ <ffprobe> -hide_banner -version
+ffprobe version 8.1.1 Copyright (c) 2007-2026 the FFmpeg developers
+built with Apple clang version 21.0.0 (clang-2100.0.123.102)
+configuration: --prefix=/opt/homebrew/Cellar/ffmpeg-full/8.1.1 --enable-shared --enable-pthreads --enable-version3 --cc=clang --host-cflags= --host-ldflags= --enable-ffplay --enable-gnutls --enable-gpl --enable-libaom --enable-libaribb24 --enable-libbluray --enable-libdav1d --enable-libharfbuzz --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librav1e --enable-librist --enable-librubberband --enable-libsnappy --enable-libsrt --enable-libssh --enable-libsvtav1 --enable-libtesseract --enable-libtheora --enable-libvidstab --enable-libvmaf --enable-libvorbis --enable-libvpx --enable-libwebp --enable-libx264 --enable-libx265 --enable-libxml2 --enable-libxvid --enable-lzma --enable-libfontconfig --enable-libfreetype --enable-frei0r --enable-libass --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenjpeg --enable-libspeex --enable-libsoxr --enable-libzmq --enable-libzimg --enable-whisper --disable-libjack --disable-indev=jack --enable-videotoolbox --enable-audiotoolbox --enable-neon
+libavutil      60. 26.101 / 60. 26.101
+libavcodec     62. 28.101 / 62. 28.101
+libavformat    62. 12.101 / 62. 12.101
+libavdevice    62.  3.101 / 62.  3.101
+libavfilter    11. 14.101 / 11. 14.101
+libswscale      9.  5.101 /  9.  5.101
+libswresample   6.  3.101 /  6.  3.101
+
+$ libvmaf linked by <ffmpeg> (through libavfilter; otool -L / ldd, real path)
+libavfilter: /opt/homebrew/Cellar/ffmpeg-full/8.1.1/lib/libavfilter.11.dylib
+libvmaf: /opt/homebrew/opt/libvmaf/lib/libvmaf.3.dylib
+real path: /opt/homebrew/Cellar/libvmaf/3.1.0/lib/libvmaf.3.dylib
+
+$ <mirage_vmaf>
+path: build/macos-release/mirage_vmaf
+sha256: 3633c43eaf4261e567ef2fb3a24d015e3e00b9a8ee354ddef88b6330aca4938c
+size: 243736 bytes
+libvmaf: /opt/homebrew/opt/libvmaf/lib/libvmaf.3.dylib
+real path: /opt/homebrew/Cellar/libvmaf/3.1.0/lib/libvmaf.3.dylib
+--help, first line: Usage: mirage_vmaf --ref <url|path> --dis <url|path> --out <report.json> [--frames N] [--scaler NAME] [--model NAME] [--model-file <model.json>]
+
+$ git -C <repo> rev-parse HEAD
+3650f83dbbc196e62a360c31c96789c86f34dc43
+
+$ git -C <repo> status --porcelain   (end of the run)
+(no output: the working tree is clean)
+

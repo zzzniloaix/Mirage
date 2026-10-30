@@ -1,0 +1,26 @@
+# The four scoring processes of defaults-full that were still running when the machine
+# woke at 2026-10-26T21:12:21Z (power_log.txt), those of gear2_vs_gear5 and gear1_vs_gear5.
+# Each process's CPU time ([minutes:]seconds.hundredths) and state, from `ps -o time=,state=`,
+# sampled twice 120 s apart; the last modification time of each pair's two stderr logs
+# (`stat`), in UTC; then each process was sent SIGTERM, and a second SIGTERM if it was
+# still running 10 s later. Made by a script outside the repository, which prints only
+# the program, the pair and these values. State S: sleeping; N: lower priority.
+sample 1 at 2026-10-26T21:15:01Z
+  mirage_vmaf  gear2_vs_gear5   cpu   29:51.78  state SN
+  ffmpeg       gear2_vs_gear5   cpu   31:58.11  state SN
+  mirage_vmaf  gear1_vs_gear5   cpu   28:09.83  state SN
+  ffmpeg       gear1_vs_gear5   cpu   26:52.01  state SN
+sample 2 at 2026-10-26T21:17:01Z
+  mirage_vmaf  gear2_vs_gear5   cpu   29:51.83  state SN
+  ffmpeg       gear2_vs_gear5   cpu   31:58.16  state SN
+  mirage_vmaf  gear1_vs_gear5   cpu   28:09.88  state SN
+  ffmpeg       gear1_vs_gear5   cpu   26:52.06  state SN
+stderr logs, last modified:
+  gear1_vs_gear5/mirage.stderr.log 2026-10-26T19:51:17Z
+  gear1_vs_gear5/ffmpeg.stderr.log 2026-10-26T19:51:16Z
+  gear2_vs_gear5/mirage.stderr.log 2026-10-26T19:51:17Z
+  gear2_vs_gear5/ffmpeg.stderr.log 2026-10-26T19:51:16Z
+SIGTERM to each at 2026-10-26T21:17:01Z
+  ffmpeg gear2_vs_gear5 still running after 10 s: a second SIGTERM at 2026-10-26T21:17:11Z
+  ffmpeg gear1_vs_gear5 still running after 10 s: a second SIGTERM at 2026-10-26T21:17:11Z
+running after that: 0

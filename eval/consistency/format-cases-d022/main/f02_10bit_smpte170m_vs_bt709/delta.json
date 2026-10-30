@@ -1,0 +1,276 @@
+{
+  "report_version": 1,
+  "pair": "f02_10bit_smpte170m_vs_bt709",
+  "reference": "<tmp>/format_clips/ref_ffv1-yuv420p10le_smpte170m-tv.mkv",
+  "distorted": "<tmp>/format_clips/dis_bt709-tv.mkv",
+  "variant": "plain",
+  "status": "PASS",
+  "fail_reasons": [],
+  "warnings": [],
+  "threshold": 0.01,
+  "frame_limit": 10,
+  "frames": {
+    "mirage": 10,
+    "ffmpeg": 10,
+    "compared": 10,
+    "counts_match": true
+  },
+  "delta": {
+    "compared": 10,
+    "max_abs": 4.519954970305662e-07,
+    "max_abs_index": 3,
+    "mean_abs": 2.866190698114224e-07,
+    "mean_signed": 2.001982863930607e-08,
+    "over_threshold": 0,
+    "over_threshold_ranges": [],
+    "worst": [
+      {
+        "index": 3,
+        "mirage": 34.8278585480045,
+        "ffmpeg": 34.827859,
+        "delta": -4.519954970305662e-07
+      },
+      {
+        "index": 1,
+        "mirage": 35.41936240931162,
+        "ffmpeg": 35.419362,
+        "delta": 4.093116174885836e-07
+      },
+      {
+        "index": 6,
+        "mirage": 33.9376613999114,
+        "ffmpeg": 33.937661,
+        "delta": 3.999113999952897e-07
+      },
+      {
+        "index": 8,
+        "mirage": 33.87576060390015,
+        "ffmpeg": 33.875761,
+        "delta": -3.960998498087065e-07
+      },
+      {
+        "index": 7,
+        "mirage": 34.121642722108746,
+        "ffmpeg": 34.121643,
+        "delta": -2.77891253119833e-07
+      }
+    ],
+    "mean_mirage": 34.306555820019824,
+    "mean_ffmpeg": 34.3065558
+  },
+  "pooled": {
+    "mirage": {
+      "mean": 34.306555820019824,
+      "min": 33.59683626903082
+    },
+    "ffmpeg": {
+      "mean": 34.306556,
+      "min": 33.596836
+    },
+    "difference": {
+      "mean": -1.7998017654008436e-07,
+      "min": 2.6903081362661396e-07
+    }
+  },
+  "relabel": null,
+  "ffmpeg_color": {
+    "graph_inputs": [
+      {
+        "input": 0,
+        "stream": 0,
+        "color_space": "bt709",
+        "color_range": "tv"
+      },
+      {
+        "input": 1,
+        "stream": 0,
+        "color_space": "smpte170m",
+        "color_range": "tv"
+      }
+    ],
+    "scale": [
+      {
+        "filter": "Parsed_scale_1",
+        "in": {
+          "width": 640,
+          "height": 360,
+          "pix_fmt": "yuv420p",
+          "color_space": "bt709",
+          "color_range": "tv"
+        },
+        "out": {
+          "width": 1920,
+          "height": 1080,
+          "pix_fmt": "yuv420p",
+          "color_space": "bt709",
+          "color_range": "tv"
+        },
+        "flags": "0x00000002"
+      },
+      {
+        "filter": "auto_scale_0",
+        "in": {
+          "width": 1920,
+          "height": 1080,
+          "pix_fmt": "yuv420p10le",
+          "color_space": "smpte170m",
+          "color_range": "tv"
+        },
+        "out": {
+          "width": 1920,
+          "height": 1080,
+          "pix_fmt": "yuv420p",
+          "color_space": "bt709",
+          "color_range": "tv"
+        },
+        "flags": "0x00000004"
+      }
+    ],
+    "conversions": [
+      "auto_scale_0: color_space smpte170m -> bt709",
+      "auto_scale_0: pix_fmt yuv420p10le -> yuv420p"
+    ]
+  },
+  "mirage_color": {
+    "dis_conversion": [
+      {
+        "from": {
+          "color_space": "bt709",
+          "color_range": "tv"
+        },
+        "to": {
+          "color_space": "bt709",
+          "color_range": "tv"
+        },
+        "matrix_changed": false,
+        "range_changed": false,
+        "first_index": 0,
+        "pairs": 10
+      }
+    ],
+    "ref_conversion": [
+      {
+        "from": {
+          "color_space": "smpte170m",
+          "color_range": "tv"
+        },
+        "to": {
+          "color_space": "bt709",
+          "color_range": "tv"
+        },
+        "matrix_changed": true,
+        "range_changed": false,
+        "first_index": 0,
+        "pairs": 10
+      }
+    ]
+  },
+  "inputs": {
+    "ref": {
+      "ffprobe": {
+        "codec_name": "ffv1",
+        "width": 1920,
+        "height": 1080,
+        "pix_fmt": "yuv420p10le",
+        "color_space": "smpte170m",
+        "color_range": "tv",
+        "color_primaries": null,
+        "color_transfer": null,
+        "time_base": "1/1000",
+        "r_frame_rate": "30000/1001",
+        "avg_frame_rate": "30000/1001",
+        "start_time": "0.000000"
+      },
+      "mirage_vmaf": {
+        "url": "<tmp>/format_clips/ref_ffv1-yuv420p10le_smpte170m-tv.mkv",
+        "width": 1920,
+        "height": 1080,
+        "pix_fmt": "yuv420p10le",
+        "color_space": "smpte170m",
+        "color_range": "tv",
+        "color_primaries": "unknown",
+        "color_trc": "unknown",
+        "time_base": "1/1000",
+        "ended": false
+      }
+    },
+    "dis": {
+      "ffprobe": {
+        "codec_name": "rawvideo",
+        "width": 640,
+        "height": 360,
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_range": "tv",
+        "color_primaries": null,
+        "color_transfer": null,
+        "time_base": "1/1000",
+        "r_frame_rate": "30000/1001",
+        "avg_frame_rate": "30000/1001",
+        "start_time": "0.000000"
+      },
+      "mirage_vmaf": {
+        "url": "<tmp>/format_clips/dis_bt709-tv.mkv",
+        "width": 640,
+        "height": 360,
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_range": "tv",
+        "color_primaries": "unknown",
+        "color_trc": "unknown",
+        "time_base": "1/1000",
+        "ended": false
+      }
+    }
+  },
+  "mirage_vmaf": {
+    "exit_code": 0,
+    "elapsed_s": 0.431,
+    "tool": "mirage_vmaf",
+    "reference_mode": "explicit-pair",
+    "libvmaf_version": "3.0.0",
+    "libvmaf_package_version": "3.1.0",
+    "ffmpeg_libraries": {
+      "libavutil": "60.26.101",
+      "libavcodec": "62.28.101",
+      "libavformat": "62.12.101",
+      "libswscale": "9.5.101",
+      "libavfilter": "11.14.101"
+    },
+    "model": "vmaf_v0.6.1",
+    "model_source": "built-in",
+    "model_sha256": null,
+    "scaler": "bilinear",
+    "n_threads": 4,
+    "n_subsample": 1,
+    "scored_as": {
+      "width": 1920,
+      "height": 1080,
+      "pix_fmt": "yuv420p",
+      "bit_depth": 8
+    },
+    "frame_limit": 10,
+    "frames_scored": 10,
+    "ref_ended": false,
+    "dis_ended": false,
+    "first_ref_pts": 0.0,
+    "last_ref_pts": 0.3,
+    "pairs_with_different_pts": 0,
+    "warnings": []
+  },
+  "ffmpeg": {
+    "exit_code": 0,
+    "elapsed_s": 0.258,
+    "libvmaf_version": "3.0.0",
+    "libvmaf_package_version": "3.1.0",
+    "ffmpeg_libraries": {
+      "libavutil": "60.26.101",
+      "libavcodec": "62.28.101",
+      "libavformat": "62.12.101",
+      "libavdevice": "62.3.101",
+      "libavfilter": "11.14.101",
+      "libswscale": "9.5.101",
+      "libswresample": "6.3.101"
+    }
+  }
+}

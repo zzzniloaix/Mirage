@@ -1,0 +1,5 @@
+# Pairs for eval/consistency/run_delta.sh: <label> <reference> <distorted>, one per line.
+# One pair of Apple's bipbop 16x9 ladder (docs/DECISIONS.md P-002): gear2 (640x360)
+# against gear5 (1920x1080), for checks that need one pair only, such as the model
+# option (work order section 1.1).
+gear2_vs_gear5 https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear5/prog_index.m3u8 https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/gear2/prog_index.m3u8

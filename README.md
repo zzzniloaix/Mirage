@@ -6,58 +6,15 @@ A C++20 video player built for video engineers. Supports local files and adaptiv
 
 ---
 
-## Quick start on a new machine
+## Building
 
-### 1. Install Homebrew dependencies
+See `docs/BUILD.md`: the Homebrew packages, the presets and their commands, the unit tests, the versions the evaluation was measured with, and the build checks that verify those steps (`eval/build_check/`). The commands below use the `macos-debug` preset's build directory, `build/macos-debug/`.
 
-```bash
-brew install ffmpeg glfw ninja pkg-config libvmaf
-```
+The player is built for macOS only (`docs/DECISIONS.md` D-031). `mirage_vmaf`, the VMAF analyzer without a window, and the unit tests also build without the player and its dependencies (the `macos-headless` and `linux-release` presets). `docs/BUILD.md` has Linux instructions and `docker/README.md` a Linux image for the evaluation; neither has been built yet.
 
-> **Python / jinja2** — GLAD2 (the OpenGL loader) needs jinja2 at configure time. If you see `ModuleNotFoundError: No module named 'jinja2'` run:
-> ```bash
-> pip3 install jinja2 --break-system-packages
-> ```
+---
 
-### 2. Clone / copy the project
-
-```bash
-# If cloning fresh:
-git clone <repo-url> Mirage
-cd Mirage
-
-# Or copy your existing folder over and cd into it.
-```
-
-The `build/` directory does **not** need to be transferred — it is regenerated in step 3.
-
-### 3. Configure
-
-```bash
-cmake --preset macos-debug
-```
-
-This downloads all remaining dependencies automatically via CMake FetchContent:
-- **GLAD2** (OpenGL 4.1 Core loader, generated at configure time)
-- **miniaudio** (single-header audio)
-- **Dear ImGui** v1.91.9
-- **pugixml** v1.14 (DASH MPD parsing)
-- **nativefiledialog-extended** v1.2.1 (file picker)
-- **Catch2** v3.7.1 (unit tests)
-
-First configure takes ~1–2 minutes on a fast connection.
-
-### 4. Build
-
-```bash
-cmake --build --preset macos-debug
-```
-
-Output: `build/macos-debug/mirage`
-
-> The linker warning `ignoring duplicate libraries: 'libglad_gl_core_41.a'` is harmless — ignore it.
-
-### 5. Run
+## Running
 
 ```bash
 # Local file
@@ -71,30 +28,18 @@ Output: `build/macos-debug/mirage`
 
 # VMAF analysis (auto-start, writes .vmaf.json on completion)
 ./build/macos-debug/mirage /path/to/distorted.mp4 --vmaf /path/to/reference.mp4
+
+# VMAF scores without the player: a pair, or an HLS ladder
+./build/macos-debug/mirage_vmaf --help
 ```
 
 Or drag-and-drop a file onto the launch screen.
 
 ---
 
-## Release build
+## Tests
 
-```bash
-cmake --preset macos-release
-cmake --build --preset macos-release
-./build/macos-release/mirage /path/to/video.mp4
-```
-
----
-
-## Running tests
-
-```bash
-cd build/macos-debug
-ctest --output-on-failure
-```
-
-34 tests covering `NetworkLogger` (URL classification) and `ManifestParser` (HLS/DASH tag parsing).
+`docs/BUILD.md`, step 4, runs the unit tests (`mirage_tests`, Catch2); `eval/README.md` has the evaluation scripts' tests and `eval/run_all.sh`, which reruns every committed measurement.
 
 ---
 
@@ -141,7 +86,7 @@ Drag the seek bar at the bottom of the window. A thumbnail strip appears showing
 
 ```
 Mirage/
-├── src/
+├── src/                   — the player and its VMAF analyzer; among the files:
 │   ├── main.cpp           — render loop, A/V sync, scrub state machine
 │   ├── Demuxer.cpp/h      — avformat: open, seek, track switching
 │   ├── Decoder.cpp/h      — avcodec video decode loop
@@ -153,19 +98,24 @@ Mirage/
 │   ├── ScrubDecoder.cpp/h — dedicated single-frame decoder for scrub preview
 │   ├── PlayerUI.cpp/h     — Dear ImGui menu bar + auto-hiding control bar
 │   ├── DebugHUD.cpp/h     — all debug overlay panels
-│   ├── Clock.cpp/h        — MasterClock, wall-time extrapolation
+│   ├── Clock.h            — MasterClock, wall-time extrapolation
 │   ├── Sync.cpp/h         — FFplay-style A/V sync compute
 │   ├── NetworkLogger.cpp/h— av_log hook, HTTP request classification
 │   ├── ManifestParser.cpp/h — HLS/DASH manifest text parsing
 │   ├── VMAFAnalyzer.cpp/h — background VMAF analysis via libvmaf 3 C API
+│   ├── VMAF*.cpp/h        — the analyzer's frame pairing, color conversion, pooling,
+│   │                        ladder scoring, and mirage_vmaf's command line and report
 │   ├── Queue.h            — thread-safe bounded queue (C++20)
 │   └── Logger.h           — std::format logger
-├── tests/
-│   ├── test_network_logger.cpp
-│   └── test_manifest_parser.cpp
+├── tools/mirage_vmaf.cpp  — mirage_vmaf, the VMAF analyzer without a window
+├── tests/                 — mirage_tests (Catch2), and the HW-vs-SW snapshot check
+├── third_party/glad/      — the OpenGL 4.1 core loader glad generated
+├── docs/                  — the build, the decision log, the Phase 1 status
+├── eval/                  — the evaluation's scripts and committed measurements
+├── docker/                — a Linux image for eval/run_all.sh (not built yet)
 ├── plan/                  — original implementation plan (reference only)
 ├── CMakeLists.txt
-├── CMakePresets.json      — macos-debug / macos-release presets
+├── CMakePresets.json      — macos-debug / macos-release / macos-headless / linux-release
 └── CLAUDE.md              — AI assistant instructions
 ```
 
@@ -189,26 +139,13 @@ All threads shut down via `std::stop_token`. Queues unblock `pop()` on `shutdown
 
 ## Common issues
 
-**`ModuleNotFoundError: No module named 'jinja2'`**
-```bash
-pip3 install jinja2 --break-system-packages
-```
+**`pkg-config` can't find FFmpeg**
 
-**`pkg-config` can't find FFmpeg / GLFW**
+The build uses Homebrew's `ffmpeg-full`, which Homebrew doesn't link into its prefix: the presets put its pkg-config directory, `/opt/homebrew/opt/ffmpeg-full/lib/pkgconfig`, first on `PKG_CONFIG_PATH`. Configure with a preset, or put that directory on `PKG_CONFIG_PATH` yourself (`docs/BUILD.md`, step 1).
 
-Make sure Homebrew's pkg-config path is on `PKG_CONFIG_PATH`:
-```bash
-export PKG_CONFIG_PATH="$(brew --prefix)/lib/pkgconfig:$PKG_CONFIG_PATH"
-# Then re-run cmake --preset macos-debug
-```
+**`vmaf_model_load failed`**
 
-**libvmaf model not found at runtime**
-
-The VMAF model is loaded from `/opt/homebrew/share/libvmaf/model/vmaf_v0.6.1.json`. If libvmaf was installed to a non-standard prefix, set:
-```bash
-export LIBVMAF_MODEL_PATH=/your/prefix/share/libvmaf/model
-```
-(then update the path in `VMAFAnalyzer.cpp` accordingly)
+The analyzer loads libvmaf's built-in models by their version, `vmaf_v0.6.1` by default, and fails when the linked libvmaf has no such built-in model. `mirage_vmaf --model-file <model.json>` loads a model file instead; Homebrew's libvmaf keeps its model files in `/opt/homebrew/opt/libvmaf/share/libvmaf/model`.
 
 **clangd shows "file not found" for FFmpeg / miniaudio headers**
 
@@ -232,8 +169,14 @@ cmake --build --preset macos-debug
 # Run with a test file:
 ./build/macos-debug/mirage ~/Movies/test.mp4
 
-# Run tests after changes to NetworkLogger or ManifestParser:
-cd build/macos-debug && ctest --output-on-failure && cd ../..
+# Run the unit tests (docs/BUILD.md, step 4):
+perl -e 'alarm 900; exec @ARGV' build/macos-debug/mirage_tests '~[audio]'
 ```
 
 CLion: open the folder, select the `macos-debug` CMake preset, build target `mirage`.
+
+---
+
+## License
+
+Mirage is licensed under the GNU General Public License, version 3 or (at your option) any later version: `GPL-3.0-or-later` (`docs/DECISIONS.md` D-008). The license text is in [`LICENSE`](LICENSE). The libraries Mirage uses keep their own licenses; item 9 of `docs/VMAF_GAP_REPORT.md` lists them.

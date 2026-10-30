@@ -1,0 +1,241 @@
+# Checks on the run in this directory, made after it from <repo>: each command, then its output.
+
+# 1. The repository when these checks were made: HEAD and the working tree's state.
+
+$ git rev-parse HEAD && git status --porcelain && echo '(end of git status)'
+54fa9a2bdd57d0cfe066156547c4cccbc3110034
+(end of git status)
+
+# 2. The program: the SHA-256 of build.txt, the one the run recorded (plain/environment.txt), and the lines of the build check at 5ae44a4 that name the same SHA-256 (its release and headless mirage_vmaf); then, from each mirage_vmaf report, the settings and the libraries' run-time versions it records (D-006, D-021).
+
+$ grep -h -E '^[0-9a-f]{64}  build/macos-release/mirage_vmaf$' eval/consistency/defaults-full/build.txt && grep -h '^sha256: ' eval/consistency/defaults-full/plain/environment.txt && grep -n "$(grep -h -o -E '^[0-9a-f]{64}' eval/consistency/defaults-full/build.txt)" eval/build_check/macos-2026-10-24-5ae44a4.txt && python3 -I -c 'import json, lzma, sys
+for d in sys.argv[1:]:
+    r = json.load(lzma.open(d + "/mirage.json.xz"))
+    print(d.split("/")[-1], json.dumps({k: r[k] for k in ("reference_mode", "model", "model_source", "scaler", "n_threads", "n_subsample", "scored_as", "frame_limit", "config_file", "libvmaf_version", "libvmaf_package_version", "ffmpeg_libraries")}))' eval/consistency/defaults-full/plain/gear4_vs_gear5 eval/consistency/defaults-full/plain/gear3_vs_gear5 eval/consistency/defaults-full/plain/gear2_vs_gear5 eval/consistency/defaults-full/plain/gear1_vs_gear5
+9f04085f73440a9c9969f9bf6a86767eaf9ade89ae8ca393f8b6c99bb78b9b06  build/macos-release/mirage_vmaf
+sha256: 9f04085f73440a9c9969f9bf6a86767eaf9ade89ae8ca393f8b6c99bb78b9b06
+275:9f04085f73440a9c9969f9bf6a86767eaf9ade89ae8ca393f8b6c99bb78b9b06  build/macos-release/mirage_vmaf
+276:9f04085f73440a9c9969f9bf6a86767eaf9ade89ae8ca393f8b6c99bb78b9b06  build/macos-headless/mirage_vmaf
+gear4_vs_gear5 {"reference_mode": "explicit-pair", "model": "vmaf_v0.6.1", "model_source": "built-in", "scaler": "bicubic", "n_threads": 4, "n_subsample": 1, "scored_as": {"width": 1920, "height": 1080, "pix_fmt": "yuv420p", "bit_depth": 8}, "frame_limit": null, "config_file": null, "libvmaf_version": "3.0.0", "libvmaf_package_version": "3.1.0", "ffmpeg_libraries": {"libavutil": "60.26.101", "libavcodec": "62.28.101", "libavformat": "62.12.101", "libswscale": "9.5.101", "libavfilter": "11.14.101"}}
+gear3_vs_gear5 {"reference_mode": "explicit-pair", "model": "vmaf_v0.6.1", "model_source": "built-in", "scaler": "bicubic", "n_threads": 4, "n_subsample": 1, "scored_as": {"width": 1920, "height": 1080, "pix_fmt": "yuv420p", "bit_depth": 8}, "frame_limit": null, "config_file": null, "libvmaf_version": "3.0.0", "libvmaf_package_version": "3.1.0", "ffmpeg_libraries": {"libavutil": "60.26.101", "libavcodec": "62.28.101", "libavformat": "62.12.101", "libswscale": "9.5.101", "libavfilter": "11.14.101"}}
+gear2_vs_gear5 {"reference_mode": "explicit-pair", "model": "vmaf_v0.6.1", "model_source": "built-in", "scaler": "bicubic", "n_threads": 4, "n_subsample": 1, "scored_as": {"width": 1920, "height": 1080, "pix_fmt": "yuv420p", "bit_depth": 8}, "frame_limit": null, "config_file": null, "libvmaf_version": "3.0.0", "libvmaf_package_version": "3.1.0", "ffmpeg_libraries": {"libavutil": "60.26.101", "libavcodec": "62.28.101", "libavformat": "62.12.101", "libswscale": "9.5.101", "libavfilter": "11.14.101"}}
+gear1_vs_gear5 {"reference_mode": "explicit-pair", "model": "vmaf_v0.6.1", "model_source": "built-in", "scaler": "bicubic", "n_threads": 4, "n_subsample": 1, "scored_as": {"width": 1920, "height": 1080, "pix_fmt": "yuv420p", "bit_depth": 8}, "frame_limit": null, "config_file": null, "libvmaf_version": "3.0.0", "libvmaf_package_version": "3.1.0", "ffmpeg_libraries": {"libavutil": "60.26.101", "libavcodec": "62.28.101", "libavformat": "62.12.101", "libswscale": "9.5.101", "libavfilter": "11.14.101"}}
+
+# 3. The scaler each side was given. The run was made without --scaler, so with run_delta.sh's default since D-024, bicubic: run.cmd.txt records the scaler run_delta.sh used; for each pair, the --scaler given to mirage_vmaf and the flags= of FFmpeg's scale filter (cmd.txt), the scaler and model of mirage_vmaf's report, and the swscale flags FFmpeg's scale filter states in its verbose log (0x00000004 is SWS_BICUBIC). Without trim filters, as in a run over every frame, FFmpeg names that filter Parsed_scale_0.
+
+$ grep '^\$' eval/consistency/defaults-full/plain/run.cmd.txt && python3 -I -c 'import json, lzma, re, sys
+for d in sys.argv[1:]:
+    cmd = open(d + "/cmd.txt").read()
+    mirage = [l for l in cmd.splitlines() if l.startswith("$ <mirage_vmaf>")][0]
+    given = re.search(r" --scaler (\S+)", mirage)
+    flags = re.search(r"scale=\d+:\d+:flags=(\w+)", cmd).group(1)
+    r = json.load(lzma.open(d + "/mirage.json.xz"))
+    log = [l for l in open(d + "/ffmpeg_colorspace_lines.txt") if re.match(r"\[Parsed_scale_\d+ ", l) and " -> " in l]
+    print(d.split("/")[-1], "| mirage_vmaf --scaler", given.group(1) if given else "(none)", "| FFmpeg flags=" + flags, "| report scaler", r["scaler"], "model", r["model"], r["model_source"], "| FFmpeg scale line", log[0].split()[-1] if log else "(none)")' eval/consistency/defaults-full/plain/gear4_vs_gear5 eval/consistency/defaults-full/plain/gear3_vs_gear5 eval/consistency/defaults-full/plain/gear2_vs_gear5 eval/consistency/defaults-full/plain/gear1_vs_gear5
+$ eval/consistency/run_delta.sh <mirage_vmaf> <out_dir> --jobs 4 --pairs eval/consistency/pairs/bipbop16x9.txt --scaler bicubic --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --ffmpeg <ffmpeg> --ffprobe <ffprobe> --timeout 21600
+gear4_vs_gear5 | mirage_vmaf --scaler bicubic | FFmpeg flags=bicubic | report scaler bicubic model vmaf_v0.6.1 built-in | FFmpeg scale line flags:0x00000004
+gear3_vs_gear5 | mirage_vmaf --scaler bicubic | FFmpeg flags=bicubic | report scaler bicubic model vmaf_v0.6.1 built-in | FFmpeg scale line flags:0x00000004
+gear2_vs_gear5 | mirage_vmaf --scaler bicubic | FFmpeg flags=bicubic | report scaler bicubic model vmaf_v0.6.1 built-in | FFmpeg scale line flags:0x00000004
+gear1_vs_gear5 | mirage_vmaf --scaler bicubic | FFmpeg flags=bicubic | report scaler bicubic model vmaf_v0.6.1 built-in | FFmpeg scale line flags:0x00000004
+
+# 4. Every pair, Mirage's side against FFmpeg's: the frame pairs of each side; whether every mirage_vmaf pair has the reference and the distorted frame of its own position (ref_index and dis_index equal to index) and FFmpeg's log numbers its frames 0, 1, 2, ...; the delta tool's matching of the two sides' pairs by their frames and timestamps (pairs both scored, only by Mirage, only by FFmpeg, at other timestamps, and the frames the two sides treat differently, delta.json's alignment); and the pairs whose Mirage score, written with the 6 decimals of FFmpeg's log, is FFmpeg's.
+
+$ python3 -I -c 'import json, lzma, sys
+for d in sys.argv[1:]:
+    m = json.load(lzma.open(d + "/mirage.json.xz"))["frames"]
+    f = json.load(lzma.open(d + "/ffmpeg.json.xz"))["frames"]
+    a = json.load(open(d + "/delta.json"))["alignment"]
+    own = all(x["index"] == i and x["ref_index"] == i and x["dis_index"] == i for i, x in enumerate(m))
+    numbered = all(y["frameNum"] == i for i, y in enumerate(f))
+    same = sum(format(x["vmaf"], ".6f") == format(y["metrics"]["vmaf"], ".6f") for x, y in zip(m, f))
+    print(d.split("/")[-1], "| pairs", len(m), "/", len(f), "| own positions", own, "| FFmpeg numbered", numbered, "| matched", a["pairs"], "| frames treated differently", a["frames_treated_differently"], "| same at 6 decimals", same)' eval/consistency/defaults-full/plain/gear4_vs_gear5 eval/consistency/defaults-full/plain/gear3_vs_gear5 eval/consistency/defaults-full/plain/gear2_vs_gear5 eval/consistency/defaults-full/plain/gear1_vs_gear5
+gear4_vs_gear5 | pairs 53946 / 53946 | own positions True | FFmpeg numbered True | matched {'both': 53946, 'only_mirage': 0, 'only_ffmpeg': 0, 'other_times': 0} | frames treated differently 0 | same at 6 decimals 53946
+gear3_vs_gear5 | pairs 53946 / 53946 | own positions True | FFmpeg numbered True | matched {'both': 53946, 'only_mirage': 0, 'only_ffmpeg': 0, 'other_times': 0} | frames treated differently 0 | same at 6 decimals 53946
+gear2_vs_gear5 | pairs 53946 / 53946 | own positions True | FFmpeg numbered True | matched {'both': 53946, 'only_mirage': 0, 'only_ffmpeg': 0, 'other_times': 0} | frames treated differently 0 | same at 6 decimals 53946
+gear1_vs_gear5 | pairs 53946 / 53946 | own positions True | FFmpeg numbered True | matched {'both': 53946, 'only_mirage': 0, 'only_ffmpeg': 0, 'other_times': 0} | frames treated differently 0 | same at 6 decimals 53946
+
+# 5. Timestamps. For each mirage_vmaf report: the first and last pair with both frames' PTS in seconds as the streams have them (P-006), the pairs whose two frames have different PTS, the pairs where either has none, and each input's start, as the report's alignment gives it; then FFmpeg's starts and the timestamp discontinuities ffmpeg corrected, from delta.json.
+
+$ python3 -I -c 'import json, lzma, sys
+for d in sys.argv[1:]:
+    r = json.load(lzma.open(d + "/mirage.json.xz"))
+    f = r["frames"]
+    al = r["alignment"]
+    ff = json.load(open(d + "/delta.json"))["alignment"]["ffmpeg"]
+    print(d.split("/")[-1], [(x["index"], x["ref_pts"], x["dis_pts"]) for x in (f[0], f[-1])],
+          "| different PTS:", sum(x["ref_pts"] != x["dis_pts"] for x in f),
+          "| no PTS:", sum(x["ref_pts"] is None or x["dis_pts"] is None for x in f),
+          "| starts:", {k: (al[k]["start"], al[k]["start_from"]) for k in ("reference", "distorted")},
+          "| FFmpeg starts:", ff["start"], "| corrected:", ff["corrections"])' eval/consistency/defaults-full/plain/gear4_vs_gear5 eval/consistency/defaults-full/plain/gear3_vs_gear5 eval/consistency/defaults-full/plain/gear2_vs_gear5 eval/consistency/defaults-full/plain/gear1_vs_gear5
+gear4_vs_gear5 [(0, 10, 10), (53945, 1809.9666333333332, 1809.9666333333332)] | different PTS: 0 | no PTS: 0 | starts: {'reference': (10, 'container'), 'distorted': (10, 'container')} | FFmpeg starts: {'reference': 10.0, 'distorted': 10.0} | corrected: 0
+gear3_vs_gear5 [(0, 10, 10), (53945, 1809.9666333333332, 1809.9666333333332)] | different PTS: 0 | no PTS: 0 | starts: {'reference': (10, 'container'), 'distorted': (10, 'container')} | FFmpeg starts: {'reference': 10.0, 'distorted': 10.0} | corrected: 0
+gear2_vs_gear5 [(0, 10, 10), (53945, 1809.9666333333332, 1809.9666333333332)] | different PTS: 0 | no PTS: 0 | starts: {'reference': (10, 'container'), 'distorted': (10, 'container')} | FFmpeg starts: {'reference': 10.0, 'distorted': 10.0} | corrected: 0
+gear1_vs_gear5 [(0, 10, 10), (53945, 1809.9666333333332, 1809.9666333333332)] | different PTS: 0 | no PTS: 0 | starts: {'reference': (10, 'container'), 'distorted': (10, 'container')} | FFmpeg starts: {'reference': 10.0, 'distorted': 10.0} | corrected: 0
+
+# 6. The alignment of each mirage_vmaf report (D-028): the rule, the tolerance and the grid, the pairs, the failures by kind, the failure rate against the threshold, the libvmaf contexts, and the report's warnings.
+
+$ python3 -I -c 'import json, lzma, sys
+for d in sys.argv[1:]:
+    r = json.load(lzma.open(d + "/mirage.json.xz"))
+    a = r["alignment"]
+    keys = ("rule", "timestamp_origin", "tolerance", "grid", "paired", "failed", "failure_rate", "threshold", "exceeded", "unmatched_reference", "extra_distorted", "duplicate_distorted", "no_timestamp", "after_discontinuity", "discontinuities", "off_grid_reference", "off_grid_distorted")
+    print(d.split("/")[-1], json.dumps({k: a[k] for k in keys}), "| vmaf_contexts", json.dumps(a["vmaf_contexts"]), "| failures listed", len(a["failures"]), "| warnings", r["warnings"])' eval/consistency/defaults-full/plain/gear4_vs_gear5 eval/consistency/defaults-full/plain/gear3_vs_gear5 eval/consistency/defaults-full/plain/gear2_vs_gear5 eval/consistency/defaults-full/plain/gear1_vs_gear5
+gear4_vs_gear5 {"rule": "reference-timeline", "timestamp_origin": "input-start", "tolerance": 0.016683333333333335, "grid": "reference", "paired": 53946, "failed": 0, "failure_rate": 0, "threshold": 0.01, "exceeded": false, "unmatched_reference": 0, "extra_distorted": 0, "duplicate_distorted": 0, "no_timestamp": 0, "after_discontinuity": 0, "discontinuities": 0, "off_grid_reference": 0, "off_grid_distorted": 0} | vmaf_contexts [{"first_index": 0, "pairs": 53946}] | failures listed 0 | warnings []
+gear3_vs_gear5 {"rule": "reference-timeline", "timestamp_origin": "input-start", "tolerance": 0.016683333333333335, "grid": "reference", "paired": 53946, "failed": 0, "failure_rate": 0, "threshold": 0.01, "exceeded": false, "unmatched_reference": 0, "extra_distorted": 0, "duplicate_distorted": 0, "no_timestamp": 0, "after_discontinuity": 0, "discontinuities": 0, "off_grid_reference": 0, "off_grid_distorted": 0} | vmaf_contexts [{"first_index": 0, "pairs": 53946}] | failures listed 0 | warnings []
+gear2_vs_gear5 {"rule": "reference-timeline", "timestamp_origin": "input-start", "tolerance": 0.016683333333333335, "grid": "reference", "paired": 53946, "failed": 0, "failure_rate": 0, "threshold": 0.01, "exceeded": false, "unmatched_reference": 0, "extra_distorted": 0, "duplicate_distorted": 0, "no_timestamp": 0, "after_discontinuity": 0, "discontinuities": 0, "off_grid_reference": 0, "off_grid_distorted": 0} | vmaf_contexts [{"first_index": 0, "pairs": 53946}] | failures listed 0 | warnings []
+gear1_vs_gear5 {"rule": "reference-timeline", "timestamp_origin": "input-start", "tolerance": 0.016683333333333335, "grid": "reference", "paired": 53946, "failed": 0, "failure_rate": 0, "threshold": 0.01, "exceeded": false, "unmatched_reference": 0, "extra_distorted": 0, "duplicate_distorted": 0, "no_timestamp": 0, "after_discontinuity": 0, "discontinuities": 0, "off_grid_reference": 0, "off_grid_distorted": 0} | vmaf_contexts [{"first_index": 0, "pairs": 53946}] | failures listed 0 | warnings []
+
+# 7. The color conversions. Each mirage_vmaf report's dis_conversion and ref_conversion (D-016, D-022), then the lines of FFmpeg's verbose log in which its scale filters state what they converted (ffmpeg_colorspace_lines.txt; auto_scale_N would be a scale filter FFmpeg inserts itself).
+
+$ python3 -I -c 'import json, lzma, sys
+for d in sys.argv[1:]:
+    r = json.load(lzma.open(d + "/mirage.json.xz"))
+    print(d.split("/")[-1], "dis_conversion", json.dumps(r["dis_conversion"]), "ref_conversion", json.dumps(r["ref_conversion"]))' eval/consistency/defaults-full/plain/gear4_vs_gear5 eval/consistency/defaults-full/plain/gear3_vs_gear5 eval/consistency/defaults-full/plain/gear2_vs_gear5 eval/consistency/defaults-full/plain/gear1_vs_gear5 && grep -H -E 'Parsed_scale_[0-9]+ .* -> |auto_scale' eval/consistency/defaults-full/plain/gear[1-4]_vs_gear5/ffmpeg_colorspace_lines.txt | sed -E 's/ @ 0x[0-9a-f]+//'
+gear4_vs_gear5 dis_conversion [{"from": {"color_space": "bt709", "color_range": "tv"}, "to": {"color_space": "bt709", "color_range": "tv"}, "matrix_changed": false, "range_changed": false, "first_index": 0, "pairs": 53946}] ref_conversion []
+gear3_vs_gear5 dis_conversion [{"from": {"color_space": "bt709", "color_range": "tv"}, "to": {"color_space": "bt709", "color_range": "tv"}, "matrix_changed": false, "range_changed": false, "first_index": 0, "pairs": 53946}] ref_conversion []
+gear2_vs_gear5 dis_conversion [{"from": {"color_space": "smpte170m", "color_range": "tv"}, "to": {"color_space": "bt709", "color_range": "tv"}, "matrix_changed": true, "range_changed": false, "first_index": 0, "pairs": 53946}] ref_conversion []
+gear1_vs_gear5 dis_conversion [{"from": {"color_space": "smpte170m", "color_range": "tv"}, "to": {"color_space": "bt709", "color_range": "tv"}, "matrix_changed": true, "range_changed": false, "first_index": 0, "pairs": 53946}] ref_conversion []
+eval/consistency/defaults-full/plain/gear1_vs_gear5/ffmpeg_colorspace_lines.txt:[Parsed_scale_0] w:416 h:234 fmt:yuv420p csp:smpte170m range:tv sar:0/1 -> w:1920 h:1080 fmt:yuv420p csp:bt709 range:tv sar:0/1 flags:0x00000004
+eval/consistency/defaults-full/plain/gear2_vs_gear5/ffmpeg_colorspace_lines.txt:[Parsed_scale_0] w:640 h:360 fmt:yuv420p csp:smpte170m range:tv sar:0/1 -> w:1920 h:1080 fmt:yuv420p csp:bt709 range:tv sar:0/1 flags:0x00000004
+eval/consistency/defaults-full/plain/gear3_vs_gear5/ffmpeg_colorspace_lines.txt:[Parsed_scale_0] w:960 h:540 fmt:yuv420p csp:bt709 range:tv sar:0/1 -> w:1920 h:1080 fmt:yuv420p csp:bt709 range:tv sar:0/1 flags:0x00000004
+eval/consistency/defaults-full/plain/gear4_vs_gear5/ffmpeg_colorspace_lines.txt:[Parsed_scale_0] w:1280 h:720 fmt:yuv420p csp:bt709 range:tv sar:0/1 -> w:1920 h:1080 fmt:yuv420p csp:bt709 range:tv sar:0/1 flags:0x00000004
+
+# 8. The first 300 frames against defaults-300, made with the same defaults by the mirage_vmaf of 02ebed5 with --frames 300, one process at a time, whose scores are those of scalers-300/bicubic on every frame (its checks.txt, check 3): for index 0 to 298, the frames with the same mirage_vmaf score at full precision and those with every libvmaf metric of FFmpeg's log equal; then, for index 299, the last frame of the limited run, which had no successor there, whether the mirage_vmaf score and FFmpeg's metrics are the same.
+
+$ python3 -I -c 'import json, lzma, sys
+for name in sys.argv[1:]:
+    a = json.load(lzma.open("eval/consistency/defaults-full/plain/" + name + "/mirage.json.xz"))["frames"]
+    b = json.load(open("eval/consistency/defaults-300/plain/" + name + "/mirage.json"))["frames"]
+    c = json.load(lzma.open("eval/consistency/defaults-full/plain/" + name + "/ffmpeg.json.xz"))["frames"]
+    d = json.load(open("eval/consistency/defaults-300/plain/" + name + "/ffmpeg.json"))["frames"]
+    print(name, "| frames in defaults-300", len(b), "| index 0 to 298: same mirage_vmaf score", sum(x["vmaf"] == y["vmaf"] for x, y in zip(a[:299], b[:299])),
+          "same FFmpeg metrics", sum(x["metrics"] == y["metrics"] for x, y in zip(c[:299], d[:299])),
+          "| index 299: same mirage_vmaf score", a[299]["vmaf"] == b[299]["vmaf"], "same FFmpeg metrics", c[299]["metrics"] == d[299]["metrics"])' gear4_vs_gear5 gear3_vs_gear5 gear2_vs_gear5 gear1_vs_gear5
+gear4_vs_gear5 | frames in defaults-300 300 | index 0 to 298: same mirage_vmaf score 299 same FFmpeg metrics 299 | index 299: same mirage_vmaf score True same FFmpeg metrics True
+gear3_vs_gear5 | frames in defaults-300 300 | index 0 to 298: same mirage_vmaf score 299 same FFmpeg metrics 299 | index 299: same mirage_vmaf score True same FFmpeg metrics True
+gear2_vs_gear5 | frames in defaults-300 300 | index 0 to 298: same mirage_vmaf score 299 same FFmpeg metrics 299 | index 299: same mirage_vmaf score True same FFmpeg metrics True
+gear1_vs_gear5 | frames in defaults-300 300 | index 0 to 298: same mirage_vmaf score 299 same FFmpeg metrics 299 | index 299: same mirage_vmaf score True same FFmpeg metrics True
+
+# 9. The pooled values of D-027 in each mirage_vmaf report, written with 6 decimals; then its mean, min and harmonic mean against FFmpeg's libvmaf log, whose pooled_metrics libvmaf computes from FFmpeg's own scores, at the log's 6 decimals.
+
+$ python3 -I -c 'import json, lzma, sys
+keys = ("mean", "harmonic_mean", "min", "min_without_first_frame", "p1", "p5", "p10", "p25", "p50")
+for d in sys.argv[1:]:
+    m = json.load(lzma.open(d + "/mirage.json.xz"))["pooled"]
+    f = json.load(lzma.open(d + "/ffmpeg.json.xz"))["pooled_metrics"]["vmaf"]
+    print(d.split("/")[-1], " ".join(k + " " + format(m[k], ".6f") for k in keys))
+    print("   ", " | ".join(k + " " + format(m[k], ".6f") + " / " + format(f[k], ".6f") + (" same" if format(m[k], ".6f") == format(f[k], ".6f") else " DIFFERENT") for k in ("mean", "min", "harmonic_mean")))' eval/consistency/defaults-full/plain/gear4_vs_gear5 eval/consistency/defaults-full/plain/gear3_vs_gear5 eval/consistency/defaults-full/plain/gear2_vs_gear5 eval/consistency/defaults-full/plain/gear1_vs_gear5
+gear4_vs_gear5 mean 84.215790 harmonic_mean 84.213049 min 79.613837 min_without_first_frame 82.494129 p1 83.087109 p5 83.403003 p10 83.581955 p25 83.882525 p50 84.230064
+    mean 84.215790 / 84.215790 same | min 79.613837 / 79.613837 same | harmonic_mean 84.213049 / 84.213049 same
+gear3_vs_gear5 mean 64.205911 harmonic_mean 64.194902 min 56.844534 min_without_first_frame 60.167983 p1 61.216593 p5 62.826456 p10 63.221833 p25 63.754915 p50 64.281113
+    mean 64.205911 / 64.205911 same | min 56.844534 / 56.844534 same | harmonic_mean 64.194902 / 64.194902 same
+gear2_vs_gear5 mean 35.811040 harmonic_mean 35.705189 min 23.488692 min_without_first_frame 25.172073 p1 26.861827 p5 33.982522 p10 34.621018 p25 35.353215 p50 36.064785
+    mean 35.811040 / 35.811040 same | min 23.488692 / 23.488692 same | harmonic_mean 35.705189 / 35.705189 same
+gear1_vs_gear5 mean 5.863899 harmonic_mean 4.785794 min 0.000000 min_without_first_frame 0.000000 p1 0.000000 p5 4.010176 p10 4.601259 p25 5.340558 p50 6.043055
+    mean 5.863899 / 5.863899 same | min 0.000000 / 0.000000 same | harmonic_mean 4.785794 / 4.785794 same
+
+# 10. The pooled values against eval/pooling/pooling.py on the same per-frame scores (eval/pooling/defaults-full/pooling.json, made with --check-pooled from this run): for each Mirage series, pooling.py's check and each value of D-027 as pooling.py computes it and as mirage_vmaf's report gives it, in full; and, for every series of both sides, where the minimum is, how many frames score it, and the minimum without the first frame with its index.
+
+$ python3 -I -c 'import json
+r = json.load(open("eval/pooling/defaults-full/pooling.json"))
+for s in r["sources"][0]["series"]:
+    st = s["stats"]
+    print(s["label"], "| frames", st["frames"], "| min", repr(st["min"]), "first index at it", st["min_first_index"], "frames at it", st["frames_at_min"], "| without the first frame", repr(st["min_without_first_frame"]), "index", st["min_without_first_frame_index"])
+    if "d027" not in s:
+        continue
+    print("    equal at full precision:", s["checks"]["mirage_vmaf_pooled_values_equal_d027_at_full_precision"])
+    for k, v in s["d027"]["computed"].items():
+        print("   ", k, repr(v), repr(s["d027"]["reported"][k]))'
+gear4_vs_gear5, Mirage | frames 53946 | min 79.61383719363732 first index at it 0 frames at it 1 | without the first frame 82.49412864741171 index 8480
+    equal at full precision: True
+    mean 84.21578954441404 84.21578954441404
+    harmonic_mean 84.21304882008998 84.21304882008998
+    min 79.61383719363732 79.61383719363732
+    min_without_first_frame 82.49412864741171 82.49412864741171
+    p1 83.08710894795334 83.08710894795334
+    p5 83.40300252315254 83.40300252315254
+    p10 83.58195547692783 83.58195547692783
+    p25 83.88252544511847 83.88252544511847
+    p50 84.23006443937152 84.23006443937152
+gear4_vs_gear5, FFmpeg | frames 53946 | min 79.613837 first index at it 0 frames at it 1 | without the first frame 82.494129 index 8480
+gear3_vs_gear5, Mirage | frames 53946 | min 56.84453353023001 first index at it 0 frames at it 1 | without the first frame 60.16798310098584 index 52920
+    equal at full precision: True
+    mean 64.20591109842762 64.20591109842762
+    harmonic_mean 64.1949022900204 64.1949022900204
+    min 56.84453353023001 56.84453353023001
+    min_without_first_frame 60.16798310098584 60.16798310098584
+    p1 61.21659291994881 61.21659291994881
+    p5 62.82645646932036 62.82645646932036
+    p10 63.221832626720406 63.221832626720406
+    p25 63.75491458481124 63.75491458481124
+    p50 64.28111296367184 64.28111296367184
+gear3_vs_gear5, FFmpeg | frames 53946 | min 56.844534 first index at it 0 frames at it 1 | without the first frame 60.167983 index 52920
+gear2_vs_gear5, Mirage | frames 53946 | min 23.48869176425057 first index at it 0 frames at it 1 | without the first frame 25.17207314947476 index 7860
+    equal at full precision: True
+    mean 35.81103960566848 35.81103960566848
+    harmonic_mean 35.70518858430351 35.70518858430351
+    min 23.48869176425057 23.48869176425057
+    min_without_first_frame 25.17207314947476 25.17207314947476
+    p1 26.861827464596292 26.861827464596292
+    p5 33.98252238537738 33.98252238537738
+    p10 34.6210181309377 34.6210181309377
+    p25 35.353215035207555 35.353215035207555
+    p50 36.06478506509353 36.06478506509353
+gear2_vs_gear5, FFmpeg | frames 53946 | min 23.488692 first index at it 0 frames at it 1 | without the first frame 25.172073 index 7860
+gear1_vs_gear5, Mirage | frames 53946 | min 0.0 first index at it 0 frames at it 1799 | without the first frame 0.0 index 30
+    equal at full precision: True
+    mean 5.863899146838388 5.863899146838388
+    harmonic_mean 4.785793985391388 4.785793985391388
+    min 0.0 0
+    min_without_first_frame 0.0 0
+    p1 0.0 0
+    p5 4.010176382624578 4.010176382624578
+    p10 4.601259206576151 4.601259206576151
+    p25 5.340557614029432 5.340557614029432
+    p50 6.043054783321292 6.043054783321292
+gear1_vs_gear5, FFmpeg | frames 53946 | min 0.0 first index at it 0 frames at it 1799 | without the first frame 0.0 index 30
+
+# 11. Against acceptance-full, the full-length run of 2026-10-23 with the defaults of its day (bilinear, the mirage_vmaf of 3650f83): for each pair, the frames of both runs, the frames whose Mirage score is higher, the same and lower in this run, the mean per-frame change, and both runs' pooled means, all on Mirage's side at full precision. The two runs differ in the scaler and in the program. On frames 0 to 298, this run has the scores of defaults-300 (check 8), which has those of scalers-300/bicubic (its checks.txt, check 3), and acceptance-full those of scalers-300/bilinear (its checks.txt, check 3); one program made the scalers-300 runs.
+
+$ python3 -I -c 'import json, lzma, sys
+for name in sys.argv[1:]:
+    a = json.load(lzma.open("eval/consistency/defaults-full/plain/" + name + "/mirage.json.xz"))
+    b = json.load(lzma.open("eval/consistency/acceptance-full/plain/" + name + "/mirage.json.xz"))
+    x = [f["vmaf"] for f in a["frames"]]
+    y = [f["vmaf"] for f in b["frames"]]
+    d = [p - q for p, q in zip(x, y)]
+    print(name, "| frames", len(x), "/", len(y), "| up", sum(v > 0 for v in d), "same", sum(v == 0 for v in d), "down", sum(v < 0 for v in d),
+          "| mean change", format(sum(d) / len(d), ".6f"), "| pooled mean bicubic", format(a["pooled"]["mean"], ".6f"), "bilinear", format(b["pooled"]["mean"], ".6f"))' gear4_vs_gear5 gear3_vs_gear5 gear2_vs_gear5 gear1_vs_gear5
+gear4_vs_gear5 | frames 53946 / 53946 | up 53946 same 0 down 0 | mean change 9.652583 | pooled mean bicubic 84.215790 bilinear 74.563207
+gear3_vs_gear5 | frames 53946 / 53946 | up 53946 same 0 down 0 | mean change 10.983899 | pooled mean bicubic 64.205911 bilinear 53.222012
+gear2_vs_gear5 | frames 53946 / 53946 | up 53946 same 0 down 0 | mean change 7.942400 | pooled mean bicubic 35.811040 bilinear 27.868640
+gear1_vs_gear5 | frames 53946 / 53946 | up 52147 same 1799 down 0 | mean change 5.863072 | pooled mean bicubic 5.863899 bilinear 0.000827
+
+# 12. FFmpeg's verbose logs with the three showinfo filters of the comparison by timestamp (P-047): for each pair, the size of the committed .xz file and of the log it holds, its lines, and the lines each showinfo filter writes for its frames (a line per frame, with the frame's timestamp).
+
+$ for d in eval/consistency/defaults-full/plain/gear4_vs_gear5 eval/consistency/defaults-full/plain/gear3_vs_gear5 eval/consistency/defaults-full/plain/gear2_vs_gear5 eval/consistency/defaults-full/plain/gear1_vs_gear5; do printf '%s | xz bytes %s | log bytes %s | lines %s | frame lines:' "${d##*/}" "$(wc -c < $d/ffmpeg.stderr.log.xz | tr -d ' ')" "$(xz -dc $d/ffmpeg.stderr.log.xz | wc -c | tr -d ' ')" "$(xz -dc $d/ffmpeg.stderr.log.xz | wc -l | tr -d ' ')"; xz -dc $d/ffmpeg.stderr.log.xz | grep -o -E '^\[Parsed_showinfo_[0-9]+ @ 0x[0-9a-f]+\] n: *[0-9]+ ' | sed -E 's/ @ 0x[0-9a-f]+\].*//; s/^\[//' | sort | uniq -c | awk '{printf " %s %s", $2, $1}'; echo; done
+gear4_vs_gear5 | xz bytes 1898580 | log bytes 91662851 | lines 918860 | frame lines: Parsed_showinfo_2 53946 Parsed_showinfo_4 53946 Parsed_showinfo_6 53946
+gear3_vs_gear5 | xz bytes 1903556 | log bytes 91659880 | lines 918844 | frame lines: Parsed_showinfo_2 53946 Parsed_showinfo_4 53946 Parsed_showinfo_6 53946
+gear2_vs_gear5 | xz bytes 1877848 | log bytes 92092360 | lines 918858 | frame lines: Parsed_showinfo_2 53946 Parsed_showinfo_4 53946 Parsed_showinfo_6 53946
+gear1_vs_gear5 | xz bytes 1892992 | log bytes 92083130 | lines 919346 | frame lines: Parsed_showinfo_2 53946 Parsed_showinfo_4 53946 Parsed_showinfo_6 53946
+
+# 13. The delta reports: the run's verdict, warnings and parameters, and for each pair its verdict, warnings, largest and mean |delta|, and each side's wall time; then the run's start and end (delta.md).
+
+$ python3 -I -c 'import json, sys
+o = json.load(open(sys.argv[1] + "/delta.json"))
+print("run", o["status"], "| warnings", o["warnings"], "| parameters", {k: o["parameters"][k] for k in ("frames", "scaler", "model", "threads", "threshold")})
+for name in sys.argv[2:]:
+    p = json.load(open(sys.argv[1] + "/" + name + "/delta.json"))
+    print(name, p["status"], "| warnings", p["warnings"], "| max |delta|", format(p["delta"]["max_abs"], ".6f"), "mean |delta|", format(p["delta"]["mean_abs"], ".6f"), "| wall time (s): mirage_vmaf", p["mirage_vmaf"]["elapsed_s"], "FFmpeg", p["ffmpeg"]["elapsed_s"])' eval/consistency/defaults-full/plain gear4_vs_gear5 gear3_vs_gear5 gear2_vs_gear5 gear1_vs_gear5 && grep -h -E '^- (Run|Code):' eval/consistency/defaults-full/plain/delta.md
+run PASS | warnings [] | parameters {'frames': None, 'scaler': 'bicubic', 'model': 'vmaf_v0.6.1', 'threads': 4, 'threshold': 0.01}
+gear4_vs_gear5 PASS | warnings [] | max |delta| 0.000000 mean |delta| 0.000000 | wall time (s): mirage_vmaf 1280.636 FFmpeg 1282.152
+gear3_vs_gear5 PASS | warnings [] | max |delta| 0.000000 mean |delta| 0.000000 | wall time (s): mirage_vmaf 1281.16 FFmpeg 1281.69
+gear2_vs_gear5 PASS | warnings [] | max |delta| 0.000000 mean |delta| 0.000000 | wall time (s): mirage_vmaf 1251.334 FFmpeg 1253.182
+gear1_vs_gear5 PASS | warnings [] | max |delta| 0.000000 mean |delta| 0.000000 | wall time (s): mirage_vmaf 1250.509 FFmpeg 1252.284
+- Code: commit a5b3cc53dc51b2e5a5b3ac0efb57d3534eb31c3c; the working tree was clean at the start of the run and clean at its end (environment.txt).
+- Run: 2026-10-24T14:40:10Z to 2026-10-24T15:23:15Z (UTC).
+
+# 14. The run's checksums.
+
+$ (cd eval/consistency/defaults-full/plain && shasum -a 256 -c SHA256SUMS | awk '{n[$NF]++} END {for (k in n) printf "%d %s\n", n[k], k}')
+49 OK

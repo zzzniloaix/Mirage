@@ -2999,7 +2999,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             for (const auto& r : vmaf_results)
                 vmaf_entries.push_back({
                     r.label, r.vmaf_mean, r.vmaf_min, r.vmaf_p5,
-                    r.per_frame, r.done, r.error
+                    r.per_frame, r.done, r.error, r.alignment.warning
                 });
 
             float vmaf_pos_frac = (duration > 0.0)
@@ -3166,7 +3166,8 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 for (const auto& r : vmaf_results)
                     vmaf_ui_entries.push_back({
                         r.label, r.vmaf_mean, r.vmaf_min, r.vmaf_p5,
-                        r.width, r.height, r.bandwidth, r.done, r.error, r.per_frame
+                        r.width, r.height, r.bandwidth, r.done, r.error, r.per_frame,
+                        r.alignment.warning
                     });
 
                 float vmaf_pos_frac = (duration > 0.0)

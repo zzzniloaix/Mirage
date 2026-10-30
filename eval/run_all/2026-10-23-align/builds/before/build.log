@@ -1,0 +1,6 @@
+[1/6] Building CXX object CMakeFiles/mirage_vmaf.dir/tools/mirage_vmaf.cpp.o
+[2/6] Building CXX object CMakeFiles/mirage_vmaf.dir/src/JsonText.cpp.o
+[3/6] Building CXX object CMakeFiles/mirage_vmaf.dir/src/VMAFCli.cpp.o
+[4/6] Building CXX object CMakeFiles/mirage_vmaf.dir/src/VMAFReport.cpp.o
+[5/6] Building CXX object CMakeFiles/mirage_vmaf.dir/src/VMAFAnalyzer.cpp.o
+[6/6] Linking CXX executable mirage_vmaf

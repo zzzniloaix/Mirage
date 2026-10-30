@@ -1,0 +1,431 @@
+{
+  "report_version": 1,
+  "pair": "a04_half_rate",
+  "reference": "<tmp>/align_clips/ref.mkv",
+  "distorted": "<tmp>/align_clips/dis_half.mkv",
+  "variant": "plain",
+  "status": "FAIL",
+  "fail_reasons": [
+    "FRAME COUNT MISMATCH: Mirage scored 5 frame pairs, FFmpeg 6; only the 1 pairs both scored are compared",
+    "PAIRING MISMATCH: 4 of Mirage's 5 pairs are not among FFmpeg's, and 5 of FFmpeg's 6 not among Mirage's (the same pair: the same reference and distorted frames); only the pairs both scored are compared"
+  ],
+  "warnings": [
+    "the two sides' pairing treats 11 frames differently, Mirage's failures included (the pair's delta.md, \"Pairing by timestamp\")"
+  ],
+  "threshold": 0.01,
+  "frame_limit": null,
+  "frames": {
+    "mirage": 5,
+    "ffmpeg": 6,
+    "compared": 1,
+    "counts_match": false
+  },
+  "delta": {
+    "compared": 1,
+    "max_abs": 2.716451774631423e-07,
+    "max_abs_index": 0,
+    "mean_abs": 2.716451774631423e-07,
+    "mean_signed": -2.716451774631423e-07,
+    "over_threshold": 0,
+    "over_threshold_ranges": [],
+    "worst": [
+      {
+        "index": 0,
+        "ffmpeg_index": 0,
+        "mirage": 72.68777672835482,
+        "ffmpeg": 72.687777,
+        "delta": -2.716451774631423e-07
+      }
+    ],
+    "mean_mirage": 72.68777672835482,
+    "mean_ffmpeg": 72.687777
+  },
+  "alignment": {
+    "compared_by": "the same reference and distorted frames (their positions in the inputs), at the same timestamps (seconds from each input's start)",
+    "tolerance": 0.016683333333333335,
+    "tolerance_from": "ffprobe's r_frame_rate of the reference",
+    "mirage": {
+      "pairs": 5,
+      "reference_in_several_pairs": 0,
+      "distorted_in_several_pairs": 0,
+      "pairs_beyond_tolerance": 4,
+      "rule": "decode order (a mirage_vmaf from before D-028, whose report has no alignment)",
+      "reference_in_no_pair": null,
+      "distorted_in_no_pair": null,
+      "start": {
+        "reference": 0.0,
+        "distorted": 0.0
+      },
+      "start_from": {
+        "reference": "FFmpeg's log, for a report without an alignment",
+        "distorted": "FFmpeg's log, for a report without an alignment"
+      }
+    },
+    "ffmpeg": {
+      "pairs": 6,
+      "reference_in_several_pairs": 0,
+      "distorted_in_several_pairs": 1,
+      "pairs_beyond_tolerance": 1,
+      "reference_in_no_pair": 4,
+      "distorted_in_no_pair": 0,
+      "unscored": 0,
+      "by_reference": 1,
+      "rule": "framesync: each distorted frame with the reference frame at or before its time; the last frame of an input that has ended repeated",
+      "start": {
+        "reference": 0.0,
+        "distorted": 0.0
+      },
+      "time_base": {
+        "reference": "1/1000",
+        "distorted": "1/1000",
+        "framesync": "1/1000"
+      },
+      "frames": {
+        "reference": 10,
+        "distorted": 5
+      },
+      "corrections": 0
+    },
+    "pairs": {
+      "both": 1,
+      "only_mirage": 4,
+      "only_ffmpeg": 5,
+      "other_times": 0
+    },
+    "only_mirage": [
+      {
+        "index": 1,
+        "ref": 1,
+        "dis": 1,
+        "ref_time": 0.033,
+        "dis_time": 0.067
+      },
+      {
+        "index": 2,
+        "ref": 2,
+        "dis": 2,
+        "ref_time": 0.067,
+        "dis_time": 0.133
+      },
+      {
+        "index": 3,
+        "ref": 3,
+        "dis": 3,
+        "ref_time": 0.1,
+        "dis_time": 0.2
+      },
+      {
+        "index": 4,
+        "ref": 4,
+        "dis": 4,
+        "ref_time": 0.133,
+        "dis_time": 0.267
+      }
+    ],
+    "only_ffmpeg": [
+      {
+        "frame": 1,
+        "ref": 2,
+        "dis": 1,
+        "ref_time": 0.067,
+        "dis_time": 0.067,
+        "by_reference": false
+      },
+      {
+        "frame": 2,
+        "ref": 4,
+        "dis": 2,
+        "ref_time": 0.133,
+        "dis_time": 0.133,
+        "by_reference": false
+      },
+      {
+        "frame": 3,
+        "ref": 6,
+        "dis": 3,
+        "ref_time": 0.2,
+        "dis_time": 0.2,
+        "by_reference": false
+      },
+      {
+        "frame": 4,
+        "ref": 8,
+        "dis": 4,
+        "ref_time": 0.267,
+        "dis_time": 0.267,
+        "by_reference": false
+      },
+      {
+        "frame": 5,
+        "ref": 9,
+        "dis": 4,
+        "ref_time": 0.3,
+        "dis_time": 0.267,
+        "by_reference": true
+      }
+    ],
+    "other_times": [],
+    "frames_treated_differently": 11,
+    "frames": [
+      {
+        "input": "reference",
+        "index": 1,
+        "time": 0.033,
+        "mirage": "paired with distorted 1",
+        "ffmpeg": "in no pair"
+      },
+      {
+        "input": "reference",
+        "index": 2,
+        "time": 0.067,
+        "mirage": "paired with distorted 2",
+        "ffmpeg": "paired with distorted 1"
+      },
+      {
+        "input": "reference",
+        "index": 3,
+        "time": 0.1,
+        "mirage": "paired with distorted 3",
+        "ffmpeg": "in no pair"
+      },
+      {
+        "input": "reference",
+        "index": 4,
+        "time": 0.133,
+        "mirage": "paired with distorted 4",
+        "ffmpeg": "paired with distorted 2"
+      },
+      {
+        "input": "reference",
+        "index": 6,
+        "time": 0.2,
+        "mirage": "in no pair",
+        "ffmpeg": "paired with distorted 3"
+      },
+      {
+        "input": "reference",
+        "index": 8,
+        "time": 0.267,
+        "mirage": "in no pair",
+        "ffmpeg": "paired with distorted 4"
+      },
+      {
+        "input": "reference",
+        "index": 9,
+        "time": 0.3,
+        "mirage": "in no pair",
+        "ffmpeg": "paired with distorted 4"
+      },
+      {
+        "input": "distorted",
+        "index": 1,
+        "time": 0.067,
+        "mirage": "paired with reference 1",
+        "ffmpeg": "paired with reference 2"
+      },
+      {
+        "input": "distorted",
+        "index": 2,
+        "time": 0.133,
+        "mirage": "paired with reference 2",
+        "ffmpeg": "paired with reference 4"
+      },
+      {
+        "input": "distorted",
+        "index": 3,
+        "time": 0.2,
+        "mirage": "paired with reference 3",
+        "ffmpeg": "paired with reference 6"
+      },
+      {
+        "input": "distorted",
+        "index": 4,
+        "time": 0.267,
+        "mirage": "paired with reference 4",
+        "ffmpeg": "paired with reference 8, 9 (in 2 pairs)"
+      }
+    ]
+  },
+  "pooled": {
+    "mirage": {
+      "mean": 32.383049160644276,
+      "min": 20.136385674206306,
+      "harmonic_mean": 25.837304124438912
+    },
+    "ffmpeg": {
+      "mean": 66.173476,
+      "min": 24.645901,
+      "harmonic_mean": 56.009451
+    },
+    "difference": {
+      "mean": -33.79042683935572,
+      "min": -4.509515325793693,
+      "harmonic_mean": -30.172146875561086
+    }
+  },
+  "relabel": null,
+  "ffmpeg_color": {
+    "graph_inputs": [
+      {
+        "input": 0,
+        "stream": 0,
+        "color_space": "bt709",
+        "color_range": "tv"
+      },
+      {
+        "input": 1,
+        "stream": 0,
+        "color_space": "bt709",
+        "color_range": "tv"
+      }
+    ],
+    "scale": [
+      {
+        "filter": "Parsed_scale_0",
+        "in": {
+          "width": 640,
+          "height": 360,
+          "pix_fmt": "yuv420p",
+          "color_space": "bt709",
+          "color_range": "tv"
+        },
+        "out": {
+          "width": 1920,
+          "height": 1080,
+          "pix_fmt": "yuv420p",
+          "color_space": "bt709",
+          "color_range": "tv"
+        },
+        "flags": "0x00000004"
+      }
+    ],
+    "conversions": []
+  },
+  "mirage_color": {
+    "dis_conversion": [
+      {
+        "from": {
+          "color_space": "bt709",
+          "color_range": "tv"
+        },
+        "to": {
+          "color_space": "bt709",
+          "color_range": "tv"
+        },
+        "matrix_changed": false,
+        "range_changed": false,
+        "first_index": 0,
+        "pairs": 5
+      }
+    ],
+    "ref_conversion": []
+  },
+  "inputs": {
+    "ref": {
+      "ffprobe": {
+        "codec_name": "rawvideo",
+        "width": 1920,
+        "height": 1080,
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_range": "tv",
+        "color_primaries": null,
+        "color_transfer": null,
+        "time_base": "1/1000",
+        "r_frame_rate": "30000/1001",
+        "avg_frame_rate": "30000/1001",
+        "start_time": "0.000000"
+      },
+      "mirage_vmaf": {
+        "url": "<tmp>/align_clips/ref.mkv",
+        "width": 1920,
+        "height": 1080,
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_range": "tv",
+        "color_primaries": "unknown",
+        "color_trc": "unknown",
+        "time_base": "1/1000",
+        "ended": false
+      }
+    },
+    "dis": {
+      "ffprobe": {
+        "codec_name": "rawvideo",
+        "width": 640,
+        "height": 360,
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_range": "tv",
+        "color_primaries": null,
+        "color_transfer": null,
+        "time_base": "1/1000",
+        "r_frame_rate": "15000/1001",
+        "avg_frame_rate": "15000/1001",
+        "start_time": "0.000000"
+      },
+      "mirage_vmaf": {
+        "url": "<tmp>/align_clips/dis_half.mkv",
+        "width": 640,
+        "height": 360,
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_range": "tv",
+        "color_primaries": "unknown",
+        "color_trc": "unknown",
+        "time_base": "1/1000",
+        "ended": true
+      }
+    }
+  },
+  "mirage_vmaf": {
+    "exit_code": 0,
+    "elapsed_s": 0.147,
+    "tool": "mirage_vmaf",
+    "reference_mode": "explicit-pair",
+    "libvmaf_version": "3.0.0",
+    "libvmaf_package_version": "3.1.0",
+    "ffmpeg_libraries": {
+      "libavutil": "60.26.101",
+      "libavcodec": "62.28.101",
+      "libavformat": "62.12.101",
+      "libswscale": "9.5.101",
+      "libavfilter": "11.14.101"
+    },
+    "model": "vmaf_v0.6.1",
+    "model_source": "built-in",
+    "model_sha256": null,
+    "scaler": "bicubic",
+    "n_threads": 4,
+    "n_subsample": 1,
+    "scored_as": {
+      "width": 1920,
+      "height": 1080,
+      "pix_fmt": "yuv420p",
+      "bit_depth": 8
+    },
+    "frame_limit": null,
+    "frames_scored": 5,
+    "ref_ended": false,
+    "dis_ended": true,
+    "first_ref_pts": 0.0,
+    "last_ref_pts": 0.133,
+    "pairs_with_different_pts": 4,
+    "warnings": []
+  },
+  "ffmpeg": {
+    "exit_code": 0,
+    "elapsed_s": 0.206,
+    "libvmaf_version": "3.0.0",
+    "libvmaf_package_version": "3.1.0",
+    "ffmpeg_libraries": {
+      "libavutil": "60.26.101",
+      "libavcodec": "62.28.101",
+      "libavformat": "62.12.101",
+      "libavdevice": "62.3.101",
+      "libavfilter": "11.14.101",
+      "libswscale": "9.5.101",
+      "libswresample": "6.3.101"
+    }
+  }
+}

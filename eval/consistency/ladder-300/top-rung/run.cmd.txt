@@ -1,0 +1,2 @@
+# The command of this eval/consistency/ladder_check.py run, from <repo>; <mirage_vmaf> is the program of environment.txt, and <pairs>, if it appears, is the pairs file copied to pairs.txt.
+$ python3 -I -B eval/consistency/ladder_check.py <mirage_vmaf> <out_dir> --ladder https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8 --pairs eval/consistency/pairs/bipbop16x9.txt --frames 300 --scaler bicubic --model vmaf_v0.6.1 --jobs 1 --timeout 21600

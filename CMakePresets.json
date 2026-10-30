@@ -24,6 +24,30 @@
       "environment": {
         "PKG_CONFIG_PATH": "/opt/homebrew/opt/ffmpeg-full/lib/pkgconfig:$penv{PKG_CONFIG_PATH}"
       }
+    },
+    {
+      "name": "macos-headless",
+      "displayName": "macOS Release, mirage_vmaf and mirage_tests only",
+      "inherits": "macos-release",
+      "binaryDir": "${sourceDir}/build/macos-headless",
+      "cacheVariables": {
+        "MIRAGE_HEADLESS": "ON"
+      }
+    },
+    {
+      "name": "linux-release",
+      "displayName": "Linux Release, mirage_vmaf and mirage_tests only",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/linux-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "MIRAGE_HEADLESS": "ON"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
     }
   ],
   "buildPresets": [
@@ -34,6 +58,19 @@
     {
       "name": "macos-release",
       "configurePreset": "macos-release"
+    },
+    {
+      "name": "macos-headless",
+      "configurePreset": "macos-headless"
+    },
+    {
+      "name": "linux-release",
+      "configurePreset": "linux-release",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
     }
   ]
 }

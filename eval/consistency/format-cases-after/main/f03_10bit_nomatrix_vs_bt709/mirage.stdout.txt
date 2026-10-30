@@ -1,0 +1,3 @@
+[WARN]  VMAFAnalyzer: the reference's frames are yuv420p10le, not yuv420p: FFmpeg's section 5 graph then converts the reference to the distorted input's color matrix and range, where Mirage converts the distorted frames to the reference's, so the scores can differ from FFmpeg's (docs/PHASE1_DECISIONS_PENDING.md)
+[INFO]  VMAFAnalyzer: 10 frames  mean=40.08  min=39.30  p5=39.30  [Analysis]
+mirage_vmaf: 10 frame pairs scored, report written to mirage.json

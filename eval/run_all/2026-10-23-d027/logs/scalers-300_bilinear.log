@@ -1,0 +1,13 @@
+gear3_vs_gear5: FFmpeg exit 0 after 8.5 s
+gear4_vs_gear5: FFmpeg exit 0 after 8.6 s
+gear3_vs_gear5: mirage_vmaf exit 0 after 8.6 s
+gear4_vs_gear5: mirage_vmaf exit 0 after 8.7 s
+gear2_vs_gear5: mirage_vmaf exit 0 after 8.5 s
+gear2_vs_gear5: FFmpeg exit 0 after 8.4 s
+gear1_vs_gear5: FFmpeg exit 0 after 8.3 s
+gear1_vs_gear5: mirage_vmaf exit 0 after 8.5 s
+gear4_vs_gear5: PASS  frames 300 / 300  max |delta| 0.000000  over 0.01: 0
+gear3_vs_gear5: PASS  frames 300 / 300  max |delta| 0.000000  over 0.01: 0
+gear2_vs_gear5: PASS  frames 300 / 300  max |delta| 0.000000  over 0.01: 0
+gear1_vs_gear5: PASS  frames 300 / 300  max |delta| 0.000000  over 0.01: 0
+overall: PASS; reports in <out_dir>/consistency/scalers-300/bilinear/delta.md

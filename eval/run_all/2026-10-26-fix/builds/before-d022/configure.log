@@ -1,0 +1,64 @@
+-- The C compiler identification is AppleClang 21.0.0.21000101
+-- The CXX compiler identification is AppleClang 21.0.0.21000101
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found PkgConfig: /opt/homebrew/bin/pkg-config (found version "2.5.1")
+-- Found OpenGL: /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/OpenGL.framework
+-- Checking for modules 'libavformat;libavcodec;libavutil;libswresample;libswscale;libavfilter'
+--   Found libavformat, version 62.12.101
+--   Found libavcodec, version 62.28.101
+--   Found libavutil, version 60.26.101
+--   Found libswresample, version 6.3.101
+--   Found libswscale, version 9.5.101
+--   Found libavfilter, version 11.14.101
+-- Checking for module 'glfw3'
+--   Found glfw3, version 3.4.0
+-- Checking for module 'libvmaf'
+--   Found libvmaf, version 3.0.0
+-- libvmaf package version: 3.1.0
+-- Glad Library 'glad_gl_core_41'
+-- Found Python: /opt/homebrew/Frameworks/Python.framework/Versions/3.14/bin/python3.14 (found version "3.14.7") found components: Interpreter
+-- Checking for module 'vorbisfile'
+--   Found vorbisfile, version 1.3.7
+-- Found vorbisfile via pkg-config: vorbisfile
+-- Checking for module 'opusfile'
+--   Package 'opusfile' not found
+-- libopusfile not found. miniaudio_libopus will be excluded.
+-- Found SDL2: /opt/homebrew/lib/libSDL2.dylib
+-- SteamAudio not found. miniaudio_engine_steamaudio will be excluded.
+-- Library list: miniaudio;miniaudio_libvorbis;miniaudio_channel_combiner_node;miniaudio_channel_separator_node;miniaudio_ltrim_node;miniaudio_reverb_node;miniaudio_vocoder_node
+CMake Deprecation Warning at build/macos-release/_deps/pugixml-src/CMakeLists.txt:1 (cmake_minimum_required):
+  Compatibility with CMake < 3.10 will be removed from a future version of
+  CMake.
+
+  Update the VERSION argument <min> value.  Or, use the <min>...<max> syntax
+  to tell CMake that the project requires at least <min> but has been updated
+  to work with policies introduced by <max> or earlier.
+
+
+-- Performing Test HAVE_FLAG__ffile_prefix_map_<worktree>_build_macos_release__deps_catch2_src__
+-- Performing Test HAVE_FLAG__ffile_prefix_map_<worktree>_build_macos_release__deps_catch2_src__ - Success
+CMake Deprecation Warning at build/macos-release/_deps/nfd-src/CMakeLists.txt:1 (cmake_minimum_required):
+  Compatibility with CMake < 3.10 will be removed from a future version of
+  CMake.
+
+  Update the VERSION argument <min> value.  Or, use the <min>...<max> syntax
+  to tell CMake that the project requires at least <min> but has been updated
+  to work with policies introduced by <max> or earlier.
+
+
+nfd Platform: PLATFORM_MACOS
+nfd Compiler: COMPILER_GNU
+-- Performing Test NFD_USE_ALLOWEDCONTENTTYPES
+-- Performing Test NFD_USE_ALLOWEDCONTENTTYPES - Success
+-- Configuring done (192.6s)
+-- Generating done (0.1s)
+-- Build files have been written to: <worktree>/build/macos-release

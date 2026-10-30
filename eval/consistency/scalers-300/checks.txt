@@ -1,0 +1,76 @@
+# Checks on the runs in this directory, made after them from <repo>: each command, then its output.
+
+# 1. The repository when these checks and scaler_effect.* were made: HEAD and the working tree's state.
+
+$ git rev-parse HEAD && git status --porcelain && echo '(end of git status)'
+f362eab2618c21b1ad8120debb56e6114dc13b48
+(end of git status)
+
+# 2. scaler_effect.md and scaler_effect.json: how far each side's scores move from the bilinear run's (eval/consistency/compare_runs.py).
+
+$ python3 -I -B eval/consistency/compare_runs.py --base bilinear=eval/consistency/scalers-300/bilinear --run bicubic=eval/consistency/scalers-300/bicubic --run lanczos=eval/consistency/scalers-300/lanczos --out eval/consistency/scalers-300/scaler_effect
+compare_runs: wrote eval/consistency/scalers-300/scaler_effect.json and eval/consistency/scalers-300/scaler_effect.md
+
+# 3. Every run and pair: frame pairs on each side, and frames whose Mirage score, written with the 6 decimals of FFmpeg's log, is FFmpeg's.
+
+$ python3 -I -c 'import json, sys
+for d in sys.argv[1:]:
+    m = json.load(open(d + "/mirage.json"))["frames"]
+    f = json.load(open(d + "/ffmpeg.json"))["frames"]
+    same = sum(format(a["vmaf"], ".6f") == format(b["metrics"]["vmaf"], ".6f") for a, b in zip(m, f))
+    print(d, len(m), len(f), same)' eval/consistency/scalers-300/*/*_vs_gear5
+eval/consistency/scalers-300/bicubic/gear1_vs_gear5 300 300 300
+eval/consistency/scalers-300/bicubic/gear2_vs_gear5 300 300 300
+eval/consistency/scalers-300/bicubic/gear3_vs_gear5 300 300 300
+eval/consistency/scalers-300/bicubic/gear4_vs_gear5 300 300 300
+eval/consistency/scalers-300/bilinear/gear1_vs_gear5 300 300 300
+eval/consistency/scalers-300/bilinear/gear2_vs_gear5 300 300 300
+eval/consistency/scalers-300/bilinear/gear3_vs_gear5 300 300 300
+eval/consistency/scalers-300/bilinear/gear4_vs_gear5 300 300 300
+eval/consistency/scalers-300/lanczos/gear1_vs_gear5 300 300 300
+eval/consistency/scalers-300/lanczos/gear2_vs_gear5 300 300 300
+eval/consistency/scalers-300/lanczos/gear3_vs_gear5 300 300 300
+eval/consistency/scalers-300/lanczos/gear4_vs_gear5 300 300 300
+
+# 4. The bilinear run against the run of diag-after-300/plain (the mirage_vmaf of 5263061, without the scaler and model options): frames on each side, frames with the same mirage_vmaf score at full precision, and frames with every libvmaf metric of FFmpeg's log equal.
+
+$ python3 -I -c 'import json, sys
+for name in sys.argv[1:]:
+    a = json.load(open("eval/consistency/scalers-300/bilinear/" + name + "/mirage.json"))["frames"]
+    b = json.load(open("eval/consistency/diag-after-300/plain/" + name + "/mirage.json"))["frames"]
+    c = json.load(open("eval/consistency/scalers-300/bilinear/" + name + "/ffmpeg.json"))["frames"]
+    d = json.load(open("eval/consistency/diag-after-300/plain/" + name + "/ffmpeg.json"))["frames"]
+    print(name, len(a), len(b), sum(x["vmaf"] == y["vmaf"] for x, y in zip(a, b)),
+          len(c), len(d), sum(x["metrics"] == y["metrics"] for x, y in zip(c, d)))' gear4_vs_gear5 gear3_vs_gear5 gear2_vs_gear5 gear1_vs_gear5
+gear4_vs_gear5 300 300 300 300 300 300
+gear3_vs_gear5 300 300 300 300 300 300
+gear2_vs_gear5 300 300 300 300 300 300
+gear1_vs_gear5 300 300 300 300 300 300
+
+# 5. The scaler in each mirage_vmaf report, the flags of FFmpeg's scale filter in each run's log, and the values of those swscale flags in the installed FFmpeg's header.
+
+$ grep -E "SWS_(BILINEAR|BICUBIC|LANCZOS) " /opt/homebrew/opt/ffmpeg-full/include/libswscale/swscale.h && for r in bilinear bicubic lanczos; do for p in gear4 gear3 gear2 gear1; do d=eval/consistency/scalers-300/$r/${p}_vs_gear5; printf '%s %s %s\n' "$d" "$(python3 -I -c 'import json, sys; print(json.load(open(sys.argv[1]))["scaler"])' $d/mirage.json)" "$(grep -o 'flags:0x[0-9a-fA-F]*' $d/ffmpeg_colorspace_lines.txt | sort -u | tr '\n' ' ')"; done; done
+    SWS_BILINEAR      = 1 <<  1, ///< bilinear filtering
+    SWS_BICUBIC       = 1 <<  2, ///< 2-tap cubic B-spline
+    SWS_LANCZOS       = 1 <<  9, ///< 3-tap sinc/sinc
+ *              For SWS_BICUBIC param[0] and [1] tune the shape of the basis
+ *              For SWS_LANCZOS param[0] tunes the width of the window function
+eval/consistency/scalers-300/bilinear/gear4_vs_gear5 bilinear flags:0x00000002 
+eval/consistency/scalers-300/bilinear/gear3_vs_gear5 bilinear flags:0x00000002 
+eval/consistency/scalers-300/bilinear/gear2_vs_gear5 bilinear flags:0x00000002 
+eval/consistency/scalers-300/bilinear/gear1_vs_gear5 bilinear flags:0x00000002 
+eval/consistency/scalers-300/bicubic/gear4_vs_gear5 bicubic flags:0x00000004 
+eval/consistency/scalers-300/bicubic/gear3_vs_gear5 bicubic flags:0x00000004 
+eval/consistency/scalers-300/bicubic/gear2_vs_gear5 bicubic flags:0x00000004 
+eval/consistency/scalers-300/bicubic/gear1_vs_gear5 bicubic flags:0x00000004 
+eval/consistency/scalers-300/lanczos/gear4_vs_gear5 lanczos flags:0x00000200 
+eval/consistency/scalers-300/lanczos/gear3_vs_gear5 lanczos flags:0x00000200 
+eval/consistency/scalers-300/lanczos/gear2_vs_gear5 lanczos flags:0x00000200 
+eval/consistency/scalers-300/lanczos/gear1_vs_gear5 lanczos flags:0x00000200
+
+# 6. Each run's checksums.
+
+$ for r in bilinear bicubic lanczos; do (cd eval/consistency/scalers-300/$r && printf '%s ' $r && shasum -a 256 -c SHA256SUMS | awk '{n[$NF]++} END {for (k in n) print n[k], k}'); done
+bilinear 49 OK
+bicubic 49 OK
+lanczos 49 OK
