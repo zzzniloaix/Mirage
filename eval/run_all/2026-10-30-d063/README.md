@@ -1,0 +1,21 @@
+# eval/run_all.sh, every step, with the Phase 2 program, on macOS 26.6.2, at 475ace3 (D-063)
+
+`eval/run_all.sh <out_dir> --jobs 4`, every step, the four over every frame included, from a new clean worktree of `475ace3` on `vmaf/phase-2`, the head when the owner set the rerun, whose code and scripts are those of `e8e3a10`, with no program given, with its output directory and `TMPDIR` outside the repository, under `caffeinate -i -s`, with the machine on AC power and its lid open (docs/DECISIONS.md D-063, P-079): the rerun of every committed Phase 1 measurement with the Phase 2 program on macOS 26.6.2 (25G83) that D-063 decided. Its command, programs and steps are in `run_all.md`, the comparison with the committed outputs in `rerun_check.md`.
+
+**Result**: all 27 steps found everything as committed (`rerun_check.md`), the four over every frame among them: every verdict and all 53946 per-frame scores of each of the four pairs of `acceptance-full` and of `defaults-full`, Mirage's at full precision, every libvmaf metric of FFmpeg's logs, and every pooling series. The program it built from `475ace3` has the SHA-256 `454db2ed6be26319975df2130b53fc4fd5a60ed6660cbdfef6278ba88dc8435b`, that of the build of `e006f81` in `../2026-10-29-d055/`; the ones built from `83c8ed6`, `d993686` and `e8b867f` have the SHA-256s of the runs they reran.
+
+Besides the files every record in `eval/run_all/` keeps, this one has:
+
+- `consistency/align-cases-d028/main/`: the run's `delta.md`, `delta.json`, `environment.txt`, which gives the macOS version, `run.cmd.txt` and `pairs.txt`, and every file of the pair `a07_restart`, at the paths the run wrote them under `<out_dir>`; not the other pairs' files.
+- `independent_check.txt`: the per-frame values of the rerun's reports compared with the committed ones by a script of the agent's, independently of `eval/run_all.py`, with the script.
+- `runner.sh` and `runner.log`: the script that ran the rerun, and its log: the worktree's commit and state at the start and the end, `uptime`, `sw_vers` and `pmset -g batt` at the start, `uptime` and `pmset -g batt` at the end, and the output of `eval/run_all.sh`, whose local paths it gives as `<out_dir>`, `<repo>` and `<worktree>`; the runner's directory appears as `<scratch>`, and the battery's id is left out.
+- `load.log`: the load averages every 600 s from the start, as `uptime` gives them, each with the time in UTC.
+- `power_log.txt`: the machine's sleep and wake events during the run, from `pmset -g log`, in UTC: none.
+
+**What the files show**:
+
+- `independent_check.txt`: of the 141 pairs with a Mirage report both in the rerun and in `eval/consistency/`, and the 134 with FFmpeg's libvmaf log in both, none of the 443307 and 442094 committed per-frame values differs.
+- `a07_restart`, whose distorted input alone restarts its timestamps, is as committed in its verdict, its 5 frame pairs and their scores (`rerun_check.md`). Its report counts its 10 frames that failed to pair as 1 unmatched reference frame and 9 after a discontinuity (`consistency/align-cases-d028/main/a07_restart/mirage.json`, `alignment`). The distorted input's first sequence is its frames 0 to 4, to 1.5668 s; the reference's frame 5, at 1.6002 s, one frame later, fails as an unmatched reference frame, and the reference's frames 6 to 9 and the distorted input's frames 5 to 9, from its restart at 1.4334 s, as after a discontinuity. The aligner stops the pairing at a frame more than one frame of the grid past the end of the other input's sequence (`src/VMAFAlign.cpp`, `Aligner::next()`), which the reference's frame 5 isn't. The committed report, made by the program of `d9b1f51` before D-046 and D-050 (`eval/consistency/align-cases-d028/build.txt`), counts all 10 after a discontinuity.
+- The machine wasn't idle: the load averages were 5.20, 3.60 and 2.91 at the start, before the run's first build (`runner.log`), and between 29.48 and 38.61 in the eight samples taken during the two steps over every frame, from 09:27:49Z to 10:56:43Z (`load.log`, `run_all.json`). Which processes made up the load isn't recorded. The steps' wall times count it: 2635.2 s for `acceptance-full` and 2695.5 s for `defaults-full`, 5974.3 s in all, the four builds included (`run_all.md`).
+
+`SHA256SUMS` covers every file here.

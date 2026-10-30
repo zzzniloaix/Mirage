@@ -4,7 +4,7 @@ What is open for the owner on `vmaf/phase-2`, §2 of the VMAF work order, after 
 
 ## Open
 
-Nothing is open for the owner's decision: on 2026-10-30 the owner answered the two questions after D-055 to D-060 and confirmed P-078 (`docs/DECISIONS.md` D-062 to D-064), in "Decided on 2026-10-30" below; the questions decided on 2026-10-29 and 2026-10-27 follow it.
+For the owner: P-079, the agent's choices in D-063's rerun and its record, pending confirmation (`docs/DECISIONS.md`); no question is open. On 2026-10-30 the owner answered the two questions after D-055 to D-060 and confirmed P-078 (`docs/DECISIONS.md` D-062 to D-064), in "Decided on 2026-10-30" below; the questions decided on 2026-10-29 and 2026-10-27 follow it.
 
 **For information.** With a memory limit, once the first pairs had ended the others ran one at a time in each run at 1 GiB over 300 frame pairs but the first, in which all 7 started at once (`eval/ladder/advanced-local-300-mem1g-1cc1ab0/`), and in the run over every frame with D-051's 10%; in the run over every frame with D-053's 25%, the next two pairs ran together once the first two had ended, and only the last three one at a time (`eval/ladder/advanced-cdn-full-b706ed3/README.md`). The report's `pair_memory` at 300 frames was more than three times one pair's peak, so at times the resident memory still counted memory of pairs that had ended (`eval/ladder/advanced-local-300-mem1g-b706ed3/README.md`; P-074). Which of the process's memory measures drops when a pair ends, and when, is MEASUREMENT PENDING.
 
@@ -41,7 +41,7 @@ The owner's answers to the agent's two questions after D-055 to D-060, and the c
 
 ### The committed measurements on macOS 26.6.2 (P-078)
 
-**Decided** (2026-10-30): D-063, option 1: every step is rerun with the long runs, at the time the owner sets for them.
+**Decided** (2026-10-30): D-063, option 1: every step is rerun with the long runs, at the time the owner sets for them. **Done**: `eval/run_all/2026-10-30-d063/`, all 27 steps as committed (P-079).
 
 **What the records show.** Every committed environment capture until 2026-10-29 gives macOS 26.2 (25C56); that day the machine was updated to 26.6.2 (25G83). FFmpeg is still 8.1.1 and libvmaf 3.1.0 (`eval/run_all/2026-10-29-d055/consistency/defaults-300/plain/environment.txt`), and CMake identifies the same compiler, AppleClang 21.0.0.21000101, in every configure log of `eval/run_all/`. The 300-frame steps that read Apple's CDN found everything as committed on 26.6.2 (P-078); the other steps, the four over every frame among them, haven't been rerun on it (MEASUREMENT PENDING).
 
