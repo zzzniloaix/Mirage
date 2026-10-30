@@ -52,6 +52,8 @@ What the record shows about them, for the choice:
 
 D-008 chose GPL-3.0-or-later and left open whether legal or the company's open-source process has to confirm it before the repository is made public again. `LICENSE` is committed as D-008 decided (P-020). Two questions wait on the answer: the license texts next to glad's committed loader ("D-031: the license texts next to glad's loader", below) and the terms of the clips D-011 chooses (above). This is the owner's to check; the agent has no recommendation of its own.
 
+**Correction** (2026-10-30): the repository is public again before the submission, which the owner confirmed was intentional (`docs/DECISIONS.md` D-065). The question stays open as whether legal or the company's open-source process has to confirm GPL-3.0-or-later.
+
 ### D-031: the license texts next to glad's loader (P-053)
 
 **Question.** D-031 has the license terms of glad's committed loader stated next to it. Should the license texts be committed as well, and how do the terms sit with GPL-3.0-or-later?

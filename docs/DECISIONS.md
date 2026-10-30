@@ -165,6 +165,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - Every commit SHA changed. Each of the 25 pushed commits was checked by tree hash, and no file tree changed at all.
   - Old → new: the baseline commit `a4e02895d2d9c51c620e6c140f5566944c80ec71` → `1bab7a3104cf9149300eafd3d3deb7ae4a9c6f69`, with tree `61765e415978c5a9735a3a6a3e245c52d0e6be99` unchanged. Every `a4e0289` in the gap report, in this log (P-001, D-010) and in the raw outputs in `eval/` refers to this commit. The raw outputs are kept as they are and are not changed to the new SHA.
   - The 7 commits of `vmaf/phase-0` were also rewritten per D-013 and D-014, so their trees did change.
+- **Correction** (2026-10-30, D-065): the repository is public again before the submission; the owner confirmed on 2026-10-30 that making it public was intentional.
 - **Who**: owner (Jiayu Lin)
 - **Date**: 2026-10-23
 
@@ -647,6 +648,16 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Decision**: the agent's measurement and process choices P-078 are confirmed as the entry states them.
 - **Owner's words**: "Confirm (Recommended)".
 - **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Date**: 2026-10-30
+
+### D-065 The repository is public again before the submission
+
+- **Decision**: `zzzniloaix/Mirage` is public again before the submission, as the owner intended. D-012's rationale says it would be made public again for the submission; the agent found it public (GitHub's `private: false`) on 2026-10-30, when it opened Phase 1's PR, and asked whether that was intentional.
+- **Owner's words**: "yes making it public was intentional".
+- **Implications**
+  - D-008's question, as `docs/PHASE1_DECISIONS_PENDING.md` words it, is whether legal or the company's open-source process has to confirm GPL-3.0-or-later "before the repository is made public again". It stays open as whether they have to confirm it, and it is the owner's to check.
+  - When the repository was made public again isn't in any committed record.
+- **Who**: owner (Jiayu Lin)
 - **Date**: 2026-10-30
 
 ---
