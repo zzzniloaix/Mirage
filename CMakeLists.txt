@@ -4,13 +4,13 @@ project(Mirage C CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# MIRAGE_HEADLESS configures only mirage_vmaf and mirage_tests: not the player,
-# nor the dependencies only the player uses, OpenGL, GLFW, glad, stb, Dear
-# ImGui and nativefiledialog-extended (DECISIONS.md D-031); mirage_tests links
-# none of them. The macos-headless and linux-release presets set it; the
-# player builds on macOS only.
+# MIRAGE_HEADLESS configures only mirage_vmaf, mirage_hlscheck and
+# mirage_tests: not the player, nor the dependencies only the player uses,
+# OpenGL, GLFW, glad, stb, Dear ImGui and nativefiledialog-extended
+# (DECISIONS.md D-031); mirage_tests links none of them. The macos-headless
+# and linux-release presets set it; the player builds on macOS only.
 option(MIRAGE_HEADLESS
-    "Build mirage_vmaf and mirage_tests only, without the player" OFF)
+    "Build mirage_vmaf, mirage_hlscheck and mirage_tests only, without the player" OFF)
 
 # ── Dependencies ─────────────────────────────────────────────────────────────
 
@@ -164,6 +164,7 @@ if(NOT MIRAGE_HEADLESS)
         src/NetDescribe.cpp
         src/NetInspector.cpp
         src/NetInspectorAlign.cpp
+        src/NetInspectorConform.cpp
         src/NetInspectorResponse.cpp
         src/NetProbe.cpp
         src/TrackPanel.cpp
@@ -196,6 +197,9 @@ if(NOT MIRAGE_HEADLESS)
         src/HlsMaster.cpp
         src/HlsVariants.cpp
         src/HlsAlign.cpp
+        src/HlsConform.cpp
+        src/HlsConformProbe.cpp
+        src/JsonText.cpp
         src/DemuxRetry.cpp
         src/PipelineState.cpp
         src/KeyframeIndex.cpp
@@ -265,6 +269,26 @@ target_compile_definitions(mirage_vmaf PRIVATE
     MIRAGE_LIBVMAF_PACKAGE_VERSION="${MIRAGE_LIBVMAF_PACKAGE_VERSION}"
 )
 
+# ── Headless HLS conformance check ───────────────────────────────────────────
+
+# mirage_hlscheck: the network inspector's conformance check without the
+# player (src/HlsConform.h): a master playlist's declarations against its
+# media, as a table, findings and a JSON report. Links FFmpeg only.
+add_executable(mirage_hlscheck
+    tools/mirage_hlscheck.cpp
+    src/HlsConform.cpp
+    src/HlsConformProbe.cpp
+    src/HlsAlign.cpp
+    src/NetworkLogger.cpp
+    src/JsonText.cpp
+)
+
+target_include_directories(mirage_hlscheck PRIVATE src)
+
+target_link_libraries(mirage_hlscheck PRIVATE
+    PkgConfig::FFMPEG
+)
+
 # ── Unit tests ────────────────────────────────────────────────────────────────
 
 include(CTest)
@@ -293,6 +317,7 @@ add_executable(mirage_tests
     tests/test_keyframe_index.cpp
     tests/test_scrub_follow.cpp
     tests/test_hls_align.cpp
+    tests/test_hls_conform.cpp
     tests/test_frame_scan.cpp
     tests/test_loudness_meter.cpp
     tests/test_json_text.cpp
@@ -326,6 +351,8 @@ add_executable(mirage_tests
     src/HlsMaster.cpp
     src/HlsVariants.cpp
     src/HlsAlign.cpp
+    src/HlsConform.cpp
+    src/HlsConformProbe.cpp
     src/DemuxRetry.cpp
     src/TrackGroups.cpp
     src/PipelineState.cpp

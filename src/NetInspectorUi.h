@@ -4,6 +4,7 @@
 // (NetInspector.cpp, NetInspectorAlign.cpp, NetInspectorResponse.cpp).
 // Main thread, between ImGui frames.
 
+#include "HlsAlign.h"
 #include "NetDescribe.h"
 #include "NetworkLogger.h"
 #include "UiFonts.h"
@@ -137,6 +138,40 @@ inline bool chip_button(const char* id, const char* label, bool active, ImU32 do
     dl->AddText(f, fs, ImVec2(x, std::round(p.y + (sz.y - ts.y) * 0.5f)),
                 C(active ? th::kAccentHover : hov ? th::kText : th::kTextDim), label);
     return clicked;
+}
+
+// Severity colours and glyphs of the Alignment and Conformance findings.
+inline ImU32 sev_color(hls::Severity s)
+{
+    switch (s) {
+        case hls::Severity::Error:   return th::kError;
+        case hls::Severity::Warning: return th::kWarn;
+        case hls::Severity::Info:    return th::kAccent;
+        case hls::Severity::Ok:      return kColManifest;
+    }
+    return th::kTextDim;
+}
+
+inline void sev_icon(ImDrawList* dl, ImVec2 c, hls::Severity s)
+{
+    const ImU32 col = C(sev_color(s));
+    switch (s) {
+        case hls::Severity::Error:
+            dl->AddCircleFilled(c, 5.5f, col, 16);
+            dl->AddLine(ImVec2(c.x - 2.2f, c.y - 2.2f), ImVec2(c.x + 2.2f, c.y + 2.2f), C(th::rgba(15, 16, 20, 1.0f)), 1.5f);
+            dl->AddLine(ImVec2(c.x - 2.2f, c.y + 2.2f), ImVec2(c.x + 2.2f, c.y - 2.2f), C(th::rgba(15, 16, 20, 1.0f)), 1.5f);
+            break;
+        case hls::Severity::Warning:
+            dl->AddTriangleFilled(ImVec2(c.x, c.y - 5.5f), ImVec2(c.x + 6.0f, c.y + 4.8f), ImVec2(c.x - 6.0f, c.y + 4.8f), col);
+            break;
+        case hls::Severity::Info:
+            dl->AddCircle(c, 5.0f, col, 16, 1.5f);
+            break;
+        case hls::Severity::Ok:
+            dl->AddLine(ImVec2(c.x - 4.5f, c.y), ImVec2(c.x - 1.2f, c.y + 3.5f), col, 2.0f);
+            dl->AddLine(ImVec2(c.x - 1.2f, c.y + 3.5f), ImVec2(c.x + 5.0f, c.y - 4.0f), col, 2.0f);
+            break;
+    }
 }
 
 // Small square glyph button (× close, clear, record); returns true when clicked.

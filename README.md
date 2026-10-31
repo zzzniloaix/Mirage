@@ -10,7 +10,7 @@ A C++20 video player built for video engineers. Supports local files and adaptiv
 
 See `docs/BUILD.md`: the Homebrew packages, the presets and their commands, the unit tests, the versions the evaluation was measured with, and the build checks that verify those steps (`eval/build_check/`). The commands below use the `macos-debug` preset's build directory, `build/macos-debug/`.
 
-The player is built for macOS only (`docs/DECISIONS.md` D-031). `mirage_vmaf`, the VMAF analyzer without a window, and the unit tests also build without the player and its dependencies (the `macos-headless` and `linux-release` presets). `docs/BUILD.md` has Linux instructions and `docker/README.md` a Linux image for the evaluation; neither has been built yet.
+The player is built for macOS only (`docs/DECISIONS.md` D-031). `mirage_vmaf`, the VMAF analyzer without a window, `mirage_hlscheck`, the HLS conformance check without one, and the unit tests also build without the player and its dependencies (the `macos-headless` and `linux-release` presets). `docs/BUILD.md` has Linux instructions and `docker/README.md` a Linux image for the evaluation; neither has been built yet.
 
 ---
 
@@ -31,6 +31,10 @@ The player is built for macOS only (`docs/DECISIONS.md` D-031). `mirage_vmaf`, t
 
 # VMAF scores without the player: a pair, or an HLS ladder
 ./build/macos-debug/mirage_vmaf --help
+
+# Does an HLS master declare what its media holds? (BANDWIDTH, CODECS,
+# RESOLUTION, FRAME-RATE, VIDEO-RANGE, segment starts; exit status 1 on errors)
+./build/macos-debug/mirage_hlscheck --json report.json https://example.com/master.m3u8
 ```
 
 Or drag-and-drop a file onto the launch screen.
@@ -70,7 +74,7 @@ Drag the seek bar at the bottom of the window. A thumbnail strip appears showing
 | `G` | A/V drift graph — 10-second rolling history, ±100 ms range |
 | `T` | Track switcher — click to change audio or video track |
 | `W` | Waveform strip — full-width peak display |
-| `N` | Network log + manifest tag inspector + timeline tick strip |
+| `N` | Network log + manifest tag inspector + timeline tick strip; Alignment (renditions line up) and Conformance (each EXT-X-STREAM-INF against its media) tabs |
 | `V` | VMAF panel — per-variant scores + per-frame graph |
 | `P` | Frame inspector — the frame on screen: type, timestamps, colour tags vs the renderer's, HDR10 / HDR10+ / Dolby Vision metadata, side data, encoder settings |
 | `S` / `⇧S` | Scopes — luma waveform, R′G′B′ parade, vectorscope, histogram from the frame's code values; `⇧S` picks the next |
@@ -79,7 +83,7 @@ Drag the seek bar at the bottom of the window. A thumbnail strip appears showing
 | `L` | Loudness — EBU R128 momentary / short-term / integrated, LRA, true peak against a delivery target; per-channel meters |
 | `H` | Key bindings help overlay |
 
-The `P`, `S`, `X`, `B` and `L` panels are proofs of concept: `plan/engineer_tools_status.md` says what each checks and what is left.
+The `P`, `S`, `X`, `B` and `L` panels and the `N` inspector's Conformance tab are proofs of concept: `plan/engineer_tools_status.md` says what each checks and what is left.
 
 ### VMAF analysis (Analyze menu)
 
@@ -115,6 +119,7 @@ Mirage/
 │   ├── Queue.h            — thread-safe bounded queue (C++20)
 │   └── Logger.h           — std::format logger
 ├── tools/mirage_vmaf.cpp  — mirage_vmaf, the VMAF analyzer without a window
+├── tools/mirage_hlscheck.cpp — mirage_hlscheck, the HLS conformance check without a window
 ├── tests/                 — mirage_tests (Catch2), and the HW-vs-SW snapshot check
 ├── third_party/glad/      — the OpenGL 4.1 core loader glad generated
 ├── docs/                  — the build, the decision log, the Phase 1 status
