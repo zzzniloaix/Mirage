@@ -233,6 +233,110 @@ time); a track switch while the card is open.
 stereo downmix today), a loudness strip on the seek bar from a background
 scan, and a headless `--loudness-report`.
 
+## N › Conformance — declared vs measured (and `mirage_hlscheck`)
+
+Added after the POCs above, when the direction turned to streaming
+development. On the branch `feat/rendition-check`, stacked on
+`feat/engineer-tools-poc-on-main`.
+
+**What it does.** The network inspector (`N`) has a fourth tab,
+Conformance. "Check" reads the HLS master playback opened and compares what
+each EXT-X-STREAM-INF declares with what its media holds:
+
+- BANDWIDTH against the peak segment bit rate (RFC 8216 §4.1: the largest
+  bit rate of any run of segments lasting 0.5 to 1.5 target durations) of
+  the variant's playlist plus its largest audio rendition — §4.3.4.2 makes
+  BANDWIDTH the largest sum of the renditions' peaks — and
+  AVERAGE-BANDWIDTH against the average likewise;
+- CODECS against the codec strings built from each stream's decoder
+  configuration (avcC / hvcC / av1C, the SPS of an MPEG-TS stream, the
+  Dolby Vision configuration record): a format the media has that CODECS
+  does not list (§6.2.4), another profile, a lower level or tier, the AAC
+  object type, the fMP4 sample entry (avc1 / avc3, hvc1 / hev1);
+- RESOLUTION against the decoded size, FRAME-RATE against the rate the
+  timestamps give, VIDEO-RANGE against the transfer characteristics
+  (draft-pantos-hls-rfc8216bis-22; Dolby Vision without a compatible base
+  layer counts as PQ);
+- every segment read: its first picture (IDR, CRA, BLA — or a recovery
+  point, an I that is not an IDR, a P/B) against EXT-X-INDEPENDENT-SEGMENTS,
+  and the span of its pictures against EXTINF (a note only when the
+  segments have leading pictures: an open GOP, or a cut inside a GOP);
+- the audio renditions' CHANNELS against the channels decoded, and one
+  target duration for every playlist (§6.2.4).
+
+A row per variant with a cell per check (hovering one shows the declared
+and measured values and the numbers behind them); the findings below, a
+mistake in a playlist several variants share listed once with all of them;
+clicking a row keeps its own findings only. "Copy the report as JSON". The
+same check runs without the player: `mirage_hlscheck [--segments N|all]
+[--no-sizes] [--json FILE] <master URL or path>`, exit status 1 when it
+finds errors; it builds in the headless configuration too.
+
+**How it works.** `ConformProbe` (`src/HlsConformProbe.*`) runs on a thread
+of its own with four workers. It fetches every variant and audio playlist
+(parsed by `hls::parse_media_timeline`, the Alignment tab's parser), sizes
+every segment — the EXT-X-BYTERANGE length, else a request for its first
+byte, whose Content-Range carries the size — and reads three segments of
+each variant playlist in full (the first, the last, the middle; one of each
+audio rendition; the toolbar picks 1, 3, 10 or all), each behind its init
+segment, demuxed from memory: the decoder configuration, the NAL unit types
+of the first packet, every packet's timestamps. The first video frame and a
+few audio frames are decoded (decoded size, transfer; AAC's implicit SBR /
+PS, channels). Its requests go through NetworkLogger as initiator
+"inspector", so the Network tab lists them. `hls::analyze_conformance`
+(`src/HlsConform.*`, no FFmpeg) compares; `src/NetInspectorConform.cpp`
+draws; `tools/mirage_hlscheck.cpp` prints.
+
+**Checked.**
+
+- `mirage_tests '[hls_conform]'`: 15 test cases. Attribute lists and
+  masters (URI resolution; a missing BANDWIDTH, a missing URI line, an
+  undefined AUDIO group); codec strings parsed, and built from hand-made
+  avcC / hvcC / av1C records and Annex B SPSs with emulation prevention;
+  first pictures from hand-made H.264 and HEVC access units, Annex B and
+  length-prefixed; peak and average bit rates on windows worked out by hand;
+  the verdict on hand-built measurements (each check, findings merged
+  across variants sharing a playlist, BANDWIDTHs a hair under the peak); and
+  media encoded with libx264 / libx265: MPEG-TS and fragmented MP4 segments
+  read from memory, and a local package (two variant playlists cut by
+  FFmpeg's hls muxer, one with `split_by_time`) checked end to end. They
+  pass in the `macos-debug` and `macos-headless` builds.
+- Apple's four public example streams, `mirage_hlscheck --workers 6`
+  (`plan/engineer_tools_runs/hlscheck/`): no error and no warning in any of
+  them. Each has one note: the BANDWIDTH of some or all variants is slightly
+  below the measured peak — at most 0.018% (fMP4), 0.015% (TS), 0.027%
+  (HEVC), 0.93% (Dolby Vision / Atmos). §4.3.4.2 sums each rendition's own
+  peak; a peak taken per segment, or over the video and audio of the same
+  time together, comes out that little lower. Shortfalls up to `kPeakSlack`
+  (1%) are therefore a note, beyond it an error.
+- `tests/hlscheck_demo.sh` (`demo.txt`): a package of generated media whose
+  master has one mis-declaration of each kind. All of them are reported: a
+  BANDWIDTH 41.9% below the peak, an AVERAGE-BANDWIDTH 49% off, CODECS Main
+  for a High stream, HEVC level 3 declared for a level 3.1 stream, no
+  VIDEO-RANGE on PQ video, RESOLUTION and FRAME-RATE wrong, CHANNELS="6" on
+  stereo, and 6 of 8 segments starting with a P/B picture under
+  EXT-X-INDEPENDENT-SEGMENTS.
+- Scripted runs of the player (`--ui-net
+  tab=conformance,conform=1,conform_out=…` with `--ui-snapshot`) on Apple's
+  fMP4 example over HTTP and on the demo package as local files: the tab
+  draws, and reports the same counts as the command line.
+
+**Not checked.** Live playlists (the check reads the window listed when it
+starts; nothing follows reloads); encrypted segments (sized, not read);
+SUPPLEMENTAL-CODECS and Dolby Vision profile 8 declarations; I-frame
+playlists, subtitle renditions and EXT-X-MEDIA TYPE=VIDEO; DASH; a server
+that ignores Range on byte-range segments (what is read would be the start
+of the resource); the player against a local HTTP server (the sandbox these
+checks ran in blocks local sockets, so HTTP was Apple's CDN only).
+
+**To finish.** Decisions for the owner: the thresholds — `kPeakSlack` (1%),
+`kOverDeclared` (a BANDWIDTH above 1.5 × the peak is noted), `kAverageSlack`
+(10%), `kRateSlack`, `kDurationSlack` (50 ms) — and which findings count as
+errors; whether the player should size every segment by default (one
+request each: 1,076 for the TS example, see `apple_ts.txt`). NetworkLogger
+keeps the newest 4,000 requests, so checking a large master pushes the
+playback's own requests out of the Network tab.
+
 ## Review
 
 A review of the branch (`git diff main...HEAD`, read by someone who had not
@@ -261,5 +365,12 @@ opening `B` scans it at once over the share.
   watchdog reports it.
   FFmpeg's command line decodes the file without errors. Not investigated
   further.
+- **FFmpeg's hls muxer writes EXTINF 2.000 for fMP4 segments of 46 and 53
+  frames at 25 fps** (x265, open GOP, the demo package's `v3`; `demo.json.xz`
+  lists each segment's frame count). The conformance check reports it; the
+  playlist's total stays right.
+- **FFmpeg's hls muxer writes `EXT-X-TARGETDURATION:0` for segments under
+  half a second**, which the Alignment parser reads as no target duration;
+  the conformance check tells the two apart.
 - On the same MPEG-TS (start time 1.48 s) the control bar shows the absolute
   PTS against a duration counted from 0 (`00:07.440 / 00:06.000` at the end).

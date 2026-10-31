@@ -70,6 +70,7 @@ So a QP/MV overlay is an H.264/MPEG-2 (QP also VP9) tool and needs `--no-hw`.
 
 | Idea | Problem it answers | Effort |
 |---|---|---|
+| **Rendition conformance: declared vs measured** — each EXT-X-STREAM-INF's BANDWIDTH / AVERAGE-BANDWIDTH, CODECS, RESOLUTION, FRAME-RATE, VIDEO-RANGE against its segments; their first pictures and durations; the audio renditions' CHANNELS | packaging mistakes players act on before downloading anything: a BANDWIDTH under the peak stalls, a CODECS level under the stream's lets a device pick what it cannot decode, an HDR variant without VIDEO-RANGE is taken for SDR | M |
 | Network condition emulator: bandwidth cap, added RTT, scripted HTTP errors/timeouts, per session | reproducible bad networks and CDN failures; exercising the retry/stall code on purpose | M |
 | Delivery panel: throughput, forward buffer and variant bitrate over time, plus a QoE JSON (startup, rebuffers, switches) | "was it the network, the buffer or the decoder?"; CI numbers per build or CDN | S–M |
 | CDN cache inspector: HIT/MISS, Age, TTL, POP per request, hit ratio | cold rungs, stale live playlists at the edge | S |
@@ -109,6 +110,11 @@ become a feature is listed under its "To finish" notes instead of done here.)
 | `B` | Frame-size / GOP analyzer | codec |
 | `S` / `X` | Scopes / pixel probe | picture quality |
 | `L` | Loudness and level meters | audio QC |
+| `N` › Conformance, `mirage_hlscheck` | Rendition conformance | streaming |
+
+Rendition conformance came after the first four, when the direction turned
+to streaming development; it is on `feat/rendition-check`, stacked on
+`feat/engineer-tools-poc-on-main` (this branch merged with `main`).
 
 The status of each POC (what works, how it was checked, what is left) is kept
 in `plan/engineer_tools_status.md`.
