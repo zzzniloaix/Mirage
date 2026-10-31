@@ -660,6 +660,53 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: owner (Jiayu Lin)
 - **Date**: 2026-10-30
 
+### D-066 Phase 2's PR waits, and Phase 3 starts on a branch of Phase 2's
+
+- **Decision**: Phase 2's PR isn't opened yet; the agent goes on with the work order's later phases, from Phase 3, with a team of agents it leads, until the feature is done. Phase 3's branch, `vmaf/phase-3`, is made from `vmaf/phase-2`, as D-042 made Phase 2's from Phase 1's, and its PR comes after Phase 2's (hard rule 5). Phase 2's PR is opened when the owner says.
+- **Owner's words**: "we dont have to open a PR right now, you can lead a team with several agents to do the VMAF until you are all done with the feature", after the agent's report that Phase 2's PR was drafted.
+- **Alternatives**: Phase 2's PR first.
+- **Who**: owner (Jiayu Lin)
+- **Date**: 2026-10-30
+
+### D-067 The process choices P-066, P-079 and P-080 are confirmed, with the AI rows, and D-053's margin stays
+
+- **Decision**: the agent's measurement and process choices P-066, P-079 and P-080 are confirmed as their entries state them, and so are the parts of `docs/AI_CONTRIBUTIONS.md` on Phase 1 and Phase 2 as of `da0ffb8`. D-053's margin of 25% stays. In the acceptance check over every frame from Apple's CDN at 1 GiB (P-080, `eval/ladder/acceptance-c673738/README.md`) the process peaked at 1068269568 bytes, 5472256 bytes (0.51%) under the limit and 29908992 bytes above what the rule counted for the three pairs it had let start; Phase 2's PR and the paper state that margin as it was measured.
+- **Owner's words**, translated by the agent: "All as recommended (Recommended)", the owner's answer to the agent's question.
+- **Alternatives**: confirm them and revisit D-053's margin before Phase 2's PR, with a larger margin or a longer warm-up and the check over every frame run again; review the records first.
+- **Rationale**: D-058 keeps the limit a rule for starting pairs, not a cap on the process's memory; another margin would need another run over every frame, and the margin measured can be stated as it is.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Date**: 2026-10-30
+
+### D-068 §3's sessions: the ladder's scores joined with a session's log
+
+- **Decision**: §3's timeline takes a session's scores from the ladder's, which §2 scores once, each variant over its full length on the reference's timeline. A session is the variant played over each span of media time, with the HTTP timing of its segments, and its curve is, at each frame, the score of the variant played then. Sessions come from a scripted plan of switches, which the tests use, and later from a log the player records. The render and decode paths don't change for it.
+- **Owner's words**, translated by the agent: "Offline scores + session log (Recommended)", the owner's answer to the agent's question.
+- **Alternatives**
+  - Decode each session again in the order it was played, and score its frames against the reference: the scores of the frames as decoded in sequence, a switch's artifacts included, at the cost of a full decode and scoring for each session, and of a resolution change within a stream.
+  - Wait for Phase 4 and score in the player while it plays, recording the network and the switches live: the closest to playback, but it needs D-007's plan first, and the network's timing differs at each run.
+- **Rationale**: Mirage has no ABR (gap report, "Existing data sources for §3.1"), and §2's ladder scores give each variant's score at each frame of the reference; a session can be attributed again without scoring again.
+- **Limits**: a session's scores assume that the player decoded the frames the offline decode did; frames dropped at a switch show only as the decoder's events, not in the scores.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Date**: 2026-10-30
+
+### D-069 §3.2's two attribution tests use synthetic content, and the evaluation's ladders public source clips
+
+- **Decision**: the two attribution tests of §3.2, a stream with an encoding degradation on a known segment and one whose score drops at an ad boundary, make small synthetic ladders within the tests, through FFmpeg's libraries: one with a segment encoded at a deliberately low quality, the other with a low-quality "ad" at an `EXT-X-DISCONTINUITY` with `EXT-X-CUE-OUT` and `EXT-X-CUE-IN`. They run in ctest, with nothing to download. The ladders of the paper's evaluation are encoded later from public source clips (D-011), whose clips and encoding parameters the owner picks then.
+- **Owner's words**, translated by the agent: "Synthetic for the tests, public source clips for the evaluation (Recommended)".
+- **Alternatives**: synthetic content for the evaluation too, the simplest to reproduce, but synthetic pictures aren't natural video and VMAF's behavior on them doesn't stand for real content; D-011's clips for the tests too, the most realistic, but the tests would depend on a download and an encode and run slowly, and the media wouldn't be committed, only the scripts and SHA-256s.
+- **Rationale**: tests that make their own inputs are reproducible wherever the build is, with no license question.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Date**: 2026-10-30
+
+### D-070 Phase 3 reads SCTE-35 from HLS playlist signaling
+
+- **Decision**: §3.1's SCTE-35 events (cue-out, cue-in, splice point, ad duration) come from HLS playlists: `EXT-X-CUE-OUT`, `EXT-X-CUE-OUT-CONT`, `EXT-X-CUE-IN`, `#EXT-OATCLS-SCTE35`, and the `SCTE35-OUT`, `SCTE35-IN` and `SCTE35-CMD` attributes of `EXT-X-DATERANGE`, whose splice_info_section is decoded (splice_insert, time_signal, break_duration, the splice time). DASH's `EventStream` and SCTE-35 carried within MPEG-TS segments are left as interfaces.
+- **Owner's words**, translated by the agent: "HLS playlist signaling (Recommended)".
+- **Alternatives**: HLS and DASH's `EventStream` (`urn:scte:scte35:2013:xml`, `urn:scte:scte35:2014:xml+bin`), which `ManifestParser` can read, but mirage_vmaf doesn't score DASH ladders, so their events wouldn't reach a timeline with scores; both, and SCTE-35 within MPEG-TS segments (stream type 0x86), which needs a data stream read while scoring, and whether FFmpeg's hls demuxer gives that stream is unverified.
+- **Rationale**: mirage_vmaf scores HLS ladders (§2); this covers the streams it can score.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Date**: 2026-10-30
+
 ---
 
 ## Measurement / process choices (proposed by the agent, confirmed by the owner)

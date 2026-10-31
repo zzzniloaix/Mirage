@@ -1,6 +1,6 @@
 # Phase 1: decisions pending for the owner
 
-What is still open for the owner after the decisions of 2026-10-26 (`docs/DECISIONS.md` D-034 to D-041), which adopted the agent's recommendations of this document as of `b2d2824`: D-011's clips and encoding parameters, and D-008's question with the license texts next to glad's loader; the agent's process choice P-066; and the differences between the work order and the implementation (the work order's engineering constraints). The decisions are the owner's (hard rule 3 of the work order); every recommendation below is labeled as the agent's. Every number comes from a committed output, named next to it; where there is none, it says MEASUREMENT PENDING. The state of each section of Phase 1 is in `docs/PHASE1_STATUS.md`, and the statements the paper's method text has to make, with their evidence, in `docs/PAPER_METHOD_NOTES.md`.
+What is still open for the owner after the decisions of 2026-10-26 (`docs/DECISIONS.md` D-034 to D-041), which adopted the agent's recommendations of this document as of `b2d2824`: D-011's clips and encoding parameters, and D-008's question with the license texts next to glad's loader; and the differences between the work order and the implementation (the work order's engineering constraints). P-066 was confirmed on 2026-10-30 (`docs/DECISIONS.md` D-067), and D-069 leaves D-011's clips for the ladders of the paper's evaluation. The decisions are the owner's (hard rule 3 of the work order); every recommendation below is labeled as the agent's. Every number comes from a committed output, named next to it; where there is none, it says MEASUREMENT PENDING. The state of each section of Phase 1 is in `docs/PHASE1_STATUS.md`, and the statements the paper's method text has to make, with their evidence, in `docs/PAPER_METHOD_NOTES.md`.
 
 The items decided on 2026-10-26 follow, in "Decided on 2026-10-26 (D-034 to D-041)", and the packages decided on 2026-10-23 at the end, in "Decided on 2026-10-23 (D-020 to D-033)", each with the text it had when it was decided, as the record of its options, and a note at its start on what was decided and where the work is.
 
@@ -105,6 +105,8 @@ The player's VMAF ladder analysis (`VMAFAnalyzer::start_manifest()`, from the "M
 D-024's full-length §5 report with bicubic passes over every frame of the four pairs (`eval/consistency/defaults-full/`, P-059). D-027's rationale gives how far the three percentile definitions differ from runs with bilinear: at most 0.000276 over every frame and 0.093440 over 300 frames. With the defaults they differ by at most 0.001160 over every frame and 0.083044 over 300 frames, gear2's p1 in both (`eval/pooling/defaults-full/pooling.md`, `eval/pooling/defaults-300/pooling.md`). With the defaults too the minimum is the first frame's score in every series over every frame (`eval/pooling/defaults-full/pooling.md`). D-027 is the owner's and unchanged.
 
 ## The agent's process choice to confirm: P-066
+
+**Decided** (2026-10-30): D-067 confirms P-066 as its entry states it.
 
 D-033 confirmed P-006 to P-032, and D-041 P-033 to P-065 (in the decided sections below). The choices made in implementing D-035 to D-038 are P-066 in `docs/DECISIONS.md`, pending the owner's confirmation.
 
