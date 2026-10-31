@@ -4,13 +4,13 @@ project(Mirage C CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# MIRAGE_HEADLESS configures only mirage_vmaf, mirage_hlscheck and
-# mirage_tests: not the player, nor the dependencies only the player uses,
+# MIRAGE_HEADLESS configures only mirage_vmaf, mirage_hlscheck,
+# mirage_dashcheck and mirage_tests: not the player, nor the dependencies only the player uses,
 # OpenGL, GLFW, glad, stb, Dear ImGui and nativefiledialog-extended
 # (DECISIONS.md D-031); mirage_tests links none of them. The macos-headless
 # and linux-release presets set it; the player builds on macOS only.
 option(MIRAGE_HEADLESS
-    "Build mirage_vmaf, mirage_hlscheck and mirage_tests only, without the player" OFF)
+    "Build mirage_vmaf, mirage_hlscheck, mirage_dashcheck and mirage_tests only, without the player" OFF)
 
 # ── Dependencies ─────────────────────────────────────────────────────────────
 
@@ -289,6 +289,30 @@ target_link_libraries(mirage_hlscheck PRIVATE
     PkgConfig::FFMPEG
 )
 
+# ── Headless DASH conformance check ──────────────────────────────────────────
+
+# mirage_dashcheck: the same check for an MPEG-DASH MPD (src/DashConform.h):
+# its Representations' declarations against their media, as a table,
+# findings and a JSON report. Links FFmpeg and pugixml.
+add_executable(mirage_dashcheck
+    tools/mirage_dashcheck.cpp
+    src/DashMpd.cpp
+    src/DashConform.cpp
+    src/DashConformProbe.cpp
+    src/HlsConform.cpp
+    src/HlsConformProbe.cpp
+    src/HlsAlign.cpp
+    src/NetworkLogger.cpp
+    src/JsonText.cpp
+)
+
+target_include_directories(mirage_dashcheck PRIVATE src)
+
+target_link_libraries(mirage_dashcheck PRIVATE
+    PkgConfig::FFMPEG
+    pugixml
+)
+
 # ── Unit tests ────────────────────────────────────────────────────────────────
 
 include(CTest)
@@ -318,6 +342,7 @@ add_executable(mirage_tests
     tests/test_scrub_follow.cpp
     tests/test_hls_align.cpp
     tests/test_hls_conform.cpp
+    tests/test_dash_conform.cpp
     tests/test_frame_scan.cpp
     tests/test_loudness_meter.cpp
     tests/test_json_text.cpp
@@ -353,6 +378,9 @@ add_executable(mirage_tests
     src/HlsAlign.cpp
     src/HlsConform.cpp
     src/HlsConformProbe.cpp
+    src/DashMpd.cpp
+    src/DashConform.cpp
+    src/DashConformProbe.cpp
     src/DemuxRetry.cpp
     src/TrackGroups.cpp
     src/PipelineState.cpp

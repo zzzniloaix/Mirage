@@ -10,7 +10,7 @@ A C++20 video player built for video engineers. Supports local files and adaptiv
 
 See `docs/BUILD.md`: the Homebrew packages, the presets and their commands, the unit tests, the versions the evaluation was measured with, and the build checks that verify those steps (`eval/build_check/`). The commands below use the `macos-debug` preset's build directory, `build/macos-debug/`.
 
-The player is built for macOS only (`docs/DECISIONS.md` D-031). `mirage_vmaf`, the VMAF analyzer without a window, `mirage_hlscheck`, the HLS conformance check without one, and the unit tests also build without the player and its dependencies (the `macos-headless` and `linux-release` presets). `docs/BUILD.md` has Linux instructions and `docker/README.md` a Linux image for the evaluation; neither has been built yet.
+The player is built for macOS only (`docs/DECISIONS.md` D-031). `mirage_vmaf`, the VMAF analyzer without a window, `mirage_hlscheck` and `mirage_dashcheck`, the HLS and DASH conformance checks without one, and the unit tests also build without the player and its dependencies (the `macos-headless` and `linux-release` presets). `docs/BUILD.md` has Linux instructions and `docker/README.md` a Linux image for the evaluation; neither has been built yet.
 
 ---
 
@@ -35,6 +35,11 @@ The player is built for macOS only (`docs/DECISIONS.md` D-031). `mirage_vmaf`, t
 # Does an HLS master declare what its media holds? (BANDWIDTH, CODECS,
 # RESOLUTION, FRAME-RATE, VIDEO-RANGE, segment starts; exit status 1 on errors)
 ./build/macos-debug/mirage_hlscheck --json report.json https://example.com/master.m3u8
+
+# The same for an MPEG-DASH MPD (@bandwidth with @minBufferTime, @codecs,
+# @width/@height, @frameRate, colour, audio, @startWithSAP, the timeline,
+# @segmentAlignment; exit status 1 on errors)
+./build/macos-debug/mirage_dashcheck --json report.json https://example.com/manifest.mpd
 ```
 
 Or drag-and-drop a file onto the launch screen.
@@ -83,7 +88,7 @@ Drag the seek bar at the bottom of the window. A thumbnail strip appears showing
 | `L` | Loudness — EBU R128 momentary / short-term / integrated, LRA, true peak against a delivery target; per-channel meters |
 | `H` | Key bindings help overlay |
 
-The `P`, `S`, `X`, `B` and `L` panels and the `N` inspector's Conformance tab are proofs of concept: `plan/engineer_tools_status.md` says what each checks and what is left.
+The `P`, `S`, `X`, `B` and `L` panels, the `N` inspector's Conformance tab and `mirage_dashcheck` are proofs of concept: `plan/engineer_tools_status.md` says what each checks and what is left.
 
 ### VMAF analysis (Analyze menu)
 
@@ -120,6 +125,7 @@ Mirage/
 │   └── Logger.h           — std::format logger
 ├── tools/mirage_vmaf.cpp  — mirage_vmaf, the VMAF analyzer without a window
 ├── tools/mirage_hlscheck.cpp — mirage_hlscheck, the HLS conformance check without a window
+├── tools/mirage_dashcheck.cpp — mirage_dashcheck, the DASH conformance check (src/Dash*)
 ├── tests/                 — mirage_tests (Catch2), and the HW-vs-SW snapshot check
 ├── third_party/glad/      — the OpenGL 4.1 core loader glad generated
 ├── docs/                  — the build, the decision log, the Phase 1 status

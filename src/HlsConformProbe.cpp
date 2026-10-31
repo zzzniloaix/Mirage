@@ -44,101 +44,6 @@ int abort_cb(void* opaque)
     return static_cast<const std::stop_token*>(opaque)->stop_requested() ? 1 : 0;
 }
 
-// ── Requests ─────────────────────────────────────────────────────────────────
-
-struct Fetched {
-    std::string  body;
-    std::int64_t total = -1;          // the whole resource's size (Content-Range / Content-Length / file)
-    std::string  final_url;           // after redirects
-    std::string  error;
-    bool ok() const { return error.empty(); }
-};
-
-// `length` bytes from `offset` (length < 0: to the end), keeping at most
-// `max_bytes` of the body (< 0: all of it).
-Fetched fetch(const std::string& url, std::int64_t offset, std::int64_t length, std::int64_t max_bytes,
-              const std::stop_token& st, std::atomic<std::int64_t>& received)
-{
-    Fetched f;
-    f.final_url = url;
-    const AVIOInterruptCB cb{ abort_cb, const_cast<std::stop_token*>(&st) };
-    AVDictionary* opts = nullptr;
-    const bool http = is_http(url);
-    const std::int64_t first = std::max<std::int64_t>(offset, 0);
-    if (http) {
-        av_dict_set(&opts, "timeout",    "5000000", 0);
-        av_dict_set(&opts, "rw_timeout", "8000000", 0);
-        // http.c sends "Range: bytes=offset-(end_offset-1)".
-        if (first > 0)  av_dict_set_int(&opts, "offset", first, 0);
-        if (length > 0) av_dict_set_int(&opts, "end_offset", first + length, 0);
-    }
-    const bool local_range = !http && (first > 0 || length > 0);
-    NetworkLogger::track_open_begin(NetInitiator::Inspector, url.c_str(), local_range ? first : -1,
-                                    local_range && length > 0 ? first + length - 1 : -1);
-    AVIOContext* pb = nullptr;
-    const int ret = avio_open2(&pb, url.c_str(), AVIO_FLAG_READ, &cb, &opts);
-    av_dict_free(&opts);
-    NetworkLogger::track_open_end(ret, pb);
-    if (ret < 0) {
-        f.error = st.stop_requested() ? std::string("stopped") : av_error(ret);
-        return f;
-    }
-    if (http) {
-        if (std::uint8_t* loc = nullptr; av_opt_get(pb, "location", AV_OPT_SEARCH_CHILDREN, &loc) >= 0 && loc) {
-            if (*loc) f.final_url = reinterpret_cast<const char*>(loc);
-            av_free(loc);
-        }
-    }
-    f.total = avio_size(pb);
-    if (!http && first > 0 && avio_seek(pb, first, SEEK_SET) < 0) {
-        f.error = std::format("cannot seek to byte {}", first);
-        NetworkLogger::track_close(pb);
-        avio_closep(&pb);
-        return f;
-    }
-
-    // A server that ignores Range sends everything: stop at what was asked.
-    std::int64_t want = length > 0 ? length : -1;
-    if (max_bytes >= 0) want = want < 0 ? max_bytes : std::min(want, max_bytes);
-    std::vector<unsigned char> buf(64 * 1024);
-    int n = 0;
-    while (want != 0) {
-        const int ask = want < 0 ? static_cast<int>(buf.size())
-                                 : static_cast<int>(std::min<std::int64_t>(want, static_cast<std::int64_t>(buf.size())));
-        n = avio_read(pb, buf.data(), ask);
-        if (n <= 0) break;
-        f.body.append(reinterpret_cast<const char*>(buf.data()), static_cast<std::size_t>(n));
-        received += n;
-        if (want > 0) want -= n;
-    }
-    const int read_err = pb->error < 0 ? pb->error : (n < 0 && n != AVERROR_EOF ? n : 0);
-    NetworkLogger::track_close(pb);
-    avio_closep(&pb);
-    if (st.stop_requested())
-        f.error = "stopped";
-    else if (read_err < 0 && want != 0)
-        f.error = std::format("reading failed after {} bytes: {}", f.body.size(), av_error(read_err));
-    else if (length > 0 && max_bytes < 0 && static_cast<std::int64_t>(f.body.size()) < length)
-        f.error = std::format("{} of the {} bytes of the range arrived", f.body.size(), length);
-    return f;
-}
-
-// Runs fn(i) for i in [0, n) on `workers` threads; returns once all are done
-// or stopped.
-template <class F>
-void parallel_for(std::size_t n, int workers, const std::stop_token& st, F&& fn)
-{
-    std::atomic<std::size_t> next{ 0 };
-    auto loop = [&] {
-        for (std::size_t i; !st.stop_requested() && (i = next++) < n;) fn(i);
-    };
-    std::vector<std::jthread> pool;
-    const int k = std::clamp(workers, 1, 16);
-    for (int w = 1; w < k && static_cast<std::size_t>(w) < n; ++w) pool.emplace_back(loop);
-    loop();
-    pool.clear();   // joins
-}
-
 // ── Demuxing a segment from memory ───────────────────────────────────────────
 
 struct MemIO {
@@ -235,6 +140,73 @@ AVCodecContext* open_decoder(const AVCodecParameters* par)
 // ── conformprobe ─────────────────────────────────────────────────────────────
 
 namespace conformprobe {
+
+Fetched fetch(const std::string& url, std::int64_t offset, std::int64_t length, std::int64_t max_bytes,
+              const std::stop_token& st, std::atomic<std::int64_t>& received)
+{
+    Fetched f;
+    f.final_url = url;
+    const AVIOInterruptCB cb{ abort_cb, const_cast<std::stop_token*>(&st) };
+    AVDictionary* opts = nullptr;
+    const bool http = is_http(url);
+    const std::int64_t first = std::max<std::int64_t>(offset, 0);
+    if (http) {
+        av_dict_set(&opts, "timeout",    "5000000", 0);
+        av_dict_set(&opts, "rw_timeout", "8000000", 0);
+        // http.c sends "Range: bytes=offset-(end_offset-1)".
+        if (first > 0)  av_dict_set_int(&opts, "offset", first, 0);
+        if (length > 0) av_dict_set_int(&opts, "end_offset", first + length, 0);
+    }
+    const bool local_range = !http && (first > 0 || length > 0);
+    NetworkLogger::track_open_begin(NetInitiator::Inspector, url.c_str(), local_range ? first : -1,
+                                    local_range && length > 0 ? first + length - 1 : -1);
+    AVIOContext* pb = nullptr;
+    const int ret = avio_open2(&pb, url.c_str(), AVIO_FLAG_READ, &cb, &opts);
+    av_dict_free(&opts);
+    NetworkLogger::track_open_end(ret, pb);
+    if (ret < 0) {
+        f.error = st.stop_requested() ? std::string("stopped") : av_error(ret);
+        return f;
+    }
+    if (http) {
+        if (std::uint8_t* loc = nullptr; av_opt_get(pb, "location", AV_OPT_SEARCH_CHILDREN, &loc) >= 0 && loc) {
+            if (*loc) f.final_url = reinterpret_cast<const char*>(loc);
+            av_free(loc);
+        }
+    }
+    f.total = avio_size(pb);
+    if (!http && first > 0 && avio_seek(pb, first, SEEK_SET) < 0) {
+        f.error = std::format("cannot seek to byte {}", first);
+        NetworkLogger::track_close(pb);
+        avio_closep(&pb);
+        return f;
+    }
+
+    // A server that ignores Range sends everything: stop at what was asked.
+    std::int64_t want = length > 0 ? length : -1;
+    if (max_bytes >= 0) want = want < 0 ? max_bytes : std::min(want, max_bytes);
+    std::vector<unsigned char> buf(64 * 1024);
+    int n = 0;
+    while (want != 0) {
+        const int ask = want < 0 ? static_cast<int>(buf.size())
+                                 : static_cast<int>(std::min<std::int64_t>(want, static_cast<std::int64_t>(buf.size())));
+        n = avio_read(pb, buf.data(), ask);
+        if (n <= 0) break;
+        f.body.append(reinterpret_cast<const char*>(buf.data()), static_cast<std::size_t>(n));
+        received += n;
+        if (want > 0) want -= n;
+    }
+    const int read_err = pb->error < 0 ? pb->error : (n < 0 && n != AVERROR_EOF ? n : 0);
+    NetworkLogger::track_close(pb);
+    avio_closep(&pb);
+    if (st.stop_requested())
+        f.error = "stopped";
+    else if (read_err < 0 && want != 0)
+        f.error = std::format("reading failed after {} bytes: {}", f.body.size(), av_error(read_err));
+    else if (length > 0 && max_bytes < 0 && static_cast<std::int64_t>(f.body.size()) < length)
+        f.error = std::format("{} of the {} bytes of the range arrived", f.body.size(), length);
+    return f;
+}
 
 std::vector<int> pick_segments(int n, int k)
 {
@@ -367,6 +339,8 @@ hls::SegmentRead read_segment(const std::uint8_t* data, std::size_t n, int index
     int adone = 0;
 
     double min_pts = std::numeric_limits<double>::infinity(), max_pts = -min_pts, max_end = -min_pts;
+    double amin = min_pts, aend = -min_pts;
+    const double atb = ai >= 0 ? av_q2d(fc->streams[ai]->time_base) : 0.0;
     bool first_video = true, vkey = false;
     double first_pts = std::numeric_limits<double>::quiet_NaN();   // the first video packet's
     while (av_read_frame(fc, pkt) >= 0) {
@@ -385,8 +359,12 @@ hls::SegmentRead read_segment(const std::uint8_t* data, std::size_t n, int index
             }
             if (pkt->pts != AV_NOPTS_VALUE) {
                 const double t = static_cast<double>(pkt->pts) * tb;
-                if (std::isnan(first_pts)) first_pts = t;
-                else if (t < first_pts) ++r.leading;
+                if (std::isnan(first_pts)) {
+                    first_pts = t;
+                } else if (t < first_pts) {
+                    ++r.leading;
+                    if (hevc && hls::hevc_rasl(pkt->data, static_cast<std::size_t>(pkt->size), nal_len)) ++r.rasl;
+                }
                 min_pts = std::min(min_pts, t);
                 max_pts = std::max(max_pts, t);
                 max_end = std::max(max_end, t + static_cast<double>(pkt->duration) * tb);
@@ -399,8 +377,13 @@ hls::SegmentRead read_segment(const std::uint8_t* data, std::size_t n, int index
                     take_frame(frame);
                     av_frame_unref(frame);
                 }
-        } else if (pkt->stream_index == ai && adec && adone < kAudioFrames) {
-            if (avcodec_send_packet(adec, pkt) >= 0)
+        } else if (pkt->stream_index == ai) {
+            if (pkt->pts != AV_NOPTS_VALUE) {
+                const double t = static_cast<double>(pkt->pts) * atb;
+                amin = std::min(amin, t);
+                aend = std::max(aend, t + static_cast<double>(pkt->duration) * atb);
+            }
+            if (adec && adone < kAudioFrames && avcodec_send_packet(adec, pkt) >= 0)
                 while (avcodec_receive_frame(adec, frame) == 0) {
                     ++adone;
                     av_frame_unref(frame);
@@ -425,6 +408,7 @@ hls::SegmentRead read_segment(const std::uint8_t* data, std::size_t n, int index
         r.video = std::move(v);
     }
     if (ai >= 0) {
+        if (std::isfinite(amin) && aend > amin) r.audio_duration = aend - amin;
         const AVCodecParameters* par = fc->streams[ai]->codecpar;
         hls::AudioSeen a;
         a.codec = avcodec_get_name(par->codec_id);
@@ -443,6 +427,10 @@ hls::SegmentRead read_segment(const std::uint8_t* data, std::size_t n, int index
 } // namespace conformprobe
 
 // ── ConformProbe ─────────────────────────────────────────────────────────────
+
+using conformprobe::Fetched;
+using conformprobe::fetch;
+using conformprobe::parallel_for;
 
 ConformProbe::~ConformProbe() { stop(); }
 

@@ -21,6 +21,7 @@
 
 #include "HlsConform.h"
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cstdint>
@@ -99,8 +100,40 @@ private:
     std::jthread               thread_;
 };
 
-// The FFmpeg-facing parts, exposed for the tests.
+// The FFmpeg-facing parts, shared with DashConformProbe.h and exposed for
+// the tests.
 namespace conformprobe {
+
+struct Fetched {
+    std::string  body;
+    std::int64_t total = -1;          // the whole resource's size (Content-Range / Content-Length / file)
+    std::string  final_url;           // after redirects
+    std::string  error;
+    bool ok() const { return error.empty(); }
+};
+
+// `length` bytes of `url` (HTTP(S) or a local path) from `offset` (length
+// < 0: to the end), keeping at most `max_bytes` of the body (< 0: all of
+// it). With a NetworkLogger installed it is logged as the inspector's;
+// `received` counts the body bytes.
+Fetched fetch(const std::string& url, std::int64_t offset, std::int64_t length, std::int64_t max_bytes,
+              const std::stop_token& st, std::atomic<std::int64_t>& received);
+
+// Runs fn(i) for i in [0, n) on `workers` threads; returns once all are done
+// or stopped.
+template <class F>
+void parallel_for(std::size_t n, int workers, const std::stop_token& st, F&& fn)
+{
+    std::atomic<std::size_t> next{ 0 };
+    auto loop = [&] {
+        for (std::size_t i; !st.stop_requested() && (i = next++) < n;) fn(i);
+    };
+    std::vector<std::jthread> pool;
+    const int k = std::clamp(workers, 1, 16);
+    for (int w = 1; w < k && static_cast<std::size_t>(w) < n; ++w) pool.emplace_back(loop);
+    loop();
+    pool.clear();   // joins
+}
 
 // What one segment's bytes hold (`data`: its init segment, if any, then
 // the segment), demuxed from memory. `bytes` is the segment's own size.

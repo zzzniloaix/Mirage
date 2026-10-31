@@ -88,6 +88,9 @@ MasterDecl parse_master_decl(const std::string& text, const std::string& base_ur
 
 // ── Codec strings (RFC 6381) ─────────────────────────────────────────────────
 
+// CICP TransferCharacteristics: "BT.709", "PQ (SMPTE ST 2084)", "HLG (ARIB STD-B67)", …
+const char* transfer_name(int t);
+
 struct CodecId {
     std::string   text;                  // as written
     std::string   fourcc;                // "avc1", "hvc1", "av01", "mp4a", "ac-3", "Opus", …
@@ -114,6 +117,30 @@ CodecId parse_codec(std::string_view s);
 // What a CodecId names: "H.264 High, level 4.0", "HEVC Main 10, Main tier,
 // level 4.1", "AV1 Main, level 5.0, 10-bit", "AAC-LC", "AC-3".
 std::string describe_codec(const CodecId& c);
+
+// The families declared formats are matched to the streams read by.
+enum class CodecFamily : std::uint8_t {
+    Unknown, Avc, Hevc, Av1, Vp9, DolbyVision, Aac, Mp3, Ac3, Eac3, Ac4, Opus, Flac, Alac, Text
+};
+CodecFamily family_of(const CodecId& c);
+CodecFamily family_of_codec(const std::string& codec);   // FFmpeg's codec name: "h264", "aac", …
+const char* family_name(CodecFamily f);                  // "H.264", "AAC", …
+// A level as the codec writes it: "4.0", "1b", "5.1".
+std::string level_text(const CodecId& c, int level);
+
+// How a declared video format differs from the stream's (both parsed, of
+// one family): one issue per difference — another profile (then nothing
+// else is compared), a tier, a level, the AVC constraint flags, an
+// avc1 / avc3 or hvc1 / hev1 other than the init segment's sample entry.
+// `attr` names the attribute in the text ("CODECS", "@codecs"); `unit` is
+// what devices choose ("variant", "Representation").
+struct CodecIssue {
+    Severity    sev = Severity::Info;
+    std::string title, detail;
+};
+std::vector<CodecIssue> compare_video_codec(const CodecId& declared, const CodecId& actual,
+                                            std::string_view sample_entry, std::string_view attr,
+                                            std::string_view unit);
 
 // The RFC 6381 string of a video stream built from its decoder
 // configuration: the avcC / hvcC / av1C record an MP4 sample entry carries,
@@ -147,6 +174,9 @@ bool is_random_access(FirstPicture p);
 // `nal_length`: 1..4 for length-prefixed NAL units (MP4), 0 for Annex B.
 FirstPicture first_picture_h264(const std::uint8_t* au, std::size_t n, int nal_length);
 FirstPicture first_picture_hevc(const std::uint8_t* au, std::size_t n, int nal_length);
+// An HEVC RASL picture (nal_unit_type 8 or 9): a leading picture of a CRA
+// that references pictures before it, so it cannot be decoded from there.
+bool hevc_rasl(const std::uint8_t* au, std::size_t n, int nal_length);
 
 // ── Bit rates (RFC 8216 §4.1) ────────────────────────────────────────────────
 
@@ -203,7 +233,9 @@ struct SegmentRead {                     // one media segment read in full
     int          keyframes = 0;
     int          leading   = 0;          // video packets with a pts below the first one's: the
                                          // leading pictures of an open GOP, or of a cut inside a GOP
+    int          rasl      = 0;          // HEVC: those of them that are RASL pictures
     double       media_duration = kNaN;  // video: max(pts + duration) − min(pts), seconds
+    double       audio_duration = kNaN;  // the same for the audio stream
     double       frame_rate = 0.0;       // (frames − 1) / (max pts − min pts); 0 = unknown
 };
 

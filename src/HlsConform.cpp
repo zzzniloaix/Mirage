@@ -99,27 +99,6 @@ std::string short_name(const std::string& uri)
     return prev == std::string::npos ? p : p.substr(prev + 1);
 }
 
-const char* transfer_name(int t)
-{
-    switch (t) {
-        case 1:  return "BT.709";
-        case 2:  return "unspecified";
-        case 4:  return "BT.470 M";
-        case 5:  return "BT.470 BG";
-        case 6:  return "BT.601";
-        case 7:  return "SMPTE 240M";
-        case 8:  return "linear";
-        case 11: return "IEC 61966-2-4";
-        case 13: return "sRGB";
-        case 14: return "BT.2020 10-bit";
-        case 15: return "BT.2020 12-bit";
-        case 16: return "PQ (SMPTE ST 2084)";
-        case 18: return "HLG (ARIB STD-B67)";
-        default: break;
-    }
-    return "other";
-}
-
 // ── NAL units ────────────────────────────────────────────────────────────────
 
 // The RBSP of a NAL unit's payload (emulation prevention bytes removed), at
@@ -241,75 +220,96 @@ std::uint32_t be32(const std::uint8_t* p)
     return (std::uint32_t(p[0]) << 24) | (std::uint32_t(p[1]) << 16) | (std::uint32_t(p[2]) << 8) | p[3];
 }
 
+} // namespace
+
+const char* transfer_name(int t)
+{
+    switch (t) {
+        case 1:  return "BT.709";
+        case 2:  return "unspecified";
+        case 4:  return "BT.470 M";
+        case 5:  return "BT.470 BG";
+        case 6:  return "BT.601";
+        case 7:  return "SMPTE 240M";
+        case 8:  return "linear";
+        case 11: return "IEC 61966-2-4";
+        case 13: return "sRGB";
+        case 14: return "BT.2020 10-bit";
+        case 15: return "BT.2020 12-bit";
+        case 16: return "PQ (SMPTE ST 2084)";
+        case 18: return "HLG (ARIB STD-B67)";
+        default: break;
+    }
+    return "other";
+}
+
 // ── Codec families ───────────────────────────────────────────────────────────
 
-enum class Family : std::uint8_t {
-    Unknown, Avc, Hevc, Av1, Vp9, DolbyVision, Aac, Mp3, Ac3, Eac3, Ac4, Opus, Flac, Alac, Text
-};
-
-Family family_of(const CodecId& c)
+CodecFamily family_of(const CodecId& c)
 {
     const std::string& f = c.fourcc;
-    if (f == "avc1" || f == "avc2" || f == "avc3" || f == "avc4") return Family::Avc;
-    if (f == "hvc1" || f == "hev1") return Family::Hevc;
-    if (f == "av01") return Family::Av1;
-    if (f == "vp09") return Family::Vp9;
-    if (c.dolby_vision) return Family::DolbyVision;
+    if (f == "avc1" || f == "avc2" || f == "avc3" || f == "avc4") return CodecFamily::Avc;
+    if (f == "hvc1" || f == "hev1") return CodecFamily::Hevc;
+    if (f == "av01") return CodecFamily::Av1;
+    if (f == "vp09") return CodecFamily::Vp9;
+    if (c.dolby_vision) return CodecFamily::DolbyVision;
     if (f == "mp4a") {
-        if (c.object_type == 34 || c.object_type == 0x69 + 1000 || c.object_type == 0x6B + 1000) return Family::Mp3;
-        if (c.object_type == 0xA5 + 1000) return Family::Ac3;
-        if (c.object_type == 0xA6 + 1000) return Family::Eac3;
-        return Family::Aac;
+        if (c.object_type == 34 || c.object_type == 0x69 + 1000 || c.object_type == 0x6B + 1000) return CodecFamily::Mp3;
+        if (c.object_type == 0xA5 + 1000) return CodecFamily::Ac3;
+        if (c.object_type == 0xA6 + 1000) return CodecFamily::Eac3;
+        return CodecFamily::Aac;
     }
-    if (f == "ac-3") return Family::Ac3;
-    if (f == "ec-3") return Family::Eac3;
-    if (f == "ac-4") return Family::Ac4;
-    if (f == "Opus" || f == "opus") return Family::Opus;
-    if (f == "fLaC" || f == "flac") return Family::Flac;
-    if (f == "alac") return Family::Alac;
-    if (c.kind == Track::Text) return Family::Text;
-    return Family::Unknown;
+    if (f == "ac-3") return CodecFamily::Ac3;
+    if (f == "ec-3") return CodecFamily::Eac3;
+    if (f == "ac-4") return CodecFamily::Ac4;
+    if (f == "Opus" || f == "opus") return CodecFamily::Opus;
+    if (f == "fLaC" || f == "flac") return CodecFamily::Flac;
+    if (f == "alac") return CodecFamily::Alac;
+    if (c.kind == Track::Text) return CodecFamily::Text;
+    return CodecFamily::Unknown;
 }
 
 // From FFmpeg's codec name, for a stream whose codec string is unknown.
-Family family_of_codec(const std::string& codec)
+CodecFamily family_of_codec(const std::string& codec)
 {
-    if (codec == "h264") return Family::Avc;
-    if (codec == "hevc") return Family::Hevc;
-    if (codec == "av1")  return Family::Av1;
-    if (codec == "vp9")  return Family::Vp9;
-    if (codec == "aac")  return Family::Aac;
-    if (codec == "mp3")  return Family::Mp3;
-    if (codec == "ac3")  return Family::Ac3;
-    if (codec == "eac3") return Family::Eac3;
-    if (codec == "ac4")  return Family::Ac4;
-    if (codec == "opus") return Family::Opus;
-    if (codec == "flac") return Family::Flac;
-    if (codec == "alac") return Family::Alac;
-    return Family::Unknown;
+    if (codec == "h264") return CodecFamily::Avc;
+    if (codec == "hevc") return CodecFamily::Hevc;
+    if (codec == "av1")  return CodecFamily::Av1;
+    if (codec == "vp9")  return CodecFamily::Vp9;
+    if (codec == "aac")  return CodecFamily::Aac;
+    if (codec == "mp3")  return CodecFamily::Mp3;
+    if (codec == "ac3")  return CodecFamily::Ac3;
+    if (codec == "eac3") return CodecFamily::Eac3;
+    if (codec == "ac4")  return CodecFamily::Ac4;
+    if (codec == "opus") return CodecFamily::Opus;
+    if (codec == "flac") return CodecFamily::Flac;
+    if (codec == "alac") return CodecFamily::Alac;
+    return CodecFamily::Unknown;
 }
 
-const char* family_name(Family f)
+const char* family_name(CodecFamily f)
 {
     switch (f) {
-        case Family::Avc:         return "H.264";
-        case Family::Hevc:        return "HEVC";
-        case Family::Av1:         return "AV1";
-        case Family::Vp9:         return "VP9";
-        case Family::DolbyVision: return "Dolby Vision";
-        case Family::Aac:         return "AAC";
-        case Family::Mp3:         return "MP3";
-        case Family::Ac3:         return "AC-3";
-        case Family::Eac3:        return "E-AC-3";
-        case Family::Ac4:         return "AC-4";
-        case Family::Opus:        return "Opus";
-        case Family::Flac:        return "FLAC";
-        case Family::Alac:        return "ALAC";
-        case Family::Text:        return "text";
-        case Family::Unknown:     break;
+        case CodecFamily::Avc:         return "H.264";
+        case CodecFamily::Hevc:        return "HEVC";
+        case CodecFamily::Av1:         return "AV1";
+        case CodecFamily::Vp9:         return "VP9";
+        case CodecFamily::DolbyVision: return "Dolby Vision";
+        case CodecFamily::Aac:         return "AAC";
+        case CodecFamily::Mp3:         return "MP3";
+        case CodecFamily::Ac3:         return "AC-3";
+        case CodecFamily::Eac3:        return "E-AC-3";
+        case CodecFamily::Ac4:         return "AC-4";
+        case CodecFamily::Opus:        return "Opus";
+        case CodecFamily::Flac:        return "FLAC";
+        case CodecFamily::Alac:        return "ALAC";
+        case CodecFamily::Text:        return "text";
+        case CodecFamily::Unknown:     break;
     }
     return "unknown";
 }
+
+namespace {
 
 std::string avc_profile_name(int p, int flags)
 {
@@ -347,17 +347,21 @@ std::string av1_level_name(int idx)
     return std::format("{}.{}", 2 + (idx >> 2), idx & 3);
 }
 
+} // namespace
+
 std::string level_text(const CodecId& c, int level)
 {
     if (level < 0) return "?";
     switch (family_of(c)) {
-        case Family::Avc:  return level == 9 ? "1b" : std::format("{:.1f}", level / 10.0);
-        case Family::Hevc: return std::format("{:g}", std::round(level / 3.0) / 10.0);
-        case Family::Av1:  return av1_level_name(level);
+        case CodecFamily::Avc:  return level == 9 ? "1b" : std::format("{:.1f}", level / 10.0);
+        case CodecFamily::Hevc: return std::format("{:g}", std::round(level / 3.0) / 10.0);
+        case CodecFamily::Av1:  return av1_level_name(level);
         default:           break;
     }
     return std::to_string(level);
 }
+
+namespace {
 
 // ── Bit-rate windows ─────────────────────────────────────────────────────────
 
@@ -645,28 +649,28 @@ CodecId parse_codec(std::string_view s)
 
 std::string describe_codec(const CodecId& c)
 {
-    const Family fam = family_of(c);
+    const CodecFamily fam = family_of(c);
     if (!c.ok) {
-        if (fam != Family::Unknown) return family_name(fam);
+        if (fam != CodecFamily::Unknown) return family_name(fam);
         return c.text.empty() ? std::string("unknown") : c.text;
     }
     switch (fam) {
-        case Family::Avc:
+        case CodecFamily::Avc:
             return std::format("H.264 {}, level {}", avc_profile_name(c.profile, c.constraints), level_text(c, c.level));
-        case Family::Hevc:
+        case CodecFamily::Hevc:
             return std::format("HEVC {}, {} tier, level {}", hevc_profile_name(c.profile), c.tier ? "High" : "Main",
                                level_text(c, c.level));
-        case Family::Av1: {
+        case CodecFamily::Av1: {
             static const char* names[] = { "Main", "High", "Professional" };
             const std::string prof = c.profile >= 0 && c.profile < 3 ? names[c.profile] : std::format("profile {}", c.profile);
             return std::format("AV1 {}, level {}{}, {}-bit", prof, level_text(c, c.level), c.tier ? " High tier" : "",
                                c.bit_depth);
         }
-        case Family::Vp9:
+        case CodecFamily::Vp9:
             return std::format("VP9 profile {}, level {:.1f}, {}-bit", c.profile, c.level / 10.0, c.bit_depth);
-        case Family::DolbyVision:
+        case CodecFamily::DolbyVision:
             return std::format("Dolby Vision profile {}, level {}", c.profile, c.level);
-        case Family::Aac:
+        case CodecFamily::Aac:
             switch (c.object_type) {
                 case 1:  return "AAC Main";
                 case 2:  return "AAC-LC";
@@ -680,6 +684,52 @@ std::string describe_codec(const CodecId& c)
             break;
     }
     return family_name(fam);
+}
+
+std::vector<CodecIssue> compare_video_codec(const CodecId& d, const CodecId& act, std::string_view sample_entry,
+                                            std::string_view attr, std::string_view unit)
+{
+    std::vector<CodecIssue> out;
+    const CodecFamily fam = family_of(act);
+    const std::string decl_what = std::format("{} ({})", describe_codec(d), d.text);
+    const std::string what = std::format("{} ({})", describe_codec(act), act.text);
+    if (d.profile != act.profile || d.profile_space != act.profile_space
+        || (fam == CodecFamily::Av1 && d.bit_depth != act.bit_depth)) {
+        out.push_back({ Severity::Error, std::format("{} names another profile than the stream's", attr),
+                        std::format("{} says {}; the stream is {}. Devices choose {}s by the profile they can decode.",
+                                    attr, decl_what, what, unit) });
+        return out;
+    }
+    if ((fam == CodecFamily::Hevc || fam == CodecFamily::Av1) && d.tier != act.tier)
+        out.push_back({ d.tier < act.tier ? Severity::Error : Severity::Info,
+                        std::format("{} {} tier, the stream is {} tier", attr, d.tier ? "High" : "Main",
+                                    act.tier ? "High" : "Main"),
+                        std::format("{} says {}; the stream is {}.", attr, decl_what, what) });
+    if (d.level < act.level)
+        out.push_back({ Severity::Error,
+                        std::format("{} level {} below the stream's {}", attr, level_text(d, d.level),
+                                    level_text(act, act.level)),
+                        std::format("{} says {}; the stream is {}: a device limited to level {} can choose a {} it "
+                                    "cannot decode.", attr, decl_what, what, level_text(d, d.level), unit) });
+    else if (d.level > act.level)
+        out.push_back({ Severity::Info,
+                        std::format("{} level {} above the stream's {}", attr, level_text(d, d.level),
+                                    level_text(act, act.level)),
+                        std::format("{} says {}; the stream is {}: a device limited to level {} skips a {} it could "
+                                    "decode.", attr, decl_what, what, level_text(act, act.level), unit) });
+    if (fam == CodecFamily::Avc && d.constraints >= 0 && act.constraints >= 0 && d.constraints != act.constraints)
+        out.push_back({ Severity::Info,
+                        std::format("{} constraint flags 0x{:02x}, the stream's 0x{:02x}", attr, d.constraints,
+                                    act.constraints),
+                        {} });
+    const bool base_entry = sample_entry == "avc1" || sample_entry == "avc3" || sample_entry == "hvc1" || sample_entry == "hev1";
+    if (base_entry && d.fourcc != sample_entry && (fam == CodecFamily::Avc || fam == CodecFamily::Hevc))
+        out.push_back({ Severity::Warning,
+                        std::format("{} {} but the init segment's sample entry is {}", attr, d.fourcc, sample_entry),
+                        std::format("{} and {} differ in where the parameter sets are: {} carries them in the sample "
+                                    "entry only, {} lets them come in-band too.", d.fourcc, sample_entry,
+                                    fam == CodecFamily::Hevc ? "hvc1" : "avc1", fam == CodecFamily::Hevc ? "hev1" : "avc3") });
+    return out;
 }
 
 std::string avc_codec_string(const std::uint8_t* config, std::size_t n, std::string_view fourcc)
@@ -823,6 +873,19 @@ FirstPicture first_picture_hevc(const std::uint8_t* au, std::size_t n, int nal_l
         return false;
     });
     return out;
+}
+
+bool hevc_rasl(const std::uint8_t* au, std::size_t n, int nal_length)
+{
+    bool rasl = false;
+    for_each_nal(au, n, nal_length, [&](const std::uint8_t* nal, std::size_t len) {
+        if (len < 2) return true;
+        const int type = (nal[0] >> 1) & 0x3F;
+        if (type >= 32) return true;
+        rasl = type == 8 || type == 9;   // RASL_N, RASL_R
+        return false;
+    });
+    return rasl;
 }
 
 // ── Bit rates ────────────────────────────────────────────────────────────────
@@ -1142,7 +1205,7 @@ ConformReport analyze_conformance(const MasterDecl& m, const std::vector<Playlis
                 notes.push_back("Every EXT-X-STREAM-INF SHOULD include CODECS (RFC 8216 §4.3.4.2).");
                 add(Severity::Warning, idx, name + ": no CODECS", notes.back());
             }
-            auto find_decl = [&](Family fam, const CodecId* prefer) {
+            auto find_decl = [&](CodecFamily fam, const CodecId* prefer) {
                 int any = -1;
                 for (std::size_t j = 0; j < decl.size(); ++j) {
                     if (family_of(decl[j]) != fam) continue;
@@ -1160,7 +1223,7 @@ ConformReport analyze_conformance(const MasterDecl& m, const std::vector<Playlis
                 const std::string key = std::format("{}|{}|{}|{}", vs.codec, vs.codec_string, vs.dv_profile, vs.dv_level);
                 if (!done_video.insert(key).second) continue;
                 const CodecId act = parse_codec(vs.codec_string);
-                const Family  fam = act.ok ? family_of(act) : family_of_codec(vs.codec);
+                const CodecFamily fam = act.ok ? family_of(act) : family_of_codec(vs.codec);
                 std::string shown = vs.codec_string.empty() ? vs.codec : vs.codec_string;
                 if (vs.dv_profile >= 0) shown += std::format(" + Dolby Vision {}.{}", vs.dv_profile, vs.dv_level);
                 seen_strings.push_back(shown);
@@ -1168,7 +1231,7 @@ ConformReport analyze_conformance(const MasterDecl& m, const std::vector<Playlis
                 const std::string what = act.ok ? std::format("{} ({})", describe_codec(act), vs.codec_string)
                                                 : family_name(fam);
                 // Dolby Vision streams are matched to the format CODECS gives them.
-                int j = vs.dv_profile >= 0 ? find_decl(Family::DolbyVision, nullptr) : -1;
+                int j = vs.dv_profile >= 0 ? find_decl(CodecFamily::DolbyVision, nullptr) : -1;
                 if (j >= 0) {
                     used[static_cast<std::size_t>(j)] = true;
                     const CodecId& d = decl[static_cast<std::size_t>(j)];
@@ -1203,42 +1266,8 @@ ConformReport analyze_conformance(const MasterDecl& m, const std::vector<Playlis
                               std::format("The stream is {}.", what));
                     continue;
                 }
-                const std::string decl_what = std::format("{} ({})", describe_codec(d), d.text);
-                if (d.profile != act.profile || d.profile_space != act.profile_space
-                    || (fam == Family::Av1 && d.bit_depth != act.bit_depth)) {
-                    issue(Severity::Error, std::format("{}: CODECS names another profile than the stream's", name),
-                          std::format("CODECS says {}; the stream is {}. Devices choose variants by the profile they "
-                                      "can decode.", decl_what, what));
-                    continue;
-                }
-                if ((fam == Family::Hevc || fam == Family::Av1) && d.tier != act.tier) {
-                    const bool low = d.tier < act.tier;
-                    issue(low ? Severity::Error : Severity::Info,
-                          std::format("{}: CODECS {} tier, the stream is {} tier", name, d.tier ? "High" : "Main",
-                                      act.tier ? "High" : "Main"),
-                          std::format("CODECS says {}; the stream is {}.", decl_what, what));
-                }
-                if (d.level < act.level)
-                    issue(Severity::Error, std::format("{}: CODECS level {} below the stream's {}", name,
-                                                       level_text(d, d.level), level_text(act, act.level)),
-                          std::format("CODECS says {}; the stream is {}: a device limited to level {} can choose a variant "
-                                      "it cannot decode.", decl_what, what, level_text(d, d.level)));
-                else if (d.level > act.level)
-                    issue(Severity::Info, std::format("{}: CODECS level {} above the stream's {}", name,
-                                                      level_text(d, d.level), level_text(act, act.level)),
-                          std::format("CODECS says {}; the stream is {}: a device limited to level {} skips a variant it "
-                                      "could decode.", decl_what, what, level_text(act, act.level)));
-                if (fam == Family::Avc && d.constraints >= 0 && act.constraints >= 0 && d.constraints != act.constraints)
-                    issue(Severity::Info, std::format("{}: CODECS constraint flags 0x{:02x}, the stream's 0x{:02x}", name,
-                                                      d.constraints, act.constraints), {});
-                const bool base_entry = vs.sample_entry == "avc1" || vs.sample_entry == "avc3" || vs.sample_entry == "hvc1"
-                                     || vs.sample_entry == "hev1";
-                if (base_entry && d.fourcc != vs.sample_entry && (fam == Family::Avc || fam == Family::Hevc))
-                    issue(Severity::Warning, std::format("{}: CODECS {} but the init segment's sample entry is {}", name,
-                                                         d.fourcc, vs.sample_entry),
-                          std::format("{} and {} differ in where the parameter sets are: {} carries them in the sample "
-                                      "entry only, {} lets them come in-band too.", d.fourcc, vs.sample_entry,
-                                      fam == Family::Hevc ? "hvc1" : "avc1", fam == Family::Hevc ? "hev1" : "avc3"));
+                for (CodecIssue& ci : compare_video_codec(d, act, vs.sample_entry, "CODECS", "variant"))
+                    issue(ci.sev, std::format("{}: {}", name, ci.title), std::move(ci.detail));
             }
 
             // Audio: every distinct format seen.
@@ -1249,7 +1278,7 @@ ConformReport analyze_conformance(const MasterDecl& m, const std::vector<Playlis
                 seen_strings.push_back(shown);
                 if (!v.has_codecs) continue;
                 const CodecId act = parse_codec(a->codec_string);
-                const Family  fam = act.ok ? family_of(act) : family_of_codec(a->codec);
+                const CodecFamily fam = act.ok ? family_of(act) : family_of_codec(a->codec);
                 const int j = find_decl(fam, act.ok ? &act : nullptr);
                 if (j < 0) {
                     issue(Severity::Error, std::format("{}: CODECS does not list the audio format", name),
@@ -1260,7 +1289,7 @@ ConformReport analyze_conformance(const MasterDecl& m, const std::vector<Playlis
                 }
                 used[static_cast<std::size_t>(j)] = true;
                 const CodecId& d = decl[static_cast<std::size_t>(j)];
-                if (fam == Family::Aac && d.ok && act.ok && d.object_type != act.object_type)
+                if (fam == CodecFamily::Aac && d.ok && act.ok && d.object_type != act.object_type)
                     issue(Severity::Warning, std::format("{}: CODECS {} but the audio is {}", name, describe_codec(d),
                                                          describe_codec(act)),
                           std::format("CODECS says {}; the audio decodes as {}.", d.text, a->codec_string));
