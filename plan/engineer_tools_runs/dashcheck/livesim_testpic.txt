@@ -1,0 +1,15 @@
+[INFO]  DashProbe: https://livesim2.dashif.org/livesim2/testpic_2s/Manifest.mpd — 2 Representations, 4 segments read, 56 sized, 0.1 MB in 6.1 s: 1 errors, 0 warnings
+https://livesim2.dashif.org/livesim2/testpic_2s/Manifest.mpd
+dynamic MPD, 2 Representations in 2 AdaptationSets, @minBufferTime 2.000 s: 60 of 60 segments sized, 4 read, in 6.1 s
+
+  #  @bandwidth  needs       CODECS SIZE   FPS    AUDIO  COLOUR SAP    TIME   ALIGN  Representation
+  0  48 kb/s     51 kb/s     ok     -      -      ok     -      ok     ok     -      A48 (audio, en)
+  1  300 kb/s    151 kb/s    ok     ok     ok     -      -      ok     ok     -      V300 (video, 640×360)
+
+1 error, 0 warnings, 2 notes
+ERROR @bandwidth 48 kb/s below the 51 kb/s its segments need with @minBufferTime 2.000 s  [A48]
+      With @minBufferTime 2.000 s, delivered at 48 kb/s from the start of segment #896719685, segments #896719685–#896719714 (0.40 MB, 60.000 s of media) are not all in until 4.24 s after the last of them has finished playing; at 48 kb/s playout needs a @minBufferTime of 6.237 s. They need 51 kb/s (every segment in by the time it ends playing; 53 kb/s would hold even if each had to be in before it starts). ISO/IEC 23009-1 defines @bandwidth by this: delivered at @bandwidth from any segment start, playout begun @minBufferTime after the first bit never runs out. A player that fits @bandwidth to its link can stall on this Representation.
+note  A dynamic MPD: checked over the segments listed at the time of the check
+      Segments addressed by @duration are the ones available then, at most the last 60 of each Representation.
+note  @bandwidth 1.85 × what its segments need at most  [V300]
+      @bandwidth 300 kb/s is 1.85 × the 162 kb/s that holds even if every segment had to be in before it starts playing (they need 151 kb/s): players wait for a faster link than this Representation needs.

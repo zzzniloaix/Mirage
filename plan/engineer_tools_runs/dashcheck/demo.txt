@@ -1,0 +1,41 @@
+[INFO]  DashProbe: manifest.mpd — 5 Representations, 32 segments read, 0 sized, 6.5 MB in 0.1 s: 9 errors, 4 warnings
+manifest.mpd
+static MPD, 5 Representations in 4 AdaptationSets, @minBufferTime 5.900 s: 32 of 32 segments sized, 32 read, in 0.1 s
+
+  #  @bandwidth  needs       CODECS SIZE   FPS    AUDIO  COLOUR SAP    TIME   ALIGN  Representation
+  0  300 kb/s    533 kb/s    ERROR  ok     warn   -      -      ok     ok     ERROR  0 (video, 640×360)
+  1  500 kb/s    336 kb/s    ok     ok     warn   -      -      ok     ERROR  ERROR  1 (video, 480×270)
+  2  2.00 Mb/s   1.35 Mb/s   ERROR  ok     ok     -      ERROR  ok     ERROR  -      2 (video, 1280×720)
+  3  128 kb/s    88 kb/s     ok     -      -      warn   -      ok     warn   -      3 (audio)
+  4  1.60 Mb/s   535 kb/s    ok     ok     ok     -      -      ERROR  ok     -      4 (video, 640×360)
+
+9 errors, 4 warnings, 2 notes
+ERROR @bandwidth 300 kb/s below the 533 kb/s its segments need with @minBufferTime 5.900 s  [0]
+      With @minBufferTime 5.900 s, delivered at 300 kb/s from the start of segment #1, segments #1–#6 (1.19 MB, 12.000 s of media) are not all in until 13.91 s after the last of them has finished playing; at 300 kb/s playout needs a @minBufferTime of 19.809 s. They need 533 kb/s (every segment in by the time it ends playing; 600 kb/s would hold even if each had to be in before it starts). ISO/IEC 23009-1 defines @bandwidth by this: delivered at @bandwidth from any segment start, playout begun @minBufferTime after the first bit never runs out. A player that fits @bandwidth to its link can stall on this Representation.
+ERROR @codecs names another profile than the stream's  [0]
+      @codecs says H.264 Main, level 3.0 (avc1.4d001e); the stream is H.264 High, level 3.0 (avc1.64001e). Devices choose Representations by the profile they can decode.
+ERROR segments up to 2.960 s, above @maxSegmentDuration 2.000 s  [1]
+      4 of its 5 segments. @maxSegmentDuration is the longest segment of any Representation; live players size their windows by it.
+ERROR @codecs level 2 below the stream's 3.1  [2]
+      @codecs says HEVC Main 10, Main tier, level 2 (hvc1.2.4.L60.90); the stream is HEVC Main 10, Main tier, level 3.1 (hvc1.2.4.L93.90): a device limited to level 2 can choose a Representation it cannot decode.
+ERROR PQ video without a TransferCharacteristics descriptor  [2]
+      The video is PQ (SMPTE ST 2084) and no urn:mpeg:mpegB:cicp:TransferCharacteristics descriptor says so: a player or device that cannot show it takes it for SDR.
+ERROR segments start up to 600 ms off where S@t puts them  [2]
+      #3 -600 ms, #4 -600 ms, #5 -600 ms, #6 -600 ms (earliest presentation time in the media − the timeline's). A player places each segment by the MPD: this far off, playback jumps or stalls at it.
+ERROR segments up to 2.120 s, above @maxSegmentDuration 2.000 s  [2]
+      2 of its 6 segments. @maxSegmentDuration is the longest segment of any Representation; live players size their windows by it.
+ERROR @startWithSAP 1 but 6 of the segments read start with a P / B picture  [4]
+      #1, #2, #3, #5, #6, #7: a player starting or switching there has nothing to decode until the next random access point.
+ERROR declared aligned, but the Representations' timelines differ  [0, 1]
+      The timelines differ: Representation 1 lists 5 segments, 0 lists 6. With @segmentAlignment, the n-th segment of every Representation of the AdaptationSet must not overlap any other segment of the others.
+warn  @frameRate 30/1 but the video runs at 25.000 fps  [0, 1]
+      @frameRate 30/1 (30.000); the segments run at 25.000.
+warn  @audioSamplingRate 44100, the audio decodes at 48000 Hz  [3]
+warn  AudioChannelConfiguration says 6 channels, the audio decodes to 2  [3]
+      urn:mpeg:dash:23003:3:audio_channel_configuration:2011 = "6".
+warn  segments up to 2.005 s, above @maxSegmentDuration 2.000 s  [3]
+      5 of its 7 segments. @maxSegmentDuration is the longest segment of any Representation; live players size their windows by it.
+note  the segments run 0.600 s past the Period's end  [2]
+      The last segment ends at 12.600 s, the Period at 12.000 s: what is past it is not played.
+note  @bandwidth 2.74 × what its segments need at most  [4]
+      @bandwidth 1.60 Mb/s is 2.74 × the 583 kb/s that holds even if every segment had to be in before it starts playing (they need 535 kb/s): players wait for a faster link than this Representation needs.

@@ -337,6 +337,155 @@ request each: 1,076 for the TS example, see `apple_ts.txt`). NetworkLogger
 keeps the newest 4,000 requests, so checking a large master pushes the
 playback's own requests out of the Network tab.
 
+## `mirage_dashcheck` — DASH conformance, declared vs measured
+
+Added after the HLS check, when DASH was asked for as well. On the branch
+`feat/dash-check`, stacked on `feat/rendition-check`.
+
+**What it does.** `mirage_dashcheck [--segments N|all] [--audio-segments
+N|all] [--no-sizes] [--json FILE] <MPD URL or path>` compares what each
+Representation of an MPD declares with what its media holds:
+
+- @bandwidth against the segment sizes, as ISO/IEC 23009-1 defines it:
+  delivered at @bandwidth bit/s from any segment start, playout begun
+  @minBufferTime after the first bit never runs out of data. Two rates
+  bound that: below the one at which every segment is in by the time it
+  ends playing, the Representation cannot conform whatever the order of the
+  bytes inside its segments (an error; a note when within 1% of it, as the
+  HLS check takes a BANDWIDTH a hair under the peak); at the one at which
+  every segment is in before it starts, it conforms whatever that order.
+  The report gives both, and the @minBufferTime the declared @bandwidth
+  would need;
+- @codecs against the codec strings built from each init segment's decoder
+  configuration, compared as the HLS check compares CODECS
+  (`hls::compare_video_codec`, shared now): the format, the profile, the
+  level and tier, the AAC object type, avc1 / avc3 and hvc1 / hev1;
+- @width / @height / @sar against the decoded picture, @frameRate against
+  the rate the timestamps give, a `urn:mpeg:mpegB:cicp:TransferCharacteristics`
+  descriptor against the transfer characteristics (PQ without one is an
+  error, HLG a warning); @audioSamplingRate and AudioChannelConfiguration
+  (the 23003-3 count, a CICP index, Dolby's channel mask) against the
+  decoded audio;
+- @startWithSAP (or @subsegmentStartsWithSAP), and the SAP flags of a
+  Segment Index, against the SAP type each segment read starts with: an IDR
+  is type 1, or 2 with leading pictures; a CRA type 1, 2 with RADL leading
+  pictures only, 3 with RASL ones; an H.264 recovery point 3 with leading
+  pictures; a P/B picture none;
+- the timeline: the earliest presentation time of each segment read (tfdt
+  plus the smallest composition offset, the init segment's edit list
+  applied, as ISO/IEC 14496-12 defines it) against S@t, the Segment Index
+  or the @duration slot (nominal there: noted from a quarter of a segment
+  off, a warning from half); its media duration against the declared one;
+  every segment against @maxSegmentDuration; the end of the segments
+  against the Period's end;
+- @segmentAlignment / @subsegmentAlignment: the Representations of an
+  AdaptationSet declared aligned list the same timeline, and the same
+  segment starts at the same time in each one's media.
+
+A table with a row per Representation and a column per check, the findings
+(each names every Representation it applies to), the whole report as JSON;
+exit status 1 when there are errors. It builds in the headless
+configuration too. The player does not run it: the FFmpeg it is built with
+has no DASH demuxer, so an MPD does not open in the player and the
+inspector never gets one.
+
+**How it works.** `dash::parse_mpd` (`src/DashMpd.*`, pugixml, no FFmpeg)
+lists every Representation's segments: SegmentTemplate with a
+SegmentTimeline (S@t, @d, @r including -1, @n) or with @duration (a static
+Period's length; in a dynamic MPD the segments ended by the time of the
+check, within @timeShiftBufferDepth, the last 60 at most), SegmentList
+(@media, @mediaRange), SegmentBase (its sidx, fetched at @indexRange and
+read by `dash::parse_sidx`). BaseURL, the segment information and the
+common attributes are inherited from the Period and the AdaptationSet.
+`DashProbe` (`src/DashConformProbe.*`) runs as `ConformProbe` does, with its
+requests and segment reader (`conformprobe::fetch`, logged as the
+inspector's, and `conformprobe::read_segment`): every segment sized (from
+the Segment Index or @mediaRange, else a request for its first byte); three
+segments of each video Representation and one of each audio Representation
+read in full behind their init segments. Encrypted Representations
+(ContentProtection) are sized and their init segments read; WebM and text
+Representations are listed only. `dash::analyze_conformance`
+(`src/DashConform.*`) compares; `tools/mirage_dashcheck.cpp` prints.
+
+**Checked.**
+
+- `mirage_tests '[dash_conform]'`: 14 test cases. xs:duration and
+  templates; `parse_mpd` on SegmentTemplate@duration inherited from the
+  AdaptationSet, a SegmentTimeline with @r, @r=-1, $Time$ and
+  @presentationTimeOffset under a Period@start, a SegmentList, a
+  SegmentBase, a dynamic MPD at a given clock, mandatory attributes
+  missing; a hand-made sidx; the bucket model on numbers worked by hand;
+  channel configurations; SAP types; the verdict on hand-built measurements
+  (each check, @bandwidths within 1% noted once, findings naming the right
+  Representations); and a package FFmpeg's dash muxer writes in the test
+  (libx264), its @bandwidth and @codecs made wrong, checked end to end. They
+  pass in the `macos-debug` and `macos-headless` builds. The HLS check's
+  JSON report on the package `tests/hlscheck_demo.sh` makes is the same as
+  before its code was shared.
+- Five public test streams, every segment sized
+  (`plan/engineer_tools_runs/dashcheck/`):
+  - Big Buck Bunny on Akamai's test server (11 Representations, 1,749
+    segments): no error, warning or note.
+  - Envivio's example: every video Representation declares `avc1.4D401E`
+    (Main, level 3.0). The 1024×576 and 1280×720 streams are level 3.1 and the
+    1920×1080 one 4.0: errors. The 320×180 ones are 1.2 and the 512×288 one
+    2.1: notes. `@frameRate` is 30000/1001 on video that runs at 25 fps: a
+    warning. ffprobe reads the 1024×576 one the same way, level 31 and 25 fps
+    (`envivio_ffprobe.txt`).
+  - Shaka's "Angel One" (SegmentBase: 154 subsegments from the Segment
+    Indexes): no error. The German AAC Representation ends 0.779 s before
+    the 60 s Period (a warning); the H.264 AdaptationSet declares no
+    @subsegmentAlignment (a note); 4 WebVTT and 10 WebM Representations are
+    listed only.
+  - Tears of Steel on Unified Streaming's server (SegmentTimeline, 1,288
+    segments): the 64 kb/s audio's @bandwidth, 64,008, is 1.62% below the
+    65,063 b/s its segments need with @minBufferTime 10 s, an error; the
+    128 kb/s one's is 0.16% below, a note; both audio Representations end
+    0.064 s before the Period, a warning.
+  - DASH-IF's livesim2 test picture (dynamic; 30 segments of each
+    Representation available when it ran): the 48 kb/s audio's @bandwidth is
+    6.40% below the 51,280 b/s its segments need with @minBufferTime 2 s, an
+    error; the video's @bandwidth is 1.85 × the rate that holds even if every
+    segment had to be in before it starts, a note.
+
+  `bucket_check.txt`: recomputed by brute force over every pair of segments
+  from each report's segment sizes and times, every `need_bps` and
+  `safe_bps` there matches the report's to within 7.55e-6 of it (the
+  reports round them to whole b/s).
+- `tests/dashcheck_demo.sh` (`demo.txt`): every mistake planted in the MPD
+  is reported — @bandwidth 300 kb/s for segments that need 533 kb/s,
+  @codecs Main for High, HEVC level 2 for 3.1, @frameRate 30/1 on 25 fps
+  video, AudioChannelConfiguration 6 and @audioSamplingRate 44100 on 48 kHz
+  stereo, a timeline that puts four segments on 0.6 s late, and 6 of 8
+  segments starting inside a GOP under startWithSAP="1" — and so is what
+  FFmpeg's dash muxer gets wrong on its own (in "Found while checking"
+  below).
+
+**Not checked.** The player (above). WebM Representations (their Cues and
+Clusters), text Representations, encrypted contents (whether a
+ContentProtection's cenc:default_KID matches the init segment's tenc is not
+compared either), a Segment Index that points to further sidx boxes,
+SubRepresentations, xlink, more BaseURLs than the first; in a dynamic MPD
+its updates, UTCTiming (the check takes the machine's clock) and
+@availabilityTimeOffset past SegmentTemplate's; ColourPrimaries and
+MatrixCoefficients descriptors (TransferCharacteristics only); Dolby Vision
+signalling beyond @codecs; MPEG-TS segments in DASH (read the HLS way, not
+tried here).
+
+**To finish.** Decisions for the owner: the thresholds — `kTimeSlack`
+(50 ms), `kTimeBad` (0.5 s), the quarter and half of a nominal @duration,
+`kAlignSlack` (100 ms), `kAlignBad` (0.5 s), and the two shared with the
+HLS check: `hls::kPeakSlack` (1%: a @bandwidth short of what the segments
+need by no more than that is a note) and `hls::kOverDeclared` (1.5×, for a
+@bandwidth above the safe rate) — and which findings count as
+errors (a @maxSegmentDuration exceeded by up to `kTimeSlack` is a warning,
+more an error; a wrong @frameRate a warning); whether a @bandwidth between
+the two rates deserves a note (it conforms if the bytes of each segment
+arrive no sooner than they play, which the sizes alone cannot tell); and how
+the player should reach the check for an MPD it cannot play — a URL field in
+the Conformance tab, say; opening MPDs at all is the open path's, a D-007
+plan.
+
 ## Review
 
 A review of the branch (`git diff main...HEAD`, read by someone who had not
@@ -374,3 +523,11 @@ opening `B` scans it at once over the share.
   the conformance check tells the two apart.
 - On the same MPEG-TS (start time 1.48 s) the control bar shows the absolute
   PTS against a duration counted from 0 (`00:07.440 / 00:06.000` at the end).
+- **FFmpeg's dash muxer writes `maxSegmentDuration` from `-seg_duration`,
+  not from the segments it cuts**: PT2.0S over segments of up to 2.960 s (a
+  GOP of 37 frames at 25 fps), 2.120 s (x265) and 2.005 s (AAC) in the DASH
+  demo package (`plan/engineer_tools_runs/dashcheck/demo.txt`).
+- **It writes `segmentAlignment="true"` on an AdaptationSet whose
+  Representations do not line up**: GOPs of 50 and 37 frames, 6 segments
+  against 5 (the same run). It writes no colour descriptor either, so its PQ
+  HEVC Representation goes undeclared.

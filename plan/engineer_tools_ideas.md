@@ -77,6 +77,7 @@ So a QP/MV overlay is an H.264/MPEG-2 (QP also VP9) tool and needs `--no-hw`.
 | Live playlist health: latency, distance to the live edge, diff of each reload against the previous one | creeping latency, a stuck edge, media sequence going backwards | S–M |
 | ABR "what-if" simulator over a measured or synthetic throughput trace | ladder spacing and ABR rules without a device lab (Mirage has no ABR today: variants change only by hand) | M |
 | Ad-break / SCTE-35 inspector (DATERANGE, CUE-OUT/IN, splice decoding, IDR/segment alignment checks) | SSAI splice problems | M |
+| **DASH conformance: declared vs measured** — each Representation's @bandwidth (with @minBufferTime), @codecs, picture, colour and audio attributes, @startWithSAP, timeline and @segmentAlignment against its segments | the HLS mistakes in DASH's terms, and DASH's own: a @bandwidth whose bucket runs dry, a SegmentTimeline the media does not follow, Representations declared aligned that are not | M |
 | DASH MPD inspector with SegmentTemplate expansion | `$Number$`/`$Time$` and timeline gaps | L |
 
 Note for anything that measures throughput: the demux thread blocks while its
@@ -111,10 +112,13 @@ become a feature is listed under its "To finish" notes instead of done here.)
 | `S` / `X` | Scopes / pixel probe | picture quality |
 | `L` | Loudness and level meters | audio QC |
 | `N` › Conformance, `mirage_hlscheck` | Rendition conformance | streaming |
+| `mirage_dashcheck` | DASH conformance | streaming |
 
 Rendition conformance came after the first four, when the direction turned
 to streaming development; it is on `feat/rendition-check`, stacked on
-`feat/engineer-tools-poc-on-main` (this branch merged with `main`).
+`feat/engineer-tools-poc-on-main` (this branch merged with `main`). DASH
+conformance followed when DASH was asked for as well, on `feat/dash-check`,
+stacked on `feat/rendition-check`.
 
 The status of each POC (what works, how it was checked, what is left) is kept
 in `plan/engineer_tools_status.md`.
