@@ -825,6 +825,15 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: owner, adopting the agent's recommendation (D-071)
 - **Date**: 2026-11-02
 
+### D-082 The owner's name comes off the repository's text and its new commits; the public history isn't rewritten
+
+- **Decision**: from 2026-11-02 the commits carry the GitHub user name as their author's name, with the GitHub noreply address as before, and the owner's name is taken out of the repository's text. It was only in this log's **Who** lines, which `0f926d8` changed on `vmaf/phase-3` (the header's note); the branches already pushed keep those lines until `vmaf/phase-3`'s changes reach them. The public history isn't rewritten: a one-line `.mailmap` maps the noreply address to the user name, so that `git log`, `git shortlog` and `git blame` show it for every commit (PR #3, from the branch `chore/mailmap`, open). The five commits of `vmaf/phase-2` after `475ace3` (`c673738`, `83e1e25`, `7d78a79`, `da0ffb8`, `75cf6e0`), whose author fields carry the owner's name, were pushed as they are on 2026-11-02; Phase 2's PR still waits (D-066).
+- **Owner's words**, given in another session of the agent and translated there: "Change it, of course it has to change", on the commits' author name; "ok", to the plan above; "Push it", to pushing `vmaf/phase-2`.
+- **Alternatives**: a rewrite of the public history, as D-012's did for the commits' e-mail addresses; the five commits renamed before their push.
+- **Rationale**: the five commits' ids are cited in committed records (`eval/ladder/acceptance-c673738/`, D-067's "as of `da0ffb8`"), which renaming them would break, and the `.mailmap` covers how every commit is shown.
+- **Who**: owner
+- **Date**: 2026-11-02
+
 ---
 
 ## Measurement / process choices (proposed by the agent, confirmed by the owner)
