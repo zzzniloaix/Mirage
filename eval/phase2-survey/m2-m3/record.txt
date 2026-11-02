@@ -1,0 +1,81 @@
+# M2 and M3: the program, <mirage_vmaf>, is the one eval/run_all.sh built from 953d42e on vmaf/phase-1, a mirage_vmaf from before the pool, whose SHA-256 eval/run_all/2026-10-27-defaults-full/builds/head/build.txt names. Run on 2026-10-27 from 18:30:53Z to 18:31:31Z, one command at a time, nothing else running, on the local copy of eval/streams/local-advanced-2026-10-26/ (<copy_dir>), the machine on battery power (pmset -g batt: "Now drawing from 'Battery Power'", 84% then 83%), with no sleep or wake event in pmset's log from 18:20Z to 18:33Z.
+
+# M2 and M3 of docs/PHASE2_SURVEY.md, made by eval/phase2-survey/m2_m3_baseline.sh: each command, then its output and /usr/bin/time -l's lines.
+
+$ shasum -a 256 <mirage_vmaf>
+aaac3630522dc4261f6fa27bb8e81dc66a64ba9860292ecdeae5e9164fb372d3  <mirage_vmaf>
+
+## M2: one pair, the top rung against a 1080p and against a 270p playlist
+
+$ /usr/bin/time -l <mirage_vmaf> --ref <copy_dir>/v9/prog_index.m3u8 --dis <copy_dir>/v8/prog_index.m3u8 --frames 300 --out <out_dir>/m2_v9_v8.json
+mirage_vmaf: 300 frame pairs scored, report written to <out_dir>/m2_v9_v8.json
+        4.20 real        17.40 user         0.06 sys
+           292995072  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               18486  page reclaims
+                  84  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  11  voluntary context switches
+                 817  involuntary context switches
+        268443249085  instructions retired
+         49017130263  cycles elapsed
+           275825384  peak memory footprint
+
+$ /usr/bin/time -l <mirage_vmaf> --ref <copy_dir>/v9/prog_index.m3u8 --dis <copy_dir>/v2/prog_index.m3u8 --frames 300 --out <out_dir>/m2_v9_v2.json
+mirage_vmaf: 300 frame pairs scored, report written to <out_dir>/m2_v9_v2.json
+        4.19 real        17.37 user         0.05 sys
+           272957440  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               17273  page reclaims
+                  75  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   8  voluntary context switches
+                 600  involuntary context switches
+        267891622669  instructions retired
+         48921883109  cycles elapsed
+           255722216  peak memory footprint
+
+## M3: the ladder, one pair after another
+
+$ /usr/bin/time -l <mirage_vmaf> --ladder <copy_dir>/master.m3u8 --frames 300 --out <out_dir>/m3_ladder.json
+mirage_vmaf: pair 1 of 7, <copy_dir>/v5/prog_index.m3u8: 300 frame pairs scored
+mirage_vmaf: pair 2 of 7, <copy_dir>/v8/prog_index.m3u8: 300 frame pairs scored
+mirage_vmaf: pair 3 of 7, <copy_dir>/v7/prog_index.m3u8: 300 frame pairs scored
+mirage_vmaf: pair 4 of 7, <copy_dir>/v6/prog_index.m3u8: 300 frame pairs scored
+mirage_vmaf: pair 5 of 7, <copy_dir>/v4/prog_index.m3u8: 300 frame pairs scored
+mirage_vmaf: pair 6 of 7, <copy_dir>/v3/prog_index.m3u8: 300 frame pairs scored
+mirage_vmaf: pair 7 of 7, <copy_dir>/v2/prog_index.m3u8: 300 frame pairs scored
+mirage_vmaf: 7 pairs of the ladder scored against <copy_dir>/v9/prog_index.m3u8 (top-rung), 0 entries skipped, report written to <out_dir>/m3_ladder.json
+       28.91 real       121.63 user         0.17 sys
+           304955392  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               19273  page reclaims
+                  75  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  22  voluntary context switches
+                5892  involuntary context switches
+       1874217381212  instructions retired
+        341869709817  cycles elapsed
+           287703784  peak memory footprint
+

@@ -1,0 +1,27 @@
+# The log of the script that made this record (runner.sh), as it wrote it, with local paths as <worktree> and <scratch> and the battery's id left out: the worktree's creation and HEAD; the UTC time, `uptime`, `sw_vers` and `pmset -g batt` at the start; the times after the build and after the local copy, and the copy check's exit status; for each check its start and end with `uptime`, and pool_check.py's output; at the end the time, `pmset -g batt` and the worktree's state.
+Preparing worktree (detached HEAD c673738)
+HEAD is now at c673738 Docs: Phase 1's PR #2, opened by the agent at the owner's request and merged as 7b217e7
+HEAD c673738b1d58da9eef8cd69850f1e523aaf4a449
+2026-10-30T10:57:15Z
+ 3:57  up 13:27, 5 users, load averages: 5.37 16.92 26.64
+ProductName:		macOS
+ProductVersion:		26.6.2
+BuildVersion:		25G83
+Now drawing from 'AC Power'
+ -InternalBattery-0 	100%; charged; 0:00 remaining present: true
+built 2026-10-30T10:58:34Z
+copy exit 0 2026-10-30T10:58:44Z
+copy check exit 0 (25 OK)
+local-300 start 2026-10-30T10:58:44Z  3:58  up 13:28, 5 users, load averages: 5.77 13.95 24.51
+pool_check: PASS
+local-300 exit 0 2026-10-30T10:59:47Z  3:59  up 13:29, 5 users, load averages: 17.76 15.20 24.16
+local-300-mem1g start 2026-10-30T10:59:47Z  3:59  up 13:29, 5 users, load averages: 17.76 15.20 24.16
+pool_check: PASS
+local-300-mem1g exit 0 2026-10-30T11:00:29Z  4:00  up 13:30, 5 users, load averages: 13.18 14.34 23.43
+cdn-full start 2026-10-30T11:00:29Z  4:00  up 13:30, 5 users, load averages: 13.18 14.34 23.43
+pool_check: PASS
+cdn-full exit 0 2026-10-30T11:31:59Z  4:31  up 14:01, 5 users, load averages: 5.28 5.99 10.13
+2026-10-30T11:31:59Z
+Now drawing from 'AC Power'
+ -InternalBattery-0 	100%; charged; 0:00 remaining present: true
+status at the end: 0 changed paths

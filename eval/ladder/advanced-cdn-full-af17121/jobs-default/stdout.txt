@@ -1,0 +1,15 @@
+[INFO]  VMAFAnalyzer: 36000 frames  mean=99.52  min=95.90  p5=96.92  [Analysis]
+mirage_vmaf: pair 2 of 7, https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v8/prog_index.m3u8: 36000 frame pairs scored
+[INFO]  VMAFAnalyzer: 36000 frames  mean=85.73  min=79.14  p5=82.13  [Analysis]
+mirage_vmaf: pair 1 of 7, https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v5/prog_index.m3u8: 36000 frame pairs scored
+[INFO]  VMAFAnalyzer: 36000 frames  mean=99.32  min=94.75  p5=96.10  [Analysis]
+mirage_vmaf: pair 3 of 7, https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v7/prog_index.m3u8: 36000 frame pairs scored
+[INFO]  VMAFAnalyzer: 36000 frames  mean=92.67  min=86.41  p5=88.42  [Analysis]
+mirage_vmaf: pair 4 of 7, https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v6/prog_index.m3u8: 36000 frame pairs scored
+[INFO]  VMAFAnalyzer: 18000 frames  mean=83.07  min=73.82  p5=77.06  [Analysis]
+mirage_vmaf: pair 5 of 7, https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v4/prog_index.m3u8: 18000 frame pairs scored
+[INFO]  VMAFAnalyzer: 18000 frames  mean=75.49  min=64.68  p5=69.10  [Analysis]
+mirage_vmaf: pair 6 of 7, https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v3/prog_index.m3u8: 18000 frame pairs scored
+[INFO]  VMAFAnalyzer: 18000 frames  mean=56.78  min=44.24  p5=49.28  [Analysis]
+mirage_vmaf: pair 7 of 7, https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v2/prog_index.m3u8: 18000 frame pairs scored
+mirage_vmaf: 7 of 7 pairs of the ladder scored against https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v9/prog_index.m3u8 (top-rung), 0 entries skipped, 11 at a time; the run is complete; report written to <out_dir>/jobs-default/report.json

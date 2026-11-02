@@ -1,0 +1,122 @@
+{
+ "verdict": "FAIL",
+ "problems": [
+  "jobs 0: the report's peak resident memory, 2011676672, is over the memory limit, 1073741824",
+  "jobs 0: /usr/bin/time -l's maximum resident set size, 2011676672, is over the memory limit, 1073741824"
+ ],
+ "frames": 300,
+ "memory_limit_given": "1G",
+ "runs": [
+  {
+   "jobs_given": 1,
+   "exit": 0,
+   "wall_s": 30.692,
+   "max_rss_time_l": 304824320,
+   "pool": {
+    "jobs": 1,
+    "memory_limit": 1073741824,
+    "max_running": 1,
+    "peak_resident": 303955968,
+    "warnings": []
+   },
+   "pairs_complete": 7,
+   "status": "complete"
+  },
+  {
+   "jobs_given": 0,
+   "exit": 0,
+   "wall_s": 17.784,
+   "max_rss_time_l": 2011676672,
+   "pool": {
+    "jobs": 11,
+    "memory_limit": 1073741824,
+    "max_running": 7,
+    "peak_resident": 2011676672,
+    "warnings": [
+     "pair 7 of 7 took the process over the memory limit on its own: 1331806208 bytes of resident memory, the limit 1073741824"
+    ]
+   },
+   "pairs_complete": 7,
+   "status": "complete"
+  }
+ ],
+ "pairs": [
+  {
+   "index": 0,
+   "dis": "<ladder_dir>/v5/prog_index.m3u8",
+   "frames": 300,
+   "same_in": [
+    {
+     "jobs_given": 0,
+     "same": true
+    }
+   ]
+  },
+  {
+   "index": 1,
+   "dis": "<ladder_dir>/v8/prog_index.m3u8",
+   "frames": 300,
+   "same_in": [
+    {
+     "jobs_given": 0,
+     "same": true
+    }
+   ]
+  },
+  {
+   "index": 2,
+   "dis": "<ladder_dir>/v7/prog_index.m3u8",
+   "frames": 300,
+   "same_in": [
+    {
+     "jobs_given": 0,
+     "same": true
+    }
+   ]
+  },
+  {
+   "index": 3,
+   "dis": "<ladder_dir>/v6/prog_index.m3u8",
+   "frames": 300,
+   "same_in": [
+    {
+     "jobs_given": 0,
+     "same": true
+    }
+   ]
+  },
+  {
+   "index": 4,
+   "dis": "<ladder_dir>/v4/prog_index.m3u8",
+   "frames": 300,
+   "same_in": [
+    {
+     "jobs_given": 0,
+     "same": true
+    }
+   ]
+  },
+  {
+   "index": 5,
+   "dis": "<ladder_dir>/v3/prog_index.m3u8",
+   "frames": 300,
+   "same_in": [
+    {
+     "jobs_given": 0,
+     "same": true
+    }
+   ]
+  },
+  {
+   "index": 6,
+   "dis": "<ladder_dir>/v2/prog_index.m3u8",
+   "frames": 300,
+   "same_in": [
+    {
+     "jobs_given": 0,
+     "same": true
+    }
+   ]
+  }
+ ]
+}

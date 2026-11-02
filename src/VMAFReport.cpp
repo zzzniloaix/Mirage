@@ -1,6 +1,7 @@
 #include "VMAFReport.h"
 #include "JsonText.h"
 
+#include <algorithm>
 #include <cerrno>
 #include <cstring>
 #include <filesystem>
@@ -65,10 +66,19 @@ std::string texts_json(const std::vector<std::string>& list, const std::string& 
     return out + (list.empty() ? "]" : "\n" + ind + "]");
 }
 
-std::string clock_json(const std::string& rate, double start, const std::string& from)
+// An input's timing in the alignment: its frame rate, where its times are
+// measured from, and its discontinuity sequences (D-057).
+std::string clock_json(const std::string& rate, double start, const std::string& from,
+                       const std::vector<VMAFSequence>& sequences)
 {
-    return std::format("{{\"frame_rate\": {}, \"start\": {}, \"start_from\": {}}}", quote(rate),
-                       number(start), from.empty() ? "null" : quote(from));
+    std::string out = std::format("{{\"frame_rate\": {}, \"start\": {}, \"start_from\": {}, "
+                                  "\"sequences\": [",
+                                  quote(rate), number(start), from.empty() ? "null" : quote(from));
+    for (std::size_t i = 0; i < sequences.size(); ++i)
+        out += std::format("{}{{\"first_index\": {}, \"first_pts\": {}, \"frames\": {}}}",
+                           i == 0 ? "" : ", ", sequences[i].first_index,
+                           number(sequences[i].first_pts), sequences[i].frames);
+    return out + "]}";
 }
 
 std::string alignment_json(const VMAFAlignment& a, const std::string& ind)
@@ -86,8 +96,9 @@ std::string alignment_json(const VMAFAlignment& a, const std::string& ind)
         "\"off_grid_distorted\": {},\n"
         "{}\"vmaf_contexts\": [",
         quote(a.rule), quote(a.timestamp_origin), quote(a.grid), number(a.tolerance),
-        in1, clock_json(a.ref_frame_rate, a.ref_start, a.ref_start_from),
-        in1, clock_json(a.dis_frame_rate, a.dis_start, a.dis_start_from), in1, a.paired, a.failed,
+        in1, clock_json(a.ref_frame_rate, a.ref_start, a.ref_start_from, a.ref_sequences),
+        in1, clock_json(a.dis_frame_rate, a.dis_start, a.dis_start_from, a.dis_sequences), in1,
+        a.paired, a.failed,
         number(a.failure_rate), number(a.threshold), a.exceeded, in1, a.unmatched_reference,
         a.extra_distorted, a.duplicate_distorted, a.no_timestamp, a.after_discontinuity,
         in1, a.discontinuities, number(a.discontinuity_jump), a.off_grid_reference,
@@ -232,8 +243,32 @@ std::string ladder_to_json(const vmafladder::Result& ladder, const RunInfo& run)
 {
     const vmafladder::Plan& plan = ladder.plan;
     std::string out = "{\n";
+    out += std::format("  \"status\": {},\n  \"error\": {},\n", quote(ladder.status),
+                       ladder.error.empty() ? std::string("null") : quote(ladder.error));
+    const auto bytes = [](std::uint64_t n) { return n > 0 ? std::to_string(n) : "null"; };
+    out += std::format("  \"pool\": {{\"jobs\": {}, \"memory_limit\": {}, \"baseline\": {}, "
+                       "\"max_running\": {}, \"pair_memory\": [",
+                       ladder.jobs, bytes(ladder.memory_limit),
+                       ladder.memory_limit > 0 ? bytes(ladder.baseline) : "null",
+                       ladder.max_running);
+    for (std::size_t i = 0; i < ladder.admissions.size(); ++i) {
+        const vmafladder::Admission& a = ladder.admissions[i];
+        out += std::format("{}{{\"pair\": {}, \"running\": {}, \"resident\": {}, "
+                           "\"measure\": {}}}",
+                           i == 0 ? "\n    " : ",\n    ", a.pair, a.running, a.resident,
+                           a.measure);
+    }
+    out += std::format("{}, \"peak_resident\": {}, \"warnings\": {}}},\n",
+                       ladder.admissions.empty() ? "]" : "\n  ]", bytes(ladder.peak_resident),
+                       texts_json(ladder.pool_warnings, "  "));
+    // The settings are those of the first complete pair in the plan's order,
+    // and with none complete those the run asked for.
+    const auto first = std::find_if(ladder.pairs.begin(), ladder.pairs.end(),
+                                    [](const vmafladder::PairRun& p) {
+                                        return p.status == vmafladder::PairStatus::Complete;
+                                    });
     run_fields(out, run, plan.reference_mode,
-               ladder.results.empty() ? VMAFSettings{} : ladder.results.front().settings);
+               first == ladder.pairs.end() ? ladder.settings : first->result.settings);
     out += std::format("  \"frame_limit\": {},\n", frame_limit_json(run));
 
     out += std::format("  \"ladder\": {{\"url\": {}, \"location\": {}, \"sha256\": {}, "
@@ -256,15 +291,35 @@ std::string ladder_to_json(const vmafladder::Result& ladder, const RunInfo& run)
 
     const std::string ind = "      ";   // the keys of each pair
     out += "  \"pairs\": [";
-    for (std::size_t k = 0; k < ladder.results.size() && k < plan.pairs.size(); ++k) {
-        out += k == 0 ? "\n    {\n" : ",\n    {\n";
+    bool any = false;
+    for (std::size_t k = 0; k < ladder.pairs.size() && k < plan.pairs.size(); ++k) {
+        const vmafladder::PairRun& p = ladder.pairs[k];
+        if (p.status != vmafladder::PairStatus::Complete) continue;
+        out += any ? ",\n    {\n" : "\n    {\n";
+        any = true;
         out += std::format("{}\"index\": {},\n", ind, k);
         out += std::format("{}\"entries\": {},\n", ind, indices_json(plan.pairs[k].entries));
-        pair_head(out, ladder.results[k], ind);
-        pair_tail(out, ladder.results[k], ind);
+        out += std::format("{}\"started_s\": {},\n{}\"ended_s\": {},\n", ind, number(p.started),
+                           ind, number(p.ended));
+        pair_head(out, p.result, ind);
+        pair_tail(out, p.result, ind);
         out += "    }";
     }
-    out += ladder.results.empty() ? "]\n" : "\n  ]\n";
+    out += any ? "\n  ],\n" : "],\n";
+    out += "  \"not_scored\": [";
+    bool other = false;
+    for (std::size_t k = 0; k < ladder.pairs.size() && k < plan.pairs.size(); ++k) {
+        const vmafladder::PairRun& p = ladder.pairs[k];
+        if (p.status == vmafladder::PairStatus::Complete) continue;
+        out += std::format("{}{{\"index\": {}, \"url\": {}, \"entries\": {}, \"status\": {}, "
+                           "\"why\": {}}}",
+                           other ? ",\n    " : "\n    ", k, quote(plan.pairs[k].url),
+                           indices_json(plan.pairs[k].entries),
+                           quote(vmafladder::status_name(p.status)),
+                           p.why.empty() ? std::string("null") : quote(p.why));
+        other = true;
+    }
+    out += other ? "\n  ]\n" : "]\n";
     out += "}\n";
     return out;
 }

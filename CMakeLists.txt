@@ -237,6 +237,7 @@ add_executable(mirage_vmaf
     src/VMAFColor.cpp
     src/VMAFLadder.cpp
     src/VMAFPool.cpp
+    src/VMAFProcess.cpp
     src/FileHash.cpp
     src/HlsMaster.cpp
     src/VMAFCli.cpp
@@ -289,6 +290,8 @@ add_executable(mirage_tests
     tests/test_vmaf_color.cpp
     tests/test_vmaf_ladder.cpp
     tests/test_vmaf_pool.cpp
+    tests/test_rtmp_input.cpp
+    tests/test_vmaf_segments.cpp
     tests/test_file_hash.cpp
     src/Demuxer.cpp
     src/NetworkLogger.cpp
@@ -321,6 +324,7 @@ add_executable(mirage_tests
     src/VMAFColor.cpp
     src/VMAFLadder.cpp
     src/VMAFPool.cpp
+    src/VMAFProcess.cpp
     src/FileHash.cpp
 )
 
@@ -339,7 +343,10 @@ target_link_libraries(mirage_tests PRIVATE
 
 target_compile_definitions(mirage_tests PRIVATE
     MIRAGE_LIBVMAF_MODEL_DIR="${MIRAGE_LIBVMAF_MODEL_DIR}"
+    # The built mirage_vmaf, which tests/test_vmaf_ladder.cpp runs as a program.
+    MIRAGE_VMAF_PATH="$<TARGET_FILE:mirage_vmaf>"
 )
+add_dependencies(mirage_tests mirage_vmaf)
 
 # The player's HW-vs-SW snapshot check, not in the headless configuration.
 if(NOT MIRAGE_HEADLESS)

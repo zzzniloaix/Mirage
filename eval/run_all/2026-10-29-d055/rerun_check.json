@@ -1,0 +1,306 @@
+{
+ "report_version": 1,
+ "tool": "eval/run_all.py",
+ "started_utc": "2026-10-29T22:35:27Z",
+ "ended_utc": "2026-10-29T22:37:17Z",
+ "git": {
+  "head_start": "e006f814c28315f514f334335d8f3a32b4ed1a0b",
+  "clean_start": true,
+  "head_end": "e006f814c28315f514f334335d8f3a32b4ed1a0b",
+  "clean_end": true
+ },
+ "binaries": [
+  {
+   "name": "head",
+   "commit": "e006f814c28315f514f334335d8f3a32b4ed1a0b",
+   "purpose": "every run made after D-016 but format-cases-after and align-cases-before",
+   "built": true,
+   "sha256": "454db2ed6be26319975df2130b53fc4fd5a60ed6660cbdfef6278ba88dc8435b",
+   "path": "builds/head/mirage_vmaf",
+   "worktree_head": "e006f814c28315f514f334335d8f3a32b4ed1a0b",
+   "worktree_clean": true
+  }
+ ],
+ "identical": true,
+ "steps": [
+  {
+   "name": "defaults-300",
+   "ran": true,
+   "elapsed_s": 37.9,
+   "committed": "eval/consistency/defaults-300",
+   "binary_sha256": "454db2ed6be26319975df2130b53fc4fd5a60ed6660cbdfef6278ba88dc8435b",
+   "committed_binary_sha256": "85535c5c0ea56865816a71ea9aef837753e0a995d4892be51b863943f6854c5f",
+   "comparison": {
+    "what": "each run's verdict, and every pair's verdict and per-frame scores on both sides",
+    "runs": {
+     "plain": {
+      "status": {
+       "rerun": "PASS",
+       "committed": "PASS"
+      },
+      "pairs": [
+       {
+        "pair": "gear4_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear3_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear2_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       },
+       {
+        "pair": "gear1_vs_gear5",
+        "status": {
+         "rerun": "PASS",
+         "committed": "PASS"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "identical": true
+       }
+      ],
+      "extra_pairs": [],
+      "identical": true
+     }
+    },
+    "identical": true
+   }
+  },
+  {
+   "name": "ladder-300",
+   "ran": true,
+   "elapsed_s": 19.3,
+   "committed": "eval/consistency/ladder-300",
+   "binary_sha256": "454db2ed6be26319975df2130b53fc4fd5a60ed6660cbdfef6278ba88dc8435b",
+   "committed_binary_sha256": "eab1651cc09237fce5451fd1de0c236c2d589b2d3b2d2848065b675e8e35a4c7",
+   "comparison": {
+    "what": "the check's verdict, the ladder report's master and plan, and every per-frame score of the ladder's pairs and of the pairs scored one by one",
+    "runs": {
+     "top-rung": {
+      "status": {
+       "rerun": "PASS",
+       "committed": "PASS"
+      },
+      "plan_differs": [],
+      "pairs": [
+       {
+        "pair": "ladder pair 0 (entries 0)",
+        "status": {
+         "rerun": "scored",
+         "committed": "scored"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "differing": 0,
+         "largest_difference": 0.0,
+         "identical": true
+        },
+        "ffmpeg": null,
+        "identical": true
+       },
+       {
+        "pair": "ladder pair 1 (entries 1)",
+        "status": {
+         "rerun": "scored",
+         "committed": "scored"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "differing": 0,
+         "largest_difference": 0.0,
+         "identical": true
+        },
+        "ffmpeg": null,
+        "identical": true
+       },
+       {
+        "pair": "ladder pair 2 (entries 2)",
+        "status": {
+         "rerun": "scored",
+         "committed": "scored"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "differing": 0,
+         "largest_difference": 0.0,
+         "identical": true
+        },
+        "ffmpeg": null,
+        "identical": true
+       },
+       {
+        "pair": "ladder pair 3 (entries 3)",
+        "status": {
+         "rerun": "scored",
+         "committed": "scored"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "differing": 0,
+         "largest_difference": 0.0,
+         "identical": true
+        },
+        "ffmpeg": null,
+        "identical": true
+       },
+       {
+        "pair": "gear4_vs_gear5",
+        "status": {
+         "rerun": "SAME",
+         "committed": "SAME"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": null,
+        "identical": true
+       },
+       {
+        "pair": "gear3_vs_gear5",
+        "status": {
+         "rerun": "SAME",
+         "committed": "SAME"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": null,
+        "identical": true
+       },
+       {
+        "pair": "gear2_vs_gear5",
+        "status": {
+         "rerun": "SAME",
+         "committed": "SAME"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": null,
+        "identical": true
+       },
+       {
+        "pair": "gear1_vs_gear5",
+        "status": {
+         "rerun": "SAME",
+         "committed": "SAME"
+        },
+        "mirage": {
+         "rerun": 300,
+         "committed": 300,
+         "identical": true,
+         "differing": 0,
+         "largest_difference": 0.0
+        },
+        "ffmpeg": null,
+        "identical": true
+       }
+      ],
+      "identical": true
+     }
+    },
+    "identical": true
+   }
+  },
+  {
+   "name": "pooling-defaults-300",
+   "ran": true,
+   "elapsed_s": 0.3,
+   "committed": "eval/pooling/defaults-300",
+   "comparison": {
+    "what": "every series and skipped entry of pooling.json",
+    "sources": {
+     "rerun": 1,
+     "committed": 1
+    },
+    "differing_sources": [],
+    "identical": true
+   }
+  }
+ ]
+}

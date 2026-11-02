@@ -1,0 +1,13 @@
+# The log of the script that made this record, as it wrote it: the worktree's creation and HEAD, then the UTC time and power source at its start, the time after the build, the time after warm_up.txt, the check's exit status and time, and the power source at its end.
+Preparing worktree (detached HEAD b706ed3)
+HEAD is now at b706ed3 vmafladder: the memory limit's margin is 25%, and the report gives a pair's memory (D-053)
+HEAD b706ed39b4238acc0f57ab7dc9a09607e55be268
+2026-10-27T21:12:23Z
+Now drawing from 'AC Power'
+ -InternalBattery-0 	100%; charged; 0:00 remaining present: true
+2026-10-27T21:21:41Z
+2026-10-27T21:21:49Z
+pool exit 0
+2026-10-27T21:22:32Z
+Now drawing from 'AC Power'
+ -InternalBattery-0 	100%; charged; 0:00 remaining present: true

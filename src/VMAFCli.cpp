@@ -53,6 +53,40 @@ std::string set_scaler(Args& a, std::string_view v)
     return {};
 }
 
+// The most pairs --jobs lets a ladder run score at a time.
+constexpr unsigned kMaxJobs = 256;
+
+std::string set_jobs(Args& a, std::string_view v)
+{
+    unsigned n = 0;
+    const auto [end, ec] = std::from_chars(v.data(), v.data() + v.size(), n);
+    if (ec != std::errc() || end != v.data() + v.size() || n == 0 || n > kMaxJobs)
+        return std::format("wants a whole number from 1 to {}, not '{}'", kMaxJobs, v);
+    a.jobs = n;
+    return {};
+}
+
+// SIZE: a whole number of bytes, or of KiB, MiB, GiB or TiB with the suffix
+// K, M, G or T.
+std::string set_memory_limit(Args& a, std::string_view v)
+{
+    std::uint64_t n = 0;
+    const auto [end, ec] = std::from_chars(v.data(), v.data() + v.size(), n);
+    const std::string_view suffix = v.substr(static_cast<std::size_t>(end - v.data()));
+    unsigned shift = 0;
+    if (suffix == "K") shift = 10;
+    else if (suffix == "M") shift = 20;
+    else if (suffix == "G") shift = 30;
+    else if (suffix == "T") shift = 40;
+    else if (!suffix.empty()) n = 0;
+    if (ec != std::errc() || end == v.data() || n == 0 ||
+        n > (std::numeric_limits<std::uint64_t>::max() >> shift))
+        return std::format("wants a size: a whole number of bytes from 1, or one with K, M, G "
+                           "or T after it for KiB, MiB, GiB or TiB, such as 8G; not '{}'", v);
+    a.memory_limit = n << shift;
+    return {};
+}
+
 constexpr std::string_view kConfig = "--config";   // the one option a config file can't set
 
 const std::array kOptions = {
@@ -66,7 +100,13 @@ const std::array kOptions = {
     Option{ "--mezzanine", "<url|path>", "with --ladder: score every video playlist against this "
             "video instead", Form::Ladder, false,
             [](Args& a, std::string_view v) { a.mezzanine = v; return std::string(); } },
-    Option{ "--out", "<report.json>", "report to write; written only when the run succeeds",
+    Option{ "--jobs", "N", "with --ladder: score N pairs at a time (default: the physical cores "
+            "minus one, at least 1)", Form::Ladder, false, set_jobs },
+    Option{ "--memory-limit", "SIZE", "with --ladder: start a pair only while the memory the pool "
+            "counts for its pairs stays under SIZE (see The pool below); bytes, or K, M, G or T "
+            "for KiB, MiB, GiB or TiB (default: none)", Form::Ladder, false, set_memory_limit },
+    Option{ "--out", "<report.json>", "report to write; written when the run succeeds, and with "
+            "--ladder also when it is cancelled or a pair fails",
             Form::Any, true, [](Args& a, std::string_view v) { a.out = v; return std::string(); } },
     Option{ "--frames", "N", "score only the first N frame pairs (N >= 1), of each pair with "
             "--ladder", Form::Any, false, set_frames },
@@ -327,7 +367,7 @@ std::string usage()
         "Scores a distorted video against a reference with Mirage's VMAF analyzer\n"
         "(the scorer behind the player's VMAF panel), without opening a window, and\n"
         "writes a JSON report; with --ladder, every video playlist of an HLS master\n"
-        "playlist, one after another (see Ladder below).\n"
+        "playlist, --jobs pairs at a time (see Ladder and The pool below).\n"
         "\n"
         "Options:\n"
         "{}"
@@ -353,9 +393,17 @@ std::string usage()
         "whose frames change size: the pairs are scored at the reference's size, and\n"
         "FFmpeg's libvmaf filter takes inputs of one size only.\n"
         "\n"
-        "Network inputs: an http(s), rtmp or rtsp URL, an input's or a ladder's\n"
-        "master's, is opened with FFmpeg's timeout and rw_timeout options of 5 s, the\n"
-        "player's: a connection attempt, or a read or write, that waits longer fails.\n"
+        "Network inputs: an http(s) or rtsp URL, an input's or a ladder's master's,\n"
+        "is opened with FFmpeg's timeout and rw_timeout options of 5 s, and an rtmp\n"
+        "URL with rw_timeout alone, since rtmp's own timeout is how long to wait for\n"
+        "a connection to it: a connection attempt, or a read or write, that waits\n"
+        "longer fails.\n"
+        "\n"
+        "HLS inputs: FFmpeg's hls demuxer tries a segment it can't open 10 more\n"
+        "times, as the player's demuxer does, and reads each file of the stream on a\n"
+        "connection of its own. A segment it still goes on without, or the rest of a\n"
+        "file whose read fails, ends the input there, as a read error does: the\n"
+        "analysis fails, and with --ladder so does the run.\n"
         "\n"
         "Pairing: a frame's timestamp is measured from its input's start: the\n"
         "container's start time, as ffmpeg shifts an input's timestamps without\n"
@@ -369,27 +417,34 @@ std::string usage()
         "frames no distorted frame pairs with, distorted frames that pair with no\n"
         "reference frame or repeat the timestamp before them, and frames without a\n"
         "timestamp fail. A timestamp that goes back, or forward by more than 10\n"
-        "seconds, is a discontinuity: pairing stops there, and every frame not yet\n"
-        "paired fails. Both inputs are read to their ends, unless --frames stops the\n"
-        "run, so that every failure is counted. After a reference frame that fails\n"
-        "between two pairs, libvmaf starts again, so that no motion feature spans the\n"
-        "gap. The failure rate is failed / (paired + failed); above 1% the pair is\n"
-        "still scored and reported, with a warning on stderr and in the report.\n"
+        "seconds, is a discontinuity: it starts its input's next discontinuity\n"
+        "sequence, whose times are measured from it, and the k-th sequence of the\n"
+        "reference pairs with the k-th of the distorted input where the jump before\n"
+        "them is at the same place in both inputs, within one frame of the coarser of\n"
+        "the two frame rates. Where it isn't, pairing stops there, and every frame\n"
+        "not paired or counted yet, and every frame after it, fails. The sequences of\n"
+        "an input left after the other has ended pair with nothing. Both inputs are\n"
+        "read to their ends, unless --frames stops the run, so that every failure is\n"
+        "counted. After a reference frame that fails between two pairs, and at each\n"
+        "discontinuity sequence, libvmaf starts again, so that no motion feature\n"
+        "spans the gap. The failure rate is failed / (paired + failed); above 1% the\n"
+        "pair is still scored and reported, with a warning on stderr and in the\n"
+        "report.\n"
         "\n"
         "With --frames N the last pair can score differently from the same pair in a\n"
         "longer run, because libvmaf's motion2 feature for a frame also uses the next\n"
         "frame. A run compared with this one has to stop at the same frame.\n"
         "\n"
         "Ladder: --ladder reads an HLS master playlist, a file or any URL FFmpeg\n"
-        "opens, and scores its video playlists one after another, each as a pair\n"
-        "given with --ref and --dis is scored. Its entries are its EXT-X-STREAM-INF\n"
-        "tags, each with the URI line after it, resolved against where the master\n"
-        "was read from, after HTTP redirects; I-frame playlists and EXT-X-MEDIA\n"
-        "renditions aren't entries. An entry has video when it has a RESOLUTION, or\n"
-        "a video codec in CODECS (avc1, avc3, hvc1, hev1, dvh1, dvhe, av01, vp09,\n"
-        "vp08, mp4v); the others are skipped, and the report lists them. Entries\n"
-        "that name the same playlist are scored once. The reference is the top\n"
-        "rung, the playlist of the entry with the highest BANDWIDTH, the first in\n"
+        "opens, and scores its video playlists, --jobs pairs at a time (see The pool\n"
+        "below), each as a pair given with --ref and --dis is scored. Its entries are\n"
+        "its EXT-X-STREAM-INF tags, each with the URI line after it, resolved against\n"
+        "where the master was read from, after HTTP redirects; I-frame playlists and\n"
+        "EXT-X-MEDIA renditions aren't entries. An entry has video when it has a\n"
+        "RESOLUTION, or a video codec in CODECS (avc1, avc3, hvc1, hev1, dvh1, dvhe,\n"
+        "av01, vp09, vp08, mp4v); the others are skipped, and the report lists them.\n"
+        "Entries that name the same playlist are scored once. The reference is the\n"
+        "top rung, the playlist of the entry with the highest BANDWIDTH, the first in\n"
         "the master among equals, with a warning when they name other playlists, and\n"
         "every other video playlist is scored against it (reference mode top-rung).\n"
         "With --mezzanine the reference is that video instead, and every video\n"
@@ -400,8 +455,26 @@ std::string usage()
         "resolves (from an http(s) master: a relative or absolute path or an http(s)\n"
         "URL, without dot segments or white space); so is a master with nothing to\n"
         "score: no entry with video or, without --mezzanine, no video playlist but\n"
-        "the top rung's. A refused master, or a pair that can't be scored, stops the\n"
-        "run, which then writes no report.\n"
+        "the top rung's. A refused master stops the run, which then writes no report.\n"
+        "\n"
+        "The pool: --jobs pairs are scored at a time, each as a pair given with --ref\n"
+        "and --dis is scored, so a pair's scores don't depend on the pool; by default\n"
+        "the machine's physical cores minus one, at least 1. With --memory-limit a\n"
+        "pair starts only once every running pair has scored 30 frame pairs, or all\n"
+        "of its frame pairs if it has fewer, and only while the process's resident\n"
+        "memory before the run, plus what a pair uses as measured then and 25% more,\n"
+        "for each running pair and the new one, stays under the limit. Running pairs\n"
+        "aren't stopped, and with none running a pair always starts. When the\n"
+        "process's resident memory can't be read before the first pair, the run fails\n"
+        "then, and a reading that fails later holds the next pair back until one\n"
+        "succeeds. SIGINT or SIGTERM, or a pair that can't be scored, stops the pairs\n"
+        "still running and starts no other: the report then lists the complete pairs,\n"
+        "says the run was cancelled or failed, and lists the other pairs with their\n"
+        "state, and the exit status is 1. The report lists the pairs in the master's\n"
+        "order, with the pool's size, the limit, the resident memory before the run,\n"
+        "the most pairs scored at once, each pair the limit let start while others\n"
+        "ran, with the resident memory it read and what it measured a pair to use\n"
+        "then, and the peak resident memory.\n"
         "\n"
         "Config file: --config FILE reads settings before the command line, one per\n"
         "line as name = value, where name is a long option's name without the\n"
@@ -427,16 +500,18 @@ std::string usage()
         "the reference's color tags were converted (dis_conversion,\n"
         "ref_conversion), what can make the scores differ from FFmpeg's\n"
         "(warnings), the pooled values, how the frames were paired (alignment: the\n"
-        "counts, the failure rate and its threshold, the libvmaf contexts, and each\n"
-        "frame that failed, with its input, position, PTS and reason), and for every\n"
-        "frame pair its index, the positions of its two frames in their inputs, the\n"
-        "reference and distorted PTS in seconds and the score, all at full\n"
-        "precision. With --ladder the report has the reference mode, top-rung or\n"
-        "mezzanine, one per report, and the settings once; the master playlist, as\n"
-        "given, where it was read from, its SHA-256 and its entries with their\n"
-        "attributes; the reference, the skipped entries and the warnings about the\n"
-        "top rung; and a list of pairs, each with the entries that name its\n"
-        "playlist and the fields above that are a pair's own.\n"
+        "counts, the failure rate and its threshold, the libvmaf contexts, each\n"
+        "input's discontinuity sequences, with the position and PTS of each one's\n"
+        "first frame and its number of frames, and each frame that failed, with its\n"
+        "input, position, PTS and reason), and for every frame pair its index, the\n"
+        "positions of its two frames in their inputs, the reference and distorted PTS\n"
+        "in seconds and the score, all at full precision. With --ladder the report\n"
+        "has the reference mode, top-rung or mezzanine, one per report, and the\n"
+        "settings once; the master playlist, as given, where it was read from, its\n"
+        "SHA-256 and its entries with their attributes; the reference, the skipped\n"
+        "entries and the warnings about the top rung; and a list of pairs, each with\n"
+        "the entries that name its playlist and the fields above that are a pair's\n"
+        "own.\n"
         "\n"
         "Pooled values: the mean, the harmonic mean (n / sum(1 / (x + 1)) - 1) and\n"
         "the minimum, each as libvmaf pools the per-frame scores and FFmpeg's\n"
@@ -447,11 +522,13 @@ std::string usage()
         "percentiles by linear interpolation between the closest ranks (Hyndman and\n"
         "Fan's definition 7).\n"
         "\n"
-        "Exit status: 0 the report was written, a warning about the pairing\n"
-        "included; 1 the analysis or the write failed, or with --ladder the master\n"
-        "playlist couldn't be read or was refused, or a pair couldn't be scored (no\n"
-        "report is left behind); 2 bad arguments, or a config file that can't be\n"
-        "read or has an error.\n",
+        "Exit status: 0 the report was written, a warning about the pairing included;\n"
+        "1 the analysis or the write failed, or with --ladder the master playlist\n"
+        "couldn't be read or was refused (no report is left behind, also when SIGINT\n"
+        "or SIGTERM ended its read), or the run was cancelled by SIGINT or SIGTERM,\n"
+        "or a pair couldn't be scored (the report is written, with the complete pairs\n"
+        "and the other pairs' states); 2 bad arguments, or a config file that can't\n"
+        "be read or has an error.\n",
         synopsis(Form::Pair), synopsis(Form::Ladder), options);
 }
 

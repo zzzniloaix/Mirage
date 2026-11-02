@@ -263,6 +263,8 @@ VMAFResult sample_result()
     r.alignment.ref_start_from = "container";
     r.alignment.dis_start      = 10.0;
     r.alignment.dis_start_from = "first-frame";
+    r.alignment.ref_sequences  = { { .first_index = 0, .first_pts = 10.0, .frames = 4 } };
+    r.alignment.dis_sequences  = { { .first_index = 0, .first_pts = 10.0, .frames = 3 } };
     r.alignment.paired         = 3;
     r.alignment.unmatched_reference = 1;
     r.alignment.failed         = 1;
@@ -537,6 +539,15 @@ TEST_CASE("vmafreport::to_json: how the frames were paired by timestamp (D-028)"
     CHECK(a["reference"]["start"].num == 10.0);
     CHECK(a["reference"]["start_from"].str == "container");
     CHECK(a["distorted"]["start_from"].str == "first-frame");
+    // Each input's discontinuity sequences (D-057).
+    for (const auto& [key, frames] : { std::pair{ "reference", 4 }, std::pair{ "distorted", 3 } }) {
+        INFO(key);
+        const Value& seqs = a[key]["sequences"];
+        REQUIRE(seqs.arr.size() == 1);
+        CHECK(seqs.arr[0]["first_index"].num == 0);
+        CHECK(seqs.arr[0]["first_pts"].num == 10.0);
+        CHECK(seqs.arr[0]["frames"].num == frames);
+    }
     CHECK(a["paired"].num == 3);
     CHECK(a["failed"].num == 1);
     CHECK(a["failure_rate"].num == 0.25);
@@ -569,6 +580,7 @@ TEST_CASE("vmafreport::to_json: how the frames were paired by timestamp (D-028)"
     // Nothing paired or failed: no failure rate; a start not known: null.
     VMAFResult none = sample_result();
     none.alignment = VMAFAlignment{};
+    none.alignment.dis_sequences = { { .first_index = 0, .frames = 2 } };   // a first frame without a PTS
     const auto empty = parse(vmafreport::to_json(none, kRun));
     REQUIRE(empty);
     const Value& e = (*empty)["alignment"];
@@ -578,6 +590,11 @@ TEST_CASE("vmafreport::to_json: how the frames were paired by timestamp (D-028)"
     CHECK(e["failures"].kind == Value::Kind::Array);
     CHECK(e["failures"].arr.empty());
     CHECK(e["vmaf_contexts"].arr.empty());
+    CHECK(e["reference"]["sequences"].kind == Value::Kind::Array);
+    CHECK(e["reference"]["sequences"].arr.empty());
+    REQUIRE(e["distorted"]["sequences"].arr.size() == 1);
+    CHECK(e["distorted"]["sequences"].arr[0]["first_pts"].kind == Value::Kind::Null);
+    CHECK(e["distorted"]["sequences"].arr[0]["frames"].num == 2);
 }
 
 TEST_CASE("vmafreport::to_json: one entry per frame pair, full precision", "[vmafreport]")
@@ -695,7 +712,14 @@ vmafladder::Result sample_ladder()
     mid.dis_url   = l.plan.pairs[1].url;
     mid.per_frame = { 70.25, 71.5, 72.0 };
     mid.warnings  = { "a \"quoted\" warning" };
-    l.results = { low, mid };
+    l.pairs = { { .status = vmafladder::PairStatus::Complete, .result = low,
+                  .started = 0.25, .ended = 1.5 },
+                { .status = vmafladder::PairStatus::Complete, .result = mid,
+                  .started = 0.5, .ended = 2.0 } };
+    l.status        = "complete";
+    l.jobs          = 2;
+    l.max_running   = 2;
+    l.peak_resident = 123456789;
     return l;
 }
 
@@ -757,6 +781,20 @@ TEST_CASE("vmafreport::ladder_to_json: the run, the master and the plan", "[vmaf
     CHECK(d["warnings"].kind == Value::Kind::Array);
     CHECK(d["warnings"].arr.empty());
 
+    // How the run ended, and the pool (D-047).
+    CHECK(d["status"].str == "complete");
+    CHECK(d["error"].kind == Value::Kind::Null);
+    CHECK(d["pool"]["jobs"].num == 2);
+    CHECK(d["pool"]["memory_limit"].kind == Value::Kind::Null);
+    CHECK(d["pool"]["max_running"].num == 2);
+    CHECK(d["pool"]["baseline"].kind == Value::Kind::Null);   // no limit
+    CHECK(d["pool"]["pair_memory"].kind == Value::Kind::Array);   // no limit, no admission
+    CHECK(d["pool"]["pair_memory"].arr.empty());
+    CHECK(d["pool"]["peak_resident"].num == 123456789);
+    CHECK(d["pool"]["warnings"].arr.empty());
+    CHECK(d["not_scored"].kind == Value::Kind::Array);
+    CHECK(d["not_scored"].arr.empty());
+
     // Mezzanine mode: the mezzanine as given, no entry; the plan's warnings.
     vmafladder::Result m = l;
     m.plan.reference_mode    = "mezzanine";
@@ -770,6 +808,88 @@ TEST_CASE("vmafreport::ladder_to_json: the run, the master and the plan", "[vmaf
     CHECK((*mz)["reference"]["entries"].arr.empty());
     REQUIRE((*mz)["warnings"].arr.size() == 1);
     CHECK((*mz)["warnings"].arr[0].str == m.plan.warnings[0]);
+}
+
+TEST_CASE("vmafreport::ladder_to_json: a run that ended early lists the complete pairs, then the others",
+          "[vmafreport]")
+{
+    vmafladder::Result l = sample_ladder();
+    l.plan.pairs.push_back({ "https://cdn.example.com/hls/hi/p.m3u8", { 4 } });
+    l.pairs[0].status = vmafladder::PairStatus::Failed;
+    l.pairs[0].why    = "cannot open distorted: https://cdn.example.com/hls/low/p.m3u8";
+    l.pairs.push_back({});   // not started
+    l.status          = "failed";
+    l.error           = "pair 1 of 3, https://cdn.example.com/hls/low/p.m3u8 against "
+                        "https://cdn.example.com/hls/top/p.m3u8: cannot open distorted: "
+                        "https://cdn.example.com/hls/low/p.m3u8";
+    l.memory_limit    = 8u << 20;
+    l.baseline        = 1u << 20;
+    l.admissions      = { { .pair = 1, .running = 1, .resident = 4u << 20, .measure = 3u << 20 },
+                          { .pair = 2, .running = 2, .resident = 7u << 20, .measure = 3u << 20 } };
+    l.pool_warnings   = { "pair 2 of 3 took the process over the memory limit on its own" };
+    const auto doc = parse(vmafreport::ladder_to_json(l, kRun));
+    REQUIRE(doc);
+    const Value& d = *doc;
+    CHECK(d["status"].str == "failed");
+    CHECK(d["error"].str == l.error);
+    CHECK(d["pool"]["memory_limit"].num == 8 << 20);
+    CHECK(d["pool"]["baseline"].num == 1 << 20);
+    // Each pair the rule let start while others ran (D-053, D-058).
+    const Value& admitted = d["pool"]["pair_memory"];
+    REQUIRE(admitted.arr.size() == 2);
+    CHECK(admitted.arr[0]["pair"].num == 1);
+    CHECK(admitted.arr[0]["running"].num == 1);
+    CHECK(admitted.arr[0]["resident"].num == 4 << 20);
+    CHECK(admitted.arr[0]["measure"].num == 3 << 20);
+    CHECK(admitted.arr[1]["pair"].num == 2);
+    CHECK(admitted.arr[1]["running"].num == 2);
+    CHECK(admitted.arr[1]["resident"].num == 7 << 20);
+    CHECK(admitted.arr[1]["measure"].num == 3 << 20);
+    REQUIRE(d["pool"]["warnings"].arr.size() == 1);
+    CHECK(d["pool"]["warnings"].arr[0].str == l.pool_warnings[0]);
+    REQUIRE(d["pairs"].arr.size() == 1);   // the complete one only, with its own index
+    CHECK(d["pairs"].arr[0]["index"].num == 1);
+    CHECK(d["model"].str == "vmaf_v0.6.1");   // the settings of the complete pair
+    const Value& others = d["not_scored"];
+    REQUIRE(others.arr.size() == 2);
+    CHECK(others.arr[0]["index"].num == 0);
+    CHECK(others.arr[0]["url"].str == l.plan.pairs[0].url);
+    CHECK(others.arr[0]["entries"].arr[0].num == 0);
+    CHECK(others.arr[0]["status"].str == "failed");
+    CHECK(others.arr[0]["why"].str == l.pairs[0].why);
+    CHECK(others.arr[1]["index"].num == 2);
+    CHECK(others.arr[1]["status"].str == "not started");
+    CHECK(others.arr[1]["why"].kind == Value::Kind::Null);
+}
+
+TEST_CASE("vmafreport::ladder_to_json: with no pair complete, the settings the run asked for",
+          "[vmafreport]")
+{
+    vmafladder::Result l = sample_ladder();
+    l.pairs[0].status = vmafladder::PairStatus::Stopped;
+    l.pairs[1].status = vmafladder::PairStatus::NotStarted;
+    l.status          = "cancelled";
+    l.error           = "the run was cancelled: 0 of 2 pairs complete";
+    l.settings        = vmaf_settings({ .scaler = VMAFScaler::Lanczos,
+                                        .model  = { .path = "models/vmaf_v0.6.1neg.json" } });
+    const auto doc = parse(vmafreport::ladder_to_json(l, kRun));
+    REQUIRE(doc);
+    const Value& d = *doc;
+    CHECK(d["pairs"].arr.empty());
+    CHECK(d["not_scored"].arr.size() == 2);
+    CHECK(d["model"].str == "models/vmaf_v0.6.1neg.json");
+    CHECK(d["model_source"].str == "file");
+    CHECK(d["model_sha256"].kind == Value::Kind::Null);   // not read for the report
+    CHECK(d["scaler"].str == "lanczos");
+    CHECK(d["n_threads"].num == 4);
+    CHECK(d["n_subsample"].num == 1);
+
+    // With a pair complete, its settings, not the run's.
+    l.pairs[1].status = vmafladder::PairStatus::Complete;
+    const auto one = parse(vmafreport::ladder_to_json(l, kRun));
+    REQUIRE(one);
+    CHECK((*one)["model"].str == l.pairs[1].result.settings.model);
+    CHECK((*one)["scaler"].str == l.pairs[1].result.settings.scaler);
 }
 
 TEST_CASE("vmafreport::ladder_to_json: each pair has the keys of its own pair's report", "[vmafreport]")
@@ -786,8 +906,10 @@ TEST_CASE("vmafreport::ladder_to_json: each pair has the keys of its own pair's 
         INFO(k);
         const Value& p = pairs.arr[k];
         CHECK(p["index"].num == static_cast<double>(k));
-        CHECK(p.obj.size() == own.size() + 2);   // and index, entries
-        const auto alone = parse(vmafreport::to_json(l.results[k], kRun));
+        CHECK(p.obj.size() == own.size() + 4);   // and index, entries, started_s, ended_s
+        CHECK(p["started_s"].num == l.pairs[k].started);
+        CHECK(p["ended_s"].num == l.pairs[k].ended);
+        const auto alone = parse(vmafreport::to_json(l.pairs[k].result, kRun));
         REQUIRE(alone);
         for (const std::string& key : own) {
             INFO(key);
