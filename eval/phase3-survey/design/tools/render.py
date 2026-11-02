@@ -194,7 +194,7 @@ def p_entries_md(ps, kept):
     out = ["## 13. Process choices (P-entries, pending the owner's confirmation)", "",
            f"{len(kept)} choices of process and measurement: how something is built, tested or "
            "measured, with no effect on what an output says by default. Each is the agent's, "
-           "pending the owner's confirmation, and is numbered from P-081 when recorded in "
+           "pending the owner's confirmation, and is numbered from P-082 when recorded in "
            "`docs/DECISIONS.md`. The same text is in `design/p_entries.json`.", "",
            "| | Choice | Alternatives |", "|---|---|---|"]
     for p in kept:
@@ -276,7 +276,7 @@ def packages_md(wps, qs):
         "5. WP09a once WP01, WP02, WP03, WP04, WP06 and WP08 have merged.",
         "6. WP11a, §3.2's two acceptance tests, once WP09a and WP10 have merged.",
         "7. Round 2, once its questions are answered: WP00b once WP00a and WP01 have merged (under Q41 (b) the rename first); WP05 once WP04 has; WP07 once WP00b, WP01, WP02, WP03 and WP06 have; WP09b once WP09a and WP07 have; WP11b, the composite example, once WP09b and WP10 have; WP09c once WP09b and WP05 have.",
-        "8. Round 3, once its questions are answered: WP00c under Q36, once WP00b has merged; WP12 once WP00c, WP01, WP03, WP07, WP08 and WP09b have; WP13 after WP12; WP17 only after WP13 (both own `src/main.cpp`) and WP07; WP16 whenever the owner's ruling or approved plan allows it, after WP03, WP06 and WP09c; WP14 once WP11a and WP11b have merged; WP15b once Q41 and Q42 are answered, its status document last.",
+        "8. Round 3, once its questions are answered: WP00c under Q36, once WP00b has merged; WP12 once WP00c, WP01, WP03, WP07, WP08 and WP09b have; WP13 after WP12; WP17 only after WP13 (both own `src/main.cpp`) and WP07; WP16 whenever the owner's ruling or approved plan allows it, after WP03, WP06 and WP09c; WP14 once WP11a and WP11b have merged; WP15b once Q41 and Q42 are answered; WP15c last, once every package that is built has merged.",
         "",
         "The critical path to the two acceptance tests: " + words(order(acceptance)) +
         ". Each of them depends only on packages of that list, and every question that blocks one "
@@ -300,8 +300,8 @@ def packages_md(wps, qs):
         for q in w["blocked_by_questions"]:
             count.setdefault(q, []).append(w["id"])
     most = sorted((q for q in count if len(count[q]) >= 3), key=lambda q: (-len(count[q]), q))
-    free = [w["id"] for w in wps if not w["blocked_by_questions"]]
-    out += [("Packages no question blocks, which can start now: " + ", ".join(free) + ". " if free
+    free = [w["id"] for w in wps if w["round"] == 0]
+    out += [("Packages of round 0, which wait for no answer and can start now: " + ", ".join(free) + ". " if free
              else "Every package waits for at least one answer. ") +
             "The questions that block three packages or more: " +
             "; ".join(f"{q} ({', '.join(count[q])})" for q in most) + ".", ""]

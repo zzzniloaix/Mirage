@@ -1,8 +1,9 @@
 # cwd: <repo>
-# command: 'bash' '-c' 'git --no-optional-locks log -1 --format=%H%n%s && git --no-optional-locks status --short --branch'
-# started: 2026-11-01T08:40:21Z, ended: 2026-11-01T08:40:21Z (UTC)
+# command: 'bash' '-c' 'git --no-optional-locks log -2 --format="%H %s" && git --no-optional-locks status --short --branch && echo "files changed from 75cf6e0 to HEAD outside eval/phase3-survey/: $(git --no-optional-locks diff --name-only 75cf6e0 HEAD | grep -vc "^eval/phase3-survey/")"'
+# started: 2026-11-02T18:34:41Z, ended: 2026-11-02T18:34:41Z (UTC)
 # stdout and stderr, in order:
-75cf6e09e2e122b138afa880f2ee9a8ff0e4ec89
-Record the owner's decisions of 2026-10-30 evening: D-066 to D-070
+7c0e8d29190dbe965f0f764d8e36fef1e661e3be eval/phase3-survey: Phase 3's survey and design records, as the third review read them
+75cf6e09e2e122b138afa880f2ee9a8ff0e4ec89 Record the owner's decisions of 2026-10-30 evening: D-066 to D-070
 ## vmaf/phase-3
+files changed from 75cf6e0 to HEAD outside eval/phase3-survey/: 0
 # exit status: 0

@@ -1,35 +1,35 @@
 # Phase 3 design: the unified event timeline (§3)
 
-The design of the work order's §3 (the unified event timeline, §3.1; attribution queries, §3.2; the UI, §3.3) under the owner's decisions D-068, D-069 and D-070, with D-002, D-007, D-046, D-050 and D-066. It merges two designs written from different angles, `design-library.md` (the timeline as a C++ library with a small API) and `design-evaluation.md` (worked back from what the paper's evaluation must show), both built on the five surveys (`sources.md`, `scte35.md`, `testgen.md`, `schema.md`, `ui.md`), and is revised twice: against its adversarial review (`review-adversarial/review.json`; `design/revision-1.md`) and against a second review (`review-2/review.json`; `design/revision-2.md`), each log saying what changed, issue by issue. **Nothing of Phase 3 is implemented.** This document says how to build it and what the owner has to decide first.
+The design of the work order's §3 (the unified event timeline, §3.1; attribution queries, §3.2; the UI, §3.3) under the owner's decisions D-068, D-069 and D-070, with D-002, D-007, D-046, D-050 and D-066. It merges two designs written from different angles, `design-library.md` (the timeline as a C++ library with a small API) and `design-evaluation.md` (worked back from what the paper's evaluation must show), both built on the five surveys (`sources.md`, `scte35.md`, `testgen.md`, `schema.md`, `ui.md`), and is revised three times: against its adversarial review (`review-adversarial/review.json`; `design/revision-1.md`), against a second review (`review-2/review.json`; `design/revision-2.md`) and, by the lead, against the seven minor issues of a third review (`review-3/review.json`; `design/revision-3.md`), each log saying what changed, issue by issue. **Nothing of Phase 3 is implemented.** This document says how to build it and what the owner has to decide first.
 
 **Conventions**
 
 - `<repo>` is the worktree of `vmaf/phase-3` at `75cf6e0`; a `file:line` without a prefix is in it. `<out>` is the survey directory, `<scratch>` the session's scratch directory. FFmpeg is cited at the tag `n8.1.1` by its public URL, RFCs by theirs.
 - **Numbers.** Every number about this code, these streams or a run comes from a cited `file:line` or URL; from a survey file in `<out>`, named next to it; or from a run: of one of the two designs (`design-library/runs/<name>.txt`, `design-evaluation/runs/NN_<name>.txt`), of the review (`review-adversarial/runs/<name>.txt`) or of this design (`design/runs/<name>.txt`, made by `design/tools/run.sh`), each record holding its working directory, exact command, start and end (UTC), full output and exit status (Appendix A). Where there is no source the text says MEASUREMENT PENDING. Parameters a prototype ran with are named as the prototype's; none is a default.
 - **Citations.** Only what is committed with the survey is cited for a fact: not its generated media, binaries, copies of FFmpeg's source, third-party downloads or the SCTE-35 messages it collected (Q21). For those, the record or survey section that states the fact is cited, or the public URL.
-- **Decisions are the owner's.** Every design choice is an owner question, Q01 to Q44 (§12), asked in three rounds: round 1 holds the answers the packages on the path to §3.2's two acceptance tests need before they start (27 questions); round 2 those that sessions, the session fetch, the decoded SCTE-35 messages and the composite example need (9); round 3 those of the UI, the conditional and later packages and the differences to report (8). Each question has 2 to 5 options with their trade-offs, or items that each have them, and a recommendation labelled as the agent's; a D-007 mark shows where the answer is an approval or a ruling under D-007. P-entries (§13), lettered from P-A to P-AK with nine letters moved into questions by revision 1, are the agent's choices of process and measurement only: how something is built, tested or measured, with no effect on what an output says by default. They await the owner's confirmation and are numbered from P-081 when recorded in `docs/DECISIONS.md`. Nothing here is decided. The same questions, packages, P-entries and risks are in `design/owner_questions.json`, `design/work_packages.json`, `design/p_entries.json` and `design/risks.json`, from which §12 to §15 are rendered (`design/tools/render.py`).
+- **Decisions are the owner's.** Every design choice is an owner question, Q01 to Q44 (§12), asked in three rounds: round 1 holds the answers the packages on the path to §3.2's two acceptance tests need before they start (27 questions); round 2 those that sessions, the session fetch, the decoded SCTE-35 messages and the composite example need (9); round 3 those of the UI, the conditional and later packages and the differences to report (8). Each question has 2 to 5 options with their trade-offs, or items that each have them, and a recommendation labelled as the agent's; a D-007 mark shows where the answer is an approval or a ruling under D-007. P-entries (§13), lettered from P-A to P-AK with nine letters moved into questions by revision 1, are the agent's choices of process and measurement only: how something is built, tested or measured, with no effect on what an output says by default. They await the owner's confirmation and are numbered from P-082 when recorded in `docs/DECISIONS.md`, P-081 being the entry that records how this survey and design were made and what of their records is committed. Nothing here is decided. The same questions, packages, P-entries and risks are in `design/owner_questions.json`, `design/work_packages.json`, `design/p_entries.json` and `design/risks.json`, from which §12 to §15 are rendered (`design/tools/render.py`).
 - **No quotation of the work order** (D-013; D-060 accepted Phase 2's rendering of it in its own words). Its requirements are given here in this design's words; field, tag, option and component names stay as names. `design/runs/quote-check.txt` records the check of every file of the design against the translation, which names no shared words.
 - "The work order" is the owner's document as translated in the task. D-0xx and P-0xx are entries of `docs/DECISIONS.md`. Names of files, types and options are proposals; the owner may rename them.
 
 ---
 
-## Where Phase 3 stands (2026-10-31)
+## Where Phase 3 stands (2026-11-02)
 
-- **Done.** The five surveys of §3's sources, SCTE-35, the synthetic test content, the report against §7, and the player's UI. Two designs, each with prototypes and saved runs (`design-library/`: 14 records; `design-evaluation/`: 12 runs). This merged design, which resolves their conflicts; an adversarial review of it and revision 1 against that review (`design/revision-1.md`); a second review (`review-2/`) and revision 2 against it (`design/revision-2.md`). The design's own records are in `design/runs/` (Appendix A).
-- **Not done.** Any Phase 3 code. Nothing in `<repo>` was changed: `vmaf/phase-3` is at `75cf6e0` and its status is clean (read-only git commands at the start and at the end of this work).
+- **Done.** The five surveys of §3's sources, SCTE-35, the synthetic test content, the report against §7, and the player's UI. Two designs, each with prototypes and saved runs (`design-library/`: 14 records; `design-evaluation/`: 12 runs). This merged design, which resolves their conflicts; an adversarial review of it and revision 1 against that review (`design/revision-1.md`); a second review (`review-2/`) and revision 2 against it (`design/revision-2.md`); a third review (`review-3/`), which found no blocker and no major issue, and revision 3, the lead's, against its seven minor issues (`design/revision-3.md`). The design's own records are in `design/runs/` (Appendix A).
+- **Not done.** Any Phase 3 code. The code is as at `75cf6e0`: the only commit since on `vmaf/phase-3`, `7c0e8d2`, adds this survey's records under `eval/phase3-survey/` and changes no other file (`design/runs/repo-state.txt`).
 - **Next.** The owner's answers to round 1's 27 questions (§12), which every package on the path to the two acceptance tests waits for, the wiring package WP00a included; then round 2's 9 and round 3's 8, 44 questions in all. WP15a can start now: it records the questions, the differences and the P-entries as pending (`docs/PHASE3_DECISIONS_PENDING.md`, `docs/DECISIONS.md`) and commits §10 as the UI's written D-007 plan (`docs/plans/timeline-ui.md`). Every other package names the questions that block it (§14).
 
 ## 0. Summary
 
 1. **What Phase 3 must make possible** (from design-evaluation §1): attribution that is right on known causes, checked against ground truth the test content's generator writes (E1, D-069's two ladders); the work order's example answer, a drop that overlapped an SCTE-35 cue-out, a switch between two numbered rungs and a segment request of 2.3 s, from a scripted session whose HTTP timing is measured, not declared (E2); later, D-011's real ladders (E3); reproduction from one command (E4); costs on real ladders (E5, MEASUREMENT PENDING).
 2. **Architecture** (from design-library §2): a core of plain C++20 modules (namespace `timeline`, no libavformat, libavcodec, libvmaf, GL or ImGui) for the model, the merge, the overlap query and detection; FFmpeg adapters at its edge for the demux pass and the session fetch; two thin `mirage_vmaf` subcommands and the player's panel on top. The ladder report is read as §2 writes it (D-068: scored once); nothing in the scorer changes unless the owner picks an option that changes it (§3.6).
-3. **One time base** (§4). Every event is placed at a reference frame, and intervals are compared on reference frames, exact integers. Every event also keeps its media key, the reference's discontinuity sequence and PTS, which raw PTS alone can't be: 50 PTS values each name two frames in testgen's ad ladder (design-evaluation run 09). The seconds in which offsets are printed are Q02; the agent recommends the reference's playlist time, with the frame index times the frame duration where the reference has no segment map, the two compared at every frame wherever both exist. They agree on the four ladders checked; after a simulated missing frame or change of rate the frame index's seconds were off and the playlist time's weren't, and after an EXTINF simulated a frame too long the reverse (`design/runs/seconds-check.txt`). Which events an interval lists doesn't depend on that choice.
+3. **One time base** (§4). Every event is placed at a reference frame, and intervals are compared on reference frames, exact integers. Every event also keeps its media key, the reference's discontinuity sequence and PTS, which raw PTS alone can't be: 50 PTS values each name two frames in testgen's ad ladder (design-evaluation run 09). The seconds in which offsets are printed are Q02; the agent recommends the reference's playlist time, with the frame index times the frame duration where the reference has no segment map, the two compared at every frame wherever both exist. They agree on the four ladders checked; after a simulated missing frame or change of rate the frame index's seconds were off and the playlist time's weren't, and after an EXTINF simulated a frame too long the reverse (`design/runs/seconds-check.txt`); a frame missing at the start of a playlist discontinuity sequence put both a frame early within its segment, where neither part of §4.2's check sees it, and only the frame index's from the next segment on (`review-3/runs/seconds-check-sequence-start.txt`). Which events an interval lists doesn't depend on that choice.
 4. **Sources** (§5). Per-pair VMAF curves; each scored media playlist read and parsed for its segments and tags; a demux pass that places every scored frame in its segment by byte position, checked against the report's PTS (200 of 200 frames on each of 15 playlists, design-evaluation runs 03 and 04); D-070's SCTE-35 tags with a splice_info_section decoder, and one cue interface for every carrier, D-070's DASH and in-segment interfaces included; scripted sessions as segment ranges (D-068); their HTTP timing from a fetch timed by the player's own `NetworkLogger` (a prototype measured 2.313 s for a segment served 2.3 s late, design-evaluation run 06); keyframes and corrupt packets from the demux pass; decode errors only if the owner allows the analyzer to record them (Q09).
 5. **Queries and detection** (§6). `timeline::attribute()` returns the events meeting a half-open interval of a pair's curve or a session's, by §3.1's six sources, with offsets in seconds and in frames; `timeline::detect()` finds drops below a trailing baseline. A session's drops are its pairs' drops clipped to the spans that played them (Q22). With the prototype's parameters the two acceptance drops were found exactly, with no drop in their controls, on a grid of T from 3 to 40 and N from 1 to 24 (design-evaluation run 05), so the tests pin their own parameters and don't wait for the defaults (Q26).
 6. **Output** (§8). A separate, versioned timeline document per build, naming its ladder report by two hashes; scores are not copied (Q01, Q04 to Q06).
 7. **Tests** (§9). A unit-test file per module; the two acceptance tests of §3.2 in one test case, on ladders made once per process from testgen's prototype (P-Q); the composite example on a scripted session served with a delayed segment; an eval harness that reproduces it all from one command.
 8. **UI** (§10). ui.md's panel, reading the document through an ImGui-free loader tested in ctest and calling the same query API; by the agent's reading nothing recommended touches the render or decode path; the measured limit (no seek reached an ad whose timestamps restart at 0.040 s) is Q37.
-9. **For the owner.** 44 questions in three rounds of 27, 9 and 8 (§12), 14 differences from the work order (§11), 28 P-entries (§13), 24 work packages (§14), 22 risks (§15).
+9. **For the owner.** 44 questions in three rounds of 27, 9 and 8 (§12), 14 differences from the work order (§11), 28 P-entries (§13), 25 work packages (§14), 22 risks (§15).
 
 ---
 
@@ -42,6 +42,7 @@ The design of the work order's §3 (the unified event timeline, §3.1; attributi
 - **New in this merge**: placement and comparison on reference frames in every option but raw PTS, which separates which events an interval lists from the seconds its offsets are printed in, and narrows the axis conflict to the seconds; a session's drops as its pairs' drops clipped to the spans that played them; this design's runs (`design/runs/`), which settle conflicts with numbers.
 - **New in revision 1**: the questions in rounds, with the package split that makes the acceptance path wait for round 1 only (WP00a, WP09a, WP11a); the P-entries that changed default outputs moved into two questions of items (Q43, Q44); the axis check made sound (`design/runs/axis-check.txt`); D-070's interfaces declared (§5.5); one test process for the acceptance cases (P-Q).
 - **New in revision 2**: the axis check compares (c)'s and (d)'s seconds at every frame, since revision 1's check of steps missed a change of rate (`review-2/runs/rate-change-check.txt`; `design/runs/seconds-check.txt`), and the agent's recommendation for Q02 moved from (d) to (c) with (d) as its fallback; a session's curve and scope given to WP07, after its types exist; WP09b split so that the composite example doesn't wait for the SCTE-35 decoder (WP09c); WP15 split so that its first part starts now (WP15a); the fetch's pacing and playlist fetches moved from P-N into Q44; Q41 narrowed to the component's name; every conditional option given a package (§3.6), and the Blocked-by lists completed and checked by `design/tools/render.py`.
+- **New in revision 3**, by the lead, against the third review's seven minor issues: a limit of §4.2's check stated and tested (a reference frame missing at the start of a playlist discontinuity sequence); RFC 8216's rule on whole-second EXTINF stated as it is; Q16's count corrected; the Blocked-by lists completed with the eight answers the review named; WP00b's session types put in headers it owns in turn; WP00a's list of new files and P-C made to say what WP00a's description says; WP15b split so that the closing documents come last (WP15c).
 
 ### 1.2 Conflicts, and how each is resolved
 
@@ -168,10 +169,10 @@ New files (names are proposals):
 | `tests/test_attribution_acceptance.cpp`, `tests/test_attribution_session.cpp` | test | §3.2's two acceptance tests; the composite example | WP11a; WP11b |
 | `docs/schema/mirage-timeline-1.schema.json`, `docs/TIMELINE_FORMAT.md` | docs | the schema file and the format's description | WP08, then WP09b |
 | `docs/PHASE3_DECISIONS_PENDING.md`, `docs/plans/timeline-ui.md` | docs | the pending questions, differences and P-entries; the UI's D-007 plan | WP15a |
-| `docs/PHASE3_STATUS.md` | docs | the status, item by item | WP15b |
+| `docs/PHASE3_STATUS.md` | docs | the status, item by item: committed with the survey, updated by the lead as each round is answered, completed last | WP15c |
 | `eval/timeline/*` | eval | the one-command reproduction | WP14 |
 
-A file has one owner at a time; where two packages own it in turn, the second depends on the first and starts after it has merged (`design/tools/render.py` checks every such pair). Shared files and their owners: `CMakeLists.txt` (the wiring packages WP00a, WP00b and WP00c in turn, each depending on the one before, and the lead's wiring commit when a conditional package starts, made while no wiring package is open; P-C); `src/TimelineModel.cpp` and `src/TimelineQuery.cpp` (WP01, then WP07 for a session's curve and scope); `src/TimelineBuild.{h,cpp}`, `src/TimelineCli.{h,cpp}` and their tests (WP09a, WP09b, WP09c in turn, then WP16 for `src/TimelineBuild.cpp`); `src/TimelineDoc.{h,cpp}`, its test and the two format documents (WP08, then WP09b); `tools/mirage_vmaf.cpp` and `src/VMAFCli.cpp` (WP09a); `tests/HttpFileServer.h` (WP07); `src/VMAFNet.h`, a comment only (WP00b, under Q10 (a)); `src/NetworkLogger.{h,cpp}` and the files that name it (WP00b, only under Q41 (b), before any later owner of those files); `src/main.cpp`, `src/PlayerUI.{h,cpp}`, and under the answers §3.6 names `src/Demuxer.{h,cpp}`, `src/ManifestParser.{h,cpp}` and `src/DebugHUD.{h,cpp}` (WP13, then WP17 for `src/main.cpp` and `src/Demuxer.cpp`); `src/VMAFAnalyzer.{h,cpp}`, `src/VMAFReport.{h,cpp}`, `src/VMAFSegments.h`, `src/VMAFLadder.{h,cpp}` and their tests (WP16, conditional; `src/VMAFReport.*` WP08's first under Q01 (A)); `src/LadderReportRead.cpp` (WP03, then WP16); `docs/DECISIONS.md` (WP15a, then WP15b, with the lead's records of each round's answers between); `docs/AI_CONTRIBUTIONS.md`, `docs/PAPER_METHOD_NOTES.md` and, under Q42 (b), `docs/VMAF_GAP_REPORT.md` (WP15b). `src/NetInspectorAlign.cpp` changes only under Q41 (b): WP12 copies its two axis helpers (P-AJ). What stays unchanged unless an answer says otherwise is §3.6.
+A file has one owner at a time; where two packages own it in turn, the second depends on the first and starts after it has merged (`design/tools/render.py` checks every such pair). Shared files and their owners: `CMakeLists.txt` (the wiring packages WP00a, WP00b and WP00c in turn, each depending on the one before, and the lead's wiring commit when a conditional package starts, made while no wiring package is open; P-C); `src/TimelineModel.cpp` and `src/TimelineQuery.cpp` (WP01, then WP07 for a session's curve and scope); `src/TimelineBuild.{h,cpp}`, `src/TimelineCli.{h,cpp}` and their tests (WP09a, WP09b, WP09c in turn, then WP16 for `src/TimelineBuild.cpp`); `src/TimelineDoc.{h,cpp}`, its test and the two format documents (WP08, then WP09b); `tools/mirage_vmaf.cpp` and `src/VMAFCli.cpp` (WP09a); `tests/HttpFileServer.h` (WP07); `src/VMAFNet.h`, a comment only (WP00b, under Q10 (a)); `src/NetworkLogger.{h,cpp}` and the files that name it (WP00b, only under Q41 (b), before any later owner of those files); `src/main.cpp`, `src/PlayerUI.{h,cpp}`, and under the answers §3.6 names `src/Demuxer.{h,cpp}`, `src/ManifestParser.{h,cpp}` and `src/DebugHUD.{h,cpp}` (WP13, then WP17 for `src/main.cpp` and `src/Demuxer.cpp`); `src/VMAFAnalyzer.{h,cpp}`, `src/VMAFReport.{h,cpp}`, `src/VMAFSegments.h`, `src/VMAFLadder.{h,cpp}` and their tests (WP16, conditional; `src/VMAFReport.*` WP08's first under Q01 (A)); `src/LadderReportRead.cpp` (WP03, then WP16); `docs/DECISIONS.md` (WP15a, then WP15c, with the lead's records of each round's answers between); `docs/PHASE3_DECISIONS_PENDING.md` (WP15a, then WP15b for the differences' wording, with the lead's marks of each round's answers between); under Q42 (b), `docs/VMAF_GAP_REPORT.md` (WP15b); `docs/AI_CONTRIBUTIONS.md`, `docs/PAPER_METHOD_NOTES.md` and `docs/PHASE3_STATUS.md` (WP15c). `src/NetInspectorAlign.cpp` changes only under Q41 (b): WP12 copies its two axis helpers (P-AJ). What stays unchanged unless an answer says otherwise is §3.6.
 
 ### 3.3 Build
 
@@ -251,14 +252,14 @@ Under (b) to (d) the events an interval lists are the same, because they are com
 
 - (d) is right while the reference has one frame per frame duration. After one missing reference frame it was 0.040 s early from that frame on; with the ad's frames re-timed at 24, 30, 50 or 60 fps, their EXTINF following them, it ended 0.083, 0.333, 1.000 or 1.167 s off (c).
 - (c) follows the frames through both, as long as each EXTINF matches its segment's frames; after one EXTINF made a frame too long, it was 0.040 s late from the next segment on, where (d) was right. FFmpeg's hls muxer wrote a last EXTINF of 0.36 s for 10 frames at 25 fps (sources.md §2), and an EXTINF shorter than its frames makes (c)'s seconds step back at the next segment, so seconds are turned into frames as the first frame, in index order, at or after them.
-- RFC 8216 asks for EXTINF accurate enough that their sums don't drift, allowing whole seconds only below compatibility version 3 ([§4.3.2.1](https://www.rfc-editor.org/rfc/rfc8216#section-4.3.2.1)), and for an `EXT-X-DISCONTINUITY` where encoding parameters change ([§4.3.2.3](https://www.rfc-editor.org/rfc/rfc8216#section-4.3.2.3)): an ad at another frame rate after its discontinuity is a stream to expect, and so is a playlist of an older version with whole-second EXTINF.
+- RFC 8216 asks for EXTINF accurate enough that their sums don't drift, requiring whole seconds below compatibility version 3 and allowing them at every version ([§4.3.2.1](https://www.rfc-editor.org/rfc/rfc8216#section-4.3.2.1)), and for an `EXT-X-DISCONTINUITY` where encoding parameters change ([§4.3.2.3](https://www.rfc-editor.org/rfc/rfc8216#section-4.3.2.3)): an ad at another frame rate after its discontinuity is a stream to expect, and so is a playlist with whole-second EXTINF.
 - (c) needs the reference's segment map; (d) is defined for every reference from the report alone, a mezzanine (D-002's alternative) or a variant whose map was refused (Q43 (c)) included.
 
-**The check of the seconds** (under (c) and under (d)). Wherever the reference's segment map exists, both clocks are computed at every scored reference frame and two things are checked, each with half a frame's tolerance, the aligner's (`src/VMAFAlign.h:23-25`): (1) (d)'s seconds against (c)'s; (2) each frame's PTS against the PTS of the first frame of its playlist discontinuity sequence plus its distance in frames times one frame duration. Each run of consecutive frames beyond the tolerance is written to `axis.warnings` with its first and last frame and its largest difference. (1) bounds the difference between the two clocks wherever it comes from, whichever is printed; (2) says whether the frames themselves leave the frame grid (a missing frame, a change of rate), so that a run of (1) without one comes from the playlist's EXTINF disagreeing with the frames' count. Without a segment map, (2) runs on the report's sequences instead: for a reference that isn't a playlist, which signals no discontinuity, its runs are warnings; for a playlist whose map was refused they are listed as facts, claiming nothing about the seconds, since a jump under 10 s stays inside one report sequence (`src/VMAFAlign.h:114`) and may be one the playlist signals.
+**The check of the seconds** (under (c) and under (d)). Wherever the reference's segment map exists, both clocks are computed at every scored reference frame and two things are checked, each with half a frame's tolerance, the aligner's (`src/VMAFAlign.h:23-25`): (1) (d)'s seconds against (c)'s; (2) each frame's PTS against the PTS of the first frame of its playlist discontinuity sequence plus its distance in frames times one frame duration. Each run of consecutive frames beyond the tolerance is written to `axis.warnings` with its first and last frame and its largest difference. (1) bounds the difference between the two clocks wherever it comes from, whichever is printed; (2) says whether the frames themselves leave the frame grid (a missing frame, a change of rate), so that a run of (1) without one comes from the playlist's EXTINF disagreeing with the frames' count, or from a reference frame missing at the start of a playlist discontinuity sequence: (2) starts each sequence's grid at its first scored frame and can't see that frame missing, and within the segment that lost it (c) too starts at its first remaining frame, so neither test warns there and (1) warns from the next segment on, where the case can't be told from an EXTINF one frame too long. Without a segment map, (2) runs on the report's sequences instead: for a reference that isn't a playlist, which signals no discontinuity, its runs are warnings; for a playlist whose map was refused they are listed as facts, claiming nothing about the seconds, since a jump under 10 s stays inside one report sequence (`src/VMAFAlign.h:114`) and may be one the playlist signals.
 
-What the check did (`design/runs/seconds-check.txt`): on the four ladders, (1) and (2) warn of nothing; without the map, each ad ladder whose ad restarts at the main content's origin (x264 and MPEG-2) lists one run, frames 125 to 199, whose PTS lie 3.000 s past their report sequence's frame grid, and the other two none; two mezzanine-mode reports, whose reference is one file, give no run. In the simulations, (1) warns from the frame where the difference first passes half a frame to the last frame: from frame 40 or 180 after a missing frame; from 88, 79, 77 and 76 for the ad at 24, 30, 50 and 60 fps; from 50 after the long EXTINF; (2) warns within the missing frames' sequences and within the re-timed ads, and not for the EXTINF. Comparing (d) with (c) at segment starts only, as the second review suggested, flags the same cases from the next segment start on, but misses the frame missing from the last segment, which no segment start follows; comparing at every frame catches it and warns within a segment, from frame 79 rather than 100 for the ad at 30 fps. The first version of this design checked each PTS against its report sequence from the report alone, which flagged 75 of 200 frames of each of those two ad ladders where both clocks are right (`design/runs/axis-check.txt`; `review-adversarial/runs/axis-d-check.txt`); revision 1 compared each step between frames with one frame duration, which flagged the missing frame and the ad at 60 fps but not the ads at 24, 30 and 50 fps nor the EXTINF, every step there staying within half a frame (same record; `review-2/runs/rate-change-check.txt`).
+What the check did (`design/runs/seconds-check.txt`): on the four ladders, (1) and (2) warn of nothing; without the map, each ad ladder whose ad restarts at the main content's origin (x264 and MPEG-2) lists one run, frames 125 to 199, whose PTS lie 3.000 s past their report sequence's frame grid, and the other two none; two mezzanine-mode reports, whose reference is one file, give no run. In the simulations, (1) warns from the frame where the difference first passes half a frame to the last frame: from frame 40 or 180 after a missing frame; from 88, 79, 77 and 76 for the ad at 24, 30, 50 and 60 fps; from 50 after the long EXTINF; (2) warns within the missing frames' sequences and within the re-timed ads, and not for the EXTINF. Comparing (d) with (c) at segment starts only, as the second review suggested, flags the same cases from the next segment start on, but misses the frame missing from the last segment, which no segment start follows; comparing at every frame catches it and warns within a segment, from frame 79 rather than 100 for the ad at 30 fps. The first version of this design checked each PTS against its report sequence from the report alone, which flagged 75 of 200 frames of each of those two ad ladders where both clocks are right (`design/runs/axis-check.txt`; `review-adversarial/runs/axis-d-check.txt`); revision 1 compared each step between frames with one frame duration, which flagged the missing frame and the ad at 60 fps but not the ads at 24, 30 and 50 fps nor the EXTINF, every step there staying within half a frame (same record; `review-2/runs/rate-change-check.txt`). The third review removed the first frame of each of the ad ladder's three playlist discontinuity sequences in turn (frames 0, 75 and 125, simulated): (2) warned of nothing, and (1) from frame 24, 99 or 149 to frame 198, at −0.040 s, from the next segment on (`review-3/runs/seconds-check-sequence-start.txt`).
 
-**Agent's recommendation: (c)**, with (d) where the reference has no segment map and this check wherever both exist, every event also carrying its media key and, where known, its playlist time. Since the check computes both anyway, the choice between them is which seconds are printed where they part: (c) is right where the frames leave the grid, as at an ad at another frame rate, and is off only where an EXTINF departs from its frames, which RFC 8216 advises against. **(d) alone is a close second**: one definition for every reference and both reference modes, and the better choice if the owner expects playlists with rounded or whole-second EXTINF. Offsets are seconds of the axis, not PTS differences: a difference from §3.1 to report (§11, item 4).
+**Agent's recommendation: (c)**, with (d) where the reference has no segment map and this check wherever both exist, every event also carrying its media key and, where known, its playlist time. Since the check computes both anyway, the choice between them is which seconds are printed where they part: (c) is right where the frames leave the grid, as at an ad at another frame rate, and is off only where an EXTINF departs from its frames, which RFC 8216 advises against, and within a segment that lost its playlist discontinuity sequence's first frame, where (d) is off as well. **(d) alone is a close second**: one definition for every reference and both reference modes, and the better choice if the owner expects playlists with rounded or whole-second EXTINF. Offsets are seconds of the axis, not PTS differences: a difference from §3.1 to report (§11, item 4).
 
 ### 4.3 Events
 
@@ -588,7 +589,7 @@ Where it goes is Q01 (agent: a separate document), its layout Q04, its versionin
 | File | Package | What it checks |
 |---|---|---|
 | `test_timeline_model.cpp` | WP01 | canonical order; deterministic ids; the overlap index against brute force on random events; points, spans, empty intervals |
-| `test_timeline_axis.cpp` | WP01 | media keys on hand-made reports with PTS that restart at the main content's origin, a forward jump under 10 s, a coarser-grid pair; the seconds of Q02's option and of its fallback; the check of §4.2 in the shapes of `design/runs/seconds-check.txt`: no warning on the D-069 ad shape with its segment map and its run of frames 125 to 199 listed as a fact without one; warnings at a missing frame, the last segment's included, at an ad at another frame rate after its discontinuity and at an EXTINF a frame too long, the PTS check (2) warning for the first two only; a warning for a reference that isn't a playlist where its PTS change rate; seconds to frames |
+| `test_timeline_axis.cpp` | WP01 | media keys on hand-made reports with PTS that restart at the main content's origin, a forward jump under 10 s, a coarser-grid pair; the seconds of Q02's option and of its fallback; the check of §4.2 in the shapes of `design/runs/seconds-check.txt`: no warning on the D-069 ad shape with its segment map and its run of frames 125 to 199 listed as a fact without one; warnings at a missing frame, the last segment's included, at an ad at another frame rate after its discontinuity and at an EXTINF a frame too long, the PTS check (2) warning for the first two only; a reference frame missing at the start of each playlist discontinuity sequence, in the shapes of `review-3/runs/seconds-check-sequence-start.txt`, warned by (1) alone, from the next segment on; a warning for a reference that isn't a playlist where its PTS change rate; seconds to frames |
 | `test_timeline_query.cpp` | WP01 | half-open overlap, margins, the scope of a pair's curve, group order, exact offsets |
 | `test_timeline_detect.cpp` | WP02 | a step drop; single-frame dips at context starts; alternating dips; a drop inside the blind start (not found, as expected); gaps; the baseline unchanged through a drop; the same drops twice |
 | `test_json_read.cpp` | WP03 | RFC 8259's grammar, escapes, UTF-8; numbers as `json::number` writes them; duplicate keys refused; the nesting limit; round trip |
@@ -640,7 +641,7 @@ ui.md §2 to §5 is the plan; this design changes where the panel gets its data 
 
 ## 11. Differences from the work order, to report
 
-None of these is fixed by editing a document, as the work order's constraints require; each goes into `docs/PHASE3_DECISIONS_PENDING.md` (WP15a) and the description of Phase 3's PR (WP15b), in this design's words, and both pass the quote check before they are committed or posted (P-AK). The question that settles each is named; "Q42" marks those no option of Phase 3 removes.
+None of these is fixed by editing a document, as the work order's constraints require; each goes into `docs/PHASE3_DECISIONS_PENDING.md` (WP15a) and the description of Phase 3's PR (WP15c, in the wording WP15b settles), in this design's words, and both pass the quote check before they are committed or posted (P-AK). The question that settles each is named; "Q42" marks those no option of Phase 3 removes.
 
 1. **The network component's name.** The work order calls it NetworkDebugger, an `av_log` interceptor; the code's `NetworkLogger` also hooks `io_open`/`io_close2` and is built into the player and `mirage_tests` only (sources.md §10, item 1). Under Q10 (a) it is compiled into `mirage_vmaf` and times a fetch, not a playback (Q10); how the two names are handled is Q41.
 2. **ABR and the player's switches.** Mirage has no ABR (D-068); switches come from scripted plans, and the player's log is Q13 (Q42).
@@ -655,7 +656,7 @@ None of these is fixed by editing a document, as the work order's constraints re
 11. **The top rung in top-rung mode** has no score, so a session's spans on it have none, and an ad low in every rung can't show as a drop in that mode (Q12; D-002's limit; Q42).
 12. **The HTTP status** isn't exported by FFmpeg 8.1.1's API ([http.c#L180-L206](https://github.com/FFmpeg/FFmpeg/blob/n8.1.1/libavformat/http.c#L180-L206)); it comes from `av_log` text through `NetworkLogger`, or as a class from a failed open (Q10, Q42).
 13. **§7's single output, and §7's attribution shape.** Under Q01 (B) the timeline and attributions are a separate document; attributions group events by source, give offsets and carry the detection parameters, beyond §7's flat list; `tool_version` and `git_commit` wait for Phase 5 under Q05 (a) (Q01, Q04, Q05).
-14. **§3.3's seek from a clicked low point** doesn't reach the frames of an ad whose timestamps restart at 0.040 s with FFmpeg 8.1.1 (measured); an ad that restarts at the main content's origin, as D-069's does, was not probed (MEASUREMENT PENDING) (Q37).
+14. **§3.3's seek from a clicked low point** doesn't reach the frames of an ad whose timestamps restart at 0.040 s with FFmpeg 8.1.1 (measured: ui.md §2.4, from `experiments/hls-seek-probe/run-output.txt`); an ad that restarts at the main content's origin, as D-069's does, was not probed (MEASUREMENT PENDING) (Q37).
 
 A repository document found wrong, reported and not edited: `docs/VMAF_GAP_REPORT.md:230-231` says the Decoder has a dropped-frame counter; it is the render loop's `total_dropped` (`src/main.cpp:1751`; sources.md §12) (Q42; under Q42 (b) WP15b adds a dated correction line to it).
 
@@ -669,22 +670,22 @@ A repository document found wrong, reported and not edited: `docs/VMAF_GAP_REPOR
 
 | # | Question | Agent's recommendation | Blocks | D-007 |
 |---|---|---|---|---|
-| Q01 | Where the timeline and its attributions are written | (B) | WP00a, WP08, WP09a, WP11a, WP11b, WP12, WP16 | yes |
+| Q01 | Where the timeline and its attributions are written | (B) | WP00a, WP08, WP09a, WP11a, WP09b, WP11b, WP12, WP16 | yes |
 | Q02 | The single time base: where events sit, how they are compared, and the seconds of offsets | (c), falling back to (d) where the reference has no segment map, with design §4.2's check; (d) alone a close second | WP00a, WP01, WP08, WP09a, WP11a, WP12, WP14 |  |
 | Q03 | Which events have a wall clock, and on what clock | (b) | WP00a, WP08, WP07, WP09b |  |
 | Q04 | The timeline document's layout and event vocabulary, as its first schema version | (a) | WP00a, WP04, WP08, WP09a, WP11a, WP05, WP07, WP09b, WP11b, WP14 |  |
-| Q05 | Versioning and provenance of the timeline document | (a) | WP00a, WP08 |  |
+| Q05 | Versioning and provenance of the timeline document | (a) | WP00a, WP08, WP09b, WP12 |  |
 | Q06 | How a timeline document names its ladder report | (c) | WP03, WP08, WP09a, WP12 |  |
 | Q07 | How rungs are named in outputs | (d) | WP00a, WP08, WP09a, WP07, WP09b, WP11b, WP14 |  |
 | Q08 | Where each scored frame's segment, and the keyframes, come from | (a) | WP00a, WP06, WP09a, WP16 | yes |
 | Q17 | An ad break's end when several sources give a duration | (a) | WP04 |  |
 | Q18 | SCTE-35 signalling beyond D-070's list | (a) | WP04, WP05 |  |
 | Q19 | A bare EXT-X-DISCONTINUITY as an ad boundary | (a) | WP04, WP09a |  |
-| Q20 | DASH period boundaries | (a) | WP00a, WP04 |  |
+| Q20 | DASH period boundaries | (a) | WP00a, WP04, WP09a |  |
 | Q22 | Which curves automatic detection runs on | (c), with design §6.3's three rules | WP02, WP08, WP09a, WP11a, WP07, WP09b, WP11b, WP14 |  |
-| Q23 | The trailing baseline's statistic and warm-up | (a) | WP02, WP08 |  |
+| Q23 | The trailing baseline's statistic and warm-up | (a) | WP02, WP08, WP11a, WP11b, WP14 |  |
 | Q24 | Units of W and N, and points without a score | (a) | WP02, WP08, WP09a |  |
-| Q25 | Frames that start a libvmaf context (D-037) | (a) | WP02, WP08, WP11a |  |
+| Q25 | Frames that start a libvmaf context (D-037) | (a) | WP02, WP08, WP11a, WP11b, WP14 |  |
 | Q26 | Detection's defaults, and when the timeline subcommand detects | (a) 1; (b) 2 | WP02, WP08, WP09a |  |
 | Q27 | What drop_magnitude measures | (c) | WP02, WP08, WP09a |  |
 | Q28 | Which variants' events an attribution lists | (a) | WP01, WP08, WP09a, WP07 |  |
@@ -695,7 +696,7 @@ A repository document found wrong, reported and not edited: `docs/VMAF_GAP_REPOR
 | Q33 | The encoder of the acceptance tests | (c) | WP10, WP11a |  |
 | Q34 | The ad's timestamps in acceptance test 2 | (d) | WP10, WP11a |  |
 | Q35 | The rest of the synthetic content | (a) | WP10, WP11a |  |
-| Q43 | The ladder timeline's defaults: eight choices that change its output | (a) 1; (b) 1; (c) 1; (d) 1; (e) 1; (f) 1; (g) 1; (h) 1 | WP01, WP02, WP03, WP04, WP06, WP09a |  |
+| Q43 | The ladder timeline's defaults: eight choices that change its output | (a) 1; (b) 1; (c) 1; (d) 1; (e) 1; (f) 1; (g) 1; (h) 1 | WP00a, WP01, WP02, WP03, WP04, WP06, WP09a |  |
 
 ### Round 2: sessions, the session fetch, decoded SCTE-35 messages and the composite example (9 questions)
 
@@ -709,7 +710,7 @@ A repository document found wrong, reported and not edited: `docs/VMAF_GAP_REPOR
 | Q16 | An SCTE-35 message whose CRC_32 fails | (a) | WP05, WP09c |  |
 | Q21 | Which SCTE-35 test vectors may be committed | (a), until the owner settles the licences, as with D-008 | WP05 |  |
 | Q41 | The component's name: the work order's NetworkDebugger against the code's NetworkLogger | (a) | WP00b, WP07, WP15b | yes |
-| Q44 | Sessions, the fetch and decoded messages: seven choices that change their output | (a) 1; (b) 1; (c) 1; (d) 1; (e) 1; (f) 1; (g) 1 | WP05, WP07, WP09b, WP11b |  |
+| Q44 | Sessions, the fetch and decoded messages: seven choices that change their output | (a) 1; (b) 1; (c) 1; (d) 1; (e) 1; (f) 1; (g) 1 | WP00b, WP05, WP07, WP09b, WP11b |  |
 
 ### Round 3: the UI, the conditional and later packages, and the differences to report (8 questions)
 
@@ -743,7 +744,7 @@ A repository document found wrong, reported and not edited: `docs/VMAF_GAP_REPOR
 
 **Why:** It keeps D-068's one scoring for many sessions, leaves the committed records and their checks valid, and keeps per-frame data in the report; its costs (a JSON reader, a hash rule, a reported difference) are each one bounded package.
 
-**Blocks:** WP00a, WP08, WP09a, WP11a, WP11b, WP12, WP16.
+**Blocks:** WP00a, WP08, WP09a, WP11a, WP09b, WP11b, WP12, WP16.
 
 #### Q02. The single time base: where events sit, how they are compared, and the seconds of offsets
 
@@ -755,12 +756,12 @@ A repository document found wrong, reported and not edited: `docs/VMAF_GAP_REPOR
 
 - **(a) Raw reference PTS for everything.** The work order's wording, nothing derived. On the ad ladder it lists main_000.ts and main_001.ts for the ad's drop (design-library run axis-ad), and offsets step back by 2.960 s at the ad's first frame (design-evaluation run 09).
 - **(b) Reference frames; seconds of the PTS, the report's sequences laid end to end.** Needs only the ladder report. A report sequence breaks only at a backward step or a forward jump of more than 10 s (src/VMAFAlign.h:114), so smaller jumps stay in the seconds: the 2 s ad break spans 5.000 s (design-evaluation run 09).
-- **(c) Reference frames; seconds of the reference's playlist time.** Each frame at its segment's EXTINF sum plus its PTS offset in the segment: equal to (d) on the four ladders checked, and right through a missing frame or a change of rate, after which (d) was 0.040 s and 0.083 to 1.167 s off (simulated, design/runs/seconds-check.txt). It is off instead where an EXTINF doesn't match its segment's frames, which RFC 8216 §4.3.2.1 advises against (0.040 s after one EXTINF simulated a frame too long, same run). It needs the reference's segment map, so a reference without one (a mezzanine, a refused map) falls back to (d).
+- **(c) Reference frames; seconds of the reference's playlist time.** Each frame at its segment's EXTINF sum plus its PTS offset in the segment: equal to (d) on the four ladders checked, and right through a missing frame or a change of rate, after which (d) was 0.040 s and 0.083 to 1.167 s off (simulated, design/runs/seconds-check.txt), except within a segment that lost its playlist discontinuity sequence's first frame, where both were a frame early (review-3/runs/seconds-check-sequence-start.txt). It is off instead where an EXTINF doesn't match its segment's frames, which RFC 8216 §4.3.2.1 advises against (0.040 s after one EXTINF simulated a frame too long, same run). It needs the reference's segment map, so a reference without one (a mezzanine, a refused map) falls back to (d).
 - **(d) Reference frames; seconds = frame index times the frame duration.** Defined from the report for every reference, a mezzanine included, and equal to (c) on the four ladders checked (design/runs/seconds-check.txt). It is off after a missing frame or a change of rate, by the amounts under (c), and right where an EXTINF is off; design §4.2's check, which needs the segment map, warns at the frames where it leaves (c) by more than half a frame.
 
 **Agent's recommendation:** (c), falling back to (d) where the reference has no segment map, with design §4.2's check; (d) alone a close second.
 
-**Why:** Frames make the events an interval lists exact and independent of the seconds (design-evaluation runs 07 and 08 showed doubles listing boundary events inconsistently). Since design §4.2's check computes both wherever the reference has a segment map, the choice is which seconds to print where they differ: (c) stays right after a missing frame or a change of rate, and RFC 8216 §4.3.2.3 puts changes of encoding parameters at discontinuities such as an ad's, while (c) is off only where an EXTINF departs from its frames; (d) gives every reference and both reference modes one definition, the better choice if the owner expects rounded or integer EXTINF.
+**Why:** Frames make the events an interval lists exact and independent of the seconds (design-evaluation runs 07 and 08 showed doubles listing boundary events inconsistently). Since design §4.2's check computes both wherever the reference has a segment map, the choice is which seconds to print where they differ: (c) stays right after a missing frame or a change of rate (from the next segment on if the frame missing is a sequence's first), and RFC 8216 §4.3.2.3 puts changes of encoding parameters at discontinuities such as an ad's, while (c) is otherwise off only where an EXTINF departs from its frames; (d) gives every reference and both reference modes one definition, the better choice if the owner expects rounded or integer EXTINF.
 
 **Blocks:** WP00a, WP01, WP08, WP09a, WP11a, WP12, WP14.
 
@@ -817,7 +818,7 @@ Design §8 proposes the document's layout and §5.9 each source's event types, w
 
 **Why:** A new format costs nothing to version from its first day, its schema can be cited, and P-006's confirmed rule for the commit stays.
 
-**Blocks:** WP00a, WP08.
+**Blocks:** WP00a, WP08, WP09b, WP12.
 
 #### Q06. How a timeline document names its ladder report
 
@@ -944,7 +945,7 @@ AWS MediaTailor's stitched playlists drop the cue tags and keep only EXT-X-DISCO
 
 **Why:** Without DASH scoring, DASH events would reach no curve.
 
-**Blocks:** WP00a, WP04.
+**Blocks:** WP00a, WP04, WP09a.
 
 #### Q22. Which curves automatic detection runs on
 
@@ -982,7 +983,7 @@ The work order doesn't define the sliding baseline. Which statistic over the las
 
 **Why:** It was exact across the measured grid, is robust to outliers, and a drop doesn't pull its baseline down; its blind start is written in the document's detection record and tested (WP02).
 
-**Blocks:** WP02, WP08.
+**Blocks:** WP02, WP08, WP11a, WP11b, WP14.
 
 #### Q24. Units of W and N, and points without a score
 
@@ -1018,7 +1019,7 @@ The first pair of every libvmaf context scores low (D-037): frame 75, where test
 
 **Why:** (b) moves an ad's drop off its cue by one frame, N of 1 or more already ignores single-frame dips, and (c) adds a rule that changed nothing measured.
 
-**Blocks:** WP02, WP08, WP11a.
+**Blocks:** WP02, WP08, WP11a, WP11b, WP14.
 
 #### Q26. Detection's defaults, and when the timeline subcommand detects
 
@@ -1259,7 +1260,7 @@ The first version of this design made seven of these choices as process choices 
 
 **Why:** Each recommended default keeps what the data shows, places nothing it can't place exactly, and says in the document what it left out.
 
-**Blocks:** WP01, WP02, WP03, WP04, WP06, WP09a.
+**Blocks:** WP00a, WP01, WP02, WP03, WP04, WP06, WP09a.
 
 ### Round 2, the questions in full
 
@@ -1365,7 +1366,7 @@ splice_insert says out or in by its out_of_network_indicator; for time_signal th
 
 **Summary.** Q16 decides what happens to an SCTE-35 message with a bad CRC_32; the agent recommends keeping it, marked crc_valid: false with a warning, with an option to drop such messages.
 
-Of 79 published messages collected, 9 have a bad CRC_32, 3 of them a library's intended negative tests (scte35.md §5). What does Phase 3 do with such a message?
+Of 79 published messages collected, 9 have a bad CRC_32, 1 of them a library's intended negative test (scte35.md §5; scte35_evidence/runs/check_vectors.txt; review-3/runs/vector-status.txt; the survey's summary, scte35.md §0 item 5, gives 3 in error). What does Phase 3 do with such a message?
 
 - **(a) Kept, marked.** `crc_valid: false` and a warning; still attributable; `--bad-crc drop` drops them.
 - **(b) Dropped.** A corrupted message isn't trusted; its tag still shows by position.
@@ -1457,7 +1458,7 @@ Earlier versions of this design made six of these choices as process choices (P-
 
 **Why:** Each recommended default records what was planned or observed without inferring more, one signal stays one event, and the fetch is as quick as its server allows.
 
-**Blocks:** WP05, WP07, WP09b, WP11b.
+**Blocks:** WP00b, WP05, WP07, WP09b, WP11b.
 
 ### Round 3, the questions in full
 
@@ -1617,13 +1618,13 @@ Design §11 lists 14 differences; those no option removes are marked Q42: Mirage
 
 ## 13. Process choices (P-entries, pending the owner's confirmation)
 
-28 choices of process and measurement: how something is built, tested or measured, with no effect on what an output says by default. Each is the agent's, pending the owner's confirmation, and is numbered from P-081 when recorded in `docs/DECISIONS.md`. The same text is in `design/p_entries.json`.
+28 choices of process and measurement: how something is built, tested or measured, with no effect on what an output says by default. Each is the agent's, pending the owner's confirmation, and is numbered from P-082 when recorded in `docs/DECISIONS.md`. The same text is in `design/p_entries.json`.
 
 | | Choice | Alternatives |
 |---|---|---|
 | **P-A** Exact arithmetic | Event positions are reference frame indices (int64). PTS are int64 ticks of their stream's time base, recovered from the report's seconds by rounding seconds x den / num and checked against the demux pass's packet PTS (design-evaluation run 04: every frame agreed). Seconds come from libavutil's rational arithmetic (AVRational, av_rescale_q_rnd), as VMAFAlign already uses it (src/VMAFAlign.h:9-11), and are turned into doubles only when written with json::number. | A Rational type of the module's own with 128-bit intermediates (design-library P-B); seconds as doubles with tolerances, which listed boundary events inconsistently (design-evaluation runs 07 and 08; design-library runs axis-ad-float, axis-degraded-float). |
 | **P-B** The timeline core's dependency rule | The core files include no libavformat, libavcodec, libvmaf, GL or ImGui header; libavutil is allowed, as VMAFAlign uses it. The adapters (TimelineMedia, SessionFetch) are the only code that opens inputs, and each returns plain structs that a test can build by hand. | A core with no FFmpeg at all and its own CRC, base64 and rationals (design-library P-A, P-H). |
-| **P-C** Build wiring | Per-target source lists, as CMakeLists.txt has them (150-194, 233-246, 264-329). CMakeLists.txt is changed only by the wiring packages, one commit per round (WP00a, WP00b, WP00c), each adding that round's files as empty compiling files with their lines once the answers that decide them are in, and by one wiring commit the lead makes when a conditional package (WP16, WP17) starts; no other package edits it, so parallel packages never conflict there. The edits come one at a time: each wiring package depends on the one before it, and the lead's commit for a conditional package is made while no wiring package is open. | A CMake OBJECT library linked into the three targets (design-library P-A), a pattern the build doesn't use yet; one skeleton commit for every round's files at once, which would wire files whose existence later answers decide; each package editing CMakeLists.txt, which the lead then merges. |
+| **P-C** Build wiring | Per-target source lists, as CMakeLists.txt has them (150-194, 233-246, 264-329). CMakeLists.txt is changed only by the wiring packages, one commit per round (WP00a, WP00b, WP00c), each adding, as empty compiling files with their lines, the files whose existence that round's answers or the owner's decisions settle, once those answers are in, and by one wiring commit the lead makes when a conditional package (WP16, WP17) starts; no other package edits it, so parallel packages never conflict there. The edits come one at a time: each wiring package depends on the one before it, and the lead's commit for a conditional package is made while no wiring package is open. | A CMake OBJECT library linked into the three targets (design-library P-A), a pattern the build doesn't use yet; one skeleton commit for every round's files at once, which would wire files whose existence later answers decide; each package editing CMakeLists.txt, which the lead then merges. |
 | **P-D** Media playlists read again at build time | The timeline build reads each scored media playlist with vmafladder::read_master (any #EXTM3U text, the analyzer's network limits, src/VMAFLadder.cpp:293-334) and writes its URL, location and SHA-256 into the document; the ladder report is not changed for it. | The ladder report recording each pair's media-playlist SHA-256s, a report change that is the owner's to make (it breaks tests/test_vmaf_report.cpp:909's exact key count); tapping the bytes the hls demuxer read (sources.md §11, choice 3 (b)), whose handle avformat_open_input probes. |
 | **P-F** The demux pass | Each scored playlist is opened as DecodeCtx::open() opens an input (the interrupt callback, vmafnet::set_io_limits, vmafsegments::set_hls_options, avformat_find_stream_info, the best video stream; src/VMAFAnalyzer.cpp:166-194), with an io_open/io_close2 recorder of its own (each file in open order with its bytes_read at close), and its packets are read with av_read_frame without decoding. | A decode pass (Q09 (b)); extending SegmentWatch, which changes a tested header (src/VMAFSegments.h). |
 | **P-G** Frames to segments | A packet's segment is the one whose bytes, counted in open order with the playlist's own open left out, hold its AVPacket::pos; an input's frames are each segment's packets in PTS order, the segments in read order; every scored frame's PTS is checked against the report's. What a mismatch costs is Q43 (c). | PTS against EXTINF sums (145 and 193 of 200 right, design-library runs map-by-pos-*); segment heads through hls::parse_segment_start (sources.md §11, choice 2 (c)). |
@@ -1666,38 +1667,39 @@ Moved to owner questions in revision 1, because each changes what an output says
 
 ## 14. Work packages
 
-24 packages. Each is built in a worktree of its own from `vmaf/phase-3` (P-AH), with its unit tests. New files are the package's own; a shared file belongs to one package at a time, the later one depending on the earlier, and `CMakeLists.txt` to the wiring packages alone (P-C). A package's round is the round of answers it waits for (0: none, so it can start now), and it starts only once every question of that round is answered. "Blocked by" lists the questions whose answers change what the package builds: its code, its tests or the form of its output. A question's "Blocks" in §12 is the list of packages naming it here. Both are checked by `design/tools/render.py`, with the order of every shared file's owners. The same text is in `design/work_packages.json`.
+25 packages. Each is built in a worktree of its own from `vmaf/phase-3` (P-AH), with its unit tests. New files are the package's own; a shared file belongs to one package at a time, the later one depending on the earlier, and `CMakeLists.txt` to the wiring packages alone (P-C). A package's round is the round of answers it waits for (0: none, so it can start now), and it starts only once every question of that round is answered. "Blocked by" lists the questions whose answers change what the package builds: its code, its tests or the form of its output. A question's "Blocks" in §12 is the list of packages naming it here. Both are checked by `design/tools/render.py`, with the order of every shared file's owners. The same text is in `design/work_packages.json`.
 
 | WP | Title | Round | Depends on | Blocked by | Shared files it owns (changed) |
 |---|---|---|---|---|---|
 | WP15a | The pending-decisions document and the UI plan | 0 | none | none | docs/DECISIONS.md |
-| WP00a | Wiring and shared declarations, round 1 | 1 | none | Q01, Q02, Q03, Q04, Q05, Q07, Q08, Q20, Q31, Q32 | CMakeLists.txt |
+| WP00a | Wiring and shared declarations, round 1 | 1 | none | Q01, Q02, Q03, Q04, Q05, Q07, Q08, Q20, Q31, Q32, Q43 | CMakeLists.txt |
 | WP01 | Timeline core: model, axis and the overlap query | 1 | WP00a | Q02, Q28, Q29, Q30, Q43 | none |
 | WP02 | Drop detection on a curve | 1 | WP00a | Q22, Q23, Q24, Q25, Q26, Q27, Q43 | none |
 | WP03 | JSON reader and ladder report reader | 1 | WP00a | Q06, Q32, Q43 | none |
 | WP04 | Playlist events, the plain cue tags, and the pairing of every cue | 1 | WP00a | Q04, Q17, Q18, Q19, Q20, Q43 | none |
 | WP06 | Media ingest: playlists, the demux pass, frame-to-segment maps | 1 | WP00a | Q08, Q43 | none |
 | WP08 | The timeline document and its JSON Schema: the ladder part | 1 | WP01, WP03 | Q01, Q02, Q03, Q04, Q05, Q06, Q07, Q22, Q23, Q24, Q25, Q26, Q27, Q28, Q29, Q30 | src/VMAFReport.h, src/VMAFReport.cpp and tests/test_vmaf_report.cpp (only under Q01 (A)) |
-| WP09a | The builder and the CLI subcommands, for a ladder | 1 | WP01, WP02, WP03, WP04, WP06, WP08 | Q01, Q02, Q04, Q06, Q07, Q08, Q19, Q22, Q24, Q26, Q27, Q28, Q29, Q30, Q31, Q43 | tools/mirage_vmaf.cpp; src/VMAFCli.cpp |
+| WP09a | The builder and the CLI subcommands, for a ladder | 1 | WP01, WP02, WP03, WP04, WP06, WP08 | Q01, Q02, Q04, Q06, Q07, Q08, Q19, Q20, Q22, Q24, Q26, Q27, Q28, Q29, Q30, Q31, Q43 | tools/mirage_vmaf.cpp; src/VMAFCli.cpp |
 | WP10 | Synthetic ladders (D-069's content) | 1 | WP00a | Q33, Q34, Q35 | none |
-| WP11a | §3.2's two acceptance tests | 1 | WP09a, WP10 | Q01, Q02, Q04, Q22, Q25, Q29, Q31, Q33, Q34, Q35 | none |
-| WP00b | Wiring and shared declarations, round 2 | 2 | WP00a, WP01 | Q10, Q11, Q12, Q41 | CMakeLists.txt; src/VMAFNet.h (a comment only); src/TimelineModel.h (the session declarations, through the lead); src/NetworkLogger.h, src/NetworkLogger.cpp and the 19 other files that name NetworkLogger, src/main.cpp, src/Demuxer.cpp, src/ManifestParser.cpp and src/NetInspectorAlign.cpp among them (only under Q41 (b)) |
+| WP11a | §3.2's two acceptance tests | 1 | WP09a, WP10 | Q01, Q02, Q04, Q22, Q23, Q25, Q29, Q31, Q33, Q34, Q35 | none |
+| WP00b | Wiring and shared declarations, round 2 | 2 | WP00a, WP01 | Q10, Q11, Q12, Q41, Q44 | CMakeLists.txt; src/VMAFNet.h (a comment only); src/TimelineModel.h (the session declarations, through the lead); src/SessionPlan.h (the session plan's and the fetch's types, through the lead); src/NetworkLogger.h, src/NetworkLogger.cpp and the 19 other files that name NetworkLogger, src/main.cpp, src/Demuxer.cpp, src/ManifestParser.cpp and src/NetInspectorAlign.cpp among them (only under Q41 (b)) |
 | WP05 | SCTE-35 decoder and message events | 2 | WP00a, WP04 | Q04, Q14, Q15, Q16, Q18, Q21, Q44 | none |
 | WP07 | Sessions, their drops, and the session fetch | 2 | WP00b, WP01, WP02, WP03, WP06 | Q03, Q04, Q07, Q10, Q11, Q12, Q22, Q28, Q41, Q44 | tests/HttpFileServer.h; src/TimelineModel.cpp (a session's curve, after WP01 has merged); src/TimelineQuery.cpp (a session's scope, after WP01 has merged) |
-| WP09b | Sessions in the build, the CLI and the document | 2 | WP09a, WP07 | Q03, Q04, Q07, Q10, Q11, Q12, Q22, Q44 | src/TimelineBuild.h; src/TimelineBuild.cpp; src/TimelineCli.h; src/TimelineCli.cpp; tests/test_timeline_build.cpp; tests/test_timeline_cli.cpp; src/TimelineDoc.h; src/TimelineDoc.cpp; tests/test_timeline_doc.cpp; docs/schema/mirage-timeline-1.schema.json; docs/TIMELINE_FORMAT.md |
+| WP09b | Sessions in the build, the CLI and the document | 2 | WP09a, WP07 | Q01, Q03, Q04, Q05, Q07, Q10, Q11, Q12, Q22, Q44 | src/TimelineBuild.h; src/TimelineBuild.cpp; src/TimelineCli.h; src/TimelineCli.cpp; tests/test_timeline_build.cpp; tests/test_timeline_cli.cpp; src/TimelineDoc.h; src/TimelineDoc.cpp; tests/test_timeline_doc.cpp; docs/schema/mirage-timeline-1.schema.json; docs/TIMELINE_FORMAT.md |
 | WP09c | Decoded SCTE-35 messages in the build and the CLI | 2 | WP09b, WP05 | Q15, Q16 | src/TimelineBuild.h; src/TimelineBuild.cpp; src/TimelineCli.h; src/TimelineCli.cpp; tests/test_timeline_build.cpp; tests/test_timeline_cli.cpp |
-| WP11b | The composite example (test 3) | 2 | WP09b, WP10 | Q01, Q04, Q07, Q10, Q11, Q22, Q44 | none |
+| WP11b | The composite example (test 3) | 2 | WP09b, WP10 | Q01, Q04, Q07, Q10, Q11, Q22, Q23, Q25, Q44 | none |
 | WP00c | Wiring, round 3: the UI | 3 | WP00a, WP00b | Q36 | CMakeLists.txt |
-| WP12 | UI loading and math, ImGui-free | 3 | WP00c, WP01, WP03, WP07, WP08, WP09b | Q01, Q02, Q06, Q36, Q37, Q39 | none |
+| WP12 | UI loading and math, ImGui-free | 3 | WP00c, WP01, WP03, WP07, WP08, WP09b | Q01, Q02, Q05, Q06, Q36, Q37, Q39 | none |
 | WP13 | The timeline panel in the player | 3 | WP12, WP01, WP02, WP08 | Q36, Q37, Q38, Q39, Q40 | src/main.cpp; src/PlayerUI.h; src/PlayerUI.cpp; src/DebugHUD.h and src/DebugHUD.cpp (only under Q40 (c)); src/ManifestParser.h, src/ManifestParser.cpp and tests/test_manifest_parser.cpp (only under Q40 (b)); src/Demuxer.h and src/Demuxer.cpp (only under Q37 (c), with its plan approved) |
-| WP14 | The evaluation harness: reproduction from one command | 3 | WP09a, WP09b, WP10, WP11a, WP11b | Q02, Q04, Q07, Q10, Q22, Q31 | none |
-| WP15b | The documents that wait for answers or results | 3 | WP15a | Q41, Q42 | docs/DECISIONS.md (after WP15a has merged); docs/AI_CONTRIBUTIONS.md; docs/PAPER_METHOD_NOTES.md; docs/VMAF_GAP_REPORT.md (only under Q42 (b)) |
+| WP14 | The evaluation harness: reproduction from one command | 3 | WP09a, WP09b, WP10, WP11a, WP11b | Q02, Q04, Q07, Q10, Q22, Q23, Q25, Q31 | none |
+| WP15b | The differences' wording and the gap report's correction | 3 | WP15a | Q41, Q42 | docs/PHASE3_DECISIONS_PENDING.md (after WP15a has merged); docs/VMAF_GAP_REPORT.md (only under Q42 (b)) |
+| WP15c | The closing documents and the PR description | 3 | WP09c, WP13, WP14, WP15b | none | docs/PHASE3_STATUS.md; docs/DECISIONS.md (after WP15a has merged); docs/AI_CONTRIBUTIONS.md; docs/PAPER_METHOD_NOTES.md |
 | WP16 | Conditional: what the scorer records, its extra pair, and a decode pass | 3 | WP03, WP06, WP09c | Q01, Q08, Q09, Q10, Q12 | src/VMAFAnalyzer.h; src/VMAFAnalyzer.cpp; src/VMAFReport.h; src/VMAFReport.cpp; tests/test_vmaf_report.cpp; tests/test_vmaf_analyzer.cpp; src/VMAFSegments.h and tests/test_vmaf_segments.cpp (only under Q10 (e)); src/VMAFLadder.h, src/VMAFLadder.cpp and tests/test_vmaf_ladder.cpp (only under Q12 (d)); src/LadderReportRead.cpp and tests/test_ladder_report_read.cpp (after WP03 has merged); src/TimelineBuild.cpp and tests/test_timeline_build.cpp (after WP09c has merged) |
 | WP17 | Later: the player's session log | 3 | WP07, WP13 | Q11, Q13 | src/main.cpp (only under Q13 (b), after WP13 has merged; the two never run in parallel); src/Demuxer.cpp (only under Q13 (b)); src/MediaSession.cpp (only under Q13 (b)) |
 
 ### WP15a The pending-decisions document and the UI plan
 
-Now, before any answer, since no answer changes them: docs/PHASE3_DECISIONS_PENDING.md with §12's questions by round, §11's differences and §13's P-entries, each pending; docs/plans/timeline-ui.md, design §10 as the written D-007 plan for the owner to approve; §13's P-entries appended to docs/DECISIONS.md from P-081 on, each marked pending (entries only added, D-060). Each gives the work order's requirements in its own words, quoting no passage of it (D-013, D-060). The lead then records the owner's answers as those of each round come in (P-AH).
+Now, before any answer, since no answer changes them: docs/PHASE3_DECISIONS_PENDING.md with §12's questions by round, §11's differences and §13's P-entries, each pending; docs/plans/timeline-ui.md, design §10 as the written D-007 plan for the owner to approve; §13's P-entries appended to docs/DECISIONS.md from P-082 on, each marked pending (entries only added, D-060). Each gives the work order's requirements in its own words, quoting no passage of it (D-013, D-060). The lead then records the owner's answers as those of each round come in (P-AH).
 
 - **New files:** `docs/PHASE3_DECISIONS_PENDING.md`, `docs/plans/timeline-ui.md`.
 - **Changed (owned):** `docs/DECISIONS.md`.
@@ -1711,11 +1713,11 @@ Now, before any answer, since no answer changes them: docs/PHASE3_DECISIONS_PEND
 
 One commit once round 1's answers are in. Every file of design §3.2 whose existence the owner's decisions (D-068, D-069, D-070) or round 1's answers settle, as an empty compiling file: the core (SessionPlan and Scte35 included), TimelineMedia, TimelineCli, tests/SyntheticLadder, and their tests and the two attribution test files; the CMake lines for them, with the core, TimelineMedia, TimelineCli and src/HlsAlign.cpp in mirage_vmaf, the same and the tests in mirage_tests, and tests/SyntheticLadder.cpp compiled with optimization in every build type, as src/VMAFPool.cpp gets its own options (CMakeLists.txt:227); under Q05 (b) also the configure-time step that records the commit, and under Q20 (b) an XML parser linked into mirage_vmaf. Then only the declarations that packages running in parallel share, which encode round 1's answers: TimelineModel.h's Source (Q04), Event and MediaKey (Q02, Q03), Variant with its ranks (Q07), Curve, CurveRef for a pair's curve, Timeline and the declaration of curve_points(); TimelineAxis.h's Axis; LadderReportRead.h's PairScores and LadderScores, which WP06 uses while WP03 writes the reader; TimelineBuild.h's SegmentFrames and VariantMedia, which WP06 returns; PlaylistEvents.h's CueInput, the extension point of D-070's interfaces (design §5.5). Each module's own functions and option structs (QueryOptions, DetectOptions and the like) are written by the package that implements it, which the questions they encode block. No behaviour. Afterwards each package owns its files' contents, a change to a shared type goes through the lead (P-AG), and only the wiring packages edit CMakeLists.txt (P-C).
 
-- **New files:** the empty files of round 1's packages listed in design §3.2, and the shared declarations (contents then owned by WP01 to WP11a).
+- **New files:** the empty files of design §3.2 whose existence the owner's decisions or round 1's answers settle: those of round 1's packages, and of round 2's src/SessionPlan.{h,cpp}, src/Scte35.{h,cpp}, src/Scte35Events.{h,cpp}, tests/test_session_plan.cpp, tests/test_scte35.cpp, tests/test_scte35_events.cpp and tests/test_attribution_session.cpp, which D-068 and D-070 settle; and the shared declarations (contents then owned by WP01 to WP11b).
 - **Changed (owned):** `CMakeLists.txt`.
 - **Round:** 1.
 - **Depends on:** none.
-- **Blocked by:** Q01, Q02, Q03, Q04, Q05, Q07, Q08, Q20, Q31, Q32.
+- **Blocked by:** Q01, Q02, Q03, Q04, Q05, Q07, Q08, Q20, Q31, Q32, Q43.
 - **Tests:**
   - The macos-debug and macos-headless presets build, and ctest passes as before; a compile-only test includes every new header.
 
@@ -1730,7 +1732,7 @@ TimelineModel: the canonical order, deterministic string ids, the overlap index 
 - **Tests:**
   - Canonical order and deterministic ids; the overlap index against brute force on random events; points and spans at exact boundaries; empty intervals.
   - The axis on hand-made reports: PTS that restart at the main content's origin, a forward jump under 10 s, a coarser-grid pair; the seconds of Q02's option and of its fallback; seconds to frames for durations and intervals.
-  - The check of design §4.2 on reports and segment maps the test writes in the shapes of design/runs/seconds-check.txt: no warning on the D-069 ad shape with its map, and its run of frames 125 to 199 listed as a fact without one; a missing reference frame (in the last segment too), an ad at 24 and at 30 fps after its discontinuity, and an EXTINF one frame too long each warned at the frames that record gives, the PTS check (2) warning for the first two and not for the third; a reference that isn't a playlist warned where its PTS change rate.
+  - The check of design §4.2 on reports and segment maps the test writes in the shapes of design/runs/seconds-check.txt: no warning on the D-069 ad shape with its map, and its run of frames 125 to 199 listed as a fact without one; a missing reference frame (in the last segment too), an ad at 24 and at 30 fps after its discontinuity, and an EXTINF one frame too long each warned at the frames that record gives, the PTS check (2) warning for the first two and not for the third; a reference frame missing at the start of each playlist discontinuity sequence, in the shapes of review-3/runs/seconds-check-sequence-start.txt, warned by (1) alone, from the next segment on; a reference that isn't a playlist warned where its PTS change rate.
   - The scope filter for a pair's curve, the group order, exact offsets, margins.
 
 ### WP02 Drop detection on a curve
@@ -1804,7 +1806,7 @@ TimelineBuild: the merge of design §3.4 for a ladder without a session, with th
 - **Changed (owned):** `tools/mirage_vmaf.cpp`; `src/VMAFCli.cpp`.
 - **Round:** 1.
 - **Depends on:** WP01, WP02, WP03, WP04, WP06, WP08.
-- **Blocked by:** Q01, Q02, Q04, Q06, Q07, Q08, Q19, Q22, Q24, Q26, Q27, Q28, Q29, Q30, Q31, Q43.
+- **Blocked by:** Q01, Q02, Q04, Q06, Q07, Q08, Q19, Q20, Q22, Q24, Q26, Q27, Q28, Q29, Q30, Q31, Q43.
 - **Tests:**
   - The merge on hand-built inputs: each source's events placed by design §5.1's rules, unplaceable anchors in warnings, the same timeline from the same inputs twice.
   - Option and config parsing: precedence of the command line, unknown and repeated options, required options, --help; an events-only build without W and N; one end-to-end run of each subcommand as a program on a small fixture (exit statuses, outputs); tests/test_vmaf_cli.cpp passes unchanged.
@@ -1827,20 +1829,20 @@ tests/test_attribution_acceptance.cpp: one Catch2 test case with a section per c
 - **New files:** `tests/test_attribution_acceptance.cpp`.
 - **Round:** 1.
 - **Depends on:** WP09a, WP10.
-- **Blocked by:** Q01, Q02, Q04, Q22, Q25, Q29, Q31, Q33, Q34, Q35.
+- **Blocked by:** Q01, Q02, Q04, Q22, Q23, Q25, Q29, Q31, Q33, Q34, Q35.
 - **Tests:**
   - Test 1: one drop on the degraded rung, over its degraded segment's reference frames, whose playlist group holds that segment by URI and media sequence number; no drop on the control rung.
   - Test 2 in each timestamp variant: one drop on the low-quality ad rung, over the ad's reference frames; its scte35 group holds the cue_out at offset 0 frames and an ad_break spanning the drop; its playlist group the discontinuity at offset 0; no drop on the control rung.
 
 ### WP00b Wiring and shared declarations, round 2
 
-One commit once round 2's answers are in: SessionFetch's files and test as empty files with their CMake lines, under Q10 (a) or (b); under Q10 (a), src/NetworkLogger.cpp added to mirage_vmaf, and the two comments that would then be wrong or misleading reworded: CMakeLists.txt:229-232 (mirage_vmaf's ladder scoring still reads playlists itself; the timeline fetch uses the network logger) and src/VMAFNet.h:8-9 (mirage_vmaf then links the network logger); the session declarations, encoding Q11 and Q12, added to the shared headers through the lead (P-AG): Span, Session, Timeline::sessions, CurveRef's session kind, PlanSpan and Request. Under Q41 (b), first and as a commit of its own, NetworkLogger renamed throughout, under the owner's ruling under D-007 or an approved plan, since src/Demuxer.cpp and src/main.cpp are among the 21 files that name it (design/runs/networklogger-users.txt).
+One commit once round 2's answers are in: SessionFetch's files and test as empty files with their CMake lines, under Q10 (a) or (b); under Q10 (a), src/NetworkLogger.cpp added to mirage_vmaf, and the two comments that would then be wrong or misleading reworded: CMakeLists.txt:229-232 (mirage_vmaf's ladder scoring still reads playlists itself; the timeline fetch uses the network logger) and src/VMAFNet.h:8-9 (mirage_vmaf then links the network logger); the session declarations, encoding Q11, Q12 and Q44 (d), added through the lead (P-AG) to headers WP00a created: Span, Session, Timeline::sessions and CurveRef's session kind in src/TimelineModel.h; PlanSpan, SessionPlan, RequestRow and Request in src/SessionPlan.h, whose contents WP07 then owns. Under Q41 (b), first and as a commit of its own, NetworkLogger renamed throughout, under the owner's ruling under D-007 or an approved plan, since src/Demuxer.cpp and src/main.cpp are among the 21 files that name it (design/runs/networklogger-users.txt).
 
 - **New files:** the empty files of SessionFetch and its test.
-- **Changed (owned):** `CMakeLists.txt`; src/VMAFNet.h (a comment only); src/TimelineModel.h (the session declarations, through the lead); src/NetworkLogger.h, src/NetworkLogger.cpp and the 19 other files that name NetworkLogger, src/main.cpp, src/Demuxer.cpp, src/ManifestParser.cpp and src/NetInspectorAlign.cpp among them (only under Q41 (b)).
+- **Changed (owned):** `CMakeLists.txt`; src/VMAFNet.h (a comment only); src/TimelineModel.h (the session declarations, through the lead); src/SessionPlan.h (the session plan's and the fetch's types, through the lead); src/NetworkLogger.h, src/NetworkLogger.cpp and the 19 other files that name NetworkLogger, src/main.cpp, src/Demuxer.cpp, src/ManifestParser.cpp and src/NetInspectorAlign.cpp among them (only under Q41 (b)).
 - **Round:** 2.
 - **Depends on:** WP00a, WP01.
-- **Blocked by:** Q10, Q11, Q12, Q41.
+- **Blocked by:** Q10, Q11, Q12, Q41, Q44.
 - **Tests:**
   - The presets build and ctest passes as before; the compile-only test includes the new headers.
   - Under Q41 (b), the same after the rename, tests/test_network_logger.cpp included.
@@ -1882,7 +1884,7 @@ After WP09a and WP07 have merged: TimelineBuild gains the session (spans, switch
 - **Changed (owned):** `src/TimelineBuild.h`; `src/TimelineBuild.cpp`; `src/TimelineCli.h`; `src/TimelineCli.cpp`; `tests/test_timeline_build.cpp`; `tests/test_timeline_cli.cpp`; `src/TimelineDoc.h`; `src/TimelineDoc.cpp`; `tests/test_timeline_doc.cpp`; `docs/schema/mirage-timeline-1.schema.json`; `docs/TIMELINE_FORMAT.md`.
 - **Round:** 2.
 - **Depends on:** WP09a, WP07.
-- **Blocked by:** Q03, Q04, Q07, Q10, Q11, Q12, Q22, Q44.
+- **Blocked by:** Q01, Q03, Q04, Q05, Q07, Q10, Q11, Q12, Q22, Q44.
 - **Tests:**
   - The merge with a session on hand-built inputs; the session options and their config settings; the document's session part against the schema file and in a round trip.
 
@@ -1904,7 +1906,7 @@ tests/test_attribution_session.cpp: the work order's example on a scripted sessi
 - **New files:** `tests/test_attribution_session.cpp`.
 - **Round:** 2.
 - **Depends on:** WP09b, WP10.
-- **Blocked by:** Q01, Q04, Q07, Q10, Q11, Q22, Q44.
+- **Blocked by:** Q01, Q04, Q07, Q10, Q11, Q22, Q23, Q25, Q44.
 - **Tests:**
   - Test 3: the session drop lists the cue_out (scte35), a variant_switch between the planned entries (player), and a segment_request for the delayed segment with a duration at least the delay and status 200 (network).
 
@@ -1927,7 +1929,7 @@ TimelineLoad: the panel's loader, off the main thread with a stop token: reads a
 - **New files:** `src/TimelineLoad.h`, `src/TimelineLoad.cpp`, `src/TimelineView.h`, `src/TimelineView.cpp`, `src/TimelineMatch.h`, `src/TimelineMatch.cpp`, `tests/test_timeline_load.cpp`, `tests/test_timeline_view.cpp`, `tests/test_timeline_match.cpp`, `tests/test_hls_seek_behaviour.cpp`.
 - **Round:** 3.
 - **Depends on:** WP00c, WP01, WP03, WP07, WP08, WP09b.
-- **Blocked by:** Q01, Q02, Q06, Q36, Q37, Q39.
+- **Blocked by:** Q01, Q02, Q05, Q06, Q36, Q37, Q39.
 - **Tests:**
   - The loader on documents and reports the test writes: matching hashes accepted, a changed report refused, a redacted report accepted by its scores digest, an unknown version refused; the snapshot handed over once; a second load cancelling the first.
   - ui.md §5.1: view math; the envelope keeps a one-frame dip; hit testing; the click's interval; matching, including the cases where ManifestParser and VMAFLadder enumerate or resolve entries differently; playhead mapping across sequences; the seek decision for continuous, restarted and after-ad frames.
@@ -1952,19 +1954,29 @@ eval/timeline/: run_all.sh <build dir> <out> runs the acceptance cases with MIRA
 - **New files:** `eval/timeline/README.md`, `eval/timeline/run_all.sh`, `eval/timeline/check.py`, `eval/timeline/slow_server.py`, `eval/timeline/tests/test_check.py`.
 - **Round:** 3.
 - **Depends on:** WP09a, WP09b, WP10, WP11a, WP11b.
-- **Blocked by:** Q02, Q04, Q07, Q10, Q22, Q31.
+- **Blocked by:** Q02, Q04, Q07, Q10, Q22, Q23, Q25, Q31.
 - **Tests:**
   - check.py against fake documents, with the standard library's unittest, as eval/ladder/tests/ does.
 
-### WP15b The documents that wait for answers or results
+### WP15b The differences' wording and the gap report's correction
 
-Once the answers to Q41 and Q42 are in: Phase 3's PR description with §11's differences in the wording those answers settle; under Q42 (b), a dated correction line in docs/VMAF_GAP_REPORT.md for its factual error (design §11); the Phase 3 rows of docs/AI_CONTRIBUTIONS.md; docs/PAPER_METHOD_NOTES.md once there is something measured to state; dated lines in docs/DECISIONS.md's pending entries where the implementation found more (D-060); docs/PHASE3_STATUS.md last, item by item with the output that shows it. Every document and the PR description give the work order's requirements in their own words, quoting no passage of it (D-013, D-060), and none is edited to match the implementation; differences are listed.
+Once the answers to Q41 and Q42 are in: design §11's differences in the wording those answers settle, in the list of differences of docs/PHASE3_DECISIONS_PENDING.md, from which WP15c's PR description takes them; under Q42 (b), a dated correction line in docs/VMAF_GAP_REPORT.md for its factual error (design §11). Each gives the work order's requirements in its own words, quoting no passage of it (D-013, D-060), and neither is edited to match the implementation; differences are listed.
 
-- **New files:** `docs/PHASE3_STATUS.md`.
-- **Changed (owned):** docs/DECISIONS.md (after WP15a has merged); `docs/AI_CONTRIBUTIONS.md`; `docs/PAPER_METHOD_NOTES.md`; docs/VMAF_GAP_REPORT.md (only under Q42 (b)).
+- **Changed (owned):** docs/PHASE3_DECISIONS_PENDING.md (after WP15a has merged); docs/VMAF_GAP_REPORT.md (only under Q42 (b)).
 - **Round:** 3.
 - **Depends on:** WP15a.
 - **Blocked by:** Q41, Q42.
+- **Tests:**
+  - Before each commit: the cross-reference check and the quote check of P-AK, the checker's output kept as the record.
+
+### WP15c The closing documents and the PR description
+
+Last, once every package that is built has merged: those it depends on and, through them, every other package of design §14 but WP16 and WP17, which the lead adds to its dependencies when the owner's answers start them. The Phase 3 rows of docs/AI_CONTRIBUTIONS.md; docs/PAPER_METHOD_NOTES.md once there is something measured to state; dated lines in docs/DECISIONS.md's pending entries where the implementation found more (D-060); docs/PHASE3_STATUS.md completed item by item with the output that shows it; and Phase 3's PR description, with the differences in WP15b's wording and the acceptance outputs pasted in. Every document and the PR description give the work order's requirements in their own words, quoting no passage of it (D-013, D-060), and none is edited to match the implementation; differences are listed.
+
+- **Changed (owned):** `docs/PHASE3_STATUS.md`; docs/DECISIONS.md (after WP15a has merged); `docs/AI_CONTRIBUTIONS.md`; `docs/PAPER_METHOD_NOTES.md`.
+- **Round:** 3.
+- **Depends on:** WP09c, WP13, WP14, WP15b.
+- **Blocked by:** none.
 - **Tests:**
   - Before each commit, and before the PR description or any other text about Phase 3 is posted: the cross-reference check and the quote check of P-AK, the checker's output kept as the record.
 
@@ -2001,13 +2013,13 @@ Only under Q13 (b), with its D-007 plan approved: logging-only hooks in switch_v
 5. WP09a once WP01, WP02, WP03, WP04, WP06 and WP08 have merged.
 6. WP11a, §3.2's two acceptance tests, once WP09a and WP10 have merged.
 7. Round 2, once its questions are answered: WP00b once WP00a and WP01 have merged (under Q41 (b) the rename first); WP05 once WP04 has; WP07 once WP00b, WP01, WP02, WP03 and WP06 have; WP09b once WP09a and WP07 have; WP11b, the composite example, once WP09b and WP10 have; WP09c once WP09b and WP05 have.
-8. Round 3, once its questions are answered: WP00c under Q36, once WP00b has merged; WP12 once WP00c, WP01, WP03, WP07, WP08 and WP09b have; WP13 after WP12; WP17 only after WP13 (both own `src/main.cpp`) and WP07; WP16 whenever the owner's ruling or approved plan allows it, after WP03, WP06 and WP09c; WP14 once WP11a and WP11b have merged; WP15b once Q41 and Q42 are answered, its status document last.
+8. Round 3, once its questions are answered: WP00c under Q36, once WP00b has merged; WP12 once WP00c, WP01, WP03, WP07, WP08 and WP09b have; WP13 after WP12; WP17 only after WP13 (both own `src/main.cpp`) and WP07; WP16 whenever the owner's ruling or approved plan allows it, after WP03, WP06 and WP09c; WP14 once WP11a and WP11b have merged; WP15b once Q41 and Q42 are answered; WP15c last, once every package that is built has merged.
 
-The critical path to the two acceptance tests: WP00a, WP01, WP02, WP03, WP04, WP06, WP08, WP09a, WP10 and WP11a. Each of them depends only on packages of that list, and every question that blocks one of them is in round 1 (both checked by `design/tools/render.py`); D-069's ladders carry plain cue tags only (testgen.md §2.3), so the path needs neither the SCTE-35 decoder nor sessions. The composite example's path, to WP11b, adds WP00b, WP07, WP09b and WP11b, all of round 2; the SCTE-35 decoder (WP05) and the decoded messages (WP09c) are on neither path (checked), and nor are WP15a, WP00c, WP12, WP13, WP14, WP15b, WP16 and WP17.
+The critical path to the two acceptance tests: WP00a, WP01, WP02, WP03, WP04, WP06, WP08, WP09a, WP10 and WP11a. Each of them depends only on packages of that list, and every question that blocks one of them is in round 1 (both checked by `design/tools/render.py`); D-069's ladders carry plain cue tags only (testgen.md §2.3), so the path needs neither the SCTE-35 decoder nor sessions. The composite example's path, to WP11b, adds WP00b, WP07, WP09b and WP11b, all of round 2; the SCTE-35 decoder (WP05) and the decoded messages (WP09c) are on neither path (checked), and nor are WP15a, WP00c, WP12, WP13, WP14, WP15b, WP15c, WP16 and WP17.
 
 The path assumes the agent's recommendations for Q01 and Q08, under which the scorer is unchanged. Under Q08 (b) the analyzer's recording of each frame's segment and key flag, WP16's part for it, moves into round 1 ahead of WP06, which then reads the map from the report, and the acceptance tests wait for the owner's ruling under D-007 or approved plan; under Q01 (C) the same holds for the per-variant events, which WP04 and WP06 would then read from the report; under Q01 (A) WP08 writes into the ladder report, whose writer and tests it then owns. The lead would re-plan those packages before round 1 starts.
 
-Packages no question blocks, which can start now: WP15a. The questions that block three packages or more: Q04 (WP00a, WP04, WP08, WP09a, WP11a, WP05, WP07, WP09b, WP11b, WP14); Q22 (WP02, WP08, WP09a, WP11a, WP07, WP09b, WP11b, WP14); Q01 (WP00a, WP08, WP09a, WP11a, WP11b, WP12, WP16); Q02 (WP00a, WP01, WP08, WP09a, WP11a, WP12, WP14); Q07 (WP00a, WP08, WP09a, WP07, WP09b, WP11b, WP14); Q10 (WP00b, WP07, WP09b, WP11b, WP14, WP16); Q43 (WP01, WP02, WP03, WP04, WP06, WP09a); Q11 (WP00b, WP07, WP09b, WP11b, WP17); Q03 (WP00a, WP08, WP07, WP09b); Q06 (WP03, WP08, WP09a, WP12); Q08 (WP00a, WP06, WP09a, WP16); Q12 (WP00b, WP07, WP09b, WP16); Q28 (WP01, WP08, WP09a, WP07); Q29 (WP01, WP08, WP09a, WP11a); Q31 (WP00a, WP09a, WP11a, WP14); Q44 (WP05, WP07, WP09b, WP11b); Q24 (WP02, WP08, WP09a); Q25 (WP02, WP08, WP11a); Q26 (WP02, WP08, WP09a); Q27 (WP02, WP08, WP09a); Q30 (WP01, WP08, WP09a); Q36 (WP00c, WP12, WP13); Q41 (WP00b, WP07, WP15b).
+Packages of round 0, which wait for no answer and can start now: WP15a. The questions that block three packages or more: Q04 (WP00a, WP04, WP08, WP09a, WP11a, WP05, WP07, WP09b, WP11b, WP14); Q01 (WP00a, WP08, WP09a, WP11a, WP09b, WP11b, WP12, WP16); Q22 (WP02, WP08, WP09a, WP11a, WP07, WP09b, WP11b, WP14); Q02 (WP00a, WP01, WP08, WP09a, WP11a, WP12, WP14); Q07 (WP00a, WP08, WP09a, WP07, WP09b, WP11b, WP14); Q43 (WP00a, WP01, WP02, WP03, WP04, WP06, WP09a); Q10 (WP00b, WP07, WP09b, WP11b, WP14, WP16); Q11 (WP00b, WP07, WP09b, WP11b, WP17); Q23 (WP02, WP08, WP11a, WP11b, WP14); Q25 (WP02, WP08, WP11a, WP11b, WP14); Q44 (WP00b, WP05, WP07, WP09b, WP11b); Q03 (WP00a, WP08, WP07, WP09b); Q05 (WP00a, WP08, WP09b, WP12); Q06 (WP03, WP08, WP09a, WP12); Q08 (WP00a, WP06, WP09a, WP16); Q12 (WP00b, WP07, WP09b, WP16); Q28 (WP01, WP08, WP09a, WP07); Q29 (WP01, WP08, WP09a, WP11a); Q31 (WP00a, WP09a, WP11a, WP14); Q20 (WP00a, WP04, WP09a); Q24 (WP02, WP08, WP09a); Q26 (WP02, WP08, WP09a); Q27 (WP02, WP08, WP09a); Q30 (WP01, WP08, WP09a); Q36 (WP00c, WP12, WP13); Q41 (WP00b, WP07, WP15b).
 
 ---
 
@@ -2023,7 +2035,7 @@ Packages no question blocks, which can start now: WP15a. The questions that bloc
 - **R8.** Top-rung mode hides a defect present in the top rung too (D-002's limit; testgen.md §5), and mezzanine mode can't score a stitched ladder against a one-file mezzanine (76.92% of frames failed, testgen.md §3.5).
 - **R9.** ctest runs each Catch2 test case in its own process (review-adversarial/runs/ctest-registration.txt), so a ladder is generated once in each test case that uses it: seven generations per ctest run under Q34 (d), with P-Q's single acceptance test case (design §9.5). The prototype took 16.941 s per ladder unoptimized and 2.022 to 2.313 s optimized (testgen.md §3.4); the ported generator's time and the tests' time in a Debug build are MEASUREMENT PENDING.
 - **R10.** Generated bytes may differ on another machine or x264 build (only one machine was used, testgen.md §3.3); the tests compare behaviour, not hashes.
-- **R11.** Seconds, not events, are off where the clocks of Q02 (c) and (d) part: after one simulated missing frame (d) was 0.040 s early, after an ad re-timed at 24 to 60 fps 0.083 to 1.167 s off, and after one EXTINF simulated a frame too long (c) was 0.040 s late (design/runs/seconds-check.txt). Design §4.2's check warned in each of these cases and on none of the four ladders checked; without a segment map a playlist reference's PTS runs are listed as facts only, and how often D-011's references trip the check is MEASUREMENT PENDING.
+- **R11.** Seconds, not events, are off where the clocks of Q02 (c) and (d) part: after one simulated missing frame (d) was 0.040 s early, after an ad re-timed at 24 to 60 fps 0.083 to 1.167 s off, and after one EXTINF simulated a frame too long (c) was 0.040 s late (design/runs/seconds-check.txt). Design §4.2's check warned in each of these cases and on none of the four ladders checked; without a segment map a playlist reference's PTS runs are listed as facts only, and how often D-011's references trip the check is MEASUREMENT PENDING. A reference frame missing at the start of a playlist discontinuity sequence puts both clocks a frame early within its segment, where neither test of the check warns, and (d) alone from the next segment on, where (1) warns but can't tell it from an EXTINF a frame too long (review-3/runs/seconds-check-sequence-start.txt).
 - **R12.** The player can't seek to the frames of an ad whose timestamps restart at 0.040 s (ui.md §2.4); an ad that restarts at the main content's origin, as D-069's does, was not probed (MEASUREMENT PENDING). Q37 decides what the panel does there.
 - **R13.** The JSON reader's memory and time on a full ladder report (27969051 bytes of text for the advanced sample, schema.md §3.3): MEASUREMENT PENDING (P-Y).
 - **R14.** Published SCTE-35 examples are often invalid (18 of 79 have a bad CRC or don't decode, scte35.md §5), so the policies of Q14 to Q17 change what attributions show on real streams.
@@ -2069,7 +2081,7 @@ Packages no question blocks, which can start now: WP15a. The questions that bloc
 
 `design/tools/run.sh <name> <dir> <command…>` writes the record (working directory, exact command, start and end in UTC, full output, exit status), with local paths replaced by `<out>`, `<repo>` and `<scratch>`. The three Python tools of `design/tools/` that read testgen's reports and layouts in `<out>/testgen/reports/` (`axis_check.py`, `detection_semantics.py`, `seconds_check.py`) write nothing but their records; `axis_check.py` is kept as revision 1 left it, since its record and the second review's `rate-change-check` were made with it.
 
-**The first review's runs** (`<out>/review-adversarial/runs/`), cited by name: `axis-d-check` (the first version's check applied to testgen's reports), `ctest-registration` (how ctest runs the Catch2 test cases), `switch-t-sweep` (a switch alone under Q22 (b), as T changes). **The second review's runs** (`<out>/review-2/runs/`), cited by name: `rate-change-check` (revision 1's check on the ad's frames re-timed at other rates, simulated).
+**The first review's runs** (`<out>/review-adversarial/runs/`), cited by name: `axis-d-check` (the first version's check applied to testgen's reports), `ctest-registration` (how ctest runs the Catch2 test cases), `switch-t-sweep` (a switch alone under Q22 (b), as T changes). **The second review's runs** (`<out>/review-2/runs/`), cited by name: `rate-change-check` (revision 1's check on the ad's frames re-timed at other rates, simulated). **The third review's runs** (`<out>/review-3/runs/`), cited by name: `seconds-check-sequence-start` (revision 2's check with the first frame of each of the ad ladder's playlist discontinuity sequences removed, simulated), `vector-status` (the CRC and decode status of the collected messages, from the scte35 survey's record).
 
 **The two designs' runs**, cited by name:
 
@@ -2216,10 +2228,12 @@ MessageEvents scte35_events(const std::vector<CueInput>&, std::vector<Event>& pl
                             const std::vector<VariantMedia>&, const LadderScores&, const CueOptions&);
 }
 
-// src/SessionPlan.h — sessions (WP07; types declared by WP00b).
+// src/SessionPlan.h — sessions and their fetched requests (WP07; types declared by WP00b).
 namespace timeline {
 struct PlanSpan { std::size_t entry = 0; std::int64_t first_seq = 0, last_seq = 0; };
 struct SessionPlan { std::string name; std::vector<PlanSpan> spans; };
+struct RequestRow { /* one NetworkLogger row: URL, status, status text, times, bytes, error */ };
+struct Request { std::string file; std::vector<RequestRow> chain; };      // one fetched file (Q44 (d))
 SessionPlan parse_session_plan(std::string_view json, std::string& err);   // Q11, Q44 (a)
 std::vector<Drop> session_drops(const Timeline&, int session, const DetectOptions&);   // Q22, §6.3
 }
@@ -2233,13 +2247,11 @@ struct VariantMedia {                                 // from the demux pass (or
     std::vector<std::int64_t> pts;                    // per frame, ticks
     std::string refused;                              // why the map was refused (Q43 (c))
 };
-struct RequestRow { /* one NetworkLogger row: URL, status, status text, times, bytes, error */ };
-struct Request { std::string file; std::vector<RequestRow> chain; };      // one fetched file (Q44 (d))
 struct BuildInputs {
     LadderScores scores;
     std::vector<PlaylistEvents> playlists;            // parallel to the variants
     std::vector<VariantMedia>   media;
-    std::optional<SessionPlan>  plan;  std::vector<Request> requests;     // round 2
+    std::optional<SessionPlan>  plan;  std::vector<Request> requests;     // round 2, added by WP09b
     std::string axis_kind;  CueOptions cues;
 };
 Timeline build(const BuildInputs&);                   // warnings in Timeline::warnings

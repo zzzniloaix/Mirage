@@ -29,7 +29,7 @@
 
 `design/tools/run.sh <name> <dir> <command…>` writes the record (working directory, exact command, start and end in UTC, full output, exit status), with local paths replaced by `<out>`, `<repo>` and `<scratch>`. The three Python tools of `design/tools/` that read testgen's reports and layouts in `<out>/testgen/reports/` (`axis_check.py`, `detection_semantics.py`, `seconds_check.py`) write nothing but their records; `axis_check.py` is kept as revision 1 left it, since its record and the second review's `rate-change-check` were made with it.
 
-**The first review's runs** (`<out>/review-adversarial/runs/`), cited by name: `axis-d-check` (the first version's check applied to testgen's reports), `ctest-registration` (how ctest runs the Catch2 test cases), `switch-t-sweep` (a switch alone under Q22 (b), as T changes). **The second review's runs** (`<out>/review-2/runs/`), cited by name: `rate-change-check` (revision 1's check on the ad's frames re-timed at other rates, simulated).
+**The first review's runs** (`<out>/review-adversarial/runs/`), cited by name: `axis-d-check` (the first version's check applied to testgen's reports), `ctest-registration` (how ctest runs the Catch2 test cases), `switch-t-sweep` (a switch alone under Q22 (b), as T changes). **The second review's runs** (`<out>/review-2/runs/`), cited by name: `rate-change-check` (revision 1's check on the ad's frames re-timed at other rates, simulated). **The third review's runs** (`<out>/review-3/runs/`), cited by name: `seconds-check-sequence-start` (revision 2's check with the first frame of each of the ad ladder's playlist discontinuity sequences removed, simulated), `vector-status` (the CRC and decode status of the collected messages, from the scte35 survey's record).
 
 **The two designs' runs**, cited by name:
 
@@ -176,10 +176,12 @@ MessageEvents scte35_events(const std::vector<CueInput>&, std::vector<Event>& pl
                             const std::vector<VariantMedia>&, const LadderScores&, const CueOptions&);
 }
 
-// src/SessionPlan.h — sessions (WP07; types declared by WP00b).
+// src/SessionPlan.h — sessions and their fetched requests (WP07; types declared by WP00b).
 namespace timeline {
 struct PlanSpan { std::size_t entry = 0; std::int64_t first_seq = 0, last_seq = 0; };
 struct SessionPlan { std::string name; std::vector<PlanSpan> spans; };
+struct RequestRow { /* one NetworkLogger row: URL, status, status text, times, bytes, error */ };
+struct Request { std::string file; std::vector<RequestRow> chain; };      // one fetched file (Q44 (d))
 SessionPlan parse_session_plan(std::string_view json, std::string& err);   // Q11, Q44 (a)
 std::vector<Drop> session_drops(const Timeline&, int session, const DetectOptions&);   // Q22, §6.3
 }
@@ -193,13 +195,11 @@ struct VariantMedia {                                 // from the demux pass (or
     std::vector<std::int64_t> pts;                    // per frame, ticks
     std::string refused;                              // why the map was refused (Q43 (c))
 };
-struct RequestRow { /* one NetworkLogger row: URL, status, status text, times, bytes, error */ };
-struct Request { std::string file; std::vector<RequestRow> chain; };      // one fetched file (Q44 (d))
 struct BuildInputs {
     LadderScores scores;
     std::vector<PlaylistEvents> playlists;            // parallel to the variants
     std::vector<VariantMedia>   media;
-    std::optional<SessionPlan>  plan;  std::vector<Request> requests;     // round 2
+    std::optional<SessionPlan>  plan;  std::vector<Request> requests;     // round 2, added by WP09b
     std::string axis_kind;  CueOptions cues;
 };
 Timeline build(const BuildInputs&);                   // warnings in Timeline::warnings

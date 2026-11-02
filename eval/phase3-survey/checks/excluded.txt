@@ -1,7 +1,7 @@
 command (cwd: this directory): python3 -I checks/list_excluded.py <survey directory> .
-date_utc: 2026-11-02T18:32:32Z
+date_utc: 2026-11-02T18:36:26Z
 output (stdout and stderr):
-survey directory: 1638 files; this directory: 1105 files
+survey directory: 1641 files; this directory: 1108 files
 left out: 565 files
 
 == generated media: 426 files
@@ -656,5 +656,5 @@ left out: 565 files
    review-docs/tools/sweep_grid.py
    review-docs/verify.md
 
-== sizes here: 12665411 bytes in 1105 files; the largest, design.md, 273449 bytes; 0 files over 1000000 bytes
+== sizes here: 12711276 bytes in 1108 files; the largest, design.md, 279519 bytes; 0 files over 1000000 bytes
 exit=0

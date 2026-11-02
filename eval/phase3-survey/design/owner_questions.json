@@ -31,6 +31,7 @@
       "WP08",
       "WP09a",
       "WP11a",
+      "WP09b",
       "WP11b",
       "WP12",
       "WP16"
@@ -54,7 +55,7 @@
       },
       {
         "label": "(c) Reference frames; seconds of the reference's playlist time",
-        "description": "Each frame at its segment's EXTINF sum plus its PTS offset in the segment: equal to (d) on the four ladders checked, and right through a missing frame or a change of rate, after which (d) was 0.040 s and 0.083 to 1.167 s off (simulated, design/runs/seconds-check.txt). It is off instead where an EXTINF doesn't match its segment's frames, which RFC 8216 §4.3.2.1 advises against (0.040 s after one EXTINF simulated a frame too long, same run). It needs the reference's segment map, so a reference without one (a mezzanine, a refused map) falls back to (d)."
+        "description": "Each frame at its segment's EXTINF sum plus its PTS offset in the segment: equal to (d) on the four ladders checked, and right through a missing frame or a change of rate, after which (d) was 0.040 s and 0.083 to 1.167 s off (simulated, design/runs/seconds-check.txt), except within a segment that lost its playlist discontinuity sequence's first frame, where both were a frame early (review-3/runs/seconds-check-sequence-start.txt). It is off instead where an EXTINF doesn't match its segment's frames, which RFC 8216 §4.3.2.1 advises against (0.040 s after one EXTINF simulated a frame too long, same run). It needs the reference's segment map, so a reference without one (a mezzanine, a refused map) falls back to (d)."
       },
       {
         "label": "(d) Reference frames; seconds = frame index times the frame duration",
@@ -62,7 +63,7 @@
       }
     ],
     "agent_recommendation": "(c), falling back to (d) where the reference has no segment map, with design §4.2's check; (d) alone a close second",
-    "why": "Frames make the events an interval lists exact and independent of the seconds (design-evaluation runs 07 and 08 showed doubles listing boundary events inconsistently). Since design §4.2's check computes both wherever the reference has a segment map, the choice is which seconds to print where they differ: (c) stays right after a missing frame or a change of rate, and RFC 8216 §4.3.2.3 puts changes of encoding parameters at discontinuities such as an ad's, while (c) is off only where an EXTINF departs from its frames; (d) gives every reference and both reference modes one definition, the better choice if the owner expects rounded or integer EXTINF.",
+    "why": "Frames make the events an interval lists exact and independent of the seconds (design-evaluation runs 07 and 08 showed doubles listing boundary events inconsistently). Since design §4.2's check computes both wherever the reference has a segment map, the choice is which seconds to print where they differ: (c) stays right after a missing frame or a change of rate (from the next segment on if the frame missing is a sequence's first), and RFC 8216 §4.3.2.3 puts changes of encoding parameters at discontinuities such as an ad's, while (c) is otherwise off only where an EXTINF departs from its frames; (d) gives every reference and both reference modes one definition, the better choice if the owner expects rounded or integer EXTINF.",
     "blocks": [
       "WP00a",
       "WP01",
@@ -168,7 +169,9 @@
     "why": "A new format costs nothing to version from its first day, its schema can be cited, and P-006's confirmed rule for the commit stays.",
     "blocks": [
       "WP00a",
-      "WP08"
+      "WP08",
+      "WP09b",
+      "WP12"
     ]
   },
   {
@@ -500,7 +503,7 @@
     "round": 2,
     "d007": false,
     "summary": "Q16 decides what happens to an SCTE-35 message with a bad CRC_32; the agent recommends keeping it, marked crc_valid: false with a warning, with an option to drop such messages.",
-    "question": "Of 79 published messages collected, 9 have a bad CRC_32, 3 of them a library's intended negative tests (scte35.md §5). What does Phase 3 do with such a message?",
+    "question": "Of 79 published messages collected, 9 have a bad CRC_32, 1 of them a library's intended negative test (scte35.md §5; scte35_evidence/runs/check_vectors.txt; review-3/runs/vector-status.txt; the survey's summary, scte35.md §0 item 5, gives 3 in error). What does Phase 3 do with such a message?",
     "options": [
       {
         "label": "(a) Kept, marked",
@@ -630,7 +633,8 @@
     "why": "Without DASH scoring, DASH events would reach no curve.",
     "blocks": [
       "WP00a",
-      "WP04"
+      "WP04",
+      "WP09a"
     ]
   },
   {
@@ -731,7 +735,10 @@
     "why": "It was exact across the measured grid, is robust to outliers, and a drop doesn't pull its baseline down; its blind start is written in the document's detection record and tested (WP02).",
     "blocks": [
       "WP02",
-      "WP08"
+      "WP08",
+      "WP11a",
+      "WP11b",
+      "WP14"
     ]
   },
   {
@@ -789,7 +796,9 @@
     "blocks": [
       "WP02",
       "WP08",
-      "WP11a"
+      "WP11a",
+      "WP11b",
+      "WP14"
     ]
   },
   {
@@ -1507,6 +1516,7 @@
     "agent_recommendation": "(a) 1; (b) 1; (c) 1; (d) 1; (e) 1; (f) 1; (g) 1; (h) 1",
     "why": "Each recommended default keeps what the data shows, places nothing it can't place exactly, and says in the document what it left out.",
     "blocks": [
+      "WP00a",
       "WP01",
       "WP02",
       "WP03",
@@ -1648,6 +1658,7 @@
     "agent_recommendation": "(a) 1; (b) 1; (c) 1; (d) 1; (e) 1; (f) 1; (g) 1",
     "why": "Each recommended default records what was planned or observed without inferring more, one signal stays one event, and the fetch is as quick as its server allows.",
     "blocks": [
+      "WP00b",
       "WP05",
       "WP07",
       "WP09b",

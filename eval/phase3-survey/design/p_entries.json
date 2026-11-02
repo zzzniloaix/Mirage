@@ -11,7 +11,7 @@
   },
   {
     "title": "P-C Build wiring",
-    "choice": "Per-target source lists, as CMakeLists.txt has them (150-194, 233-246, 264-329). CMakeLists.txt is changed only by the wiring packages, one commit per round (WP00a, WP00b, WP00c), each adding that round's files as empty compiling files with their lines once the answers that decide them are in, and by one wiring commit the lead makes when a conditional package (WP16, WP17) starts; no other package edits it, so parallel packages never conflict there. The edits come one at a time: each wiring package depends on the one before it, and the lead's commit for a conditional package is made while no wiring package is open.",
+    "choice": "Per-target source lists, as CMakeLists.txt has them (150-194, 233-246, 264-329). CMakeLists.txt is changed only by the wiring packages, one commit per round (WP00a, WP00b, WP00c), each adding, as empty compiling files with their lines, the files whose existence that round's answers or the owner's decisions settle, once those answers are in, and by one wiring commit the lead makes when a conditional package (WP16, WP17) starts; no other package edits it, so parallel packages never conflict there. The edits come one at a time: each wiring package depends on the one before it, and the lead's commit for a conditional package is made while no wiring package is open.",
     "alternatives": "A CMake OBJECT library linked into the three targets (design-library P-A), a pattern the build doesn't use yet; one skeleton commit for every round's files at once, which would wire files whose existence later answers decide; each package editing CMakeLists.txt, which the lead then merges."
   },
   {

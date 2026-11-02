@@ -12,7 +12,7 @@
     "changed_files": [
       "docs/DECISIONS.md"
     ],
-    "description": "Now, before any answer, since no answer changes them: docs/PHASE3_DECISIONS_PENDING.md with §12's questions by round, §11's differences and §13's P-entries, each pending; docs/plans/timeline-ui.md, design §10 as the written D-007 plan for the owner to approve; §13's P-entries appended to docs/DECISIONS.md from P-081 on, each marked pending (entries only added, D-060). Each gives the work order's requirements in its own words, quoting no passage of it (D-013, D-060). The lead then records the owner's answers as those of each round come in (P-AH).",
+    "description": "Now, before any answer, since no answer changes them: docs/PHASE3_DECISIONS_PENDING.md with §12's questions by round, §11's differences and §13's P-entries, each pending; docs/plans/timeline-ui.md, design §10 as the written D-007 plan for the owner to approve; §13's P-entries appended to docs/DECISIONS.md from P-082 on, each marked pending (entries only added, D-060). Each gives the work order's requirements in its own words, quoting no passage of it (D-013, D-060). The lead then records the owner's answers as those of each round come in (P-AH).",
     "tests": [
       "Before each commit: a cross-reference check of every cited file:line, decision and run record, and the quote check of every committed document against the work order's translation, kept outside the repository, whose output names files and lines only (P-AK)."
     ]
@@ -32,10 +32,11 @@
       "Q08",
       "Q20",
       "Q31",
-      "Q32"
+      "Q32",
+      "Q43"
     ],
     "new_files": [
-      "the empty files of round 1's packages listed in design §3.2, and the shared declarations (contents then owned by WP01 to WP11a)"
+      "the empty files of design §3.2 whose existence the owner's decisions or round 1's answers settle: those of round 1's packages, and of round 2's src/SessionPlan.{h,cpp}, src/Scte35.{h,cpp}, src/Scte35Events.{h,cpp}, tests/test_session_plan.cpp, tests/test_scte35.cpp, tests/test_scte35_events.cpp and tests/test_attribution_session.cpp, which D-068 and D-070 settle; and the shared declarations (contents then owned by WP01 to WP11b)"
     ],
     "changed_files": [
       "CMakeLists.txt"
@@ -75,7 +76,7 @@
     "tests": [
       "Canonical order and deterministic ids; the overlap index against brute force on random events; points and spans at exact boundaries; empty intervals.",
       "The axis on hand-made reports: PTS that restart at the main content's origin, a forward jump under 10 s, a coarser-grid pair; the seconds of Q02's option and of its fallback; seconds to frames for durations and intervals.",
-      "The check of design §4.2 on reports and segment maps the test writes in the shapes of design/runs/seconds-check.txt: no warning on the D-069 ad shape with its map, and its run of frames 125 to 199 listed as a fact without one; a missing reference frame (in the last segment too), an ad at 24 and at 30 fps after its discontinuity, and an EXTINF one frame too long each warned at the frames that record gives, the PTS check (2) warning for the first two and not for the third; a reference that isn't a playlist warned where its PTS change rate.",
+      "The check of design §4.2 on reports and segment maps the test writes in the shapes of design/runs/seconds-check.txt: no warning on the D-069 ad shape with its map, and its run of frames 125 to 199 listed as a fact without one; a missing reference frame (in the last segment too), an ad at 24 and at 30 fps after its discontinuity, and an EXTINF one frame too long each warned at the frames that record gives, the PTS check (2) warning for the first two and not for the third; a reference frame missing at the start of each playlist discontinuity sequence, in the shapes of review-3/runs/seconds-check-sequence-start.txt, warned by (1) alone, from the next segment on; a reference that isn't a playlist warned where its PTS change rate.",
       "The scope filter for a pair's curve, the group order, exact offsets, margins."
     ]
   },
@@ -248,6 +249,7 @@
       "Q07",
       "Q08",
       "Q19",
+      "Q20",
       "Q22",
       "Q24",
       "Q26",
@@ -312,6 +314,7 @@
       "Q02",
       "Q04",
       "Q22",
+      "Q23",
       "Q25",
       "Q29",
       "Q31",
@@ -341,7 +344,8 @@
       "Q10",
       "Q11",
       "Q12",
-      "Q41"
+      "Q41",
+      "Q44"
     ],
     "new_files": [
       "the empty files of SessionFetch and its test"
@@ -350,9 +354,10 @@
       "CMakeLists.txt",
       "src/VMAFNet.h (a comment only)",
       "src/TimelineModel.h (the session declarations, through the lead)",
+      "src/SessionPlan.h (the session plan's and the fetch's types, through the lead)",
       "src/NetworkLogger.h, src/NetworkLogger.cpp and the 19 other files that name NetworkLogger, src/main.cpp, src/Demuxer.cpp, src/ManifestParser.cpp and src/NetInspectorAlign.cpp among them (only under Q41 (b))"
     ],
-    "description": "One commit once round 2's answers are in: SessionFetch's files and test as empty files with their CMake lines, under Q10 (a) or (b); under Q10 (a), src/NetworkLogger.cpp added to mirage_vmaf, and the two comments that would then be wrong or misleading reworded: CMakeLists.txt:229-232 (mirage_vmaf's ladder scoring still reads playlists itself; the timeline fetch uses the network logger) and src/VMAFNet.h:8-9 (mirage_vmaf then links the network logger); the session declarations, encoding Q11 and Q12, added to the shared headers through the lead (P-AG): Span, Session, Timeline::sessions, CurveRef's session kind, PlanSpan and Request. Under Q41 (b), first and as a commit of its own, NetworkLogger renamed throughout, under the owner's ruling under D-007 or an approved plan, since src/Demuxer.cpp and src/main.cpp are among the 21 files that name it (design/runs/networklogger-users.txt).",
+    "description": "One commit once round 2's answers are in: SessionFetch's files and test as empty files with their CMake lines, under Q10 (a) or (b); under Q10 (a), src/NetworkLogger.cpp added to mirage_vmaf, and the two comments that would then be wrong or misleading reworded: CMakeLists.txt:229-232 (mirage_vmaf's ladder scoring still reads playlists itself; the timeline fetch uses the network logger) and src/VMAFNet.h:8-9 (mirage_vmaf then links the network logger); the session declarations, encoding Q11, Q12 and Q44 (d), added through the lead (P-AG) to headers WP00a created: Span, Session, Timeline::sessions and CurveRef's session kind in src/TimelineModel.h; PlanSpan, SessionPlan, RequestRow and Request in src/SessionPlan.h, whose contents WP07 then owns. Under Q41 (b), first and as a commit of its own, NetworkLogger renamed throughout, under the owner's ruling under D-007 or an approved plan, since src/Demuxer.cpp and src/main.cpp are among the 21 files that name it (design/runs/networklogger-users.txt).",
     "tests": [
       "The presets build and ctest passes as before; the compile-only test includes the new headers.",
       "Under Q41 (b), the same after the rename, tests/test_network_logger.cpp included."
@@ -446,8 +451,10 @@
       "WP07"
     ],
     "blocked_by_questions": [
+      "Q01",
       "Q03",
       "Q04",
+      "Q05",
       "Q07",
       "Q10",
       "Q11",
@@ -515,6 +522,8 @@
       "Q10",
       "Q11",
       "Q22",
+      "Q23",
+      "Q25",
       "Q44"
     ],
     "new_files": [
@@ -563,6 +572,7 @@
     "blocked_by_questions": [
       "Q01",
       "Q02",
+      "Q05",
       "Q06",
       "Q36",
       "Q37",
@@ -639,6 +649,8 @@
       "Q07",
       "Q10",
       "Q22",
+      "Q23",
+      "Q25",
       "Q31"
     ],
     "new_files": [
@@ -656,7 +668,7 @@
   },
   {
     "id": "WP15b",
-    "title": "The documents that wait for answers or results",
+    "title": "The differences' wording and the gap report's correction",
     "round": 3,
     "depends_on": [
       "WP15a"
@@ -665,16 +677,35 @@
       "Q41",
       "Q42"
     ],
-    "new_files": [
-      "docs/PHASE3_STATUS.md"
-    ],
+    "new_files": [],
     "changed_files": [
-      "docs/DECISIONS.md (after WP15a has merged)",
-      "docs/AI_CONTRIBUTIONS.md",
-      "docs/PAPER_METHOD_NOTES.md",
+      "docs/PHASE3_DECISIONS_PENDING.md (after WP15a has merged)",
       "docs/VMAF_GAP_REPORT.md (only under Q42 (b))"
     ],
-    "description": "Once the answers to Q41 and Q42 are in: Phase 3's PR description with §11's differences in the wording those answers settle; under Q42 (b), a dated correction line in docs/VMAF_GAP_REPORT.md for its factual error (design §11); the Phase 3 rows of docs/AI_CONTRIBUTIONS.md; docs/PAPER_METHOD_NOTES.md once there is something measured to state; dated lines in docs/DECISIONS.md's pending entries where the implementation found more (D-060); docs/PHASE3_STATUS.md last, item by item with the output that shows it. Every document and the PR description give the work order's requirements in their own words, quoting no passage of it (D-013, D-060), and none is edited to match the implementation; differences are listed.",
+    "description": "Once the answers to Q41 and Q42 are in: design §11's differences in the wording those answers settle, in the list of differences of docs/PHASE3_DECISIONS_PENDING.md, from which WP15c's PR description takes them; under Q42 (b), a dated correction line in docs/VMAF_GAP_REPORT.md for its factual error (design §11). Each gives the work order's requirements in its own words, quoting no passage of it (D-013, D-060), and neither is edited to match the implementation; differences are listed.",
+    "tests": [
+      "Before each commit: the cross-reference check and the quote check of P-AK, the checker's output kept as the record."
+    ]
+  },
+  {
+    "id": "WP15c",
+    "title": "The closing documents and the PR description",
+    "round": 3,
+    "depends_on": [
+      "WP09c",
+      "WP13",
+      "WP14",
+      "WP15b"
+    ],
+    "blocked_by_questions": [],
+    "new_files": [],
+    "changed_files": [
+      "docs/PHASE3_STATUS.md",
+      "docs/DECISIONS.md (after WP15a has merged)",
+      "docs/AI_CONTRIBUTIONS.md",
+      "docs/PAPER_METHOD_NOTES.md"
+    ],
+    "description": "Last, once every package that is built has merged: those it depends on and, through them, every other package of design §14 but WP16 and WP17, which the lead adds to its dependencies when the owner's answers start them. The Phase 3 rows of docs/AI_CONTRIBUTIONS.md; docs/PAPER_METHOD_NOTES.md once there is something measured to state; dated lines in docs/DECISIONS.md's pending entries where the implementation found more (D-060); docs/PHASE3_STATUS.md completed item by item with the output that shows it; and Phase 3's PR description, with the differences in WP15b's wording and the acceptance outputs pasted in. Every document and the PR description give the work order's requirements in their own words, quoting no passage of it (D-013, D-060), and none is edited to match the implementation; differences are listed.",
     "tests": [
       "Before each commit, and before the PR description or any other text about Phase 3 is posted: the cross-reference check and the quote check of P-AK, the checker's output kept as the record."
     ]

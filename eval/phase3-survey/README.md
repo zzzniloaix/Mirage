@@ -44,13 +44,13 @@ drafts and of this copy after that (the last section).
 | `ui.md` | survey: the player's UI, and a plan for the timeline panel |
 | `design-library.md` | design, library first |
 | `design-evaluation.md` | design, written back from the paper's evaluation |
-| `design.md` | the merged design, revised twice: the design of Phase 3, rendered from `design/` by `design/tools/render.py` |
-| `design/` | its sources (`src/part1.md`, `src/part2.md`), its data (`owner_questions.json`, `work_packages.json`, `p_entries.json`, `risks.json`), the logs of its two revisions (`revision-1.md`, `revision-2.md`), its tools and its runs (`runs/`; `design.md`, Appendix A) |
+| `design.md` | the merged design, revised three times: the design of Phase 3, rendered from `design/` by `design/tools/render.py` |
+| `design/` | its sources (`src/part1.md`, `src/part2.md`), its data (`owner_questions.json`, `work_packages.json`, `p_entries.json`, `risks.json`), the logs of its three revisions (`revision-1.md` to `revision-3.md`), its tools and its runs (`runs/`; `design.md`, Appendix A) |
 | `review-adversarial/` | the first review, of the merged design before its revisions: `review.json`, its tools and its runs |
 | `review-2/` | the second review, of revision 1: `review.md`, `review.json`, its tools and its runs |
 | `review-3/` | the third review, of revision 2: `review.md`, `review.json`, its tools and its runs |
 | `review-docs/` | the check of the drafts of `docs/PHASE3_SURVEY.md`, `docs/PHASE3_DECISIONS_PENDING.md` and `docs/PHASE3_STATUS.md`, and of this copy: `verify.md`, its tools and its runs |
-| `results/` | each survey's and each design's summary as its agent returned it, and the merge's (`design-merged.json`, returned before the two revisions) |
+| `results/` | each survey's and each design's summary as its agent returned it, and the merge's (`design-merged.json`, returned before the revisions) |
 | `runs/` | `sources.md`'s runs, one directory each (`cmd.txt`, `output.txt`, `exit.txt`); `runs/fixture-data/` keeps the fixture's playlists |
 | `probe/` | `sources.md`'s probes (C++ on FFmpeg's library APIs) and their scripts |
 | `ffmpeg-n8.1.1-src/FETCHED.txt`, `rfc/FETCHED.txt` | what `sources.md` fetched to check its citations, from where, with SHA-256 (the copies were removed by that survey) |
@@ -273,8 +273,10 @@ Added on 2026-11-01, once the design's revision was done, from the team's survey
 files, none of the survey directory's files under these paths left out, and all but one copied
 byte for byte (`checks/excluded.txt`).
 
-- `design.md`, the design of Phase 3 as revision 2 left it, which the third review reviewed, and
-  `design/`, its 24 source, data, tool and record files. `design.md` is rendered from `design/` by `design/tools/render.py`, and the
+- `design.md`, the design of Phase 3 as revision 3 left it, and `design/`, its 27 source, data,
+  tool and record files. The first commit of this copy had revision 2, which the third review read,
+  with 24; revision 3, the lead agent's, added its log (`design/revision-3.md`), its tool
+  (`design/tools/revise3.py`) and a record, and made five records again. `design.md` is rendered from `design/` by `design/tools/render.py`, and the
   third review found it byte-identical to the render of a copy of `design/`
   (`review-3/runs/render-cmp.txt`). Its own records are in `design/runs/`, listed in its Appendix A.
 - `review-adversarial/` (11 files), the first review, of the merged design as first written;
@@ -284,18 +286,19 @@ byte for byte (`checks/excluded.txt`).
   writes the paths named above as `<out>`, `<repo>` and `<scratch>`; `review-3/tools/run.sh` is a
   copy of `design/tools/run.sh`. `<scratch>/phase3/records/phase3-survey/`, which `review-2/review.md`
   and `review-3/review.md` name, is this copy before it was committed.
-- `results/design-merged.json`, the merge's summary as its agent returned it, before both
+- `results/design-merged.json`, the merge's summary as its agent returned it, before the
   revisions: its counts (42 questions, 18 work packages, 35 P-entries, 20 risks) and its
   recommendation for Q02, frame index times the frame duration, are the first version's.
-  Revision 2 has 44 questions in rounds of 27, 9 and 8, 24 work packages, 28 P-entries, 22 risks
+  Revision 3 has 44 questions in rounds of 27, 9 and 8, 25 work packages, 28 P-entries, 22 risks
   and 14 differences from the work order, and recommends the reference's playlist time for Q02,
   with the frame index's seconds where there is no segment map (`design.md` §0, §12 to §15;
-  `review-3/runs/render.txt`).
+  `design/runs/render-check.txt`).
 
 **The third review's verdict** (`review-3/review.md`, `review-3/review.json`): ready for round 1's
 questions once seven minor corrections are made, with no blocker and no major issue. The
-corrections are made by revision 3, the lead agent's, in a commit of its own after this copy's
-(`design/revision-3.md` then says what changed, issue by issue).
+corrections are made by revision 3, the lead agent's (`design/revision-3.md`, issue by issue), and
+`design/runs/revise3-reproduce.txt` shows that revision 2, as the first commit of this copy has
+it, with `design/tools/revise3.py` applied renders byte-identical to `design.md`.
 
 **What changed in the copy.** One comment, `review-adversarial/tools/run.sh`:23, reworded as the
 first of the changes above says; the review's records were made with the comment as it was, and
