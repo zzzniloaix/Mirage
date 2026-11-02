@@ -709,6 +709,122 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: owner, adopting the agent's recommendation
 - **Date**: 2026-10-30
 
+### D-071 Phase 3's first round of questions: the agent's recommendations adopted
+
+- **Decision**: the owner adopts the agent's recommendation on each of the 27 questions of round 1 in `docs/PHASE3_DECISIONS_PENDING.md` as `0f926d8` has them (Q01 to Q08, Q17 to Q20, Q22 to Q35 and Q43): the answers that the work packages on the path to §3.2's two acceptance tests need before they start. D-072 to D-081 record each decision. Q01 and Q08 are marked D-007; the answers chosen change neither the scorer nor the render and decode paths, so neither needed a ruling or a plan under D-007. Round 2's nine questions are asked later.
+- **Owner's words**, translated by the agent: in each of the agent's eleven questions, the option marked as its recommendation: "(B) A separate timeline document" for Q01, "(a) A demux-only pass in the timeline build" for Q08, "(c) Reference frames and the playlist time" for Q02, "(c) The pairs' curves, a session's drops clipped to its spans" for Q22, and "The whole group as recommended" for Q03 to Q07, Q17 to Q20, Q23 to Q27, Q28 to Q30, Q31 and Q32, Q33 to Q35, and Q43's eight items; and "Ask later" for round 2.
+- **Not covered, still open**: the questions of rounds 2 and 3 (17); P-081 and the design's 28 proposed process choices, which are recorded from P-082 on as their packages start.
+- **Alternatives**: deciding each question separately.
+- **Who**: owner
+- **Date**: 2026-11-02
+
+### D-072 The timeline is a document of its own, versioned, naming its ladder report by two hashes
+
+- **Decision**
+  - The timeline's events and its attributions are written in a separate timeline document, one per build, for one ladder report and at most one session. Scores are read from the report, not copied, so the scoring run's output and the committed records stay as they are. That §7 puts both arrays in `mirage_vmaf`'s output is a difference to report (Q01 (B)).
+  - Its layout, as schema version 1, is that of the design's §8 with the event types of its §5.9: §7's names (`timeline`, `attributions`, `interval`, `drop_magnitude`, `overlapping_events`), extended with positions on the reference's frames, spans, ids and seconds; `overlapping_events` as groups in §3.1's order of sources, each event with its offsets in seconds and in frames; the detection's parameters and the report's provenance copied; the aligner's unpaired frames filed under `vmaf`, a difference to report (Q04 (a)).
+  - It carries an integer `schema_version`, from 1, and a JSON Schema file under `docs/schema/`; `tool_version` and `git_commit` come with Phase 5, and the eval tooling records the commit when it runs, as P-006 has it (Q05 (a)).
+  - It names its ladder report by the SHA-256 of the report's bytes and by the SHA-256 of a canonical digest of what attribution reads, which redaction leaves unchanged (Q06 (c)).
+- **Alternatives**: the two arrays in the ladder report, as §7 lists them, each new session then scoring again or rewriting the scored file; the session's curve copied into the document; the per-variant events recorded in the report by the analyzer while it scores, a D-007 matter; §7's literal shapes only; the layout declared provisional until Phase 5; `tool_version` and `git_commit` now, or no version at all; one of the two hashes.
+- **Rationale**: D-068 scores a ladder once for many sessions; the committed records and their checks stay valid; a new format costs nothing to version from its first day.
+- **Who**: owner, adopting the agent's recommendation (D-071)
+- **Date**: 2026-11-02
+
+### D-073 One time base: events on the reference's frames, offsets in its playlist time; a wall clock for observed events only
+
+- **Decision**
+  - Events are placed and compared on the reference's frames, as integers, and each keeps its media key, the report's discontinuity sequence and the PTS. Offsets are printed in seconds of the reference's playlist time, each frame at its segment's EXTINF sum plus its PTS offset within the segment, and where the reference has no segment map (a mezzanine, a refused map) in the frame index times the frame duration. Wherever the map exists both are computed at every scored reference frame and compared, and each frame's PTS is compared with the frame grid of its playlist discontinuity sequence; each run of frames beyond half a frame goes into the document's warnings (the design's §4.2). Offsets in seconds of that axis, not PTS differences, are a difference from §3.1 to report (Q02 (c)).
+  - Only observed events have a wall clock: a session fetch's requests, and later the player's log, as microseconds on one steady clock from a UTC time sampled at the session's start. Offline events (scores, playlist tags, the decoder's facts) have none, a difference to report (Q03 (b)).
+- **Alternatives**: raw reference PTS for everything; seconds of the report's sequences laid end to end; the frame index times the frame duration everywhere, the agent's close second, the better choice for playlists with whole-second EXTINF; the observation time with no common anchor; dates from `EXT-X-PROGRAM-DATE-TIME` for offline events too.
+- **Rationale**: raw PTS repeat where an ad restarts at the main content's origin (50 PTS values each name two reference frames of testgen's ad ladder, `eval/phase3-survey/design-evaluation/runs/09_axes.txt`); the playlist time stays right after a missing frame or a change of frame rate, where the frame index's seconds don't (`eval/phase3-survey/design/runs/seconds-check.txt`), and its limit at a sequence's first frame is stated and tested (`eval/phase3-survey/review-3/runs/seconds-check-sequence-start.txt`).
+- **Who**: owner, adopting the agent's recommendation (D-071)
+- **Date**: 2026-11-02
+
+### D-074 Each scored frame's segment, and the keyframes, come from a demux pass of the timeline build
+
+- **Decision**: the timeline build reads each scored media playlist again, demuxing without decoding; it places every packet in its segment by its byte position, checks each frame against the report's PTS, and takes the keyframes and the corrupt flags from the packets' flags. The scorer and the report don't change (Q08 (a)).
+- **Alternatives**: the analyzer recording them while it scores, which changes its reading of its inputs and the report, a D-007 and D-068 matter; PTS against EXTINF sums, FFmpeg's own rule, with no extra read.
+- **Rationale**: exact on every playlist probed, 200 of 200 frames on each of 15 playlists (`eval/phase3-survey/design-evaluation/runs/03_segmap.txt`, `04_join_check.txt`), where FFmpeg's rule placed 145 and 193 of 200 packets (`eval/phase3-survey/design-library/runs/map-by-pos-*.txt`); the PTS check makes a failure visible. Its time on real ladders: MEASUREMENT PENDING.
+- **Who**: owner, adopting the agent's recommendation (D-071)
+- **Date**: 2026-11-02
+
+### D-075 A rung is named by its master entry and URI, with both of its BANDWIDTH ranks
+
+- **Decision**: in every output a rung's identity is its master entry's index and its URI, and both its ascending and its descending BANDWIDTH rank are printed as labels (1 the lowest, 1 the highest) (Q07 (d)).
+- **Alternatives**: the entry and the URI only; one of the two ranks.
+- **Rationale**: the identity never changes, and printing both ranks imposes no reading of a numbered rung that the work order doesn't give.
+- **Who**: owner, adopting the agent's recommendation (D-071)
+- **Date**: 2026-11-02
+
+### D-076 Playlist and cue events: the cue-in ends a break, D-070's tags only, no inferred ad boundaries, DASH as an interface
+
+- **Decision**
+  - An ad break ends at its cue-in; without one, at the duration its tag gives (`EXT-X-CUE-OUT`'s value, `EXT-X-DATERANGE`'s `DURATION` or `END-DATE`), then `PLANNED-DURATION`, then the message's `break_duration`, then `segmentation_duration`. Every value is kept (Q17 (a)).
+  - Phase 3 reads D-070's list of tags only: `#EXT-X-SCTE35`, `#EXT-X-SPLICEPOINT-SCTE35` and Adobe's `#EXT-X-CUE` are kept as raw `tag` events, a difference to report (Q18 (a)).
+  - An `EXT-X-DISCONTINUITY` without cue tags is a `discontinuity` event, never an inferred ad boundary (Q19 (a)).
+  - DASH periods: a `period` event type is reserved and the design's cue interface (§5.5) declared, with no reader, a difference to report (Q20 (a)).
+- **Alternatives**: the tag's duration first, Google Video Stitcher's rule, or the message's `break_duration` first; the other signalings read as well; discontinuities taken as ad boundaries, always or as an option; an MPD's periods and EventStreams read.
+- **Rationale**: the cue-in is where the media changes back, and keeping every value shows where they disagree; D-070 decided the list; the evaluation mustn't claim SCTE-35 where none was signalled; with no DASH scoring, DASH events would reach no curve.
+- **Who**: owner, adopting the agent's recommendation (D-071)
+- **Date**: 2026-11-02
+
+### D-077 Drop detection: on the pairs' curves, against a trailing median, T = 6 by default, W and N required
+
+- **Decision**
+  - Detection runs on each scored pair's curve; a session's drops are its pairs' drops clipped to the spans that played each variant, under the design's three rules for them (§6.3) (Q22 (c)).
+  - The baseline is the median of the last W points that weren't low, used once W/2 such points exist; the first W/2 points of a curve therefore can't be low, which the document's detection record states (Q23 (a)).
+  - W and N count points of the curve; points without a score are skipped, nothing invented at them (Q24 (a)).
+  - The first pair of each libvmaf context (D-037) gets no special case (Q25 (a)).
+  - T is 6 by default, the work order's suggestion; W and N have no default until they are measured on real video, and must be given. `mirage_vmaf timeline` detects only when W and N are given; otherwise its document has `detection: null` and no attributions, and it says why on stderr (Q26 (a) 1, (b) 2). The acceptance tests pin their own parameters, T = 6, W = 50 and N = 12 (the design's P-R).
+  - An attribution gives `drop_magnitude`, the baseline minus the drop's minimum, and `mean_drop`, the baseline minus the drop's mean (Q27 (c)).
+- **Alternatives**: the pairs' curves only; the session's curve with a baseline of its own; the session's curve only; the mean of the same points, the median of the last W points low or not, or one median per curve; W and N in reference frames or in seconds; a libvmaf context's first frames left out of the curve or of the baseline; all three parameters required, or all three set from the synthetic sweep; detection always run, or an option to turn it off; one of the two magnitudes.
+- **Rationale**: the prototype's trailing median found both acceptance drops exactly, with no drop in either control, for every T from 3 to 40 and N from 1 to 24 of its grid, at W = 10, 25, 50 and 100 (`eval/phase3-survey/design-evaluation/runs/05_detection_sweep.txt`); against a session's own baseline, whether a switch is a drop changed between T = 5 and T = 5.5 on one plan (`eval/phase3-survey/review-adversarial/runs/switch-t-sweep.txt`); leaving a context's first frame out moves the ad's drop off its cue by one frame (`eval/phase3-survey/design/runs/detection-semantics-ad.txt`); nothing measured on real video sets W and N.
+- **Who**: owner, adopting the agent's recommendation (D-071)
+- **Date**: 2026-11-02
+
+### D-078 Attribution: the curve's own inputs, strict overlap with optional margins, no ranking
+
+- **Decision**
+  - An attribution lists the events of its curve's own inputs: for a pair, the distorted variant's and the reference's; for a session, those of the variant played in each span, the reference's and the session's own (Q28 (a)).
+  - An event meets an interval [a, b) of reference frames when it is a point f with a ≤ f < b, or a span [s, e) with s < b and e > a. Margins before and after, zero by default, can widen the interval (Q29 (c)).
+  - The events come in groups in §3.1's order of sources, by offset within a group, with no ranking (Q30 (a)).
+- **Alternatives**: every scored variant's events, or the distorted input's only; points exactly at the end listed and flagged, or closed intervals; a ranking by a heuristic, or a likely-cause field.
+- **Rationale**: another rung's copies of a tag stay out of a curve's answer, and the reference, whose timeline every curve is on, stays in; overlap is the claim, and a ranking would be a causal model that needs an evaluation of its own.
+- **Who**: owner, adopting the agent's recommendation (D-071)
+- **Date**: 2026-11-02
+
+### D-079 Two subcommands of `mirage_vmaf`, and a JSON reader written in the repository
+
+- **Decision**: `mirage_vmaf timeline` builds, detects and writes a document, reading the media once; `mirage_vmaf attribute` queries a document without reading media, printing text by default and JSON with `--format json`; their options are the design's §7's, each also a config-file setting (D-030); `mirage_vmaf`'s existing command lines keep their meaning (Q31 (a)). The JSON reader is written in the repository and builds a document tree, with no new dependency, as D-030 chose for the config file; it reads large arrays as a stream only if a measurement of a full report's load says it must (Q32 (a)).
+- **Alternatives**: one subcommand that builds and queries; a separate program; a third form of `mirage_vmaf`'s options; a streaming reader from the start; a header-only library through FetchContent.
+- **Rationale**: the build does its reading once, and queries are offline, cheap and deterministic; no dependency is added.
+- **Who**: owner, adopting the agent's recommendation (D-071)
+- **Date**: 2026-11-02
+
+### D-080 The acceptance tests' synthetic content
+
+- **Decision**: the tests encode D-069's ladders with libx264 when the build's FFmpeg has it and with FFmpeg's MPEG-2 encoder otherwise, recording which (Q33 (c)). Acceptance test 2's ad restarts its timestamps at the main content's origin, and two more ad ladders, one from 1 s and one with continuous timestamps, are made in the same test's process (Q34 (d)). The rest of the content is as testgen's prototype measured it: the fractal-noise source, the calm ad, continuity counters marked at the splice, no binary SCTE-35 in the ladders, the generator compiled with optimization in every build type, and top-rung mode (Q35 (a)).
+- **Alternatives**: libx264 only, the tests skipped without it, or MPEG-2 only; one arrangement of the ad's timestamps; each item of testgen's list decided on its own; the existing tests' ramp source and MPEG-2 helpers, whose ladder fails D-002's BANDWIDTH order.
+- **Rationale**: an acceptance test that skips shows nothing; both encoders gave clear drops on the intended frames where they were run (`eval/phase3-survey/design-evaluation/runs/10_attribute_final.txt`); with MPEG-2, the ad from 1 s and the continuous ad are MEASUREMENT PENDING, as are the three ad ladders' time in a Debug build.
+- **Who**: owner, adopting the agent's recommendation (D-071)
+- **Date**: 2026-11-02
+
+### D-081 The ladder timeline's eight defaults
+
+- **Decision** (Q43, option 1 of each item)
+  - (a) A live media playlist fails the build, which names it.
+  - (b) Ladder reports are read in `75cf6e0`'s layout and later only: older layouts and pair reports are refused, naming what is missing, and relative paths are taken from the current directory, as `mirage_vmaf` takes its inputs.
+  - (c) A variant whose frames don't all match the demux pass gets no segment map: its segment-bound events are left out, with a warning.
+  - (d) An unpaired frame sits at the next paired frame of its input, by index.
+  - (e) A playlist that several master entries name is ranked by the highest of their BANDWIDTHs.
+  - (f) A tag that several rungs' playlists carry is kept once per variant.
+  - (g) A drop runs from its first low point's reference frame to the frame of the curve's next point, half-open; an interval given in seconds starts and ends at the first reference frames at or after its two ends on the axis.
+  - (h) A corrupt packet sits at the flagged packet's frame, with the next segment boundary in its payload.
+- **Alternatives**: the other options of each item, as `docs/PHASE3_DECISIONS_PENDING.md` lists them under Q43.
+- **Rationale**: each default keeps what the data shows, places nothing it can't place exactly, and says in the document what it left out.
+- **Who**: owner, adopting the agent's recommendation (D-071)
+- **Date**: 2026-11-02
+
 ---
 
 ## Measurement / process choices (proposed by the agent, confirmed by the owner)

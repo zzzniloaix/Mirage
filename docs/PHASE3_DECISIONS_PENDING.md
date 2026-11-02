@@ -6,7 +6,7 @@ What is open for the owner on `vmaf/phase-3`, §3 of the VMAF work order (the un
 
 44 questions, Q01 to Q44, in three rounds: 27 in round 1, the answers the work packages on the path to §3.2's two acceptance tests need before they start; 9 in round 2, those of sessions, the session fetch, the decoded SCTE-35 messages and the composite example; 8 in round 3, those of the UI, the conditional and later packages, and the differences to report. A question's round is the earliest round of the packages it blocks, and a round's packages start once all of its questions are answered (`eval/phase3-survey/design.md` §12, §14). Q26, Q39, Q43 and Q44 are answered item by item, an item's options numbered: "Q43 (c) 2". The questions marked D-007 (Q01, Q08, Q09, Q10, Q13, Q36, Q37 and Q41) have an answer that is, or includes, an approval or a ruling under D-007. "Blocks" names the work packages that wait for the answer; the packages are listed at the end. After the questions come the differences from the work order to report, and the agent's proposed process choices, to be recorded from P-082 on.
 
-The questions are the design's (`eval/phase3-survey/design/owner_questions.json`), rendered by `eval/phase3-survey/tools/render_pending.py` with the design's paths written as the repository has them and nothing else changed. They are as the design's revision 3 left them, after the third review's seven minor issues (`eval/phase3-survey/review-3/review.md`; `eval/phase3-survey/design/revision-3.md`). The owner's answers are marked here as each round's come in.
+The questions are the design's (`eval/phase3-survey/design/owner_questions.json`), rendered by `eval/phase3-survey/tools/render_pending.py` with the design's paths written as the repository has them and nothing else changed. They are as the design's revision 3 left them, after the third review's seven minor issues (`eval/phase3-survey/review-3/review.md`; `eval/phase3-survey/design/revision-3.md`). The owner's answers are marked here as each round's come in. Round 1's 27 questions were answered on 2026-11-02, every one as the agent recommends (D-071 to D-081); each is marked below. Rounds 2 and 3 are open.
 
 ### Round 1: the path to §3.2's two acceptance tests (27 questions)
 
@@ -57,6 +57,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 
 **Agent's recommendation.** (B).
 
+**Answered** on 2026-11-02: as the agent recommends (`docs/DECISIONS.md` D-072; D-071).
+
 **Why.** It keeps D-068's one scoring for many sessions, leaves the committed records and their checks valid, and keeps per-frame data in the report; its costs (a JSON reader, a hash rule, a reported difference) are each one bounded package.
 
 **Blocks.** WP00a, WP08, WP09a, WP11a, WP09b, WP11b, WP12, WP16.
@@ -78,6 +80,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 
 **Agent's recommendation.** (c), falling back to (d) where the reference has no segment map, with `eval/phase3-survey/design.md` §4.2's check; (d) alone a close second.
 
+**Answered** on 2026-11-02: as the agent recommends (`docs/DECISIONS.md` D-073; D-071).
+
 **Why.** Frames make the events an interval lists exact and independent of the seconds (`eval/phase3-survey/design-evaluation/runs/07_attribute_seconds_as_doubles.txt` and `08_attribute_ticks.txt` showed doubles listing boundary events inconsistently). Since `eval/phase3-survey/design.md` §4.2's check computes both wherever the reference has a segment map, the choice is which seconds to print where they differ: (c) stays right after a missing frame or a change of rate (from the next segment on if the frame missing is a sequence's first), and RFC 8216 §4.3.2.3 puts changes of encoding parameters at discontinuities such as an ad's, while (c) is otherwise off only where an EXTINF departs from its frames; (d) gives every reference and both reference modes one definition, the better choice if the owner expects rounded or integer EXTINF.
 
 **Blocks.** WP00a, WP01, WP08, WP09a, WP11a, WP12, WP14.
@@ -98,6 +102,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 
 **Agent's recommendation.** (b).
 
+**Answered** on 2026-11-02: as the agent recommends (`docs/DECISIONS.md` D-073; D-071).
+
 **Why.** It records only what was observed, on one monotonic clock; NetworkLogger already keeps steady microseconds and maps them to wall time (`src/NetworkLogger.h:189-192`).
 
 **Blocks.** WP00a, WP08, WP07, WP09b.
@@ -117,6 +123,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 - **(c) (a), declared provisional until Phase 5.** The same layout, its names to be revisited when §7's report schema is decided; readers must expect a version 2.
 
 **Agent's recommendation.** (a).
+
+**Answered** on 2026-11-02: as the agent recommends (`docs/DECISIONS.md` D-072; D-071).
 
 **Why.** It keeps §7's names and adds what the example and the reproduction need; a prototype of this shape answered the example (`eval/phase3-survey/design-evaluation/runs/10_attribute_final.txt`).
 
@@ -139,6 +147,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 
 **Agent's recommendation.** (a).
 
+**Answered** on 2026-11-02: as the agent recommends (`docs/DECISIONS.md` D-072; D-071).
+
 **Why.** A new format costs nothing to version from its first day, its schema can be cited, and P-006's confirmed rule for the commit stays.
 
 **Blocks.** WP00a, WP08, WP09b, WP12.
@@ -158,6 +168,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 - **(c) Both.** The file it was built from, and a redaction-proof check against the committed record.
 
 **Agent's recommendation.** (c).
+
+**Answered** on 2026-11-02: as the agent recommends (`docs/DECISIONS.md` D-072; D-071).
 
 **Why.** Each covers what the other can't, and both are cheap to compute when the report is read.
 
@@ -180,6 +192,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 
 **Agent's recommendation.** (d).
 
+**Answered** on 2026-11-02: as the agent recommends (`docs/DECISIONS.md` D-075; D-071).
+
 **Why.** The identity never changes, and printing both ranks imposes no reading of the example that the work order doesn't state.
 
 **Blocks.** WP00a, WP08, WP09a, WP07, WP09b, WP11b, WP14.
@@ -199,6 +213,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 - **(c) PTS against EXTINF sums, no extra read.** FFmpeg's own rule ([hls.c#L1916-L1945](https://github.com/FFmpeg/FFmpeg/blob/n8.1.1/libavformat/hls.c#L1916-L1945)); right for 145 of 200 packets on the ad ladders and 193 of 200 on the degraded one (`eval/phase3-survey/design-library/runs/map-by-pos-*.txt`), and it can't place a PTS two segments share.
 
 **Agent's recommendation.** (a).
+
+**Answered** on 2026-11-02: as the agent recommends (`docs/DECISIONS.md` D-074; D-071).
 
 **Why.** It was exact on every playlist probed, leaves §2's scorer and its committed comparisons untouched, and its PTS check makes a failure visible; what a failure costs is Q43 (c).
 
@@ -220,6 +236,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 
 **Agent's recommendation.** (a).
 
+**Answered** on 2026-11-02: as the agent recommends (`docs/DECISIONS.md` D-076; D-071).
+
 **Why.** The cue-in is where the media changes back, and keeping every value shows any disagreement.
 
 **Blocks.** WP04.
@@ -239,6 +257,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 - **(c) Add all three.** EXT-X-CUE carries attributes, no message.
 
 **Agent's recommendation.** (a).
+
+**Answered** on 2026-11-02: as the agent recommends (`docs/DECISIONS.md` D-076; D-071).
 
 **Why.** D-070 decided the list; the others are visible as tags and can be added later at little cost.
 
@@ -260,6 +280,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 
 **Agent's recommendation.** (a).
 
+**Answered** on 2026-11-02: as the agent recommends (`docs/DECISIONS.md` D-076; D-071).
+
 **Why.** The evaluation mustn't claim SCTE-35 where none was signalled, and the attribution still lists the discontinuity at the drop (`eval/phase3-survey/design-evaluation/runs/10_attribute_final.txt`).
 
 **Blocks.** WP04, WP09a.
@@ -279,6 +301,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 - **(c) DASH ladder scoring.** Outside §2's scope.
 
 **Agent's recommendation.** (a).
+
+**Answered** on 2026-11-02: as the agent recommends (`docs/DECISIONS.md` D-076; D-071).
 
 **Why.** Without DASH scoring, DASH events would reach no curve.
 
@@ -301,6 +325,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 
 **Agent's recommendation.** (c), with `eval/phase3-survey/design.md` §6.3's three rules.
 
+**Answered** on 2026-11-02: as the agent recommends (`docs/DECISIONS.md` D-077; D-071).
+
 **Why.** It applies the work order's per-variant baseline to sessions too and still finds the composite drop, while under (b) whether a switch is a drop changes between T = 5 and T = 5.5 on one plan, a fragility the paper would have to explain.
 
 **Blocks.** WP02, WP08, WP09a, WP11a, WP07, WP09b, WP11b, WP14.
@@ -322,6 +348,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 
 **Agent's recommendation.** (a).
 
+**Answered** on 2026-11-02: as the agent recommends (`docs/DECISIONS.md` D-077; D-071).
+
 **Why.** It was exact across the measured grid, is robust to outliers, and a drop doesn't pull its baseline down; its blind start is written in the document's detection record and tested (WP02).
 
 **Blocks.** WP02, WP08, WP11a, WP11b, WP14.
@@ -342,6 +370,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 
 **Agent's recommendation.** (a).
 
+**Answered** on 2026-11-02: as the agent recommends (`docs/DECISIONS.md` D-077; D-071).
+
 **Why.** The work order counts frames, and nothing is invented at the gaps.
 
 **Blocks.** WP02, WP08, WP09a.
@@ -361,6 +391,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 - **(c) Left out of the baseline only.** They can be low but never enter the baseline; the same drop as (a) on this ladder (same run).
 
 **Agent's recommendation.** (a).
+
+**Answered** on 2026-11-02: as the agent recommends (`docs/DECISIONS.md` D-077; D-071).
 
 **Why.** (b) moves an ad's drop off its cue by one frame, N of 1 or more already ignores single-frame dips, and (c) adds a rule that changed nothing measured.
 
@@ -389,6 +421,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 
 **Agent's recommendation.** (a) 1; (b) 2.
 
+**Answered** on 2026-11-02: as the agent recommends (`docs/DECISIONS.md` D-077; D-071).
+
 **Why.** T has the work order's value and W and N have none, while the tests don't depend on defaults; and events-only builds then need no new option.
 
 **Blocks.** WP02, WP08, WP09a.
@@ -409,6 +443,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 
 **Agent's recommendation.** (c).
 
+**Answered** on 2026-11-02: as the agent recommends (`docs/DECISIONS.md` D-077; D-071).
+
 **Why.** Both are cheap and answer different questions; §7's name keeps the first. Under Q23 (a) the baseline is the same at every point of a drop (`eval/phase3-survey/design.md` §6.3).
 
 **Blocks.** WP02, WP08, WP09a.
@@ -428,6 +464,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 - **(c) The distorted input's only.** Leaves out the reference's segments and tags.
 
 **Agent's recommendation.** (a).
+
+**Answered** on 2026-11-02: as the agent recommends (`docs/DECISIONS.md` D-078; D-071).
 
 **Why.** It keeps another rung's events out of a curve's answer and keeps the reference, whose timeline every curve is on.
 
@@ -450,6 +488,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 
 **Agent's recommendation.** (c).
 
+**Answered** on 2026-11-02: as the agent recommends (`docs/DECISIONS.md` D-078; D-071).
+
 **Why.** By default it is overlap made exact, and the margins meet the one need for more without changing default outputs.
 
 **Blocks.** WP01, WP08, WP09a, WP11a.
@@ -469,6 +509,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 - **(c) A likely-cause field.** An inference the paper would have to defend.
 
 **Agent's recommendation.** (a).
+
+**Answered** on 2026-11-02: as the agent recommends (`docs/DECISIONS.md` D-078; D-071).
 
 **Why.** The claim is overlap; a ranking is a causal model that would need its own evaluation.
 
@@ -491,6 +533,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 
 **Agent's recommendation.** (a), with `eval/phase3-survey/design.md` §7's option set.
 
+**Answered** on 2026-11-02: as the agent recommends (`docs/DECISIONS.md` D-079; D-071).
+
 **Why.** The build does the I/O once, queries are offline, cheap and deterministic, and existing command lines keep their meaning.
 
 **Blocks.** WP00a, WP09a, WP11a, WP14.
@@ -511,6 +555,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 
 **Agent's recommendation.** (a), moving to (b) if a full report's load needs it.
 
+**Answered** on 2026-11-02: as the agent recommends (`docs/DECISIONS.md` D-079; D-071).
+
 **Why.** It follows D-030's choice of no new dependency and the repository's own writers; streaming is added only if a measurement says it is needed.
 
 **Blocks.** WP00a, WP03.
@@ -530,6 +576,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 - **(c) libx264 when present, else MPEG-2.** The same assertions, the encoder recorded. With MPEG-2 the pinned parameters passed on the degraded ladder and the ad from the main origin (`eval/phase3-survey/design-evaluation/runs/05_detection_sweep.txt`); the ad from 1 s ran with libx264 only and the continuous ad not at all, so those two with MPEG-2 are MEASUREMENT PENDING.
 
 **Agent's recommendation.** (c).
+
+**Answered** on 2026-11-02: as the agent recommends (`docs/DECISIONS.md` D-080; D-071).
 
 **Why.** Both encoders gave clear drops confined to the intended frames, with the same attributions, where they were run (`eval/phase3-survey/design-evaluation/runs/10_attribute_final.txt`), and the tests then run in every build.
 
@@ -552,6 +600,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 
 **Agent's recommendation.** (d).
 
+**Answered** on 2026-11-02: as the agent recommends (`docs/DECISIONS.md` D-080; D-071).
+
 **Why.** (a) is the case the time key must handle, and (b) and (c) cover the aligner's other case and the UI's seekable one.
 
 **Blocks.** WP10, WP11a.
@@ -571,6 +621,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 - **(c) The existing tests' ramp and MPEG-2 helpers.** Reuses code, but the ramp's measured BANDWIDTH puts v270 above v360, so the ladder is refused (`eval/phase3-survey/testgen.md` §2.2).
 
 **Agent's recommendation.** (a).
+
+**Answered** on 2026-11-02: as the agent recommends (`docs/DECISIONS.md` D-080; D-071).
 
 **Why.** Each item was measured to give a clear, deterministic drop confined to the intended frames (`eval/phase3-survey/testgen.md` §3).
 
@@ -624,6 +676,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
   - *Agent's recommendation:* 1. *Why:* It records what FFmpeg reported and names the boundary for the reader; D-069's acceptance ladders mark their counters (Q35) and have no such flags.
 
 **Agent's recommendation.** (a) 1; (b) 1; (c) 1; (d) 1; (e) 1; (f) 1; (g) 1; (h) 1.
+
+**Answered** on 2026-11-02: as the agent recommends (`docs/DECISIONS.md` D-081; D-071).
 
 **Why.** Each recommended default keeps what the data shows, places nothing it can't place exactly, and says in the document what it left out.
 

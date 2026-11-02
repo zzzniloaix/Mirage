@@ -4,6 +4,7 @@
 - Work order: Phase 3, its §3 (hard rule 1: survey first, then the owner's decisions, then code)
 - Surveyed: commit `75cf6e0` of `vmaf/phase-3`, the branch D-066 made from `vmaf/phase-2`; Phase 2's PR waits (D-066)
 - Written by: the agent, for the owner's review
+- Answered since: round 1's 27 questions, on 2026-11-02, each as the agent recommends (`docs/DECISIONS.md` D-071 to D-081); this survey is as it was written
 
 Every number here comes from a committed record or the code, named next to it; where there is none, it says MEASUREMENT PENDING. The records are in `eval/phase3-survey/`, whose `README.md` lists them and what the copy leaves out: five surveys, two designs, the design that merges them (`eval/phase3-survey/design.md`, rendered from `eval/phase3-survey/design/`) and its three reviews, each with its runs, and the check of this document's draft and of the records (`eval/phase3-survey/review-docs/`). Nothing of Phase 3 is implemented. The owner's decisions that bind it are D-066 to D-070, with D-002, D-007, D-013, D-046 and D-050 (`docs/DECISIONS.md`); what is open is in `docs/PHASE3_DECISIONS_PENDING.md`, and the state of each item in `docs/PHASE3_STATUS.md`.
 
