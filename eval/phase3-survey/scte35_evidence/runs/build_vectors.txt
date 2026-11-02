@@ -1,0 +1,40 @@
+command (cwd <out>/scte35_evidence): python3 -I tools/build_vectors.py . vectors_src.json
+date_utc: 2026-11-01T04:18:38Z
+tool sha256: 6d1da7f8a2082658fb47d7c5001a4a0c960f0247704757470f41642e1102ce28  tools/build_vectors.py
+tool sha256: 43553cf5f9b59689d1e576b7c3e155390e518dafcb162443170f0e126ec5982c  tools/check_vectors.py
+tool sha256: 12ca135799c24d24a217a97c7173b233e459c4b74454b11af90cf011b7e9042e  tools/cue_positions.py
+tool sha256: ea5b756f6aebcef51a2bb5bbed43413a24ddaf34f5827273353d162b5888ecbd  tools/hls_tags.py
+tool sha256: 1198bc8093385554dc76dbf33b39eba1e268e04bd41029204eb515a9a2bad424  tools/html2text.py
+tool sha256: 2d0d1cf92518bfdaae87df6074f2f5cba87094ce6370a9f93692e68b442623ed  tools/pdftext.py
+tool sha256: bb4cef1ddae32dc390b419725a8dd855db5b29cf09393ac13075346bb7d0429b  tools/scte35_decode.py
+tool sha256: 68725f0ab733b49592947589b2c1487c2860e90d2139648bd01962a844586a33  tools/ts_pid_payload.py
+tool sha256: a6776bd3814f82dda3a9f23c742e8b44b19ff14219a75815705ed5b85f1d6b69  tools/ts_probe.py
+tool sha256: 31eaa39d0407aef0b730c3040c99c60547baa671bc42bdac69f17039fe79fe4a  tools/build_parser_probe.sh
+tool sha256: d5c54a09eac63794dc001f0aa52d4fe3cda311723f0d47ba1b1675e47848b04a  tools/cue_positions_all.sh
+tool sha256: 7cbb2161e7335376fcd6f6bd2f96281787bdb449b7e82494dc4a78ebb143f39d  tools/derive_all.sh
+tool sha256: d76a774d051045faf19a109b5d8f79bb79e384f26477b2e82b0137b9a108529f  tools/fetch.sh
+tool sha256: 05f5b16a93a29786124d69d7e5f6bbd233fd2661416449381e8e50e599f90c76  tools/pipeline.sh
+tool sha256: df159afaa73c1c23ecc8bf5ea69cf75e4d668b19f36e6658e8539d19173ebe5f  tools/repo_grep.sh
+tool sha256: bfbac2ffbe328635c262072da72d6fd3923bfcc5e70f44b8c0b2507a818fee8e  tools/run.sh
+tool sha256: f50c6568c519b76f507c5c20a8fc22a1856af0244678962334cf41a0cc61da74  tools/same_daterange.sh
+output (stdout and stderr):
+sources=16 vectors=79 hls_tag_lines=118 skipped_values=3
+  skipped: aws-mediatailor hls-ad-markers.md:69 #EXT-X-DATERANGE:ID="splice-6FFFFFF0",START-DATE="2019-01T00:15:00Z\",DURATION=60.000,SCTE35-OUT=0xF
+  skipped: google-video-stitcher derived/gcloud-video-stitcher-ad-markers.txt (text of the page):516 #EXT-X-DATERANGE:ID="2415919105",X-TYPE="EABN",START-DATE="2020-11-08T21:11:28.976Z",DURATION=29.988,SCTE35-OU
+  skipped: google-video-stitcher derived/gcloud-video-stitcher-ad-markers.txt (text of the page):551 #EXT-OATCLS-SCTE35:0xFC303...
+  scte35-2023r1: 8 vectors
+  scte35-go: 23 vectors
+  threefive: 3 vectors
+  threefive-2024: 6 vectors
+  rfc8216: 2 vectors
+  rfc8216bis-22: 2 vectors
+  aws-medialive: 1 vectors
+  aws-mediatailor: 2 vectors
+  aws-mediapackage-v1: 3 vectors
+  unified-origin: 5 vectors
+  wowza: 3 vectors
+  broadpeak: 2 vectors
+  google-admanager: 15 vectors
+  google-video-stitcher: 3 vectors
+  unified-avod-demo: 1 vectors
+exit=0

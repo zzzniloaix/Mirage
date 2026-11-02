@@ -1,0 +1,30 @@
+# cwd: <out>/testgen
+# command: 'python3' '-I' '-B' '<out>/design/tools/axis_check.py' 'reports/ad-x264.json' 'reports/ad-x264-a.layout.json' 'reports/ad-mpeg2.json' 'reports/ad-mpeg2-a.layout.json' 'reports/ad-x264-origin1.json' 'reports/ad-x264-origin1.layout.json' 'reports/degraded-x264.json' 'reports/degraded-x264-a.layout.json' '--drop' '40'
+# started: 2026-11-01T06:43:35Z, ended: 2026-11-01T06:43:35Z (UTC)
+# stdout and stderr, in order:
+== reports/ad-x264.json with reports/ad-x264-a.layout.json: 200 scored reference frames; frame rate 25, time base 1/90000; one frame 3600 ticks; report sequences (first_index, first_pts, frames): (0, 10, 75), (75, 10, 125); segments after an EXT-X-DISCONTINUITY start at reference frames 75, 125
+  1. round-1 wording (PTS against the position in its report sequence): 75 frames flagged (125-199)
+  2. revision 1, with the segment map: 0 steps flagged (none)
+  3. revision 1, without a segment map: 1 step within a report sequence listed (frame 125, step +3.040 s)
+  4. (d)'s seconds against (c)'s: largest difference 0.000 s
+== reports/ad-mpeg2.json with reports/ad-mpeg2-a.layout.json: 200 scored reference frames; frame rate 25, time base 1/90000; one frame 3600 ticks; report sequences (first_index, first_pts, frames): (0, 10, 75), (75, 10, 125); segments after an EXT-X-DISCONTINUITY start at reference frames 75, 125
+  1. round-1 wording (PTS against the position in its report sequence): 75 frames flagged (125-199)
+  2. revision 1, with the segment map: 0 steps flagged (none)
+  3. revision 1, without a segment map: 1 step within a report sequence listed (frame 125, step +3.040 s)
+  4. (d)'s seconds against (c)'s: largest difference 0.000 s
+== reports/ad-x264-origin1.json with reports/ad-x264-origin1.layout.json: 200 scored reference frames; frame rate 25, time base 1/90000; one frame 3600 ticks; report sequences (first_index, first_pts, frames): (0, 10, 75), (75, 1, 50), (125, 15, 75); segments after an EXT-X-DISCONTINUITY start at reference frames 75, 125
+  1. round-1 wording (PTS against the position in its report sequence): 0 frames flagged (none)
+  2. revision 1, with the segment map: 0 steps flagged (none)
+  3. revision 1, without a segment map: 0 steps within a report sequence listed (none)
+  4. (d)'s seconds against (c)'s: largest difference 0.000 s
+== reports/degraded-x264.json with reports/degraded-x264-a.layout.json: 200 scored reference frames; frame rate 25, time base 1/90000; one frame 3600 ticks; report sequences (first_index, first_pts, frames): (0, 10, 200); segments after an EXT-X-DISCONTINUITY start at reference frames none
+  1. round-1 wording (PTS against the position in its report sequence): 0 frames flagged (none)
+  2. revision 1, with the segment map: 0 steps flagged (none)
+  3. revision 1, without a segment map: 0 steps within a report sequence listed (none)
+  4. (d)'s seconds against (c)'s: largest difference 0.000 s
+== reports/ad-x264.json, reference frame 40 removed (simulated): 199 scored reference frames; frame rate 25, time base 1/90000; one frame 3600 ticks; report sequences (first_index, first_pts, frames): (0, 10, 74), (74, 10, 125); segments after an EXT-X-DISCONTINUITY start at reference frames 74, 124
+  1. round-1 wording (PTS against the position in its report sequence): 109 frames flagged (40-73, 124-198)
+  2. revision 1, with the segment map: 1 step flagged (frame 40, step +0.080 s)
+  3. revision 1, without a segment map: 2 steps within a report sequence listed (frame 40, step +0.080 s; frame 124, step +3.040 s)
+  4. (d)'s seconds against (c)'s: largest difference 0.040 s (first at reference frame 40)
+# exit status: 0

@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/rfc8216bis-22.txt/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://www.ietf.org/archive/id/draft-pantos-hls-rfc8216bis-22.txt'
+date_utc: 2026-11-01T03:38:15Z
+http_code=200
+url_effective=https://www.ietf.org/archive/id/draft-pantos-hls-rfc8216bis-22.txt
+size_download=276199
+content_type=text/plain; charset=utf-8
+curl_exit=0
+sha256=5e8ce0e44266757dc0ab44061f3030fb3cf6de32fb217555aebff3507912b6f2

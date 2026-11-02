@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/stream-unified-avod-k8s-video4017000-seg1/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://demo.unified-streaming.com/k8s/avod-scte35-mediatailor/stable/remix/smil-origin/avod-smil/eyJtYWluIjoiaHR0cDovL3MzLmludGVybmFsLnVuaWZpZWQtc3RyZWFtaW5nLmNvbS9iaWctYnVjay1idW5ueS9iaWctYnVjay1idW5ueV9kcmVmLm1wNCIsImJyZWFrcyI6W3sidGltZSI6MTAsImR1cmF0aW9uIjozMH1dfQ==.mp4/eyJtYWluIjoiaHR0cDovL3MzLmludGVybmFsLnVuaWZpZWQtc3RyZWFtaW5nLmNvbS9iaWctYnVjay1idW5ueS9iaWctYnVjay1idW5ueV9kcmVmLm1wNCIsImJyZWFrcyI6W3sidGltZSI6MTAsImR1cmF0aW9uIjozMH1dfQ==-video=4017000-1.ts'
+date_utc: 2026-11-01T04:02:46Z
+http_code=200
+url_effective=https://demo.unified-streaming.com/k8s/avod-scte35-mediatailor/stable/remix/smil-origin/avod-smil/eyJtYWluIjoiaHR0cDovL3MzLmludGVybmFsLnVuaWZpZWQtc3RyZWFtaW5nLmNvbS9iaWctYnVjay1idW5ueS9iaWctYnVjay1idW5ueV9kcmVmLm1wNCIsImJyZWFrcyI6W3sidGltZSI6MTAsImR1cmF0aW9uIjozMH1dfQ==.mp4/eyJtYWluIjoiaHR0cDovL3MzLmludGVybmFsLnVuaWZpZWQtc3RyZWFtaW5nLmNvbS9iaWctYnVjay1idW5ueS9iaWctYnVjay1idW5ueV9kcmVmLm1wNCIsImJyZWFrcyI6W3sidGltZSI6MTAsImR1cmF0aW9uIjozMH1dfQ==-video=4017000-1.ts
+size_download=394424
+content_type=video/MP2T
+curl_exit=0
+sha256=37c7818f6a1c28044bfb26fe4e00d1ebcc964f080e6b34b12564004d979f44e8

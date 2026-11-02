@@ -1,0 +1,21 @@
+# One command of the schema survey, run in <repo> by tools/run.py, started 2026-11-01T03:32:17Z, ended 2026-11-01T03:32:18Z (UTC).
+# <repo>: the worktree of vmaf/phase-3 at 75cf6e0; <out>: the survey's output directory; <scratch>: the scratch directory.
+# The command, then its standard output and standard error as they came, then its exit status.
+
+$ echo "## files whose path contains schema (any case):"; git ls-files | grep -i schema | wc -l; echo "## committed text files with a JSON Schema marker (\$schema, json-schema, jsonschema):"; git grep -l -I -i -E "\\\$schema|json-schema|jsonschema" | wc -l; echo "## occurrences of schema_version, tool_version, git_commit, report_version in src/ tools/ tests/:"; git grep -n -I -E "schema_version|tool_version|git_commit|report_version" -- src tools tests | wc -l; echo "## the same names anywhere, files and counts:"; git grep -c -I -E "schema_version|tool_version|git_commit" | sort; echo "## report_version: files that set it (Python):"; git grep -n "REPORT_VERSION = " -- "*.py"
+## files whose path contains schema (any case):
+       0
+## committed text files with a JSON Schema marker ($schema, json-schema, jsonschema):
+       0
+## occurrences of schema_version, tool_version, git_commit, report_version in src/ tools/ tests/:
+       0
+## the same names anywhere, files and counts:
+docs/PHASE2_DECISIONS_PENDING.md:1
+## report_version: files that set it (Python):
+eval/consistency/compare_runs.py:34:REPORT_VERSION = 1
+eval/consistency/ladder_check.py:58:REPORT_VERSION = 1
+eval/consistency/vmafdelta.py:27:REPORT_VERSION = 1
+eval/pooling/pooling.py:45:REPORT_VERSION = 1
+eval/run_all.py:131:REPORT_VERSION = 1
+eval/streams/fetch_streams.py:58:REPORT_VERSION = 1
+(exit status 0)

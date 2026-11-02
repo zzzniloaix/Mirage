@@ -1,0 +1,170 @@
+# One command of the schema survey, run in <repo> by tools/run.py, started 2026-11-01T03:34:24Z, ended 2026-11-01T03:34:25Z (UTC).
+# <repo>: the worktree of vmaf/phase-3 at 75cf6e0; <out>: the survey's output directory; <scratch>: the scratch directory.
+# The command, then its standard output and standard error as they came, then its exit status.
+
+$ for f in eval/consistency/ladder_check.py eval/ladder/pool_check.py eval/run_all.py eval/pooling/pooling.py eval/consistency/compare_runs.py; do echo "=== $f"; grep -n -E "(PAIR_KEYS|RUN_KEYS|LADDER_PLAN) = |\.get\(\"(frames|pooled|pairs|ladder|reference|skipped|not_scored|warnings|status|pool|memory_limit|peak_resident|pair_memory|index|entries|entry|dis|ref|url|vmaf|results|per_frame|vmaf_mean|vmaf_min|vmaf_p5|label|error|model|model_source|model_sha256|scaler|reference_mode|frames_scored|jobs|max_running|baseline|measure|pair)\"|\[\"(ladder|pairs|index|dis|url|pair)\"\]|for key in \(|k in \(\"" "$f"; done; echo "=== eval/consistency/vmafdelta.py (reads of a mirage_vmaf report: rep / report)"; grep -n -E "(rep|report|mine)\.get\(\"|rep\[\"|\(\"tool\", \"reference_mode\"|\(\"scaler\", params|\"n_subsample\", 1\)|\"frame_limit\", params|\"ref\", \"dis\"\)\):|f\.get\(\"(index|vmaf|ref_index|dis_index|ref_pts|dis_pts|pts|input|reason)\"" eval/consistency/vmafdelta.py
+=== eval/consistency/ladder_check.py
+66:PAIR_KEYS = ("scored_as", "dis_conversion", "ref_conversion", "warnings", "frames_scored",
+68:RUN_KEYS = ("tool", "libvmaf_version", "libvmaf_package_version", "ffmpeg_libraries",
+246:            if vd.is_number(x.get("vmaf")) and vd.is_number(y.get("vmaf")):
+254:    entries = [e.get("index") for e in (report.get("ladder") or {}).get("entries") or []]
+256:    for i in (report.get("reference") or {}).get("entries") or []:
+258:    for p in report.get("pairs") or []:
+259:        for i in p.get("entries") or []:
+261:    for s in report.get("skipped") or []:
+262:        seen.setdefault(s.get("entry"), []).append("skipped")
+280:    ladder_pairs = (ladder or {}).get("pairs") or []
+283:        key = ((p.get("ref") or {}).get("url"), (p.get("dis") or {}).get("url"))
+291:               "ladder_index": found[0].get("index") if found else None,
+292:               "entries": found[0].get("entries") if found else None,
+293:               "frames": {"ladder": found[0].get("frames_scored") if found else None,
+294:                          "alone": (mine or {}).get("frames_scored")},
+313:            if mine.get("reference_mode") != "explicit-pair":
+316:                p.get("frames"), mine.get("frames"))
+323:             and ((p.get("ref") or {}).get("url"), (p.get("dis") or {}).get("url"))
+332:            "extra_pairs": [{"index": p.get("index"), "dis": (p.get("dis") or {}).get("url"),
+333:                             "entries": p.get("entries")} for p in extra],
+342:    for i in (report.get("reference") or {}).get("entries") or []:
+344:    for p in report.get("pairs") or []:
+345:        for i in p.get("entries") or []:
+347:    for s in report.get("skipped") or []:
+348:        role[s.get("entry")] = f"skipped: {s.get('reason')}"
+349:    lad = report.get("ladder") or {}
+350:    return {"reference_mode": report.get("reference_mode"), "url": lad.get("url"),
+352:            "reference": report.get("reference"), "skipped": report.get("skipped"),
+353:            "warnings": report.get("warnings"),
+354:            "entries": [dict(e, role=role.get(e.get("index"))) for e in lad.get("entries") or []],
+355:            "pairs": [{"index": p.get("index"), "entries": p.get("entries"),
+356:                       "dis": (p.get("dis") or {}).get("url"),
+357:                       "frames_scored": p.get("frames_scored"),
+358:                       "pooled_mean": (p.get("pooled") or {}).get("mean")}
+359:                      for p in report.get("pairs") or []]}
+385:    for x in r["pairs"]:
+391:    lad = r["ladder"]
+406:        for x in lad["pairs"]:
+462:    ladder = results["ladder"]
+506:    for x in report["pairs"]:
+=== eval/ladder/pool_check.py
+133:        elif rep.get("status") != "complete":
+137:        limit = ((rep or {}).get("pool") or {}).get("memory_limit")
+144:                            ((rep or {}).get("pool") or {}).get("peak_resident")),
+150:        for k, p0 in enumerate(first.get("pairs") or []):
+151:            row = {"index": p0.get("index"), "dis": shown((p0.get("dis") or {}).get("url") or ""),
+152:                   "frames": len(p0.get("frames") or []), "same_in": []}
+155:                match = [p for p in rep.get("pairs") or [] if p.get("index") == p0.get("index")]
+156:                same = bool(match) and match[0].get("frames") == p0.get("frames") and \
+157:                    match[0].get("pooled") == p0.get("pooled")
+164:            for key in ("ladder", "reference", "skipped", "not_scored"):
+171:                        {"pool": (r["report"] or {}).get("pool"),
+172:                         "pairs_complete": len((r["report"] or {}).get("pairs") or []),
+173:                         "status": (r["report"] or {}).get("status")} for r in runs],
+195:                             for x in pool.get("pair_memory") or [])
+204:        cells = [str(row["index"]), f"`{row['dis']}`", str(row["frames"])]
+=== eval/run_all.py
+743:            a = [f.get("vmaf") for f in new.get("frames") or []]
+744:            b = [f.get("vmaf") for f in old.get("frames") or []]
+746:            a = [f.get("metrics") for f in new.get("frames") or []]
+747:            b = [f.get("metrics") for f in old.get("frames") or []]
+763:    new_pairs = {p["pair"]: p for p in new.get("pairs") or []}
+764:    for p in old.get("pairs") or []:
+765:        n = new_pairs.get(p["pair"])
+766:        rec = {"pair": p["pair"], "status": {"rerun": n and n.get("status"),
+767:                                             "committed": p.get("status")}}
+771:            rec.update(compare_pair(os.path.join(new_dir, p["pair"]),
+772:                                    os.path.join(old_dir, p["pair"])))
+773:            rec["identical"] = (n.get("status") == p.get("status")
+776:    extra = sorted(set(new_pairs) - {p["pair"] for p in old.get("pairs") or []})
+777:    return {"status": {"rerun": new.get("status"), "committed": old.get("status")},
+779:            "identical": (new.get("status") == old.get("status") and not extra
+784:LADDER_PLAN = ("reference_mode", "ladder", "reference", "skipped", "warnings")
+800:    new_pairs = nl.get("pairs") or []
+801:    for k, op in enumerate(ol.get("pairs") or []):
+803:        a = [f.get("vmaf") for f in np.get("frames") or []]
+804:        b = [f.get("vmaf") for f in op.get("frames") or []]
+809:        entries = ", ".join(str(e) for e in op.get("entries") or [])
+813:                      "identical": m["identical"] and np.get("entries") == op.get("entries")})
+814:    new_checks = {x["pair"]: x for x in new.get("pairs") or []}
+815:    for oc in old.get("pairs") or []:
+816:        nc = new_checks.get(oc["pair"])
+817:        m = compare_pair(os.path.join(new_dir, oc["pair"]),
+818:                         os.path.join(old_dir, oc["pair"]))["mirage"]
+819:        pairs.append({"pair": oc["pair"],
+820:                      "status": {"rerun": nc and nc.get("status"), "committed": oc.get("status")},
+822:                      "identical": nc is not None and nc.get("status") == oc.get("status")
+824:    extra = len(new_pairs) - len(ol.get("pairs") or []) + len(
+825:        set(new_checks) - {x["pair"] for x in old.get("pairs") or []})
+826:    return {"status": {"rerun": new.get("status"), "committed": old.get("status")},
+828:            "identical": (new.get("status") == old.get("status") and not plan_differs
+847:            else new.get(k) == old.get(k) for k in ("pairs", "parameters_that_differ")}
+858:    a = [(s.get("kind"), s.get("series"), s.get("skipped")) for s in new.get("sources") or []]
+859:    b = [(s.get("kind"), s.get("series"), s.get("skipped")) for s in old.get("sources") or []]
+1030:            for p in run["pairs"]:
+1134:        check = {k: report[k] for k in ("report_version", "tool", "started_utc", "ended_utc",
+=== eval/pooling/pooling.py
+203:    for r in data.get("results") or []:
+204:        scores = r.get("per_frame") or []
+205:        if r.get("error") or not scores:
+206:            skipped.append({"label": r.get("label"), "error": r.get("error")})
+211:            "label": r.get("label"),
+214:            "recorded": {"mean": r.get("vmaf_mean"), "min": r.get("vmaf_min"),
+215:                         "p5": r.get("vmaf_p5")},
+228:    for s in overall.get("pairs") or []:
+229:        pdir = os.path.join(run_dir, s["pair"])
+233:        m = [f.get("vmaf") for f in rep.get("frames") or []]
+234:        frames = log.get("frames") or []
+235:        f = [(fr.get("metrics") or {}).get("vmaf") for fr in frames]
+238:        pooled = (log.get("pooled_metrics") or {}).get("vmaf") or {}
+245:            "recorded": {"mean": (rep.get("pooled") or {}).get("mean"),
+246:                         "min": (rep.get("pooled") or {}).get("min"),
+250:            mirage["reported"] = {k: (rep.get("pooled") or {}).get(k) for k in POOLED_D027}
+256:            "recorded": {k: pooled.get(k) for k in ("min", "max", "mean", "harmonic_mean")}
+=== eval/consistency/compare_runs.py
+86:    for s in overall.get("pairs") or []:
+87:        name = s["pair"]
+89:        side = {"self_check": {"status": s.get("status"), "max_abs": s.get("max_abs"),
+91:                               "frames": s.get("frames")},
+97:            side["pooled_mean"]["mirage"] = (rep.get("pooled") or {}).get("mean")
+98:            side["settings"] = {k: rep.get(k) for k in ("model", "model_source", "model_sha256",
+106:                ((log.get("pooled_metrics") or {}).get("vmaf") or {}).get("mean")
+114:        "status": overall.get("status"),
+152:    for k in ("frames", "variant", "threshold"):
+157:    for name in base["pairs"]:
+158:        b = base["pairs"][name]
+163:            o = r["pairs"].get(name)
+180:        for name in r["pairs"]:
+181:            if name not in base["pairs"]:
+226:    for p in c["pairs"]:
+239:        for p in c["pairs"]:
+=== eval/consistency/vmafdelta.py (reads of a mirage_vmaf report: rep / report)
+278:    frames = report.get("frames")
+283:        index = f.get("index") if isinstance(f, dict) else None
+286:        if not is_number(f.get("vmaf")):
+684:    alignment = report.get("alignment") if isinstance(report.get("alignment"), dict) else None
+686:    for name, key in zip(INPUTS, ("ref", "dis")):
+706:    frames = report.get("frames") if isinstance(report.get("frames"), list) else []
+709:        ref, dis = f.get("ref_index", k), f.get("dis_index", k)
+710:        pairs.append({"index": f.get("index", k), "ref": ref, "dis": dis,
+711:                      "ref_time": rel(f.get("ref_pts"), "reference"),
+712:                      "dis_time": rel(f.get("dis_pts"), "distorted")})
+715:        if isinstance(f, dict) and f.get("input") in INPUTS:
+716:            failures.append({"input": f["input"], "index": f.get("index"),
+717:                             "time": rel(f.get("pts"), f["input"]), "reason": f.get("reason")})
+796:                                            counts=mine.get("counts_failures", False)),
+893:    a = rep.get("alignment") if isinstance(rep.get("alignment"), dict) else {}
+920:    a = rep.get("alignment") if isinstance(rep.get("alignment"), dict) else None
+1005:        wanted = [("scaler", params["scaler"]), ("n_threads", params["threads"]),
+1006:                  ("n_subsample", 1), ("frame_limit", params["frames"])]
+1017:        scored = rep.get("scored_as") or {}
+1026:        frames = rep.get("frames") if isinstance(rep.get("frames"), list) else []
+1027:        if rep.get("frames_scored") != len(frames):
+1037:                 and is_number(f.get("ref_pts")) and is_number(f.get("dis_pts"))]
+1045:        own = rep.get("warnings") if isinstance(rep.get("warnings"), list) else []
+1050:            **{k: rep.get(k) for k in ("tool", "reference_mode", "libvmaf_version",
+1055:            "ref_ended": (rep.get("ref") or {}).get("ended"),
+1056:            "dis_ended": (rep.get("dis") or {}).get("ended"),
+1074:        if rep is not None and log.get("version") != rep.get("libvmaf_version"):
+1078:        mine_libs = rep.get("ffmpeg_libraries") if rep is not None else None
+1109:    mirage_conv = rep.get("dis_conversion") if rep is not None else None
+1118:    mirage_ref_conv = rep.get("ref_conversion") if rep is not None else None
+1183:            mp = rep.get("pooled") or {}
+(exit status 0)

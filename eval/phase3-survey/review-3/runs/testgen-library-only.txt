@@ -1,0 +1,16 @@
+# cwd: <out>/testgen
+# command: 'bash' '-c' 'echo "FFmpeg headers included:"; grep -n -E "^#include <lib(av|sw)" src/testgen.cpp; echo "calls that would start another program (popen, system, posix_spawn, exec*, a quoted ffmpeg or ffprobe):"; grep -c -E "popen|system\(|posix_spawn|execv|execl|\"ffmpeg|\"ffprobe" src/testgen.cpp'
+# started: 2026-11-01T09:15:58Z, ended: 2026-11-01T09:15:58Z (UTC)
+# stdout and stderr, in order:
+FFmpeg headers included:
+54:#include <libavcodec/avcodec.h>
+55:#include <libavformat/avformat.h>
+56:#include <libavutil/avutil.h>
+57:#include <libavutil/error.h>
+58:#include <libavutil/frame.h>
+59:#include <libavutil/log.h>
+60:#include <libavutil/opt.h>
+61:#include <libswscale/swscale.h>
+calls that would start another program (popen, system, posix_spawn, exec*, a quoted ffmpeg or ffprobe):
+0
+# exit status: 1

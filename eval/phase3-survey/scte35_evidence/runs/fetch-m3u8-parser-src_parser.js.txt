@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/m3u8-parser-src_parser.js/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://raw.githubusercontent.com/videojs/m3u8-parser/b0cbc6d9a565b5d0137c806aa6172350c5d339c4/src/parser.js'
+date_utc: 2026-11-01T03:46:43Z
+http_code=200
+url_effective=https://raw.githubusercontent.com/videojs/m3u8-parser/b0cbc6d9a565b5d0137c806aa6172350c5d339c4/src/parser.js
+size_download=38715
+content_type=text/plain; charset=utf-8
+curl_exit=0
+sha256=390ed9545a75fbf55462274aa9110348290cd2ce86022fd80da0a59edae0d906

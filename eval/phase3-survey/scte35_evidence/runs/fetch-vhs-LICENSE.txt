@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/vhs-LICENSE/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://raw.githubusercontent.com/videojs/http-streaming/aba601a239b61f07f45aee061e7aa578a35beacc/LICENSE'
+date_utc: 2026-11-01T03:47:12Z
+http_code=200
+url_effective=https://raw.githubusercontent.com/videojs/http-streaming/aba601a239b61f07f45aee061e7aa578a35beacc/LICENSE
+size_download=2304
+content_type=text/plain; charset=utf-8
+curl_exit=0
+sha256=4c06cd3f985ff626dc45de625a50fc854196ead297caa9fadb126c0ea429470e

@@ -1,0 +1,9 @@
+# cwd: <repo>
+# command: 'bash' '-c' 'nm -u build/macos-debug/CMakeFiles/mirage_tests.dir/src/NetworkLogger.cpp.o | c++filt | grep -v -e "^_av" -e "std::" -e "^__" -e "^_Unwind" -e "operator" -e "^_mem" -e "^_str" -e "^_v\?snprintf" -e "^_free$" -e "^_malloc$" -e "^_abort$" -e "^___"; echo "(undefined symbols of the object outside FFmpeg (_av*), the C++ standard library and the C string and memory functions, listed above)"'
+# started: 2026-11-01T09:13:10Z, ended: 2026-11-01T09:13:10Z (UTC)
+# stdout and stderr, in order:
+vtable for __cxxabiv1::__si_class_type_info
+_atoi
+_localtime_r
+(undefined symbols of the object outside FFmpeg (_av*), the C++ standard library and the C string and memory functions, listed above)
+# exit status: 0

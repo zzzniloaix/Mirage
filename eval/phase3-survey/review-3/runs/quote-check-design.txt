@@ -1,0 +1,55 @@
+# cwd: <out>
+# command: 'bash' '<out>/review-3/tools/quote_each.sh' '<scratch>/phase3/tools/quote_check.py' '<scratch>/phase3/private/work_order_p3.txt' 'design.md' 'design/owner_questions.json' 'design/p_entries.json' 'design/revision-1.md' 'design/revision-2.md' 'design/risks.json' 'design/runs/axis-check.txt' 'design/runs/detection-semantics-ad.txt' 'design/runs/log-callback-grep.txt' 'design/runs/networklogger-users.txt' 'design/runs/package-check.txt' 'design/runs/privacy-check.txt' 'design/runs/question-lengths.txt' 'design/runs/quote-check.txt' 'design/runs/render-check.txt' 'design/runs/repo-state.txt' 'design/runs/seconds-check.txt' 'design/src/part1.md' 'design/src/part2.md' 'design/tools/axis_check.py' 'design/tools/detection_semantics.py' 'design/tools/render.py' 'design/tools/run.sh' 'design/tools/seconds_check.py' 'design/work_packages.json'
+# started: 2026-11-01T08:55:38Z, ended: 2026-11-01T08:55:39Z (UTC)
+# stdout and stderr, in order:
+== design.md
+in all: 0 prose runs, 0 runs of names, K = 6
+== design/owner_questions.json
+in all: 0 prose runs, 0 runs of names, K = 6
+== design/p_entries.json
+in all: 0 prose runs, 0 runs of names, K = 6
+== design/revision-1.md
+in all: 0 prose runs, 0 runs of names, K = 6
+== design/revision-2.md
+in all: 0 prose runs, 0 runs of names, K = 6
+== design/risks.json
+in all: 0 prose runs, 0 runs of names, K = 6
+== design/runs/axis-check.txt
+in all: 0 prose runs, 0 runs of names, K = 6
+== design/runs/detection-semantics-ad.txt
+in all: 0 prose runs, 0 runs of names, K = 6
+== design/runs/log-callback-grep.txt
+in all: 0 prose runs, 0 runs of names, K = 6
+== design/runs/networklogger-users.txt
+in all: 0 prose runs, 0 runs of names, K = 6
+== design/runs/package-check.txt
+in all: 0 prose runs, 0 runs of names, K = 6
+== design/runs/privacy-check.txt
+in all: 0 prose runs, 0 runs of names, K = 6
+== design/runs/question-lengths.txt
+in all: 0 prose runs, 0 runs of names, K = 6
+== design/runs/quote-check.txt
+in all: 0 prose runs, 0 runs of names, K = 6
+== design/runs/render-check.txt
+in all: 0 prose runs, 0 runs of names, K = 6
+== design/runs/repo-state.txt
+in all: 0 prose runs, 0 runs of names, K = 6
+== design/runs/seconds-check.txt
+in all: 0 prose runs, 0 runs of names, K = 6
+== design/src/part1.md
+in all: 0 prose runs, 0 runs of names, K = 6
+== design/src/part2.md
+in all: 0 prose runs, 0 runs of names, K = 6
+== design/tools/axis_check.py
+in all: 0 prose runs, 0 runs of names, K = 6
+== design/tools/detection_semantics.py
+in all: 0 prose runs, 0 runs of names, K = 6
+== design/tools/render.py
+in all: 0 prose runs, 0 runs of names, K = 6
+== design/tools/run.sh
+in all: 0 prose runs, 0 runs of names, K = 6
+== design/tools/seconds_check.py
+in all: 0 prose runs, 0 runs of names, K = 6
+== design/work_packages.json
+in all: 0 prose runs, 0 runs of names, K = 6
+# exit status: 0

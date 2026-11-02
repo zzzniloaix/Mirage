@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/aws-medialive-sample-manifests-hls.md/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://docs.aws.amazon.com/medialive/latest/ug/sample-manifests-hls.md'
+date_utc: 2026-11-01T03:40:48Z
+http_code=200
+url_effective=https://docs.aws.amazon.com/medialive/latest/ug/sample-manifests-hls.md
+size_download=3468
+content_type=text/markdown; charset=utf-8
+curl_exit=0
+sha256=b5e1be2502e2e202cb3de69b382fed38186f3e306cbee12d1785074556de917f

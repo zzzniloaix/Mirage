@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/scte35-go-docs_SCTE_35_2023r1.pdf/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://raw.githubusercontent.com/Comcast/scte35-go/06d0ba5099d939c89a276629701b42221d3ecf30/docs/SCTE_35_2023r1.pdf'
+date_utc: 2026-11-01T03:30:44Z
+http_code=200
+url_effective=https://raw.githubusercontent.com/Comcast/scte35-go/06d0ba5099d939c89a276629701b42221d3ecf30/docs/SCTE_35_2023r1.pdf
+size_download=5062650
+content_type=application/octet-stream
+curl_exit=0
+sha256=a0ee42985e9df7abf8916b958342ea700a1dc257c17baf8f3dc6a455a7d1cd8b

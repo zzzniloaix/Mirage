@@ -1,0 +1,21 @@
+# One command of the schema survey, run in <repo> by tools/run.py, started 2026-11-01T03:52:45Z, ended 2026-11-01T03:52:45Z (UTC).
+# <repo>: the worktree of vmaf/phase-3 at 75cf6e0; <out>: the survey's output directory; <scratch>: the scratch directory.
+# The command, then its standard output and standard error as they came, then its exit status.
+
+$ echo "## key flags or decode error flags in the analyzer (src/VMAFAnalyzer.cpp):"; grep -c -E "AV_FRAME_FLAG_KEY|AV_PKT_FLAG_KEY|key_frame|decode_error_flags|FF_DECODE_ERROR" src/VMAFAnalyzer.cpp; echo "## avcodec_send_packet calls in the analyzer, and whether their result is used:"; grep -n "avcodec_send_packet" src/VMAFAnalyzer.cpp; echo "## a JSON parser in src/ (a function or library that reads JSON):"; grep -l -E "nlohmann|rapidjson|simdjson|cJSON|picojson|json::parse|parse_json|JsonReader|json_reader" src/*.cpp src/*.h | wc -l; echo "## the tests reader:"; grep -n "Minimal JSON reader" tests/*.cpp; echo "## JSON libraries among the build dependencies (CMakeLists.txt FetchContent / find_package):"; grep -n -i -E "json" CMakeLists.txt; echo "## CMake project line:"; grep -n "^project(" CMakeLists.txt
+## key flags or decode error flags in the analyzer (src/VMAFAnalyzer.cpp):
+0
+## avcodec_send_packet calls in the analyzer, and whether their result is used:
+226:                    avcodec_send_packet(codec_ctx, nullptr);
+231:                    avcodec_send_packet(codec_ctx, pkt);
+## a JSON parser in src/ (a function or library that reads JSON):
+       0
+## the tests reader:
+tests/test_vmaf_report.cpp:26:// ── Minimal JSON reader ───────────────────────────────────────────────────────
+## JSON libraries among the build dependencies (CMakeLists.txt FetchContent / find_package):
+245:    src/JsonText.cpp
+285:    tests/test_json_text.cpp
+319:    src/JsonText.cpp
+## CMake project line:
+2:project(Mirage C CXX)
+(exit status 0)

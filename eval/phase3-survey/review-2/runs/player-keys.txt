@@ -1,0 +1,6 @@
+# cwd: <repo>
+# command: 'sh' '-c' 'grep -o 'GLFW_KEY_[A-Z]\b' src/main.cpp | sort -u | tr '\n' ' '; echo'
+# started: 2026-11-01T07:53:05Z, ended: 2026-11-01T07:53:05Z (UTC)
+# stdout and stderr, in order:
+GLFW_KEY_A GLFW_KEY_C GLFW_KEY_D GLFW_KEY_F GLFW_KEY_G GLFW_KEY_H GLFW_KEY_I GLFW_KEY_K GLFW_KEY_M GLFW_KEY_N GLFW_KEY_O GLFW_KEY_Q GLFW_KEY_T GLFW_KEY_V GLFW_KEY_W 
+# exit status: 0

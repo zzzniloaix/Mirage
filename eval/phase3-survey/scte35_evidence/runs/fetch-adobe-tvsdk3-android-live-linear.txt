@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/adobe-tvsdk3-android-live-linear/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://experienceleague.adobe.com/en/docs/primetime/programming/tvsdk-3x-android-prog/advertising/insert-ads/android-3x-ad-resolving-client-live-linear'
+date_utc: 2026-11-01T03:48:51Z
+http_code=404
+url_effective=https://experienceleague.adobe.com/en/docs/primetime/programming/tvsdk-3x-android-prog/advertising/insert-ads/android-3x-ad-resolving-client-live-linear
+size_download=4051
+content_type=text/html; charset=utf-8
+curl_exit=0
+sha256=bcda7149d68d5f2d1327be524d8c41f4e5190e04bde128e0eec538f4d3328f8c

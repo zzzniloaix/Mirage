@@ -1,0 +1,11 @@
+# One command of the schema survey, run in <repo> by tools/run.py, started 2026-11-01T03:36:33Z, ended 2026-11-01T03:36:33Z (UTC).
+# <repo>: the worktree of vmaf/phase-3 at 75cf6e0; <out>: the survey's output directory; <scratch>: the scratch directory.
+# The command, then its standard output and standard error as they came, then its exit status.
+
+$ build/macos-debug/mirage_tests "[vmafreport],[json],[vmafcli]"
+Filters: [vmafreport],[json],[vmafcli]
+Randomness seeded to: 1411822906
+===============================================================================
+All tests passed (1368 assertions in 43 test cases)
+
+(exit status 0)

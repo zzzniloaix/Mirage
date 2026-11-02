@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/scte35-2023r1-pdf/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://www.scte.org/documents/6710/SCTE_35_2023r1.pdf'
+date_utc: 2026-11-01T03:28:14Z
+http_code=403
+url_effective=https://account.scte.org/documents/6710/SCTE_35_2023r1.pdf
+size_download=118
+content_type=text/html
+curl_exit=0
+sha256=58bf2215b395dcac74c009aa98701854e43cbe54a1cd3a95fee6a647ca9910d4

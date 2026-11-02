@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/hlsjs-src_loader_date-range.ts/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://raw.githubusercontent.com/video-dev/hls.js/142fcab1fd0de99beafb0e1b07102ec674a9ddf9/src/loader/date-range.ts'
+date_utc: 2026-11-01T03:47:23Z
+http_code=200
+url_effective=https://raw.githubusercontent.com/video-dev/hls.js/142fcab1fd0de99beafb0e1b07102ec674a9ddf9/src/loader/date-range.ts
+size_download=6300
+content_type=text/plain; charset=utf-8
+curl_exit=0
+sha256=c4bc8ff4e4c55bafa63ff7fd94f5696ae19a00e48ff2ac034df925b54ae239f2

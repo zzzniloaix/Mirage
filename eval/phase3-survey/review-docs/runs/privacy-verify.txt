@@ -1,0 +1,18 @@
+command (cwd: <drafts>/verify): python3 -I -B tools/privacy_scan.py verify.md runs tools
+date_utc: 2026-11-01T11:30:43Z
+output (stdout and stderr):
+pattern: case-insensitive, SHA-256 of its text 943ca9161f562c6243e1887d71c169874aaa3c84828fc0a81fd15738730a047d
+tools/privacy_scan.py:20:35: hint opt-homebrew
+tools/privacy_scan.py:21:32: hint usr-local
+tools/privacy_scan.py:22:30: hint volumes
+tools/privacy_scan.py:25:44: hint tmp-path
+tools/privacy_scan.py:26:44: hint var-path
+tools/privacy_scan.py:28:36: hint mac-host
+tools/privacy_scan.py:28:44: hint mac-host
+tools/privacy_scan.py:28:49: hint mac-host
+tools/privacy_scan.py:28:58: hint mac-host
+tools/privacy_scan.py:28:66: hint mac-host
+checked: 25 files (0 of them .xz, read decompressed), 2919 lines
+task pattern matches: 0; e-mail addresses: 0
+hints (not the task's check): opt-homebrew 1, usr-local 1, volumes 1, home-dir 0, tilde-path 0, tmp-path 1, var-path 1, dot-local-host 0, mac-host 5, ipv4 0
+exit=0

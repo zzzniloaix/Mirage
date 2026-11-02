@@ -1,0 +1,14 @@
+# cwd: <out>/review-adversarial
+# command: 'sh' '-c' 'clang++ --version | head -1; clang++ -std=c++20 -O1 -Wall -Wextra -o bin/from_chars_double tools/from_chars_double.cpp && ./bin/from_chars_double'
+# started: 2026-11-01T06:08:15Z, ended: 2026-11-01T06:08:16Z (UTC)
+# stdout and stderr, in order:
+Apple clang version 21.0.0 (clang-2100.1.1.101)
+100                      -> read back exactly
+97.934                   -> read back exactly
+1.1792e-05               -> read back exactly
+10.04                    -> read back exactly
+0.30000000000000004      -> read back exactly
+22.237                   -> read back exactly
+5853784600               -> read back exactly
+0 of 7 not read back
+# exit status: 0

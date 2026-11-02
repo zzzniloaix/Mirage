@@ -1,0 +1,1355 @@
+# cwd: <out>/testgen/media/degraded-x264-a
+# command: '<out>/design-library/bin/logprobe' 'file' 'v270/index.m3u8'
+# started: 2026-11-01T04:30:08Z, ended: 2026-11-01T04:30:08Z (UTC)
+# stdout and stderr, in order:
+== events: t_us, thread, kind, fields ==
+1126	t1	avformat_open_input	v270/index.m3u8
+1200	t1	open_begin	ctx#1	url=v270/index.m3u8	offset=-	end_offset=-
+1203	t1	log	cbA	DEBUG	AVFormatContext#1	Opening 'v270/index.m3u8' for reading\n
+1211	t1	log	cbA	DEBUG	URLContext#2	Setting default whitelist 'file,crypto,data'\n
+1259	t1	open_end	ctx#1	ret=0	pb#3
+1551	t1	log	cbA	TRACE	-#0	Probing hls score:100 size:345\n
+1614	t1	log	cbA	DEBUG	AVFormatContext#1	Format hls probed with size=2048 and score=100\n
+1628	t1	log	cbA	VERBOSE	AVFormatContext#1	Skip ('#EXT-X-VERSION:3')\n
+1646	t1	log	cbA	TRACE	AVFormatContext#1	new_program: id=0x0000\n
+1649	t1	log	cbA	VERBOSE	AVFormatContext#1	HLS request for url 'v270/seg_000.ts', offset 0, playlist 0\n
+1651	t1	open_begin	ctx#1	url=v270/seg_000.ts	offset=-	end_offset=-
+1652	t1	log	cbA	INFO	AVFormatContext#1	Opening 'v270/seg_000.ts' for reading\n
+1685	t1	open_end	ctx#1	ret=0	pb#4
+1927	t1	log	cbA	TRACE	-#0	Probing mpegts score:50 size:2048\n
+1944	t1	log	cbA	DEBUG	-#0	Format mpegts probed with size=2048 and score=50\n
+1980	t1	log	cbA	TRACE	AVFormatContext#5	Probe: 8192, score: 44, dvhs_score: -2, fec_score: -2 \n
+1982	t1	log	cbA	TRACE	AVFormatContext#5	Filter: pid=0x11 type=1\n
+1983	t1	log	cbA	TRACE	AVFormatContext#5	Filter: pid=0x0 type=1\n
+1984	t1	log	cbA	TRACE	AVFormatContext#5	Filter: pid=0x12 type=1\n
+1988	t1	log	cbA	TRACE	AVFormatContext#5	SDT:\n
+1988	t1	log	cbA	TRACE	AVFormatContext#5	tag: 0x48 len=18\n
+3051	t1	log	cbA	TRACE	AVFormatContext#5	new_program: id=0x0001\n
+3053	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+3053	t1	log	cbA	TRACE	AVFormatContext#5	sid=0x1 pid=0x1000\n
+3054	t1	log	cbA	TRACE	AVFormatContext#5	new_program: id=0x0001\n
+3054	t1	log	cbA	TRACE	AVFormatContext#5	Filter: pid=0x1000 type=1\n
+3055	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+3056	t1	log	cbA	TRACE	AVFormatContext#5	sid=0x1 sec_num=0/0 version=0 tid=2\n
+3057	t1	log	cbA	TRACE	AVFormatContext#5	pcr_pid=0x100\n
+3059	t1	log	cbA	TRACE	AVFormatContext#5	Filter: pid=0x100 type=0\n
+3087	t1	log	cbA	DEBUG	AVFormatContext#5	stream=0 stream_type=1b pid=100 prog_reg_desc=\n
+3089	t1	log	cbA	TRACE	AVFormatContext#5	tuning done\n
+3101	t1	avformat_find_stream_info
+3103	t1	log	cbA	DEBUG	AVFormatContext#1	Before avformat_find_stream_info() pos: 345 bytes read:345 seeks:0 nb_streams:1\n
+3289	t1	log	cbA	TRACE	AVFormatContext#5	Skipping after seek\n
+3294	t1	log	cbA	TRACE	AVFormatContext#5	SDT:\n
+3295	t1	log	cbA	TRACE	AVFormatContext#5	tag: 0x48 len=18\n
+3378	t1	log	cbA	TRACE	AVFormatContext#5	new_program: id=0x0001\n
+3383	t1	log	cbA	DEBUG	AVFormatContext#5	All programs have pmt, headers found\n
+3384	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+3384	t1	log	cbA	TRACE	AVFormatContext#5	sid=0x1 pid=0x1000\n
+3385	t1	log	cbA	TRACE	AVFormatContext#5	new_program: id=0x0001\n
+3385	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+3386	t1	log	cbA	TRACE	AVFormatContext#5	sid=0x1 sec_num=0/0 version=0 tid=2\n
+3387	t1	log	cbA	TRACE	AVFormatContext#5	pcr_pid=0x100\n
+3388	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+3394	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+3404	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+3414	t1	log	cbA	DEBUG	AVCodecContext#6	Decoding VUI\n
+3442	t1	log	cbA	DEBUG	AVBSFContext#7	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+3443	t1	log	cbA	DEBUG	AVBSFContext#7	nal_unit_type: 7(SPS), nal_ref_idc: 3\n
+3444	t1	log	cbA	DEBUG	AVBSFContext#7	nal_unit_type: 8(PPS), nal_ref_idc: 3\n
+3444	t1	log	cbA	DEBUG	AVBSFContext#7	nal_unit_type: 6(SEI), nal_ref_idc: 0\n
+3448	t1	log	cbA	DEBUG	AVBSFContext#7	nal_unit_type: 5(IDR), nal_ref_idc: 3\n
+3464	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+3465	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 7(SPS), nal_ref_idc: 3\n
+3466	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 8(PPS), nal_ref_idc: 3\n
+3468	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 6(SEI), nal_ref_idc: 0\n
+3471	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 5(IDR), nal_ref_idc: 3\n
+3472	t1	log	cbA	DEBUG	AVCodecContext#8	Decoding VUI\n
+3487	t1	log	cbA	DEBUG	AVCodecContext#8	Format yuv420p chosen by get_format().\n
+3509	t1	log	cbA	VERBOSE	AVCodecContext#8	Reinit context to 480x272, pix_fmt: yuv420p\n
+3553	t1	log	cbA	DEBUG	AVCodecContext#8	no picture \n
+4904	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+4905	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+4906	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+4912	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+4916	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+4920	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+4920	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+4921	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+4925	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+5145	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+5148	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+5149	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+5149	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+5153	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+5155	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+5159	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+5160	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+5160	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+5164	t1	log	cbA	TRACE	AVFormatContext#5	SDT:\n
+5165	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+5167	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+5169	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+5169	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+5170	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+5172	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+5175	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+5179	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+5179	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+5180	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+5182	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+5184	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+5186	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+5187	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+5187	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+5189	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+5193	t1	log	cbA	DEBUG	AVFormatContext#1	All info found\n
+5200	t1	log	cbA	TRACE	AVFormatContext#1	stream 0: start_time: 10 duration: NOPTS\n
+5201	t1	log	cbA	TRACE	AVFormatContext#1	format: start_time: 10 duration: 8 (estimate from stream) bitrate=0 kb/s\n
+5245	t1	log	cbA	DEBUG	AVFormatContext#1	After avformat_find_stream_info() pos: 345 bytes read:345 seeks:0 frames:21\n
+5252	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 7(SPS), nal_ref_idc: 3\n
+5253	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 8(PPS), nal_ref_idc: 3\n
+5254	t1	log	cbA	DEBUG	AVCodecContext#8	Decoding VUI\n
+5258	t1	opened	format=hls	video_stream=0	time_base=1/90000	stream_start=10.000000	container_start_us=10000000	duration_us=8000000	nb_programs=1	opens_so_far=2
+5260	t1	packet	pts=10.000000	dts=9.920000	duration=3600	key=1	corrupt=0	size=22218	pos=564	opens_so_far=2	last_open=v270/seg_000.ts
+5263	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+5264	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 7(SPS), nal_ref_idc: 3\n
+5264	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 8(PPS), nal_ref_idc: 3\n
+5265	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 6(SEI), nal_ref_idc: 0\n
+5269	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 5(IDR), nal_ref_idc: 3\n
+5270	t1	log	cbA	DEBUG	AVCodecContext#8	Decoding VUI\n
+5275	t1	log	cbA	DEBUG	AVCodecContext#8	Format yuv420p chosen by get_format().\n
+5276	t1	log	cbA	VERBOSE	AVCodecContext#8	Reinit context to 480x272, pix_fmt: yuv420p\n
+5285	t1	log	cbA	DEBUG	AVCodecContext#8	no picture \n
+6593	t1	packet	pts=10.080000	dts=9.960000	duration=3600	key=0	corrupt=0	size=1730	pos=23312	opens_so_far=2	last_open=v270/seg_000.ts
+6595	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+6596	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+6626	t1	log	cbA	DEBUG	AVCodecContext#8	no picture \n
+6841	t1	packet	pts=10.040000	dts=10.000000	duration=3600	key=0	corrupt=0	size=704	pos=25192	opens_so_far=2	last_open=v270/seg_000.ts
+6843	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+6844	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+7025	t1	frame	pts=10.000000	best_effort=10.000000	pkt_dts=10.000000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+7027	t1	packet	pts=10.240000	dts=10.040000	duration=3600	key=0	corrupt=0	size=2184	pos=26320	opens_so_far=2	last_open=v270/seg_000.ts
+7028	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+7029	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+7298	t1	frame	pts=10.040000	best_effort=10.040000	pkt_dts=10.040000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+7299	t1	packet	pts=10.160000	dts=10.080000	duration=3600	key=0	corrupt=0	size=1224	pos=28764	opens_so_far=2	last_open=v270/seg_000.ts
+7301	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+7301	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+7525	t1	frame	pts=10.080000	best_effort=10.080000	pkt_dts=10.080000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+7525	t1	packet	pts=10.120000	dts=10.120000	duration=3600	key=0	corrupt=0	size=989	pos=30080	opens_so_far=2	last_open=v270/seg_000.ts
+7527	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+7527	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+7707	t1	frame	pts=10.120000	best_effort=10.120000	pkt_dts=10.120000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+7708	t1	packet	pts=10.200000	dts=10.160000	duration=3600	key=0	corrupt=0	size=874	pos=31584	opens_so_far=2	last_open=v270/seg_000.ts
+7709	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+7710	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+7931	t1	frame	pts=10.160000	best_effort=10.160000	pkt_dts=10.160000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+7932	t1	packet	pts=10.320000	dts=10.200000	duration=3600	key=0	corrupt=0	size=2160	pos=32524	opens_so_far=2	last_open=v270/seg_000.ts
+7934	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+7935	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+8209	t1	frame	pts=10.200000	best_effort=10.200000	pkt_dts=10.200000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+8210	t1	packet	pts=10.280000	dts=10.240000	duration=3600	key=0	corrupt=0	size=801	pos=34780	opens_so_far=2	last_open=v270/seg_000.ts
+8212	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+8213	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+8399	t1	frame	pts=10.240000	best_effort=10.240000	pkt_dts=10.240000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+8400	t1	packet	pts=10.480000	dts=10.280000	duration=3600	key=0	corrupt=0	size=2426	pos=36096	opens_so_far=2	last_open=v270/seg_000.ts
+8401	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+8402	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+8687	t1	frame	pts=10.280000	best_effort=10.280000	pkt_dts=10.280000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+8688	t1	packet	pts=10.400000	dts=10.320000	duration=3600	key=0	corrupt=0	size=1249	pos=38728	opens_so_far=2	last_open=v270/seg_000.ts
+8689	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+8695	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+8910	t1	frame	pts=10.320000	best_effort=10.320000	pkt_dts=10.320000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+8918	t1	packet	pts=10.360000	dts=10.360000	duration=3600	key=0	corrupt=0	size=896	pos=40044	opens_so_far=2	last_open=v270/seg_000.ts
+8919	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+8920	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+9101	t1	frame	pts=10.360000	best_effort=10.360000	pkt_dts=10.360000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+9102	t1	packet	pts=10.440000	dts=10.400000	duration=3600	key=0	corrupt=0	size=856	pos=41360	opens_so_far=2	last_open=v270/seg_000.ts
+9103	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+9103	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+9276	t1	frame	pts=10.400000	best_effort=10.400000	pkt_dts=10.400000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+9277	t1	packet	pts=10.520000	dts=10.440000	duration=3600	key=0	corrupt=0	size=2099	pos=42488	opens_so_far=2	last_open=v270/seg_000.ts
+9278	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+9279	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+9524	t1	frame	pts=10.440000	best_effort=10.440000	pkt_dts=10.440000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+9525	t1	packet	pts=10.640000	dts=10.480000	duration=3600	key=0	corrupt=0	size=3082	pos=44744	opens_so_far=2	last_open=v270/seg_000.ts
+9526	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+9527	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+9844	t1	frame	pts=10.480000	best_effort=10.480000	pkt_dts=10.480000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+9845	t1	packet	pts=10.560000	dts=10.520000	duration=3600	key=0	corrupt=0	size=1145	pos=48316	opens_so_far=2	last_open=v270/seg_000.ts
+9846	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+9847	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+10069	t1	frame	pts=10.520000	best_effort=10.520000	pkt_dts=10.520000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+10070	t1	packet	pts=10.600000	dts=10.560000	duration=3600	key=0	corrupt=0	size=1006	pos=49632	opens_so_far=2	last_open=v270/seg_000.ts
+10071	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+10072	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+10279	t1	frame	pts=10.560000	best_effort=10.560000	pkt_dts=10.560000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+10279	t1	packet	pts=10.760000	dts=10.600000	duration=3600	key=0	corrupt=0	size=2984	pos=50760	opens_so_far=2	last_open=v270/seg_000.ts
+10281	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+10282	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+10603	t1	frame	pts=10.600000	best_effort=10.600000	pkt_dts=10.600000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+10604	t1	packet	pts=10.680000	dts=10.640000	duration=3600	key=0	corrupt=0	size=1248	pos=54332	opens_so_far=2	last_open=v270/seg_000.ts
+10606	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+10606	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+10833	t1	frame	pts=10.640000	best_effort=10.640000	pkt_dts=10.640000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+10833	t1	packet	pts=10.720000	dts=10.680000	duration=3600	key=0	corrupt=0	size=1079	pos=55648	opens_so_far=2	last_open=v270/seg_000.ts
+10834	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+10835	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+11040	t1	frame	pts=10.680000	best_effort=10.680000	pkt_dts=10.680000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+11046	t1	packet	pts=10.920000	dts=10.720000	duration=3600	key=0	corrupt=0	size=2511	pos=56964	opens_so_far=2	last_open=v270/seg_000.ts
+11047	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+11048	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+11345	t1	frame	pts=10.720000	best_effort=10.720000	pkt_dts=10.720000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+11346	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+11349	t1	packet	pts=10.840000	dts=10.760000	duration=3600	key=0	corrupt=0	size=1346	pos=59972	opens_so_far=2	last_open=v270/seg_000.ts
+11350	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+11351	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+11587	t1	frame	pts=10.760000	best_effort=10.760000	pkt_dts=10.760000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+11589	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+11589	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+11590	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+11592	t1	packet	pts=10.800000	dts=10.800000	duration=3600	key=0	corrupt=0	size=871	pos=61476	opens_so_far=2	last_open=v270/seg_000.ts
+11593	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+11594	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+11784	t1	frame	pts=10.800000	best_effort=10.800000	pkt_dts=10.800000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+11792	t1	close	ctx#1	pb#4	bytes_read=66552	error=0
+11794	t1	log	cbA	VERBOSE	AVIOContext#4	Statistics: 66552 bytes read, 0 seeks\n
+11804	t1	log	cbA	VERBOSE	AVFormatContext#1	HLS request for url 'v270/seg_001.ts', offset 0, playlist 0\n
+11806	t1	open_begin	ctx#1	url=v270/seg_001.ts	offset=-	end_offset=-
+11807	t1	log	cbA	INFO	AVFormatContext#1	Opening 'v270/seg_001.ts' for reading\n
+11846	t1	open_end	ctx#1	ret=0	pb#4
+12043	t1	log	cbA	TRACE	AVFormatContext#5	SDT:\n
+12043	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+12044	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+12045	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+12047	t1	packet	pts=10.880000	dts=10.840000	duration=3600	key=0	corrupt=0	size=934	pos=62416	opens_so_far=3	last_open=v270/seg_001.ts
+12049	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+12050	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+12245	t1	frame	pts=10.840000	best_effort=10.840000	pkt_dts=10.840000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+12250	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+12254	t1	packet	pts=10.960000	dts=10.880000	duration=3600	key=0	corrupt=0	size=2422	pos=63920	opens_so_far=3	last_open=v270/seg_001.ts
+12255	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+12256	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+12537	t1	frame	pts=10.880000	best_effort=10.880000	pkt_dts=10.880000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+12538	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+12541	t1	log	cbA	DEBUG	AVCodecContext#6	Decoding VUI\n
+12553	t1	packet	pts=11.000000	dts=10.920000	duration=3600	key=1	corrupt=0	size=21352	pos=67116	opens_so_far=3	last_open=v270/seg_001.ts
+12555	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+12555	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 7(SPS), nal_ref_idc: 3\n
+12556	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 8(PPS), nal_ref_idc: 3\n
+12557	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 6(SEI), nal_ref_idc: 0\n
+12559	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 5(IDR), nal_ref_idc: 3\n
+12560	t1	log	cbA	DEBUG	AVCodecContext#8	Decoding VUI\n
+13859	t1	frame	pts=10.920000	best_effort=10.920000	pkt_dts=10.920000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+13860	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+13870	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+13871	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+13874	t1	packet	pts=11.080000	dts=10.960000	duration=3600	key=0	corrupt=0	size=1877	pos=89112	opens_so_far=3	last_open=v270/seg_001.ts
+13875	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+13876	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+14093	t1	frame	pts=10.960000	best_effort=10.960000	pkt_dts=10.960000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+14095	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+14096	t1	packet	pts=11.040000	dts=11.000000	duration=3600	key=0	corrupt=0	size=650	pos=91180	opens_so_far=3	last_open=v270/seg_001.ts
+14098	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+14098	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+14269	t1	frame	pts=11.000000	best_effort=11.000000	pkt_dts=11.000000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+14270	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+14272	t1	packet	pts=11.200000	dts=11.040000	duration=3600	key=0	corrupt=0	size=2508	pos=92308	opens_so_far=3	last_open=v270/seg_001.ts
+14273	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+14274	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+14559	t1	frame	pts=11.040000	best_effort=11.040000	pkt_dts=11.040000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+14561	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+14561	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+14562	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+14564	t1	packet	pts=11.120000	dts=11.080000	duration=3600	key=0	corrupt=0	size=1230	pos=94940	opens_so_far=3	last_open=v270/seg_001.ts
+14565	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+14565	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+14774	t1	frame	pts=11.080000	best_effort=11.080000	pkt_dts=11.080000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+14932	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+14934	t1	packet	pts=11.160000	dts=11.120000	duration=3600	key=0	corrupt=0	size=1200	pos=96256	opens_so_far=3	last_open=v270/seg_001.ts
+14936	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+14937	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+15153	t1	frame	pts=11.120000	best_effort=11.120000	pkt_dts=11.120000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+15155	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+15156	t1	packet	pts=11.360000	dts=11.160000	duration=3600	key=0	corrupt=0	size=2159	pos=97948	opens_so_far=3	last_open=v270/seg_001.ts
+15158	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+15159	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+15435	t1	frame	pts=11.160000	best_effort=11.160000	pkt_dts=11.160000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+15436	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+15437	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+15437	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+15441	t1	packet	pts=11.280000	dts=11.200000	duration=3600	key=0	corrupt=0	size=1386	pos=100204	opens_so_far=3	last_open=v270/seg_001.ts
+15442	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+15443	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+15662	t1	frame	pts=11.200000	best_effort=11.200000	pkt_dts=11.200000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+15664	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+15665	t1	packet	pts=11.240000	dts=11.240000	duration=3600	key=0	corrupt=0	size=1074	pos=101708	opens_so_far=3	last_open=v270/seg_001.ts
+15672	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+15673	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+15869	t1	frame	pts=11.240000	best_effort=11.240000	pkt_dts=11.240000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+15871	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+15873	t1	packet	pts=11.320000	dts=11.280000	duration=3600	key=0	corrupt=0	size=1114	pos=103212	opens_so_far=3	last_open=v270/seg_001.ts
+15874	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+15875	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+16061	t1	frame	pts=11.280000	best_effort=11.280000	pkt_dts=11.280000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+16063	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+16063	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+16064	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+16065	t1	packet	pts=11.520000	dts=11.320000	duration=3600	key=0	corrupt=0	size=2260	pos=104528	opens_so_far=3	last_open=v270/seg_001.ts
+16066	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+16067	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+16321	t1	frame	pts=11.320000	best_effort=11.320000	pkt_dts=11.320000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+16322	t1	log	cbA	TRACE	AVFormatContext#5	SDT:\n
+16323	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+16324	t1	packet	pts=11.440000	dts=11.360000	duration=3600	key=0	corrupt=0	size=1378	pos=106972	opens_so_far=3	last_open=v270/seg_001.ts
+16325	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+16326	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+16550	t1	frame	pts=11.360000	best_effort=11.360000	pkt_dts=11.360000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+16551	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+16552	t1	packet	pts=11.400000	dts=11.400000	duration=3600	key=0	corrupt=0	size=1014	pos=108852	opens_so_far=3	last_open=v270/seg_001.ts
+16553	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+16554	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+16723	t1	frame	pts=11.400000	best_effort=11.400000	pkt_dts=11.400000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+16724	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+16725	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+16725	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+16727	t1	packet	pts=11.480000	dts=11.440000	duration=3600	key=0	corrupt=0	size=1026	pos=110168	opens_so_far=3	last_open=v270/seg_001.ts
+16728	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+16728	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+16903	t1	frame	pts=11.440000	best_effort=11.440000	pkt_dts=11.440000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+16905	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+16906	t1	packet	pts=11.640000	dts=11.480000	duration=3600	key=0	corrupt=0	size=2694	pos=111296	opens_so_far=3	last_open=v270/seg_001.ts
+16907	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+16908	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+17174	t1	frame	pts=11.480000	best_effort=11.480000	pkt_dts=11.480000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+17175	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+17177	t1	packet	pts=11.560000	dts=11.520000	duration=3600	key=0	corrupt=0	size=1135	pos=114492	opens_so_far=3	last_open=v270/seg_001.ts
+17178	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+17179	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+17391	t1	frame	pts=11.520000	best_effort=11.520000	pkt_dts=11.520000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+17393	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+17393	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+17394	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+17395	t1	packet	pts=11.600000	dts=11.560000	duration=3600	key=0	corrupt=0	size=1133	pos=115808	opens_so_far=3	last_open=v270/seg_001.ts
+17396	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+17397	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+17645	t1	frame	pts=11.560000	best_effort=11.560000	pkt_dts=11.560000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+17647	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+17648	t1	packet	pts=11.680000	dts=11.600000	duration=3600	key=0	corrupt=0	size=2209	pos=117124	opens_so_far=3	last_open=v270/seg_001.ts
+17649	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+17650	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+17910	t1	frame	pts=11.600000	best_effort=11.600000	pkt_dts=11.600000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+17912	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+17913	t1	packet	pts=11.840000	dts=11.640000	duration=3600	key=0	corrupt=0	size=2557	pos=119944	opens_so_far=3	last_open=v270/seg_001.ts
+17914	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+17915	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+18216	t1	frame	pts=11.640000	best_effort=11.640000	pkt_dts=11.640000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+18218	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+18218	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+18219	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+18220	t1	packet	pts=11.760000	dts=11.680000	duration=3600	key=0	corrupt=0	size=1287	pos=122764	opens_so_far=3	last_open=v270/seg_001.ts
+18221	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+18222	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+18461	t1	frame	pts=11.680000	best_effort=11.680000	pkt_dts=11.680000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+18462	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+18464	t1	packet	pts=11.720000	dts=11.720000	duration=3600	key=0	corrupt=0	size=977	pos=124268	opens_so_far=3	last_open=v270/seg_001.ts
+18465	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+18466	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+18656	t1	frame	pts=11.720000	best_effort=11.720000	pkt_dts=11.720000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+18657	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+18659	t1	packet	pts=11.800000	dts=11.760000	duration=3600	key=0	corrupt=0	size=927	pos=125772	opens_so_far=3	last_open=v270/seg_001.ts
+18660	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+18661	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+18838	t1	frame	pts=11.760000	best_effort=11.760000	pkt_dts=11.760000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+18839	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+18840	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+18840	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+18842	t1	packet	pts=11.960000	dts=11.800000	duration=3600	key=0	corrupt=0	size=2806	pos=126900	opens_so_far=3	last_open=v270/seg_001.ts
+18843	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+18844	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+19147	t1	frame	pts=11.800000	best_effort=11.800000	pkt_dts=11.800000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+19158	t1	close	ctx#1	pb#4	bytes_read=66176	error=0
+19159	t1	log	cbA	VERBOSE	AVIOContext#4	Statistics: 66176 bytes read, 0 seeks\n
+19170	t1	log	cbA	VERBOSE	AVFormatContext#1	HLS request for url 'v270/seg_002.ts', offset 0, playlist 0\n
+19171	t1	open_begin	ctx#1	url=v270/seg_002.ts	offset=-	end_offset=-
+19172	t1	log	cbA	INFO	AVFormatContext#1	Opening 'v270/seg_002.ts' for reading\n
+19210	t1	open_end	ctx#1	ret=0	pb#4
+19417	t1	log	cbA	TRACE	AVFormatContext#5	SDT:\n
+19418	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+19419	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+19420	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+19422	t1	packet	pts=11.880000	dts=11.840000	duration=3600	key=0	corrupt=0	size=1157	pos=129908	opens_so_far=4	last_open=v270/seg_002.ts
+19424	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+19425	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+19639	t1	frame	pts=11.840000	best_effort=11.840000	pkt_dts=11.840000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+19642	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+19646	t1	packet	pts=11.920000	dts=11.880000	duration=3600	key=0	corrupt=0	size=976	pos=131600	opens_so_far=4	last_open=v270/seg_002.ts
+19647	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+19648	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+19858	t1	frame	pts=11.880000	best_effort=11.880000	pkt_dts=11.880000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+19860	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+19861	t1	log	cbA	DEBUG	AVCodecContext#6	Decoding VUI\n
+19866	t1	packet	pts=12.000000	dts=11.920000	duration=3600	key=1	corrupt=0	size=22160	pos=133292	opens_so_far=4	last_open=v270/seg_002.ts
+19867	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+19868	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 7(SPS), nal_ref_idc: 3\n
+19869	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 8(PPS), nal_ref_idc: 3\n
+19869	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 6(SEI), nal_ref_idc: 0\n
+19872	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 5(IDR), nal_ref_idc: 3\n
+19873	t1	log	cbA	DEBUG	AVCodecContext#8	Decoding VUI\n
+21192	t1	frame	pts=11.920000	best_effort=11.920000	pkt_dts=11.920000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+21193	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+21194	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+21194	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+21196	t1	packet	pts=12.160000	dts=11.960000	duration=3600	key=0	corrupt=0	size=2226	pos=156040	opens_so_far=4	last_open=v270/seg_002.ts
+21197	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+21199	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+21457	t1	frame	pts=11.960000	best_effort=11.960000	pkt_dts=11.960000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+21459	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+21460	t1	packet	pts=12.080000	dts=12.000000	duration=3600	key=0	corrupt=0	size=954	pos=158484	opens_so_far=4	last_open=v270/seg_002.ts
+21461	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+21462	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+21664	t1	frame	pts=12.000000	best_effort=12.000000	pkt_dts=12.000000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+21665	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+21672	t1	packet	pts=12.040000	dts=12.040000	duration=3600	key=0	corrupt=0	size=540	pos=159988	opens_so_far=4	last_open=v270/seg_002.ts
+21674	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+21674	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+21854	t1	frame	pts=12.040000	best_effort=12.040000	pkt_dts=12.040000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+21866	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+21867	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+21868	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+21869	t1	packet	pts=12.120000	dts=12.080000	duration=3600	key=0	corrupt=0	size=758	pos=160740	opens_so_far=4	last_open=v270/seg_002.ts
+21870	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+21871	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+22057	t1	frame	pts=12.080000	best_effort=12.080000	pkt_dts=12.080000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+22058	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+22060	t1	packet	pts=12.240000	dts=12.120000	duration=3600	key=0	corrupt=0	size=1908	pos=161680	opens_so_far=4	last_open=v270/seg_002.ts
+22061	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+22062	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+22285	t1	frame	pts=12.120000	best_effort=12.120000	pkt_dts=12.120000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+22445	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+22448	t1	packet	pts=12.200000	dts=12.160000	duration=3600	key=0	corrupt=0	size=648	pos=164124	opens_so_far=4	last_open=v270/seg_002.ts
+22449	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+22450	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+22615	t1	frame	pts=12.160000	best_effort=12.160000	pkt_dts=12.160000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+22616	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+22617	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+22617	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+22619	t1	packet	pts=12.360000	dts=12.200000	duration=3600	key=0	corrupt=0	size=2611	pos=164876	opens_so_far=4	last_open=v270/seg_002.ts
+22620	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+22621	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+22903	t1	frame	pts=12.200000	best_effort=12.200000	pkt_dts=12.200000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+22904	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+22906	t1	packet	pts=12.280000	dts=12.240000	duration=3600	key=0	corrupt=0	size=1072	pos=167696	opens_so_far=4	last_open=v270/seg_002.ts
+22907	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+22907	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+23091	t1	frame	pts=12.240000	best_effort=12.240000	pkt_dts=12.240000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+23092	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+23094	t1	packet	pts=12.320000	dts=12.280000	duration=3600	key=0	corrupt=0	size=875	pos=169200	opens_so_far=4	last_open=v270/seg_002.ts
+23095	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+23095	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+23267	t1	frame	pts=12.280000	best_effort=12.280000	pkt_dts=12.280000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+23269	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+23269	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+23270	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+23271	t1	packet	pts=12.440000	dts=12.320000	duration=3600	key=0	corrupt=0	size=2292	pos=170140	opens_so_far=4	last_open=v270/seg_002.ts
+23272	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+23273	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+23528	t1	frame	pts=12.320000	best_effort=12.320000	pkt_dts=12.320000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+23529	t1	log	cbA	TRACE	AVFormatContext#5	SDT:\n
+23538	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+23539	t1	packet	pts=12.400000	dts=12.360000	duration=3600	key=0	corrupt=0	size=814	pos=172584	opens_so_far=4	last_open=v270/seg_002.ts
+23540	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+23541	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+23718	t1	frame	pts=12.360000	best_effort=12.360000	pkt_dts=12.360000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+23719	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+23721	t1	packet	pts=12.520000	dts=12.400000	duration=3600	key=0	corrupt=0	size=2380	pos=173900	opens_so_far=4	last_open=v270/seg_002.ts
+23722	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+23723	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+24000	t1	frame	pts=12.400000	best_effort=12.400000	pkt_dts=12.400000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+24001	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+24002	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+24002	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+24004	t1	packet	pts=12.480000	dts=12.440000	duration=3600	key=0	corrupt=0	size=765	pos=176720	opens_so_far=4	last_open=v270/seg_002.ts
+24005	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+24005	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+24203	t1	frame	pts=12.440000	best_effort=12.440000	pkt_dts=12.440000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+24205	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+24206	t1	packet	pts=12.680000	dts=12.480000	duration=3600	key=0	corrupt=0	size=2240	pos=177660	opens_so_far=4	last_open=v270/seg_002.ts
+24207	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+24208	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+24492	t1	frame	pts=12.480000	best_effort=12.480000	pkt_dts=12.480000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+24494	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+24495	t1	packet	pts=12.600000	dts=12.520000	duration=3600	key=0	corrupt=0	size=963	pos=180480	opens_so_far=4	last_open=v270/seg_002.ts
+24496	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+24497	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+24697	t1	frame	pts=12.520000	best_effort=12.520000	pkt_dts=12.520000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+24699	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+24699	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+24700	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+24703	t1	packet	pts=12.560000	dts=12.560000	duration=3600	key=0	corrupt=0	size=955	pos=181608	opens_so_far=4	last_open=v270/seg_002.ts
+24704	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+24705	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+24893	t1	frame	pts=12.560000	best_effort=12.560000	pkt_dts=12.560000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+24895	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+24896	t1	packet	pts=12.640000	dts=12.600000	duration=3600	key=0	corrupt=0	size=755	pos=182736	opens_so_far=4	last_open=v270/seg_002.ts
+24897	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+24898	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+25075	t1	frame	pts=12.600000	best_effort=12.600000	pkt_dts=12.600000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+25076	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+25078	t1	packet	pts=12.840000	dts=12.640000	duration=3600	key=0	corrupt=0	size=2111	pos=184052	opens_so_far=4	last_open=v270/seg_002.ts
+25079	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+25085	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+25350	t1	frame	pts=12.640000	best_effort=12.640000	pkt_dts=12.640000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+25352	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+25352	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+25353	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+25354	t1	packet	pts=12.760000	dts=12.680000	duration=3600	key=0	corrupt=0	size=1229	pos=186308	opens_so_far=4	last_open=v270/seg_002.ts
+25355	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+25356	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+25577	t1	frame	pts=12.680000	best_effort=12.680000	pkt_dts=12.680000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+25578	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+25579	t1	packet	pts=12.720000	dts=12.720000	duration=3600	key=0	corrupt=0	size=775	pos=187624	opens_so_far=4	last_open=v270/seg_002.ts
+25581	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+25581	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+25760	t1	frame	pts=12.720000	best_effort=12.720000	pkt_dts=12.720000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+25761	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+25763	t1	packet	pts=12.800000	dts=12.760000	duration=3600	key=0	corrupt=0	size=746	pos=188940	opens_so_far=4	last_open=v270/seg_002.ts
+25764	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+25764	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+25959	t1	frame	pts=12.760000	best_effort=12.760000	pkt_dts=12.760000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+25960	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+25961	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+25961	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+25963	t1	packet	pts=12.920000	dts=12.800000	duration=3600	key=0	corrupt=0	size=2433	pos=189880	opens_so_far=4	last_open=v270/seg_002.ts
+25964	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+25965	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+26251	t1	frame	pts=12.800000	best_effort=12.800000	pkt_dts=12.800000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+26253	t1	close	ctx#1	pb#4	bytes_read=63356	error=0
+26254	t1	log	cbA	VERBOSE	AVIOContext#4	Statistics: 63356 bytes read, 0 seeks\n
+26259	t1	log	cbA	VERBOSE	AVFormatContext#1	HLS request for url 'v270/seg_003.ts', offset 0, playlist 0\n
+26261	t1	open_begin	ctx#1	url=v270/seg_003.ts	offset=-	end_offset=-
+26262	t1	log	cbA	INFO	AVFormatContext#1	Opening 'v270/seg_003.ts' for reading\n
+26294	t1	open_end	ctx#1	ret=0	pb#4
+26474	t1	log	cbA	TRACE	AVFormatContext#5	SDT:\n
+26475	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+26475	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+26476	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+26478	t1	packet	pts=12.880000	dts=12.840000	duration=3600	key=0	corrupt=0	size=756	pos=192512	opens_so_far=5	last_open=v270/seg_003.ts
+26480	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+26480	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+26670	t1	frame	pts=12.840000	best_effort=12.840000	pkt_dts=12.840000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+26673	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+26677	t1	packet	pts=12.960000	dts=12.880000	duration=3600	key=0	corrupt=0	size=2174	pos=193828	opens_so_far=5	last_open=v270/seg_003.ts
+26679	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+26680	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+26953	t1	frame	pts=12.880000	best_effort=12.880000	pkt_dts=12.880000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+26960	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+26961	t1	log	cbA	DEBUG	AVCodecContext#6	Decoding VUI\n
+26965	t1	packet	pts=13.000000	dts=12.920000	duration=3600	key=1	corrupt=0	size=21505	pos=196648	opens_so_far=5	last_open=v270/seg_003.ts
+26966	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+26967	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 7(SPS), nal_ref_idc: 3\n
+26968	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 8(PPS), nal_ref_idc: 3\n
+26968	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 6(SEI), nal_ref_idc: 0\n
+26971	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 5(IDR), nal_ref_idc: 3\n
+26972	t1	log	cbA	DEBUG	AVCodecContext#8	Decoding VUI\n
+28299	t1	frame	pts=12.920000	best_effort=12.920000	pkt_dts=12.920000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+28300	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+28301	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+28302	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+28303	t1	packet	pts=13.160000	dts=12.960000	duration=3600	key=0	corrupt=0	size=2114	pos=218832	opens_so_far=5	last_open=v270/seg_003.ts
+28305	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+28306	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+28560	t1	frame	pts=12.960000	best_effort=12.960000	pkt_dts=12.960000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+28561	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+28563	t1	packet	pts=13.080000	dts=13.000000	duration=3600	key=0	corrupt=0	size=1375	pos=221088	opens_so_far=5	last_open=v270/seg_003.ts
+28564	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+28565	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+28785	t1	frame	pts=13.000000	best_effort=13.000000	pkt_dts=13.000000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+28787	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+28788	t1	packet	pts=13.040000	dts=13.040000	duration=3600	key=0	corrupt=0	size=678	pos=222968	opens_so_far=5	last_open=v270/seg_003.ts
+28789	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+28790	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+28983	t1	frame	pts=13.040000	best_effort=13.040000	pkt_dts=13.040000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+28984	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+28985	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+28986	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+28987	t1	packet	pts=13.120000	dts=13.080000	duration=3600	key=0	corrupt=0	size=875	pos=223720	opens_so_far=5	last_open=v270/seg_003.ts
+28988	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+28989	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+29167	t1	frame	pts=13.080000	best_effort=13.080000	pkt_dts=13.080000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+29168	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+29170	t1	packet	pts=13.320000	dts=13.120000	duration=3600	key=0	corrupt=0	size=2217	pos=224660	opens_so_far=5	last_open=v270/seg_003.ts
+29171	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+29172	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+29436	t1	frame	pts=13.120000	best_effort=13.120000	pkt_dts=13.120000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+29594	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+29597	t1	packet	pts=13.240000	dts=13.160000	duration=3600	key=0	corrupt=0	size=961	pos=227480	opens_so_far=5	last_open=v270/seg_003.ts
+29598	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+29599	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+29801	t1	frame	pts=13.160000	best_effort=13.160000	pkt_dts=13.160000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+29802	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+29803	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+29804	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+29805	t1	packet	pts=13.200000	dts=13.200000	duration=3600	key=0	corrupt=0	size=858	pos=228608	opens_so_far=5	last_open=v270/seg_003.ts
+29806	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+29807	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+29968	t1	frame	pts=13.200000	best_effort=13.200000	pkt_dts=13.200000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+29970	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+29971	t1	packet	pts=13.280000	dts=13.240000	duration=3600	key=0	corrupt=0	size=822	pos=229548	opens_so_far=5	last_open=v270/seg_003.ts
+29972	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+29973	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+30174	t1	frame	pts=13.240000	best_effort=13.240000	pkt_dts=13.240000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+30176	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+30177	t1	packet	pts=13.440000	dts=13.280000	duration=3600	key=0	corrupt=0	size=2587	pos=230864	opens_so_far=5	last_open=v270/seg_003.ts
+30178	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+30179	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+30446	t1	frame	pts=13.280000	best_effort=13.280000	pkt_dts=13.280000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+30447	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+30448	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+30448	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+30450	t1	packet	pts=13.360000	dts=13.320000	duration=3600	key=0	corrupt=0	size=1137	pos=233684	opens_so_far=5	last_open=v270/seg_003.ts
+30451	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+30451	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+30642	t1	frame	pts=13.320000	best_effort=13.320000	pkt_dts=13.320000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+30643	t1	log	cbA	TRACE	AVFormatContext#5	SDT:\n
+30644	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+30645	t1	packet	pts=13.400000	dts=13.360000	duration=3600	key=0	corrupt=0	size=899	pos=235000	opens_so_far=5	last_open=v270/seg_003.ts
+30646	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+30647	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+30834	t1	frame	pts=13.360000	best_effort=13.360000	pkt_dts=13.360000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+30836	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+30837	t1	packet	pts=13.600000	dts=13.400000	duration=3600	key=0	corrupt=0	size=2327	pos=236504	opens_so_far=5	last_open=v270/seg_003.ts
+30838	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+30839	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+31117	t1	frame	pts=13.400000	best_effort=13.400000	pkt_dts=13.400000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+31119	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+31119	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+31120	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+31121	t1	packet	pts=13.520000	dts=13.440000	duration=3600	key=0	corrupt=0	size=1266	pos=239136	opens_so_far=5	last_open=v270/seg_003.ts
+31122	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+31123	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+31348	t1	frame	pts=13.440000	best_effort=13.440000	pkt_dts=13.440000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+31355	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+31356	t1	packet	pts=13.480000	dts=13.480000	duration=3600	key=0	corrupt=0	size=968	pos=240640	opens_so_far=5	last_open=v270/seg_003.ts
+31357	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+31358	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+31552	t1	frame	pts=13.480000	best_effort=13.480000	pkt_dts=13.480000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+31554	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+31555	t1	packet	pts=13.560000	dts=13.520000	duration=3600	key=0	corrupt=0	size=890	pos=242144	opens_so_far=5	last_open=v270/seg_003.ts
+31556	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+31557	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+31738	t1	frame	pts=13.520000	best_effort=13.520000	pkt_dts=13.520000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+31739	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+31740	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+31741	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+31742	t1	packet	pts=13.760000	dts=13.560000	duration=3600	key=0	corrupt=0	size=2311	pos=243084	opens_so_far=5	last_open=v270/seg_003.ts
+31743	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+31744	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+32021	t1	frame	pts=13.560000	best_effort=13.560000	pkt_dts=13.560000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+32022	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+32023	t1	packet	pts=13.680000	dts=13.600000	duration=3600	key=0	corrupt=0	size=1303	pos=245528	opens_so_far=5	last_open=v270/seg_003.ts
+32025	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+32025	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+32254	t1	frame	pts=13.600000	best_effort=13.600000	pkt_dts=13.600000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+32256	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+32257	t1	packet	pts=13.640000	dts=13.640000	duration=3600	key=0	corrupt=0	size=956	pos=247408	opens_so_far=5	last_open=v270/seg_003.ts
+32258	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+32259	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+32461	t1	frame	pts=13.640000	best_effort=13.640000	pkt_dts=13.640000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+32462	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+32463	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+32463	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+32465	t1	packet	pts=13.720000	dts=13.680000	duration=3600	key=0	corrupt=0	size=911	pos=248536	opens_so_far=5	last_open=v270/seg_003.ts
+32466	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+32467	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+32653	t1	frame	pts=13.680000	best_effort=13.680000	pkt_dts=13.680000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+32654	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+32656	t1	packet	pts=13.800000	dts=13.720000	duration=3600	key=0	corrupt=0	size=2025	pos=249664	opens_so_far=5	last_open=v270/seg_003.ts
+32657	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+32658	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+32900	t1	frame	pts=13.720000	best_effort=13.720000	pkt_dts=13.720000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+32901	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+32903	t1	packet	pts=13.960000	dts=13.760000	duration=3600	key=0	corrupt=0	size=2442	pos=252296	opens_so_far=5	last_open=v270/seg_003.ts
+32909	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+32910	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+33200	t1	frame	pts=13.760000	best_effort=13.760000	pkt_dts=13.760000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+33201	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+33202	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+33202	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+33204	t1	packet	pts=13.880000	dts=13.800000	duration=3600	key=0	corrupt=0	size=1531	pos=254928	opens_so_far=5	last_open=v270/seg_003.ts
+33205	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+33206	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+33449	t1	frame	pts=13.800000	best_effort=13.800000	pkt_dts=13.800000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+33451	t1	close	ctx#1	pb#4	bytes_read=63356	error=0
+33452	t1	log	cbA	VERBOSE	AVIOContext#4	Statistics: 63356 bytes read, 0 seeks\n
+33459	t1	log	cbA	VERBOSE	AVFormatContext#1	HLS request for url 'v270/seg_004.ts', offset 0, playlist 0\n
+33460	t1	open_begin	ctx#1	url=v270/seg_004.ts	offset=-	end_offset=-
+33461	t1	log	cbA	INFO	AVFormatContext#1	Opening 'v270/seg_004.ts' for reading\n
+33494	t1	open_end	ctx#1	ret=0	pb#4
+33664	t1	log	cbA	TRACE	AVFormatContext#5	SDT:\n
+33665	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+33665	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+33666	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+33668	t1	packet	pts=13.840000	dts=13.840000	duration=3600	key=0	corrupt=0	size=1069	pos=256620	opens_so_far=6	last_open=v270/seg_004.ts
+33670	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+33671	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+33859	t1	frame	pts=13.840000	best_effort=13.840000	pkt_dts=13.840000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+33861	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+33862	t1	packet	pts=13.920000	dts=13.880000	duration=3600	key=0	corrupt=0	size=1162	pos=258124	opens_so_far=6	last_open=v270/seg_004.ts
+33863	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+33864	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+34057	t1	frame	pts=13.880000	best_effort=13.880000	pkt_dts=13.880000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+34058	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+34060	t1	log	cbA	DEBUG	AVCodecContext#6	Decoding VUI\n
+34063	t1	packet	pts=14.000000	dts=13.920000	duration=3600	key=1	corrupt=0	size=2981	pos=260004	opens_so_far=6	last_open=v270/seg_004.ts
+34064	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+34065	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 7(SPS), nal_ref_idc: 3\n
+34066	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 8(PPS), nal_ref_idc: 3\n
+34066	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 6(SEI), nal_ref_idc: 0\n
+34067	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 5(IDR), nal_ref_idc: 3\n
+34068	t1	log	cbA	DEBUG	AVCodecContext#8	Decoding VUI\n
+34332	t1	frame	pts=13.920000	best_effort=13.920000	pkt_dts=13.920000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+34334	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+34334	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+34335	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+34336	t1	packet	pts=14.160000	dts=13.960000	duration=3600	key=0	corrupt=0	size=294	pos=263200	opens_so_far=6	last_open=v270/seg_004.ts
+34337	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+34338	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+34428	t1	frame	pts=13.960000	best_effort=13.960000	pkt_dts=13.960000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+34435	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+34436	t1	packet	pts=14.080000	dts=14.000000	duration=3600	key=0	corrupt=0	size=100	pos=263576	opens_so_far=6	last_open=v270/seg_004.ts
+34438	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+34438	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+34515	t1	frame	pts=14.000000	best_effort=14.000000	pkt_dts=14.000000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+34516	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+34518	t1	packet	pts=14.040000	dts=14.040000	duration=3600	key=0	corrupt=0	size=93	pos=264140	opens_so_far=6	last_open=v270/seg_004.ts
+34519	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+34519	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+34596	t1	frame	pts=14.040000	best_effort=14.040000	pkt_dts=14.040000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+34597	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+34598	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+34598	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+34599	t1	packet	pts=14.120000	dts=14.080000	duration=3600	key=0	corrupt=0	size=90	pos=264328	opens_so_far=6	last_open=v270/seg_004.ts
+34600	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+34601	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+34675	t1	frame	pts=14.080000	best_effort=14.080000	pkt_dts=14.080000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+34676	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+34677	t1	packet	pts=14.320000	dts=14.120000	duration=3600	key=0	corrupt=0	size=332	pos=264516	opens_so_far=6	last_open=v270/seg_004.ts
+34678	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+34679	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+34774	t1	frame	pts=14.120000	best_effort=14.120000	pkt_dts=14.120000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+34775	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+34778	t1	packet	pts=14.240000	dts=14.160000	duration=3600	key=0	corrupt=0	size=135	pos=265268	opens_so_far=6	last_open=v270/seg_004.ts
+34779	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+34780	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+34865	t1	frame	pts=14.160000	best_effort=14.160000	pkt_dts=14.160000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+34866	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+34867	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+34867	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+34869	t1	packet	pts=14.200000	dts=14.200000	duration=3600	key=0	corrupt=0	size=96	pos=265456	opens_so_far=6	last_open=v270/seg_004.ts
+34870	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+34870	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+34950	t1	frame	pts=14.200000	best_effort=14.200000	pkt_dts=14.200000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+34952	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+34953	t1	packet	pts=14.280000	dts=14.240000	duration=3600	key=0	corrupt=0	size=96	pos=265644	opens_so_far=6	last_open=v270/seg_004.ts
+34954	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+34955	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+35037	t1	frame	pts=14.240000	best_effort=14.240000	pkt_dts=14.240000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+35039	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+35040	t1	packet	pts=14.480000	dts=14.280000	duration=3600	key=0	corrupt=0	size=320	pos=266208	opens_so_far=6	last_open=v270/seg_004.ts
+35041	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+35048	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+35173	t1	frame	pts=14.280000	best_effort=14.280000	pkt_dts=14.280000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+35175	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+35175	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+35176	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+35177	t1	packet	pts=14.400000	dts=14.320000	duration=3600	key=0	corrupt=0	size=148	pos=266584	opens_so_far=6	last_open=v270/seg_004.ts
+35178	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+35179	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+35276	t1	frame	pts=14.320000	best_effort=14.320000	pkt_dts=14.320000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+35277	t1	log	cbA	TRACE	AVFormatContext#5	SDT:\n
+35278	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+35279	t1	packet	pts=14.360000	dts=14.360000	duration=3600	key=0	corrupt=0	size=109	pos=266772	opens_so_far=6	last_open=v270/seg_004.ts
+35280	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+35281	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+35358	t1	frame	pts=14.360000	best_effort=14.360000	pkt_dts=14.360000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+35360	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+35361	t1	packet	pts=14.440000	dts=14.400000	duration=3600	key=0	corrupt=0	size=94	pos=267336	opens_so_far=6	last_open=v270/seg_004.ts
+35362	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+35362	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+35444	t1	frame	pts=14.400000	best_effort=14.400000	pkt_dts=14.400000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+35445	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+35446	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+35447	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+35448	t1	packet	pts=14.600000	dts=14.440000	duration=3600	key=0	corrupt=0	size=276	pos=267712	opens_so_far=6	last_open=v270/seg_004.ts
+35449	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+35450	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+35548	t1	frame	pts=14.440000	best_effort=14.440000	pkt_dts=14.440000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+35549	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+35552	t1	packet	pts=14.520000	dts=14.480000	duration=3600	key=0	corrupt=0	size=99	pos=268088	opens_so_far=6	last_open=v270/seg_004.ts
+35553	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+35554	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+35646	t1	frame	pts=14.480000	best_effort=14.480000	pkt_dts=14.480000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+35648	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+35649	t1	packet	pts=14.560000	dts=14.520000	duration=3600	key=0	corrupt=0	size=62	pos=268652	opens_so_far=6	last_open=v270/seg_004.ts
+35650	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+35651	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+35730	t1	frame	pts=14.520000	best_effort=14.520000	pkt_dts=14.520000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+35731	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+35732	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+35733	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+35734	t1	packet	pts=14.720000	dts=14.560000	duration=3600	key=0	corrupt=0	size=427	pos=268840	opens_so_far=6	last_open=v270/seg_004.ts
+35735	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+35736	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+35869	t1	frame	pts=14.560000	best_effort=14.560000	pkt_dts=14.560000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+35870	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+35871	t1	packet	pts=14.640000	dts=14.600000	duration=3600	key=0	corrupt=0	size=105	pos=269404	opens_so_far=6	last_open=v270/seg_004.ts
+35872	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+35873	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+35965	t1	frame	pts=14.600000	best_effort=14.600000	pkt_dts=14.600000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+35967	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+35968	t1	packet	pts=14.680000	dts=14.640000	duration=3600	key=0	corrupt=0	size=77	pos=269968	opens_so_far=6	last_open=v270/seg_004.ts
+35969	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+35970	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+36048	t1	frame	pts=14.640000	best_effort=14.640000	pkt_dts=14.640000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+36049	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+36049	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+36050	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+36051	t1	packet	pts=14.880000	dts=14.680000	duration=3600	key=0	corrupt=0	size=369	pos=270156	opens_so_far=6	last_open=v270/seg_004.ts
+36052	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+36053	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+36160	t1	frame	pts=14.680000	best_effort=14.680000	pkt_dts=14.680000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+36162	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+36163	t1	packet	pts=14.800000	dts=14.720000	duration=3600	key=0	corrupt=0	size=178	pos=270720	opens_so_far=6	last_open=v270/seg_004.ts
+36164	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+36165	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+36253	t1	frame	pts=14.720000	best_effort=14.720000	pkt_dts=14.720000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+36254	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+36255	t1	packet	pts=14.760000	dts=14.760000	duration=3600	key=0	corrupt=0	size=82	pos=271472	opens_so_far=6	last_open=v270/seg_004.ts
+36256	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+36257	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+36341	t1	frame	pts=14.760000	best_effort=14.760000	pkt_dts=14.760000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+36342	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+36343	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+36343	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+36345	t1	packet	pts=14.840000	dts=14.800000	duration=3600	key=0	corrupt=0	size=83	pos=271660	opens_so_far=6	last_open=v270/seg_004.ts
+36346	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+36346	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+36424	t1	frame	pts=14.800000	best_effort=14.800000	pkt_dts=14.800000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+36425	t1	close	ctx#1	pb#4	bytes_read=13348	error=0
+36426	t1	log	cbA	VERBOSE	AVIOContext#4	Statistics: 13348 bytes read, 0 seeks\n
+36436	t1	log	cbA	VERBOSE	AVFormatContext#1	HLS request for url 'v270/seg_005.ts', offset 0, playlist 0\n
+36437	t1	open_begin	ctx#1	url=v270/seg_005.ts	offset=-	end_offset=-
+36438	t1	log	cbA	INFO	AVFormatContext#1	Opening 'v270/seg_005.ts' for reading\n
+36479	t1	open_end	ctx#1	ret=0	pb#4
+36687	t1	log	cbA	TRACE	AVFormatContext#5	SDT:\n
+36688	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+36689	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+36698	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+36699	t1	packet	pts=14.960000	dts=14.840000	duration=3600	key=0	corrupt=0	size=325	pos=271848	opens_so_far=7	last_open=v270/seg_005.ts
+36701	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+36702	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+36806	t1	frame	pts=14.840000	best_effort=14.840000	pkt_dts=14.840000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+36810	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+36814	t1	packet	pts=14.920000	dts=14.880000	duration=3600	key=0	corrupt=0	size=91	pos=272600	opens_so_far=7	last_open=v270/seg_005.ts
+36815	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+36816	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+36903	t1	frame	pts=14.880000	best_effort=14.880000	pkt_dts=14.880000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+36905	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+36906	t1	log	cbA	DEBUG	AVCodecContext#6	Decoding VUI\n
+36911	t1	packet	pts=15.000000	dts=14.920000	duration=3600	key=1	corrupt=0	size=21441	pos=273352	opens_so_far=7	last_open=v270/seg_005.ts
+36912	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+36913	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 7(SPS), nal_ref_idc: 3\n
+36914	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 8(PPS), nal_ref_idc: 3\n
+36915	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 6(SEI), nal_ref_idc: 0\n
+36918	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 5(IDR), nal_ref_idc: 3\n
+36918	t1	log	cbA	DEBUG	AVCodecContext#8	Decoding VUI\n
+38262	t1	frame	pts=14.920000	best_effort=14.920000	pkt_dts=14.920000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+38263	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+38264	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+38264	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+38266	t1	packet	pts=15.160000	dts=14.960000	duration=3600	key=0	corrupt=0	size=2101	pos=295348	opens_so_far=7	last_open=v270/seg_005.ts
+38268	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+38269	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+38521	t1	frame	pts=14.960000	best_effort=14.960000	pkt_dts=14.960000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+38523	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+38524	t1	packet	pts=15.080000	dts=15.000000	duration=3600	key=0	corrupt=0	size=1037	pos=297604	opens_so_far=7	last_open=v270/seg_005.ts
+38532	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+38533	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+38739	t1	frame	pts=15.000000	best_effort=15.000000	pkt_dts=15.000000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+38740	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+38742	t1	packet	pts=15.040000	dts=15.040000	duration=3600	key=0	corrupt=0	size=703	pos=299108	opens_so_far=7	last_open=v270/seg_005.ts
+38743	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+38743	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+38915	t1	frame	pts=15.040000	best_effort=15.040000	pkt_dts=15.040000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+38917	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+38917	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+38918	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+38919	t1	packet	pts=15.120000	dts=15.080000	duration=3600	key=0	corrupt=0	size=856	pos=299860	opens_so_far=7	last_open=v270/seg_005.ts
+38920	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+38921	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+39108	t1	frame	pts=15.080000	best_effort=15.080000	pkt_dts=15.080000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+39117	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+39118	t1	packet	pts=15.200000	dts=15.120000	duration=3600	key=0	corrupt=0	size=1738	pos=300800	opens_so_far=7	last_open=v270/seg_005.ts
+39120	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+39120	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+39351	t1	frame	pts=15.120000	best_effort=15.120000	pkt_dts=15.120000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+39511	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+39514	t1	packet	pts=15.240000	dts=15.160000	duration=3600	key=0	corrupt=0	size=2057	pos=303056	opens_so_far=7	last_open=v270/seg_005.ts
+39515	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+39516	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+39755	t1	frame	pts=15.160000	best_effort=15.160000	pkt_dts=15.160000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+39756	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+39757	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+39757	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+39759	t1	packet	pts=15.400000	dts=15.200000	duration=3600	key=0	corrupt=0	size=2473	pos=305312	opens_so_far=7	last_open=v270/seg_005.ts
+39760	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+39761	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+40054	t1	frame	pts=15.200000	best_effort=15.200000	pkt_dts=15.200000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+40056	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+40057	t1	packet	pts=15.320000	dts=15.240000	duration=3600	key=0	corrupt=0	size=1297	pos=307944	opens_so_far=7	last_open=v270/seg_005.ts
+40058	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+40059	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+40272	t1	frame	pts=15.240000	best_effort=15.240000	pkt_dts=15.240000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+40273	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+40274	t1	packet	pts=15.280000	dts=15.280000	duration=3600	key=0	corrupt=0	size=1013	pos=309824	opens_so_far=7	last_open=v270/seg_005.ts
+40275	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+40276	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+40466	t1	frame	pts=15.280000	best_effort=15.280000	pkt_dts=15.280000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+40467	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+40468	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+40468	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+40470	t1	packet	pts=15.360000	dts=15.320000	duration=3600	key=0	corrupt=0	size=960	pos=310952	opens_so_far=7	last_open=v270/seg_005.ts
+40471	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+40471	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+40653	t1	frame	pts=15.320000	best_effort=15.320000	pkt_dts=15.320000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+40654	t1	log	cbA	TRACE	AVFormatContext#5	SDT:\n
+40655	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+40656	t1	packet	pts=15.480000	dts=15.360000	duration=3600	key=0	corrupt=0	size=2254	pos=312080	opens_so_far=7	last_open=v270/seg_005.ts
+40657	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+40658	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+40906	t1	frame	pts=15.360000	best_effort=15.360000	pkt_dts=15.360000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+40908	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+40915	t1	packet	pts=15.440000	dts=15.400000	duration=3600	key=0	corrupt=0	size=854	pos=314900	opens_so_far=7	last_open=v270/seg_005.ts
+40916	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+40917	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+41108	t1	frame	pts=15.400000	best_effort=15.400000	pkt_dts=15.400000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+41110	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+41110	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+41111	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+41114	t1	packet	pts=15.600000	dts=15.440000	duration=3600	key=0	corrupt=0	size=3244	pos=316028	opens_so_far=7	last_open=v270/seg_005.ts
+41115	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+41116	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+41472	t1	frame	pts=15.440000	best_effort=15.440000	pkt_dts=15.440000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+41473	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+41475	t1	packet	pts=15.520000	dts=15.480000	duration=3600	key=0	corrupt=0	size=1210	pos=319412	opens_so_far=7	last_open=v270/seg_005.ts
+41476	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+41476	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+41683	t1	frame	pts=15.480000	best_effort=15.480000	pkt_dts=15.480000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+41684	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+41686	t1	packet	pts=15.560000	dts=15.520000	duration=3600	key=0	corrupt=0	size=1014	pos=321104	opens_so_far=7	last_open=v270/seg_005.ts
+41687	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+41687	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+41894	t1	frame	pts=15.520000	best_effort=15.520000	pkt_dts=15.520000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+41895	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+41896	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+41897	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+41898	t1	packet	pts=15.760000	dts=15.560000	duration=3600	key=0	corrupt=0	size=2654	pos=322232	opens_so_far=7	last_open=v270/seg_005.ts
+41899	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+41900	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+42185	t1	frame	pts=15.560000	best_effort=15.560000	pkt_dts=15.560000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+42187	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+42188	t1	packet	pts=15.680000	dts=15.600000	duration=3600	key=0	corrupt=0	size=1295	pos=325052	opens_so_far=7	last_open=v270/seg_005.ts
+42189	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+42190	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+42415	t1	frame	pts=15.600000	best_effort=15.600000	pkt_dts=15.600000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+42416	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+42417	t1	packet	pts=15.640000	dts=15.640000	duration=3600	key=0	corrupt=0	size=1085	pos=326932	opens_so_far=7	last_open=v270/seg_005.ts
+42419	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+42419	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+42623	t1	frame	pts=15.640000	best_effort=15.640000	pkt_dts=15.640000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+42624	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+42625	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+42625	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+42627	t1	packet	pts=15.720000	dts=15.680000	duration=3600	key=0	corrupt=0	size=1241	pos=328248	opens_so_far=7	last_open=v270/seg_005.ts
+42633	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+42633	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+42836	t1	frame	pts=15.680000	best_effort=15.680000	pkt_dts=15.680000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+42838	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+42840	t1	packet	pts=15.920000	dts=15.720000	duration=3600	key=0	corrupt=0	size=2404	pos=329564	opens_so_far=7	last_open=v270/seg_005.ts
+42841	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+42841	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+43138	t1	frame	pts=15.720000	best_effort=15.720000	pkt_dts=15.720000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+43139	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+43141	t1	packet	pts=15.840000	dts=15.760000	duration=3600	key=0	corrupt=0	size=1386	pos=332572	opens_so_far=7	last_open=v270/seg_005.ts
+43142	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+43143	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+43372	t1	frame	pts=15.760000	best_effort=15.760000	pkt_dts=15.760000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+43374	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+43374	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+43375	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+43376	t1	packet	pts=15.800000	dts=15.800000	duration=3600	key=0	corrupt=0	size=1044	pos=334076	opens_so_far=7	last_open=v270/seg_005.ts
+43377	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+43378	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+43570	t1	frame	pts=15.800000	best_effort=15.800000	pkt_dts=15.800000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+43573	t1	close	ctx#1	pb#4	bytes_read=66176	error=0
+43574	t1	log	cbA	VERBOSE	AVIOContext#4	Statistics: 66176 bytes read, 0 seeks\n
+43580	t1	log	cbA	VERBOSE	AVFormatContext#1	HLS request for url 'v270/seg_006.ts', offset 0, playlist 0\n
+43581	t1	open_begin	ctx#1	url=v270/seg_006.ts	offset=-	end_offset=-
+43582	t1	log	cbA	INFO	AVFormatContext#1	Opening 'v270/seg_006.ts' for reading\n
+43613	t1	open_end	ctx#1	ret=0	pb#4
+43815	t1	log	cbA	TRACE	AVFormatContext#5	SDT:\n
+43815	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+43816	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+43817	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+43818	t1	packet	pts=15.880000	dts=15.840000	duration=3600	key=0	corrupt=0	size=977	pos=335204	opens_so_far=8	last_open=v270/seg_006.ts
+43819	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+43820	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+44013	t1	frame	pts=15.840000	best_effort=15.840000	pkt_dts=15.840000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+44017	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+44021	t1	packet	pts=15.960000	dts=15.880000	duration=3600	key=0	corrupt=0	size=2156	pos=336708	opens_so_far=8	last_open=v270/seg_006.ts
+44022	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+44023	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+44274	t1	frame	pts=15.880000	best_effort=15.880000	pkt_dts=15.880000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+44275	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+44277	t1	log	cbA	DEBUG	AVCodecContext#6	Decoding VUI\n
+44281	t1	packet	pts=16.000000	dts=15.920000	duration=3600	key=1	corrupt=0	size=22147	pos=339528	opens_so_far=8	last_open=v270/seg_006.ts
+44282	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+44282	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 7(SPS), nal_ref_idc: 3\n
+44283	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 8(PPS), nal_ref_idc: 3\n
+44290	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 6(SEI), nal_ref_idc: 0\n
+44293	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 5(IDR), nal_ref_idc: 3\n
+44294	t1	log	cbA	DEBUG	AVCodecContext#8	Decoding VUI\n
+45642	t1	frame	pts=15.920000	best_effort=15.920000	pkt_dts=15.920000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+45644	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+45644	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+45645	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+45646	t1	packet	pts=16.120000	dts=15.960000	duration=3600	key=0	corrupt=0	size=2502	pos=362276	opens_so_far=8	last_open=v270/seg_006.ts
+45648	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+45649	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+45930	t1	frame	pts=15.960000	best_effort=15.960000	pkt_dts=15.960000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+45932	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+45933	t1	packet	pts=16.040000	dts=16.000000	duration=3600	key=0	corrupt=0	size=1001	pos=364908	opens_so_far=8	last_open=v270/seg_006.ts
+45934	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+45935	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+46141	t1	frame	pts=16.000000	best_effort=16.000000	pkt_dts=16.000000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+46143	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+46145	t1	packet	pts=16.080000	dts=16.040000	duration=3600	key=0	corrupt=0	size=937	pos=366412	opens_so_far=8	last_open=v270/seg_006.ts
+46146	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+46146	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+46343	t1	frame	pts=16.040000	best_effort=16.040000	pkt_dts=16.040000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+46579	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+46580	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+46581	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+46583	t1	packet	pts=16.280000	dts=16.080000	duration=3600	key=0	corrupt=0	size=2635	pos=367540	opens_so_far=8	last_open=v270/seg_006.ts
+46584	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+46585	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+46875	t1	frame	pts=16.080000	best_effort=16.080000	pkt_dts=16.080000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+46876	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+46877	t1	packet	pts=16.200000	dts=16.120000	duration=3600	key=0	corrupt=0	size=1222	pos=370360	opens_so_far=8	last_open=v270/seg_006.ts
+46878	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+46879	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+47083	t1	frame	pts=16.120000	best_effort=16.120000	pkt_dts=16.120000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+47084	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+47086	t1	packet	pts=16.160000	dts=16.160000	duration=3600	key=0	corrupt=0	size=944	pos=372052	opens_so_far=8	last_open=v270/seg_006.ts
+47087	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+47087	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+47273	t1	frame	pts=16.160000	best_effort=16.160000	pkt_dts=16.160000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+47275	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+47275	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+47276	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+47277	t1	packet	pts=16.240000	dts=16.200000	duration=3600	key=0	corrupt=0	size=1040	pos=373180	opens_so_far=8	last_open=v270/seg_006.ts
+47278	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+47283	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+47483	t1	frame	pts=16.200000	best_effort=16.200000	pkt_dts=16.200000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+47484	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+47485	t1	packet	pts=16.360000	dts=16.240000	duration=3600	key=0	corrupt=0	size=2187	pos=374308	opens_so_far=8	last_open=v270/seg_006.ts
+47486	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+47487	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+47719	t1	frame	pts=16.240000	best_effort=16.240000	pkt_dts=16.240000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+47720	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+47721	t1	packet	pts=16.320000	dts=16.280000	duration=3600	key=0	corrupt=0	size=901	pos=377128	opens_so_far=8	last_open=v270/seg_006.ts
+47723	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+47723	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+47902	t1	frame	pts=16.280000	best_effort=16.280000	pkt_dts=16.280000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+47903	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+47904	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+47904	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+47906	t1	packet	pts=16.440000	dts=16.320000	duration=3600	key=0	corrupt=0	size=2108	pos=378256	opens_so_far=8	last_open=v270/seg_006.ts
+47907	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+47907	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+48152	t1	frame	pts=16.320000	best_effort=16.320000	pkt_dts=16.320000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+48153	t1	log	cbA	TRACE	AVFormatContext#5	SDT:\n
+48154	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+48155	t1	packet	pts=16.400000	dts=16.360000	duration=3600	key=0	corrupt=0	size=885	pos=380512	opens_so_far=8	last_open=v270/seg_006.ts
+48156	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+48157	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+48350	t1	frame	pts=16.360000	best_effort=16.360000	pkt_dts=16.360000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+48351	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+48353	t1	packet	pts=16.480000	dts=16.400000	duration=3600	key=0	corrupt=0	size=2315	pos=381828	opens_so_far=8	last_open=v270/seg_006.ts
+48354	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+48355	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+48627	t1	frame	pts=16.400000	best_effort=16.400000	pkt_dts=16.400000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+48629	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+48629	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+48630	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+48631	t1	packet	pts=16.600000	dts=16.440000	duration=3600	key=0	corrupt=0	size=2998	pos=384460	opens_so_far=8	last_open=v270/seg_006.ts
+48632	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+48633	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+48959	t1	frame	pts=16.440000	best_effort=16.440000	pkt_dts=16.440000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+48960	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+48962	t1	packet	pts=16.520000	dts=16.480000	duration=3600	key=0	corrupt=0	size=1404	pos=387656	opens_so_far=8	last_open=v270/seg_006.ts
+48963	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+48964	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+49199	t1	frame	pts=16.480000	best_effort=16.480000	pkt_dts=16.480000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+49207	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+49208	t1	packet	pts=16.560000	dts=16.520000	duration=3600	key=0	corrupt=0	size=1168	pos=389536	opens_so_far=8	last_open=v270/seg_006.ts
+49210	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+49211	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+49421	t1	frame	pts=16.520000	best_effort=16.520000	pkt_dts=16.520000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+49422	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+49423	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+49423	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+49425	t1	packet	pts=16.760000	dts=16.560000	duration=3600	key=0	corrupt=0	size=2496	pos=390852	opens_so_far=8	last_open=v270/seg_006.ts
+49426	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+49427	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+49723	t1	frame	pts=16.560000	best_effort=16.560000	pkt_dts=16.560000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+49724	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+49726	t1	packet	pts=16.680000	dts=16.600000	duration=3600	key=0	corrupt=0	size=1517	pos=393484	opens_so_far=8	last_open=v270/seg_006.ts
+49727	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+49728	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+49969	t1	frame	pts=16.600000	best_effort=16.600000	pkt_dts=16.600000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+49970	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+49971	t1	packet	pts=16.640000	dts=16.640000	duration=3600	key=0	corrupt=0	size=1202	pos=395552	opens_so_far=8	last_open=v270/seg_006.ts
+49973	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+49973	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+50183	t1	frame	pts=16.640000	best_effort=16.640000	pkt_dts=16.640000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+50184	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+50185	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+50185	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+50187	t1	packet	pts=16.720000	dts=16.680000	duration=3600	key=0	corrupt=0	size=1164	pos=396868	opens_so_far=8	last_open=v270/seg_006.ts
+50188	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+50188	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+50386	t1	frame	pts=16.680000	best_effort=16.680000	pkt_dts=16.680000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+50388	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+50389	t1	packet	pts=16.800000	dts=16.720000	duration=3600	key=0	corrupt=0	size=2360	pos=398184	opens_so_far=8	last_open=v270/seg_006.ts
+50390	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+50391	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+50668	t1	frame	pts=16.720000	best_effort=16.720000	pkt_dts=16.720000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+50673	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+50674	t1	packet	pts=16.920000	dts=16.760000	duration=3600	key=0	corrupt=0	size=2812	pos=401004	opens_so_far=8	last_open=v270/seg_006.ts
+50676	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+50677	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+50993	t1	frame	pts=16.760000	best_effort=16.760000	pkt_dts=16.760000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+50994	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+50995	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+50995	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+51002	t1	packet	pts=16.840000	dts=16.800000	duration=3600	key=0	corrupt=0	size=1394	pos=404012	opens_so_far=8	last_open=v270/seg_006.ts
+51004	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+51004	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+51233	t1	frame	pts=16.800000	best_effort=16.800000	pkt_dts=16.800000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+51235	t1	close	ctx#1	pb#4	bytes_read=70688	error=0
+51236	t1	log	cbA	VERBOSE	AVIOContext#4	Statistics: 70688 bytes read, 0 seeks\n
+51245	t1	log	cbA	VERBOSE	AVFormatContext#1	HLS request for url 'v270/seg_007.ts', offset 0, playlist 0\n
+51247	t1	open_begin	ctx#1	url=v270/seg_007.ts	offset=-	end_offset=-
+51248	t1	log	cbA	INFO	AVFormatContext#1	Opening 'v270/seg_007.ts' for reading\n
+51295	t1	open_end	ctx#1	ret=0	pb#4
+51494	t1	log	cbA	TRACE	AVFormatContext#5	SDT:\n
+51495	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+51496	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+51497	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+51499	t1	packet	pts=16.880000	dts=16.840000	duration=3600	key=0	corrupt=0	size=1119	pos=405516	opens_so_far=9	last_open=v270/seg_007.ts
+51500	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+51501	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+51705	t1	frame	pts=16.840000	best_effort=16.840000	pkt_dts=16.840000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+51708	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+51712	t1	packet	pts=16.960000	dts=16.880000	duration=3600	key=0	corrupt=0	size=2321	pos=407208	opens_so_far=9	last_open=v270/seg_007.ts
+51713	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+51714	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+51965	t1	frame	pts=16.880000	best_effort=16.880000	pkt_dts=16.880000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+51967	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+51968	t1	log	cbA	DEBUG	AVCodecContext#6	Decoding VUI\n
+51972	t1	packet	pts=17.000000	dts=16.920000	duration=3600	key=1	corrupt=0	size=21167	pos=410216	opens_so_far=9	last_open=v270/seg_007.ts
+51974	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+51974	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 7(SPS), nal_ref_idc: 3\n
+51975	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 8(PPS), nal_ref_idc: 3\n
+51976	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 6(SEI), nal_ref_idc: 0\n
+51978	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 5(IDR), nal_ref_idc: 3\n
+51979	t1	log	cbA	DEBUG	AVCodecContext#8	Decoding VUI\n
+53298	t1	frame	pts=16.920000	best_effort=16.920000	pkt_dts=16.920000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+53300	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+53300	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+53301	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+53302	t1	packet	pts=17.120000	dts=16.960000	duration=3600	key=0	corrupt=0	size=2326	pos=432024	opens_so_far=9	last_open=v270/seg_007.ts
+53304	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+53305	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+53570	t1	frame	pts=16.960000	best_effort=16.960000	pkt_dts=16.960000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+53571	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+53573	t1	packet	pts=17.040000	dts=17.000000	duration=3600	key=0	corrupt=0	size=858	pos=434468	opens_so_far=9	last_open=v270/seg_007.ts
+53574	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+53575	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+53779	t1	frame	pts=17.000000	best_effort=17.000000	pkt_dts=17.000000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+53781	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+53789	t1	packet	pts=17.080000	dts=17.040000	duration=3600	key=0	corrupt=0	size=1032	pos=435784	opens_so_far=9	last_open=v270/seg_007.ts
+53790	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+53791	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+53993	t1	frame	pts=17.040000	best_effort=17.040000	pkt_dts=17.040000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+53995	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+53995	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+53996	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+53997	t1	packet	pts=17.280000	dts=17.080000	duration=3600	key=0	corrupt=0	size=2320	pos=436912	opens_so_far=9	last_open=v270/seg_007.ts
+53999	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+53999	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+54270	t1	frame	pts=17.080000	best_effort=17.080000	pkt_dts=17.080000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+54483	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+54485	t1	packet	pts=17.200000	dts=17.120000	duration=3600	key=0	corrupt=0	size=1274	pos=439356	opens_so_far=9	last_open=v270/seg_007.ts
+54510	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+54511	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+54743	t1	frame	pts=17.120000	best_effort=17.120000	pkt_dts=17.120000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+54745	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+54746	t1	packet	pts=17.160000	dts=17.160000	duration=3600	key=0	corrupt=0	size=1076	pos=441236	opens_so_far=9	last_open=v270/seg_007.ts
+54747	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+54748	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+54940	t1	frame	pts=17.160000	best_effort=17.160000	pkt_dts=17.160000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+54942	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+54942	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+54943	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+54944	t1	packet	pts=17.240000	dts=17.200000	duration=3600	key=0	corrupt=0	size=1083	pos=442364	opens_so_far=9	last_open=v270/seg_007.ts
+54945	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+54946	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+55127	t1	frame	pts=17.200000	best_effort=17.200000	pkt_dts=17.200000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+55128	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+55129	t1	packet	pts=17.400000	dts=17.240000	duration=3600	key=0	corrupt=0	size=2936	pos=443680	opens_so_far=9	last_open=v270/seg_007.ts
+55131	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+55131	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+55407	t1	frame	pts=17.240000	best_effort=17.240000	pkt_dts=17.240000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+55408	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+55409	t1	packet	pts=17.320000	dts=17.280000	duration=3600	key=0	corrupt=0	size=1175	pos=447252	opens_so_far=9	last_open=v270/seg_007.ts
+55410	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+55411	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+55624	t1	frame	pts=17.280000	best_effort=17.280000	pkt_dts=17.280000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+55625	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+55626	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+55627	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+55628	t1	packet	pts=17.360000	dts=17.320000	duration=3600	key=0	corrupt=0	size=1057	pos=448568	opens_so_far=9	last_open=v270/seg_007.ts
+55636	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+55637	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+55831	t1	frame	pts=17.320000	best_effort=17.320000	pkt_dts=17.320000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+55833	t1	log	cbA	TRACE	AVFormatContext#5	SDT:\n
+55833	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+55835	t1	packet	pts=17.560000	dts=17.360000	duration=3600	key=0	corrupt=0	size=2249	pos=449696	opens_so_far=9	last_open=v270/seg_007.ts
+55836	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+55837	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+56135	t1	frame	pts=17.360000	best_effort=17.360000	pkt_dts=17.360000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+56137	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+56138	t1	packet	pts=17.480000	dts=17.400000	duration=3600	key=0	corrupt=0	size=1198	pos=452516	opens_so_far=9	last_open=v270/seg_007.ts
+56139	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+56140	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+56347	t1	frame	pts=17.400000	best_effort=17.400000	pkt_dts=17.400000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+56349	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+56349	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+56350	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+56351	t1	packet	pts=17.440000	dts=17.440000	duration=3600	key=0	corrupt=0	size=958	pos=454020	opens_so_far=9	last_open=v270/seg_007.ts
+56352	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+56353	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+56521	t1	frame	pts=17.440000	best_effort=17.440000	pkt_dts=17.440000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+56522	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+56523	t1	packet	pts=17.520000	dts=17.480000	duration=3600	key=0	corrupt=0	size=935	pos=455148	opens_so_far=9	last_open=v270/seg_007.ts
+56524	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+56525	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+56701	t1	frame	pts=17.480000	best_effort=17.480000	pkt_dts=17.480000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+56702	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+56704	t1	packet	pts=17.720000	dts=17.520000	duration=3600	key=0	corrupt=0	size=2344	pos=456652	opens_so_far=9	last_open=v270/seg_007.ts
+56705	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+56706	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+56983	t1	frame	pts=17.520000	best_effort=17.520000	pkt_dts=17.520000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+56985	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+56985	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+56986	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+56987	t1	packet	pts=17.640000	dts=17.560000	duration=3600	key=0	corrupt=0	size=899	pos=459096	opens_so_far=9	last_open=v270/seg_007.ts
+56989	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+56989	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+57179	t1	frame	pts=17.560000	best_effort=17.560000	pkt_dts=17.560000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+57180	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+57181	t1	packet	pts=17.600000	dts=17.600000	duration=3600	key=0	corrupt=0	size=890	pos=460224	opens_so_far=9	last_open=v270/seg_007.ts
+57183	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+57183	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+57377	t1	frame	pts=17.600000	best_effort=17.600000	pkt_dts=17.600000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+57379	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+57380	t1	packet	pts=17.680000	dts=17.640000	duration=3600	key=0	corrupt=0	size=888	pos=461540	opens_so_far=9	last_open=v270/seg_007.ts
+57381	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+57382	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+57562	t1	frame	pts=17.640000	best_effort=17.640000	pkt_dts=17.640000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+57563	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+57564	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+57565	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+57566	t1	packet	pts=17.800000	dts=17.680000	duration=3600	key=0	corrupt=0	size=2108	pos=462480	opens_so_far=9	last_open=v270/seg_007.ts
+57567	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+57568	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+57839	t1	frame	pts=17.680000	best_effort=17.680000	pkt_dts=17.680000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+57841	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+57844	t1	packet	pts=17.760000	dts=17.720000	duration=3600	key=0	corrupt=0	size=733	pos=464736	opens_so_far=9	last_open=v270/seg_007.ts
+57845	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+57845	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+58019	t1	frame	pts=17.720000	best_effort=17.720000	pkt_dts=17.720000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+58020	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+58022	t1	packet	pts=17.880000	dts=17.760000	duration=3600	key=0	corrupt=0	size=2322	pos=466052	opens_so_far=9	last_open=v270/seg_007.ts
+58023	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+58024	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+58320	t1	frame	pts=17.760000	best_effort=17.760000	pkt_dts=17.760000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+58321	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+58322	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+58323	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+58324	t1	packet	pts=17.840000	dts=17.800000	duration=3600	key=0	corrupt=0	size=757	pos=468496	opens_so_far=9	last_open=v270/seg_007.ts
+58325	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+58326	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+58507	t1	frame	pts=17.800000	best_effort=17.800000	pkt_dts=17.800000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+58508	t1	close	ctx#1	pb#4	bytes_read=63544	error=0
+58509	t1	log	cbA	VERBOSE	AVIOContext#4	Statistics: 63544 bytes read, 0 seeks\n
+58517	t1	packet	pts=17.960000	dts=17.840000	duration=3600	key=0	corrupt=0	size=2491	pos=469436	opens_so_far=9	last_open=v270/seg_007.ts
+58519	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+58520	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2\n
+58824	t1	frame	pts=17.840000	best_effort=17.840000	pkt_dts=17.840000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+58832	t1	packet	pts=17.920000	dts=17.880000	duration=3600	key=0	corrupt=0	size=582	pos=472444	opens_so_far=9	last_open=v270/seg_007.ts
+58833	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 9(AUD), nal_ref_idc: 0\n
+58834	t1	log	cbA	DEBUG	AVCodecContext#8	nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 0\n
+59002	t1	frame	pts=17.880000	best_effort=17.880000	pkt_dts=17.880000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+59009	t1	frame	pts=17.920000	best_effort=17.920000	pkt_dts=-1.000000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+59014	t1	frame	pts=17.960000	best_effort=17.960000	pkt_dts=-1.000000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+59015	t1	end	read=-541478725	frames=200	opens=9	segment_watch_lost=(none)
+59037	t1	close	ctx#1	pb#3	bytes_read=345	error=0
+59037	t1	log	cbA	VERBOSE	AVIOContext#3	Statistics: 345 bytes read, 0 seeks\n
+== av_log calls by callback, thread, level, AVClass and first word of the format ==
+     1  cbA thread=1 DEBUG - 'Format'
+     5  cbA thread=1 DEBUG AVBSFContext 'nal_unit_type'
+    18  cbA thread=1 DEBUG AVCodecContext 'Decoding'
+     2  cbA thread=1 DEBUG AVCodecContext 'Format'
+   431  cbA thread=1 DEBUG AVCodecContext 'nal_unit_type'
+     3  cbA thread=1 DEBUG AVCodecContext 'no'
+     1  cbA thread=1 DEBUG AVFormatContext 'After'
+     2  cbA thread=1 DEBUG AVFormatContext 'All'
+     1  cbA thread=1 DEBUG AVFormatContext 'Before'
+     1  cbA thread=1 DEBUG AVFormatContext 'Format'
+     1  cbA thread=1 DEBUG AVFormatContext 'Opening'
+     1  cbA thread=1 DEBUG AVFormatContext 'stream'
+     1  cbA thread=1 DEBUG URLContext 'Setting'
+     8  cbA thread=1 INFO AVFormatContext 'Opening'
+     2  cbA thread=1 TRACE - 'Probing'
+     5  cbA thread=1 TRACE AVFormatContext 'Filter'
+    73  cbA thread=1 TRACE AVFormatContext 'PAT'
+    73  cbA thread=1 TRACE AVFormatContext 'PMT'
+     1  cbA thread=1 TRACE AVFormatContext 'Probe'
+    17  cbA thread=1 TRACE AVFormatContext 'SDT'
+     1  cbA thread=1 TRACE AVFormatContext 'Skipping'
+     1  cbA thread=1 TRACE AVFormatContext 'format'
+     5  cbA thread=1 TRACE AVFormatContext 'new_program'
+     2  cbA thread=1 TRACE AVFormatContext 'pcr_pid'
+   200  cbA thread=1 TRACE AVFormatContext 'pid'
+     4  cbA thread=1 TRACE AVFormatContext 'sid'
+     1  cbA thread=1 TRACE AVFormatContext 'stream'
+     2  cbA thread=1 TRACE AVFormatContext 'tag'
+     1  cbA thread=1 TRACE AVFormatContext 'tuning'
+     2  cbA thread=1 VERBOSE AVCodecContext 'Reinit'
+     8  cbA thread=1 VERBOSE AVFormatContext 'HLS'
+     1  cbA thread=1 VERBOSE AVFormatContext 'Skip'
+     9  cbA thread=1 VERBOSE AVIOContext 'Statistics'
+# exit status: 0

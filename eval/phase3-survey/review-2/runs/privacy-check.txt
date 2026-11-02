@@ -1,0 +1,46 @@
+# cwd: <out>
+# command: 'python3' '-I' '-B' '<out>/review-2/tools/privacy_check.py' 'design.md' 'design/owner_questions.json' 'design/p_entries.json' 'design/revision-1.md' 'design/risks.json' 'design/runs/axis-check.txt' 'design/runs/detection-semantics-ad.txt' 'design/runs/log-callback-grep.txt' 'design/runs/quote-check.txt' 'design/runs/render-check.txt' 'design/src/part1.md' 'design/src/part2.md' 'design/tools/axis_check.py' 'design/tools/detection_semantics.py' 'design/tools/render.py' 'design/tools/run.sh' 'design/work_packages.json' 'review-2/review.json' 'review-2/review.md' 'review-2/runs/catch2-citation.txt' 'review-2/runs/code-lines.txt' 'review-2/runs/ffmpeg-citations.txt' 'review-2/runs/package-check.txt' 'review-2/runs/player-keys.txt' 'review-2/runs/question-lengths.txt' 'review-2/runs/quote-check-review.txt' 'review-2/runs/quote-check.txt' 'review-2/runs/rate-change-check.txt' 'review-2/runs/render-cmp.txt' 'review-2/runs/render-json-unchanged.txt' 'review-2/runs/render.txt' 'review-2/runs/repo-state.txt' 'review-2/runs/repo-status.txt' 'review-2/tools/line_has.py' 'review-2/tools/package_check.py' 'review-2/tools/privacy_check.py' 'review-2/tools/question_lengths.py' 'review-2/tools/rate_change_check.py' 'review-2/tools/run.sh' 'review-2/tools/show_lines.py'
+# started: 2026-11-01T07:56:14Z, ended: 2026-11-01T07:56:14Z (UTC)
+# stdout and stderr, in order:
+design.md: local paths 0, e-mail addresses 0, identity words 0
+design/owner_questions.json: local paths 0, e-mail addresses 0, identity words 0
+design/p_entries.json: local paths 0, e-mail addresses 0, identity words 0
+design/revision-1.md: local paths 0, e-mail addresses 0, identity words 0
+design/risks.json: local paths 0, e-mail addresses 0, identity words 0
+design/runs/axis-check.txt: local paths 0, e-mail addresses 0, identity words 0
+design/runs/detection-semantics-ad.txt: local paths 0, e-mail addresses 0, identity words 0
+design/runs/log-callback-grep.txt: local paths 0, e-mail addresses 0, identity words 0
+design/runs/quote-check.txt: local paths 0, e-mail addresses 0, identity words 0
+design/runs/render-check.txt: local paths 0, e-mail addresses 0, identity words 0
+design/src/part1.md: local paths 0, e-mail addresses 0, identity words 0
+design/src/part2.md: local paths 0, e-mail addresses 0, identity words 0
+design/tools/axis_check.py: local paths 0, e-mail addresses 0, identity words 0
+design/tools/detection_semantics.py: local paths 0, e-mail addresses 0, identity words 0
+design/tools/render.py: local paths 0, e-mail addresses 0, identity words 0
+design/tools/run.sh: local paths 1, e-mail addresses 0, identity words 0
+design/work_packages.json: local paths 0, e-mail addresses 0, identity words 0
+review-2/review.json: local paths 0, e-mail addresses 0, identity words 0
+review-2/review.md: local paths 0, e-mail addresses 0, identity words 0
+review-2/runs/catch2-citation.txt: local paths 0, e-mail addresses 0, identity words 0
+review-2/runs/code-lines.txt: local paths 0, e-mail addresses 0, identity words 0
+review-2/runs/ffmpeg-citations.txt: local paths 0, e-mail addresses 0, identity words 0
+review-2/runs/package-check.txt: local paths 0, e-mail addresses 0, identity words 0
+review-2/runs/player-keys.txt: local paths 0, e-mail addresses 0, identity words 0
+review-2/runs/question-lengths.txt: local paths 0, e-mail addresses 0, identity words 0
+review-2/runs/quote-check-review.txt: local paths 0, e-mail addresses 0, identity words 0
+review-2/runs/quote-check.txt: local paths 0, e-mail addresses 0, identity words 0
+review-2/runs/rate-change-check.txt: local paths 0, e-mail addresses 0, identity words 0
+review-2/runs/render-cmp.txt: local paths 0, e-mail addresses 0, identity words 0
+review-2/runs/render-json-unchanged.txt: local paths 0, e-mail addresses 0, identity words 0
+review-2/runs/render.txt: local paths 0, e-mail addresses 0, identity words 0
+review-2/runs/repo-state.txt: local paths 0, e-mail addresses 0, identity words 0
+review-2/runs/repo-status.txt: local paths 0, e-mail addresses 0, identity words 0
+review-2/tools/line_has.py: local paths 0, e-mail addresses 0, identity words 0
+review-2/tools/package_check.py: local paths 0, e-mail addresses 0, identity words 0
+review-2/tools/privacy_check.py: local paths 0, e-mail addresses 0, identity words 0
+review-2/tools/question_lengths.py: local paths 0, e-mail addresses 0, identity words 0
+review-2/tools/rate_change_check.py: local paths 0, e-mail addresses 0, identity words 0
+review-2/tools/run.sh: local paths 0, e-mail addresses 0, identity words 0
+review-2/tools/show_lines.py: local paths 0, e-mail addresses 0, identity words 0
+40 files; 1 occurrences in all (5 identity words checked)
+# exit status: 0

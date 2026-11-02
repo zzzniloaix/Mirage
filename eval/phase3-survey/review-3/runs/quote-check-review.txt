@@ -1,0 +1,53 @@
+# cwd: <out>
+# command: 'bash' '<out>/review-3/tools/quote_each.sh' '<scratch>/phase3/tools/quote_check.py' '<scratch>/phase3/private/work_order_p3.txt' 'review-3/review.json' 'review-3/review.md' 'review-3/runs/changed-files-exist.txt' 'review-3/runs/code-lines.txt' 'review-3/runs/networklogger-link.txt' 'review-3/runs/package-check.txt' 'review-3/runs/privacy-check-design.txt' 'review-3/runs/privacy-check-review.txt' 'review-3/runs/question-lengths.txt' 'review-3/runs/quote-check-design.txt' 'review-3/runs/render-cmp.txt' 'review-3/runs/render-json-unchanged.txt' 'review-3/runs/render.txt' 'review-3/runs/repo-state-end.txt' 'review-3/runs/repo-state-start.txt' 'review-3/runs/seconds-check-compare.txt' 'review-3/runs/seconds-check-rerun.txt' 'review-3/runs/seconds-check-sequence-start.txt' 'review-3/runs/testgen-library-only.txt' 'review-3/runs/vector-status.txt' 'review-3/tools/quote_each.sh' 'review-3/tools/run.sh' 'review-3/tools/show_lines.py' 'review-3/tools/vector_status.py'
+# started: 2026-11-01T09:22:06Z, ended: 2026-11-01T09:22:07Z (UTC)
+# stdout and stderr, in order:
+== review-3/review.json
+in all: 0 prose runs, 0 runs of names, K = 6
+== review-3/review.md
+in all: 0 prose runs, 0 runs of names, K = 6
+== review-3/runs/changed-files-exist.txt
+in all: 0 prose runs, 0 runs of names, K = 6
+== review-3/runs/code-lines.txt
+in all: 0 prose runs, 0 runs of names, K = 6
+== review-3/runs/networklogger-link.txt
+in all: 0 prose runs, 0 runs of names, K = 6
+== review-3/runs/package-check.txt
+in all: 0 prose runs, 0 runs of names, K = 6
+== review-3/runs/privacy-check-design.txt
+in all: 0 prose runs, 0 runs of names, K = 6
+== review-3/runs/privacy-check-review.txt
+in all: 0 prose runs, 0 runs of names, K = 6
+== review-3/runs/question-lengths.txt
+in all: 0 prose runs, 0 runs of names, K = 6
+== review-3/runs/quote-check-design.txt
+in all: 0 prose runs, 0 runs of names, K = 6
+== review-3/runs/render-cmp.txt
+in all: 0 prose runs, 0 runs of names, K = 6
+== review-3/runs/render-json-unchanged.txt
+in all: 0 prose runs, 0 runs of names, K = 6
+== review-3/runs/render.txt
+in all: 0 prose runs, 0 runs of names, K = 6
+== review-3/runs/repo-state-end.txt
+in all: 0 prose runs, 0 runs of names, K = 6
+== review-3/runs/repo-state-start.txt
+in all: 0 prose runs, 0 runs of names, K = 6
+== review-3/runs/seconds-check-compare.txt
+in all: 0 prose runs, 0 runs of names, K = 6
+== review-3/runs/seconds-check-rerun.txt
+in all: 0 prose runs, 0 runs of names, K = 6
+== review-3/runs/seconds-check-sequence-start.txt
+in all: 0 prose runs, 0 runs of names, K = 6
+== review-3/runs/testgen-library-only.txt
+in all: 0 prose runs, 0 runs of names, K = 6
+== review-3/runs/vector-status.txt
+in all: 0 prose runs, 0 runs of names, K = 6
+== review-3/tools/quote_each.sh
+in all: 0 prose runs, 0 runs of names, K = 6
+== review-3/tools/run.sh
+in all: 0 prose runs, 0 runs of names, K = 6
+== review-3/tools/show_lines.py
+in all: 0 prose runs, 0 runs of names, K = 6
+== review-3/tools/vector_status.py
+in all: 0 prose runs, 0 runs of names, K = 6
+# exit status: 0

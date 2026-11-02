@@ -1,0 +1,17 @@
+# cwd: <out>/testgen
+# command: 'python3' '-I' '-B' '<out>/review-adversarial/tools/axis_d_check.py' 'reports/ad-x264.json' 'reports/ad-x264-origin1.json' 'reports/degraded-x264.json' 'reports/ad-mpeg2.json'
+# started: 2026-11-01T06:01:24Z, ended: 2026-11-01T06:01:24Z (UTC)
+# stdout and stderr, in order:
+== reports/ad-x264.json
+pair 0 (v270/index.m3u8): frame rate 25/1, time base 1/90000; reference sequences (first_index, first_pts, frames): (0, 10, 75), (75, 10, 125); 200 scored frames, 75 beyond half a frame (reference frames 125-199), largest difference 3.000 s
+pair 1 (v180/index.m3u8): frame rate 25/1, time base 1/90000; reference sequences (first_index, first_pts, frames): (0, 10, 75), (75, 10, 125); 200 scored frames, 75 beyond half a frame (reference frames 125-199), largest difference 3.000 s
+== reports/ad-x264-origin1.json
+pair 0 (v270/index.m3u8): frame rate 25/1, time base 1/90000; reference sequences (first_index, first_pts, frames): (0, 10, 75), (75, 1, 50), (125, 15, 75); 200 scored frames, 0 beyond half a frame (reference frames -), largest difference 0.000 s
+pair 1 (v180/index.m3u8): frame rate 25/1, time base 1/90000; reference sequences (first_index, first_pts, frames): (0, 10, 75), (75, 1, 50), (125, 15, 75); 200 scored frames, 0 beyond half a frame (reference frames -), largest difference 0.000 s
+== reports/degraded-x264.json
+pair 0 (v270/index.m3u8): frame rate 25/1, time base 1/90000; reference sequences (first_index, first_pts, frames): (0, 10, 200); 200 scored frames, 0 beyond half a frame (reference frames -), largest difference 0.000 s
+pair 1 (v180/index.m3u8): frame rate 25/1, time base 1/90000; reference sequences (first_index, first_pts, frames): (0, 10, 200); 200 scored frames, 0 beyond half a frame (reference frames -), largest difference 0.000 s
+== reports/ad-mpeg2.json
+pair 0 (v270/index.m3u8): frame rate 25/1, time base 1/90000; reference sequences (first_index, first_pts, frames): (0, 10, 75), (75, 10, 125); 200 scored frames, 75 beyond half a frame (reference frames 125-199), largest difference 3.000 s
+pair 1 (v180/index.m3u8): frame rate 25/1, time base 1/90000; reference sequences (first_index, first_pts, frames): (0, 10, 75), (75, 10, 125); 200 scored frames, 75 beyond half a frame (reference frames 125-199), largest difference 3.000 s
+# exit status: 0

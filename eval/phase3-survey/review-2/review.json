@@ -1,0 +1,227 @@
+{
+  "verdict": "Revise once more before round 1's questions go out; no blocker. The revision answers the first review well: of its 18 issues, 16 are resolved and 2 partly (issues 0 and 6), and of the lead's items, L1 to L7 are resolved and L8 partly. What was checked and holds: `design.md` is byte-identical to the render of a copy of `design/`, render.py's consistency checks pass and the copy's JSON comes out unchanged; the quote checker finds 0 prose runs and 0 runs of names in `design.md` and in each of the 16 files under `design/`; none of them has a user or host name or an e-mail address, and the only absolute path is a generic one in a comment of `design/tools/run.sh` (N15); every question has its round, its D-007 mark and a one-sentence summary, two to four sentences of question and one to three per option; each question's Blocks equals the packages whose Blocked-by names it; the acceptance path is WP00a, WP01, WP02, WP03, WP04, WP06, WP08, WP09a, WP10 and WP11a, with round-1 questions only; the code claims match their `file:line`s, except one citation; the numbers trace to their records, except the claim about rate changes below; D-002, D-007, D-046, D-050, D-068, D-069 and D-070 are respected; `<repo>` is at `75cf6e0` and clean. Two major problems remain. (1) The revised check of Q02 (d)'s seconds compares each frame step with one frame duration within half a frame, so it does not catch a change of frame rate, although §4.2, Q02 (d), R11 and WP01's test say it does: with testgen's ad re-timed at 24, 30 and 50 fps it flags nothing while (d)'s seconds end 0.083, 0.333 and 1.000 s away from (c)'s (`runs/rate-change-check.txt`), so the comparison of (c) and (d) that Q02 asks of the owner rests on a safeguard that covers missing frames only. (2) WP01, in round 1, is to implement and test attribution on a session's curve, whose `Span` and `Session` types WP00b declares in round 2 after WP01 has merged, and no later package owns that code. Thirteen minor issues follow (§2, N3 to N15). The records of this review are in `<out>/review-2/runs/`, made with `<out>/review-2/tools/run.sh`, a copy of `design/tools/run.sh` that differs from it in one comment, reworded for N15.",
+  "items": [
+    {
+      "id": "issue 0",
+      "status": "partly",
+      "evidence": "The false alarm is gone: with the segment map the revised check flags none of the four ladders, and without one it lists only the +3.040 s jump at frame 125 (`design/runs/axis-check.txt`, reproduced at 25 fps in `runs/rate-change-check.txt`); Q02 (d) says the check needs the segment map (line 745); WP01 tests the D-069 shape with and without a map (line 1696). Not resolved: the issue asked for a safeguard that covers (d)'s failures, and the revised check misses one of the two it names. §4.2 (lines 244, 246), Q02 (d), R11 (line 1972) and WP01's test say it flags a change of rate; at 24, 30 and 50 fps it flags 0 steps while (d)'s seconds end 0.083, 0.333 and 1.000 s off (c)'s (`runs/rate-change-check.txt`). N1."
+    },
+    {
+      "id": "issue 1",
+      "status": "resolved",
+      "evidence": "WP09 and WP11 are split (lines 1657, 1659, 1663, 1664); WP11a depends on WP09a and WP10 only; the acceptance path (line 1954) waits for neither WP05 nor WP07, nor for a question outside round 1. `design/tools/render.py` now asserts both, and the render passed (`runs/render.txt`)."
+    },
+    {
+      "id": "issue 2",
+      "status": "resolved",
+      "evidence": "The acceptance cases are sections of one Catch2 test case (lines 593, 1788), each ladder made once per process (P-Q, line 1613), the generations counted per ctest run, seven under Q34 (d) (line 608; R9, line 1970), each test case under its own `MIRAGE_KEEP_MEDIA` subdirectory (P-U, line 1617). The premise checks against `tests/test_vmaf_ladder.cpp:192-196`, `tests/TestTemp.h:3-7` and `CMakeLists.txt:371` (`runs/code-lines.txt`); the CTest-fixture alternative is kept with a reason P-036 supports (one temporary directory per process)."
+    },
+    {
+      "id": "issue 3",
+      "status": "resolved",
+      "evidence": "The seven P-entries named, and P-E, P-X and P-AC, moved: Q43 (eight items, round 1, lines 1199-1248), Q44 (five items, round 2, lines 1403-1437), Q04 (a) for P-AC (line 779); §13 lists 28 kept and 9 moved with their letters retired (lines 1597-1640). Of the kept ones, only P-N's fetch pattern still decides what an output says (N8)."
+    },
+    {
+      "id": "issue 4",
+      "status": "resolved",
+      "evidence": "`CueInput {carrier, anchor, form, bytes}` with four carriers and three anchor kinds (line 347; Appendix B, lines 2114-2125), declared by WP00a (line 1675), placed by `Scte35Events` for every kind, period-time anchors to the warnings (lines 312, 347); WP05 tests a PTS-anchored section (line 1822); no reader is built (R19, line 1980)."
+    },
+    {
+      "id": "issue 5",
+      "status": "resolved",
+      "evidence": "§6.3 rule 4 gives Q22 (c)'s three rules with their alternatives (line 457); Q23 (a) and (b) state the blind start (lines 962-963) and R21 records it; Q22 (b) cites the T sweep (line 944), matching `review-adversarial/runs/switch-t-sweep.txt`; WP02 and WP07 test the cases (lines 1709, 1835). The baseline is constant through a drop by the prototype's code (`design/tools/detection_semantics.py:40-50`: a low point never joins the pool)."
+    },
+    {
+      "id": "issue 6",
+      "status": "partly",
+      "evidence": "The API takes a `CurveRef` for a pair or a session (lines 413-441; Appendix B, lines 2061, 2076, 2193), and Q28 (a) and §6.4 are corrected: run 10's attribution of the v180 pair lists v360's cue_out, cue_out_cont, ad_break, two segments, discontinuity and two keyframes (line 484; `design-evaluation/runs/10_attribute_final.txt`). But the session half has no feasible owner: WP01, in round 1, implements and tests it (lines 1687, 1697, 578) while `Span` and `Session` come from WP00b in round 2, after WP01 (lines 2062-2064, 1800, 1805). N2."
+    },
+    {
+      "id": "issue 7",
+      "status": "resolved",
+      "evidence": "(a) the grid is stated (lines 101, 461) and matches design-evaluation run 05; (b) and (c) are limited to what ran, the rest MEASUREMENT PENDING (lines 68, 106, 1154, 1502, 1978); (d) frame 0 added (line 111; testgen.md §3.2); (e) Tables 5 to 17, 20 to 25 and 29 (line 348), the tables scte35.md §3 cites; (f) `tests/test_vmaf_report.cpp:104` (P-Y) and (g) the grep record (line 92; `design/runs/log-callback-grep.txt`), both checked (`runs/code-lines.txt`)."
+    },
+    {
+      "id": "issue 8",
+      "status": "resolved",
+      "evidence": "§11 items 3, 5 and 6 (lines 633, 635, 636); Q04 (a), Q03 (b), Q10 and Q13 (a) name them (lines 779, 762, 1258, 1467); Q10 (e) offers the scoring-read recorder with its D-007 and D-068 caveat (line 1264). No package would implement (e) if chosen (N5)."
+    },
+    {
+      "id": "issue 9",
+      "status": "resolved",
+      "evidence": "A media-PTS anchor is placed on the carrying variant's own frames, within the carrying playlist's discontinuity sequence, then mapped through the pair (lines 306, 312); WP05 tests a distorted variant whose PTS origin differs (line 1822)."
+    },
+    {
+      "id": "issue 10",
+      "status": "resolved",
+      "evidence": "CUE-OUT-CONT's `SCTE35=` becomes a `CueInput` (line 346; WP04's test, line 1735); `pair_breaks()` has one owner, WP04, and WP05 depends on WP04 and returns its cues to it (lines 349, 1727, 1812, 1816); Q17 blocks WP04 only (line 879). The reason for not giving the pairing to WP05 holds: acceptance test 2 asserts an ad_break (line 596)."
+    },
+    {
+      "id": "issue 11",
+      "status": "resolved",
+      "evidence": "(i) `SessionLog` in §3.2 (line 162), wired by the lead when WP17 starts (P-C, line 1603); (ii) copying chosen as P-AJ, pending the owner (line 1627); (iii) Q09 (b)'s pass moved to WP16 (line 1922); (iv) WP09b blocked by Q15 and Q16, WP09a by Q29 (lines 1845, 1770); (v) WP08 blocked by Q02, Q22 and Q25, and Q12 blocking WP09b (lines 1758, 1308); render.py keeps Blocks equal to Blocked-by. Gaps that remain are N4 and N7."
+    },
+    {
+      "id": "issue 12",
+      "status": "resolved",
+      "evidence": "(i) a redirected fetch is one event with its chain (Q44 (d), lines 1424-1427; R22), as `src/NetworkLogger.cpp:595-612` and `:687` row it; (ii) rows copied and the logger cleared after each file (P-N, line 1611; `src/NetworkLogger.h:155-160`, `:194`); (iii) retries are Q44 (c) (lines 1419-1423); (iv) the subcommands set the log level and the network themselves (lines 180, 507, 1764), as `tools/mirage_vmaf.cpp:142-156` shows they must (`runs/code-lines.txt`)."
+    },
+    {
+      "id": "issue 13",
+      "status": "resolved",
+      "evidence": "§3.6 tabulates every answer that would change an otherwise unchanged file (lines 197-209); WP00b rewords `CMakeLists.txt:229-232` and `src/VMAFNet.h:8-9` (line 1800), both read in `runs/code-lines.txt`."
+    },
+    {
+      "id": "issue 14",
+      "status": "resolved",
+      "evidence": "Q26 (b) asks when `timeline` detects, the agent recommending only with W and N (lines 1022-1026; §7, line 510); `attribute`'s default `--format` is text (lines 509, 1115); Q39 (b) asks the click's interval (lines 1545-1549)."
+    },
+    {
+      "id": "issue 15",
+      "status": "resolved",
+      "evidence": "(i) `TimelineLoad`, ImGui-free, holds the loader, its hash checks and the handoff, tested in `mirage_tests` (lines 616, 589, 1874, 1881); (ii) Q43 (h) asks where a corrupt packet sits (lines 1238-1242), on facts from `testgen/logs/61_ad_x264_nodisc_probe_v180.txt:149, 156, 249, 252` (packets 73 and 123 carry the PTS of frames 74 and 122, checked), and WP06 tests it (line 1748)."
+    },
+    {
+      "id": "issue 16",
+      "status": "resolved",
+      "evidence": "Every file of the design has 0 prose runs (`runs/quote-check.txt`); WP15's documents must be in their own words and pass the check before each commit (lines 1910, 1918; P-AK, line 1628). The PR description is not under that check (N10)."
+    },
+    {
+      "id": "issue 17",
+      "status": "resolved",
+      "evidence": "WP00a is blocked by Q01 to Q04, Q07, Q08, Q31 and Q32 and runs once all of round 1's answers are in (lines 1650, 1675, 1946); the session declarations moved to WP00b and the UI's wiring to WP00c; no package starts before an answer, WP15's pending-decisions document aside (line 20). WP00a's headers still encode some answers whose questions don't block it (N7)."
+    },
+    {
+      "id": "L1",
+      "status": "resolved",
+      "evidence": "`runs/quote-check.txt`: 0 prose runs and 0 runs of names, K = 6, in `design.md` and the 16 files under `design/` (sources, data, revision log, tools, records); `design/runs/quote-check.txt` was made through `design/tools/run.sh`."
+    },
+    {
+      "id": "L2",
+      "status": "resolved",
+      "evidence": "Every question has `round` and `d007` (render.py asserts both); §12 groups its tables and its full texts by round with 27, 9 and 8 (lines 652-711), as do \"Where Phase 3 stands\", the Conventions and §0 (lines 20, 10, 32); Q01 to Q42 keep their numbers and Q43, Q44 are new; `d007` is true for Q01, Q08, Q09, Q10, Q13, Q36 and Q37, each text naming the ruling or the approval. Q41 is in round 2, not 3, because WP00b and WP07 need its answer; the revision log says so (`design/revision-1.md:121`), and it follows the rule that a question's round is the earliest round of the packages it blocks."
+    },
+    {
+      "id": "L3",
+      "status": "resolved",
+      "evidence": "All 44 questions have a one-sentence summary (`runs/question-lengths.txt`), rendered under each heading; compared with each recommendation and each item's, they state them exactly."
+    },
+    {
+      "id": "L4",
+      "status": "resolved",
+      "evidence": "Every question has 2 to 4 sentences and every option 1 to 3 (`runs/question-lengths.txt`: 0 outside the ranges); the detail moved to the sections each question names (§4.2, §5.1 to §5.7, §6.3, §7, §10). Whether anything was lost by shortening could not be checked against the earlier text, which `<out>` no longer holds; it rests on the revision log (`design/revision-1.md:129`), and every option the first review discussed is present."
+    },
+    {
+      "id": "L5",
+      "status": "resolved",
+      "evidence": "The moved P-entries form two questions of items, one per round (Q43, Q44), each item with its options and the agent's recommendation (lines 1199-1248, 1403-1437); the 28 kept are process and measurement, except P-N's fetch pattern (N8)."
+    },
+    {
+      "id": "L6",
+      "status": "resolved",
+      "evidence": "No citation of generated media, binaries, FFmpeg copies, downloads, extracts, `rfc/`, `testgen/refs/`, `scte35_vectors.json` or `vectors_src.json` remains in `design.md` or `design/`; FFmpeg is cited by URL at n8.1.1 (`hls.c#L989-L991`, `#L1916-L1945` and `mpegts.c#L463` match the scte35 survey's copies, `runs/ffmpeg-citations.txt`; `http.c`'s lines are as sources.md §3.3 gives them, its copy having been removed), Catch2 by URL at v3.7.1 (`extras/Catch.cmake`, lines 29 to 34, lists `TEST_SPEC` and `PROPERTIES`, `runs/catch2-citation.txt`), and the records cited (`testgen/logs/`, `testgen/reports/`, `experiments/hls-seek-probe/`) are among those the public copy keeps (`<scratch>/phase3/records/phase3-survey/README.md`, its layout table)."
+    },
+    {
+      "id": "L7",
+      "status": "resolved",
+      "evidence": "44 questions (27, 9, 8), 22 packages, 28 P-entries (9 moved), 22 risks: render.py refuses to render unless `part1.md` states these counts, and it rendered (`runs/render.txt`); §11 has the 14 items §0 counts (lines 32, 627-644); dates 2026-10-31 (line 16; `design/revision-1.md:1`, `:141`)."
+    },
+    {
+      "id": "L8",
+      "status": "partly",
+      "evidence": "The new numbers carry their records (checked: `design/runs/axis-check.txt`, `log-callback-grep.txt`, `switch-t-sweep.txt`, testgen's log 61, design-evaluation runs 05, 06, 09, 10 and 11), MEASUREMENT PENDING marks what wasn't run, and nothing is presented as decided. Two claims have no record or contradict theirs: that the axis check warns at a change of rate (lines 246, 577, 1696, 1972), which no run tried and `runs/rate-change-check.txt` contradicts at 24, 30 and 50 fps; and `src/HlsAlign.h:12`, cited for `HlsAlign.cpp` needing only FFmpeg, where the line says it uses none (line 174; `runs/code-lines.txt`)."
+    }
+  ],
+  "issues": [
+    {
+      "severity": "major",
+      "where": "§4.2 (lines 244, 246, 248), §1.2 K2 (line 50), §2 (line 99), Q02 option (d) and its \"Why\" (lines 745, 749), R11 (line 1972), §9.1's `test_timeline_axis.cpp` (line 577), WP01's description and tests (lines 1687, 1696).",
+      "issue": "N1: The revised axis check doesn't catch a change of frame rate. The check compares each step between consecutive reference frames with one frame duration, within half a frame. By its own rule, a reference whose frames come at any rate from two thirds to twice its declared rate passes every step, while (d)'s seconds, the frame index times the declared duration, drift. With testgen's ad report re-timed so that the ad's frames 75 to 124 come at 24, 30 or 50 fps (simulated, the playlist's EXTINF following the media), the design's own `axis_check.py` flags 0 steps with the segment map, and (d)'s seconds end 0.083, 0.333 and 1.000 s away from (c)'s after the ad; only 60 fps is flagged, at 49 steps (`runs/rate-change-check.txt`). RFC 8216 expects an `EXT-X-DISCONTINUITY` where encoding parameters change ([§4.3.2.3](https://www.rfc-editor.org/rfc/rfc8216#section-4.3.2.3)), so an ad at another rate after one is a stream the check must expect. §4.2, Q02 (d), R11 and WP01's test say the check warns at a change of rate; the test as specified passes only for changes outside those bounds. Q02 asks the owner to weigh (c) against a checked (d), and the agent's recommendation rests on the check covering both failures it names.",
+      "suggestion": "Bound the accumulated error, not the step. The check needs the segment map anyway, so compare (d)'s seconds with the playlist time at each segment's first frame, or each frame's PTS with the PTS expected from the first frame of its playlist discontinuity sequence, flagged beyond half a frame. In the same simulation the first form flags 4 segment starts at 24, 30, 50 and 60 fps and none on the unchanged ladder (`runs/rate-change-check.txt`). Then correct §4.2, Q02 (d) and its \"Why\", K2, R11 and WP01's test, and let the owner compare (c) and (d) on that basis."
+    },
+    {
+      "severity": "major",
+      "where": "WP01 (lines 1687, 1697), §9.1's `test_timeline_query.cpp` (line 578), §3.2's rows for `TimelineModel`, `TimelineQuery` and `SessionPlan` (lines 144, 146, 154), §6.1 (lines 434-441), Appendix B (lines 2062-2071, 2076), WP00b (lines 1800-1805), the files of WP07 and WP09b (lines 1829, 1842).",
+      "issue": "N2: Session attribution assigned to WP01, before its types exist. WP01, in round 1, implements `attribute()` for a `CurveRef` of either kind, with Q28 (a)'s session scope (the played variant's events in each span), and tests that scope; `TimelineModel.h`, a WP01 file, declares `curve_points()`, which derives a session's curve with its spans. But `Span` and `Session` are declared by WP00b in round 2, once Q11 and Q12 are answered, and WP00b depends on WP01, so WP01 has no session type to build or test against. No later package owns that code: WP07 changes only `tests/HttpFileServer.h`, WP09b's files include neither `TimelineQuery.*` nor `TimelineModel.cpp`, and §3.2 gives the session curve to `SessionPlan`. Building it in WP01 would put `Span`'s `scored` flag (Q12, round 2) on the acceptance path, against what render.py checks.",
+      "suggestion": "Give the session part of `attribute()` and of `curve_points()`, with their tests, to WP07 (or WP09b), listing `src/TimelineQuery.cpp`, `src/TimelineModel.cpp` and `tests/test_timeline_query.cpp` among its changed files after WP01 has merged; keep WP01's scope tests to pairs; say which file defines `curve_points()`."
+    },
+    {
+      "severity": "minor",
+      "where": "WP09b (lines 1838-1847), WP11b (lines 1849-1858), the critical-path paragraph (line 1954), WP05's blockers (line 1817).",
+      "issue": "N3: The composite example waits for the SCTE-35 decoder. WP11b depends on WP09b, and WP09b on WP05 as well as WP07, so the paper's E2 waits for the decoder and for Q14, Q15, Q16, Q18 and Q21, the licence question, although D-069's ad ladder carries plain cue tags only (testgen.md §2.3). It is the coupling the first review's issue 1 removed from the acceptance path.",
+      "suggestion": "Split WP09b into a session part (after WP09a and WP07) and a decoded-message part (after WP09a and WP05), let WP11b depend on the first only, as WP09 was split, and recompute the composite path."
+    },
+    {
+      "severity": "minor",
+      "where": "WP00b and WP00c (lines 1660, 1665, 1798-1870), WP12's and WP13's dependencies (lines 1878, 1892), the order's item 7 (line 1952), §3.2 (line 170), P-C.",
+      "issue": "N4: Two orderings the files need are missing. WP00b (round 2) and WP00c (round 3) both change `CMakeLists.txt` and neither depends on the other (`runs/package-check.txt`, the only unordered pair of owners), so if round 3's answers come while WP00b is open, two wiring commits edit the file at once, against P-C and §3.2's one owner at a time. And the panel draws the session's curve (line 617) from documents whose session part WP09b writes, through a derivation that belongs with the session code (N2), yet WP12 and WP13 depend on neither WP09b nor WP07.",
+      "suggestion": "Add WP00b to WP00c's dependencies, or state that the wiring packages run in round order, and add WP09b and the session curve's owner (N2) to WP12's."
+    },
+    {
+      "severity": "minor",
+      "where": "WP16 (lines 1920-1930), §3.6 (lines 199-200), Q09 (a) (line 1449), Q10 (e) (line 1264).",
+      "issue": "N5: Conditional options with no complete package. Under Q09 (a), WP16 records decode errors in the report and reads them in `LadderReportRead`, but no package turns them into `decode_error` events: `TimelineBuild.cpp` and `TimelineDoc.cpp`, owned by WP09a, WP08 and WP09b, are not among WP16's files, and WP16 depends on neither WP09a nor WP09b. Q10 (e), which §3.6 says changes `VMAFAnalyzer`, `VMAFReport` and `VMAFSegments.h`, has no package at all; WP16's conditions are Q09 (a) and Q08 (b) only.",
+      "suggestion": "Add `src/TimelineBuild.cpp` (after WP09b) to WP16's files and WP09a and WP09b to its dependencies; name Q10 (e) among WP16's conditions, with Q10 blocking WP16, or say that (e) would need a package of its own."
+    },
+    {
+      "severity": "minor",
+      "where": "Q08 (b) (line 854), WP06 (line 1740), WP16 (line 1922), \"Order and the critical path\" (line 1954).",
+      "issue": "N6: The critical path holds only under Q08 (a). Q08 is a round-1 question. Under (b) each frame's segment comes from the analyzer, which is WP16's work (round 3, conditional, after a D-007 ruling), so the acceptance tests would wait for WP16 and that ruling. §14 states the path without this condition.",
+      "suggestion": "Say that the path assumes Q08 (a), and what moves into round 1 under (b): WP16's Q08 (b) part, and WP06 reading the map from the report."
+    },
+    {
+      "severity": "minor",
+      "where": "WP00a (lines 1650, 1675), WP09a (line 1770), WP12 (line 1879), WP09b (line 1845), Appendix B's `QueryOptions` and `DetectOptions` (lines 2185-2189), §12's Blocks columns.",
+      "issue": "N7: Blocked-by lists still miss answers the packages encode. WP00a writes each round-1 module's header as Appendix B sketches it, `QueryOptions` (margins and scope: Q28, Q29) and `DetectOptions` (Q23, Q24, Q26) among them, and none of those questions blocks it; WP09a writes the detection on pair curves that Q22 (d) would remove, without Q22; WP12's loader checks the two hashes of Q06, without Q06; WP09b writes the session's wall-clock fields of Q03, without Q03. Nothing starts early because of it (round 1's packages wait for all of round 1's answers), but the Blocks columns, which tell the owner what an answer affects, are incomplete.",
+      "suggestion": "Add these questions to the packages' Blocked-by lists (render.py then keeps the Blocks columns equal to them), or say in §14 that a package waits for all of its round's answers and that Blocked-by lists the answers that change its content."
+    },
+    {
+      "severity": "minor",
+      "where": "§13's P-N (line 1611), Q10 (a) (line 1260), Q44.",
+      "issue": "N8: P-N keeps a choice that changes the network events. P-N fixes the fetch's pattern: sequential and unpaced, each variant's playlist fetched the first time it plays. Its alternative, pacing like a player's buffer, would change every `segment_request`'s measured times. Q10 (a) describes the sequential fetch but neither Q10 nor Q44 offers pacing, so by L5's test this part is the owner's, not a process choice.",
+      "suggestion": "Make the fetch's pacing an item of Q44 (unpaced, as now; paced to the plan's media time; a buffer like a player's), with the agent's recommendation, and keep in P-N only how the fetch is implemented."
+    },
+    {
+      "severity": "minor",
+      "where": "Q10's summary and option (a) (lines 1256, 1260), Q41 (a) (line 1393), WP00b (line 1800), K25 (line 73).",
+      "issue": "N9: Q10 and Q41 decide the same thing. Q10 (a) times the fetch with `NetworkLogger` compiled into `mirage_vmaf`, as its summary says, and Q41 (a) again compiles `NetworkLogger` into `mirage_vmaf` for the session fetch. Answers can then conflict (Q10 (b), (c) or (d) with Q41 (a)), against K25's set of questions without duplicates.",
+      "suggestion": "Leave linking `NetworkLogger` into `mirage_vmaf` to Q10 (a) and make Q41 about the name only (keep it, rename it, or wrap it), asked when Q10 (a) is the answer; it stays in round 2 if a rename would touch WP07's code."
+    },
+    {
+      "severity": "minor",
+      "where": "§11 (line 629), P-AK (line 1628), WP15's tests (line 1918).",
+      "issue": "N10: The PR text is outside the quote check. The differences go into `docs/PHASE3_DECISIONS_PENDING.md` and Phase 3's PR in the design's own words, but P-AK runs the quote check before each commit only, so the PR description, which is public and which the first review named, is not checked.",
+      "suggestion": "Extend P-AK to the PR description and any other posted text, keeping the checker's output as the record."
+    },
+    {
+      "severity": "minor",
+      "where": "Q21 (lines 1372-1377).",
+      "issue": "N11: Q21 leaves out one licence class. scte35.md §5 lists 6 messages from the example playlists and smoke test of futzu/threefive, under MIT by GitHub's detection, besides the GPL-2.0 documentation of another threefive repository. Q21's text says only that threefive is GPL-2.0, and no option names the MIT-licensed messages, as option (b) names scte35-go's Apache-2.0 ones.",
+      "suggestion": "Name both threefive sources with their licences in Q21, and add the MIT-licensed examples to option (b) or as an option of their own."
+    },
+    {
+      "severity": "minor",
+      "where": "The question texts of Q43 and Q44 (lines 1205, 1409), §4.2 (line 246), K2 (line 50), §2 (line 99), Appendix A (lines 2005, 2012).",
+      "issue": "N12: \"round 1\" names two things. Since revision 1, \"round 1\" names the first round of owner questions. Q43 and Q44, read alone under a round mark, say that round 1 of this design made their choices as process choices, and §4.2, K2, §2 and Appendix A call the pre-revision check round 1's check. A reader of Q43, or of its translation, can take the first round of questions for the first version of the design.",
+      "suggestion": "Write \"the first version of this design\" or \"before revision 1\" in those places; the records' own labels stay as recorded."
+    },
+    {
+      "severity": "minor",
+      "where": "WP15 (lines 1908-1918), \"Where Phase 3 stands\" (line 20), the order's item 1 (line 1946), §14's definitions (lines 1646, 1956), Q42 (b) (line 1584).",
+      "issue": "N13: WP15 starts now but is a blocked round-3 package. WP15 is in round 3 and blocked by Q41 and Q42, yet the design has it start now. §14 defines Blocked-by as the answers a package needs before it starts, and a package's round as the round of answers it waits for; the rendered paragraph then says both that every package waits for at least one answer and that WP15 can start before any. Separately, the dated correction of `docs/VMAF_GAP_REPORT.md` under Q42 (b) is in no package's files.",
+      "suggestion": "Split WP15 into the pending-decisions document (blocked by nothing, starting now) and the documents that wait for Q41 and Q42, or define its blockers as those of §11's wording only; give `docs/VMAF_GAP_REPORT.md` to WP15 under Q42 (b)."
+    },
+    {
+      "severity": "minor",
+      "where": "§3.3 (line 174).",
+      "issue": "N14: A wrong citation for HlsAlign. `src/HlsAlign.h:12` is cited for `src/HlsAlign.cpp` needing only FFmpeg. The line says its functions are pure, with no FFmpeg or ImGui, and `HlsAlign.cpp` includes only standard headers (`runs/code-lines.txt`). The conclusion, that it can be compiled into `mirage_vmaf`, holds all the more.",
+      "suggestion": "Say that it needs no library beyond the C++ standard library (`src/HlsAlign.h:12`)."
+    },
+    {
+      "severity": "minor",
+      "where": "`design/tools/run.sh`, line 24.",
+      "issue": "N15: An absolute path in a comment of the design's run.sh. The comment that explains the sanitizer names macOS's temporary directory with its private prefix as an absolute path. It is the only absolute path in `design.md` and under `design/` (`runs/privacy-check.txt`), and a generic one, but the public copy's privacy check matched the same comment in `design-library/tools/run.sh:24` and in `probe/sanitize.sh:7`, and both were reworded there (`<scratch>/phase3/records/phase3-survey/README.md`, the first of its changes to the copies). `design/` is to be committed the same way.",
+      "suggestion": "Reword the comment as those two were before `design/` is committed; this review's copy of `run.sh` shows one wording."
+    }
+  ]
+}

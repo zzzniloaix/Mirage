@@ -1,0 +1,5 @@
+$ cp media/degraded-x264-a/layout.json reports/degraded-x264-a.layout.json
+(in <out>/testgen)
+--- stdout ---
+--- stderr ---
+--- exit status 0, wall time 0.006 s (time.monotonic) ---

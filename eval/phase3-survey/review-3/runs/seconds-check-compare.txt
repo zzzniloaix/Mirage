@@ -1,0 +1,6 @@
+# cwd: <out>
+# command: 'bash' '-c' 'diff <(grep -v "^# started" review-3/runs/seconds-check-rerun.txt) <(grep -v "^# started" design/runs/seconds-check.txt) && echo "the two records are identical apart from their start and end line"'
+# started: 2026-11-01T09:13:10Z, ended: 2026-11-01T09:13:10Z (UTC)
+# stdout and stderr, in order:
+the two records are identical apart from their start and end line
+# exit status: 0
