@@ -36,6 +36,8 @@ How this was collected: ran `git log` on branch `fix/high-speed-playback` (HEAD 
 
 **Note:** a missing trailer doesn't prove there was no AI involvement; the trailer is only a convention. The owner confirms the actual involvement in each commit.
 
+**`.mailmap`** (2026-11-02): at the owner's request the AI wrote the repository's `.mailmap`. Its one line maps the commits' author address, the GitHub noreply address, to the name `zzzniloaix`, which `git log`, `git shortlog` and `git blame` then show. No commit and no SHA changed.
+
 ## VMAF code
 
 - **`src/VMAFAnalyzer.cpp` / `src/VMAFAnalyzer.h`** (the scoring core)
