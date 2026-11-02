@@ -667,6 +667,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Decision**: Phase 2's PR isn't opened yet; the agent goes on with the work order's later phases, from Phase 3, with a team of agents it leads, until the feature is done. Phase 3's branch, `vmaf/phase-3`, is made from `vmaf/phase-2`, as D-042 made Phase 2's from Phase 1's, and its PR comes after Phase 2's (hard rule 5). Phase 2's PR is opened when the owner says.
 - **Owner's words**: "we dont have to open a PR right now, you can lead a team with several agents to do the VMAF until you are all done with the feature", after the agent's report that Phase 2's PR was drafted.
 - **Alternatives**: Phase 2's PR first.
+- **Overtaken** (2026-11-02): the owner opened Phase 2's PR, #4, from `vmaf/phase-2` at `75cf6e0`, and merged it into `main` that day, as `35dd397`; `main` was merged into `vmaf/phase-3` then (`59a8e20`). The rest of this decision stands.
 - **Who**: owner
 - **Date**: 2026-10-30
 
