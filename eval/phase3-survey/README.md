@@ -50,6 +50,7 @@ drafts and of this copy after that (the last section).
 | `review-2/` | the second review, of revision 1: `review.md`, `review.json`, its tools and its runs |
 | `review-3/` | the third review, of revision 2: `review.md`, `review.json`, its tools and its runs |
 | `review-docs/` | the check of the drafts of `docs/PHASE3_SURVEY.md`, `docs/PHASE3_DECISIONS_PENDING.md` and `docs/PHASE3_STATUS.md`, and of this copy: `verify.md`, its tools and its runs |
+| `tools/render_pending.py` | the script that rendered `docs/PHASE3_DECISIONS_PENDING.md` from `design/`'s data and `design.md` §11, added with the Phase 3 documents |
 | `results/` | each survey's and each design's summary as its agent returned it, and the merge's (`design-merged.json`, returned before the revisions) |
 | `runs/` | `sources.md`'s runs, one directory each (`cmd.txt`, `output.txt`, `exit.txt`); `runs/fixture-data/` keeps the fixture's playlists |
 | `probe/` | `sources.md`'s probes (C++ on FFmpeg's library APIs) and their scripts |
@@ -335,3 +336,10 @@ committed (`docs/PHASE3_SURVEY.md` says how), and this copy was corrected for it
 rendered again to compare with the draft, a byproduct whose comparison `runs/rerender-pending.txt`
 keeps. Its records write the drafts' directory, outside the repository, as `<drafts>`, and this copy
 before it was committed as `<records>`.
+
+**The pending document's script** (`tools/render_pending.py`, added on 2026-11-02 with the Phase 3
+documents): it renders `docs/PHASE3_DECISIONS_PENDING.md` from `design/owner_questions.json`,
+`design/p_entries.json`, `design/work_packages.json` and `design.md` §11, writing the design's
+paths as the repository has them and changing nothing else, as the check of the drafts compared
+(`review-docs/runs/pending-vs-json.txt`, on the draft's version of the script, which applied three
+of the third review's corrections that revision 3 has since made in the design itself).

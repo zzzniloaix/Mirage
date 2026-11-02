@@ -1,7 +1,7 @@
 command (cwd: this directory): python3 -I checks/list_excluded.py <survey directory> .
-date_utc: 2026-11-02T18:36:26Z
+date_utc: 2026-11-02T18:41:24Z
 output (stdout and stderr):
-survey directory: 1641 files; this directory: 1108 files
+survey directory: 1641 files; this directory: 1109 files
 left out: 565 files
 
 == generated media: 426 files
@@ -622,7 +622,7 @@ left out: 565 files
    testgen.md: lines 210
    ui.md: lines 3, 192, 221, 275, 450
 
-== only here: 32 files
+== only here: 33 files
    README.md
    checks/excluded.txt
    checks/list_excluded.py
@@ -655,6 +655,7 @@ left out: 565 files
    review-docs/tools/scte35_bytes_scan.py
    review-docs/tools/sweep_grid.py
    review-docs/verify.md
+   tools/render_pending.py
 
-== sizes here: 12711276 bytes in 1108 files; the largest, design.md, 279519 bytes; 0 files over 1000000 bytes
+== sizes here: 12725708 bytes in 1109 files; the largest, design.md, 279519 bytes; 0 files over 1000000 bytes
 exit=0
