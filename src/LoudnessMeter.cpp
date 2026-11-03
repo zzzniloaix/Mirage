@@ -23,8 +23,8 @@ constexpr int    kHistBins = 10000;
 
 constexpr int kTaps = kInterpolatorTaps;
 static_assert(kTaps % 2 == 0, "interpolate() sums even and odd taps apart");
-// Kaiser window of the interpolator: with 32 taps per phase, within
-// 0.02 dB up to fs/4 and 0.07 dB up to 20 kHz at 44.1 kHz.
+// Kaiser window of the interpolator, 32 taps per phase. Its passband error:
+// MEASUREMENT PENDING.
 constexpr double kKaiserBeta = 4.5;
 
 // Mean square below −150 dBFS: silent, for the correlation.

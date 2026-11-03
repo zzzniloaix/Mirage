@@ -42,7 +42,8 @@ Effort: **S** under a day, **M** one to three days, **L** more.
 
 Side data the FFmpeg 8.1.1 software decoders export, checked on 1-second
 `testsrc2` encodes with
-`ffprobe -export_side_data venc_params -flags2 +export_mvs -show_entries frame_side_data`:
+`ffprobe -export_side_data venc_params -flags2 +export_mvs -show_entries frame_side_data`
+(the script and its run: `plan/engineer_tools_runs/sidedata/`):
 
 | Codec | Per-block QP (`VIDEO_ENC_PARAMS`) | Motion vectors | Encoder-settings SEI |
 |---|---|---|---|

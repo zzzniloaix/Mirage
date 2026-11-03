@@ -786,7 +786,7 @@ TEST_CASE("ConformProbe checks a local HLS package end to end", "[hls_conform][p
     const Finding* starts = find_finding(r, Severity::Error, "segments read start with a P/B picture (#1");
     REQUIRE(starts);
     CHECK(starts->title.starts_with("b/index.m3u8: "));
-    // The hls muxer writes EXT-X-TARGETDURATION:0 for segments under half a second.
+    // The hls muxer writes EXT-X-TARGETDURATION:0 for these half-second segments.
     CHECK(find_finding(r, Severity::Warning, "a/index.m3u8: EXT-X-TARGETDURATION is 0"));
     CHECK_FALSE(find_finding(r, Severity::Error, "no EXT-X-TARGETDURATION"));
 }

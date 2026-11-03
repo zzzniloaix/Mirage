@@ -1,12 +1,20 @@
 # Engineer tools POCs: status
 
 The POCs listed in `plan/engineer_tools_ideas.md`, what each one does now, how
-it was checked, and what is left. Checks marked "scripted run" used the
-player's QA hooks (`--qa-no-focus`, `--ui-overlays`, `--ui-snapshot`) on
-clips generated with FFmpeg's `testsrc2` source;
-`tests/engineer_tools_snapshots.sh [build_dir] [out_dir]` makes those clips
-again, writes the same snapshots and prints FFmpeg's `ebur128` reading of the
-loudness clips (it needs a display, like `pathb_snapshot_regression.sh`).
+it was checked, and what is left. The records of the unit tests and of the
+demo packages are in `plan/engineer_tools_runs/tests/`, the conformance
+checks' runs in `plan/engineer_tools_runs/hlscheck/` and `dashcheck/`.
+
+Checks marked "scripted run" used the player's QA hooks (`--qa-no-focus`,
+`--ui-overlays`, `--ui-snapshot`), and none of their outputs is committed:
+what they showed is MEASUREMENT PENDING until they are run again and their
+outputs committed. `tests/engineer_tools_snapshots.sh [build_dir] [out_dir]`
+makes the clips generated with FFmpeg's `testsrc2` source again, writes the
+same snapshots and prints FFmpeg's `ebur128` reading of the loudness clips
+(it needs a display, like `pathb_snapshot_regression.sh`). The runs on the
+4K PQ AV1 file, the five-minute 1080p H.264 file and the raw H.264 stream
+used files the repository does not hold, which the script does not make,
+and it does not run the Conformance tab.
 
 ## P — Frame inspector
 
@@ -39,8 +47,9 @@ shows, a scrub preview, a frame step:
 `run_session` that keeps a reference to the uploaded frame (`av_frame_ref`, no
 copy) until the next upload. The report is rebuilt only when the card is open
 and the frame changed. `VideoRenderer::interpretation()` exposes the colour
-interpretation the renderer already used; nothing in the render or decode
-path changed. Code: `src/FrameInfo.*` (pure, unit-tested),
+interpretation the renderer already used, and the conversion did not change;
+`plan/engineer_tools_decisions_pending.md` lists what the panels change in
+the player. Code: `src/FrameInfo.*` (pure, unit-tested),
 `src/FrameInspector.*` (the card).
 
 **Checked.**
@@ -48,15 +57,16 @@ path changed. Code: `src/FrameInfo.*` (pure, unit-tested),
 - `mirage_tests '[frameinfo]'`: 10 test cases (encoder SEI parsing, the PQ
   EOTF against its inverse, frame rows and numbering, tag mismatches,
   unspecified tags, HDR10 static metadata and HDR10+, side data, decode errors,
-  remembered settings). Whole suite `'~[audio]'`: every case passes except
-  the subtitle-fixture case that already fails on `main` in a clean checkout.
+  remembered settings). They pass, with the whole suite `'~[audio]'`, in the
+  debug and the headless build
+  (`plan/engineer_tools_runs/tests/macos-2026-11-03-eb0f9a6.txt`).
 - Scripted runs:
   - H.264 SDR MP4 (x264, B-frames), VideoToolbox and `--no-hw`: types, numbers
     and timestamps match the pattern's burnt-in frame counter;
   - HEVC 10-bit tagged HDR10 (x265 with mastering display and light level
     SEI), VideoToolbox P010: the mastering primaries read as P3-D65, the
     luminance and MaxCLL/MaxFALL as encoded, x265's settings listed;
-  - an MPEG-TS whose HEVC stream switches from BT.709 SDR to PQ at 4.48 s:
+  - an MPEG-TS whose HEVC stream switches from BT.709 SDR to PQ 3 s in:
     after the switch the card flags transfer, matrix and primaries as
     differing from the interpretation the renderer opened with, which is what
     the renderer keeps using.
@@ -107,13 +117,13 @@ probe maps the frame on screen once per new frame while it is on. Code:
 
 **Checked.**
 
-- `mirage_tests '[scopes]'`: 11 test cases — code values to R′G′B′ (10-bit
+- `mirage_tests '[scopes]'`: 12 test cases — code values to R′G′B′ (10-bit
   reference white is exactly 1.0), PQ grey at 100 cd/m² and HLG 75 % at
   about 203 cd/m², P010 written by hand and read back, chroma lookup for
   4:2:0 / NV12 / 4:2:2 / 4:4:4, refused formats, a flat frame's waveform and
   histogram, legality shares, unused low bits, the vectorscope bin and the
   parade levels of BT.709 red, grey frames, the worker answering the newest
-  frame.
+  frame, the codes used counted exactly above 12 bits.
 - Scripted runs: x264 SDR (waveform, parade, vectorscope: the pattern's
   100 % bars fall on the computed 100 % targets), x265 HDR10 (waveform with
   the nits scale, histogram), and a 4K PQ AV1 file decoded by VideoToolbox
@@ -166,9 +176,9 @@ the summary says so). Code: `src/FrameScan.*` (with
 
 - `mirage_tests '[framescan]'`: 14 test cases (generated H.264 in MKV, MP4
   and MPEG-TS, MPEG-2, raw video, an MP4 cut inside a GOP, stop mid-scan,
-  the helpers). Its author also ran them under ThreadSanitizer and
-  AddressSanitizer + UBSan in scratch builds; this branch's checks did not
-  repeat that.
+  the helpers). Its author reported running them under ThreadSanitizer and
+  AddressSanitizer + UBSan in scratch builds; no output of those runs is
+  committed, and this branch's checks did not repeat them.
 - Scripted runs: the x264 clip (GOP of 50, B-frames: the summary and the bar
   pattern match the encode), a five-minute 1080p H.264 file (the view
   follows the frame on screen; the frame numbers agree with the frame
@@ -214,16 +224,15 @@ the audio clock, i.e. what has just been heard. Code: `src/LoudnessMeter.*`
 
 - `mirage_tests '[loudness]'`: 18 test cases — the K-weighting coefficients
   against BS.1770-4's 48 kHz table, EBU Tech 3341 cases 1–5, channel weights,
-  44.1 and 96 kHz, Tech 3342 LRA cases, true peak of an fs/4 sine, block
-  timing, resets, the Feed, and a cross-check against FFmpeg's `ebur128` on
-  generated stereo and 5.1 signals.
-- Scripted runs against `ffmpeg -af ebur128=peak=true` on the same file:
-  - a 5.1 PCM clip (1 kHz on the fronts and surrounds at set levels, a loud
-    50 Hz LFE, no channel order in the file): integrated loudness, LRA and
-    maximum true peak read as FFmpeg's to the 0.1 shown; the LFE is excluded;
-  - the stereo AAC clip: integrated loudness and LRA as FFmpeg's. Its maximum
-    true peak read lower than FFmpeg's whole-file figure: the card's
-    measurement began half a second in, FFmpeg's at the start.
+  32, 44.1, 96 and 192 kHz, Tech 3342 LRA cases, true peak of fs/4, fs/6 and
+  fs/8 sines, block timing, resets, the Feed, and a cross-check against
+  FFmpeg's `ebur128` on generated stereo and 5.1 signals.
+- Scripted runs against `ffmpeg -af ebur128=peak=true` on the same file, a
+  5.1 PCM clip (1 kHz on the fronts and surrounds at set levels, a loud
+  50 Hz LFE, no channel order in the file) and the stereo AAC clip: how the
+  card's integrated loudness, LRA and maximum true peak compare with
+  FFmpeg's is MEASUREMENT PENDING (`tests/engineer_tools_snapshots.sh`
+  prints FFmpeg's readings and writes the card's snapshots).
 
 **Not checked.** 7.1 and other layouts in the app; speed changes while
 metering (the tap is before the speed change, so the readings are in media
@@ -300,7 +309,8 @@ draws; `tools/mirage_hlscheck.cpp` prints.
   media encoded with libx264 / libx265: MPEG-TS and fragmented MP4 segments
   read from memory, and a local package (two variant playlists cut by
   FFmpeg's hls muxer, one with `split_by_time`) checked end to end. They
-  pass in the `macos-debug` and `macos-headless` builds.
+  pass in the debug and the headless build
+  (`plan/engineer_tools_runs/tests/macos-2026-11-03-eb0f9a6.txt`).
 - Apple's four public example streams, `mirage_hlscheck --workers 6`
   (`plan/engineer_tools_runs/hlscheck/`): no error and no warning in any of
   them. Each has one note: the BANDWIDTH of some or all variants is slightly
@@ -318,8 +328,10 @@ draws; `tools/mirage_hlscheck.cpp` prints.
   EXT-X-INDEPENDENT-SEGMENTS.
 - Scripted runs of the player (`--ui-net
   tab=conformance,conform=1,conform_out=…` with `--ui-snapshot`) on Apple's
-  fMP4 example over HTTP and on the demo package as local files: the tab
-  draws, and reports the same counts as the command line.
+  fMP4 example over HTTP and on the demo package as local files: whether the
+  tab reports the same counts as the command line is MEASUREMENT PENDING
+  (`conform_out` writes the tab's report as the command line's JSON, to
+  compare).
 
 **Not checked.** Live playlists (the check reads the window listed when it
 starts; nothing follows reloads); encrypted segments (sized, not read);
@@ -419,9 +431,11 @@ Representations are listed only. `dash::analyze_conformance`
   (each check, @bandwidths within 1% noted once, findings naming the right
   Representations); and a package FFmpeg's dash muxer writes in the test
   (libx264), its @bandwidth and @codecs made wrong, checked end to end. They
-  pass in the `macos-debug` and `macos-headless` builds. The HLS check's
-  JSON report on the package `tests/hlscheck_demo.sh` makes is the same as
-  before its code was shared.
+  pass in the debug and the headless build
+  (`plan/engineer_tools_runs/tests/macos-2026-11-03-eb0f9a6.txt`). With the
+  code the two checks share moved (`8314657`) and main merged, each check's
+  reports on its demo package, text and JSON, are byte for byte the
+  committed ones (`plan/engineer_tools_runs/tests/demos-2026-11-03-44f66cb.txt`).
 - Five public test streams, every segment sized
   (`plan/engineer_tools_runs/dashcheck/`):
   - Big Buck Bunny on Akamai's test server (11 Representations, 1,749
@@ -513,16 +527,18 @@ opening `B` scans it at once over the share.
   returns no frame, with VideoToolbox and with `--no-hw`; the startup
   watchdog reports it.
   FFmpeg's command line decodes the file without errors. Not investigated
-  further.
+  further, and no log of these runs is committed.
 - **FFmpeg's hls muxer writes EXTINF 2.000 for fMP4 segments of 46 and 53
   frames at 25 fps** (x265, open GOP, the demo package's `v3`; `demo.json.xz`
-  lists each segment's frame count). The conformance check reports it; the
-  playlist's total stays right.
-- **FFmpeg's hls muxer writes `EXT-X-TARGETDURATION:0` for segments under
-  half a second**, which the Alignment parser reads as no target duration;
+  lists each segment's frame count). The conformance check reports it. The
+  playlist's EXTINFs add up to 12.12 s for its 300 frames, 12.00 s at
+  25 fps (`demo.json.xz`, `playlists[2]`).
+- **FFmpeg's hls muxer writes `EXT-X-TARGETDURATION:0` for segments of half
+  a second** (the case in `tests/test_hls_conform.cpp`), which the Alignment parser reads as no target duration;
   the conformance check tells the two apart.
-- On the same MPEG-TS (start time 1.48 s) the control bar shows the absolute
-  PTS against a duration counted from 0 (`00:07.440 / 00:06.000` at the end).
+- On the same MPEG-TS the control bar showed the absolute PTS against a
+  duration counted from 0 (its start time and the readings: MEASUREMENT
+  PENDING).
 - **FFmpeg's dash muxer writes `maxSegmentDuration` from `-seg_duration`,
   not from the segments it cuts**: PT2.0S over segments of up to 2.960 s (a
   GOP of 37 frames at 25 fps), 2.120 s (x265) and 2.005 s (AAC) in the DASH

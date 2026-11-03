@@ -825,9 +825,9 @@ Signal stereo_program(int rate, double seconds)
 
 // Half a minute of 5.1 (L R C LFE Ls Rs): unrelated noise on every channel,
 // its level changing every 3 s on a pattern of its own; the LFE low-passed
-// hard, and the loudest. Weighted wrong, the integrated loudness moves well
-// outside the 0.1 LU the check allows: +0.75 LU with the LFE counted,
-// −0.29 LU with the surround channels counted as front ones.
+// hard, and the loudest. The check allows 0.1 LU; how far a wrong weighting
+// (the LFE counted, or the surround channels counted as front ones) moves the
+// integrated loudness is MEASUREMENT PENDING.
 Signal surround_program(int rate, double seconds)
 {
     static constexpr double kBase[6] = { -22, -24, -20, -18, -28, -26 };

@@ -32,8 +32,9 @@
 // (kInterpolatorTaps long) delivers them 16 samples late. Right after
 // construction or reset() it has no audio before the first sample: for the
 // first 31 samples only the samples themselves count, not inter-sample values
-// made up from the silence before them (a full-scale sine starting at its
-// crest would read +1 dBTP).
+// made up from the silence before them (the interpolator would ring at the
+// step from silence: a full-scale sine starting at its crest would read over
+// 0 dBTP).
 //
 // Results do not depend on how the samples are split into pushes. push()
 // does not allocate (everything is sized at construction) and costs about 110
