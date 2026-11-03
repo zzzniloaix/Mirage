@@ -2118,7 +2118,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Correction** (2026-10-29): the limits for an rtmp URL don't hold as the Choice states them. FFmpeg 8.1.1's own rtmp protocol takes `timeout` as the time, in seconds, to wait for an incoming connection, and with it an rtmp input listened on its URL's host and port instead of connecting to them (`ffmpeg -h protocol=rtmp`). Since D-056 an rtmp URL gets `rw_timeout` alone, in `src/FfOpen.cpp` and `src/Demuxer.cpp` as well, and TCP's own limit on a connection attempt, 5 s, holds; `tests/test_rtmp_input.cpp` connects to a local rtmp server.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-26
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-30, D-067)
 
 ### P-067 How D-043 to D-048 are implemented: the pool, the memory limit and the end of a run
 
@@ -2333,7 +2333,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - No sleep or wake event during the run (`power_log.txt`). The load averages were 5.20, 3.60 and 2.91 before the first build, and between 29.48 and 38.61 in the eight samples during the two steps over every frame (`runner.log`, `load.log`); which processes made up the load isn't recorded. 5974.3 s of wall time, the four builds included, of which 2635.2 s for `acceptance-full` and 2695.5 s for `defaults-full` (`run_all.md`).
 - **Who**: agent
 - **Date**: 2026-10-30
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-30, D-067)
 
 ### P-080 §2's acceptance checks rerun with the program of Phase 2's PR
 
@@ -2349,7 +2349,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - No sleep or wake event during the checks (`power_log.txt`). Their runner logged the load averages only at each check's start and end (`run.log`).
 - **Who**: agent
 - **Date**: 2026-10-30
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-30, D-067)
 
 ### P-081 Phase 3's survey and design: how they were made, and what of their records is committed
 
