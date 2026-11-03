@@ -6,15 +6,16 @@ demo packages are in `plan/engineer_tools_runs/tests/`, the conformance
 checks' runs in `plan/engineer_tools_runs/hlscheck/` and `dashcheck/`.
 
 Checks marked "scripted run" used the player's QA hooks (`--qa-no-focus`,
-`--ui-overlays`, `--ui-snapshot`), and none of their outputs is committed:
-what they showed is MEASUREMENT PENDING until they are run again and their
-outputs committed. `tests/engineer_tools_snapshots.sh [build_dir] [out_dir]`
-makes the clips generated with FFmpeg's `testsrc2` source again, writes the
-same snapshots and prints FFmpeg's `ebur128` reading of the loudness clips
-(it needs a display, like `pathb_snapshot_regression.sh`). The runs on the
-4K PQ AV1 file, the five-minute 1080p H.264 file and the raw H.264 stream
-used files the repository does not hold, which the script does not make,
-and it does not run the Conformance tab.
+`--ui-overlays`, `--ui-snapshot`). `tests/engineer_tools_snapshots.sh
+[build_dir] [out_dir]` makes the clips generated with FFmpeg's `testsrc2`
+source, writes a snapshot per check and prints FFmpeg's `ebur128` reading of
+the loudness clips (it needs a display, like `pathb_snapshot_regression.sh`).
+The script and the other checks that need a display were run again on
+2026-11-03 and committed: `plan/engineer_tools_runs/gui-2026-11-03/`, "the
+GUI record" below. The first scripted runs' outputs were never committed;
+what only they showed is MEASUREMENT PENDING: the runs with `--no-hw`, and
+those on the 4K PQ AV1 file, the five-minute 1080p H.264 file and the raw
+H.264 stream, which the repository does not hold.
 
 ## P — Frame inspector
 
@@ -61,15 +62,18 @@ the player. Code: `src/FrameInfo.*` (pure, unit-tested),
   debug and the headless build
   (`plan/engineer_tools_runs/tests/macos-2026-11-03-eb0f9a6.txt`).
 - Scripted runs:
-  - H.264 SDR MP4 (x264, B-frames), VideoToolbox and `--no-hw`: types, numbers
-    and timestamps match the pattern's burnt-in frame counter;
+  - H.264 SDR MP4 (x264, B-frames): type, number and timestamp match the
+    pattern's burnt-in frame counter (the GUI record's
+    `frame_inspector_sdr.png`: frame 50, I, key, 2.000000 s, with
+    VideoToolbox; with `--no-hw`: MEASUREMENT PENDING);
   - HEVC 10-bit tagged HDR10 (x265 with mastering display and light level
     SEI), VideoToolbox P010: the mastering primaries read as P3-D65, the
-    luminance and MaxCLL/MaxFALL as encoded, x265's settings listed;
+    luminance and MaxCLL/MaxFALL as encoded, x265's settings listed
+    (`frame_inspector_hdr.png`);
   - an MPEG-TS whose HEVC stream switches from BT.709 SDR to PQ 3 s in:
     after the switch the card flags transfer, matrix and primaries as
     differing from the interpretation the renderer opened with, which is what
-    the renderer keeps using.
+    the renderer keeps using (`frame_inspector_tag_switch.png` and its log).
 
 **Not checked.** Dolby Vision, HDR10+, captions and timecodes from real
 streams (HDR10+ only in a unit test; the others only as code paths);
@@ -124,10 +128,12 @@ probe maps the frame on screen once per new frame while it is on. Code:
   histogram, legality shares, unused low bits, the vectorscope bin and the
   parade levels of BT.709 red, grey frames, the worker answering the newest
   frame, the codes used counted exactly above 12 bits.
-- Scripted runs: x264 SDR (waveform, parade, vectorscope: the pattern's
-  100 % bars fall on the computed 100 % targets), x265 HDR10 (waveform with
-  the nits scale, histogram), and a 4K PQ AV1 file decoded by VideoToolbox
-  into P010 (waveform; the probe on a face).
+- Scripted runs: x264 SDR (parade and vectorscope: the pattern's 100 % bars
+  fall on the computed 100 % targets; the probe on the red bar), x265 HDR10
+  (waveform with the nits scale, histogram): the GUI record's
+  `scopes_parade.png`, `scopes_vectorscope.png`, `scopes_waveform_hdr.png`
+  and `scopes_histogram.png`. A 4K PQ AV1 file decoded by VideoToolbox into
+  P010 (waveform; the probe on a face): MEASUREMENT PENDING.
 
 **Not checked.** HLG content in the app (HLG only in a unit test); 4:2:2 /
 4:4:4 VideoToolbox buffers; rotated video (the probe maps the cursor as if
@@ -180,11 +186,12 @@ the summary says so). Code: `src/FrameScan.*` (with
   AddressSanitizer + UBSan in scratch builds; no output of those runs is
   committed, and this branch's checks did not repeat them.
 - Scripted runs: the x264 clip (GOP of 50, B-frames: the summary and the bar
-  pattern match the encode), a five-minute 1080p H.264 file (the view
-  follows the frame on screen; the frame numbers agree with the frame
+  pattern match the encode; the GUI record's `frame_sizes.png`: 200 frames,
+  I 4, P 86, B 110, GOP 50.0 frames). A five-minute 1080p H.264 file (the
+  view follows the frame on screen; the frame numbers agree with the frame
   inspector's) and a raw H.264 elementary stream (no timestamps: the frame on
   screen is found by frame-rate times, the bitrates and GOP durations come
-  from them).
+  from them): MEASUREMENT PENDING.
 
 **Not checked.** Clicking (seek on click) in a scripted run — it sets the
 same absolute seek the seek bar uses; HLS scans; a video track switch during
@@ -227,12 +234,17 @@ the audio clock, i.e. what has just been heard. Code: `src/LoudnessMeter.*`
   32, 44.1, 96 and 192 kHz, Tech 3342 LRA cases, true peak of fs/4, fs/6 and
   fs/8 sines, block timing, resets, the Feed, and a cross-check against
   FFmpeg's `ebur128` on generated stereo and 5.1 signals.
-- Scripted runs against `ffmpeg -af ebur128=peak=true` on the same file, a
-  5.1 PCM clip (1 kHz on the fronts and surrounds at set levels, a loud
-  50 Hz LFE, no channel order in the file) and the stereo AAC clip: how the
-  card's integrated loudness, LRA and maximum true peak compare with
-  FFmpeg's is MEASUREMENT PENDING (`tests/engineer_tools_snapshots.sh`
-  prints FFmpeg's readings and writes the card's snapshots).
+- Scripted runs against `ffmpeg -af ebur128=peak=true` on the same file (the
+  GUI record: the cards in `loudness_51.png` and `loudness_aac.png`,
+  FFmpeg's readings in `record.txt`):
+  - a 5.1 PCM clip (1 kHz on the fronts and surrounds at set levels, a loud
+    50 Hz LFE, no channel order in the file): integrated loudness
+    −22.1 LUFS, LRA 0.0 LU and maximum true peak −6.0 dBTP; FFmpeg's
+    −22.1 LUFS, 0.0 LU and −6.0 dBFS;
+  - the stereo AAC clip: integrated loudness −21.1 LUFS and LRA 0.0 LU, as
+    FFmpeg's; maximum true peak −20.8 dBTP against FFmpeg's −20.3 dBFS. The
+    card counts its integrated loudness and LRA from 0.5 s, FFmpeg from the
+    start of the file.
 
 **Not checked.** 7.1 and other layouts in the app; speed changes while
 metering (the tap is before the speed change, so the readings are in media
@@ -328,10 +340,10 @@ draws; `tools/mirage_hlscheck.cpp` prints.
   EXT-X-INDEPENDENT-SEGMENTS.
 - Scripted runs of the player (`--ui-net
   tab=conformance,conform=1,conform_out=…` with `--ui-snapshot`) on Apple's
-  fMP4 example over HTTP and on the demo package as local files: whether the
-  tab reports the same counts as the command line is MEASUREMENT PENDING
-  (`conform_out` writes the tab's report as the command line's JSON, to
-  compare).
+  fMP4 example over HTTP and on the demo package as local files. On the
+  demo package the tab's report is the command line's, key for key (the GUI
+  record: `compare_conform.py` in `record.txt`, both reports in `reports/`,
+  the tab in `conform_tab.png`); on Apple's example: MEASUREMENT PENDING.
 
 **Not checked.** Live playlists (the check reads the window listed when it
 starts; nothing follows reloads); encrypted segments (sized, not read);
@@ -526,8 +538,9 @@ opening `B` scans it at once over the share.
   (a seek to 5.2 s) the video decoder takes the packets up to the end and
   returns no frame, with VideoToolbox and with `--no-hw`; the startup
   watchdog reports it.
-  FFmpeg's command line decodes the file without errors. Not investigated
-  further, and no log of these runs is committed.
+  The GUI record has both runs (`logs/seek_hw.log`, `logs/seek_sw.log`),
+  and FFmpeg's command line decoding the file without errors
+  (`record2.txt`). Not investigated further.
 - **FFmpeg's hls muxer writes EXTINF 2.000 for fMP4 segments of 46 and 53
   frames at 25 fps** (x265, open GOP, the demo package's `v3`; `demo.json.xz`
   lists each segment's frame count). The conformance check reports it. The
@@ -536,9 +549,9 @@ opening `B` scans it at once over the share.
 - **FFmpeg's hls muxer writes `EXT-X-TARGETDURATION:0` for segments of half
   a second** (the case in `tests/test_hls_conform.cpp`), which the Alignment parser reads as no target duration;
   the conformance check tells the two apart.
-- On the same MPEG-TS the control bar showed the absolute PTS against a
-  duration counted from 0 (its start time and the readings: MEASUREMENT
-  PENDING).
+- On the same MPEG-TS, whose start time is 1.48 s (`ffprobe` in the GUI
+  record's `record.txt`), the control bar shows the absolute PTS against a
+  duration counted from 0: `00:07.040 / 00:06.000` (`tagswitch_end.png`).
 - **FFmpeg's dash muxer writes `maxSegmentDuration` from `-seg_duration`,
   not from the segments it cuts**: PT2.0S over segments of up to 2.960 s (a
   GOP of 37 frames at 25 fps), 2.120 s (x265) and 2.005 s (AAC) in the DASH

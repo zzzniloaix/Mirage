@@ -713,6 +713,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Owner's words**, translated by the agent: "As it is now (Recommended)", for which of the plan's three options the panels take.
 - **Alternatives**: keep the reference only while P, S or X is open, so that nothing changes per frame while they are closed, and opened while paused they show nothing until the next upload; leave the panels out of the player, as tools of their own that read files, like `mirage_vmaf`, which lose the frame on screen and the audio being heard.
 - **Rationale**: while the panels are closed, each frame shown costs one reference taken and dropped and a loop over its side data, and each decoded audio frame one relaxed atomic load; in exchange P, S and X show the frame on screen as soon as they open, paused or not.
+- **Measured** (2026-11-03): a 1080p60 H.264 clip decoded by VideoToolbox, 30 s per run, the panels closed and all five open in turn, two runs of each: 1808 and 1809 frames presented closed, 1810 and 1810 open, 0 or 1 late frame dropped per run, no audio underrun (`plan/engineer_tools_runs/gui-2026-11-03/`).
 - **Who**: owner, adopting the agent's recommendation
 - **Date**: 2026-11-03
 

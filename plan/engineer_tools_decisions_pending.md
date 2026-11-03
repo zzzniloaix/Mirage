@@ -57,10 +57,13 @@ clocks or the sync code changes.
 For each frame shown, one reference taken and the previous one dropped, and a
 loop over the frame's side data (`frameinfo::remember`); the picture on
 screen stays allocated until the next upload instead of after its own. For
-each decoded audio frame, one relaxed atomic load in the tap. Whether any of
-it shows in playback was looked at only in a scratch run whose outputs were
-not committed: MEASUREMENT PENDING. A scripted playback with the panels
-closed and with all five open, its logs committed, would settle it.
+each decoded audio frame, one relaxed atomic load in the tap. Measured on
+2026-11-03 (`plan/engineer_tools_runs/gui-2026-11-03/`): a 1080p60 H.264
+clip decoded by VideoToolbox, played 30 s at a time with the panels closed
+and with all five open, in turn, two of each, while other builds loaded the
+machine. 1808 and 1809 frames were presented with the panels closed, 1810
+and 1810 with them open; each run dropped 0 or 1 late frame and had no
+audio underrun; the A/V difference's p95 was 3.354 ms in all four.
 
 ### Options
 
