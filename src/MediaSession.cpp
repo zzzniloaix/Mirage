@@ -512,6 +512,7 @@ bool MediaSession::open_media(const std::string& open_path, const MediaSessionOp
             err = "Unsupported audio codec in: " + open_path;
             return false;
         }
+        audio_decoder.set_tap(&loudness_tap);   // measures only while the loudness panel is open
     }
 
     video_tb = demuxer.video_time_base();

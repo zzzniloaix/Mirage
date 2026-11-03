@@ -1,0 +1,33 @@
+[INFO]  ConformProbe: https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8 — 11 playlists, 27 segments read, 0 sized, 58.5 MB in 1.8 s: 0 errors, 0 warnings
+https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8
+24 variants, 11 media playlists: 1103 of 1103 segments sized, 27 read, in 1.8 s
+
+  #  BANDWIDTH   peak        AVG    CODECS RES    FPS    RANGE  START  DUR    playlist
+  0  2.18 Mb/s   2.18 Mb/s   ok     ok     ok     ok     ok     ok     ok     v5/prog_index.m3u8
+  1  8.00 Mb/s   8.00 Mb/s   ok     ok     ok     ok     ok     ok     ok     v9/prog_index.m3u8
+  2  6.31 Mb/s   6.31 Mb/s   ok     ok     ok     ok     ok     ok     ok     v8/prog_index.m3u8
+  3  4.94 Mb/s   4.94 Mb/s   ok     ok     ok     ok     ok     ok     ok     v7/prog_index.m3u8
+  4  3.22 Mb/s   3.22 Mb/s   ok     ok     ok     ok     ok     ok     ok     v6/prog_index.m3u8
+  5  1.27 Mb/s   1.27 Mb/s   ok     ok     ok     ok     ok     ok     ok     v4/prog_index.m3u8
+  6  902 kb/s    902 kb/s    ok     ok     ok     ok     ok     ok     ok     v3/prog_index.m3u8
+  7  541 kb/s    541 kb/s    ok     ok     ok     ok     ok     ok     ok     v2/prog_index.m3u8
+  8  2.40 Mb/s   2.40 Mb/s   ok     ok     ok     ok     ok     ok     ok     v5/prog_index.m3u8
+  9  8.22 Mb/s   8.22 Mb/s   ok     ok     ok     ok     ok     ok     ok     v9/prog_index.m3u8
+ 10  6.54 Mb/s   6.54 Mb/s   ok     ok     ok     ok     ok     ok     ok     v8/prog_index.m3u8
+ 11  5.17 Mb/s   5.17 Mb/s   ok     ok     ok     ok     ok     ok     ok     v7/prog_index.m3u8
+ 12  3.44 Mb/s   3.44 Mb/s   ok     ok     ok     ok     ok     ok     ok     v6/prog_index.m3u8
+ 13  1.49 Mb/s   1.49 Mb/s   ok     ok     ok     ok     ok     ok     ok     v4/prog_index.m3u8
+ 14  1.12 Mb/s   1.12 Mb/s   ok     ok     ok     ok     ok     ok     ok     v3/prog_index.m3u8
+ 15  764 kb/s    764 kb/s    ok     ok     ok     ok     ok     ok     ok     v2/prog_index.m3u8
+ 16  2.21 Mb/s   2.21 Mb/s   ok     ok     ok     ok     ok     ok     ok     v5/prog_index.m3u8
+ 17  8.03 Mb/s   8.03 Mb/s   ok     ok     ok     ok     ok     ok     ok     v9/prog_index.m3u8
+ 18  6.34 Mb/s   6.34 Mb/s   ok     ok     ok     ok     ok     ok     ok     v8/prog_index.m3u8
+ 19  4.97 Mb/s   4.97 Mb/s   ok     ok     ok     ok     ok     ok     ok     v7/prog_index.m3u8
+ 20  3.25 Mb/s   3.25 Mb/s   ok     ok     ok     ok     ok     ok     ok     v6/prog_index.m3u8
+ 21  1.30 Mb/s   1.30 Mb/s   ok     ok     ok     ok     ok     ok     ok     v4/prog_index.m3u8
+ 22  933 kb/s    933 kb/s    ok     ok     ok     ok     ok     ok     ok     v3/prog_index.m3u8
+ 23  572 kb/s    572 kb/s    ok     ok     ok     ok     ok     ok     ok     v2/prog_index.m3u8
+
+0 errors, 0 warnings, 1 note
+note  BANDWIDTH of 24 variants up to 0.018% below the measured peak  [variants 0–23]
+      Short by no more than 1% of the peak segment bit rate, which RFC 8216 §4.3.4.2 makes the sum of each rendition's own peak: a peak computed per segment, or over the video and audio of the same time together, lands this close. The most: variant #7 (v2/prog_index.m3u8), 98 b/s.

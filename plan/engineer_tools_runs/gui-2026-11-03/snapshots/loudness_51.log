@@ -1,0 +1,25 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  Opening surround51.mkv (t=0.221)
+[INFO]  Demuxer: avformat_open_input 1 ms (2 streams, 0 programs) (t=0.222)
+[INFO]  Demuxer: avformat_find_stream_info 4 ms (t=0.226)
+[INFO]  Container: Matroska / WebM
+[INFO]  Duration:  00:00:20
+[INFO]  Video:     h264 1280×720 @ 25.000 fps  pixel_fmt=yuv420p
+[INFO]  Audio:     pcm_s24le 48000 Hz  6 ch  fmt=s32
+[INFO]  Selected HW-capable decoder: h264 (default was h264)
+[INFO]  Decoder opened: h264 (1280×720)  [HW: VideoToolbox requested]
+[INFO]  AudioPlayer: 48000 Hz stereo float32  device latency 30.0 ms (480 frames × 3 periods)
+[INFO]  Decoder opened: pcm_s24le (0×0)
+[INFO]  AudioDecoder: 48000 Hz 6ch → 48000 Hz stereo f32
+[INFO]  Opened surround51.mkv in 125 ms (t=0.346)
+[INFO]  VideoRenderer: 1280×720 SDR (yuv420p → RGB24 sRGB)  matrix=BT.709  limited-range
+[INFO]  Subtitles: 0 choice(s); initial off (none available)
+[INFO]  ThumbnailStrip: open 0 ms, probe 7 ms (t=0.356)
+[INFO]  ScrubDecoder: ready (open 0 ms, probe 7 ms) (t=0.356)
+[INFO]  ThumbnailStrip: 2 keyframes found, decoding 2 thumbnails (stride 0.05 s, 160 px tall)
+[INFO]  ThumbnailStrip: coarse pass done (1 thumbnails)
+[INFO]  ThumbnailStrip: decode complete (2 thumbnails)
+[INFO]  Decoder: VideoToolbox HW decode active (zero-copy IOSurface path)
+[INFO]  first-frame: pts=0.000 1280x720 VideoToolbox, 138 ms after open (t=0.487)
+[INFO]  VideoRenderer: HW zero-copy path ready (8-bit, BT.709 matrix, limited-range)
+[INFO]  ui-snapshot: wrote <scratch>/gui/snapshots/loudness_51.png (3200×2000, frame 420, hover=none, thumb_pts=none, sub="")

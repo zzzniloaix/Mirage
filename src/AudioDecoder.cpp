@@ -197,6 +197,7 @@ void AudioDecoder::apply_pending_speed(AudioPlayer& player)
 
 void AudioDecoder::flush()
 {
+    if (tap_) tap_->on_flush();
     decoder_.flush();
     out_media_pts_ = 0.0;
     pts_inited_    = false;
@@ -218,6 +219,7 @@ void AudioDecoder::flush()
 
 bool AudioDecoder::reopen(AVCodecParameters* par, AudioPlayer& player, AVRational time_base)
 {
+    if (tap_) tap_->on_flush();
     free_filter_graph();
     if (swr_) { swr_free(&swr_); swr_ = nullptr; }
     decoder_.close();
@@ -279,6 +281,7 @@ void AudioDecoder::decode(AVPacket* pkt, AudioPlayer& player)
     decoder_.push(pkt);
 
     while (decoder_.pull(frame_)) {
+        if (tap_) tap_->on_frame(frame_, time_base_);
         // Resample to float stereo
         int out_samples = swr_get_out_samples(swr_, frame_->nb_samples);
         if (out_samples <= 0) {

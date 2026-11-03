@@ -38,6 +38,25 @@ How this was collected: ran `git log` on branch `fix/high-speed-playback` (HEAD 
 
 **`.mailmap`** (2026-11-02): at the owner's request the AI wrote the repository's `.mailmap`. Its one line maps the commits' author address, the GitHub noreply address, to the name `zzzniloaix`, which `git log`, `git shortlog` and `git blame` then show. No commit and no SHA changed.
 
+## Engineer tools: the panels and the conformance checks
+
+The branches `feat/engineer-tools-poc-on-main` (the panels P, S, X, B and L), `feat/rendition-check` (the HLS conformance check) and `feat/dash-check` (the DASH conformance check), each on the one before. Every commit of theirs that is not a merge carries a `Co-Authored-By: Claude Opus 5.5` trailer.
+
+- **What the owner asked**: on 2026-10-30, a brainstorm with a team of agents of features useful to video engineers, and proofs of concept on a branch; then to lean toward streaming video developers, where of the options the agent offered the owner chose a conformance check, which became the HLS check; and on 2026-10-31 to look at DASH, which became the DASH check. On 2026-10-30 the owner set that the PR opens once VMAF Phase 2 has merged.
+- **What the AI did**: all of the code, tests, documents and run records of the three branches.
+  - Four agents, one per role (codec and bitstream; picture quality, colour and HDR; streaming and delivery; audio QC and the QA workflow), each reviewed the code at `a102e80` for features. The lead agent ranked their ideas in `plan/engineer_tools_ideas.md` (`f15b1e3`).
+  - Two agents wrote the engines of B and L, each on a branch of its own: `FrameScan` (`3dbd88a`) and `LoudnessMeter` (`2191dbe`). The lead agent merged them and wrote the rest of the three branches.
+  - An agent that had not written the code reviewed the panels' branch (`git diff main...HEAD`). The six defects it found were fixed in `eacc4cd` (`plan/engineer_tools_status.md`, "Review").
+  - On 2026-11-03 an agent listed the numbers of the documents, code comments and commit messages that no committed run backed. The lead agent backed what could be run again (`plan/engineer_tools_runs/tests/`, `plan/engineer_tools_runs/sidedata/` and, with a display, `plan/engineer_tools_runs/gui-2026-11-03/`), marked the rest MEASUREMENT PENDING, corrected what the records or the code contradict, and took the numbers out of three code comments.
+- **What the owner decided**: none of the code's design choices yet. `plan/engineer_tools_decisions_pending.md` lists them, the D-007 plan for the panels among them.
+- **Statements in commit messages that no committed record backs**, none of them amended (later records cite these commits' ids):
+  - `3dbd88a`: its tests "pass under ThreadSanitizer and under AddressSanitizer with UBSan", the suite passes but for the SidecarSubtitles case, and local files of 100 to 480 MB "scan in 0.05 to 0.12 s from the page cache". Scratch runs, none committed.
+  - `2191dbe`: the 48 kHz coefficients "equal to 1e-15" (the test checks them to 1e-9), and the cross-check against FFmpeg's `ebur128` within 0.006 LU, 0.001 LU, 0.06 dB and 0.44 LU (the test allows 0.1, 0.1, 0.5 and 1.0). A scratch run, not committed.
+  - `2b0b179`: in the scripted runs, "integrated loudness and LRA as FFmpeg's". That run is not committed; the run of 2026-11-03 shows it (`plan/engineer_tools_runs/gui-2026-11-03/`).
+  - `eacc4cd`: "mirage_tests ~[audio] (the subtitle-fixture case fails as on main)". That run is not committed; at `eb0f9a6` every case passes (`plan/engineer_tools_runs/tests/macos-2026-11-03-eb0f9a6.txt`).
+  - `8314657`: the HLS check's JSON on the demo package "the same byte for byte" once its code was shared. That run is not committed; `plan/engineer_tools_runs/tests/demos-2026-11-03-44f66cb.txt` shows it at `44f66cb`.
+- **Pending owner confirmation**: the owner's review of these commits and of this section.
+
 ## VMAF code
 
 - **`src/VMAFAnalyzer.cpp` / `src/VMAFAnalyzer.h`** (the scoring core)

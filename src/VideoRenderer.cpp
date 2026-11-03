@@ -294,10 +294,12 @@ bool VideoRenderer::init(int width, int height, AVPixelFormat src_fmt,
                          AVColorSpace                  colorspace,
                          AVColorRange                  color_range,
                          AVColorTransferCharacteristic trc,
-                         AVColorPrimaries              /*primaries*/)
+                         AVColorPrimaries              primaries)
 {
-    src_w_ = width;
-    src_h_ = height;
+    src_w_     = width;
+    src_h_     = height;
+    trc_       = trc;
+    primaries_ = primaries;
 
     hdr_mode_ = detect_hdr_mode(trc);
     hdr_      = (hdr_mode_ >= 0);

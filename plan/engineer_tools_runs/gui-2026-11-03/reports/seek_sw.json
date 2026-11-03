@@ -1,0 +1,17 @@
+{
+  "file": "tagswitch.ts",
+  "initial_speed": 1,
+  "speed_seq": [],
+  "started": false,
+  "wall_s": 0.000,
+  "hw_decode": false,
+  "has_audio": false,
+  "audio_output_latency_s": 0.0000,
+  "audio_underruns": 0,
+  "audio_silent_frames": 0,
+  "audio_dropped_frames": 0,
+  "overall": {"speed":1,"t_start":0.000,"wall_s":1.000,"video_media_s":0.000,"audio_media_s":0.000,"video_rate":0.0000,"audio_rate":0.0000,"frames_presented":0,"frames_dropped_late":0,"av_diff_media_s":{"n":0},"av_diff_wall_ms":{"n":0},"av_diff_wall_ms_settled":{"n":0},"underruns_settled":-1,"silent_frames_settled":-1,"video_rate_settled":0.0000,"audio_rate_settled":0.0000},
+  "segments": [
+    
+  ]
+}

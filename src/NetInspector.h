@@ -4,14 +4,19 @@
 // DevTools' Network panel — sortable request table with a waterfall, filter
 // box + type chips, a details pane (headers / response / timing) for the
 // selected row, a "Manifest" tab listing the parsed variants, renditions and
-// timeline tags, and an "Alignment" tab checking that the renditions played
+// timeline tags, an "Alignment" tab checking that the renditions played
 // together line up (HlsAlign.h): playlist timelines, discontinuities and the
-// start timestamps inside the segments, on a timeline per rendition. Data
+// start timestamps inside the segments, on a timeline per rendition — and a
+// "Conformance" tab checking that the master declares what its media holds
+// (HlsConform.h): BANDWIDTH, CODECS, RESOLUTION, FRAME-RATE, VIDEO-RANGE and
+// the segments, read on request by its own probe (HlsConformProbe.h). Data
 // comes from NetworkLogger (requests and the response bodies it keeps);
-// layout is Dear ImGui (main thread). NetInspectorResponse.cpp and
-// NetInspectorAlign.cpp hold the Response and Alignment views.
+// layout is Dear ImGui (main thread). NetInspectorResponse.cpp,
+// NetInspectorAlign.cpp and NetInspectorConform.cpp hold the Response,
+// Alignment and Conformance views.
 
 #include "HlsAlign.h"
+#include "HlsConformProbe.h"
 #include "NetDescribe.h"
 #include "NetProbe.h"
 
@@ -61,14 +66,17 @@ public:
     // "detail=response|timing", "mode=segments" (Response: parsed playlist),
     // "filter=<text>", "chip=video|audio|...", "width=<px>",
     // "scope=all" (Alignment: every rendition), "probe=1" (probe once ready),
-    // "finding=<n>" (expand the n-th finding).
+    // "finding=<n>" (expand the n-th finding), "tab=conformance",
+    // "conform=1" (run the conformance check once the manifest is known),
+    // "conform_segments=<n>" (0 = every segment), "conform_out=<path>" (write
+    // its JSON report there when it is done).
     void qa_apply(const std::string& spec);
 
     // QA: the alignment report as text (findings, then one line per rendition).
     std::string alignment_text() const;
 
 private:
-    enum class Tab { Network, Manifest, Alignment };
+    enum class Tab { Network, Manifest, Alignment, Conformance };
     enum class Chip { All, Manifest, Video, Audio, Subs, Errors };
 
     struct Row {
@@ -93,6 +101,7 @@ private:
     void draw_manifest(const Inputs& in, Out& out, float w, float h);
     void draw_response(const Row& row, float w, float h);
     void draw_alignment(const Inputs& in, Out& out, float w, float h);
+    void draw_conformance(const Inputs& in, Out& out, float w, float h);
 
     const Row* find_row(std::uint64_t id) const;
     // A playlist name in the Manifest tab: click shows its newest request's response.
@@ -179,6 +188,20 @@ private:
     std::int64_t  sel_seq_ = -1;
     int           open_finding_ = -1;
     int           hover_finding_ = -1;
+
+    // Conformance (NetInspectorConform.cpp)
+    bool conform_ready(const Inputs& in) const;   // an HLS master the check can read
+    void start_conform(const Inputs& in);
+    void conform_tick(const Inputs& in);           // QA start / report, the cached result
+    ConformProbe         conform_;
+    ConformProbe::Result conform_res_;
+    std::uint64_t        conform_ver_ = ~0ull;
+    int                  conform_segments_ = 3;   // read per variant playlist; 0 = all
+    bool                 conform_sizes_ = true;
+    int                  conform_sel_ = -1;       // variant row clicked: its findings only
+    int                  conform_open_ = -1;      // finding expanded
+    bool                 qa_conform_ = false, qa_conform_started_ = false;
+    std::string          qa_conform_out_;
 
     // UI state
     Tab           tab_          = Tab::Network;

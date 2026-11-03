@@ -17,6 +17,10 @@
 #include "NetworkLogger.h"
 #include "NetInspector.h"
 #include "TrackPanel.h"
+#include "FrameInspector.h"
+#include "ScopesPanel.h"
+#include "FramesPanel.h"
+#include "LoudnessPanel.h"
 #include "ManifestParser.h"
 #include "PlayerUI.h"
 #include "VMAFAnalyzer.h"
@@ -86,6 +90,12 @@ static std::atomic<bool>   s_show_waveform{ false };
 static std::atomic<bool>   s_show_network{ false };
 static std::atomic<bool>   s_show_help{ false };
 static std::atomic<bool>   s_show_vmaf{ false };
+static std::atomic<bool>   s_show_frameinfo{ false };   // P: frame inspector
+static std::atomic<bool>   s_show_scopes{ false };      // S: scopes
+static std::atomic<int>    s_scope_cycle{ 0 };          // Shift+S requests: next scope
+static std::atomic<bool>   s_show_probe{ false };       // X: pixel probe
+static std::atomic<bool>   s_show_frames{ false };      // B: frame sizes / GOP
+static std::atomic<bool>   s_show_loudness{ false };    // L: loudness meters
 static std::atomic<double> s_cursor_x{ -1.0 };   // window-space cursor, always updated
 static std::atomic<double> s_cursor_y{ -1.0 };
 static std::atomic<double> s_click_x{ -1.0 };    // window-space left-click (consumed once)
@@ -150,7 +160,7 @@ static bool parse_speed_seq(const std::string& spec, std::vector<SpeedStep>& out
         } else if (what == "esc") {
             step.kind = SpeedStep::Esc;
         } else if (what.starts_with("panel:") && what.size() == 7
-                   && std::string_view("DIGTWNHV").find(static_cast<char>(std::toupper(
+                   && std::string_view("DIGTWNHVPSXBL").find(static_cast<char>(std::toupper(
                           static_cast<unsigned char>(what[6])))) != std::string_view::npos) {
             step.kind  = SpeedStep::Panel;
             step.speed = std::toupper(static_cast<unsigned char>(what[6]));
@@ -279,6 +289,12 @@ static void on_key(GLFWwindow* window, int key, int /*scancode*/, int action, in
     else if (key == GLFW_KEY_C) s_sub_toggle.fetch_add(1);
     else if (key == GLFW_KEY_A) s_audio_cycle.fetch_add(1);
     else if (key == GLFW_KEY_V) s_show_vmaf.store(!s_show_vmaf.load());
+    else if (key == GLFW_KEY_P) s_show_frameinfo.store(!s_show_frameinfo.load());
+    else if (key == GLFW_KEY_S && (mods & GLFW_MOD_SHIFT)) { s_show_scopes.store(true); s_scope_cycle.fetch_add(1); }
+    else if (key == GLFW_KEY_S) s_show_scopes.store(!s_show_scopes.load());
+    else if (key == GLFW_KEY_X) s_show_probe.store(!s_show_probe.load());
+    else if (key == GLFW_KEY_B) s_show_frames.store(!s_show_frames.load());
+    else if (key == GLFW_KEY_L) s_show_loudness.store(!s_show_loudness.load());
     else if (key == GLFW_KEY_O) s_open_dialog.fetch_add(1);
     // Shift+. / Shift+, → single-frame advance / step-back (frame-accurate).
     // Plain . / , = keyframe step.
@@ -541,6 +557,8 @@ struct CliOptions {
     double      ui_sub_at     = -1.0;       // --ui-sub-at <seconds>
     std::string ui_osd;                     // --ui-osd "<text>"
     std::string ui_overlays;                // first: --ui-overlays DIGW...
+    scopes::Mode scope_mode = scopes::Mode::Waveform;   // --scope-mode waveform|parade|vectorscope|histogram
+    ImVec2      ui_probe = ImVec2(-1.0f, -1.0f);        // --ui-probe <fx>,<fy>: the probe there, not at the mouse
     std::string ui_net;                     // --ui-net tab=manifest,select=segment,... (implies N)
     bool        ui_hide_controls = false;   // --ui-hide-controls: capture with chrome hidden
     // --ui-snap-busy <text>: capture once a loading indicator whose title
@@ -922,6 +940,16 @@ int main(int argc, char* argv[])
             cli.ui_hide_controls = true;
         } else if (arg == "--ui-snap-busy" && i + 1 < argc) {
             cli.ui_snap_busy = argv[++i];
+        } else if (arg == "--scope-mode" && i + 1 < argc) {
+            const std::string m = argv[++i];
+            for (int k = 0; k < scopes::kModes; ++k) {
+                std::string n = scopes::mode_name(static_cast<scopes::Mode>(k));
+                std::transform(n.begin(), n.end(), n.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+                if (n == m) cli.scope_mode = static_cast<scopes::Mode>(k);
+            }
+        } else if (arg == "--ui-probe" && i + 1 < argc) {
+            float fx = -1.0f, fy = -1.0f;
+            if (std::sscanf(argv[++i], "%f,%f", &fx, &fy) == 2) cli.ui_probe = ImVec2(fx, fy);
         } else if (arg == "--ui-overlays" && i + 1 < argc) {
             cli.ui_overlays = argv[++i];
         } else if (arg == "--ui-net" && i + 1 < argc) {
@@ -1394,10 +1422,13 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         bool               was_open  = false;
         std::uint64_t      opened_at = 0;
     };
-    std::array<EscPanel, 8> esc_panels{ { { &s_show_hud, "HUD" },          { &s_show_inspector, "stream inspector" },
+    std::array<EscPanel, 13> esc_panels{ { { &s_show_hud, "HUD" },          { &s_show_inspector, "stream inspector" },
                                           { &s_show_drift, "A/V drift graph" }, { &s_show_waveform, "waveform" },
                                           { &s_show_vmaf, "VMAF" },         { &s_show_network, "network inspector" },
-                                          { &s_show_tracks, "tracks" },     { &s_show_help, "help" } } };
+                                          { &s_show_tracks, "tracks" },     { &s_show_help, "help" },
+                                          { &s_show_frameinfo, "frame inspector" }, { &s_show_scopes, "scopes" },
+                                          { &s_show_probe, "pixel probe" }, { &s_show_frames, "frame sizes" },
+                                          { &s_show_loudness, "loudness" } } };
     std::uint64_t esc_seq = 0;
 
     // Navigating while paused without a seek (frame steps, a track switch)
@@ -1624,6 +1655,39 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         return (ts != AV_NOPTS_VALUE) ? ts * av_q2d(tb) : last_pts + last_frame_dur;
     };
 
+    // The frame on screen, for the analysis panels (frame inspector): every
+    // upload keeps a reference to its frame (no copy) until the next one.
+    struct FrameDel { void operator()(AVFrame* f) const { av_frame_free(&f); } };
+    const std::unique_ptr<AVFrame, FrameDel> shown_frame{ av_frame_alloc() };
+    std::uint64_t shown_serial = 0;   // bumped by every upload
+    frameinfo::Memory frame_memory;          // metadata sent on a few frames only
+    auto upload_frame = [&](AVFrame* f) {
+        av_frame_unref(shown_frame.get());
+        if (av_frame_ref(shown_frame.get(), f) < 0) av_frame_unref(shown_frame.get());
+        ++shown_serial;
+        frameinfo::remember(f, frame_memory);
+        renderer.upload(f);
+    };
+    frameinfo::Report frame_report;          // describes shown_frame at report_serial
+    std::uint64_t     report_serial = 0;
+    // Scopes (S): measured on their own thread, from the frame on screen.
+    scopes::Worker scope_worker;
+    scopes::Result scope_result;
+    bool           scope_has = false;        // scope_result holds a measure
+    scopes::Mode   scope_mode = cli.scope_mode;
+    std::uint64_t  scope_job = 0, scope_frame = 0;   // last submit; shown_serial it measured
+    bool           scope_pending = false;    // a submit not answered yet
+    ScopesPanel    scopes_panel;
+    // Pixel probe (X): the frame on screen mapped for reading, per frame.
+    PixelView      probe_view;
+    std::uint64_t  probe_serial = 0;
+    // Frame sizes / GOP (B): a read of the video stream of its own.
+    FramesModel    frames_model;
+    FramesPanel    frames_panel;
+    // Loudness (L): ms.loudness_tap measures on the audio thread while it is open.
+    LoudnessPanel                loudness_panel;
+    std::vector<loudness::Block> loudness_hist;
+
     // Current video geometry / rate (change with a video track switch).
     int    shown_w = coded_w, shown_h = coded_h;
     double stream_fps = (frame_dt > 0.0) ? 1.0 / frame_dt : 0.0;
@@ -1767,6 +1831,11 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             case 'N': s_show_network.store(true);   break;
             case 'V': s_show_vmaf.store(true);      break;
             case 'K': s_show_filmstrip.store(true); break;
+            case 'P': s_show_frameinfo.store(true); break;
+            case 'S': s_show_scopes.store(true);    break;
+            case 'X': s_show_probe.store(true);     break;
+            case 'B': s_show_frames.store(true);    break;
+            case 'L': s_show_loudness.store(true);  break;
             default: break;
         }
     }
@@ -1788,6 +1857,10 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         { &s_show_drift,     "A/V drift", false }, { &s_show_tracks,    "Tracks",    false },
         { &s_show_waveform,  "Waveform",  false }, { &s_show_network,   "Network",   false },
         { &s_show_vmaf,      "VMAF",      false }, { &s_show_filmstrip, "Filmstrip", false },
+        { &s_show_frameinfo, "Frame inspector", false }, { &s_show_scopes, "Scopes", false },
+        { &s_show_probe,     "Pixel probe",     false },
+        { &s_show_frames,    "Frame sizes",     false },
+        { &s_show_loudness,  "Loudness",        false },
     };
     for (auto& f : overlay_flags) f.prev = f.flag->load();
 
@@ -2211,6 +2284,11 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                             case 'N': s_show_network.store(!s_show_network.load());     break;
                             case 'H': s_show_help.store(!s_show_help.load());           break;
                             case 'V': s_show_vmaf.store(!s_show_vmaf.load());           break;
+                            case 'P': s_show_frameinfo.store(!s_show_frameinfo.load()); break;
+                            case 'S': s_show_scopes.store(!s_show_scopes.load());       break;
+                            case 'X': s_show_probe.store(!s_show_probe.load());         break;
+                            case 'B': s_show_frames.store(!s_show_frames.load());       break;
+                            case 'L': s_show_loudness.store(!s_show_loudness.load());   break;
                             default: break;
                         }
                         break;
@@ -2282,7 +2360,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                                  qa_scrub_target,
                                  std::chrono::duration<double, std::milli>(now - qa_scrub_since).count(),
                                  logger::uptime());
-                renderer.upload(scrub_frame);
+                upload_frame(scrub_frame);
                 av_frame_free(&scrub_frame);
                 has_frame = true;
                 ++frame_count;
@@ -2401,7 +2479,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 }
 
                 on_present(frame, pts, now);
-                renderer.upload(frame);
+                upload_frame(frame);
                 av_frame_free(&frame);
                 has_frame = true;
                 ++frame_count;
@@ -2419,7 +2497,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             if (pop_current(frame)) {
                 const double pts = frame_pts_sec(frame);
                 on_present(frame, pts, now);
-                renderer.upload(frame);
+                upload_frame(frame);
                 av_frame_free(&frame);
                 has_frame = true;
                 last_pts  = pts;
@@ -2442,7 +2520,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 if (qa_started)
                     logger::info("--speed-seq: {} landed at pts {:.3f} {}x{}", step_is_seek ? "seek" : "step",
                                  pts, frame->width, frame->height);
-                renderer.upload(frame);
+                upload_frame(frame);
                 av_frame_free(&frame);
                 has_frame          = true;
                 last_pts           = pts;
@@ -2463,7 +2541,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                         && MediaSession::tag_epoch(frame) > vsw.epoch) {
                         const double pts = frame_pts_sec(frame);
                         on_present(frame, pts, now);
-                        renderer.upload(frame);
+                        upload_frame(frame);
                         av_frame_free(&frame);
                         has_frame = true;
                         last_pts  = pts;
@@ -2486,7 +2564,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             if (qa_started)
                 logger::info("--speed-seq: {} step landed at pts {:.3f} {}x{} (live: kept frame {} before the newest)",
                              dir, pts, f->width, f->height, live_back);
-            renderer.upload(f);
+            upload_frame(f);
             has_frame = true;
             last_pts  = pts;
             ++frame_count;
@@ -2509,7 +2587,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             double pts = frame_pts_sec(frame);
             on_present(frame, pts, now);
             if (qa_started) logger::info("--speed-seq: fwd step landed at pts {:.3f} {}x{}", pts, frame->width, frame->height);
-            renderer.upload(frame);
+            upload_frame(frame);
             av_frame_free(&frame);
             has_frame      = true;
             last_frame_dur = frame_duration(pts, last_pts, last_frame_dur);
@@ -2557,7 +2635,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                                  std::chrono::duration<double, std::milli>(now - back_step_since).count());
                 if (pts != AV_NOPTS_VALUE)
                     scrub_display_pts = pts;     // keep thumb highlight in sync
-                renderer.upload(frame);
+                upload_frame(frame);
                 av_frame_free(&frame);
                 has_frame         = true;
                 last_pts          = pts;
@@ -3069,6 +3147,11 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             in.show_help        = s_show_help.load();
             in.show_vmaf        = s_show_vmaf.load();
             in.show_filmstrip   = s_show_filmstrip.load();
+            in.show_frameinfo   = s_show_frameinfo.load();
+            in.show_scopes      = s_show_scopes.load();
+            in.show_probe       = s_show_probe.load();
+            in.show_frames      = s_show_frames.load();
+            in.show_loudness    = s_show_loudness.load();
             in.has_manifest_variants = !manifest.variants().empty();
             in.fullscreen       = s_fullscreen.load();
             in.info             = ui_info;
@@ -3158,6 +3241,152 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 }
             }
 
+            // ── Frame sizes / GOP (B) ─────────────────────────────────────────
+            float frames_h = 0.0f;   // logical px the card takes above the controls
+            if (s_show_frames.load()) {
+                const bool network = ffopen::is_network_url(open_path);
+                const int  vstream = shown_stream >= 0 ? shown_stream : demuxer.video_stream_index();
+                // A local file is scanned at once (the scan reads packets, decodes
+                // nothing) — again if closing the card stopped it part-way; a
+                // network input only when asked: it downloads all of it.
+                const bool cut = frames_model.started() && frames_model.state() == FrameScan::State::Stopped;
+                if (!network && (!frames_model.started() || frames_model.stream() != vstream || cut))
+                    frames_model.start(open_path, vstream, ms.hls_master());
+                frames_model.update(glfwGetTime());
+                FramesPanelInputs bi;
+                bi.model   = &frames_model;
+                bi.cur_pts = has_frame ? frame_pts_sec(shown_frame.get()) : last_pts;
+                bi.network = network;
+                const ImVec2 disp = ImGui::GetIO().DisplaySize;
+                bi.win_w        = disp.x;
+                bi.win_h        = disp.y;
+                bi.bottom_inset = global_ps > 0.0f ? (bottom_stack_base_fb + strips_fb) / global_ps : 0.0f;
+                bi.right_inset  = net_side_logical;
+                const auto bo = frames_panel.draw(bi);
+                frames_h = bo.height;
+                if (bo.close)      s_show_frames.store(false);
+                if (bo.start_scan) frames_model.start(open_path, vstream, ms.hls_master());
+                if (bo.seek_to >= 0.0 && !scrubbing) s_seek_to.store(bo.seek_to);
+            } else if (frames_model.started() && frames_model.state() == FrameScan::State::Running) {
+                frames_model.stop();   // closed: the scan must not go on reading (a network one downloads)
+            }
+
+            // ── Frame inspector (P) ───────────────────────────────────────────
+            if (s_show_frameinfo.load()) {
+                if (has_frame && report_serial != shown_serial) {
+                    report_serial = shown_serial;
+                    const auto interp = renderer.interpretation();
+                    frameinfo::Context fc;
+                    fc.start_pts = video_start_s;
+                    fc.fps       = stream_fps;
+                    fc.cs        = interp.cs;
+                    fc.range     = interp.range;
+                    fc.trc       = interp.trc;
+                    fc.primaries = interp.primaries;
+                    fc.par       = demuxer.video_codecpar();
+                    frame_report = frameinfo::describe(shown_frame.get(), fc, &frame_memory);
+                }
+                FrameInspectorInputs fi;
+                fi.report = (has_frame && report_serial != 0) ? &frame_report : nullptr;
+                const ImVec2 disp = ImGui::GetIO().DisplaySize;
+                fi.win_w        = disp.x;
+                fi.win_h        = disp.y;
+                fi.top_inset    = PlayerUI::top_inset_logical();
+                fi.bottom_inset = global_ps > 0.0f ? (bottom_stack_base_fb + strips_fb) / global_ps : 0.0f;
+                fi.bottom_inset += frames_h;
+                fi.right_inset  = net_side_logical;
+                const auto fo = draw_frame_inspector(fi);
+                if (fo.close)  s_show_frameinfo.store(false);
+                if (fo.copied) player_ui.toast("Frame report copied");
+            }
+
+            // ── Scopes (S) ────────────────────────────────────────────────────
+            for (int n = s_scope_cycle.exchange(0); n > 0; --n)
+                scope_mode = static_cast<scopes::Mode>((static_cast<int>(scope_mode) + 1) % scopes::kModes);
+            if (s_show_scopes.load()) {
+                const auto interp = renderer.interpretation();
+                if (scopes::Result r; scope_worker.take(r)) {
+                    scope_result  = std::move(r);
+                    scope_has     = true;
+                    scope_pending = false;
+                }
+                // One measure at a time, of the frame on screen: a new frame
+                // or another scope asks for the next one.
+                if (has_frame && !scope_pending
+                    && (scope_frame != shown_serial || !scope_has || scope_result.mode != scope_mode)) {
+                    scope_worker.submit(shown_frame.get(), { scope_mode, interp.cs, interp.range }, ++scope_job,
+                                        frame_pts_sec(shown_frame.get()));
+                    scope_frame   = shown_serial;
+                    scope_pending = true;
+                }
+                ScopesInputs si;
+                si.result    = scope_has ? &scope_result : nullptr;
+                si.mode      = scope_mode;
+                si.measuring = scope_pending;
+                si.cs        = interp.cs;
+                si.range     = interp.range;
+                si.trc       = interp.trc;
+                const ImVec2 disp = ImGui::GetIO().DisplaySize;
+                si.win_w        = disp.x;
+                si.win_h        = disp.y;
+                si.top_inset    = PlayerUI::top_inset_logical();
+                si.bottom_inset = global_ps > 0.0f ? (bottom_stack_base_fb + strips_fb) / global_ps : 0.0f;
+                si.bottom_inset += frames_h;
+                si.right_inset  = net_side_logical;
+                const auto so = scopes_panel.draw(si);
+                if (so.close)     s_show_scopes.store(false);
+                if (so.mode >= 0) scope_mode = static_cast<scopes::Mode>(so.mode);
+            }
+
+            // ── Loudness (L) ──────────────────────────────────────────────────
+            ms.loudness_tap.set_enabled(s_show_loudness.load() && has_audio);
+            if (s_show_loudness.load()) {
+                LoudnessTap& lt = ms.loudness_tap;
+                // What is heard now: the block at the audio clock (decoding runs ahead).
+                const double clock = has_audio ? audio_player.clock() : last_pts;
+                loudness::Block heard;
+                const bool have = has_audio && lt.at(clock, heard);
+                lt.history(clock - 61.0, clock, loudness_hist);
+                const LoudnessTap::Layout lay = lt.layout();
+                LoudnessInputs li;
+                li.block     = have ? &heard : nullptr;
+                li.history   = &loudness_hist;
+                li.layout    = &lay;
+                li.now_pts   = clock;
+                li.has_audio = has_audio;
+                const ImVec2 disp = ImGui::GetIO().DisplaySize;
+                li.win_w        = disp.x;
+                li.win_h        = disp.y;
+                li.top_inset    = PlayerUI::top_inset_logical();
+                li.bottom_inset = (global_ps > 0.0f ? (bottom_stack_base_fb + strips_fb) / global_ps : 0.0f) + frames_h;
+                li.right_inset  = net_side_logical;
+                const auto lo = loudness_panel.draw(li);
+                if (lo.close) s_show_loudness.store(false);
+                if (lo.reset) lt.request_reset();
+            }
+
+            // ── Pixel probe (X) ───────────────────────────────────────────────
+            if (s_show_probe.load() && has_frame) {
+                if (probe_serial != shown_serial) {
+                    (void)probe_view.map(shown_frame.get());   // empty if the format has no CPU view
+                    probe_serial = shown_serial;
+                }
+                const auto interp = renderer.interpretation();
+                ProbeInputs pi;
+                pi.view       = &probe_view;
+                pi.video_rect = ImVec4(static_cast<float>(vx) / global_ps,
+                                       static_cast<float>(fb_h - vy - vh) / global_ps,
+                                       static_cast<float>(vw) / global_ps, static_cast<float>(vh) / global_ps);
+                pi.at         = cli.ui_probe;
+                pi.cs         = interp.cs;
+                pi.range      = interp.range;
+                pi.trc        = interp.trc;
+                draw_pixel_probe(pi);
+            } else if (probe_view.valid()) {
+                probe_view.reset();   // releases the frame (a VideoToolbox buffer stays locked while mapped)
+                probe_serial = 0;
+            }
+
             // ── VMAF results ImGui window ─────────────────────────────────────
             if (s_show_vmaf.load()) {
                 auto vmaf_results = vmaf_analyzer.results();
@@ -3200,7 +3429,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 // on top of it: it is a window of its own).
                 const ImRect btn(pos, ImVec2(pos.x + kSz, pos.y + kSz));
                 for (const char* card : { "##helpcard", "##trackpanel", "VMAF Analysis", "##opencard",
-                                          "##net_inspector", "##loading" }) {
+                                          "##net_inspector", "##loading", "##frameinspector", "##scopes", "##frames", "##loudness" }) {
                     const ImGuiWindow* w = ImGui::FindWindowByName(card);
                     if (w && (w->Active || w->WasActive)
                         && ImRect(w->Pos, ImVec2(w->Pos.x + w->Size.x, w->Pos.y + w->Size.y)).Overlaps(btn))
@@ -3401,6 +3630,11 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             if (ui.toggle_help)      s_show_help.store(!s_show_help.load());
             if (ui.toggle_vmaf)      s_show_vmaf.store(!s_show_vmaf.load());
             if (ui.toggle_filmstrip) s_show_filmstrip.store(!s_show_filmstrip.load());
+            if (ui.toggle_frameinfo) s_show_frameinfo.store(!s_show_frameinfo.load());
+            if (ui.toggle_scopes)    s_show_scopes.store(!s_show_scopes.load());
+            if (ui.toggle_probe)     s_show_probe.store(!s_show_probe.load());
+            if (ui.toggle_frames)    s_show_frames.store(!s_show_frames.load());
+            if (ui.toggle_loudness)  s_show_loudness.store(!s_show_loudness.load());
 
             // VMAF triggers
             if (ui.vmaf_pick_ref && !vmaf_analyzer.running()) {

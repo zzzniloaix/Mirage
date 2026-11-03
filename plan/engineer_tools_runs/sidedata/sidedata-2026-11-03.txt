@@ -1,0 +1,44 @@
+$ git rev-parse HEAD
+e817d9b667db7874973a90cea53809ce67c27134
+[exit status 0]
+
+$ git status --porcelain
+[exit status 0]
+
+$ sh -c /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -version | head -1
+ffmpeg version 8.1.1 Copyright (c) 2000-2026 the FFmpeg developers
+[exit status 0]
+
+$ sh plan/engineer_tools_runs/sidedata/sidedata_check.sh <scratch>/sidedata_rec/clips
+Svt[info]: -------------------------------------------
+Svt[info]: SVT [version]:	SVT-AV1 Encoder Lib v4.1.0
+Svt[info]: SVT [build]  :	Apple LLVM 17.0.0 (clang-1700.6.4.2)	 64 bit
+Svt[info]: LIB Build date: Mar 23 2026 06:52:18
+Svt[info]: -------------------------------------------
+Svt[warn]: Preset M12 is mapped to M11.
+Svt[warn]: Non-RTC M10+ are meant for automation tooling usage. Visual artifacts may occur otherwise.
+Svt[info]: Level of Parallelism: 5
+Svt[info]: Number of PPCS 76
+Svt[info]: [asm level on system : up to neon_i8mm]
+Svt[info]: [asm level selected : up to neon_i8mm]
+Svt[info]: -------------------------------------------
+Svt[info]: SVT [config]: main profile	tier (auto)	level (auto)
+Svt[info]: SVT [config]: width / height / fps numerator / fps denominator 		: 320 / 240 / 25 / 1
+Svt[info]: SVT [config]: bit-depth / color format 					: 8 / YUV420
+Svt[info]: SVT [config]: preset / tune / pred struct 					: 11 / PSNR / random access
+Svt[info]: SVT [config]: gop size / mini-gop size / key-frame type 			: 161 / 16 / key frame
+Svt[info]: SVT [config]: BRC mode / rate factor 					: CRF / 35.00 
+Svt[info]: SVT [config]: AQ mode / Variance Boost 					: 2 / 0
+Svt[info]: SVT [config]: sharpness / luminance-based QP bias 				: 0 / 0
+Svt[info]: SVT [config]: QP scale compress strength 					: 0
+Svt[info]: -------------------------------------------
+h264   frame|I|H.26[45] User Data Unregistered SEI message|Video encoding parameters frame|B|Video encoding parameters|Motion vectors frame|B|Video encoding parameters|Motion vectors frame|P|Video encoding parameters|Motion vectors 
+mpeg2  frame|I|AVPanScan|Video encoding parameters|GOP timecode frame|B|AVPanScan|Motion vectors|Video encoding parameters frame|B|AVPanScan|Motion vectors|Video encoding parameters frame|P|AVPanScan 
+hevc   frame|I|H.26[45] User Data Unregistered SEI message frame|B|H.26[45] User Data Unregistered SEI message frame|B|H.26[45] User Data Unregistered SEI message frame|P|H.26[45] User Data Unregistered SEI message 
+vp9    frame|I|Video encoding parameters frame|P|Video encoding parameters frame|P|Video encoding parameters frame|P|Video encoding parameters 
+av1    frame|I frame|P frame|P frame|P 
+[exit status 0]
+
+$ git status --porcelain
+[exit status 0]
+

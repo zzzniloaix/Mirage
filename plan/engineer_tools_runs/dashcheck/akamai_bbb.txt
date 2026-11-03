@@ -1,0 +1,18 @@
+[INFO]  DashProbe: https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd — 11 Representations, 31 segments read, 1718 sized, 35.0 MB in 16.5 s: 0 errors, 0 warnings
+https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd
+static MPD, 11 Representations in 2 AdaptationSets, @minBufferTime 2.000 s: 1749 of 1749 segments sized, 31 read, in 16.5 s
+
+  #  @bandwidth  needs       CODECS SIZE   FPS    AUDIO  COLOUR SAP    TIME   ALIGN  Representation
+  0  3.13 Mb/s   2.49 Mb/s   ok     ok     ok     -      -      ok     ok     ok     bbb_30fps_1024x576_2500k (video, 1024×576)
+  1  4.95 Mb/s   3.98 Mb/s   ok     ok     ok     -      -      ok     ok     ok     bbb_30fps_1280x720_4000k (video, 1280×720)
+  2  9.91 Mb/s   7.97 Mb/s   ok     ok     ok     -      -      ok     ok     ok     bbb_30fps_1920x1080_8000k (video, 1920×1080)
+  3  254 kb/s    202 kb/s    ok     ok     ok     -      -      ok     ok     ok     bbb_30fps_320x180_200k (video, 320×180)
+  4  507 kb/s    401 kb/s    ok     ok     ok     -      -      ok     ok     ok     bbb_30fps_320x180_400k (video, 320×180)
+  5  760 kb/s    600 kb/s    ok     ok     ok     -      -      ok     ok     ok     bbb_30fps_480x270_600k (video, 480×270)
+  6  1.25 Mb/s   998 kb/s    ok     ok     ok     -      -      ok     ok     ok     bbb_30fps_640x360_1000k (video, 640×360)
+  7  1.01 Mb/s   799 kb/s    ok     ok     ok     -      -      ok     ok     ok     bbb_30fps_640x360_800k (video, 640×360)
+  8  1.88 Mb/s   1.50 Mb/s   ok     ok     ok     -      -      ok     ok     ok     bbb_30fps_768x432_1500k (video, 768×432)
+  9  14.93 Mb/s  11.93 Mb/s  ok     ok     ok     -      -      ok     ok     ok     bbb_30fps_3840x2160_12000k (video, 3840×2160)
+ 10  67 kb/s     66 kb/s     ok     -      -      ok     -      ok     ok     -      bbb_a64k (audio)
+
+0 errors, 0 warnings, 0 notes
