@@ -1,0 +1,28 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  Opening x264_sdr.mp4 (t=0.236)
+[INFO]  Demuxer: avformat_open_input 1 ms (2 streams, 0 programs) (t=0.237)
+[INFO]  Demuxer: avformat_find_stream_info 4 ms (t=0.241)
+[INFO]  Container: QuickTime / MOV
+[INFO]  Duration:  00:00:08
+[INFO]  Video:     h264 1280×720 @ 25.000 fps  pixel_fmt=yuv420p
+[INFO]  Audio:     aac 48000 Hz  2 ch  fmt=fltp
+[INFO]  Selected HW-capable decoder: h264 (default was h264)
+[INFO]  Decoder opened: h264 (1280×720)  [HW: VideoToolbox requested]
+[INFO]  AudioPlayer: 48000 Hz stereo float32  device latency 30.0 ms (480 frames × 3 periods)
+[INFO]  Decoder opened: aac (0×0)
+[INFO]  AudioDecoder: 48000 Hz 2ch → 48000 Hz stereo f32
+[INFO]  Opened x264_sdr.mp4 in 120 ms (t=0.356)
+[INFO]  VideoRenderer: 1280×720 SDR (yuv420p → RGB24 sRGB)  matrix=BT.709  limited-range
+[INFO]  Subtitles: 0 choice(s); initial off (none available)
+[INFO]  ThumbnailStrip: open 1 ms, probe 5 ms (t=0.363)
+[INFO]  ScrubDecoder: ready (open 1 ms, probe 5 ms) (t=0.364)
+[INFO]  ThumbnailStrip: 4 keyframes found, decoding 4 thumbnails (stride 0.02 s, 160 px tall)
+[INFO]  FrameScan: stream 0 (h264) — 200 frames, 3.0 MB in 0.01 s
+[INFO]  ThumbnailStrip: coarse pass done (1 thumbnails)
+[INFO]  ThumbnailStrip: decode complete (4 thumbnails)
+[INFO]  Decoder: VideoToolbox HW decode active (zero-copy IOSurface path)
+[INFO]  first-frame: pts=3.000 1280x720 VideoToolbox, 175 ms after open, paused (t=0.533)
+[INFO]  switch-trace: first frame after seek pts=3.000 — took 174 ms
+[INFO]  VideoRenderer: HW zero-copy path ready (8-bit, BT.709 matrix, limited-range)
+[INFO]  playback paused (t=0.572)
+[INFO]  ui-snapshot: wrote <scratch>/gui/snapshots/frame_sizes.png (3200×2000, frame 60, hover=none, thumb_pts=none, sub="")

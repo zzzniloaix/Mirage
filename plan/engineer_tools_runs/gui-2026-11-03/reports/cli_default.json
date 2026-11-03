@@ -1,0 +1,92 @@
+{
+  "source": "<scratch>/gui/hlsdemo/master.m3u8",
+  "summary": {"variants": 3, "playlists": 4, "errors": 5, "warnings": 5},
+  "independent_segments": true,
+  "variants": [
+    {"index": 0, "line": 5, "uri": "<scratch>/gui/hlsdemo/v1/index.m3u8",
+     "declared": {"bandwidth": 600000, "average_bandwidth": 500000, "codecs": ["avc1.4d401e", "mp4a.40.2"], "resolution": "640x360", "frame_rate": 30, "video_range": null, "audio": "aac"},
+     "measured": {"peak_bps": 1032061, "average_bps": 983484, "rates_complete": true, "segments_read": 3},
+     "checks": {
+       "BANDWIDTH": {"checked": true, "severity": "error", "declared": "600 kb/s", "measured": "1.03 Mb/s", "note": "BANDWIDTH 600 kb/s (600000 b/s) is 41.9% below the peak segment bit rate 1.03 Mb/s (887 kb/s the variant's playlist + 145 kb/s its largest audio rendition), segment #1, 2.000 s (1032061 b/s). RFC 8216 §4.3.4.2: BANDWIDTH MUST be the largest sum of peak segment bit rates of any playable combination of renditions; a player that fits BANDWIDTH to its link can stall on this variant."},
+       "AVERAGE-BANDWIDTH": {"checked": true, "severity": "warning", "declared": "500 kb/s", "measured": "983 kb/s", "note": "AVERAGE-BANDWIDTH 500 kb/s is -49.2% off the average segment bit rate 983 kb/s (840 kb/s + 144 kb/s audio)."},
+       "CODECS": {"checked": true, "severity": "error", "declared": "avc1.4d401e,mp4a.40.2", "measured": "avc1.64001e,mp4a.40.2", "note": "CODECS names another profile than the stream's — CODECS says H.264 Main, level 3.0 (avc1.4d401e); the stream is H.264 High, level 3.0 (avc1.64001e). Devices choose variants by the profile they can decode."},
+       "RESOLUTION": {"checked": true, "severity": "ok", "declared": "640×360", "measured": "640×360", "note": "The video decodes at 640×360."},
+       "FRAME-RATE": {"checked": true, "severity": "warning", "declared": "30.000", "measured": "25.000", "note": "FRAME-RATE 30.000; the segments read run at up to 25.000 fps."},
+       "VIDEO-RANGE": {"checked": true, "severity": "ok", "declared": "absent (SDR)", "measured": "SDR", "note": "The video: 2 (unspecified). Unspecified is taken as SDR."},
+       "segment starts": {"checked": true, "severity": "ok", "declared": "independent", "measured": "3/3 random access", "note": "First pictures of the 3 segment(s) read: 3 IDR."},
+       "segment durations": {"checked": true, "severity": "ok", "declared": "EXTINF", "measured": "+0.000 s", "note": "Largest difference between a segment's pictures' span and its EXTINF, over 3 segment(s): +0.000 s."}},
+     "worst": "error"},
+    {"index": 1, "line": 7, "uri": "<scratch>/gui/hlsdemo/v2/index.m3u8",
+     "declared": {"bandwidth": 2000000, "average_bandwidth": null, "codecs": ["avc1.64001e", "mp4a.40.2"], "resolution": "640x360", "frame_rate": 25, "video_range": null, "audio": "aac"},
+     "measured": {"peak_bps": 1033011, "average_bps": 976905, "rates_complete": true, "segments_read": 3},
+     "checks": {
+       "BANDWIDTH": {"checked": true, "severity": "info", "declared": "2.00 Mb/s", "measured": "1.03 Mb/s", "note": "BANDWIDTH 2.00 Mb/s is 1.94 × the peak segment bit rate 1.03 Mb/s (888 kb/s the variant's playlist + 145 kb/s its largest audio rendition), segment #2, 1.520 s: players wait for a faster link than the variant needs."},
+       "AVERAGE-BANDWIDTH": {"checked": false, "severity": "not checked", "declared": "—", "measured": "977 kb/s", "note": "Not declared (OPTIONAL)."},
+       "CODECS": {"checked": true, "severity": "ok", "declared": "avc1.64001e,mp4a.40.2", "measured": "avc1.64001e,h264,mp4a.40.2", "note": "The stream's H.264 configuration could not be read: the format alone was compared."},
+       "RESOLUTION": {"checked": true, "severity": "ok", "declared": "640×360", "measured": "640×360", "note": "The video decodes at 640×360."},
+       "FRAME-RATE": {"checked": true, "severity": "ok", "declared": "25.000", "measured": "25.000", "note": "FRAME-RATE 25.000; the segments read run at up to 25.000 fps."},
+       "VIDEO-RANGE": {"checked": true, "severity": "ok", "declared": "absent (SDR)", "measured": "SDR", "note": "The video: 2 (unspecified). Unspecified is taken as SDR."},
+       "segment starts": {"checked": true, "severity": "error", "declared": "independent", "measured": "2/3 random access", "note": "First pictures of the 3 segment(s) read: 2 IDR, 1 P/B."},
+       "segment durations": {"checked": true, "severity": "info", "declared": "EXTINF", "measured": "-0.080 s", "note": "Largest difference between a segment's pictures' span and its EXTINF, over 3 segment(s): -0.080 s. Leading pictures: spans differ from EXTINF by design."}},
+     "worst": "error"},
+    {"index": 2, "line": 9, "uri": "<scratch>/gui/hlsdemo/v3/index.m3u8",
+     "declared": {"bandwidth": 4000000, "average_bandwidth": null, "codecs": ["hvc1.2.4.L90.B0", "mp4a.40.2"], "resolution": "1920x1080", "frame_rate": 25, "video_range": null, "audio": "aac"},
+     "measured": {"peak_bps": 2390821, "average_bps": 2198104, "rates_complete": true, "segments_read": 3},
+     "checks": {
+       "BANDWIDTH": {"checked": true, "severity": "info", "declared": "4.00 Mb/s", "measured": "2.39 Mb/s", "note": "BANDWIDTH 4.00 Mb/s is 1.67 × the peak segment bit rate 2.39 Mb/s (2.25 Mb/s the variant's playlist + 145 kb/s its largest audio rendition), segment #1, 2.000 s: players wait for a faster link than the variant needs."},
+       "AVERAGE-BANDWIDTH": {"checked": false, "severity": "not checked", "declared": "—", "measured": "2.20 Mb/s", "note": "Not declared (OPTIONAL)."},
+       "CODECS": {"checked": true, "severity": "error", "declared": "hvc1.2.4.L90.B0,mp4a.40.2", "measured": "hvc1.2.4.L93.90,mp4a.40.2", "note": "CODECS level 3 below the stream's 3.1 — CODECS says HEVC Main 10, Main tier, level 3 (hvc1.2.4.L90.B0); the stream is HEVC Main 10, Main tier, level 3.1 (hvc1.2.4.L93.90): a device limited to level 3 can choose a variant it cannot decode."},
+       "RESOLUTION": {"checked": true, "severity": "warning", "declared": "1920×1080", "measured": "1280×720", "note": "RESOLUTION 1920×1080 but the video decodes at 1280×720."},
+       "FRAME-RATE": {"checked": true, "severity": "ok", "declared": "25.000", "measured": "25.000", "note": "FRAME-RATE 25.000; the segments read run at up to 25.000 fps."},
+       "VIDEO-RANGE": {"checked": true, "severity": "error", "declared": "absent (SDR)", "measured": "PQ", "note": "No VIDEO-RANGE, which means SDR, but the video is PQ: 16 (PQ (SMPTE ST 2084)). draft-pantos-hls-rfc8216bis-22: VIDEO-RANGE MUST be PQ for transfer 16 and HLG for 18 (also mixed with SDR), SDR for 1, 6, 13, 14, 15; absent means SDR."},
+       "segment starts": {"checked": true, "severity": "ok", "declared": "independent", "measured": "3/3 random access", "note": "First pictures of the 3 segment(s) read: 2 CRA, 1 IDR."},
+       "segment durations": {"checked": true, "severity": "warning", "declared": "EXTINF", "measured": "-0.160 s", "note": "Largest difference between a segment's pictures' span and its EXTINF, over 3 segment(s): -0.160 s."}},
+     "worst": "error"}
+  ],
+  "findings": [
+    {"severity": "error", "title": "v1/index.m3u8: BANDWIDTH 600 kb/s is 41.9% below the measured peak 1.03 Mb/s", "detail": "BANDWIDTH 600 kb/s (600000 b/s) is 41.9% below the peak segment bit rate 1.03 Mb/s (887 kb/s the variant's playlist + 145 kb/s its largest audio rendition), segment #1, 2.000 s (1032061 b/s). RFC 8216 §4.3.4.2: BANDWIDTH MUST be the largest sum of peak segment bit rates of any playable combination of renditions; a player that fits BANDWIDTH to its link can stall on this variant.", "variants": [0]},
+    {"severity": "error", "title": "v1/index.m3u8: CODECS names another profile than the stream's", "detail": "CODECS says H.264 Main, level 3.0 (avc1.4d401e); the stream is H.264 High, level 3.0 (avc1.64001e). Devices choose variants by the profile they can decode.", "variants": [0]},
+    {"severity": "error", "title": "v2/index.m3u8: segment #7 starts with a P/B picture", "detail": "A player that starts or switches there cannot show anything until the next random access point. One has no random access point at all: #7. EXT-X-INDEPENDENT-SEGMENTS says every segment decodes without the ones before it (RFC 8216 §4.3.5.1).", "variants": [1]},
+    {"severity": "error", "title": "v3/index.m3u8: CODECS level 3 below the stream's 3.1", "detail": "CODECS says HEVC Main 10, Main tier, level 3 (hvc1.2.4.L90.B0); the stream is HEVC Main 10, Main tier, level 3.1 (hvc1.2.4.L93.90): a device limited to level 3 can choose a variant it cannot decode.", "variants": [2]},
+    {"severity": "error", "title": "v3/index.m3u8: VIDEO-RANGE absent (SDR), the video is PQ", "detail": "No VIDEO-RANGE, which means SDR, but the video is PQ: 16 (PQ (SMPTE ST 2084)). draft-pantos-hls-rfc8216bis-22: VIDEO-RANGE MUST be PQ for transfer 16 and HLG for 18 (also mixed with SDR), SDR for 1, 6, 13, 14, 15; absent means SDR.", "variants": [2]},
+    {"severity": "warning", "title": "v1/index.m3u8: AVERAGE-BANDWIDTH -49% off the measured average", "detail": "AVERAGE-BANDWIDTH 500 kb/s is -49.2% off the average segment bit rate 983 kb/s (840 kb/s + 144 kb/s audio).", "variants": [0]},
+    {"severity": "warning", "title": "v1/index.m3u8: FRAME-RATE 30.000, the video is 25.000 fps", "detail": "FRAME-RATE 30.000; the segments read run at up to 25.000 fps. FRAME-RATE is the maximum frame rate, rounded to three decimal places (RFC 8216 §4.3.4.2).", "variants": [0]},
+    {"severity": "warning", "title": "audio \"English\" (a1/index.m3u8): CHANNELS \"6\", it decodes to 2 channels", "detail": "RFC 8216 §4.3.4.1: the first CHANNELS parameter is the largest number of independent, simultaneous channels in any segment of the rendition.", "variants": [0, 1, 2]},
+    {"severity": "warning", "title": "v3/index.m3u8: RESOLUTION 1920×1080, the video is 1280×720", "detail": "RESOLUTION 1920×1080 but the video decodes at 1280×720.", "variants": [2]},
+    {"severity": "warning", "title": "v3/index.m3u8: segment #0's pictures span -0.160 s off its EXTINF", "detail": "#0 1.840 s against 2.000 s. EXTINF is a segment's duration (RFC 8216 §4.3.2.1): players lay out the timeline, and seek, by it.", "variants": [2]},
+    {"severity": "info", "title": "v2/index.m3u8: BANDWIDTH 1.94 × the measured peak", "detail": "BANDWIDTH 2.00 Mb/s is 1.94 × the peak segment bit rate 1.03 Mb/s (888 kb/s the variant's playlist + 145 kb/s its largest audio rendition), segment #2, 1.520 s: players wait for a faster link than the variant needs.", "variants": [1]},
+    {"severity": "info", "title": "v2/index.m3u8: segment #4's pictures span -0.080 s off its EXTINF", "detail": "#4 1.520 s against 1.600 s. The segments have leading pictures (an open GOP, or cuts inside GOPs): the next segment's first pictures show in this one's time, so the spans differ from EXTINF by them.", "variants": [1]},
+    {"severity": "info", "title": "v3/index.m3u8: BANDWIDTH 1.67 × the measured peak", "detail": "BANDWIDTH 4.00 Mb/s is 1.67 × the peak segment bit rate 2.39 Mb/s (2.25 Mb/s the variant's playlist + 145 kb/s its largest audio rendition), segment #1, 2.000 s: players wait for a faster link than the variant needs.", "variants": [2]},
+    {"severity": "info", "title": "v3/index.m3u8: segments start with CRA pictures", "detail": "#3, 5: clean random access points. The RASL pictures that follow one reference the segment before, and are dropped when playback starts or switches there.", "variants": [2]}
+  ],
+  "playlists": [
+    {"uri": "<scratch>/gui/hlsdemo/v1/index.m3u8", "error": null, "target_duration": 2, "segments": 6, "sized": 6, "bytes": 1259976, "duration": 12, "key": null, "reads": [
+      {"index": 0, "sequence": 0, "bytes": 196084, "extinf": 2, "first_picture": "IDR", "first_keyframe_flag": true, "frames": 50, "keyframes": 1, "leading": 0, "media_duration": 2, "frame_rate": 25,
+       "video": {"codec": "h264", "codec_string": "avc1.64001e", "sample_entry": null, "width": 640, "height": 360, "sar": "1:1", "transfer": 2, "bit_depth": 8, "dolby_vision": null}},
+      {"index": 3, "sequence": 3, "bytes": 218268, "extinf": 2, "first_picture": "IDR", "first_keyframe_flag": true, "frames": 50, "keyframes": 1, "leading": 0, "media_duration": 2, "frame_rate": 24.99999999999999,
+       "video": {"codec": "h264", "codec_string": "avc1.64001e", "sample_entry": null, "width": 640, "height": 360, "sar": "1:1", "transfer": 2, "bit_depth": 8, "dolby_vision": null}},
+      {"index": 5, "sequence": 5, "bytes": 212628, "extinf": 2, "first_picture": "IDR", "first_keyframe_flag": true, "frames": 50, "keyframes": 1, "leading": 0, "media_duration": 2, "frame_rate": 24.99999999999999,
+       "video": {"codec": "h264", "codec_string": "avc1.64001e", "sample_entry": null, "width": 640, "height": 360, "sar": "1:1", "transfer": 2, "bit_depth": 8, "dolby_vision": null}}
+    ]},
+    {"uri": "<scratch>/gui/hlsdemo/v2/index.m3u8", "error": null, "target_duration": 2, "segments": 8, "sized": 8, "bytes": 1262608, "duration": 12.120000000000001, "key": null, "reads": [
+      {"index": 0, "sequence": 0, "bytes": 143632, "extinf": 1.56, "first_picture": "IDR", "first_keyframe_flag": true, "frames": 38, "keyframes": 1, "leading": 0, "media_duration": 1.52, "frame_rate": 25,
+       "video": {"codec": "h264", "codec_string": "avc1.64001e", "sample_entry": null, "width": 640, "height": 360, "sar": "1:1", "transfer": 2, "bit_depth": 8, "dolby_vision": null}},
+      {"index": 4, "sequence": 4, "bytes": 168636, "extinf": 1.6, "first_picture": "IDR", "first_keyframe_flag": true, "frames": 38, "keyframes": 1, "leading": 0, "media_duration": 1.5199999999999996, "frame_rate": 24.999999999999993,
+       "video": {"codec": "h264", "codec_string": "avc1.64001e", "sample_entry": null, "width": 640, "height": 360, "sar": "1:1", "transfer": 2, "bit_depth": 8, "dolby_vision": null}},
+      {"index": 7, "sequence": 7, "bytes": 158296, "extinf": 1.56, "first_picture": "P/B", "first_keyframe_flag": false, "frames": 39, "keyframes": 0, "leading": 3, "media_duration": 1.5600000000000005, "frame_rate": 24.99999999999998,
+       "video": {"codec": "h264", "codec_string": "", "sample_entry": null, "width": 0, "height": 0, "sar": null, "transfer": 2, "bit_depth": 0, "dolby_vision": null}}
+    ]},
+    {"uri": "<scratch>/gui/hlsdemo/v3/index.m3u8", "error": null, "target_duration": 2, "segments": 6, "sized": 6, "bytes": 3112725, "duration": 12.120000000000001, "key": null, "reads": [
+      {"index": 0, "sequence": 0, "bytes": 473966, "extinf": 2, "first_picture": "IDR", "first_keyframe_flag": true, "frames": 46, "keyframes": 1, "leading": 0, "media_duration": 1.84, "frame_rate": 25,
+       "video": {"codec": "hevc", "codec_string": "hvc1.2.4.L93.90", "sample_entry": "hvc1", "width": 1280, "height": 720, "sar": "1:1", "transfer": 16, "bit_depth": 10, "dolby_vision": null}},
+      {"index": 3, "sequence": 3, "bytes": 551825, "extinf": 2, "first_picture": "CRA", "first_keyframe_flag": true, "frames": 50, "keyframes": 1, "leading": 0, "media_duration": 1.9999999999999991, "frame_rate": 25,
+       "video": {"codec": "hevc", "codec_string": "hvc1.2.4.L93.90", "sample_entry": "hvc1", "width": 1280, "height": 720, "sar": "1:1", "transfer": 16, "bit_depth": 10, "dolby_vision": null}},
+      {"index": 5, "sequence": 5, "bytes": 550090, "extinf": 2.12, "first_picture": "CRA", "first_keyframe_flag": true, "frames": 53, "keyframes": 1, "leading": 0, "media_duration": 2.119999999999999, "frame_rate": 25,
+       "video": {"codec": "hevc", "codec_string": "hvc1.2.4.L93.90", "sample_entry": "hvc1", "width": 1280, "height": 720, "sar": "1:1", "transfer": 16, "bit_depth": 10, "dolby_vision": null}}
+    ]},
+    {"uri": "<scratch>/gui/hlsdemo/a1/index.m3u8", "error": null, "target_duration": 2, "segments": 7, "sized": 7, "bytes": 215824, "duration": 12.031998, "key": null, "reads": [
+      {"index": 0, "sequence": 0, "bytes": 35720, "extinf": 2.005333,
+       "audio": {"codec": "aac", "codec_string": "mp4a.40.2", "channels": 2, "sample_rate": 48000}}
+    ]}
+  ]
+}
