@@ -353,13 +353,13 @@ that ignores Range on byte-range segments (what is read would be the start
 of the resource); the player against a local HTTP server (the sandbox these
 checks ran in blocks local sockets, so HTTP was Apple's CDN only).
 
-**To finish.** Decisions for the owner: the thresholds — `kPeakSlack` (1%),
+**To finish.** D-084 kept the thresholds — `kPeakSlack` (1%),
 `kOverDeclared` (a BANDWIDTH above 1.5 × the peak is noted), `kAverageSlack`
-(10%), `kRateSlack`, `kDurationSlack` (50 ms) — and which findings count as
-errors; whether the player should size every segment by default (one
-request each: 1,076 for the TS example, see `apple_ts.txt`). NetworkLogger
-keeps the newest 4,000 requests, so checking a large master pushes the
-playback's own requests out of the Network tab.
+(10%), `kRateSlack`, `kDurationSlack` (50 ms) — and the error classes, and
+the tab sizes every segment by default (one request each: 1,076 for the TS
+example, see `apple_ts.txt`). NetworkLogger keeps the newest 4,000
+requests, so checking a large master pushes the playback's own requests out
+of the Network tab.
 
 ## `mirage_dashcheck` — DASH conformance, declared vs measured
 
@@ -378,8 +378,8 @@ Representation of an MPD declares with what its media holds:
   bytes inside its segments (an error; a note when within 1% of it, as the
   HLS check takes a BANDWIDTH a hair under the peak); at the one at which
   every segment is in before it starts, it conforms whatever that order.
-  The report gives both, and the @minBufferTime the declared @bandwidth
-  would need;
+  The report gives both (the text report's columns "needs" and "safe",
+  D-084), and the @minBufferTime the declared @bandwidth would need;
 - @codecs against the codec strings built from each init segment's decoder
   configuration, compared as the HLS check compares CODECS
   (`hls::compare_video_codec`, shared now): the format, the profile, the
@@ -409,9 +409,15 @@ Representation of an MPD declares with what its media holds:
 A table with a row per Representation and a column per check, the findings
 (each names every Representation it applies to), the whole report as JSON;
 exit status 1 when there are errors. It builds in the headless
-configuration too. The player does not run it: the FFmpeg it is built with
-has no DASH demuxer, so an MPD does not open in the player and the
-inspector never gets one.
+configuration too. The FFmpeg the player is built with has no DASH
+demuxer, so an MPD does not open in the player; the N inspector's
+Conformance tab runs the check instead, in its DASH MPD mode (D-084): a URL
+field for an MPD's URL or path, the Read and Size all chips, and Check,
+which runs `DashProbe` in the player's process with nothing playing. The
+tab shows a row per Representation (@bandwidth, needs, safe, a cell per
+check), the findings, and copies the JSON report. `--ui-net
+"tab=conformance,dash=<url>"` runs it in a scripted window (`dash=` last:
+a URL may hold commas), and `conform_out=<path>` writes its JSON report.
 
 **How it works.** `dash::parse_mpd` (`src/DashMpd.*`, pugixml, no FFmpeg)
 lists every Representation's segments: SegmentTemplate with a
@@ -486,8 +492,13 @@ Representations are listed only. `dash::analyze_conformance`
   segments starting inside a GOP under startWithSAP="1" — and so is what
   FFmpeg's dash muxer gets wrong on its own (in "Found while checking"
   below).
+- The Conformance tab's DASH mode
+  (`plan/engineer_tools_runs/dash-tab-2026-11-03/`): on the demo package as
+  local files and on Shaka Player's "Angel One" MPD over HTTP, the tab's
+  report is the command line's, key for key; the tab's HLS mode, on the HLS
+  demo package, still gives the command line's report.
 
-**Not checked.** The player (above). WebM Representations (their Cues and
+**Not checked.** Playing an MPD (above). WebM Representations (their Cues and
 Clusters), text Representations, encrypted contents (whether a
 ContentProtection's cenc:default_KID matches the init segment's tenc is not
 compared either), a Segment Index that points to further sidx boxes,
@@ -498,19 +509,17 @@ MatrixCoefficients descriptors (TransferCharacteristics only); Dolby Vision
 signalling beyond @codecs; MPEG-TS segments in DASH (read the HLS way, not
 tried here).
 
-**To finish.** Decisions for the owner: the thresholds — `kTimeSlack`
-(50 ms), `kTimeBad` (0.5 s), the quarter and half of a nominal @duration,
-`kAlignSlack` (100 ms), `kAlignBad` (0.5 s), and the two shared with the
-HLS check: `hls::kPeakSlack` (1%: a @bandwidth short of what the segments
-need by no more than that is a note) and `hls::kOverDeclared` (1.5×, for a
-@bandwidth above the safe rate) — and which findings count as
-errors (a @maxSegmentDuration exceeded by up to `kTimeSlack` is a warning,
-more an error; a wrong @frameRate a warning); whether a @bandwidth between
-the two rates deserves a note (it conforms if the bytes of each segment
-arrive no sooner than they play, which the sizes alone cannot tell); and how
-the player should reach the check for an MPD it cannot play — a URL field in
-the Conformance tab, say; opening MPDs at all is the open path's, a D-007
-plan.
+**To finish.** Nothing the owner has left open. D-084 kept the thresholds
+— `kTimeSlack` (50 ms), `kTimeBad` (0.5 s), the quarter and half of a
+nominal @duration, `kAlignSlack` (100 ms), `kAlignBad` (0.5 s), and the two
+shared with the HLS check, `hls::kPeakSlack` (1%: a @bandwidth short of what
+the segments need by no more than that is a note) and `hls::kOverDeclared`
+(1.5×, for a @bandwidth above the safe rate) — and the error classes (a
+@maxSegmentDuration exceeded by up to `kTimeSlack` is a warning, more an
+error; a wrong @frameRate a warning). It gave a @bandwidth between the two
+rates no note but the "safe" column, and put the check in the player as the
+Conformance tab's DASH MPD mode. Opening MPDs in the player stays the open
+path's, a D-007 plan of its own.
 
 ## Review
 
