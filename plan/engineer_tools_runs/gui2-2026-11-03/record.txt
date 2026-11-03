@@ -1,0 +1,131 @@
+$ git rev-parse HEAD
+d36045dfc7e2d77a8a9a9e5433863fefd72a4171
+[exit status 0]
+
+$ git status --porcelain
+[exit status 0]
+
+$ sw_vers
+ProductName:		macOS
+ProductVersion:		26.6.2
+BuildVersion:		25G83
+[exit status 0]
+
+$ cmake --build --preset macos-debug
+ninja: no work to do.
+[exit status 0]
+
+$ /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -nostdin -v error -y -f lavfi -i testsrc2=size=1280x720:rate=25 -f lavfi -i sine=frequency=1000:sample_rate=48000 -t 8 -c:v libx264 -bf 3 -g 50 -pix_fmt yuv420p -colorspace bt709 -c:a aac -ac 2 <scratch>/gui2/clips/x264_sdr.mp4
+[exit status 0]
+
+$ sh -c /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -nostdin -v error -y -f lavfi -i testsrc2=size=3840x2160:rate=24 -t 2 -pix_fmt yuv420p10le -c:v libsvtav1 -preset 10 -svtav1-params color-primaries=9:transfer-characteristics=16:matrix-coefficients=9:color-range=0 -color_primaries bt2020 -color_trc smpte2084 -colorspace bt2020nc -color_range tv <scratch>/gui2/clips/av1_4k_pq.mp4 2>&1 | grep -v -E '^Svt\[(info|warn)\]'
+[exit status 1]
+
+$ /opt/homebrew/opt/ffmpeg-full/bin/ffprobe -v error -select_streams v -show_entries stream=codec_name,width,height,pix_fmt,color_range,color_space,color_transfer,color_primaries -of default=nw=1 <scratch>/gui2/clips/av1_4k_pq.mp4
+codec_name=av1
+width=3840
+height=2160
+pix_fmt=yuv420p10le
+color_range=tv
+color_space=bt2020nc
+color_transfer=smpte2084
+color_primaries=bt2020
+[exit status 0]
+
+$ /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -nostdin -v error -y -f lavfi -i testsrc2=size=1920x1080:rate=25 -t 300 -c:v libx264 -preset veryfast -bf 3 -g 50 -pix_fmt yuv420p <scratch>/gui2/clips/long_1080p.mp4
+[exit status 0]
+
+$ /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -nostdin -v error -y -f lavfi -i testsrc2=size=1280x720:rate=25 -t 10 -c:v libx264 -bf 3 -g 50 -pix_fmt yuv420p -f h264 <scratch>/gui2/clips/raw.264
+[exit status 0]
+
+$ uptime
+13:57  up 5 days, 27 mins, 5 users, load averages: 10.06 7.76 6.52
+[exit status 0]
+
+$ HOME=<scratch>/gui2/home build/macos-debug/mirage --qa-no-focus --window 1600x1000 --no-hw --ui-overlays P --ui-sub-at 2.0 --ui-snapshot <scratch>/gui2/p_nohw.png 60 <scratch>/gui2/clips/x264_sdr.mp4 > p_nohw.log
+[exit status 0]
+
+$ uptime
+13:57  up 5 days, 27 mins, 5 users, load averages: 9.50 7.68 6.49
+[exit status 0]
+
+$ HOME=<scratch>/gui2/home build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-overlays SX --scope-mode waveform --ui-probe 0.08,0.3 --ui-sub-at 1.0 --ui-snapshot <scratch>/gui2/sx_av1.png 60 <scratch>/gui2/clips/av1_4k_pq.mp4 > sx_av1.log
+[exit status 0]
+
+$ uptime
+13:57  up 5 days, 27 mins, 5 users, load averages: 8.58 7.54 6.46
+[exit status 0]
+
+$ HOME=<scratch>/gui2/home build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-overlays P --ui-sub-at 1.0 --ui-snapshot <scratch>/gui2/p_av1.png 60 <scratch>/gui2/clips/av1_4k_pq.mp4 > p_av1.log
+[exit status 0]
+
+$ uptime
+13:57  up 5 days, 27 mins, 5 users, load averages: 8.86 7.62 6.49
+[exit status 0]
+
+$ HOME=<scratch>/gui2/home build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-overlays BP --ui-sub-at 150 --ui-snapshot <scratch>/gui2/bp_long.png 90 <scratch>/gui2/clips/long_1080p.mp4 > bp_long.log
+[exit status 0]
+
+$ uptime
+13:58  up 5 days, 27 mins, 5 users, load averages: 8.39 7.54 6.47
+[exit status 0]
+
+$ HOME=<scratch>/gui2/home build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-overlays B --ui-snapshot <scratch>/gui2/b_raw.png 150 <scratch>/gui2/clips/raw.264 > b_raw.log
+[exit status 0]
+
+$ build/macos-headless/mirage_hlscheck --json <scratch>/gui2/cli_apple.json https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8
+[INFO]  ConformProbe: https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8 — 11 playlists, 27 segments read, 0 sized, 58.5 MB in 4.0 s: 0 errors, 0 warnings
+https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8
+24 variants, 11 media playlists: 1103 of 1103 segments sized, 27 read, in 4.0 s
+
+  #  BANDWIDTH   peak        AVG    CODECS RES    FPS    RANGE  START  DUR    playlist
+  0  2.18 Mb/s   2.18 Mb/s   ok     ok     ok     ok     ok     ok     ok     v5/prog_index.m3u8
+  1  8.00 Mb/s   8.00 Mb/s   ok     ok     ok     ok     ok     ok     ok     v9/prog_index.m3u8
+  2  6.31 Mb/s   6.31 Mb/s   ok     ok     ok     ok     ok     ok     ok     v8/prog_index.m3u8
+  3  4.94 Mb/s   4.94 Mb/s   ok     ok     ok     ok     ok     ok     ok     v7/prog_index.m3u8
+  4  3.22 Mb/s   3.22 Mb/s   ok     ok     ok     ok     ok     ok     ok     v6/prog_index.m3u8
+  5  1.27 Mb/s   1.27 Mb/s   ok     ok     ok     ok     ok     ok     ok     v4/prog_index.m3u8
+  6  902 kb/s    902 kb/s    ok     ok     ok     ok     ok     ok     ok     v3/prog_index.m3u8
+  7  541 kb/s    541 kb/s    ok     ok     ok     ok     ok     ok     ok     v2/prog_index.m3u8
+  8  2.40 Mb/s   2.40 Mb/s   ok     ok     ok     ok     ok     ok     ok     v5/prog_index.m3u8
+  9  8.22 Mb/s   8.22 Mb/s   ok     ok     ok     ok     ok     ok     ok     v9/prog_index.m3u8
+ 10  6.54 Mb/s   6.54 Mb/s   ok     ok     ok     ok     ok     ok     ok     v8/prog_index.m3u8
+ 11  5.17 Mb/s   5.17 Mb/s   ok     ok     ok     ok     ok     ok     ok     v7/prog_index.m3u8
+ 12  3.44 Mb/s   3.44 Mb/s   ok     ok     ok     ok     ok     ok     ok     v6/prog_index.m3u8
+ 13  1.49 Mb/s   1.49 Mb/s   ok     ok     ok     ok     ok     ok     ok     v4/prog_index.m3u8
+ 14  1.12 Mb/s   1.12 Mb/s   ok     ok     ok     ok     ok     ok     ok     v3/prog_index.m3u8
+ 15  764 kb/s    764 kb/s    ok     ok     ok     ok     ok     ok     ok     v2/prog_index.m3u8
+ 16  2.21 Mb/s   2.21 Mb/s   ok     ok     ok     ok     ok     ok     ok     v5/prog_index.m3u8
+ 17  8.03 Mb/s   8.03 Mb/s   ok     ok     ok     ok     ok     ok     ok     v9/prog_index.m3u8
+ 18  6.34 Mb/s   6.34 Mb/s   ok     ok     ok     ok     ok     ok     ok     v8/prog_index.m3u8
+ 19  4.97 Mb/s   4.97 Mb/s   ok     ok     ok     ok     ok     ok     ok     v7/prog_index.m3u8
+ 20  3.25 Mb/s   3.25 Mb/s   ok     ok     ok     ok     ok     ok     ok     v6/prog_index.m3u8
+ 21  1.30 Mb/s   1.30 Mb/s   ok     ok     ok     ok     ok     ok     ok     v4/prog_index.m3u8
+ 22  933 kb/s    933 kb/s    ok     ok     ok     ok     ok     ok     ok     v3/prog_index.m3u8
+ 23  572 kb/s    572 kb/s    ok     ok     ok     ok     ok     ok     ok     v2/prog_index.m3u8
+
+0 errors, 0 warnings, 1 note
+note  BANDWIDTH of 24 variants up to 0.018% below the measured peak  [variants 0–23]
+      Short by no more than 1% of the peak segment bit rate, which RFC 8216 §4.3.4.2 makes the sum of each rendition's own peak: a peak computed per segment, or over the video and audio of the same time together, lands this close. The most: variant #7 (v2/prog_index.m3u8), 98 b/s.
+[exit status 0]
+
+$ uptime
+13:58  up 5 days, 28 mins, 5 users, load averages: 7.58 7.40 6.44
+[exit status 0]
+
+$ HOME=<scratch>/gui2/home build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-net tab=conformance,width=900,conform=1,conform_out=<scratch>/gui2/tab_apple.json --ui-snapshot <scratch>/gui2/tab_apple.png 1800 --av-report <scratch>/gui2/tab_apple_av.json 40 https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8 > tab_apple.log
+[exit status 0]
+
+$ python3 -I <scratch>/scripts/compare_conform.py <scratch>/gui2/cli_apple.json <scratch>/gui2/tab_apple.json
+command line: {'variants': 24, 'playlists': 11, 'errors': 0, 'warnings': 0} | tab: {'variants': 24, 'playlists': 11, 'errors': 0, 'warnings': 0}
+source: command line "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8" | tab "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8"
+keys that differ, source aside: none
+[exit status 0]
+
+$ git status --porcelain
+[exit status 0]
+
+$ uptime
+13:58  up 5 days, 28 mins, 5 users, load averages: 4.96 6.76 6.24
+[exit status 0]
+

@@ -88,14 +88,17 @@ void print_report(const DashProbe::Result& r, bool quiet)
                     r.source.c_str(), m.dynamic ? "dynamic" : "static", m.reps.size(), m.sets.size(),
                     std::isfinite(m.min_buffer_time) ? std::format("{:.3f} s", m.min_buffer_time).c_str() : "absent",
                     sized, segs, reads, r.seconds);
-        std::printf("%3s  %-11s %-11s %-6s %-6s %-6s %-6s %-6s %-6s %-6s %-6s %s\n", "#", "@bandwidth", "needs",
-                    "CODECS", "SIZE", "FPS", "AUDIO", "COLOUR", "SAP", "TIME", "ALIGN", "Representation");
+        // needs / safe: the bucket model's two rates (DashConform.h, Bucket), below which playout runs dry
+        // whatever the order of each segment's bytes / at or above which it never does.
+        std::printf("%3s  %-11s %-11s %-11s %-6s %-6s %-6s %-6s %-6s %-6s %-6s %-6s %s\n", "#", "@bandwidth", "needs",
+                    "safe", "CODECS", "SIZE", "FPS", "AUDIO", "COLOUR", "SAP", "TIME", "ALIGN", "Representation");
         for (std::size_t i = 0; i < m.reps.size() && i < rep.rows.size(); ++i) {
             const auto& row = rep.rows[i];
             using dash::Check;
             const hls::Cell& bw = row.cell(Check::Bandwidth);
-            std::printf("%3zu  %-11s %-11s %-6s %-6s %-6s %-6s %-6s %-6s %-6s %-6s %s\n", i, bw.declared.c_str(),
-                        bw.measured.empty() ? "-" : bw.measured.c_str(), mark(row.cell(Check::Codecs)),
+            const std::string safe = bw.checked ? hls::format_bitrate(row.bucket.safe) : "-";
+            std::printf("%3zu  %-11s %-11s %-11s %-6s %-6s %-6s %-6s %-6s %-6s %-6s %-6s %s\n", i, bw.declared.c_str(),
+                        bw.measured.empty() ? "-" : bw.measured.c_str(), safe.c_str(), mark(row.cell(Check::Codecs)),
                         mark(row.cell(Check::Resolution)), mark(row.cell(Check::FrameRate)), mark(row.cell(Check::Audio)),
                         mark(row.cell(Check::Colour)), mark(row.cell(Check::Sap)), mark(row.cell(Check::Timeline)),
                         mark(row.cell(Check::Alignment)), dash::rep_label(m, static_cast<int>(i)).c_str());

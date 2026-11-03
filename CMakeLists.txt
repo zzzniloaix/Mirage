@@ -199,6 +199,9 @@ if(NOT MIRAGE_HEADLESS)
         src/HlsAlign.cpp
         src/HlsConform.cpp
         src/HlsConformProbe.cpp
+        src/DashMpd.cpp
+        src/DashConform.cpp
+        src/DashConformProbe.cpp
         src/JsonText.cpp
         src/DemuxRetry.cpp
         src/PipelineState.cpp

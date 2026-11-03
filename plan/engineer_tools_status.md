@@ -13,9 +13,9 @@ the loudness clips (it needs a display, like `pathb_snapshot_regression.sh`).
 The script and the other checks that need a display were run again on
 2026-11-03 and committed: `plan/engineer_tools_runs/gui-2026-11-03/`, "the
 GUI record" below. The first scripted runs' outputs were never committed;
-what only they showed is MEASUREMENT PENDING: the runs with `--no-hw`, and
-those on the 4K PQ AV1 file, the five-minute 1080p H.264 file and the raw
-H.264 stream, which the repository does not hold.
+what only they checked was run again in a second record, on generated clips
+where they had used files the repository does not hold
+(`plan/engineer_tools_runs/gui2-2026-11-03/`, "the second GUI record").
 
 ## P — Frame inspector
 
@@ -65,7 +65,8 @@ the player. Code: `src/FrameInfo.*` (pure, unit-tested),
   - H.264 SDR MP4 (x264, B-frames): type, number and timestamp match the
     pattern's burnt-in frame counter (the GUI record's
     `frame_inspector_sdr.png`: frame 50, I, key, 2.000000 s, with
-    VideoToolbox; with `--no-hw`: MEASUREMENT PENDING);
+    VideoToolbox; the second GUI record's `p_nohw.png`: the same with the
+    software decoder);
   - HEVC 10-bit tagged HDR10 (x265 with mastering display and light level
     SEI), VideoToolbox P010: the mastering primaries read as P3-D65, the
     luminance and MaxCLL/MaxFALL as encoded, x265's settings listed
@@ -132,8 +133,10 @@ probe maps the frame on screen once per new frame while it is on. Code:
   fall on the computed 100 % targets; the probe on the red bar), x265 HDR10
   (waveform with the nits scale, histogram): the GUI record's
   `scopes_parade.png`, `scopes_vectorscope.png`, `scopes_waveform_hdr.png`
-  and `scopes_histogram.png`. A 4K PQ AV1 file decoded by VideoToolbox into
-  P010 (waveform; the probe on a face): MEASUREMENT PENDING.
+  and `scopes_histogram.png`. A 4K PQ AV1 clip decoded by VideoToolbox into
+  P010: the waveform with the nits scale, the probe on the red bar (code
+  values, R′G′B′, PQ luminance), and P reading VideoToolbox p010le and the
+  PQ tags (the second GUI record's `sx_av1.png`, `p_av1.png`).
 
 **Not checked.** HLG content in the app (HLG only in a unit test); 4:2:2 /
 4:4:4 VideoToolbox buffers; rotated video (the probe maps the cursor as if
@@ -187,11 +190,11 @@ the summary says so). Code: `src/FrameScan.*` (with
   committed, and this branch's checks did not repeat them.
 - Scripted runs: the x264 clip (GOP of 50, B-frames: the summary and the bar
   pattern match the encode; the GUI record's `frame_sizes.png`: 200 frames,
-  I 4, P 86, B 110, GOP 50.0 frames). A five-minute 1080p H.264 file (the
-  view follows the frame on screen; the frame numbers agree with the frame
-  inspector's) and a raw H.264 elementary stream (no timestamps: the frame on
-  screen is found by frame-rate times, the bitrates and GOP durations come
-  from them): MEASUREMENT PENDING.
+  I 4, P 86, B 110, GOP 50.0 frames). Five minutes of 1080p H.264, 150 s in:
+  B's view at the frame on screen, P on frame 3750 at 150.000000 s as the
+  burnt-in counter (the second GUI record's `bp_long.png`). A raw H.264
+  elementary stream: no timestamps, so times come from the frame rate, and
+  the GOP durations and bit rates from them (`b_raw.png`).
 
 **Not checked.** Clicking (seek on click) in a scripted run — it sets the
 same absolute seek the seek bar uses; HLS scans; a video track switch during
@@ -343,7 +346,8 @@ draws; `tools/mirage_hlscheck.cpp` prints.
   fMP4 example over HTTP and on the demo package as local files. On the
   demo package the tab's report is the command line's, key for key (the GUI
   record: `compare_conform.py` in `record.txt`, both reports in `reports/`,
-  the tab in `conform_tab.png`); on Apple's example: MEASUREMENT PENDING.
+  the tab in `conform_tab.png`), and so it is on Apple's fMP4 example over
+  HTTP (the second GUI record's `tab_apple`).
 
 **Not checked.** Live playlists (the check reads the window listed when it
 starts; nothing follows reloads); encrypted segments (sized, not read);
@@ -353,13 +357,13 @@ that ignores Range on byte-range segments (what is read would be the start
 of the resource); the player against a local HTTP server (the sandbox these
 checks ran in blocks local sockets, so HTTP was Apple's CDN only).
 
-**To finish.** Decisions for the owner: the thresholds — `kPeakSlack` (1%),
+**To finish.** D-084 kept the thresholds — `kPeakSlack` (1%),
 `kOverDeclared` (a BANDWIDTH above 1.5 × the peak is noted), `kAverageSlack`
-(10%), `kRateSlack`, `kDurationSlack` (50 ms) — and which findings count as
-errors; whether the player should size every segment by default (one
-request each: 1,076 for the TS example, see `apple_ts.txt`). NetworkLogger
-keeps the newest 4,000 requests, so checking a large master pushes the
-playback's own requests out of the Network tab.
+(10%), `kRateSlack`, `kDurationSlack` (50 ms) — and the error classes, and
+the tab sizes every segment by default (one request each: 1,076 for the TS
+example, see `apple_ts.txt`). NetworkLogger keeps the newest 4,000
+requests, so checking a large master pushes the playback's own requests out
+of the Network tab.
 
 ## `mirage_dashcheck` — DASH conformance, declared vs measured
 
@@ -378,8 +382,8 @@ Representation of an MPD declares with what its media holds:
   bytes inside its segments (an error; a note when within 1% of it, as the
   HLS check takes a BANDWIDTH a hair under the peak); at the one at which
   every segment is in before it starts, it conforms whatever that order.
-  The report gives both, and the @minBufferTime the declared @bandwidth
-  would need;
+  The report gives both (the text report's columns "needs" and "safe",
+  D-084), and the @minBufferTime the declared @bandwidth would need;
 - @codecs against the codec strings built from each init segment's decoder
   configuration, compared as the HLS check compares CODECS
   (`hls::compare_video_codec`, shared now): the format, the profile, the
@@ -409,9 +413,15 @@ Representation of an MPD declares with what its media holds:
 A table with a row per Representation and a column per check, the findings
 (each names every Representation it applies to), the whole report as JSON;
 exit status 1 when there are errors. It builds in the headless
-configuration too. The player does not run it: the FFmpeg it is built with
-has no DASH demuxer, so an MPD does not open in the player and the
-inspector never gets one.
+configuration too. The FFmpeg the player is built with has no DASH
+demuxer, so an MPD does not open in the player; the N inspector's
+Conformance tab runs the check instead, in its DASH MPD mode (D-084): a URL
+field for an MPD's URL or path, the Read and Size all chips, and Check,
+which runs `DashProbe` in the player's process with nothing playing. The
+tab shows a row per Representation (@bandwidth, needs, safe, a cell per
+check), the findings, and copies the JSON report. `--ui-net
+"tab=conformance,dash=<url>"` runs it in a scripted window (`dash=` last:
+a URL may hold commas), and `conform_out=<path>` writes its JSON report.
 
 **How it works.** `dash::parse_mpd` (`src/DashMpd.*`, pugixml, no FFmpeg)
 lists every Representation's segments: SegmentTemplate with a
@@ -486,8 +496,13 @@ Representations are listed only. `dash::analyze_conformance`
   segments starting inside a GOP under startWithSAP="1" — and so is what
   FFmpeg's dash muxer gets wrong on its own (in "Found while checking"
   below).
+- The Conformance tab's DASH mode
+  (`plan/engineer_tools_runs/dash-tab-2026-11-03/`): on the demo package as
+  local files and on Shaka Player's "Angel One" MPD over HTTP, the tab's
+  report is the command line's, key for key; the tab's HLS mode, on the HLS
+  demo package, still gives the command line's report.
 
-**Not checked.** The player (above). WebM Representations (their Cues and
+**Not checked.** Playing an MPD (above). WebM Representations (their Cues and
 Clusters), text Representations, encrypted contents (whether a
 ContentProtection's cenc:default_KID matches the init segment's tenc is not
 compared either), a Segment Index that points to further sidx boxes,
@@ -498,19 +513,17 @@ MatrixCoefficients descriptors (TransferCharacteristics only); Dolby Vision
 signalling beyond @codecs; MPEG-TS segments in DASH (read the HLS way, not
 tried here).
 
-**To finish.** Decisions for the owner: the thresholds — `kTimeSlack`
-(50 ms), `kTimeBad` (0.5 s), the quarter and half of a nominal @duration,
-`kAlignSlack` (100 ms), `kAlignBad` (0.5 s), and the two shared with the
-HLS check: `hls::kPeakSlack` (1%: a @bandwidth short of what the segments
-need by no more than that is a note) and `hls::kOverDeclared` (1.5×, for a
-@bandwidth above the safe rate) — and which findings count as
-errors (a @maxSegmentDuration exceeded by up to `kTimeSlack` is a warning,
-more an error; a wrong @frameRate a warning); whether a @bandwidth between
-the two rates deserves a note (it conforms if the bytes of each segment
-arrive no sooner than they play, which the sizes alone cannot tell); and how
-the player should reach the check for an MPD it cannot play — a URL field in
-the Conformance tab, say; opening MPDs at all is the open path's, a D-007
-plan.
+**To finish.** Nothing the owner has left open. D-084 kept the thresholds
+— `kTimeSlack` (50 ms), `kTimeBad` (0.5 s), the quarter and half of a
+nominal @duration, `kAlignSlack` (100 ms), `kAlignBad` (0.5 s), and the two
+shared with the HLS check, `hls::kPeakSlack` (1%: a @bandwidth short of what
+the segments need by no more than that is a note) and `hls::kOverDeclared`
+(1.5×, for a @bandwidth above the safe rate) — and the error classes (a
+@maxSegmentDuration exceeded by up to `kTimeSlack` is a warning, more an
+error; a wrong @frameRate a warning). It gave a @bandwidth between the two
+rates no note but the "safe" column, and put the check in the player as the
+Conformance tab's DASH MPD mode. Opening MPDs in the player stays the open
+path's, a D-007 plan of its own.
 
 ## Review
 

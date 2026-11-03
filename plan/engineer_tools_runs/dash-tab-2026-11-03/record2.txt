@@ -1,0 +1,60 @@
+$ git rev-parse HEAD
+a60e4bcc9a953bda05353a9fbf0e3cdd86bd19c8
+[exit status 0]
+
+$ build/macos-debug/mirage_dashcheck --json <scratch>/tabrec/cli_shaka.json https://storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd
+[INFO]  DashProbe: https://storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd — 24 Representations, 20 segments read, 0 sized, 7.9 MB in 4.0 s: 0 errors, 1 warnings
+https://storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd
+static MPD, 24 Representations in 16 AdaptationSets, @minBufferTime 2.000 s: 154 of 154 segments sized, 20 read, in 4.0 s
+
+  #  @bandwidth  needs       safe        CODECS SIZE   FPS    AUDIO  COLOUR SAP    TIME   ALIGN  Representation
+  0  1 kb/s      -           -           -      -      -      -      -      -      -      -      0 (subtitles)
+  1  766 b/s     -           -           -      -      -      -      -      -      -      -      1 (subtitles)
+  2  736 b/s     -           -           -      -      -      -      -      -      -      -      2 (subtitles)
+  3  716 b/s     -           -           -      -      -      -      -      -      -      -      3 (subtitles)
+  4  130 kb/s    126 kb/s    262 kb/s    ok     -      -      ok     -      ok     ok     -      4 (audio, es)
+  5  130 kb/s    126 kb/s    261 kb/s    ok     -      -      ok     -      ok     warn   -      5 (audio, de)
+  6  492 kb/s    328 kb/s    985 kb/s    ok     ok     ok     -      -      ok     ok     -      6 (video, 300×240)
+  7  991 kb/s    661 kb/s    1.98 Mb/s   ok     ok     ok     -      -      ok     ok     -      7 (video, 450×360)
+  8  162 kb/s    117 kb/s    439 kb/s    ok     ok     ok     -      -      ok     ok     -      12 (video, 180×144)
+  9  2.75 Mb/s   1.84 Mb/s   5.51 Mb/s   ok     ok     ok     -      -      ok     ok     -      14 (video, 600×480)
+ 10  4.50 Mb/s   3.00 Mb/s   8.99 Mb/s   ok     ok     ok     -      -      ok     ok     -      15 (video, 720×576)
+ 11  174 kb/s    -           -           -      -      -      -      -      -      -      ok     8 (video, 300×240)
+ 12  315 kb/s    -           -           -      -      -      -      -      -      -      ok     9 (video, 450×360)
+ 13  861 kb/s    -           -           -      -      -      -      -      -      -      ok     10 (video, 720×576)
+ 14  111 kb/s    -           -           -      -      -      -      -      -      -      ok     11 (video, 180×144)
+ 15  578 kb/s    -           -           -      -      -      -      -      -      -      ok     20 (video, 600×480)
+ 16  131 kb/s    126 kb/s    262 kb/s    ok     -      -      ok     -      ok     ok     -      13 (audio, en)
+ 17  73 kb/s     -           -           -      -      -      -      -      -      -      -      16 (audio, fr)
+ 18  76 kb/s     -           -           -      -      -      -      -      -      -      -      17 (audio, es)
+ 19  84 kb/s     -           -           -      -      -      -      -      -      -      -      18 (audio, en)
+ 20  130 kb/s    126 kb/s    261 kb/s    ok     -      -      ok     -      ok     ok     -      19 (audio, fr)
+ 21  69 kb/s     -           -           -      -      -      -      -      -      -      -      21 (audio, de)
+ 22  65 kb/s     -           -           -      -      -      -      -      -      -      -      22 (audio, it)
+ 23  131 kb/s    126 kb/s    262 kb/s    ok     -      -      ok     -      ok     ok     -      23 (audio, it)
+
+0 errors, 1 warning, 3 notes
+warn  the segments end 0.779 s before the Period does  [5]
+      The last segment ends at 59.221 s, the Period at 60.000 s: players stall there or end early.
+note  segments not read: text  [0, 1, 2, 3]
+note  segments not read: WebM (its Cues and Clusters are not read here)  [8, 9, 10, 11, 20, 16 and 4 more]
+note  @segmentAlignment / @subsegmentAlignment not set  [6, 7, 12, 14, 15]
+      5 Representations in AdaptationSet 6: a player switching between them cannot count on their segment boundaries coinciding.
+[exit status 0]
+
+$ uptime
+13:53  up 5 days, 23 mins, 5 users, load averages: 10.49 6.65 5.91
+[exit status 0]
+
+$ HOME=<scratch>/tabrec/home build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-net tab=conformance,width=900,conform_out=<scratch>/tabrec/tab_shaka.json,dash=https://storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd --ui-snapshot <scratch>/tabrec/tab_shaka.png 900 --av-report <scratch>/tabrec/tab_shaka_av.json 40 <scratch>/gui/snapshots/x264_sdr.mp4 > tab_shaka.log
+[exit status 0]
+
+$ python3 -I <scratch>/scripts/compare_conform.py <scratch>/tabrec/cli_shaka.json <scratch>/tabrec/tab_shaka.json
+command line: {'representations': 24, 'errors': 0, 'warnings': 1} | tab: {'representations': 24, 'errors': 0, 'warnings': 1}
+source: command line "https://storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd" | tab "https://storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd"
+keys that differ, source aside: none
+[exit status 0]
+
+$ git status --porcelain
+[exit status 0]
+
