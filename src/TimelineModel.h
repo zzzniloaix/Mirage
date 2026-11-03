@@ -1,6 +1,15 @@
 #pragma once
 
 // The timeline's events, variants and curves on the reference's frames: filled in by WP01.
+//
+// The model of eval/phase3-survey/design.md §4: every event sits at a
+// reference frame or spans reference frames, and intervals are compared on
+// those integers, half-open (D-078). Beside the types the round-1 packages
+// share, this module gives the events their canonical order and their
+// deterministic ids (the design's P-I), so that identical inputs give
+// identical documents, and the overlap index (the design's P-J): the events
+// sorted by their first frame with a running maximum of their ends, built
+// once per timeline. No FFmpeg here but AVRational, through the axis.
 
 #include "TimelineAxis.h"
 
@@ -8,6 +17,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -40,7 +50,14 @@ struct Event {
     std::string  id;                          // deterministic within its document (design §4.7)
     Source       source = Source::Vmaf;
     std::string  type;                        // design §5.9's vocabulary: "segment", "cue_out", ...
-    int          variant = -1;                // index into Timeline::variants; -1: none
+    // Index into Timeline::variants; -1: none. It sets which curves'
+    // attributions list the event (src/TimelineQuery.h): a pair's own
+    // events, its vmaf ones (context_start, unpaired_frame) among them, carry
+    // the index of the pair's distorted variant; the reference's events
+    // carry the reference variant's, the one whose pair is -1; an event of
+    // variant -1 is in no pair's curve's scope (a session's own events come
+    // later, with WP07).
+    int          variant = -1;
     int          session = -1;                // index of its session (D-068); -1: none
     std::optional<std::int64_t> segment;      // segment-bound events: the media sequence number
     std::int64_t ref_index = 0;               // the reference frame it sits or starts at
@@ -53,7 +70,8 @@ struct Event {
 
 // A half-open interval of reference frames, [ref_index, ref_end). A point at
 // frame f meets it when ref_index <= f < ref_end, a span [s, e) when
-// s < ref_end and e > ref_index (D-078).
+// s < ref_end and e > ref_index (D-078), for every interval, an empty one
+// included (see meets()).
 struct Interval {
     std::int64_t ref_index = 0;
     std::int64_t ref_end   = 0;   // exclusive
@@ -104,10 +122,62 @@ struct Timeline {
     std::vector<Curve>       curves;      // one per pair of the report, in its order
     std::vector<Event>       events;      // in canonical order (design §4.7)
     std::vector<std::string> warnings;    // anchors that couldn't be placed, and why (design §5.1)
+
+    // The overlap index (the design's P-J), which build_index() makes: for
+    // each event in canonical order, the largest end of the events up to it,
+    // a point's end being its frame plus one. build_index() must be called
+    // again after any change to the events. Only a change in their number is
+    // detected, and overlapping() then scans every event instead of using
+    // the index; an event moved or replaced without one leaves the index
+    // stale, and overlapping() can miss it.
+    std::vector<std::int64_t> max_end;
+
+    // Puts the events in canonical order and builds the overlap index.
+    void build_index();
+    // Indices into `events` of the events meeting [a, b) by meets()'s rule
+    // (D-078), an empty or reversed interval included, in the order of
+    // `events`: the canonical order after build_index(). The scan that
+    // stands in for a missing or outdated index keeps the canonical order
+    // only when the events are sorted. Margins are the caller's: the query
+    // widens the interval on the axis first (src/TimelineQuery.h).
+    std::vector<std::size_t> overlapping(std::int64_t a, std::int64_t b) const;
 };
 
 // A curve's points: a pair's as Timeline::curves holds them, a session's
 // derived from the pairs' (design §4.4). Defined in src/TimelineModel.cpp.
 Curve curve_points(const Timeline& timeline, CurveRef curve);
+
+// "vmaf", "network", "playlist", "scte35", "player", "decoder": a source's
+// name in the timeline document (design §5.9).
+std::string_view source_name(Source source);
+// The source a name names; nullopt for any other text.
+std::optional<Source> source_from_name(std::string_view name);
+
+// Whether `event` meets `interval` (D-078): a point at frame f when
+// interval.ref_index <= f < interval.ref_end, a span [s, e) when
+// s < interval.ref_end and e > interval.ref_index. The rule holds as written
+// for every interval: an empty one, [a, a), meets no point and every span
+// that straddles a, s < a < e; one with ref_end < ref_index meets no point
+// and the spans that start before its end and end after its start.
+bool meets(const Event& event, Interval interval);
+
+// The canonical order (the design's P-I): by ref_index; then by the end, a
+// point counting as ending at its frame, so that at one frame the points,
+// and any empty span, come before the other spans, the shorter first; then
+// by source in section 3.1's order, by type, by variant, and by id, shorter
+// ids first so that the per-type indices assign_ids() writes compare as
+// numbers.
+bool canonical_before(const Event& a, const Event& b);
+
+// Sorts `events` into canonical order, keeping the order of events that are
+// equal in it (which ids from assign_ids() never are).
+void sort_events(std::vector<Event>& events);
+
+// Gives every event its id, "<source>/<type>/<variant>/<n>" ("-" for no
+// variant), n numbering the events of one source, type and variant from 0
+// in canonical order, and leaves the events in that order (the design's
+// P-I). Events equal in canonical order but for their ids are numbered in
+// the order they come in, so that the ids depend on the inputs alone.
+void assign_ids(std::vector<Event>& events);
 
 } // namespace timeline
