@@ -9,12 +9,15 @@
 // start timestamps inside the segments, on a timeline per rendition — and a
 // "Conformance" tab checking that the master declares what its media holds
 // (HlsConform.h): BANDWIDTH, CODECS, RESOLUTION, FRAME-RATE, VIDEO-RANGE and
-// the segments, read on request by its own probe (HlsConformProbe.h). Data
+// the segments, read on request by its own probe (HlsConformProbe.h) — or,
+// in its DASH mode, an MPD given by URL (DashConform.h, DashConformProbe.h),
+// which the player itself cannot open. Data
 // comes from NetworkLogger (requests and the response bodies it keeps);
 // layout is Dear ImGui (main thread). NetInspectorResponse.cpp,
 // NetInspectorAlign.cpp and NetInspectorConform.cpp hold the Response,
 // Alignment and Conformance views.
 
+#include "DashConformProbe.h"
 #include "HlsAlign.h"
 #include "HlsConformProbe.h"
 #include "NetDescribe.h"
@@ -69,7 +72,9 @@ public:
     // "finding=<n>" (expand the n-th finding), "tab=conformance",
     // "conform=1" (run the conformance check once the manifest is known),
     // "conform_segments=<n>" (0 = every segment), "conform_out=<path>" (write
-    // its JSON report there when it is done).
+    // its JSON report there when it is done), "dash=<MPD URL or path>" (the
+    // tab's DASH mode, checking that MPD at once; last, as the URL may hold
+    // commas).
     void qa_apply(const std::string& spec);
 
     // QA: the alignment report as text (findings, then one line per rendition).
@@ -202,6 +207,16 @@ private:
     int                  conform_open_ = -1;      // finding expanded
     bool                 qa_conform_ = false, qa_conform_started_ = false;
     std::string          qa_conform_out_;
+    // Its DASH mode: an MPD by URL, checked by a probe of its own; kept across
+    // media sessions (it does not depend on what is playing).
+    void start_dash();
+    void draw_dash(float w, float h);              // the body below the toolbar
+    bool                 conform_dash_ = false;   // the tab shows the MPD check
+    char                 dash_url_[2048] = {};
+    DashProbe            dash_;
+    DashProbe::Result    dash_res_;
+    std::uint64_t        dash_ver_ = ~0ull;
+    bool                 qa_dash_ = false;        // "dash=<url>": check it once
 
     // UI state
     Tab           tab_          = Tab::Network;

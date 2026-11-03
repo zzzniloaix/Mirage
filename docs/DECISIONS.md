@@ -723,6 +723,10 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Owner's words**, translated by the agent: "Use the current values for now (Recommended)".
 - **Alternatives**: change some of them before the merge.
 - **Rationale**: the values are the agent's; each is one line to change after the merge.
+- **Decided** (2026-11-03, after the merge; the owner adopting the agent's recommendation each time): the three questions left open above.
+  - A @bandwidth between the DASH check's two rates gets no note; the text report gives both rates, a column "safe" next to "needs". Owner's words, translated by the agent: "Add a safe column, no note (Recommended)". Alternatives: a note on each such Representation; as it was, the safe rate in the JSON only. In the committed runs such a @bandwidth is common (`plan/engineer_tools_runs/dashcheck/`: every Representation of `akamai_bbb`), so a note would be noise.
+  - The Conformance tab keeps sizing every segment by default. Owner's words: "Keep sizing by default (Recommended)". Alternative: only the segments read, a lower bound for the peak.
+  - The player reaches the DASH check through a URL field in the Conformance tab, which runs it in the player's process with nothing playing; the open path is untouched. Owner's words: "Add a URL input box to the check tab (Recommended)". Alternatives: open MPDs in the player (another FFmpeg build and the open path: a D-007 plan); the command line only.
 - **Who**: owner, adopting the agent's recommendation
 - **Date**: 2026-11-03
 
