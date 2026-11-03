@@ -6,6 +6,8 @@ Each entry records the decision, the alternatives, the rationale, who decided an
 
 **Only the owner makes design decisions** (hard rule 3 of the work order). The agent only makes measurement and process choices. Those entries are listed separately below and stay marked as pending until the owner confirms them.
 
+A pending entry is append-only (D-060): what is found after it was written goes in dated lines of its own before its **Who**, such as `- **Correction** (date): …`, and the text above them stays as written. Since D-060 the entries say "agent" alone in their **Who** lines; `docs/AI_CONTRIBUTIONS.md` names the model.
+
 ---
 
 ## Design decisions (owner)
@@ -163,6 +165,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - Every commit SHA changed. Each of the 25 pushed commits was checked by tree hash, and no file tree changed at all.
   - Old → new: the baseline commit `a4e02895d2d9c51c620e6c140f5566944c80ec71` → `1bab7a3104cf9149300eafd3d3deb7ae4a9c6f69`, with tree `61765e415978c5a9735a3a6a3e245c52d0e6be99` unchanged. Every `a4e0289` in the gap report, in this log (P-001, D-010) and in the raw outputs in `eval/` refers to this commit. The raw outputs are kept as they are and are not changed to the new SHA.
   - The 7 commits of `vmaf/phase-0` were also rewritten per D-013 and D-014, so their trees did change.
+- **Correction** (2026-10-30, D-065): the repository is public again before the submission; the owner confirmed on 2026-10-30 that making it public was intentional.
 - **Who**: owner (Jiayu Lin)
 - **Date**: 2026-10-23
 
@@ -459,6 +462,250 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Decision**: the agent's measurement and process choices P-033 to P-065 are confirmed as their entries state them.
 - **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-034)
 - **Date**: 2026-10-26
+
+### D-042 Phase 2's survey: the agent's recommendations adopted
+
+- **Decision**: the owner starts Phase 2 (§2, ladder orchestration) on the branch `vmaf/phase-2`, made from `vmaf/phase-1` before Phase 1 is merged, and adopts every recommendation of `docs/PHASE2_SURVEY.md` (P2-1 to P2-11). D-043 to D-049 record each decision.
+- **Owner's words**: "yep go on", to starting the Phase 2 survey on a separate branch; "yep go with recommendations", to the survey's recommendations.
+- **Who**: owner (Jiayu Lin)
+- **Date**: 2026-10-26
+
+### D-043 The pool scores whole pairs, in mirage_vmaf's ladder mode only
+
+- **Decision**: the pool of §2 runs in `mirage_vmaf --ladder` only; the player's VMAF panel keeps scoring a manifest's pairs one after another, until §4 decides scoring next to playback (P2-1). Each worker scores one pair, as a pair is scored today, so nothing within a pair changes (P2-2).
+- **Alternatives**: the pool in the player as well; frames of one pair spread across workers.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-042)
+- **Date**: 2026-10-26
+
+### D-044 The pool's default size, and libvmaf's threads
+
+- **Decision**: by default the pool scores the machine's physical cores minus one pairs at a time, at least one, the work order's default; each pair's libvmaf keeps its 4 threads, so that Phase 1's §5 parity holds as measured (P2-3). How the wall time changes with the pool's size is a measurement of Phase 5's benchmarks.
+- **Alternatives**: libvmaf on 1 thread per pair; a default that counts libvmaf's threads.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-042)
+- **Date**: 2026-10-26
+
+### D-045 The memory limit: the process's resident memory, no default limit yet
+
+- **Decision**: with a memory limit, a pair starts only while the process's resident memory, read from the system during the run, plus what a running pair uses stays under the limit; running pairs aren't stopped, and a pair that needs more than the limit on its own runs alone, with a warning. There is no default limit until the measurements of one pair's memory and of the ladder before the pool (the survey's M2 and M3) show what a pair uses (P2-4).
+- **Alternatives**: an estimate per pair from its frame sizes and queue depths; a default limit as a share of the machine's memory.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-042)
+- **Date**: 2026-10-26
+
+### D-046 Discontinuities: each discontinuity sequence paired on its own
+
+- **Decision**: after the survey's M5 shows what the analyzer gets at an `EXT-X-DISCONTINUITY`, the pairing pairs the k-th discontinuity sequence of the reference with the k-th of the distorted input, each measured from its own start, with a new libvmaf context for each, the sequences taken from the playlists' `EXT-X-DISCONTINUITY` tags where there are any, else from the timestamp jumps (P2-5). This changes D-028's option (a), which D-040 kept until discontinuities were measured. Rungs whose segments differ in duration need nothing of their own unless M5 shows timestamps that don't line up (P2-6).
+- **Alternatives**: D-028's rule as it is; `ffmpeg`'s correction of timestamp jumps.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-042)
+- **Date**: 2026-10-26
+
+### D-047 A cancel or a failed pair leaves a report of the complete pairs
+
+- **Decision**: `mirage_vmaf --ladder` stops on SIGINT or SIGTERM, or at a pair that fails; the pairs still running are stopped; it writes a report of the pairs that were complete, marked as cancelled or failed, with the pairs not scored listed, and exits with status 1 (P2-7). The report lists the pairs in the plan's order, whatever order they finish in, and records the pool's size, the memory limit and each pair's start and end times, so that it is the same report at every pool size apart from the times (P2-8).
+- **Alternatives**: no report unless every pair is complete, as P-006 and D-029 have it until now.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-042)
+- **Date**: 2026-10-26
+
+### D-048 The pool's options
+
+- **Decision**: `--jobs N` and `--memory-limit SIZE`, on the command line and in a config file (D-030) (P2-9).
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-042)
+- **Date**: 2026-10-26
+
+### D-049 Phase 2's acceptance on Apple's advanced HLS sample, from a local copy
+
+- **Decision**: §2's acceptance runs on Apple's advanced HLS sample: the ladder at the pool sizes 1, 2, 4 and the default, the first 300 frames of each pair, every per-frame score compared across them at full precision, and one run over every frame at the default size for the peak memory against the limit; D-011's ladders, once chosen, as a second acceptance (P2-10). The runs across pool sizes read a local copy of the sample's playlists and segments, kept outside the repository with their SHA-256s committed, and one run reads Apple's CDN as a check (P2-11).
+- **Alternatives**: waiting for D-011's ladders; every run from the CDN.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-042)
+- **Date**: 2026-10-26
+
+### D-050 Discontinuity sequences pair only where their jumps are at the same place
+
+- **Decision**: the k-th discontinuity sequences of the two inputs pair only where the jump that starts them is at the same place in both: where both inputs' (k − 1)-th sequences end within a frame of the coarser input of each other, in their own times. Where they don't, pairing stops at that sequence and every frame after it counts as failed, as D-028's rule counts the frames after a discontinuity (option 2 of "Discontinuity sequences that don't line up" in `docs/PHASE2_DECISIONS_PENDING.md`). Jumps at the same place pair as D-046 has them, and the sequences stay those of P-068, found where the timestamps jump; the playlists' tags (option 5) aren't read.
+- **Owner's words**: "Pair only aligned jumps (Recommended)", the owner's answer to the agent's question of 2026-10-27.
+- **Alternatives**: D-046 as P-068 implements it; a jump forward taken as a gap, not a sequence (options 3 and 4); the sequences from the playlists' tags.
+- **Rationale**: RFC 8216 (§6.2.4) has matching content in variant streams carry matching timestamps and discontinuity sequence numbers, so a tag's jump is at the same place in every rung of a ladder that follows it. Jumps at different places come from frames missing in one input, as when segments are skipped, and D-046's pairing paired those inputs' later sequences 12.012 s apart in M5's gaps (P-070).
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Date**: 2026-10-27
+
+### D-051 The memory limit counts each pair at what a pair uses plus 10%
+
+- **Decision**: with a memory limit, a pair starts only while the memory before the run, plus what a pair uses and 10% more for each running pair and the new one, stays within the limit; the rest of D-045's rule and P-072's warm-up stay as they are (option 2 of "The memory limit's peak"). The acceptance's runs check that the peak then stays under the limit.
+- **Owner's words**: "10% margin (Recommended)".
+- **Alternatives**: D-045's rule with P-072's warm-up as it is; a pair counted at the most one pair has used in the run; an estimate from the inputs' frame sizes and the queues' depths (D-045's alternative).
+- **Rationale**: one pair gains about 3% after its first 30 frame pairs (P-071, `warm_up.txt`), and with the rule as it was the peak at 1 GiB was 5.4% over the limit (P-072).
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Date**: 2026-10-27
+
+### D-052 No default memory limit
+
+- **Decision**: `mirage_vmaf --ladder` has a memory limit only when `--memory-limit` gives one; there is no default. This settles what D-045 left until M2 and M3 were measured.
+- **Owner's words**: "No default (Recommended)".
+- **Alternatives**: a default limit as a share of the machine's memory.
+- **Rationale**: by M2 one pair of the advanced sample with two 1080p60 inputs peaked at 292995072 bytes over 300 frame pairs, and at the default size 7 pairs at once peaked at 2009759744 bytes, on a machine with 38654705664 bytes (P-071).
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Date**: 2026-10-27
+
+### D-053 The memory limit's margin is 25%, and the report gives what a pair was measured to use
+
+- **Decision**: D-051's margin becomes 25%: each pair, running or new, is counted at what a pair uses plus 25%. The report gives what the rule measured a pair to use, so that a run shows how far its pairs went beyond it, and D-049's run over every frame is repeated to check the peak (option 2 of "The memory limit over every frame" in `docs/PHASE2_DECISIONS_PENDING.md`).
+- **Owner's words**: "25% margin (Recommended)", the owner's answer to the agent's question of 2026-10-27.
+- **Alternatives**: D-051's 10%; a count that grows with a pair's length; an estimate from the inputs' frame sizes, the queues' depths and their length.
+- **Rationale**: with 10%, D-049's run over every frame from Apple's CDN peaked 2.1% over 1 GiB; one pair over every frame peaked at 345407488 bytes, 21% above one pair's peak after 30 frame pairs of the local copy (P-073).
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Date**: 2026-10-27
+
+### D-054 The audit's questions: the agent's recommendations adopted
+
+- **Decision**: the owner adopts every recommendation labeled as the agent's in `docs/PHASE2_DECISIONS_PENDING.md` as of `d9c690a`: those on the questions the audit of 2026-10-28 raised, and the confirmation of P-067 to P-077. D-055 to D-061 record each decision.
+- **Owner's words**, translated by the agent: "yea, I think they can all go by your recommendations", in answer to the agent's summary of the questions, each with its recommendation.
+- **Not covered, still open**: the reviews' asks that touch decided items, which the pending document lists for information without a recommendation; options are written for them only if the owner asks.
+- **Alternatives**: deciding each question separately.
+- **Who**: owner (Jiayu Lin)
+- **Date**: 2026-10-29
+
+### D-055 A segment the hls demuxer can't read is tried again, and one it still goes on without fails the pair
+
+- **Decision**: the analyzer gives FFmpeg's hls demuxer `seg_max_retry` 10, the player's value (`src/Demuxer.cpp`), so that a segment that can't be opened is tried again before the demuxer goes on to the next one; a segment it still goes on without fails the pair, as a read error does, so that no report is complete without it, and with it a ladder run fails (D-047) (options 2 and 3 of "A segment the hls demuxer skips" in `docs/PHASE2_DECISIONS_PENDING.md`). This changes D-036, which left the player's segment retries out. A gap at the same place in both inputs' timestamps, reported and scored in a new libvmaf context (option 4), is for later, for gaps that are in the source itself.
+- **Alternatives**: the segment skipped, as D-036 has it, so that only the pairing's counts can show it; the retries alone; the skip taken as a failure alone; the gap reported.
+- **Rationale**: with D-036's 5 s limit a segment whose request waits longer is skipped, and the read returns no error, so the pair ended complete, with exit 0. A segment lost in one input shows only as frames that don't pair, which warn above 1% (D-028), and since each input's times are measured from its own start (D-028), a first segment lost in one input offsets every pair; one lost in both at the same place leaves no failure. FFmpeg's side of the §5 check still skips such a segment.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-054)
+- **Date**: 2026-10-29
+
+### D-056 An rtmp input gets FFmpeg's rw_timeout alone
+
+- **Decision**: an rtmp URL is opened with FFmpeg's `rw_timeout` alone, without `timeout`, which FFmpeg's own rtmp protocol takes as the time to wait for an incoming connection, and which makes it listen on the URL's host and port instead of connecting to them (`ffmpeg -h protocol=rtmp`): in `src/VMAFNet.h`, `src/FfOpen.cpp` and `src/Demuxer.cpp` alike, the player keeping the analyzer's rule. `--help`, P-066's statement of the limits and the tests follow, and a test on a local rtmp server checks it end to end (option 2 of "The options of an rtmp input"). This changes D-036's `timeout` for rtmp inputs.
+- **Alternatives**: `timeout` and `rw_timeout` for every network input, as D-036 words it; rtmp refused by `mirage_vmaf`, as a protocol it doesn't support.
+- **Rationale**: D-036's intent, that a read that waits longer fails, then holds for rtmp: with `timeout` an rtmp input listened instead of connecting, and its 5 s weren't a limit on its reads.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-054)
+- **Date**: 2026-10-29
+
+### D-057 The report gives each input's discontinuity sequences, and the frames D-050 counts keep D-046's reasons
+
+- **Decision**
+  - The report gives each input's discontinuity sequences, where each starts and how many frames it has, so that frames missing at the start of a sequence show as an offset between the two inputs' sequences of the same rank; no pair changes (option 2 of (a) of "Frames missing at a sequence's start, and the reasons of the frames D-050 counts"). A check in the pairing of the sequences' first timestamps, which would fail the frames an input lacks (option 3), waits for a committed case that shows such an offset.
+  - The frames D-050 counts keep D-046's reasons, as P-073 implements them: the other input's frame within a frame of the coarser input of the first input's jump is an unmatched reference or extra distorted frame, and where one input ends instead of jumping pairing doesn't stop, and the other input's frames are unmatched or extra; a test covers an input that ends (option 1 of (b)).
+- **Alternatives**: (a) the limitation stated in `--help` and the method notes only; the pairing checking the sequences' first timestamps now. (b) those frames counted as after a discontinuity, as D-028's rule counts them.
+- **Rationale**: each sequence after the first is measured from its own first frame (D-046), so an input that lacks the first frames after a jump that is at the same place in both inputs pairs offset by the frames it lacks, and the frames that don't pair warn only above 1% (D-028); the report shows the offset without changing a score.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-054)
+- **Date**: 2026-10-29
+
+### D-058 The report gives the memory limit's measure at each pair it let start, and the limit stays a rule for starting pairs
+
+- **Decision**
+  - The report's `pool.pair_memory` gives each admission of the memory limit's rule, the pair it let start with what the rule counted a pair at then, instead of the largest measure alone (option 3 of (a) of "What `pool.pair_memory` gives, and what `--memory-limit` is").
+  - `--memory-limit` stays a rule for starting pairs, as D-045 to D-053 have it: running pairs aren't stopped, and the peak can pass the limit (option 1 of (b)).
+- **Alternatives**: (a) the largest measure, as P-074 has it; the measure of the first pairs once they had warmed up. (b) a cap, a running pair that would take the process over it paused, or stopped and started again later; each pair in a process of its own, measured and limited on its own.
+- **Rationale**: D-053 has the report give what the rule measured a pair to use "so that a run shows how far its pairs went beyond it", which a measure kept at its largest can't show, and the largest can be read from each admission's; with D-053's margin the run over every frame stayed under the limit (P-075), and a cap would stop pairs that have done much of their work.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-054)
+- **Date**: 2026-10-29
+
+### D-059 A run with a memory limit whose memory can't be read is refused
+
+- **Decision**: with a memory limit, a ladder run whose resident memory can't be read before its first pair fails then, and a reading that fails later holds the next pair back until one succeeds (option 3 of "A memory limit when the memory can't be read").
+- **Alternatives**: pairs started as the warm-up allows, and nothing said, as P-067 implements it; the same, with a warning on stderr and in the report.
+- **Rationale**: a run that was given a limit doesn't run without one.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-054)
+- **Date**: 2026-10-29
+
+### D-060 The decision log, the records and the documents after the audit
+
+- **Decision**
+  - A pending P-entry is append-only: what is found after it goes in dated lines of its own before its **Who**, and the text above them stays as written (option 1 of "Whether a pending P-entry may grow").
+  - `eval/streams/local-advanced-2026-10-26/` stays as committed, and `eval/streams.md` says what its SHA256SUMS checks, and how (option 1 of "The streams record's checksums").
+  - `docs/PHASE2_SURVEY.md` is a snapshot as of its last commit, its header pointing to `docs/PHASE2_STATUS.md` for the measurements since (option 1 of "`docs/PHASE2_SURVEY.md`, a snapshot or updated").
+  - The line of the agent's recommendation that `34e6faa` left out of the package of P-033 to P-065 is restored in `docs/PHASE1_DECISIONS_PENDING.md` on `vmaf/phase-1`, in a new commit, with the citations of "hard rule 4" for the differences list corrected there, so that Phase 1's PR carries them (option 1 of "The recommendation line of P-033 to P-065 in Phase 1's pending document").
+  - From now on the files other than `docs/AI_CONTRIBUTIONS.md` say "agent" alone, in bylines and **Who** lines, and that file alone names the model; what is written stays (option 2 of (a) of "The model's name, and the survey's rendering of §2"). The survey's rendering of §2, the requirements in its own words with no passage of the work order quoted, is within D-013 (option 1 of (b)).
+- **Alternatives**: as the pending document lists them for each.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-054)
+- **Date**: 2026-10-29
+
+### D-061 The process choices P-067 to P-077 are confirmed
+
+- **Decision**: the agent's measurement and process choices P-067 to P-077 are confirmed as their entries state them, with their corrections; D-050, D-051 and D-053 change what P-068 and P-072 implement.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-054)
+- **Date**: 2026-10-29
+
+### D-062 Phase 1's PR states D-055's and D-056's limits, and Phase 2's brings the fixes
+
+- **Decision**: D-055 and D-056 stay on `vmaf/phase-2`, which brings them to `main` with Phase 2's PR; `vmaf/phase-1` gets neither, and Phase 1's PR states both as known limits of its analyzer: an rtmp URL gets FFmpeg's `timeout`, with which the input listens on the URL's host and port instead of connecting to them, and a segment FFmpeg's hls demuxer goes on without, after one try, leaves the pair complete (option 1 of "D-055 and D-056 on Phase 1's branch" in `docs/PHASE2_DECISIONS_PENDING.md`).
+- **Owner's words**: "No, PR states them (Recommended)", the owner's answer to the agent's question.
+- **Alternatives**: D-056 alone on `vmaf/phase-1`; both on `vmaf/phase-1`, each with its tests and a new unit test record.
+- **Rationale**: neither changes a committed measurement (`eval/run_all/2026-10-29-d055/`), rtmp inputs are outside the work order's scope, and a port would change Phase 1's code after its records were made.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Date**: 2026-10-30
+
+### D-063 Every step is rerun on macOS 26.6.2 with the long runs
+
+- **Decision**: the committed measurements are rerun on macOS 26.6.2 with the long runs, at the time the owner sets for them: every step of `eval/run_all.sh` with the Phase 2 program, the four over every frame included, in place of the rerun of `acceptance-full` and `pooling-full` left for another time, with the machine on AC power and its lid open (option 1 of "The committed measurements on macOS 26.6.2").
+- **Owner's words**: "With the long runs (Recommended)".
+- **Alternatives**: the rerun now, on its own; none before the PRs, each record stating its macOS version.
+- **Rationale**: one rerun of every step checks the Phase 2 program and the new macOS together; on 26.6.2 the 300-frame steps that read Apple's CDN found everything as committed (P-078).
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Date**: 2026-10-30
+
+### D-064 The process choice P-078 is confirmed
+
+- **Decision**: the agent's measurement and process choices P-078 are confirmed as the entry states them.
+- **Owner's words**: "Confirm (Recommended)".
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Date**: 2026-10-30
+
+### D-065 The repository is public again before the submission
+
+- **Decision**: `zzzniloaix/Mirage` is public again before the submission, as the owner intended. D-012's rationale says it would be made public again for the submission; the agent found it public (GitHub's `private: false`) on 2026-10-30, when it opened Phase 1's PR, and asked whether that was intentional.
+- **Owner's words**: "yes making it public was intentional".
+- **Implications**
+  - D-008's question, as `docs/PHASE1_DECISIONS_PENDING.md` words it, is whether legal or the company's open-source process has to confirm GPL-3.0-or-later "before the repository is made public again". It stays open as whether they have to confirm it, and it is the owner's to check.
+  - When the repository was made public again isn't in any committed record.
+- **Who**: owner (Jiayu Lin)
+- **Date**: 2026-10-30
+
+### D-066 Phase 2's PR waits, and Phase 3 starts on a branch of Phase 2's
+
+- **Decision**: Phase 2's PR isn't opened yet; the agent goes on with the work order's later phases, from Phase 3, with a team of agents it leads, until the feature is done. Phase 3's branch, `vmaf/phase-3`, is made from `vmaf/phase-2`, as D-042 made Phase 2's from Phase 1's, and its PR comes after Phase 2's (hard rule 5). Phase 2's PR is opened when the owner says.
+- **Owner's words**: "we dont have to open a PR right now, you can lead a team with several agents to do the VMAF until you are all done with the feature", after the agent's report that Phase 2's PR was drafted.
+- **Alternatives**: Phase 2's PR first.
+- **Who**: owner (Jiayu Lin)
+- **Date**: 2026-10-30
+
+### D-067 The process choices P-066, P-079 and P-080 are confirmed, with the AI rows, and D-053's margin stays
+
+- **Decision**: the agent's measurement and process choices P-066, P-079 and P-080 are confirmed as their entries state them, and so are the parts of `docs/AI_CONTRIBUTIONS.md` on Phase 1 and Phase 2 as of `da0ffb8`. D-053's margin of 25% stays. In the acceptance check over every frame from Apple's CDN at 1 GiB (P-080, `eval/ladder/acceptance-c673738/README.md`) the process peaked at 1068269568 bytes, 5472256 bytes (0.51%) under the limit and 29908992 bytes above what the rule counted for the three pairs it had let start; Phase 2's PR and the paper state that margin as it was measured.
+- **Owner's words**, translated by the agent: "All as recommended (Recommended)", the owner's answer to the agent's question.
+- **Alternatives**: confirm them and revisit D-053's margin before Phase 2's PR, with a larger margin or a longer warm-up and the check over every frame run again; review the records first.
+- **Rationale**: D-058 keeps the limit a rule for starting pairs, not a cap on the process's memory; another margin would need another run over every frame, and the margin measured can be stated as it is.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Date**: 2026-10-30
+
+### D-068 §3's sessions: the ladder's scores joined with a session's log
+
+- **Decision**: §3's timeline takes a session's scores from the ladder's, which §2 scores once, each variant over its full length on the reference's timeline. A session is the variant played over each span of media time, with the HTTP timing of its segments, and its curve is, at each frame, the score of the variant played then. Sessions come from a scripted plan of switches, which the tests use, and later from a log the player records. The render and decode paths don't change for it.
+- **Owner's words**, translated by the agent: "Offline scores + session log (Recommended)", the owner's answer to the agent's question.
+- **Alternatives**
+  - Decode each session again in the order it was played, and score its frames against the reference: the scores of the frames as decoded in sequence, a switch's artifacts included, at the cost of a full decode and scoring for each session, and of a resolution change within a stream.
+  - Wait for Phase 4 and score in the player while it plays, recording the network and the switches live: the closest to playback, but it needs D-007's plan first, and the network's timing differs at each run.
+- **Rationale**: Mirage has no ABR (gap report, "Existing data sources for §3.1"), and §2's ladder scores give each variant's score at each frame of the reference; a session can be attributed again without scoring again.
+- **Limits**: a session's scores assume that the player decoded the frames the offline decode did; frames dropped at a switch show only as the decoder's events, not in the scores.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Date**: 2026-10-30
+
+### D-069 §3.2's two attribution tests use synthetic content, and the evaluation's ladders public source clips
+
+- **Decision**: the two attribution tests of §3.2, a stream with an encoding degradation on a known segment and one whose score drops at an ad boundary, make small synthetic ladders within the tests, through FFmpeg's libraries: one with a segment encoded at a deliberately low quality, the other with a low-quality "ad" at an `EXT-X-DISCONTINUITY` with `EXT-X-CUE-OUT` and `EXT-X-CUE-IN`. They run in ctest, with nothing to download. The ladders of the paper's evaluation are encoded later from public source clips (D-011), whose clips and encoding parameters the owner picks then.
+- **Owner's words**, translated by the agent: "Synthetic for the tests, public source clips for the evaluation (Recommended)".
+- **Alternatives**: synthetic content for the evaluation too, the simplest to reproduce, but synthetic pictures aren't natural video and VMAF's behavior on them doesn't stand for real content; D-011's clips for the tests too, the most realistic, but the tests would depend on a download and an encode and run slowly, and the media wouldn't be committed, only the scripts and SHA-256s.
+- **Rationale**: tests that make their own inputs are reproducible wherever the build is, with no license question.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Date**: 2026-10-30
+
+### D-070 Phase 3 reads SCTE-35 from HLS playlist signaling
+
+- **Decision**: §3.1's SCTE-35 events (cue-out, cue-in, splice point, ad duration) come from HLS playlists: `EXT-X-CUE-OUT`, `EXT-X-CUE-OUT-CONT`, `EXT-X-CUE-IN`, `#EXT-OATCLS-SCTE35`, and the `SCTE35-OUT`, `SCTE35-IN` and `SCTE35-CMD` attributes of `EXT-X-DATERANGE`, whose splice_info_section is decoded (splice_insert, time_signal, break_duration, the splice time). DASH's `EventStream` and SCTE-35 carried within MPEG-TS segments are left as interfaces.
+- **Owner's words**, translated by the agent: "HLS playlist signaling (Recommended)".
+- **Alternatives**: HLS and DASH's `EventStream` (`urn:scte:scte35:2013:xml`, `urn:scte:scte35:2014:xml+bin`), which `ManifestParser` can read, but mirage_vmaf doesn't score DASH ladders, so their events wouldn't reach a timeline with scores; both, and SCTE-35 within MPEG-TS segments (stream type 0x86), which needs a data stream read while scoring, and whether FFmpeg's hls demuxer gives that stream is unverified.
+- **Rationale**: mirage_vmaf scores HLS ladders (§2); this covers the streams it can score.
+- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Date**: 2026-10-30
 
 ---
 
@@ -1739,6 +1986,239 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Result** of the unit tests (`eval/test_runs/macos-2026-10-26-bbc669d.txt`): `mirage_tests '~[audio]'` passed at the first run, 112082 assertions in 317 test cases, and the four Python suites passed, 28, 136, 11 and 16 tests.
 - **Result** of the rerun at `bbc669d` (`eval/run_all/2026-10-26-d035/`): 25 of its 27 steps found everything as committed, `acceptance-full`, `pooling-full`, `negotiation-clips` and `negotiation-cases` among them. The program it built from `bbc669d`, SHA-256 `aaac3630522dc4261f6fa27bb8e81dc66a64ba9860292ecdeae5e9164fb372d3`, has that of the negotiation cases' run, and gives every run it reran that was made after D-016 by another build the committed verdicts and scores; the programs built from `83c8ed6`, `d993686` and `e8b867f` have the SHA-256s of the runs they reran (`rerun_check.md`). In `defaults-full`, `gear4_vs_gear5` was as committed. The `ffmpeg` of `gear2_vs_gear5` last wrote its stderr log at 2026-10-26T23:59:41Z, the machine went to sleep with its lid closed at 2026-10-27T00:03:35Z and woke for good at 17:06:51Z (`power_log.txt`), and after the wake that process used 0.04 s of CPU time in 120 s; it was stopped with SIGTERM (`stall_check.txt`). The stderr logs of `mirage_vmaf` in the three other pairs hold network reads that timed out ("Operation timed out"), and its reports scored 52442, 4425 and 15639 of the 53946 frame pairs, each with D-028's warning that more frames than the threshold failed to pair, most of them after a discontinuity, and exit status 0, as D-028 has it (`README.md`). `pooling-defaults-full` read those reports and differs from its committed outputs.
 - **Result** of the rerun of the two steps (`eval/run_all/2026-10-27-defaults-full/rerun_check.md`, `run_all.md`): both found everything as committed: every pair's verdict, all 53946 per-frame scores of each of the four pairs on Mirage's side at full precision, every libvmaf metric of FFmpeg's logs and every pooling series. The program it built from `953d42e` has the SHA-256 of the one the rerun above built from `bbc669d`, `aaac3630…`. It took 3172.9 s of wall time, the build included, of which 3089.7 s for `defaults-full`.
+- **Correction** (2026-10-29): the Choice's reason for giving `vmafladder::read_master()` no interrupt callback, that `mirage_vmaf` runs it synchronously, doesn't hold on `vmaf/phase-2`: there `mirage_vmaf` sets its SIGINT and SIGTERM handlers before `vmafladder::score()`, which reads the master (D-047), so a cancel during a read that waited took effect only at the 5 s limit, and the run ended without a report. `read_master()` now takes the run's stop token and gives `avio_open2()` a callback that ends the read once a stop is requested and the read has gone on for 100 ms; the run then ends as one whose master couldn't be read, without a report. A read that doesn't wait, as a local file's, isn't ended, so a run cancelled before it starts still has its plan, as the test of D-047's cancel has it.
+- **Correction** (2026-10-29): the limits for an rtmp URL don't hold as the Choice states them. FFmpeg 8.1.1's own rtmp protocol takes `timeout` as the time, in seconds, to wait for an incoming connection, and with it an rtmp input listened on its URL's host and port instead of connecting to them (`ffmpeg -h protocol=rtmp`). Since D-056 an rtmp URL gets `rw_timeout` alone, in `src/FfOpen.cpp` and `src/Demuxer.cpp` as well, and TCP's own limit on a connection attempt, 5 s, holds; `tests/test_rtmp_input.cpp` connects to a local rtmp server.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-26
+- **Status**: pending owner confirmation
+
+### P-067 How D-043 to D-048 are implemented: the pool, the memory limit and the end of a run
+
+- **Choice**
+  - `vmafladder::score()` runs `min(jobs, pairs)` workers; each takes the next pair in the plan's order and scores it with `VMAFAnalyzer::analyze()` and the run's options, which now takes a stop token. The default size is `vmafproc::default_jobs()`: `hw.physicalcpu` minus one on macOS, the distinct (package, core) pairs of `/sys/devices/system/cpu/cpu*/topology` minus one on Linux, at least 1 (`src/VMAFProcess.h`). `--jobs` takes 1 to 256.
+  - The memory limit: before a worker starts a pair while others run, it reads the process's resident memory (`task_info`'s resident size on macOS, `/proc/self/statm` on Linux) and starts it only if that plus the memory gained since the run began, divided by the pairs running, stays under the limit; otherwise it waits, reading again every 20 ms. With no pair running a pair always starts. A pair running alone over the limit gets one warning, checked every 50 ms and when it ends. The report's peak resident memory is `getrusage`'s `ru_maxrss` at the end. `--memory-limit` takes a whole number of bytes, or of KiB, MiB, GiB or TiB with K, M, G or T.
+  - The end: a stop requested on the run's token, which SIGINT and SIGTERM request in `mirage_vmaf`, or the first pair whose analysis is incomplete or whose settings aren't those of the first pair to complete, stops the pairs running and starts no other. A pair cut short by the stop is "stopped", one never started "not started"; the run is "failed" when a pair failed, else "cancelled" when a pair isn't complete, else "complete". The report lists the complete pairs, each with its start and end in seconds from the run's start, then the others with their state, and the pool's fields; `mirage_vmaf` writes it in all three cases and exits with 1 unless the run is complete.
+  - The player's analysis is unchanged (D-043).
+- **Alternatives**: a fixed queue of pairs per worker; a memory estimate per pair from the inputs' frame sizes (D-045's alternative); a sampled peak instead of `ru_maxrss`; no upper bound on `--jobs`.
+- **Rationale**: each follows its decision with the least machinery: the plan's order keeps the report the same at every size; the admission rule measures the memory the limit is about, and needs no model of a pair's memory; `ru_maxrss` is the system's own peak, which `/usr/bin/time -l` reports too.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-26
+- **Status**: confirmed by the owner (2026-10-29, D-061)
+
+### P-068 How D-046 is implemented: the discontinuity sequences come from the timestamps
+
+- **Choice**: a discontinuity, as D-028's rule finds it in an input (a timestamp that goes back, or forward by more than 10 s), starts the input's next discontinuity sequence, whose times are measured from that frame; the k-th sequences of the two inputs are paired by D-028's rules, a sequence only one input has pairs with nothing, and each sequence after the first starts a new libvmaf context (`src/VMAFAlign.h`). The playlists' `EXT-X-DISCONTINUITY` tags aren't read: FFmpeg's hls demuxer doesn't say which segment a frame came from, so a tag can't place a sequence's start in the frames the analyzer gets, and M5 shows that where the timestamps go on across a tag, the frames pair without one (`eval/phase2-survey/m5/record.txt`).
+- **This departs from D-046's wording**, which takes the sequences "from the playlists' `EXT-X-DISCONTINUITY` tags where there are any, else from the timestamp jumps". In a ladder whose rungs all jump at the same tags, as M5's streams do, the two agree; they would differ where a tag's timestamps jump in one rung and go on in another, or where timestamps jump without a tag. Provisional until the owner decides.
+- **Alternatives**: reading each media playlist's tags and placing each sequence by the playlist's durations before it; counting the tags and warning when the timestamps' jumps don't match them.
+- **Result**: with the release `mirage_vmaf` of `f988091`, M5's streams pair every frame where both rungs' timestamps start again or jump 60 s ahead, 60 pairs and no failure (`eval/phase2-survey/m5-d046/record.txt`). The committed alignment case `a07_restart`, whose distorted input alone restarts, keeps its pairs and scores; its 10 failures are now 5 unmatched reference and 5 extra distorted frames, not 10 after a discontinuity (from the code; its rerun is the next `eval/run_all.sh` run's).
+- **Correction** (2026-10-28): the Result's statement on the alignment case `a07_restart`, its failures as 5 unmatched reference and 5 extra distorted frames, was made from the code under D-046. D-050 has changed the rule since, and no committed output gives how the case's failures are counted now: MEASUREMENT PENDING (P-073).
+- **Measured** (2026-10-30, P-079): under D-050 the case's 10 frames that failed to pair count as 1 unmatched reference frame and 9 after a discontinuity, its verdict, pairs and scores as committed (`eval/run_all/2026-10-30-d063/consistency/align-cases-d028/main/a07_restart/mirage.json`).
+- **Who**: agent (Claude)
+- **Date**: 2026-10-26
+- **Status**: confirmed by the owner (2026-10-29, D-061)
+
+### P-069 Phase 2's measurements so far: the machine, M5, and the local copy of the acceptance ladder
+
+- **Choice**
+  - M1, the machine's cores and memory, as `sysctl` gives them (`eval/phase2-survey/machine.txt`).
+  - M5, `eval/phase2-survey/m5_discontinuities.py`: two rungs, 1920x1080 and 640x360, two periods of 30 frames from FFmpeg's `testsrc2` and `testsrc`, MPEG-2 in MPEG-TS with every frame a key frame; an `EXT-X-DISCONTINUITY` whose timestamps start again, start 60 s later, or go on, and rungs whose segments differ; each frame's timestamp through FFmpeg's hls demuxer (ffprobe), and `mirage_vmaf`'s alignment of each pair, before D-046 (`m5/record.txt`, the release program of `e5a34ea`) and after it (`m5-d046/record.txt`, of `f988091`).
+  - D-049's local copy: `eval/streams/local_copy.py` keeps the master of Apple's advanced sample and its 8 video playlists cut after their first 2 segments, with an `EXT-X-ENDLIST`, enough for the first 300 frame pairs of each pair at 30 or 60 fps, the media outside the repository and their SHA-256s in `eval/streams/local-advanced-2026-10-26/`.
+  - The acceptance's check, `eval/ladder/pool_check.py`: the ladder at several pool sizes, each run's report, output and `/usr/bin/time -l`, and every pair compared at full precision.
+- **Alternatives**: M5's streams from a real packager; a copy of every segment; comparing only the pooled values.
+- **Rationale**: the smallest inputs that show the behavior each measurement is about, from FFmpeg alone, as the earlier synthetic cases are made.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-26
+- **Status**: confirmed by the owner (2026-10-29, D-061)
+
+### P-070 M5's gaps: discontinuity sequences that don't line up, and the report's start after a discontinuity
+
+- **Choice**
+  - `eval/phase2-survey/m5_gaps.py`, after M5, for gaps: a synthetic ladder of two rungs, 36 s of FFmpeg's `testsrc2` at 640x360 and 320x180, MPEG-2 in MPEG-TS with every frame a key frame, in segments of about 2 s, and media playlists without six segments in a row, about 12 s, and without a tag, as when FFmpeg's hls demuxer skips segments it can't read: the reference alone, both inputs at different places, both at the same place. Each case scored by the release `mirage_vmaf` of `e5d6e9d`, D-046's pairing, and by the one `eval/run_all.sh` built from `bbc669d` on `vmaf/phase-1`, D-028's rule (`eval/phase2-survey/m5-gaps/record.txt`).
+  - Made after Phase 1's rerun at `bbc669d`, in which `mirage_vmaf`'s network reads timed out and its reports of two pairs counted 2 and 7 timestamp discontinuities (`eval/run_all/2026-10-26-d035/consistency/defaults-full/plain/gear3_vs_gear5/delta.md` and `gear1_vs_gear5/delta.md` on `vmaf/phase-1`).
+  - The fix it found: since `f988091` a discontinuity replaced the input's start with its sequence's, so the report's `alignment.reference.start` and `alignment.distorted.start` gave the start of the input's last sequence. `7ad0929` keeps each sequence's start apart for the pairing, and the report gives the input's start again (`tests/test_vmaf_align.cpp`); pairs and scores don't change. No committed record has these fields for an input with a discontinuity.
+- **Alternatives**: segments of Apple's sample left out of its playlists; a unit test on timestamps alone, which doesn't go through FFmpeg's hls demuxer.
+- **Result** (`eval/phase2-survey/m5-gaps/record.txt`):
+  - Both inputs lack different segments, the reference its segments 4 to 9, the distorted input its segments 10 to 15: with D-046's pairing, 359 pairs, of which the 119 of the second libvmaf context pair a reference frame with the distorted frame 12.012 s later, from reference 21.453367 s with distorted 33.465367 s to reference 25.390633 s with distorted 37.402633 s. It counted 360 unmatched reference and 360 extra distorted frames and warned of the failure rate, 66.73%, as for any failures; nothing in the report sets the 119 pairs apart, and their mean score, 11.564222, is above that of the 240 others, 9.873372. With D-028's rule, 240 pairs and 958 frames after a discontinuity.
+  - Both lack the same segments: with D-046's pairing, 719 pairs and no failure; with D-028's rule, 240 pairs and 958 frames after a discontinuity.
+  - The reference alone lacks them: 240 pairs with either; with D-046's pairing 479 unmatched reference and 839 extra distorted frames, with D-028's rule 1318 frames after a discontinuity.
+  - Each input's start is 1.433367 s in all six reports, of both programs.
+- **Correction** (2026-10-28): "No committed record has these fields for an input with a discontinuity" means no record made with a program between `f988091` and `7ad0929`, whose start was wrong; `eval/phase2-survey/m5-gaps/record.txt`, made after `7ad0929`, gives the inputs' starts next to their discontinuities.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-27
+- **Status**: confirmed by the owner (2026-10-29, D-061); the question the result raised was decided by D-050
+
+### P-071 Phase 2's measurements: M2, M3, the acceptance across pool sizes at 300 frames, and the memory limit
+
+- **Choice**
+  - M2 and M3 by `eval/phase2-survey/m2_m3_baseline.sh`, with the `mirage_vmaf` that `eval/run_all.sh` built from `953d42e` on `vmaf/phase-1`, from before the pool (SHA-256 `aaac3630…`, `eval/run_all/2026-10-27-defaults-full/builds/head/build.txt` on that branch), on the local copy of Apple's advanced sample (`eval/streams/local-advanced-2026-10-26/`), the first 300 frame pairs (`eval/phase2-survey/m2-m3/record.txt`).
+  - D-049's runs across pool sizes: `eval/ladder/pool_check.py` at the sizes 1, 2, 4 and the default, the first 300 frame pairs of each pair, with a `mirage_vmaf` built in a new clean worktree of `1cc1ab0` (`eval/ladder/advanced-local-300/`).
+  - The memory limit at 300 frames: `pool_check.py --jobs 1,0 --memory-limit 1G`, 1 GiB being about three pairs' worth by M2 and under the default size's peak, so that the limit holds pairs back. Since `048a9ac` the check fails a run whose peak, by its report or by `/usr/bin/time -l`, is over the limit, with tests (`eval/ladder/tests/test_pool_check.py`). Run with the programs of `1cc1ab0`, `a3d011b` and `dfed5a3`, each built in a new clean worktree (`eval/ladder/advanced-local-300-mem1g-1cc1ab0/`, `-a3d011b/`, `-dfed5a3/`), the last two with one pair's peak memory after 1 to 300 frame pairs (`warm_up.txt`).
+  - Every run one at a time with nothing else running, on battery power, with no sleep (the records' READMEs).
+- **Alternatives**: the CDN, as D-049's one check run does; another limit; the wall times on AC power.
+- **Result**
+  - M2: the top rung, 1080p60, against `v8`, 1080p60, peaked at 292995072 bytes of resident memory in 4.20 s, against `v2`, 480x270 at 30 fps, at 272957440 bytes in 4.19 s. M3: the ladder's 7 pairs one after another, 304955392 bytes in 28.91 s.
+  - Across pool sizes: PASS, every pair the same at every size at full precision. The peaks were 304529408, 581894144, 1111425024 and 2009759744 bytes at the sizes 1, 2, 4 and the default, 11, at which 7 pairs ran at once; the wall times 33.146, 20.173, 13.558 and 14.553 s, one run each on battery power.
+  - The memory limit: FAIL with each program. The peak was 2011676672 bytes with 7 pairs at once (`1cc1ab0`), 1132167168 with 4 (`a3d011b`) and 1131544576 with 4 (`dfed5a3`), against the limit of 1073741824 (P-072).
+  - One pair's peak alone (`warm_up.txt` of `dfed5a3`): 128729088 bytes after 1 frame pair, then 271597568 after 5, 284639232 after 30 and 293208064 after 300; and in another run each, 293306368 after 300, 294453248 after 450, 295059456 after 600 and 301056000 over all 720 frame pairs of the copy (`eval/ladder/advanced-local-pair-memory/record.txt`).
+- **Who**: agent (Claude)
+- **Date**: 2026-10-27
+- **Status**: confirmed by the owner (2026-10-29, D-061)
+
+### P-072 The memory limit's rule: a pair's memory measured once it has warmed up
+
+- **Choice**
+  - `60c1f7b`: P-067's rule took a pair to use the memory gained since the run began shared out among the pairs running. At a run's start every worker asked at once, before any pair had allocated what it uses, so with 1 GiB all 7 pairs started within 0.34 ms (`eval/ladder/advanced-local-300-mem1g-1cc1ab0/`). A pair now warms up until it has scored `vmafladder::kWarmUp`, 30, frame pairs, or all of them if it has fewer, which `VMAFOptions::scored` counts for the pool; the player's analysis sets no counter. What a pair uses is measured while no pair is warming up, and kept at its largest; until it has been measured no other pair starts.
+  - `dfed5a3`: `60c1f7b` counted the pairs still warming up at that measure, and three started together once the first had warmed up (`-a3d011b/`). Now no pair starts while a running pair is warming up, so that each admission sees what every running pair uses: a pair starts while the resident memory, plus what a pair uses as measured then, stays within the limit, D-045's rule. `vmafladder::admits()` holds the rule, and `tests/test_vmaf_ladder.cpp` tests it on its own.
+- **Alternatives**: a fixed time between starts; a margin on what a pair uses; D-045's alternative, an estimate from the inputs' frame sizes.
+- **Rationale**: D-045 lets a pair in on what a running pair uses, which the resident memory shows only once the pair has allocated it. By `warm_up.txt` a pair alone is at 97% of its peak after 30 frame pairs, 284639232 bytes of 293208064 after 300.
+- **Result** (`eval/ladder/advanced-local-300-mem1g-dfed5a3/`): the pairs started one after another, each once the one before had warmed up, and 4 ran at once; the peak, 1131544576 bytes, is 5.4% over the limit of 1073741824. After the first four ended the others ran one at a time, and the report warns that pair 4 took the process over the limit on its own, at 1095270400 bytes, more than three times one pair's peak. Whether the limit should hold the peak, and how, is the owner's ("The memory limit's peak" in `docs/PHASE2_DECISIONS_PENDING.md`).
+- **Correction** (2026-10-28): the warning's "pair 4 of 7" counts pairs from 1, as `mirage_vmaf`'s other messages do, where the report's `index` counts from 0. It is the pair of index 3, which ran alone from 8.399 s to 8.746 s, when the other three of the first wave had ended, not one of the pairs after the first four (`eval/ladder/advanced-local-300-mem1g-dfed5a3/jobs-default/report.json.xz`). The record's README places it as the Result does; it stays as committed.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-27
+- **Status**: confirmed by the owner (2026-10-29, D-061)
+
+### P-073 How D-050 to D-052 are implemented, and their runs
+
+- **Choice**
+  - **D-050** (`23d733f`): each input keeps where each of its discontinuity sequences ended. Once an input has jumped to its next sequence, a frame of the other input's current sequence later than the jumped input's last by more than the grid's frame duration, the coarser input's, puts the two jumps at different places; pairing then stops: the other input's frames dropped since the grid input's last decided frame are counted as before, and every frame not paired or counted yet, and every frame to come, fails as after a discontinuity, as under D-028's option (a) (`src/VMAFAlign.h`). Jumps at the same place, or a frame apart, pair as under D-046.
+  - **D-051** (`af17121`): `vmafladder::admits()` lets a pair start while the memory before the run, plus what a pair uses as measured and `kMarginPercent`, 10, more for each running pair and the new one, stays within the limit; P-072's warm-up stays.
+  - **D-052**: no change; there was no default limit.
+  - `pool_check.py --frames 0` scores every frame (`cee3540`), for D-049's run over every frame.
+  - The runs, with a `mirage_vmaf` built in a new clean worktree of `af17121`: M5 (`eval/phase2-survey/m5-d050/`), M5's gaps with it and with Phase 1's program (`m5-gaps-d050/`), the memory limit at 1 GiB on the local copy (`eval/ladder/advanced-local-300-mem1g-af17121/`), and D-049's run over every frame at the default size with a limit of 1 GiB, from Apple's CDN.
+- **Alternatives**: for D-050, comparing the sequences' ends only when both inputs have jumped, which would leave the frames of one input's sequence past the other's jump paired or counted as before; for D-051, the margin on the new pair only.
+- **Rationale**: D-050's "within a frame of the coarser input" is the grid's frame duration, the pairing's own unit for the coarser input; checking each frame as it comes stops the pairing at the first frame past the other input's jump. D-051 counts "each pair", running or new.
+- **Result**
+  - M5 (`m5-d050/record.txt`): `restart` and `jump` 60 pairs each and no failure, in two libvmaf contexts of 30, as with D-046; `continuous` 60 and `segments` 30, no failure.
+  - M5's gaps (`m5-gaps-d050/record.txt`): where the inputs lack different segments, 240 pairs and no pair of frames at different times, 1 extra distorted frame and 957 frames after a discontinuity; where both lack the same segments, 719 pairs and no failure; where the reference alone lacks them, 240 pairs, 1 extra distorted frame and 1317 after a discontinuity.
+  - The memory limit at 1 GiB (`advanced-local-300-mem1g-af17121/`): PASS; at the default size 3 pairs at once and a peak of 825720832 bytes.
+  - P-068's statement on the committed alignment case `a07_restart`, whose distorted input alone restarts, was made from the code under D-046 and no longer describes it under D-050; how the case's frames are counted now is the next rerun's (MEASUREMENT PENDING).
+  - D-049's run over every frame (`eval/ladder/advanced-cdn-full-af17121/`): FAIL. All 7 pairs complete, every frame, 36000 or 18000 frame pairs each and none failing to pair, in 1907.7 s; 3 pairs ran at once, and the process peaked at 1096171520 bytes, 2.1% over the limit of 1073741824. The three pairs of the first wave, scored together for about 695 s, used more over their full length than the rule counted from what a pair used after 30 frame pairs, plus 10%. One pair alone over every frame from Apple's CDN, its resident memory sampled every 15 s, was at 322256 KiB 45 s into its run and 336096 KiB 405 s in, and peaked at 345407488 bytes (`eval/ladder/advanced-cdn-pair-full/record.txt`).
+  - The unit tests (`eval/test_runs/macos-2026-10-27-1db7b89.txt`), in a clean worktree at `1db7b89`, whose code and tests are those of `cee3540`: `mirage_tests '~[audio]'` passed at the first run, 112439 assertions in 325 test cases, and the five Python suites passed, 28, 136, 11, 16 and 8 tests.
+- **Correction** (2026-10-28): the rerun of P-076 compared `a07_restart`'s verdict, frame totals and per-frame scores, as committed, and kept none of its reports, so how its failures are counted under D-050 is still MEASUREMENT PENDING; a rerun of `align-cases-d028` that keeps its reports would measure it.
+- **Measured** (2026-10-30, P-079): under D-050 the case's 10 frames that failed to pair count as 1 unmatched reference frame and 9 after a discontinuity, its verdict, pairs and scores as committed (`eval/run_all/2026-10-30-d063/consistency/align-cases-d028/main/a07_restart/mirage.json`).
+- **Who**: agent (Claude)
+- **Date**: 2026-10-27
+- **Status**: confirmed by the owner (2026-10-29, D-061)
+
+### P-074 How D-053 is implemented, and its run at 300 frames
+
+- **Choice**: `b706ed3`: `vmafladder::kMarginPercent` is 25; the run's result keeps the rule's measure of what a pair uses at its largest (`Result::pair_memory`), which the ladder report gives as `pool.pair_memory`, null when the rule never measured one, and `pool_check.py`'s `check.md` shows it next to the limit; `--help`, the report's layout and the tests follow. The run: `pool_check.py --jobs 1,0 --memory-limit 1G` on the local copy, the first 300 frame pairs, with a `mirage_vmaf` built in a new clean worktree of `b706ed3` (`eval/ladder/advanced-local-300-mem1g-b706ed3/`, with its runner's log, `run.log`).
+- **Alternatives**: every measurement in the report; the measure of the first pairs only.
+- **Result**: PASS: at the default size 3 pairs at once and a peak of 913162240 bytes, under the limit of 1073741824. The report's `pair_memory`, 896270336 bytes, is more than three times one pair's peak, 292896768 bytes after 300 frame pairs (`warm_up.txt`): the rule measures a pair as the memory gained since the run began shared out among the pairs running, and once the first pairs had ended, the resident memory still counted memory they had used, shared out among fewer pairs. D-049's run over every frame with D-053's margin is P-075's. The unit tests (`eval/test_runs/macos-2026-10-27-57b5ea5.txt`), in a clean worktree at `57b5ea5`, whose code and tests are those of `b706ed3`: `mirage_tests '~[audio]'` passed at the first run, 112445 assertions in 325 test cases, and the five Python suites passed, 28, 136, 11, 16 and 8 tests.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-27
+- **Status**: confirmed by the owner (2026-10-29, D-061)
+
+### P-075 D-049's run over every frame with D-053's margin
+
+- **Choice**: `eval/ladder/pool_check.py --frames 0 --jobs 0 --memory-limit 1G` on the advanced sample's master from Apple's CDN, as P-073's run, with the `mirage_vmaf` built in a new clean worktree of `b706ed3` and `pool_check.py` of `4587c2d`, on AC power with nothing else running, its runner's log committed with it (`eval/ladder/advanced-cdn-full-b706ed3/`). Run on 2026-10-27, after the owner asked for the long runs before the audit ("push them and do what you were going to do before i bring in the audit").
+- **Alternatives**: another limit, which would no longer compare with P-073's run.
+- **Result**: PASS. All 7 pairs complete over every frame, 36000 or 18000 frame pairs each, none failing to pair, in 2129.9 s; at most 2 pairs at once, and the process peaked at 730497024 bytes, under the limit of 1073741824. With D-051's 10% the same run peaked 2.1% over it, with 3 pairs at once (P-073). The report's `pair_memory`, 705085440 bytes, is more than twice one pair's peak over every frame, 345407488 bytes (`eval/ladder/advanced-cdn-pair-full/record.txt`), as in P-074's run.
+- **Rationale**: the run that P-073's FAIL called for: the same command, ladder, limit and pool size, with the program of D-053.
+- **Correction** (2026-10-28): "with nothing else running" doesn't hold. Another Claude Code session, auditing the branches, configured, built and ran tests on the same machine during part of the run; their times are in no committed file. The pairs, scores, pairs at once and peak don't depend on that load, but the wall time does, so the run's 2129.9 s doesn't compare with P-073's 1907.7 s.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-27
+- **Status**: confirmed by the owner (2026-10-29, D-061)
+
+### P-076 The rerun of every committed Phase 1 measurement with the Phase 2 program, which the machine's sleep cut short
+
+- **Choice**
+  - `eval/run_all.sh <out_dir> --jobs 4`, every step, from a new clean worktree of `4587c2d`, the head of `vmaf/phase-2` after D-053's implementation, with no program given, its output directory and `TMPDIR` outside the repository: the rerun with the Phase 2 program that `docs/PHASE2_STATUS.md` lists before the Phase 2 PR, started after P-075's run on the owner's request for the long runs before the audit.
+  - The machine went to sleep with its lid closed during `acceptance-full`. After it woke, the two scoring processes still running were sampled twice, 120 s apart, and stopped with SIGTERM, as in P-062, P-065 and P-066, and the run went on with its other steps. Its record is committed as it ended, with the failed run's reports and logs, the sleep and wake events and the samples (`eval/run_all/2026-10-27-phase2/`).
+  - `acceptance-full` and `pooling-full` aren't rerun on their own yet, nor are D-039's experiments run: asked after the wake whether the machine could stay plugged in with its lid open for them, the owner answered "Stop for now", and the experiments, queued to start after the rerun, were stopped before they began. The answer came while the run's other steps were running; the agent, paused at a usage limit, didn't stop them, and the run ended on its own at 2026-10-28T04:16:30Z (`rerun_check.md`).
+- **Alternatives**: waiting for the stalled processes, which only the delta tool's 6 h limit would have ended; stopping the whole run at the wake.
+- **Result** (`eval/run_all/2026-10-27-phase2/rerun_check.md`, `README.md`): 25 of the 27 steps found everything as committed, `defaults-full` over every frame, `align-cases-before` and `align-cases-d028`, `ladder-300` and `negotiation-cases` among them. The program built from `4587c2d` has the SHA-256 `6348ea3a5fd022e55603b0731b2af2f3a72c29d1b901eb1f133c76c0b7d86f40`, that of the build of `b706ed3`; the programs built from `83c8ed6`, `d993686` and `e8b867f` have the SHA-256s of the runs they reran. In `acceptance-full`, `gear3_vs_gear5` was as committed; the machine went to sleep with its lid closed at 2026-10-27T23:06:13Z and woke for good at 2026-10-28T03:22:04Z (`power_log.txt`); the `ffmpeg` processes of `gear2_vs_gear5` and `gear1_vs_gear5` used 0.04 and 0.03 s of CPU time in 120 s after the wake (`stall_check.txt`); `mirage_vmaf`'s reports of `gear4_vs_gear5`, `gear2_vs_gear5` and `gear1_vs_gear5` scored 53217, 6281 and 4725 of the 53946 frame pairs, their stderr logs holding reads that timed out and segments that failed to open. In `gear4_vs_gear5` 940 frames failed after a discontinuity, which the Phase 2 program counts once D-050 has stopped the pairing. `pooling-full` read those reports and differs from its committed outputs. `run_all.md` gives 7007.0 s of wall time, counting only the time the machine was awake.
+- **Rationale**: the Phase 2 PR needs to show whether the Phase 2 program changes a committed Phase 1 verdict or score; a record that is cut short is kept as it ended, with what shows why, as P-065's and P-066's are.
+- **Correction** (2026-10-28):
+  - The stalled processes were sampled twice and stopped as in P-065 and P-066; P-062's run sampled none.
+  - Another Claude Code session, auditing the branches, ran builds, tests and scoring runs on the same machine during the rerun's builds and during the first minutes of `defaults-full`, which started at 2026-10-28T03:26:09Z (`run_all.json`); their times are in no committed file. Verdicts and per-frame scores don't depend on that load; the steps' wall times in `run_all.md`, and its 7007.0 s, do.
+  - The agent stopped D-039's queue before it took the samples and asked the owner, so that the experiments wouldn't start on a machine that might sleep again; the owner's "Stop for now" came after. When the owner answered, when the queue was stopped and when the agent's usage-limit pause began are in no committed file; the run's last steps ran from 2026-10-28T04:16:25Z to 04:16:30Z (`run_all.json`).
+- **Who**: agent (Claude)
+- **Date**: 2026-10-28
+- **Status**: confirmed by the owner (2026-10-29, D-061)
+
+### P-077 How the audit's first batch is implemented, and the unit tests after it
+
+- **Choice**
+  - On 2026-10-28 the owner had both branches audited, read-only, and sent the audit's handoff, in three batches: corrections and fixes that need no decision, which the owner approved by sending it; questions for the owner (`docs/PHASE2_DECISIONS_PENDING.md`); and what not to do. Each item of the first batch was checked at `daecb37` before it was changed, by its committed evidence, or by a change to the code at `daecb37` in a scratch worktree that the item's new test catches; every item held (the runs aren't committed; `docs/AI_CONTRIBUTIONS.md`).
+  - The docs (`1b22148`): correction lines in P-068, P-070, P-072, P-073, P-075 and P-076, Rationale lines in P-075 and P-076, and corrections and disclosures in the status, the pending document, the method notes, `docs/BUILD.md` and `docs/AI_CONTRIBUTIONS.md`.
+  - `mirage_vmaf --help` (`7ee3724`): the Pairing paragraph gives D-050's stop, the Ladder and Exit status paragraphs the pool and D-047's report, the network paragraph the limits without calling them the player's, and the `--memory-limit` row the pool's rule and the suffixes' binary units; its test pins the wording, and the prose's width at 80 columns.
+  - Tests of decided behaviour (`002e976`): the pool's warm-up, on rungs of 20 `kWarmUp` frames; two pairs at once (D-043); a pair stopped, not failed, by a cancel or by another pair's failure while it waits for a server that sends nothing; `mirage_vmaf --ladder` run as a program, its exit status and report when complete, when a pair can't be scored and after SIGINT; and D-050 on a distorted input at half the reference's rate. `vmafladder::warm_up()` takes `score()`'s rule for when a pair has warmed up out of it, so that a test reaches it: with `--frames` under `kWarmUp`, a pair warms up only as it ends, which no test of `score()` can see.
+  - The analyzer reads its stop token once at the end of an analysis, so that a stop can't keep the scores without their pooled values (`d14b3c0`).
+  - `mirage_vmaf`'s signal flag is a lock-free `std::atomic<int>`, and its handlers stay until the report is written (`e8acff1`).
+  - `vmafladder::read_master()` takes the run's stop token, and a cancel ends a read of the master once it has gone on for 100 ms, the interval at which FFmpeg's network reads check the interrupt callback while they wait. A read that doesn't wait, as a local file's, isn't ended, so a run cancelled before it starts still has its plan, as the test of D-047's cancel has it (`8797343`; P-066's correction).
+  - With no pair complete, a ladder report gives the settings the run asked for, `vmaf_settings()` of its options, `model_sha256` null (`e2af02d`).
+  - The jump between two saturated times is taken in 128 bits (`9aced58`).
+  - `eval/ladder/pool_check.py` fails a run that exits non-zero, checks the peaks against the limit given and fails a report that gives another, refuses a SIZE `mirage_vmaf` wouldn't read, names every criterion in check.md's PASS line, takes `time.txt` from `/usr/bin/time -l`'s last "real" line, and writes a valid table for one run (`93acc4d`). The committed records keep the check they were made with.
+  - The unit test record at `93acc4d`, the last commit that changes code, tests or scripts, with the load averages first and last (`eval/test_runs/macos-2026-10-29-93acc4d.txt`, `4e5a4d3`).
+- **Alternatives**
+  - For the master's read: a callback without the grace, which ends a local file's read too, so that a run cancelled before it starts has no plan and no report, against the test of D-047's cancel; the callback for network URLs only, which leaves the same for a network master.
+  - For the settings with no pair complete: a failed pair's, which may hold the model file's SHA-256; none in the report.
+  - For when a pair has warmed up: a test of `score()` alone, which can't reach the rule.
+  - For `pool_check.py`: the limit as the report gives it, as before.
+- **Rationale**: each change is the audit's recommended action where it gives one, made so that no decided or tested behaviour changes: a run cancelled before it starts keeps its plan, the reports keep their layout, and the records keep their checks.
+- **Result** of the unit tests (`eval/test_runs/macos-2026-10-29-93acc4d.txt`): `mirage_tests '~[audio]'` passed at the first run, 118170 assertions in 335 test cases, and the five Python suites passed, 28, 136, 11, 16 and 14 tests; the load averages were 4.92, 7.75 and 15.31 at the start and 6.98, 7.75 and 14.71 at the end.
+- **Who**: agent (Claude)
+- **Date**: 2026-10-29
+- **Status**: confirmed by the owner (2026-10-29, D-061)
+
+### P-078 How D-055 to D-060 are implemented, and the records after them
+
+- **Choice**
+  - **D-055** (`95772f0`)
+    - The analyzer's inputs get the hls demuxer's `seg_max_retry` 10, the player's value (`src/Demuxer.cpp`), and `http_persistent` and `http_multiple` 0 (`vmafsegments::set_hls_options()`, `src/VMAFSegments.h`). With FFmpeg 8.1.1's defaults the demuxer requests each segment after the first on the connection it has open, through no `io_open`, and opens the next segment ahead on a second connection, whose failure loses nothing, since the segment is opened again when it is read (hls.c, `open_url()` and `read_data_continuous()`). With both off it opens each file through `io_open` when it reads it, one at a time, and closes it when its reads end.
+    - A `vmafsegments::SegmentWatch` sees each open and close through the input's `io_open` and `io_close2` callbacks, which call FFmpeg's own. The demuxer has gone on without a file when 1 + 10 opens of it have failed with none succeeding, the tries hls.c makes; when, at the input's end, none of its opens has succeeded; or when it is closed with an error its `AVIOContext` keeps, the error of a read that failed, after which hls.c goes on to the next segment. An open or a read that a cancel ended (`AVERROR_EXIT`) loses nothing. The watch sees every file the demuxer opens for the input: its playlists, segments, keys and initialization sections, the byte ranges of one file told apart by their start, the `offset` option hls.c gives.
+    - The first such file ends the input's reading at the next packet, which isn't decoded, as a read error ends it, and becomes the input's `end_error`: "the hls demuxer went on without <file>, which it couldn't open in 11 tries: <error>", or "... without the rest of <file> after a read error: <error>". `vmafreport::incomplete()` then fails the pair, and a ladder run fails at it (D-047).
+    - What it leaves: frames the demuxer had read but not yet returned when the loss became known aren't decoded either, so after a loss while `avformat_find_stream_info()` probes the start of the input, no frame of that input is scored; the other input is still read to its end, as after a read error (P-044), so the pair fails once both are read. An input that is a master playlist has its demuxer read every variant's playlist and segments, and a file lost in any of them fails the pair, though one video stream is scored. FFmpeg's side of the §5 check keeps FFmpeg's defaults, and still goes on without such a segment.
+    - Tests: `tests/test_vmaf_segments.cpp`, 7 test cases: the watch's rules, and its hooks on a context; streams of FFmpeg's hls muxer without their first, middle or last segment; and over HTTP, from `tests/HttpFileServer.h`, a segment whose first request gets no answer, tried again after the 5 s limit and scored as the local stream, one cut short, whose read error ends the input, and one the server doesn't have, requested 11 times. `tests/test_vmaf_ladder.cpp`: a ladder run fails at such a pair.
+  - **D-056** (`9f37798`): an rtmp URL gets FFmpeg's `rw_timeout` alone (`vmafnet::timeout_limits_io()`), in `src/VMAFNet.h`, `src/FfOpen.cpp` and `src/Demuxer.cpp`; P-066 has the correction line. `tests/test_rtmp_input.cpp` runs FFmpeg's own rtmp protocol in its listen mode, in the test process, as a server that sends a FLV file to one client: the analyzer scores the stream as the file, and the player's demuxer and `ffopen::open_input()` open it; an rtmp input on a server that sends nothing connects and fails at the read limit. Over the whole stream FFmpeg's rtmp client ends on an I/O error at that server's close of the connection, so the pair isn't complete, which the test pins.
+  - **D-057** (`0826c61`): `vmafalign::Aligner` keeps each input's discontinuity sequences as `push()` finds them, the position and timestamp of each one's first frame and how many frames it has (`vmafalign::Sequence`), and the report gives them as `sequences` in the alignment's `reference` and `distorted` objects, each first frame's PTS in seconds; a sequence's frames are those the analysis read, so with `--frames` the last one's count ends where the run stopped. A test of `vmafalign` has a sequence that lacks its first two frames, paired offset by them as D-057 states, and an input that ends instead of jumping, either way round.
+  - **D-058** (`e29feaa`): `pool.pair_memory` lists the pairs the rule let start while others ran, in the order they started, each with the pairs running then, the resident memory the rule read and the measure it had then (`vmafladder::Admission`). A pair that starts with none running isn't the rule's admission, and isn't listed; nor is the measure taken when the rule held a pair back, so a run whose pairs all ran one at a time lists none. The report also gives `pool.baseline`, the resident memory before the first pair, with a limit, so that each admission can be checked against the rule. `eval/ladder/pool_check.py`'s table shows each admission's measure and the memory before the run.
+  - **D-059** (`e8e3a10`): with a memory limit, when the resident memory can't be read before the first pair the run fails, with no pair started, and its report says why; `vmafladder::admits()` holds the next pair back while the memory is unknown and pairs run, and with none running a pair still starts.
+  - **D-060**: on `vmaf/phase-1`, `c628d6c` restores the recommendation line of P-033 to P-065 in `docs/PHASE1_DECISIONS_PENDING.md` and corrects its three citations of "hard rule 4" for the differences list, two edited and in a decided item a correction line; merged into `vmaf/phase-2` in `4b2e5d5`. On `vmaf/phase-2` (`90153d6`): the decision log's header states the rule for pending entries and the bylines; `docs/PHASE2_SURVEY.md`'s header makes it a snapshot as of `f8781f2`; `eval/streams.md` says what the local copy's SHA256SUMS checks, and how, with a dated note that its "nothing committed has scored it" describes Phase 1. From this entry on, the agent's entries say "agent" alone.
+  - The unit test record at `90153d6`, whose code and tests are those of `e8e3a10` (`eval/test_runs/macos-2026-10-29-90153d6.txt`, `e006f81`). It gives `sw_vers` after the first `uptime`: the machine was updated on 2026-10-29 to macOS 26.6.2 (25G83), where every committed environment capture before it gives 26.2 (25C56).
+  - The 300-frame steps of `eval/run_all.sh` that read Apple's bipbop 16x9 from its CDN, rerun with the program built from `e006f81`, whose code is `e8e3a10`'s, from the worktree of `vmaf/phase-2`: `defaults-300`, `pooling-defaults-300` and `ladder-300`, the first rerun of committed measurements on macOS 26.6.2 (`eval/run_all/2026-10-29-d055/`, `ab3ad11`; `eval/README.md`).
+- **Alternatives**
+  - For D-055: the demuxer's defaults kept, with the watch reading FFmpeg's log, which is the whole process's and which the player hooks for its own use, or watching failed opens only, which leaves out a read error on a segment requested over a connection already open; the input read to its end before the pair fails; the count of 1 + `seg_max_retry` alone, with which an FFmpeg that counts its tries otherwise would leave a lost file unseen, where the check at the input's end catches it.
+  - For D-057: the sequences in a list of their own in the alignment; each first frame's time measured from its input's start.
+  - For D-058: every pair's start listed with the measure at it; the largest measure kept in a field of its own beside the list; the report without the memory before the run.
+  - For D-059: no report, as for a master that can't be read.
+- **Rationale**: D-055 asks that no report be complete without a segment the demuxer went on without, and that the analysis treat it "as a read error does"; one connection per file makes every file pass through the callbacks the watch reads. The rest follow their decisions' wording, and the report's new fields only add to its layout.
+- **Result**
+  - The unit tests (`eval/test_runs/macos-2026-10-29-90153d6.txt`): `mirage_tests '~[audio]'` passed at the first run, 118740 assertions in 348 test cases, and the five Python suites passed, 28, 136, 11, 16 and 14 tests; the load averages were 4.65, 4.82 and 5.15 at the start and 5.84, 5.04 and 5.19 at the end.
+  - The rerun of the 300-frame steps that read Apple's CDN (`eval/run_all/2026-10-29-d055/rerun_check.md`): everything compared is as committed, every verdict, Mirage's per-frame scores at full precision, every libvmaf metric of FFmpeg's logs and every pooling series, in 109.8 s with the build. On those inputs neither D-055's options nor the update to macOS 26.6.2 changed what was compared. The steps that read local files, and those over every frame, weren't rerun on macOS 26.6.2 (MEASUREMENT PENDING).
+- **Who**: agent
+- **Date**: 2026-10-29
+- **Status**: confirmed by the owner (2026-10-30, D-064)
+
+### P-079 The rerun of every step on macOS 26.6.2 (D-063), and how `a07_restart` is counted under D-050
+
+- **Choice**
+  - `eval/run_all.sh <out_dir> --jobs 4`, every step, the four over every frame included, with no program given, from a new clean worktree of `475ace3`, the head of `vmaf/phase-2` when the owner set the rerun, whose code and scripts are those of `e8e3a10`; its output directory and `TMPDIR` outside the repository; under `caffeinate -i -s`, on AC power with the lid open, as D-063 has it. The script that ran it (`runner.sh`) logged the worktree's state at the start and the end, `uptime`, `sw_vers` and `pmset -g batt`, and the load averages every 600 s.
+  - Its record, `eval/run_all/2026-10-30-d063/`, keeps the files every record in `eval/run_all/` keeps; the runner's script and log, the load averages and the power log's extract with a header, as the records after P-076 keep them (`docs/AI_CONTRIBUTIONS.md`); the reports and logs of the alignment case `a07_restart`, with its run's own files, whose counts under D-050 P-068's and P-073's corrections left MEASUREMENT PENDING; and a comparison of the rerun's per-frame values with the committed ones, made by a script of the agent's independently of `eval/run_all.py`, with the script (`independent_check.txt`).
+- **Alternatives**: the rerun from the branch's own worktree, where the docs changed while it ran; every report of the rerun kept, where the record keeps the reports a statement rests on and `rerun_check.md` compares the rest; `align-cases-d028` rerun on its own for `a07_restart`'s counts, before the long runs.
+- **Rationale**: a new clean worktree of a named commit, as for the reruns before it; the long runs at the time the owner set; and `a07_restart`'s reports because no committed output gave its counts under D-050.
+- **Result** (`eval/run_all/2026-10-30-d063/`)
+  - All 27 steps found everything as committed (`rerun_check.md`): every verdict and all 53946 per-frame scores of each of the four pairs of `acceptance-full` and of `defaults-full`, Mirage's at full precision, every libvmaf metric of FFmpeg's logs and every pooling series. With the Phase 2 program on macOS 26.6.2, nothing the rerun compared changed. In `independent_check.txt`, none of the 443307 and 442094 committed per-frame values of the 141 pairs with a Mirage report and the 134 with an FFmpeg log differs.
+  - The program built from `475ace3` has the SHA-256 `454db2ed6be26319975df2130b53fc4fd5a60ed6660cbdfef6278ba88dc8435b`, that of the build of `e006f81` (`eval/run_all/2026-10-29-d055/`); those built from `83c8ed6`, `d993686` and `e8b867f` have the SHA-256s of the runs they reran.
+  - `a07_restart` is as committed in its verdict, its 5 frame pairs and their scores; its report counts its 10 frames that failed to pair as 1 unmatched reference frame and 9 after a discontinuity (`consistency/align-cases-d028/main/a07_restart/mirage.json`). The reference's frame 5 is one frame past the end of the distorted input's first sequence, not more than a frame of the grid, so the pairing hasn't stopped there and the frame fails as unmatched; the pairing stops at the reference's frame 6, as P-073's Choice has it. The committed report, made by the program of `d9b1f51` before D-046 and D-050, counts all 10 after a discontinuity; P-068's Result, from the code under D-046, gave 5 unmatched reference and 5 extra distorted frames.
+  - No sleep or wake event during the run (`power_log.txt`). The load averages were 5.20, 3.60 and 2.91 before the first build, and between 29.48 and 38.61 in the eight samples during the two steps over every frame (`runner.log`, `load.log`); which processes made up the load isn't recorded. 5974.3 s of wall time, the four builds included, of which 2635.2 s for `acceptance-full` and 2695.5 s for `defaults-full` (`run_all.md`).
+- **Who**: agent
+- **Date**: 2026-10-30
+- **Status**: pending owner confirmation
+
+### P-080 §2's acceptance checks rerun with the program of Phase 2's PR
+
+- **Choice**
+  - After D-063's rerun had ended, a script of the agent's (`runner.sh`) built `mirage_vmaf` in a new clean worktree of `c673738`, whose code and scripts are those of `e8e3a10`, the code Phase 2's PR brings; made the local copy of Apple's advanced sample again with `eval/streams/local_copy.py --segments 2` and checked it against the committed copy's checksums; and ran §2's three acceptance checks with `eval/ladder/pool_check.py` as their committed records ran them: the pool sizes 1, 2, 4 and the default over the first 300 frame pairs of the copy (`eval/ladder/advanced-local-300/`), the sizes 1 and the default with `--memory-limit 1G` on the same (`advanced-local-300-mem1g-b706ed3/`), and the default size with `--memory-limit 1G` over every frame from Apple's CDN (`advanced-cdn-full-b706ed3/`), on AC power with the lid open.
+  - The record, `eval/ladder/acceptance-c673738/`, keeps the build's files, the copy's record and check, the three runs under the names of the records they rerun, the runner's script and log, the power log's extract, and a comparison of every pair's frames and pooled values with the committed records, made by a script of the agent's, with the script (`comparison.txt`).
+- **Alternatives**: the committed acceptance outputs pasted into the PR as they are, made with the programs of `1cc1ab0` and `b706ed3`, before D-055 to D-059 changed the analyzer's network inputs and the report; the checks rerun from the branch's own worktree.
+- **Rationale**: the PR carries its acceptance outputs (hard rule 5), and these come from the program it brings; the comparison shows whether what changed since the committed runs moved any score.
+- **Result** (`eval/ladder/acceptance-c673738/`)
+  - All three PASS, and every pair's frames and pooled values are those of the committed records: 8400 frames in the four runs at 300 frames, 4200 in the two with the limit and 198000 over every frame (`comparison.txt`). The copy's 25 files have the committed SHA-256s (`copy_check.txt`). The program's SHA-256 is that of D-063's rerun, `454db2ed6be26319975df2130b53fc4fd5a60ed6660cbdfef6278ba88dc8435b`.
+  - Over every frame from Apple's CDN, 3 pairs ran at once, where the committed run of `b706ed3` had at most 2, and the process peaked at 1068269568 bytes, where the committed run peaked at 730497024. The limit let pairs 1 and 2 start at a measure of 269713408 bytes a pair, with 26935296 bytes before the run, so that for three pairs the rule counted 1038360576 bytes; the peak was 29908992 bytes above that count and 5472256 bytes, 0.51%, under the limit of 1073741824. D-053's margin kept the peak under the limit in both runs; in this one the peak was above the rule's count, and the limit held by the 35381248 bytes the count left under it.
+  - At 300 frames with the limit, 3 pairs at once and a peak of 874905600 bytes, where the committed run peaked at 913162240 bytes with 3 at once; at the pool sizes 1, 2, 4 and the default, peaks of 305266688, 604913664, 1187807232 and 2082406400 bytes.
+  - No sleep or wake event during the checks (`power_log.txt`). Their runner logged the load averages only at each check's start and end (`run.log`).
+- **Who**: agent
+- **Date**: 2026-10-30
 - **Status**: pending owner confirmation

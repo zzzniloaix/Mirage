@@ -1,0 +1,55 @@
+m02_bt709_vs_bt709: mirage_vmaf exit 0 after 0.3 s
+m01_bt709_vs_smpte170m: FFmpeg exit 0 after 0.4 s
+m01_bt709_vs_smpte170m: mirage_vmaf exit 0 after 0.4 s
+m02_bt709_vs_bt709: FFmpeg exit 0 after 0.4 s
+m03_bt709_vs_untagged: mirage_vmaf exit 0 after 0.4 s
+m04_untagged_vs_bt709: mirage_vmaf exit 0 after 0.4 s
+m04_untagged_vs_bt709: FFmpeg exit 0 after 0.3 s
+m03_bt709_vs_untagged: FFmpeg exit 0 after 0.4 s
+m05_untagged_vs_smpte170m: mirage_vmaf exit 0 after 0.3 s
+m06_untagged_vs_untagged: FFmpeg exit 0 after 0.3 s
+m06_untagged_vs_untagged: mirage_vmaf exit 0 after 0.4 s
+m05_untagged_vs_smpte170m: FFmpeg exit 0 after 0.4 s
+m07_smpte170m_vs_bt470bg: mirage_vmaf exit 0 after 0.3 s
+m08_bt2020nc_vs_bt709: mirage_vmaf exit 0 after 0.3 s
+m07_smpte170m_vs_bt470bg: FFmpeg exit 0 after 0.3 s
+m08_bt2020nc_vs_bt709: FFmpeg exit 0 after 0.4 s
+r01_tv_vs_pc: mirage_vmaf exit 0 after 0.3 s
+r01_tv_vs_pc: FFmpeg exit 0 after 0.3 s
+r02_pc_vs_tv: mirage_vmaf exit 0 after 0.3 s
+r02_pc_vs_tv: FFmpeg exit 0 after 0.3 s
+r03_norange_vs_pc: mirage_vmaf exit 0 after 0.3 s
+r03_norange_vs_pc: FFmpeg exit 0 after 0.3 s
+r04_pc_vs_norange: mirage_vmaf exit 0 after 0.3 s
+r04_pc_vs_norange: FFmpeg exit 0 after 0.3 s
+r05_norange_vs_tv: mirage_vmaf exit 0 after 0.3 s
+r05_norange_vs_tv: FFmpeg exit 0 after 0.3 s
+r06_tv_vs_norange: mirage_vmaf exit 0 after 0.3 s
+r06_tv_vs_norange: FFmpeg exit 0 after 0.3 s
+x01_bt709tv_vs_smpte170mpc: mirage_vmaf exit 0 after 0.3 s
+x01_bt709tv_vs_smpte170mpc: FFmpeg exit 0 after 0.3 s
+x02_primaries_transfer: mirage_vmaf exit 0 after 0.3 s
+x02_primaries_transfer: FFmpeg exit 0 after 0.3 s
+x03_chroma_topleft: mirage_vmaf exit 0 after 0.2 s
+x03_chroma_topleft: FFmpeg exit 0 after 0.3 s
+x04_interlaced_tff: mirage_vmaf exit 0 after 0.3 s
+x04_interlaced_tff: FFmpeg exit 0 after 0.3 s
+m01_bt709_vs_smpte170m: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+m02_bt709_vs_bt709: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+m03_bt709_vs_untagged: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+m04_untagged_vs_bt709: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+m05_untagged_vs_smpte170m: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+m06_untagged_vs_untagged: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+m07_smpte170m_vs_bt470bg: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+m08_bt2020nc_vs_bt709: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+r01_tv_vs_pc: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+r02_pc_vs_tv: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+r03_norange_vs_pc: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+r04_pc_vs_norange: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+r05_norange_vs_tv: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+r06_tv_vs_norange: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+x01_bt709tv_vs_smpte170mpc: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+x02_primaries_transfer: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+x03_chroma_topleft: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+x04_interlaced_tff: PASS  frames 10 / 10  max |delta| 0.000000  over 0.01: 0
+overall: PASS; reports in <out_dir>/consistency/color-cases-after/main/delta.md

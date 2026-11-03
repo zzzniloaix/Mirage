@@ -43,7 +43,9 @@
 //   alignment {            how the frames were paired by timestamp (D-028,
 //                          src/VMAFAlign.h; VMAFResult::alignment)
 //     rule, timestamp_origin, grid, tolerance (seconds),
-//     reference / distorted { frame_rate, start (seconds), start_from },
+//     reference / distorted { frame_rate, start (seconds), start_from,
+//                             sequences [ { first_index, first_pts (seconds),
+//                                           frames } ] }   (D-057)
 //     paired, failed, failure_rate, threshold, exceeded,
 //     unmatched_reference, extra_distorted, duplicate_distorted,
 //     no_timestamp, after_discontinuity, discontinuities,
@@ -56,12 +58,30 @@
 //                          index: the pair's; ref_index, dis_index: its frames'
 //                          positions in their inputs; PTS in seconds
 //
-// Layout of a ladder run's report (DECISIONS.md D-029, src/VMAFLadder.h), one
-// reference mode per report:
+// Layout of a ladder run's report (DECISIONS.md D-029, D-047, src/VMAFLadder.h),
+// one reference mode per report:
+//   status ("complete" | "cancelled" | "failed"), error (null when complete)
+//                          how the run ended (vmafladder::Result)
+//   pool { jobs, memory_limit, baseline, max_running,
+//          pair_memory [ { pair, running, resident, measure } ], peak_resident,
+//          warnings [ text ] }
+//                          the pool's size, the memory limit in bytes (null =
+//                          none), the resident memory before the first pair
+//                          in bytes (null without a limit), the most pairs
+//                          scored at once; each pair the limit's rule let
+//                          start while others ran, in the order they started
+//                          (D-053, D-058): its index in the plan, the pairs
+//                          running then, the resident memory the rule read
+//                          and what it measured a pair to use then, in bytes;
+//                          the process's peak resident memory in bytes (null
+//                          = unknown)
 //   tool, reference_mode ("top-rung" | "mezzanine"), libvmaf_version,
 //   libvmaf_package_version, ffmpeg_libraries, config_file, model,
 //   model_source, model_sha256, scaler, n_threads, n_subsample, frame_limit
-//                          as in a pair's report, once for every pair
+//                          as in a pair's report, once for every pair: the
+//                          first complete pair's settings, or with none
+//                          complete those the run asked for
+//                          (vmafladder::Result::settings; model_sha256 null)
 //   ladder { url, location, sha256,     the master playlist as given, where
 //                                       it was read from, and its SHA-256
 //            entries [ { index, line, uri, url, bandwidth, average_bandwidth,
@@ -75,12 +95,20 @@
 //   skipped [ { entry, reason } ]   entries not scored: those without video
 //   warnings [ text ]      about the plan, such as a second playlist with the
 //                          top rung's BANDWIDTH
-//   pairs [ { index, entries [ index ],  the video entries naming its
+//   pairs [ { index, entries [ index ],  the complete pairs, in the plan's
+//                                        order: index, the plan's; entries,
+//                                        the video entries naming its
 //                                        distorted playlist
+//             started_s, ended_s,        when it was scored, seconds from
+//                                        the run's start
 //             scored_as, dis_conversion, ref_conversion, warnings,
 //             frames_scored, pooled, alignment, ref, dis, frames } ]
 //                          each with the keys of a pair's report that are its
 //                          own, as a pair given with --ref and --dis has them
+//   not_scored [ { index, url, entries [ index ], status, why } ]
+//                          the plan's other pairs: status "failed",
+//                          "stopped" or "not started"; why, a failed pair's
+//                          reason (null for the others)
 
 #include "VMAFAnalyzer.h"
 #include "VMAFLadder.h"
@@ -110,8 +138,9 @@ std::string incomplete(const VMAFResult& r);
 // The report for `r`, which must hold a finished analysis.
 std::string to_json(const VMAFResult& r, const RunInfo& run);
 
-// The report of a complete ladder run (vmafladder::Result::error empty). Its
-// reference mode is the plan's; run.reference_mode isn't used.
+// The report of a ladder run that scored (vmafladder::Result::status not
+// empty), complete or not. Its reference mode is the plan's;
+// run.reference_mode isn't used.
 std::string ladder_to_json(const vmafladder::Result& ladder, const RunInfo& run);
 
 // Writes `text` to `path` through a temporary file next to it that is renamed

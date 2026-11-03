@@ -1,0 +1,130 @@
+Preparing worktree (detached HEAD 475ace3)
+HEAD is now at 475ace3 Record the owner's decisions D-062 to D-064: the two questions after D-055 to D-060, as recommended
+start 2026-10-30T09:17:15Z
+HEAD 475ace3096e623407c81f4c461266de5985d62f2
+status at the start: 0 changed paths
+ 2:17  up 11:47, 5 users, load averages: 5.20 3.60 2.91
+ProductName:		macOS
+ProductVersion:		26.6.2
+BuildVersion:		25G83
+Now drawing from 'AC Power'
+ -InternalBattery-0 	100%; charged; 0:00 remaining present: true
+[build head] $ git -C <repo> worktree add --detach <worktree> 475ace3096e623407c81f4c461266de5985d62f2
+[build head] exit 0 after 0.8 s
+[build head] $ cmake --preset macos-release
+[build head] exit 0 after 78.2 s
+[build head] $ cmake --build --preset macos-release --target mirage_vmaf
+[build head] exit 0 after 3.1 s
+[build before] $ git -C <repo> worktree add --detach <worktree> 83c8ed6b497783cc6dd265637e7b2298399ba41a
+[build before] exit 0 after 0.1 s
+[build before] $ cmake --preset macos-release
+[build before] exit 0 after 90.8 s
+[build before] $ cmake --build --preset macos-release --target mirage_vmaf
+[build before] exit 0 after 1.8 s
+[build before-d022] $ git -C <repo> worktree add --detach <worktree> d993686add8b2af709e1200437e9d643aed26238
+[build before-d022] exit 0 after 0.3 s
+[build before-d022] $ cmake --preset macos-release
+[build before-d022] exit 0 after 78.5 s
+[build before-d022] $ cmake --build --preset macos-release --target mirage_vmaf
+[build before-d022] exit 0 after 1.9 s
+[build before-d028] $ git -C <repo> worktree add --detach <worktree> e8b867fc371ccca2a099e941eeaf808a96b078dc
+[build before-d028] exit 0 after 0.4 s
+[build before-d028] $ cmake --preset macos-release
+[build before-d028] exit 0 after 83.5 s
+[build before-d028] $ cmake --build --preset macos-release --target mirage_vmaf
+[build before-d028] exit 0 after 2.2 s
+[streams] $ /opt/homebrew/opt/python@3.14/bin/python3.14 -I -B eval/streams/fetch_streams.py <out_dir>/streams/fetched --probe --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[streams] exit 0 after 15.6 s
+[clips] $ /opt/homebrew/opt/python@3.14/bin/python3.14 -I -B eval/consistency/color_cases.py <out_dir>/consistency/clips --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[clips] exit 0 after 4.1 s
+[format-clips] $ /opt/homebrew/opt/python@3.14/bin/python3.14 -I -B eval/consistency/color_cases.py <out_dir>/consistency/format_clips --set formats --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[format-clips] exit 0 after 3.8 s
+[align-clips] $ /opt/homebrew/opt/python@3.14/bin/python3.14 -I -B eval/consistency/align_cases.py <out_dir>/consistency/align_clips --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[align-clips] exit 0 after 3.1 s
+[negotiation-clips] $ /opt/homebrew/opt/python@3.14/bin/python3.14 -I -B eval/consistency/color_cases.py <out_dir>/consistency/negotiation_clips --set negotiation --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[negotiation-clips] exit 0 after 1.5 s
+[diag-before-300] $ eval/consistency/run_delta.sh <out_dir>/builds/before/mirage_vmaf <out_dir>/consistency/diag-before-300/plain --frames 300 --pairs eval/consistency/pairs/bipbop16x9.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[diag-before-300] exit 1 after 24.1 s
+[diag-before-300] $ eval/consistency/run_delta.sh <out_dir>/builds/before/mirage_vmaf <out_dir>/consistency/diag-before-300/relabel --frames 300 --pairs eval/consistency/pairs/bipbop16x9.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --diagnostic-relabel --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[diag-before-300] exit 0 after 23.6 s
+[color-cases-before] $ eval/consistency/run_delta.sh <out_dir>/builds/before/mirage_vmaf <out_dir>/consistency/color-cases-before/main --frames 10 --pairs <out_dir>/consistency/clips/pairs.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[color-cases-before] exit 1 after 6.4 s
+[color-cases-before] $ eval/consistency/run_delta.sh <out_dir>/builds/before/mirage_vmaf <out_dir>/consistency/color-cases-before/refused --frames 10 --pairs <out_dir>/consistency/clips/pairs_refused.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[color-cases-before] exit 1 after 1.2 s
+[format-cases-before] $ eval/consistency/run_delta.sh <out_dir>/builds/before/mirage_vmaf <out_dir>/consistency/format-cases-before/main --frames 10 --pairs <out_dir>/consistency/format_clips/pairs.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[format-cases-before] exit 1 after 5.1 s
+[format-cases-before] $ eval/consistency/run_delta.sh <out_dir>/builds/before/mirage_vmaf <out_dir>/consistency/format-cases-before/refused --frames 10 --pairs <out_dir>/consistency/format_clips/pairs_refused.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[format-cases-before] exit 1 after 0.9 s
+[diag-after-300] $ eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/diag-after-300/plain --frames 300 --pairs eval/consistency/pairs/bipbop16x9.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[diag-after-300] exit 0 after 25.4 s
+[color-cases-after] $ eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/color-cases-after/main --frames 10 --pairs <out_dir>/consistency/clips/pairs.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[color-cases-after] exit 0 after 6.4 s
+[color-cases-after] $ eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/color-cases-after/refused --frames 10 --pairs <out_dir>/consistency/clips/pairs_refused.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[color-cases-after] exit 1 after 0.9 s
+[format-cases-after] $ eval/consistency/run_delta.sh <out_dir>/builds/before-d022/mirage_vmaf <out_dir>/consistency/format-cases-after/main --frames 10 --pairs <out_dir>/consistency/format_clips/pairs.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[format-cases-after] exit 1 after 5.3 s
+[format-cases-after] $ eval/consistency/run_delta.sh <out_dir>/builds/before-d022/mirage_vmaf <out_dir>/consistency/format-cases-after/refused --frames 10 --pairs <out_dir>/consistency/format_clips/pairs_refused.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[format-cases-after] exit 1 after 0.7 s
+[format-cases-d022] $ eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/format-cases-d022/main --frames 10 --pairs <out_dir>/consistency/format_clips/pairs.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[format-cases-d022] exit 0 after 5.1 s
+[format-cases-d022] $ eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/format-cases-d022/refused --frames 10 --pairs <out_dir>/consistency/format_clips/pairs_refused.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[format-cases-d022] exit 1 after 0.8 s
+[negotiation-cases] $ eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/negotiation-cases/main --frames 10 --pairs <out_dir>/consistency/negotiation_clips/pairs.txt --scaler bicubic --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[negotiation-cases] exit 0 after 2.2 s
+[scalers-300] $ eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/scalers-300/bilinear --frames 300 --pairs eval/consistency/pairs/bipbop16x9.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[scalers-300] exit 0 after 23.7 s
+[scalers-300] $ eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/scalers-300/bicubic --frames 300 --pairs eval/consistency/pairs/bipbop16x9.txt --scaler bicubic --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[scalers-300] exit 0 after 24.3 s
+[scalers-300] $ eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/scalers-300/lanczos --frames 300 --pairs eval/consistency/pairs/bipbop16x9.txt --scaler lanczos --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[scalers-300] exit 0 after 24.4 s
+[scalers-300] $ /opt/homebrew/opt/python@3.14/bin/python3.14 -I -B eval/consistency/compare_runs.py --base bilinear=<out_dir>/consistency/scalers-300/bilinear --run bicubic=<out_dir>/consistency/scalers-300/bicubic --run lanczos=<out_dir>/consistency/scalers-300/lanczos --out <out_dir>/consistency/scalers-300/scaler_effect
+[scalers-300] exit 0 after 0.1 s
+[models-300] $ eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/models-300/vmaf_v0.6.1 --frames 300 --pairs eval/consistency/pairs/bipbop16x9_gear2.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[models-300] exit 0 after 7.7 s
+[models-300] $ eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/models-300/vmaf_v0.6.1neg --frames 300 --pairs eval/consistency/pairs/bipbop16x9_gear2.txt --scaler bilinear --model vmaf_v0.6.1neg --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[models-300] exit 0 after 7.6 s
+[models-300] $ eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/models-300/vmaf_4k_v0.6.1 --frames 300 --pairs eval/consistency/pairs/bipbop16x9_gear2.txt --scaler bilinear --model vmaf_4k_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[models-300] exit 0 after 7.5 s
+[models-300] $ eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/models-300/file_vmaf_v0.6.1 --frames 300 --pairs eval/consistency/pairs/bipbop16x9_gear2.txt --scaler bilinear --model-file /opt/homebrew/opt/libvmaf/share/libvmaf/model/vmaf_v0.6.1.json --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[models-300] exit 0 after 7.8 s
+[models-300] $ /opt/homebrew/opt/python@3.14/bin/python3.14 -I -B eval/consistency/compare_runs.py --base vmaf_v0.6.1=<out_dir>/consistency/models-300/vmaf_v0.6.1 --run vmaf_v0.6.1neg=<out_dir>/consistency/models-300/vmaf_v0.6.1neg --run vmaf_4k_v0.6.1=<out_dir>/consistency/models-300/vmaf_4k_v0.6.1 --run file_vmaf_v0.6.1=<out_dir>/consistency/models-300/file_vmaf_v0.6.1 --out <out_dir>/consistency/models-300/model_effect
+[models-300] exit 0 after 0.1 s
+[defaults-300] $ eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/defaults-300/plain --frames 300 --pairs eval/consistency/pairs/bipbop16x9.txt --scaler bicubic --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[defaults-300] exit 0 after 24.1 s
+[ladder-300] $ /opt/homebrew/opt/python@3.14/bin/python3.14 -I -B eval/consistency/ladder_check.py <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/ladder-300/top-rung --ladder https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8 --pairs eval/consistency/pairs/bipbop16x9.txt --frames 300 --scaler bicubic --model vmaf_v0.6.1 --jobs 4
+[ladder-300] exit 0 after 18.8 s
+[align-cases-before] $ eval/consistency/run_delta.sh <out_dir>/builds/before-d028/mirage_vmaf <out_dir>/consistency/align-cases-before/main --pairs <out_dir>/consistency/align_clips/pairs.txt --scaler bicubic --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[align-cases-before] exit 1 after 3.7 s
+[align-cases-d028] $ eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/align-cases-d028/main --pairs <out_dir>/consistency/align_clips/pairs.txt --scaler bicubic --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[align-cases-d028] exit 1 after 3.6 s
+[acceptance-full] $ eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/acceptance-full/plain --pairs eval/consistency/pairs/bipbop16x9.txt --scaler bilinear --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[acceptance-full] exit 0 after 2635.2 s
+[defaults-full] $ eval/consistency/run_delta.sh <out_dir>/builds/head/mirage_vmaf <out_dir>/consistency/defaults-full/plain --pairs eval/consistency/pairs/bipbop16x9.txt --scaler bicubic --model vmaf_v0.6.1 --threads 4 --threshold 0.01 --jobs 4 --ffmpeg /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg --ffprobe /opt/homebrew/opt/ffmpeg-full/bin/ffprobe
+[defaults-full] exit 0 after 2695.5 s
+[ffmpeg-scale-default] $ /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -hide_banner -version | head -n 1
+[ffmpeg-scale-default] exit 0 after 0.1 s
+[ffmpeg-scale-default] $ for flags in '' ':flags=bilinear' ':flags=bicubic'; do echo "scale=1920:1080$flags"; /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -hide_banner -nostdin -nostats -v verbose -f lavfi -i testsrc2=size=640x360:rate=30000/1001:duration=1 -vf "scale=1920:1080$flags" -frames:v 1 -f null - 2>&1 | grep -E '^\[Parsed_scale_0 @ [^]]*\] w:[0-9]+ h:[0-9]+ fmt:' | sed -E 's/ @ 0x[0-9a-f]+//'; done
+[ffmpeg-scale-default] exit 0 after 0.2 s
+[ffmpeg-scale-default] $ grep -E 'SWS_(BILINEAR|BICUBIC) ' /opt/homebrew/opt/ffmpeg-full/include/libswscale/swscale.h
+[ffmpeg-scale-default] exit 0 after 0.0 s
+[ffmpeg-libvmaf-filter] $ /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -hide_banner -version | head -n 1
+[ffmpeg-libvmaf-filter] exit 0 after 0.1 s
+[ffmpeg-libvmaf-filter] $ /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -hide_banner -h filter=libvmaf
+[ffmpeg-libvmaf-filter] exit 0 after 0.1 s
+[ffmpeg-libvmaf-filter] $ /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -hide_banner -nostdin -nostats -v error -f lavfi -i testsrc2=size=640x360:rate=30000/1001:duration=1 -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001:duration=1 -lavfi '[0:v][1:v]libvmaf=model=version=vmaf_v0.6.1' -f null - 2>&1 | sed -E 's/ @ 0x[0-9a-f]+//'; echo "exit status ${PIPESTATUS[0]:-?}"
+[ffmpeg-libvmaf-filter] exit 0 after 0.1 s
+[pooling] $ /opt/homebrew/opt/python@3.14/bin/python3.14 -I -B eval/pooling/pooling.py --gui-report eval/baseline/bipbop16x9/report.vmaf.json --delta-run <out_dir>/consistency/diag-after-300/plain --out <out_dir>/pooling/bipbop16x9/pooling
+[pooling] exit 0 after 0.3 s
+[pooling-defaults-300] $ /opt/homebrew/opt/python@3.14/bin/python3.14 -I -B eval/pooling/pooling.py --delta-run <out_dir>/consistency/defaults-300/plain --check-pooled --out <out_dir>/pooling/defaults-300/pooling
+[pooling-defaults-300] exit 0 after 0.3 s
+[pooling-full] $ /opt/homebrew/opt/python@3.14/bin/python3.14 -I -B eval/pooling/pooling.py --delta-run <out_dir>/consistency/acceptance-full/plain --out <out_dir>/pooling/acceptance-full/pooling
+[pooling-full] exit 0 after 1.8 s
+[pooling-defaults-full] $ /opt/homebrew/opt/python@3.14/bin/python3.14 -I -B eval/pooling/pooling.py --delta-run <out_dir>/consistency/defaults-full/plain --check-pooled --out <out_dir>/pooling/defaults-full/pooling
+[pooling-defaults-full] exit 0 after 1.8 s
+run_all: 27 steps, 0 failed; everything compared is as committed; reports in <scratch>/out
+exit 0
+end 2026-10-30T10:56:50Z
+status at the end: 0 changed paths
+ 3:56  up 13:26, 5 users, load averages: 6.16 18.05 27.31
+Now drawing from 'AC Power'
+ -InternalBattery-0 	100%; charged; 0:00 remaining present: true

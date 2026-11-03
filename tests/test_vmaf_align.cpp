@@ -2,7 +2,7 @@
 // the cases of docs/plans/frame-alignment.md, "Tests" (equal streams, a
 // dropped distorted frame, a dropped reference frame, a duplicated distorted
 // timestamp, a distorted input at half and at double the reference's rate, a
-// later and an earlier start, a backward and a forward jump, frames without
+// later and an earlier start, a backward and a forward jump in one input or both, frames without
 // timestamps), each with the pairs, the frames dropped and the counts it
 // should give, and the rules D-028 leaves to the implementation.
 
@@ -12,6 +12,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <limits>
 #include <string>
 #include <utility>
 #include <vector>
@@ -58,6 +59,7 @@ struct Run {
     bool done = false;
     vmafalign::Counts    counts;
     std::vector<Failure> failures;
+    std::vector<vmafalign::Sequence> ref_sequences, dis_sequences;
 };
 
 Run align(const std::vector<int64_t>& ref, const std::vector<int64_t>& dis,
@@ -88,8 +90,10 @@ Run align(const std::vector<int64_t>& ref, const std::vector<int64_t>& dis,
         case Step::Kind::Done:          out.done = true; break;
         }
     }
-    out.counts   = a.counts();
-    out.failures = a.failures();
+    out.counts        = a.counts();
+    out.failures      = a.failures();
+    out.ref_sequences = a.sequences(kRef);
+    out.dis_sequences = a.sequences(kDis);
     return out;
 }
 
@@ -355,10 +359,109 @@ TEST_CASE("vmafalign: the nearest frame within the tolerance, and ties", "[vmafa
     CHECK(edge.counts.extra_distorted == 1);       // 61, which 80 is nearer to
 }
 
-TEST_CASE("vmafalign: a backward jump stops the pairing, and the rest fails", "[vmafalign]")
+TEST_CASE("vmafalign: each discontinuity sequence pairs with the other input's of the same rank",
+          "[vmafalign]")
 {
-    // The distorted input's timestamps restart at its frame 6, as an MPEG-TS
-    // stream's may.
+    // Both inputs' timestamps restart at their frame 6, as an HLS ladder's
+    // rungs do at an EXT-X-DISCONTINUITY (D-046): two sequences each, paired
+    // one with the other, the second in a new libvmaf context.
+    std::vector<int64_t> restart = frames(6);
+    for (int64_t t : frames(6)) restart.push_back(t);
+    const Run both = align(restart, restart);
+    CHECK(both.done);
+    CHECK(both.pairs == diagonal(0, 12));
+    CHECK(both.new_contexts == std::vector<std::size_t>{ 6 });
+    CHECK(both.counts.discontinuities == 2);
+    CHECK(both.counts.failed() == 0);
+
+    // A forward jump in both, and each sequence measured from its own start:
+    // the second sequences start 60 s and 20 s later, and still pair.
+    std::vector<int64_t> ref = frames(6), dis = frames(6);
+    for (int64_t t : frames(6, 40, 200 + 60000)) ref.push_back(t);
+    for (int64_t t : frames(6, 40, 200 + 20000)) dis.push_back(t);
+    const Run jumps = align(ref, dis);
+    CHECK(jumps.pairs == diagonal(0, 12));
+    CHECK(jumps.new_contexts == std::vector<std::size_t>{ 6 });
+    CHECK(jumps.counts.discontinuities == 2);
+    CHECK(jumps.counts.failed() == 0);
+
+    // Where an input's times are measured from, as the report gives it, stays
+    // its start: each sequence's own start is the pairing's alone.
+    const Clock no_start{ .time_base = { 1, 1000 }, .frame_rate = { 25, 1 } };
+    Aligner a(no_start, no_start);
+    for (int64_t t : { 5000, 5040, 80000, 80040 }) a.push(kRef, t);
+    for (int64_t t : { 5000, 5040, 0, 40 }) a.push(kDis, t);
+    CHECK(a.start(kRef) == 5000);
+    CHECK(a.start(kDis) == 5000);
+
+    // A dropped frame within the second sequence counts as it would anywhere.
+    const Run dropped = align(restart, without(restart, 8));
+    CHECK(dropped.pairs == diagonal(0, 8) + std::vector<std::pair<int64_t, int64_t>>{
+                               { 9, 8 }, { 10, 9 }, { 11, 10 } });
+    CHECK(dropped.counts.unmatched_reference == 1);
+    CHECK(dropped.new_contexts == std::vector<std::size_t>{ 6, 8 });
+}
+
+TEST_CASE("vmafalign: each input's sequences, and an input that ends instead of jumping (D-057)",
+          "[vmafalign]")
+{
+    using vmafalign::Sequence;
+    // Both inputs restart after their frame 5, the distorted input without
+    // the first 2 frames of its second sequence. The jumps are at the same
+    // place, so the second sequences pair from their own starts, offset by
+    // the 2 frames, which the sequences' first timestamps show (D-057).
+    std::vector<int64_t> ref = frames(6), dis = frames(6);
+    for (int64_t t : frames(6)) ref.push_back(t);
+    for (int64_t t : frames(4, 40, 80)) dis.push_back(t);
+    const Run offset = align(ref, dis);
+    CHECK(offset.done);
+    CHECK(offset.pairs == diagonal(0, 10));
+    CHECK(offset.new_contexts == std::vector<std::size_t>{ 6 });
+    CHECK(offset.counts.discontinuities == 2);
+    CHECK(offset.counts.unmatched_reference == 2);   // its frames 10 and 11
+    CHECK(offset.counts.after_discontinuity == 0);
+    CHECK(offset.ref_sequences == std::vector<Sequence>{ { 0, 0, 6 }, { 6, 0, 6 } });
+    CHECK(offset.dis_sequences == std::vector<Sequence>{ { 0, 0, 6 }, { 6, 80, 4 } });
+
+    // The reference restarts after its frame 5, and the distorted input ends
+    // there instead. An end isn't a jump, so pairing doesn't stop (D-050):
+    // the reference's second sequence pairs with nothing, its frames
+    // unmatched, as D-046 has them (D-057).
+    std::vector<int64_t> restart = frames(6);
+    for (int64_t t : frames(6)) restart.push_back(t);
+    const Run dis_ends = align(restart, frames(6));
+    CHECK(dis_ends.done);
+    CHECK(dis_ends.pairs == diagonal(0, 6));
+    CHECK(dis_ends.counts.discontinuities == 1);
+    CHECK(dis_ends.counts.unmatched_reference == 6);
+    CHECK(dis_ends.counts.extra_distorted == 0);
+    CHECK(dis_ends.counts.after_discontinuity == 0);
+    CHECK(same(dis_ends.failures[0], kRef, 6, 0, Reason::UnmatchedReference));
+    CHECK(dis_ends.ref_sequences == std::vector<Sequence>{ { 0, 0, 6 }, { 6, 0, 6 } });
+    CHECK(dis_ends.dis_sequences == std::vector<Sequence>{ { 0, 0, 6 } });
+
+    // The other way round: the distorted input's second sequence is extra.
+    const Run ref_ends = align(frames(6), restart);
+    CHECK(ref_ends.pairs == diagonal(0, 6));
+    CHECK(ref_ends.counts.extra_distorted == 6);
+    CHECK(ref_ends.counts.unmatched_reference == 0);
+    CHECK(ref_ends.counts.after_discontinuity == 0);
+    CHECK(same(ref_ends.failures[0], kDis, 6, 0, Reason::ExtraDistorted));
+
+    // A first frame without a timestamp starts the first sequence.
+    Aligner a(kMkv25, kMkv25);
+    a.push(kRef, kNoTimestamp);
+    a.push(kRef, 40);
+    CHECK(a.sequences(kRef) == std::vector<Sequence>{ { 0, kNoTimestamp, 2 } });
+    CHECK(a.sequences(kDis).empty());
+}
+
+TEST_CASE("vmafalign: a jump in one input alone stops the pairing", "[vmafalign]")
+{
+    // Only the distorted input restarts, after its frame 5 (D-050): the
+    // reference's frame 6, a frame after the distorted input's last, pairs
+    // with nothing; its frame 7 is later by more than a frame, so the jumps
+    // aren't at the same place and pairing stops there.
     std::vector<int64_t> dis = frames(6);
     for (int64_t t : frames(6)) dis.push_back(t);
     const Run r = align(frames(12), dis);
@@ -367,33 +470,27 @@ TEST_CASE("vmafalign: a backward jump stops the pairing, and the rest fails", "[
     CHECK(r.ref_read == 12);
     CHECK(r.dis_read == 12);
     CHECK(r.counts.discontinuities == 1);
-    CHECK(r.counts.after_discontinuity == 12);   // reference frames 6 to 11, distorted 6 to 11
-    CHECK(r.counts.failed() == 12);
+    CHECK(r.counts.unmatched_reference == 1);
+    CHECK(r.counts.extra_distorted == 0);
+    CHECK(r.counts.after_discontinuity == 11);
     CHECK(r.counts.failure_rate() == 12.0 / 18.0);
-    std::vector<int64_t> ref_after, dis_after;
-    for (const Failure& f : r.failures) {
-        CHECK(f.reason == Reason::AfterDiscontinuity);
-        (f.input == kRef ? ref_after : dis_after).push_back(f.index);
-    }
-    CHECK(ref_after == std::vector<int64_t>{ 6, 7, 8, 9, 10, 11 });
-    CHECK(dis_after == std::vector<int64_t>{ 6, 7, 8, 9, 10, 11 });
+    std::vector<int64_t> ref_failed, dis_failed;
+    for (const Failure& f : r.failures)
+        (f.input == kRef ? ref_failed : dis_failed).push_back(f.index);
+    CHECK(ref_failed == std::vector<int64_t>{ 6, 7, 8, 9, 10, 11 });
+    CHECK(dis_failed == std::vector<int64_t>{ 6, 7, 8, 9, 10, 11 });
+    CHECK(same(r.failures[0], kRef, 6, 240, Reason::UnmatchedReference));
 
-    // Both inputs restarting at the same frame stop the pairing as well
-    // (D-028: option (a) until real discontinuities are known).
-    const Run both = align(dis, dis);
-    CHECK(both.pairs == diagonal(0, 6));
-    CHECK(both.counts.discontinuities == 2);
-    CHECK(both.counts.after_discontinuity == 12);
-}
-
-TEST_CASE("vmafalign: a forward jump beyond 10 seconds stops the pairing, a shorter one is a gap", "[vmafalign]")
-{
+    // A forward jump beyond 10 seconds in the reference alone: the distorted
+    // input's frame 6 is extra, and its frame 7 stops the pairing.
     std::vector<int64_t> ref = frames(6);
     for (int64_t t : frames(6, 40, 240 + 10001)) ref.push_back(t);
     const Run far = align(ref, frames(12));
     CHECK(far.pairs == diagonal(0, 6));
     CHECK(far.counts.discontinuities == 1);
-    CHECK(far.counts.after_discontinuity == 12);
+    CHECK(far.counts.extra_distorted == 1);
+    CHECK(far.counts.unmatched_reference == 0);
+    CHECK(far.counts.after_discontinuity == 11);
 
     // 10 seconds exactly is no discontinuity: the frames after it pair with nothing.
     std::vector<int64_t> near = frames(6);
@@ -403,6 +500,113 @@ TEST_CASE("vmafalign: a forward jump beyond 10 seconds stops the pairing, a shor
     CHECK(gap.pairs == diagonal(0, 6));
     CHECK(gap.counts.extra_distorted == 6);
     CHECK(gap.counts.unmatched_reference == 6);
+}
+
+TEST_CASE("vmafalign: jumps at different places in the two inputs stop the pairing",
+          "[vmafalign]")
+{
+    // Each input loses 12 s, the reference after its frame 3 and the
+    // distorted input after its frame 7, as when segments are skipped: their
+    // second sequences start at different times, and D-046 alone would pair
+    // them from their starts (M5's gaps). They aren't paired (D-050).
+    std::vector<int64_t> ref = frames(4), dis = frames(8);
+    for (int64_t t : frames(8, 40, 160 + 12000)) ref.push_back(t);
+    for (int64_t t : frames(4, 40, 320 + 12000)) dis.push_back(t);
+    const Run r = align(ref, dis);
+    CHECK(r.done);
+    CHECK(r.pairs == diagonal(0, 4));
+    CHECK(r.counts.discontinuities == 2);
+    CHECK(r.counts.extra_distorted == 1);   // distorted frame 4, a frame after the reference's last
+    CHECK(r.counts.after_discontinuity == 15);
+    CHECK(r.counts.paired + r.counts.failed() == 20);
+
+    // Jumps a frame apart are at the same place: the reference's last frame
+    // before its jump is missing, and the second sequences pair.
+    std::vector<int64_t> ref2 = frames(6), dis2 = frames(7);
+    for (int64_t t : frames(6)) {
+        ref2.push_back(t);
+        dis2.push_back(t);
+    }
+    const Run near = align(ref2, dis2);
+    CHECK(near.pairs == diagonal(0, 6) + std::vector<std::pair<int64_t, int64_t>>{
+                            { 6, 7 }, { 7, 8 }, { 8, 9 }, { 9, 10 }, { 10, 11 }, { 11, 12 } });
+    CHECK(near.counts.extra_distorted == 1);
+    CHECK(near.counts.after_discontinuity == 0);
+    CHECK(near.new_contexts == std::vector<std::size_t>{ 6 });
+}
+
+TEST_CASE("vmafalign: on the distorted input's coarser grid, jumps a grid frame apart are at the "
+          "same place", "[vmafalign]")
+{
+    // A distorted input at half the reference's rate restarts after its frame
+    // 3, at 240 ms. D-050's bound is a frame of the coarser input, the
+    // distorted input's 80 ms, not the reference's 40 ms.
+    const Clock half{ .time_base = { 1, 1000 }, .frame_rate = { 25, 2 }, .start = 0 };
+    const std::vector<int64_t> dis = frames(4, 80) + frames(4, 80);
+
+    // The reference restarts 80 ms later, after its frame at 320 ms. Its
+    // frames at 280 and 320 ms pair with nothing: the one at the grid's
+    // point, 320 ms, is unmatched, the other off the grid. The second
+    // sequences pair.
+    const Run near = align(frames(9) + frames(8), dis, kMkv25, half);
+    CHECK(near.done);
+    CHECK(near.pairs == std::vector<std::pair<int64_t, int64_t>>{ { 0, 0 }, { 2, 1 }, { 4, 2 },
+                                                                 { 6, 3 }, { 9, 4 }, { 11, 5 },
+                                                                 { 13, 6 }, { 15, 7 } });
+    CHECK(near.counts.discontinuities == 2);
+    REQUIRE(near.failures.size() == 1);
+    CHECK(same(near.failures[0], kRef, 8, 320, Reason::UnmatchedReference));
+    CHECK(near.counts.off_grid_reference == 8);   // 1, 3, 5, 7, 10, 12, 14, 16
+    CHECK(near.counts.after_discontinuity == 0);
+    CHECK(near.new_contexts == std::vector<std::size_t>{ 4 });
+
+    // 120 ms later, more than a grid frame: pairing stops at the reference's
+    // frame at 360 ms. The frames dropped before it are counted on the grid:
+    // the one at 320 ms unmatched, the one at 280 ms off the grid.
+    const Run far = align(frames(10) + frames(8), dis, kMkv25, half);
+    CHECK(far.done);
+    CHECK(far.pairs == std::vector<std::pair<int64_t, int64_t>>{ { 0, 0 }, { 2, 1 }, { 4, 2 },
+                                                                { 6, 3 } });
+    CHECK(far.counts.discontinuities == 2);
+    CHECK(far.counts.unmatched_reference == 1);
+    CHECK(far.counts.off_grid_reference == 4);     // 1, 3, 5, 7
+    CHECK(far.counts.after_discontinuity == 13);   // reference frames 9 to 17, distorted 4 to 7
+
+    // The reference restarts first, after its frame at 240 ms, and the
+    // distorted input 80 ms later, after its frame at 320 ms: that frame is
+    // extra, and the second sequences pair.
+    const std::vector<int64_t> ref = frames(7) + frames(8);
+    const Run later = align(ref, frames(5, 80) + frames(4, 80), kMkv25, half);
+    CHECK(later.done);
+    CHECK(later.pairs == std::vector<std::pair<int64_t, int64_t>>{ { 0, 0 }, { 2, 1 }, { 4, 2 },
+                                                                  { 6, 3 }, { 7, 5 }, { 9, 6 },
+                                                                  { 11, 7 }, { 13, 8 } });
+    REQUIRE(later.failures.size() == 1);
+    CHECK(same(later.failures[0], kDis, 4, 320, Reason::ExtraDistorted));
+    CHECK(later.counts.off_grid_reference == 7);   // 1, 3, 5, 8, 10, 12, 14
+    CHECK(later.counts.after_discontinuity == 0);
+    CHECK(later.new_contexts == std::vector<std::size_t>{ 4 });
+
+    // 160 ms later: the frame at 320 ms is extra, and pairing stops at the one
+    // at 400 ms.
+    const Run stop = align(ref, frames(6, 80) + frames(4, 80), kMkv25, half);
+    CHECK(stop.done);
+    CHECK(stop.pairs == std::vector<std::pair<int64_t, int64_t>>{ { 0, 0 }, { 2, 1 }, { 4, 2 },
+                                                                 { 6, 3 } });
+    CHECK(stop.counts.extra_distorted == 1);
+    CHECK(stop.counts.after_discontinuity == 13);   // distorted frames 5 to 9, reference 7 to 14
+}
+
+TEST_CASE("vmafalign: a jump between saturated times is a discontinuity", "[vmafalign]")
+{
+    // Times more than 2^62 ticks either way of where they are measured from
+    // saturate there: a frame at the lowest and the next at the highest are
+    // 2^63 ticks apart, more than a 64-bit difference holds. Only corrupt
+    // timestamps get that far.
+    Aligner a(kMkv25, kMkv25);
+    a.push(kRef, std::numeric_limits<int64_t>::min() + 1);
+    a.push(kRef, std::numeric_limits<int64_t>::max());
+    CHECK(a.counts().discontinuities == 1);
 }
 
 TEST_CASE("vmafalign: frames without timestamps fail", "[vmafalign]")

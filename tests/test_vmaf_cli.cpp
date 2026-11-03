@@ -1,8 +1,10 @@
+#include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 
 #include "TestTemp.h"
 #include "VMAFCli.h"
 
+#include <cstdint>
 #include <filesystem>
 #include <format>
 #include <fstream>
@@ -163,10 +165,12 @@ TEST_CASE("vmafcli::usage: lists every option", "[vmafcli]")
                         "[--frames N] [--scaler NAME] [--model NAME] [--model-file <model.json>] "
                         "[--config <file>]\n"
                         "       mirage_vmaf --ladder <url|path> [--mezzanine <url|path>] "
-                        "--out <report.json> [--frames N] [--scaler NAME] [--model NAME] "
-                        "[--model-file <model.json>] [--config <file>]\n\n"));
-    for (std::string_view opt : { "--ref", "--dis", "--ladder", "--mezzanine", "--out", "--frames",
-                                  "--scaler", "--model", "--model-file", "--config", "-h, --help" }) {
+                        "[--jobs N] [--memory-limit SIZE] --out <report.json> [--frames N] "
+                        "[--scaler NAME] [--model NAME] [--model-file <model.json>] "
+                        "[--config <file>]\n\n"));
+    for (std::string_view opt : { "--ref", "--dis", "--ladder", "--mezzanine", "--jobs",
+                                  "--memory-limit", "--out", "--frames", "--scaler", "--model",
+                                  "--model-file", "--config", "-h, --help" }) {
         INFO(opt);
         CHECK(contains(u, std::format("\n  {} ", opt)));   // a row of the options' list
     }
@@ -178,7 +182,50 @@ TEST_CASE("vmafcli::usage: lists every option", "[vmafcli]")
     CHECK(contains(u, "A master playlist is refused when its"));
     CHECK(contains(u, "so is a master with nothing to"));
     CHECK(contains(u, "couldn't be read or was refused"));
+    CHECK(contains(u, "The pool: --jobs pairs are scored at a time"));   // D-043 to D-047
     CHECK_FALSE(contains(u, "in the order the decoders output them"));
+
+    // The decided behaviour, across the help's line breaks.
+    std::string flat = u;
+    std::replace(flat.begin(), flat.end(), '\n', ' ');
+    // D-050: sequences pair only where their jumps are at the same place.
+    CHECK(contains(flat, "where the jump before them is at the same place in both inputs"));
+    CHECK(contains(flat, "Where it isn't, pairing stops there"));
+    CHECK_FALSE(contains(flat, "a sequence only one input has pairs with nothing"));
+    // D-043 and D-047: the pool, and the report of a cancelled or failed ladder run.
+    CHECK_FALSE(contains(flat, "one after another"));
+    CHECK(contains(flat, "--jobs pairs at a time"));
+    CHECK(contains(flat, "the run was cancelled by SIGINT or SIGTERM"));
+    CHECK(contains(flat, "(no report is left behind, also when SIGINT or SIGTERM ended its read)"));
+    CHECK(contains(flat, "(the report is written, with the complete pairs"));
+    CHECK_FALSE(contains(flat, "a pair couldn't be scored (no report is left behind)"));
+    // The 5 s limits aren't the player's playback limits, and SIZE's suffixes are binary.
+    CHECK_FALSE(contains(flat, "the player's: a connection attempt"));
+    // D-056: rtmp's own timeout would make it listen.
+    CHECK(contains(flat, "and an rtmp URL with rw_timeout alone"));
+    CHECK_FALSE(contains(flat, "an http(s), rtmp or rtsp URL"));
+    // D-059: a memory limit whose memory can't be read.
+    CHECK(contains(flat, "When the process's resident memory can't be read before the first "
+                         "pair, the run fails then"));
+    // D-057: each input's discontinuity sequences in the report.
+    CHECK(contains(flat, "each input's discontinuity sequences, with the position and PTS of each "
+                         "one's first frame and its number of frames"));
+    // D-055: the segments' retries, and a file gone without fails the analysis.
+    CHECK(contains(flat, "tries a segment it can't open 10 more times"));
+    CHECK(contains(flat, "ends the input there, as a read error does: the analysis fails"));
+    CHECK(contains(flat, "K, M, G or T for KiB, MiB, GiB or TiB"));
+    // No help line is wider than the options' rows.
+    std::size_t from = 0;
+    while (from < u.size()) {
+        const std::size_t to = std::min(u.find('\n', from), u.size());
+        const std::string_view line(u.data() + from, to - from);
+        if (!line.starts_with("Usage:") && !line.starts_with("       mirage_vmaf") &&
+            !line.starts_with("  -")) {
+            INFO(line);
+            CHECK(line.size() <= 80);
+        }
+        from = to + 1;
+    }
 }
 
 // ── --ladder and --mezzanine (D-029) ──────────────────────────────────────────
@@ -205,6 +252,56 @@ TEST_CASE("vmafcli::parse: a ladder instead of a pair", "[vmafcli]")
     CHECK(run({ "--mezzanine", "src.mov", "--out", "o" }, c) == "missing --ladder <url|path>");
     CHECK(run({ "--out", "o" }, c) == "missing --ref <url|path>");   // a pair, unless --ladder
     CHECK(contains(run({ "--ladder", "", "--out", "o" }, c), "--ladder needs a non-empty value"));
+}
+
+TEST_CASE("vmafcli::parse: --jobs and --memory-limit, with --ladder", "[vmafcli]")
+{
+    vmafcli::Args a;
+    REQUIRE(run({ "--ladder", "m.m3u8", "--out", "o" }, a).empty());
+    CHECK(a.jobs == 0);           // the default: the physical cores minus one (D-044)
+    CHECK(a.memory_limit == 0);   // none (D-045)
+
+    vmafcli::Args b;
+    REQUIRE(run({ "--ladder", "m.m3u8", "--jobs", "4", "--memory-limit", "8G", "--out", "o" },
+                b).empty());
+    CHECK(b.jobs == 4);
+    CHECK(b.memory_limit == std::uint64_t{ 8 } << 30);
+    for (const auto& [size, bytes] : std::vector<std::pair<std::string_view, std::uint64_t>>{
+             { "1", 1 }, { "1024", 1024 }, { "1K", 1024 }, { "512M", 512ull << 20 },
+             { "2T", 2ull << 40 } }) {
+        INFO(size);
+        vmafcli::Args c;
+        REQUIRE(run({ "--ladder", "m", "--memory-limit", size, "--out", "o" }, c).empty());
+        CHECK(c.memory_limit == bytes);
+    }
+
+    vmafcli::Args d;
+    for (std::string_view jobs : { "0", "257", "x", "-1", "2.5" }) {
+        INFO(jobs);
+        CHECK(run({ "--ladder", "m", "--jobs", jobs, "--out", "o" }, d) ==
+              std::format("--jobs wants a whole number from 1 to 256, not '{}'", jobs));
+    }
+    for (std::string_view size : { "0", "8GB", "G", "-1", "1.5G", "k", "99999999999999999999" }) {
+        INFO(size);
+        CHECK(contains(run({ "--ladder", "m", "--memory-limit", size, "--out", "o" }, d),
+                       std::format("--memory-limit wants a size: a whole number of bytes from 1, "
+                                   "or one with K, M, G or T after it for KiB, MiB, GiB or TiB, "
+                                   "such as 8G; not '{}'", size)));
+    }
+    CHECK(contains(run({ "--ladder", "m", "--memory-limit", "17179869184T", "--out", "o" }, d),
+                   "--memory-limit wants a size"));   // over 2^64 bytes
+    // The pool is the ladder's.
+    CHECK(run({ "--ref", "a", "--dis", "b", "--out", "o", "--jobs", "2" }, d) ==
+          "--ref and --jobs can't be given together");
+
+    // In a config file, as every option.
+    const std::map<std::string, std::string> files = {
+        { "pool.cfg", "ladder = m.m3u8\nout = o.json\njobs = 3\nmemory-limit = 1G\n" },
+    };
+    vmafcli::Args e;
+    REQUIRE(run({ "--config", "pool.cfg", "--jobs", "2" }, e, files).empty());
+    CHECK(e.jobs == 2);   // the command line wins
+    CHECK(e.memory_limit == std::uint64_t{ 1 } << 30);
 }
 
 TEST_CASE("vmafcli::parse: a pair and a ladder can't be given together", "[vmafcli]")

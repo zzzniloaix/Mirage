@@ -1,0 +1,10 @@
+# The log of the script that made this record, as it wrote it: the HEAD and state of the worktree it ran eval/ladder/pool_check.py from, the SHA-256 of the mirage_vmaf it was given, the UTC time and power source at its start, then the check's exit status, the time and the power source at its end.
+HEAD 4587c2d65ef8796977b4bafae58922ea986380ea
+6348ea3a5fd022e55603b0731b2af2f3a72c29d1b901eb1f133c76c0b7d86f40
+2026-10-27T21:33:16Z
+Now drawing from 'AC Power'
+ -InternalBattery-0 	100%; charged; 0:00 remaining present: true
+exit 0
+2026-10-27T22:08:55Z
+Now drawing from 'AC Power'
+ -InternalBattery-0 	100%; charged; 0:00 remaining present: true

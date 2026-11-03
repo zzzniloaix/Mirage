@@ -5,7 +5,7 @@
 // connection stays open until the server is destroyed, or `hold` has passed,
 // whichever comes first, so a client without a read limit is released then
 // instead of waiting for good. For the tests of the analyzer's network read
-// limits (DECISIONS.md D-036).
+// limits (DECISIONS.md D-036, D-056).
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -66,6 +66,7 @@ public:
     SilentServer& operator=(const SilentServer&) = delete;
 
     bool ok() const { return ok_; }
+    int  port() const { return port_; }
     int  accepted() const { return accepted_.load(); }
 
     // An http URL of `path` on this server.

@@ -107,6 +107,7 @@ Aligner::Aligner(const Clock& reference, const Clock& distorted)
     for (Side* s : { &ref_, &dis_ }) {
         s->has_start = s->clock.start != kNoTimestamp;
         s->start     = s->clock.start;
+        s->seq_start = s->clock.start;
     }
 }
 
@@ -125,7 +126,7 @@ int64_t Aligner::ticks(const Side& s, int64_t timestamp) const
     constexpr i128 kLimit = i128{ 1 } << 62;
     const AVRational tb   = reduced(s.clock.time_base);
     const i128       mul  = static_cast<i128>(tb.num) * (tick_den_ / tb.den);
-    const i128       diff = static_cast<i128>(timestamp) - s.start;
+    const i128       diff = static_cast<i128>(timestamp) - s.seq_start;
     if ((diff < 0 ? -diff : diff) > kLimit / mul) return diff < 0 ? -(int64_t{ 1 } << 62)
                                                                   : int64_t{ 1 } << 62;
     return static_cast<int64_t>(diff * mul);
@@ -134,23 +135,35 @@ int64_t Aligner::ticks(const Side& s, int64_t timestamp) const
 void Aligner::push(Input in, int64_t timestamp)
 {
     Side& s = side(in);
-    Entry e{ .index = s.next_index++, .timestamp = timestamp, .t = 0, .repeats = false };
+    Entry e{ .index = s.next_index++, .timestamp = timestamp, .t = 0, .repeats = false,
+             .seq = s.seq };
     if (timestamp != kNoTimestamp && ok()) {
         if (!s.has_start) {
             s.has_start = true;
             s.start     = timestamp;
+            s.seq_start = timestamp;
         }
         e.t = ticks(s, timestamp);
         if (s.has_last) {
             e.repeats = e.t == s.last_t;
-            if (e.t < s.last_t || e.t - s.last_t > jump_) {
+            // In 128 bits: two saturated times are 2^63 ticks apart.
+            if (e.t < s.last_t || static_cast<i128>(e.t) - s.last_t > jump_) {
+                // The input's next discontinuity sequence, measured from this
+                // frame (D-046).
                 ++counts_.discontinuities;
-                stopped_ = true;
+                s.ends.push_back(s.last_t);
+                e.seq       = ++s.seq;
+                s.seq_start = timestamp;
+                e.t         = 0;
+                e.repeats   = false;
             }
         }
         s.has_last = true;
         s.last_t   = e.t;
     }
+    if (s.sequences.size() <= static_cast<std::size_t>(e.seq))
+        s.sequences.push_back({ .first_index = e.index, .first_timestamp = timestamp });
+    ++s.sequences.back().frames;
     s.queue.push_back(e);
 }
 
@@ -168,6 +181,16 @@ void Aligner::fail(Input in, const Entry& e, Reason r)
     }
 }
 
+bool Aligner::has_frame(const Side& s) const
+{
+    return !s.queue.empty() && s.queue.front().seq == seq_;
+}
+
+bool Aligner::done_with_sequence(const Side& s) const
+{
+    return s.queue.empty() ? s.ended : s.queue.front().seq > seq_;
+}
+
 Step Aligner::drop(Input in)
 {
     Side& s = side(in);
@@ -176,6 +199,16 @@ Step Aligner::drop(Input in)
     (in == Input::Reference ? step.ref_index : step.dis_index) = s.queue.front().index;
     s.queue.pop_front();
     return step;
+}
+
+// The inputs' jumps aren't at the same place (D-050): the other input's frames
+// dropped since the grid input's last decided frame are counted as before the
+// stop, and pairing stops.
+Step Aligner::stop()
+{
+    close_interval(prev_grid_, std::nullopt);
+    stopped_ = true;
+    return next();
 }
 
 // The grid input's frame `g` pairs with no frame: it ends the interval of the
@@ -250,10 +283,9 @@ Step Aligner::next()
     if (!ok()) return {};
 
     if (stopped_) {
-        // Pairing stopped at a discontinuity: whatever isn't paired or
-        // counted yet fails, and so does every frame still to come.
-        for (const Entry& e : pending_) fail(other(grid_), e, Reason::AfterDiscontinuity);
-        pending_.clear();
+        // Pairing stopped where the inputs' jumps weren't at the same place
+        // (D-050): every frame not paired or counted yet fails, and so does
+        // every frame still to come.
         for (Input in : { Input::Reference, Input::Distorted }) {
             if (side(in).queue.empty()) continue;
             fail(in, side(in).queue.front(), Reason::AfterDiscontinuity);
@@ -279,20 +311,35 @@ Step Aligner::next()
     Side& g = side(g_in);
     Side& o = side(o_in);
 
-    if (g.queue.empty()) {
-        if (!g.ended) return { .kind = need_g };
-        // The grid input has ended: the rest of the other input pairs with nothing.
-        if (!o.queue.empty()) {
+    if (!has_frame(g)) {
+        if (!done_with_sequence(g)) return { .kind = need_g };
+        // The grid input jumped to its next sequence: a frame of the other
+        // input's sequence later than its last by more than a grid frame puts
+        // the two jumps at different places (D-050).
+        if (!g.queue.empty() && has_frame(o) && o.queue.front().t > g.ends[seq_] + grid_dur_)
+            return stop();
+        // The grid input has no more frames in this sequence: the rest of the
+        // other input's pair with nothing.
+        if (has_frame(o)) {
             pending_.push_back(o.queue.front());
             return drop(o_in);
         }
-        if (!o.ended) return { .kind = need_o };
+        if (!done_with_sequence(o)) return { .kind = need_o };
         close_interval(prev_grid_, std::nullopt);
-        return { .kind = K::Done };
+        if (g.queue.empty() && o.queue.empty()) return { .kind = K::Done };   // both ended
+        // Both go on to the next sequence either has (D-046), in a new libvmaf
+        // context.
+        seq_ = std::min(g.queue.empty() ? INT64_MAX : g.queue.front().seq,
+                        o.queue.empty() ? INT64_MAX : o.queue.front().seq);
+        prev_grid_.reset();
+        gap_ = true;
+        return next();
     }
     const Entry gf = g.queue.front();
-    if (o.queue.empty()) {
-        if (!o.ended) return { .kind = need_o };
+    if (!has_frame(o)) {
+        if (!done_with_sequence(o)) return { .kind = need_o };
+        // The other input jumped: so too, the grid input's frame (D-050).
+        if (!o.queue.empty() && gf.t > o.ends[seq_] + grid_dur_) return stop();
         unpaired_grid_frame(gf);
         return drop(g_in);
     }
@@ -310,7 +357,8 @@ Step Aligner::next()
         if (o.queue.size() < 2 && !o.ended) return { .kind = need_o };
         if (o.queue.size() >= 2) {
             const Entry& later = o.queue[1];
-            if (later.timestamp != kNoTimestamp && std::abs(later.t - gf.t) < gf.t - of.t) {
+            if (later.seq == seq_ && later.timestamp != kNoTimestamp &&
+                std::abs(later.t - gf.t) < gf.t - of.t) {
                 pending_.push_back(of);
                 return drop(o_in);
             }

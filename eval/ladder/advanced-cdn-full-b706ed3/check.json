@@ -1,0 +1,68 @@
+{
+ "verdict": "PASS",
+ "problems": [],
+ "frames": 0,
+ "memory_limit_given": "1G",
+ "runs": [
+  {
+   "jobs_given": 0,
+   "exit": 0,
+   "wall_s": 2129.934,
+   "max_rss_time_l": 730497024,
+   "pool": {
+    "jobs": 11,
+    "memory_limit": 1073741824,
+    "max_running": 2,
+    "pair_memory": 705085440,
+    "peak_resident": 730497024,
+    "warnings": []
+   },
+   "pairs_complete": 7,
+   "status": "complete"
+  }
+ ],
+ "pairs": [
+  {
+   "index": 0,
+   "dis": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v5/prog_index.m3u8",
+   "frames": 36000,
+   "same_in": []
+  },
+  {
+   "index": 1,
+   "dis": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v8/prog_index.m3u8",
+   "frames": 36000,
+   "same_in": []
+  },
+  {
+   "index": 2,
+   "dis": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v7/prog_index.m3u8",
+   "frames": 36000,
+   "same_in": []
+  },
+  {
+   "index": 3,
+   "dis": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v6/prog_index.m3u8",
+   "frames": 36000,
+   "same_in": []
+  },
+  {
+   "index": 4,
+   "dis": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v4/prog_index.m3u8",
+   "frames": 18000,
+   "same_in": []
+  },
+  {
+   "index": 5,
+   "dis": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v3/prog_index.m3u8",
+   "frames": 18000,
+   "same_in": []
+  },
+  {
+   "index": 6,
+   "dis": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v2/prog_index.m3u8",
+   "frames": 18000,
+   "same_in": []
+  }
+ ]
+}
