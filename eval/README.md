@@ -89,9 +89,10 @@ python3 -I -B -m unittest discover -s eval/tests -v
 python3 -I -B -m unittest discover -s eval/consistency/tests -v
 python3 -I -B -m unittest discover -s eval/pooling/tests -v
 python3 -I -B -m unittest discover -s eval/streams/tests -v
+python3 -I -B -m unittest discover -s eval/ladder/tests -v
 ```
 
-None of them needs the network. `tests/test_run_all.py` checks every step against the committed `run.cmd.txt` and `checks.txt` files, fails when a committed run has no step, and runs the whole script with the stand-ins of `consistency/tests/fake_tools.py`.
+None of them needs the network. `tests/test_run_all.py` checks every step against the committed `run.cmd.txt` and `checks.txt` files, fails when a committed run has no step, and runs the whole script with the stand-ins of `consistency/tests/fake_tools.py`. `ladder/tests/test_pool_check.py` runs `ladder/pool_check.py` with a stand-in for `mirage_vmaf`, on macOS only, as the check runs `/usr/bin/time -l`.
 
 ## The run of 2026-10-23
 
@@ -207,3 +208,29 @@ None of them needs the network. `tests/test_run_all.py` checks every step agains
 - Everything compared is as committed (`rerun_check.md`): every pair's verdict, all 53946 per-frame scores of every pair on Mirage's side at full precision, every libvmaf metric of FFmpeg's logs, and every pooling series.
 - The program it built from `953d42e` has the SHA-256 of the one the rerun above built from `bbc669d`, `aaac3630…`; `consistency/defaults-full/build.txt` names another build, `9f04085f…`, whose scores it reproduces exactly.
 - It took 3172.9 s of wall time, the build included, of which 3089.7 s for `defaults-full` (`run_all.md`).
+
+## The rerun of every step with the Phase 2 program, 2026-10-27, which the machine's sleep cut short
+
+`run_all/2026-10-27-phase2/` keeps the record of `eval/run_all.sh <out_dir> --jobs 4`, made on `vmaf/phase-2` from a new clean worktree of `4587c2d`, the head after D-053's implementation, with no program given (P-076): every step, the four over every frame included, with the Phase 2 program and the three earlier programs built from their commits. Like `2026-10-26-d035/` it also keeps the reports and logs of the failed `acceptance-full` run, the machine's sleep and wake events and the CPU times of the stopped processes, with a `README.md` that says what happened.
+
+- 25 of the 27 steps found everything as committed (`rerun_check.md`), `defaults-full` over every frame, `align-cases-before` and `align-cases-d028`, `ladder-300` and `negotiation-cases` among them: in them the Phase 2 program, its pool, D-046's and D-050's pairing and D-051's and D-053's memory limit, which no step sets, changed no committed verdict or score.
+- `acceptance-full` did not, nor `pooling-full`, which reads it. Its pair `gear3_vs_gear5` is as committed. The machine went to sleep with its lid closed 23 minutes into the step; two `ffmpeg` processes made no progress after it woke until they were stopped with SIGTERM, and `mirage_vmaf`'s reports of three pairs scored fewer frames, with D-028's warning (`README.md`, `power_log.txt`, `stall_check.txt`).
+- The program it built from `4587c2d` has the SHA-256 `6348ea3a5fd022e55603b0731b2af2f3a72c29d1b901eb1f133c76c0b7d86f40`, that of the build of `b706ed3` in `ladder/advanced-local-300-mem1g-b706ed3/build.txt`; the ones built from `e8b867f`, `d993686` and `83c8ed6` have the SHA-256s of the runs they reran.
+- `run_all.md` gives 7007.0 s of wall time, the four builds included; it counts only the time the machine was awake (`README.md`).
+
+## The 300-frame steps that read Apple's CDN, after D-055 to D-060, on macOS 26.6.2, 2026-10-29
+
+`run_all/2026-10-29-d055/` keeps the record of `eval/run_all.sh <out_dir> --only defaults-300,pooling-defaults-300,ladder-300 --jobs 4`, made on `vmaf/phase-2` from its worktree at `e006f81`, clean at the start and the end, whose code and scripts are those of `e8e3a10`, with no program given, and with its output directory and `TMPDIR` outside the repository (P-078): the three 300-frame steps that read Apple's bipbop 16x9 from its CDN, with the program built from that commit, which gives a network HLS input D-055's options. It is the first rerun of committed measurements on macOS 26.6.2 (25G83), to which the machine was updated on 2026-10-29; besides the same files as `2026-10-23-full/`, it keeps the rerun's `consistency/defaults-300/plain/environment.txt`, which gives the version.
+
+- Everything compared is as committed (`rerun_check.md`): every pair's verdict and all 300 per-frame scores of each of the four pairs of `defaults-300`, Mirage's at full precision and every libvmaf metric of FFmpeg's logs; the ladder check's verdict, the ladder report's master and plan, and every per-frame score of the ladder's four pairs and of the pairs scored one by one; and every pooling series.
+- The program it built from `e006f81` has the SHA-256 `454db2ed6be26319975df2130b53fc4fd5a60ed6660cbdfef6278ba88dc8435b`; the committed runs name other builds, `85535c5c…` for `defaults-300` and `eab1651c…` for `ladder-300` (their `build.txt`), whose scores it reproduces exactly.
+- It took 109.8 s of wall time, the build included (`run_all.md`).
+
+## The rerun of every step on macOS 26.6.2 with the long runs, 2026-10-30 (D-063)
+
+`run_all/2026-10-30-d063/` keeps the record of `eval/run_all.sh <out_dir> --jobs 4`, made on `vmaf/phase-2` from a new clean worktree of `475ace3`, the head when the owner set the rerun, whose code and scripts are those of `e8e3a10`, with no program given (P-079): every step, the four over every frame included, with the Phase 2 program and the three earlier programs built from their commits, on macOS 26.6.2, with the machine on AC power and its lid open (D-063). Besides the files every record here keeps, it has the runner's log, the load averages every 600 s, the machine's sleep and wake events, a comparison of the per-frame values made independently of `run_all.py`, and the reports and logs of the alignment case `a07_restart`, with a `README.md` that says what they show.
+
+- All 27 steps found everything as committed (`rerun_check.md`): every verdict and all 53946 per-frame scores of each of the four pairs of `acceptance-full` and of `defaults-full`, Mirage's at full precision and every libvmaf metric of FFmpeg's logs, and every pooling series; `independent_check.txt` finds none of the committed per-frame values of the 141 pairs with a Mirage report and the 134 with an FFmpeg log differing.
+- `a07_restart` is as committed in its verdict, pairs and scores; under D-050 its report counts its 10 frames that failed to pair as 1 unmatched reference frame and 9 after a discontinuity, where the committed report, made before D-046 and D-050, counts all 10 after a discontinuity (`README.md`).
+- The program it built from `475ace3` has the SHA-256 `454db2ed6be26319975df2130b53fc4fd5a60ed6660cbdfef6278ba88dc8435b`, that of the build of `e006f81` in `run_all/2026-10-29-d055/`; the ones built from `83c8ed6`, `d993686` and `e8b867f` have the SHA-256s of the runs they reran.
+- `power_log.txt` has no sleep or wake event during the run. The machine wasn't idle: the load averages were 5.20, 3.60 and 2.91 before the first build and between 29.48 and 38.61 in the samples during the steps over every frame (`runner.log`, `load.log`). `run_all.md` gives 5974.3 s of wall time, the four builds included.

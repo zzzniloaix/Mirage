@@ -833,7 +833,11 @@ bool Demuxer::open(const std::string& url_or_path, const std::string& master)
     auto make_opts = [&] {
         AVDictionary* opts = nullptr;
         if (!is_network_) return opts;
-        av_dict_set(&opts, "timeout",             "5000000", 0);   // 5 s socket connect/recv
+        // Not for rtmp, whose own `timeout` is how long to wait for a
+        // connection to it, which makes it listen instead of connecting
+        // (DECISIONS.md D-056); TCP's 5 s limit on a connection attempt holds.
+        if (!url_or_path.starts_with("rtmp://"))
+            av_dict_set(&opts, "timeout",         "5000000", 0);   // 5 s socket connect/recv
         // rw_timeout: hard cap on any single I/O operation (applies both during
         // avformat_open_input and later reads). Prevents a bad URL from taking
         // 5–10 s to fail because reconnect=1 was retrying with backoff up to

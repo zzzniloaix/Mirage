@@ -1,9 +1,9 @@
 #pragma once
 
-// Ladder scoring in mirage_vmaf (work order section 1.2; DECISIONS.md D-029):
-// the entries of an HLS master playlist, the pairs a reference mode scores,
-// and their scoring one pair after another, each as mirage_vmaf scores a pair
-// given with --ref and --dis.
+// Ladder scoring in mirage_vmaf (work order sections 1.2 and 2; DECISIONS.md
+// D-029, D-043 to D-047): the entries of an HLS master playlist, the pairs a
+// reference mode scores, and their scoring by a pool of workers, each pair as
+// mirage_vmaf scores a pair given with --ref and --dis.
 //
 // The rules. D-029 decides the design: top-rung by default (D-002), a
 // mezzanine optionally; each video playlist scored once; entries without
@@ -36,12 +36,24 @@
 // - The pairs, in the master's order of their first entry: in top-rung mode
 //   every video playlist but the top rung's, against it; in mezzanine mode
 //   every video playlist, the top rung's included, against the mezzanine.
-// - Scoring. One pair after another, with the options of the run; each pair
-//   opens its two inputs anew, as a pair given on the command line does. The
-//   first pair whose analysis is incomplete (vmafreport::incomplete) ends the
-//   run without a report, as P-006 has it for a pair, and so does a pair
-//   scored with other settings than the first, which only a model file that
-//   changes during the run can cause.
+// - Scoring. A pool of workers (D-043): each takes the next pair in the
+//   plan's order and scores it with the options of the run, opening its two
+//   inputs anew, as a pair given on the command line does; nothing within a
+//   pair depends on the pool. By default as many workers as the machine's
+//   physical cores minus one (D-044). With a memory limit, a worker starts a
+//   pair only when no running pair is warming up (kWarmUp), and only while
+//   the memory before the run, plus what a pair uses as measured then and
+//   kMarginPercent more for each running pair and the new one, stays under
+//   it (admits). Running pairs aren't stopped, and with none running a pair
+//   always starts (D-045, D-051, D-053). A run whose resident memory can't
+//   be read before its first pair fails then, and a reading that fails
+//   later holds the next pair back until one succeeds (D-059).
+// - The end (D-047). A cancel, or the first pair whose analysis is
+//   incomplete (vmafreport::incomplete) or whose settings aren't those of the
+//   first pair to complete, which only a model file that changes during the
+//   run can cause, stops the pairs still running and starts no other. The
+//   result keeps every pair's state in the plan's order; the report lists
+//   the complete pairs and the others with their state.
 
 #include "VMAFAnalyzer.h"
 
@@ -51,6 +63,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <stop_token>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -152,28 +165,112 @@ struct Fetched {
 // Reads the playlist at `url`, a path or any URL FFmpeg's avio opens, with
 // FFmpeg's default options but the analyzer's limits on a network read
 // (src/VMAFNet.h, D-036). Stops, with an error, as soon as the text doesn't
-// start with "#EXTM3U".
-Fetched read_master(const std::string& url);
+// start with "#EXTM3U", and once a stop is requested on `cancel` and the
+// read has gone on for 100 ms: a cancel ends a read that waits, as it ends
+// the analyzer's, and leaves one that doesn't, as a local file's, to finish,
+// so that a run cancelled before it starts still has its plan (D-047).
+Fetched read_master(const std::string& url, std::stop_token cancel = {});
 
-// A ladder run: the master, the plan and the pairs' results.
-struct Result {
-    std::string             ladder;    // the master playlist as given
-    Fetched                 fetched;
-    Master                  master;
-    Plan                    plan;
-    std::vector<VMAFResult> results;   // of plan.pairs, in order, as far as the run got
-    std::string             error;     // why the run gets no report; empty = complete
+// With a memory limit, the frame pairs a pair scores before what it uses is
+// taken to show in the process's resident memory (D-045): until a pair has
+// scored them, or all of its frame pairs if it has fewer, it is warming up.
+inline constexpr std::uint64_t kWarmUp = 30;
+
+// The frame pairs a pair scores before it has warmed up, in a run whose
+// pairs score at most `max_frames` (0 = no limit): kWarmUp, or all of them
+// when the limit is lower.
+constexpr std::uint64_t warm_up(unsigned max_frames)
+{
+    return max_frames > 0 && max_frames < kWarmUp ? max_frames : kWarmUp;
+}
+
+// What the memory limit adds to what a pair uses, in percent (D-051, D-053).
+inline constexpr std::uint64_t kMarginPercent = 25;
+
+// The memory limit's rule (D-045, D-051, D-053): whether one more pair may start,
+// with `running` pairs running, `warming` of them still warming up, the
+// process's resident memory `now` (0 = unknown) and `baseline` when the run
+// began. While a pair is warming up no other starts, so that what every
+// running pair uses shows in `now`. What a pair uses, `per_pair` (0 = not
+// measured yet), is the memory gained since the run began shared out among
+// the pairs running, kept at its largest; a pair starts while `baseline`
+// plus that and kMarginPercent more for each running pair and the new one
+// stays within `limit`. With no limit or none running it always starts; with
+// the memory unknown (`now` 0) and pairs running it doesn't (D-059).
+bool admits(std::uint64_t limit, std::uint64_t now, std::uint64_t baseline, unsigned running,
+            unsigned warming, std::uint64_t& per_pair);
+
+// The pool of a ladder run (D-043 to D-045).
+struct Pool {
+    unsigned      jobs         = 0;   // pairs scored at a time; 0 = vmafproc::default_jobs()
+    std::uint64_t memory_limit = 0;   // bytes of the process's resident memory; 0 = none
+    // The process's resident memory in bytes, 0 when unknown; empty =
+    // vmafproc::resident_bytes(). Tests give a stand-in.
+    std::function<std::uint64_t()> resident;
 };
 
-// Called after each pair whose analysis is complete: its index in the plan's
-// pairs, their number, and its result.
+// What became of a pair of the plan.
+enum class PairStatus { NotStarted, Complete, Failed, Stopped };
+
+// "not started", "complete", "failed", "stopped".
+std::string_view status_name(PairStatus s);
+
+// One pair of the plan in a run.
+struct PairRun {
+    PairStatus  status = PairStatus::NotStarted;
+    VMAFResult  result;            // its analysis, once it ran
+    std::string why;               // Failed: why its result can't be reported
+    double      started = -1.0;    // seconds from the run's start; -1 = not started
+    double      ended   = -1.0;
+};
+
+// A pair the memory limit's rule let start while others ran, and what the
+// rule read then (D-058): the report's pool.pair_memory lists them.
+struct Admission {
+    std::size_t   pair     = 0;   // its index in the plan's pairs
+    unsigned      running  = 0;   // the pairs running when it started
+    std::uint64_t resident = 0;   // the process's resident memory the rule read, in bytes
+    std::uint64_t measure  = 0;   // what a pair uses, as the rule measured it then (admits)
+};
+
+// How a run that scored ended.
+constexpr std::string_view kComplete  = "complete";
+constexpr std::string_view kCancelled = "cancelled";
+constexpr std::string_view kFailed    = "failed";
+
+// A ladder run: the master, the plan, the pairs and how the pool ran them.
+struct Result {
+    std::string          ladder;    // the master playlist as given
+    Fetched              fetched;
+    Master               master;
+    Plan                 plan;
+    std::vector<PairRun> pairs;     // one per plan.pairs, in the plan's order
+    std::string          status;    // kComplete | kCancelled | kFailed; empty = nothing scored
+    std::string          error;     // why the run isn't complete; empty = complete
+    VMAFSettings         settings;  // what the run asked for (vmaf_settings()), which
+                                    // its report gives when no pair is complete
+    unsigned             jobs = 0;           // the pool's size
+    std::uint64_t        memory_limit  = 0;  // 0 = none
+    unsigned             max_running   = 0;  // the most pairs scored at once
+    std::uint64_t        peak_resident = 0;  // vmafproc::peak_resident_bytes() at the end
+    std::uint64_t        baseline      = 0;  // with a limit, the resident memory before the
+                                             // first pair (admits); 0 = no limit
+    std::vector<Admission> admissions;       // with a limit, in the order the pairs started
+                                             // (D-053, D-058)
+    std::vector<std::string> pool_warnings;  // a pair over the memory limit on its own
+};
+
+// Called after each pair whose analysis is complete, one call at a time, on
+// the worker that scored it: its index in the plan's pairs, their number,
+// and its result.
 using OnPair = std::function<void(std::size_t index, std::size_t count, const VMAFResult&)>;
 
 // Reads the master playlist `ladder`, plans the run (plan()) and scores its
-// pairs one after another with VMAFAnalyzer::analyze() and `opts`. Stops at
-// the first pair whose analysis is incomplete, or whose settings aren't the
-// first pair's; its result is then the last of `results`.
+// pairs with VMAFAnalyzer::analyze() and `opts`, `pool` of them at a time.
+// A stop requested on `cancel` ends the run as cancelled; while the master
+// is read, it ends a read that waits (read_master). When the master can't
+// be read or planned, `status` is empty and `error` says why.
 Result score(const std::string& ladder, const std::string& mezzanine, const VMAFOptions& opts,
-             const OnPair& on_pair = {});
+             const Pool& pool = {}, std::stop_token cancel = {}, const OnPair& on_pair = {});
 
 } // namespace vmafladder

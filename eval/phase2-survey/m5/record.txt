@@ -1,0 +1,814 @@
+# The program: mirage_vmaf built with the macos-release preset in the worktree of branch vmaf/phase-2 at the commit below, clean (git status --porcelain: no output).
+$ git rev-parse HEAD
+e5a34eaa6c3c5398557ea69bc696c19e4eb318d6
+$ shasum -a 256 build/macos-release/mirage_vmaf
+92c330fd98aa18bd1f742dae30fb7624bb5cb5abb3ac9cf0fc741cb1a364dcae  <mirage_vmaf>
+
+# M5 of docs/PHASE2_SURVEY.md: what FFmpeg's hls demuxer gives at an EXT-X-DISCONTINUITY, and what mirage_vmaf's pairing (D-028) does with it. Made by eval/phase2-survey/m5_discontinuities.py; each command, then its output.
+
+$ <mirage_vmaf> --help
+(exit status 0)
+
+$ <ffmpeg> -hide_banner -version
+ffmpeg version 8.1.1 Copyright (c) 2000-2026 the FFmpeg developers
+built with Apple clang version 21.0.0 (clang-2100.0.123.102)
+configuration: --prefix=/opt/homebrew/Cellar/ffmpeg-full/8.1.1 --enable-shared --enable-pthreads --enable-version3 --cc=clang --host-cflags= --host-ldflags= --enable-ffplay --enable-gnutls --enable-gpl --enable-libaom --enable-libaribb24 --enable-libbluray --enable-libdav1d --enable-libharfbuzz --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librav1e --enable-librist --enable-librubberband --enable-libsnappy --enable-libsrt --enable-libssh --enable-libsvtav1 --enable-libtesseract --enable-libtheora --enable-libvidstab --enable-libvmaf --enable-libvorbis --enable-libvpx --enable-libwebp --enable-libx264 --enable-libx265 --enable-libxml2 --enable-libxvid --enable-lzma --enable-libfontconfig --enable-libfreetype --enable-frei0r --enable-libass --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenjpeg --enable-libspeex --enable-libsoxr --enable-libzmq --enable-libzimg --enable-whisper --disable-libjack --disable-indev=jack --enable-videotoolbox --enable-audiotoolbox --enable-neon
+libavutil      60. 26.101 / 60. 26.101
+libavcodec     62. 28.101 / 62. 28.101
+libavformat    62. 12.101 / 62. 12.101
+libavdevice    62.  3.101 / 62.  3.101
+libavfilter    11. 14.101 / 11. 14.101
+libswscale      9.  5.101 /  9.  5.101
+libswresample   6.  3.101 /  6.  3.101
+
+Exiting with exit code 0
+(exit status 0)
+
+## restart
+
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -frames:v 30 -vf format=yuv420p,setparams=colorspace=bt709:range=tv -c:v mpeg2video -q:v 2 -g 1 -bf 0 -f mpegts <work_dir>/restart/ref_A.ts
+(exit status 0)
+
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc=size=1920x1080:rate=30000/1001 -frames:v 30 -vf format=yuv420p,setparams=colorspace=bt709:range=tv -c:v mpeg2video -q:v 2 -g 1 -bf 0 -f mpegts <work_dir>/restart/ref_B.ts
+(exit status 0)
+
+ref.m3u8:
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:2
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXTINF:1.001000,
+ref_A.ts
+#EXT-X-DISCONTINUITY
+#EXTINF:1.001000,
+ref_B.ts
+#EXT-X-ENDLIST
+
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=640x360:rate=30000/1001 -frames:v 30 -vf format=yuv420p,setparams=colorspace=bt709:range=tv -c:v mpeg2video -q:v 2 -g 1 -bf 0 -f mpegts <work_dir>/restart/dis_A.ts
+(exit status 0)
+
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc=size=640x360:rate=30000/1001 -frames:v 30 -vf format=yuv420p,setparams=colorspace=bt709:range=tv -c:v mpeg2video -q:v 2 -g 1 -bf 0 -f mpegts <work_dir>/restart/dis_B.ts
+(exit status 0)
+
+dis.m3u8:
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:2
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXTINF:1.001000,
+dis_A.ts
+#EXT-X-DISCONTINUITY
+#EXTINF:1.001000,
+dis_B.ts
+#EXT-X-ENDLIST
+
+$ <ffprobe> -v error -select_streams v:0 -show_entries frame=pts_time,pkt_dts_time -of csv=p=0 <work_dir>/restart/ref.m3u8
+1.433367,1.433367,
+1.466733,1.466733,
+1.500100,1.500100,
+1.533467,1.533467,
+1.566833,1.566833,
+1.600200,1.600200,
+1.633567,1.633567,
+1.666933,1.666933,
+1.700300,1.700300,
+1.733667,1.733667,
+1.767033,1.767033,
+1.800400,1.800400,
+1.833767,1.833767,
+1.867133,1.867133,
+1.900500,1.900500,
+1.933867,1.933867,
+1.967233,1.967233,
+2.000600,2.000600,
+2.033967,2.033967,
+2.067333,2.067333,
+2.100700,2.100700,
+2.134067,2.134067,
+2.167433,2.167433,
+2.200800,2.200800,
+2.234167,2.234167,
+2.267533,2.267533,
+2.300900,2.300900,
+2.334267,2.334267,
+2.367633,2.367633,
+2.401000,1.400000,
+1.433367,1.433367,
+1.466733,1.466733,
+1.500100,1.500100,
+1.533467,1.533467,
+1.566833,1.566833,
+1.600200,1.600200,
+1.633567,1.633567,
+1.666933,1.666933,
+1.700300,1.700300,
+1.733667,1.733667,
+1.767033,1.767033,
+1.800400,1.800400,
+1.833767,1.833767,
+1.867133,1.867133,
+1.900500,1.900500,
+1.933867,1.933867,
+1.967233,1.967233,
+2.000600,2.000600,
+2.033967,2.033967,
+2.067333,2.067333,
+2.100700,2.100700,
+2.134067,2.134067,
+2.167433,2.167433,
+2.200800,2.200800,
+2.234167,2.234167,
+2.267533,2.267533,
+2.300900,2.300900,
+2.334267,2.334267,
+2.367633,2.367633,
+2.401000,N/A,
+(exit status 0)
+
+$ <ffprobe> -v error -select_streams v:0 -show_entries frame=pts_time,pkt_dts_time -of csv=p=0 <work_dir>/restart/dis.m3u8
+1.433367,1.433367,
+1.466733,1.466733,
+1.500100,1.500100,
+1.533467,1.533467,
+1.566833,1.566833,
+1.600200,1.600200,
+1.633567,1.633567,
+1.666933,1.666933,
+1.700300,1.700300,
+1.733667,1.733667,
+1.767033,1.767033,
+1.800400,1.800400,
+1.833767,1.833767,
+1.867133,1.867133,
+1.900500,1.900500,
+1.933867,1.933867,
+1.967233,1.967233,
+2.000600,2.000600,
+2.033967,2.033967,
+2.067333,2.067333,
+2.100700,2.100700,
+2.134067,2.134067,
+2.167433,2.167433,
+2.200800,2.200800,
+2.234167,2.234167,
+2.267533,2.267533,
+2.300900,2.300900,
+2.334267,2.334267,
+2.367633,2.367633,
+2.401000,1.400000,
+1.433367,1.433367,
+1.466733,1.466733,
+1.500100,1.500100,
+1.533467,1.533467,
+1.566833,1.566833,
+1.600200,1.600200,
+1.633567,1.633567,
+1.666933,1.666933,
+1.700300,1.700300,
+1.733667,1.733667,
+1.767033,1.767033,
+1.800400,1.800400,
+1.833767,1.833767,
+1.867133,1.867133,
+1.900500,1.900500,
+1.933867,1.933867,
+1.967233,1.967233,
+2.000600,2.000600,
+2.033967,2.033967,
+2.067333,2.067333,
+2.100700,2.100700,
+2.134067,2.134067,
+2.167433,2.167433,
+2.200800,2.200800,
+2.234167,2.234167,
+2.267533,2.267533,
+2.300900,2.300900,
+2.334267,2.334267,
+2.367633,2.367633,
+2.401000,N/A,
+(exit status 0)
+
+$ <mirage_vmaf> --ref <work_dir>/restart/ref.m3u8 --dis <work_dir>/restart/dis.m3u8 --out <work_dir>/restart/mirage.json
+[INFO]  VMAFAnalyzer: 30 frames  mean=11.23  min=6.19  p5=6.38  [Analysis]
+[WARN]  VMAFAnalyzer: 66.67% of the frames failed to pair by timestamp (60 of 90: 60 after a discontinuity), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 30 frame pairs that paired
+mirage_vmaf: 30 frame pairs scored, report written to <work_dir>/restart/mirage.json
+[mpegts @ 0x880c24280] Packet corrupt (stream = 0, dts = 213087).
+[hls @ 0x880c24000] Packet corrupt (stream = 0, dts = 210084).
+[mpegts @ 0x880c24780] Packet corrupt (stream = 0, dts = 213087).
+[hls @ 0x880c24500] Packet corrupt (stream = 0, dts = 210084).
+mirage_vmaf: warning: 66.67% of the frames failed to pair by timestamp (60 of 90: 60 after a discontinuity), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 30 frame pairs that paired
+(exit status 0)
+
+mirage_vmaf's report (alignment, frames scored, pooled mean):
+{
+ "paired": 30,
+ "failed": 60,
+ "failure_rate": 0.6666666666666666,
+ "exceeded": true,
+ "unmatched_reference": 0,
+ "extra_distorted": 0,
+ "after_discontinuity": 60,
+ "discontinuities": 2,
+ "vmaf_contexts": [
+  {
+   "first_index": 0,
+   "pairs": 30
+  }
+ ],
+ "failures": [
+  {
+   "input": "reference",
+   "index": 30,
+   "pts": 1.4333666666666667,
+   "reason": "after_discontinuity"
+  },
+  {
+   "input": "reference",
+   "index": 31,
+   "pts": 1.4667333333333332,
+   "reason": "after_discontinuity"
+  },
+  {
+   "input": "reference",
+   "index": 32,
+   "pts": 1.5001,
+   "reason": "after_discontinuity"
+  },
+  {
+   "input": "reference",
+   "index": 33,
+   "pts": 1.5334666666666668,
+   "reason": "after_discontinuity"
+  },
+  {
+   "input": "reference",
+   "index": 34,
+   "pts": 1.5668333333333333,
+   "reason": "after_discontinuity"
+  },
+  {
+   "input": "reference",
+   "index": 35,
+   "pts": 1.6002,
+   "reason": "after_discontinuity"
+  }
+ ],
+ "frames_scored": 30,
+ "pooled_mean": 11.23457924609895
+}
+
+## jump
+
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -frames:v 30 -vf format=yuv420p,setparams=colorspace=bt709:range=tv -c:v mpeg2video -q:v 2 -g 1 -bf 0 -f mpegts <work_dir>/jump/ref_A.ts
+(exit status 0)
+
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc=size=1920x1080:rate=30000/1001 -frames:v 30 -vf format=yuv420p,setparams=colorspace=bt709:range=tv -c:v mpeg2video -q:v 2 -g 1 -bf 0 -output_ts_offset 60.000000 -f mpegts <work_dir>/jump/ref_B.ts
+(exit status 0)
+
+ref.m3u8:
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:2
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXTINF:1.001000,
+ref_A.ts
+#EXT-X-DISCONTINUITY
+#EXTINF:1.001000,
+ref_B.ts
+#EXT-X-ENDLIST
+
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=640x360:rate=30000/1001 -frames:v 30 -vf format=yuv420p,setparams=colorspace=bt709:range=tv -c:v mpeg2video -q:v 2 -g 1 -bf 0 -f mpegts <work_dir>/jump/dis_A.ts
+(exit status 0)
+
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc=size=640x360:rate=30000/1001 -frames:v 30 -vf format=yuv420p,setparams=colorspace=bt709:range=tv -c:v mpeg2video -q:v 2 -g 1 -bf 0 -output_ts_offset 60.000000 -f mpegts <work_dir>/jump/dis_B.ts
+(exit status 0)
+
+dis.m3u8:
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:2
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXTINF:1.001000,
+dis_A.ts
+#EXT-X-DISCONTINUITY
+#EXTINF:1.001000,
+dis_B.ts
+#EXT-X-ENDLIST
+
+$ <ffprobe> -v error -select_streams v:0 -show_entries frame=pts_time,pkt_dts_time -of csv=p=0 <work_dir>/jump/ref.m3u8
+1.433367,1.433367,
+1.466733,1.466733,
+1.500100,1.500100,
+1.533467,1.533467,
+1.566833,1.566833,
+1.600200,1.600200,
+1.633567,1.633567,
+1.666933,1.666933,
+1.700300,1.700300,
+1.733667,1.733667,
+1.767033,1.767033,
+1.800400,1.800400,
+1.833767,1.833767,
+1.867133,1.867133,
+1.900500,1.900500,
+1.933867,1.933867,
+1.967233,1.967233,
+2.000600,2.000600,
+2.033967,2.033967,
+2.067333,2.067333,
+2.100700,2.100700,
+2.134067,2.134067,
+2.167433,2.167433,
+2.200800,2.200800,
+2.234167,2.234167,
+2.267533,2.267533,
+2.300900,2.300900,
+2.334267,2.334267,
+2.367633,2.367633,
+2.401000,61.366633,
+61.400000,61.400000,
+61.433367,61.433367,
+61.466733,61.466733,
+61.500100,61.500100,
+61.533467,61.533467,
+61.566833,61.566833,
+61.600200,61.600200,
+61.633567,61.633567,
+61.666933,61.666933,
+61.700300,61.700300,
+61.733667,61.733667,
+61.767033,61.767033,
+61.800400,61.800400,
+61.833767,61.833767,
+61.867133,61.867133,
+61.900500,61.900500,
+61.933867,61.933867,
+61.967233,61.967233,
+62.000600,62.000600,
+62.033967,62.033967,
+62.067333,62.067333,
+62.100700,62.100700,
+62.134067,62.134067,
+62.167433,62.167433,
+62.200800,62.200800,
+62.234167,62.234167,
+62.267533,62.267533,
+62.300900,62.300900,
+62.334267,62.334267,
+62.367633,N/A,
+(exit status 0)
+
+$ <ffprobe> -v error -select_streams v:0 -show_entries frame=pts_time,pkt_dts_time -of csv=p=0 <work_dir>/jump/dis.m3u8
+1.433367,1.433367,
+1.466733,1.466733,
+1.500100,1.500100,
+1.533467,1.533467,
+1.566833,1.566833,
+1.600200,1.600200,
+1.633567,1.633567,
+1.666933,1.666933,
+1.700300,1.700300,
+1.733667,1.733667,
+1.767033,1.767033,
+1.800400,1.800400,
+1.833767,1.833767,
+1.867133,1.867133,
+1.900500,1.900500,
+1.933867,1.933867,
+1.967233,1.967233,
+2.000600,2.000600,
+2.033967,2.033967,
+2.067333,2.067333,
+2.100700,2.100700,
+2.134067,2.134067,
+2.167433,2.167433,
+2.200800,2.200800,
+2.234167,2.234167,
+2.267533,2.267533,
+2.300900,2.300900,
+2.334267,2.334267,
+2.367633,2.367633,
+2.401000,61.366633,
+61.400000,61.400000,
+61.433367,61.433367,
+61.466733,61.466733,
+61.500100,61.500100,
+61.533467,61.533467,
+61.566833,61.566833,
+61.600200,61.600200,
+61.633567,61.633567,
+61.666933,61.666933,
+61.700300,61.700300,
+61.733667,61.733667,
+61.767033,61.767033,
+61.800400,61.800400,
+61.833767,61.833767,
+61.867133,61.867133,
+61.900500,61.900500,
+61.933867,61.933867,
+61.967233,61.967233,
+62.000600,62.000600,
+62.033967,62.033967,
+62.067333,62.067333,
+62.100700,62.100700,
+62.134067,62.134067,
+62.167433,62.167433,
+62.200800,62.200800,
+62.234167,62.234167,
+62.267533,62.267533,
+62.300900,62.300900,
+62.334267,62.334267,
+62.367633,N/A,
+(exit status 0)
+
+$ <mirage_vmaf> --ref <work_dir>/jump/ref.m3u8 --dis <work_dir>/jump/dis.m3u8 --out <work_dir>/jump/mirage.json
+[INFO]  VMAFAnalyzer: 30 frames  mean=11.23  min=6.19  p5=6.38  [Analysis]
+[WARN]  VMAFAnalyzer: 66.67% of the frames failed to pair by timestamp (60 of 90: 60 after a discontinuity), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 30 frame pairs that paired
+mirage_vmaf: 30 frame pairs scored, report written to <work_dir>/jump/mirage.json
+[mpegts @ 0x9fac44280] Packet corrupt (stream = 0, dts = 213087).
+[hls @ 0x9fac44000] Packet corrupt (stream = 0, dts = 210084).
+[mpegts @ 0x9fac44780] Packet corrupt (stream = 0, dts = 213087).
+[hls @ 0x9fac44500] Packet corrupt (stream = 0, dts = 210084).
+mirage_vmaf: warning: 66.67% of the frames failed to pair by timestamp (60 of 90: 60 after a discontinuity), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 30 frame pairs that paired
+(exit status 0)
+
+mirage_vmaf's report (alignment, frames scored, pooled mean):
+{
+ "paired": 30,
+ "failed": 60,
+ "failure_rate": 0.6666666666666666,
+ "exceeded": true,
+ "unmatched_reference": 0,
+ "extra_distorted": 0,
+ "after_discontinuity": 60,
+ "discontinuities": 2,
+ "vmaf_contexts": [
+  {
+   "first_index": 0,
+   "pairs": 30
+  }
+ ],
+ "failures": [
+  {
+   "input": "reference",
+   "index": 30,
+   "pts": 61.4,
+   "reason": "after_discontinuity"
+  },
+  {
+   "input": "reference",
+   "index": 31,
+   "pts": 61.433366666666664,
+   "reason": "after_discontinuity"
+  },
+  {
+   "input": "reference",
+   "index": 32,
+   "pts": 61.46673333333333,
+   "reason": "after_discontinuity"
+  },
+  {
+   "input": "reference",
+   "index": 33,
+   "pts": 61.5001,
+   "reason": "after_discontinuity"
+  },
+  {
+   "input": "reference",
+   "index": 34,
+   "pts": 61.53346666666667,
+   "reason": "after_discontinuity"
+  },
+  {
+   "input": "reference",
+   "index": 35,
+   "pts": 61.566833333333335,
+   "reason": "after_discontinuity"
+  }
+ ],
+ "frames_scored": 30,
+ "pooled_mean": 11.23457924609895
+}
+
+## continuous
+
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -frames:v 30 -vf format=yuv420p,setparams=colorspace=bt709:range=tv -c:v mpeg2video -q:v 2 -g 1 -bf 0 -f mpegts <work_dir>/continuous/ref_A.ts
+(exit status 0)
+
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc=size=1920x1080:rate=30000/1001 -frames:v 30 -vf format=yuv420p,setparams=colorspace=bt709:range=tv -c:v mpeg2video -q:v 2 -g 1 -bf 0 -output_ts_offset 1.001000 -f mpegts <work_dir>/continuous/ref_B.ts
+(exit status 0)
+
+ref.m3u8:
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:2
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXTINF:1.001000,
+ref_A.ts
+#EXT-X-DISCONTINUITY
+#EXTINF:1.001000,
+ref_B.ts
+#EXT-X-ENDLIST
+
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=640x360:rate=30000/1001 -frames:v 30 -vf format=yuv420p,setparams=colorspace=bt709:range=tv -c:v mpeg2video -q:v 2 -g 1 -bf 0 -f mpegts <work_dir>/continuous/dis_A.ts
+(exit status 0)
+
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc=size=640x360:rate=30000/1001 -frames:v 30 -vf format=yuv420p,setparams=colorspace=bt709:range=tv -c:v mpeg2video -q:v 2 -g 1 -bf 0 -output_ts_offset 1.001000 -f mpegts <work_dir>/continuous/dis_B.ts
+(exit status 0)
+
+dis.m3u8:
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:2
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXTINF:1.001000,
+dis_A.ts
+#EXT-X-DISCONTINUITY
+#EXTINF:1.001000,
+dis_B.ts
+#EXT-X-ENDLIST
+
+$ <ffprobe> -v error -select_streams v:0 -show_entries frame=pts_time,pkt_dts_time -of csv=p=0 <work_dir>/continuous/ref.m3u8
+1.433367,1.433367,
+1.466733,1.466733,
+1.500100,1.500100,
+1.533467,1.533467,
+1.566833,1.566833,
+1.600200,1.600200,
+1.633567,1.633567,
+1.666933,1.666933,
+1.700300,1.700300,
+1.733667,1.733667,
+1.767033,1.767033,
+1.800400,1.800400,
+1.833767,1.833767,
+1.867133,1.867133,
+1.900500,1.900500,
+1.933867,1.933867,
+1.967233,1.967233,
+2.000600,2.000600,
+2.033967,2.033967,
+2.067333,2.067333,
+2.100700,2.100700,
+2.134067,2.134067,
+2.167433,2.167433,
+2.200800,2.200800,
+2.234167,2.234167,
+2.267533,2.267533,
+2.300900,2.300900,
+2.334267,2.334267,
+2.367633,2.367633,
+2.401000,2.367633,
+2.401000,2.401000,
+2.434367,2.434367,
+2.467733,2.467733,
+2.501100,2.501100,
+2.534467,2.534467,
+2.567833,2.567833,
+2.601200,2.601200,
+2.634567,2.634567,
+2.667933,2.667933,
+2.701300,2.701300,
+2.734667,2.734667,
+2.768033,2.768033,
+2.801400,2.801400,
+2.834767,2.834767,
+2.868133,2.868133,
+2.901500,2.901500,
+2.934867,2.934867,
+2.968233,2.968233,
+3.001600,3.001600,
+3.034967,3.034967,
+3.068333,3.068333,
+3.101700,3.101700,
+3.135067,3.135067,
+3.168433,3.168433,
+3.201800,3.201800,
+3.235167,3.235167,
+3.268533,3.268533,
+3.301900,3.301900,
+3.335267,3.335267,
+3.368633,N/A,
+(exit status 0)
+
+$ <ffprobe> -v error -select_streams v:0 -show_entries frame=pts_time,pkt_dts_time -of csv=p=0 <work_dir>/continuous/dis.m3u8
+1.433367,1.433367,
+1.466733,1.466733,
+1.500100,1.500100,
+1.533467,1.533467,
+1.566833,1.566833,
+1.600200,1.600200,
+1.633567,1.633567,
+1.666933,1.666933,
+1.700300,1.700300,
+1.733667,1.733667,
+1.767033,1.767033,
+1.800400,1.800400,
+1.833767,1.833767,
+1.867133,1.867133,
+1.900500,1.900500,
+1.933867,1.933867,
+1.967233,1.967233,
+2.000600,2.000600,
+2.033967,2.033967,
+2.067333,2.067333,
+2.100700,2.100700,
+2.134067,2.134067,
+2.167433,2.167433,
+2.200800,2.200800,
+2.234167,2.234167,
+2.267533,2.267533,
+2.300900,2.300900,
+2.334267,2.334267,
+2.367633,2.367633,
+2.401000,2.367633,
+2.401000,2.401000,
+2.434367,2.434367,
+2.467733,2.467733,
+2.501100,2.501100,
+2.534467,2.534467,
+2.567833,2.567833,
+2.601200,2.601200,
+2.634567,2.634567,
+2.667933,2.667933,
+2.701300,2.701300,
+2.734667,2.734667,
+2.768033,2.768033,
+2.801400,2.801400,
+2.834767,2.834767,
+2.868133,2.868133,
+2.901500,2.901500,
+2.934867,2.934867,
+2.968233,2.968233,
+3.001600,3.001600,
+3.034967,3.034967,
+3.068333,3.068333,
+3.101700,3.101700,
+3.135067,3.135067,
+3.168433,3.168433,
+3.201800,3.201800,
+3.235167,3.235167,
+3.268533,3.268533,
+3.301900,3.301900,
+3.335267,3.335267,
+3.368633,N/A,
+(exit status 0)
+
+$ <mirage_vmaf> --ref <work_dir>/continuous/ref.m3u8 --dis <work_dir>/continuous/dis.m3u8 --out <work_dir>/continuous/mirage.json
+[INFO]  VMAFAnalyzer: 60 frames  mean=40.84  min=6.19  p5=6.64  [Analysis]
+mirage_vmaf: 60 frame pairs scored, report written to <work_dir>/continuous/mirage.json
+[mpegts @ 0x92305c280] Packet corrupt (stream = 0, dts = 213087).
+[hls @ 0x92305c000] Packet corrupt (stream = 0, dts = 210084).
+[mpegts @ 0x92305c780] Packet corrupt (stream = 0, dts = 213087).
+[hls @ 0x92305c500] Packet corrupt (stream = 0, dts = 210084).
+(exit status 0)
+
+mirage_vmaf's report (alignment, frames scored, pooled mean):
+{
+ "paired": 60,
+ "failed": 0,
+ "failure_rate": 0,
+ "exceeded": false,
+ "unmatched_reference": 0,
+ "extra_distorted": 0,
+ "after_discontinuity": 0,
+ "discontinuities": 0,
+ "vmaf_contexts": [
+  {
+   "first_index": 0,
+   "pairs": 60
+  }
+ ],
+ "failures": [],
+ "frames_scored": 60,
+ "pooled_mean": 40.83545573892391
+}
+
+## segments
+
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=1920x1080:rate=30000/1001 -frames:v 30 -vf format=yuv420p,setparams=colorspace=bt709:range=tv -c:v mpeg2video -q:v 2 -g 1 -bf 0 -f hls -hls_time 0.5 -hls_list_size 0 -hls_playlist_type vod -hls_segment_filename <work_dir>/segments/ref_%d.ts <work_dir>/segments/ref.m3u8
+(exit status 0)
+
+ref.m3u8:
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:1
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXTINF:0.500500,
+ref_0.ts
+#EXTINF:0.500500,
+ref_1.ts
+#EXT-X-ENDLIST
+
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=640x360:rate=30000/1001 -frames:v 30 -vf format=yuv420p,setparams=colorspace=bt709:range=tv -c:v mpeg2video -q:v 2 -g 1 -bf 0 -f hls -hls_time 2 -hls_list_size 0 -hls_playlist_type vod -hls_segment_filename <work_dir>/segments/dis_%d.ts <work_dir>/segments/dis.m3u8
+(exit status 0)
+
+dis.m3u8:
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:1
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXTINF:1.001000,
+dis_0.ts
+#EXT-X-ENDLIST
+
+$ <ffprobe> -v error -select_streams v:0 -show_entries frame=pts_time,pkt_dts_time -of csv=p=0 <work_dir>/segments/ref.m3u8
+1.433367,1.433367,
+1.466733,1.466733,
+1.500100,1.500100,
+1.533467,1.533467,
+1.566833,1.566833,
+1.600200,1.600200,
+1.633567,1.633567,
+1.666933,1.666933,
+1.700300,1.700300,
+1.733667,1.733667,
+1.767033,1.767033,
+1.800400,1.800400,
+1.833767,1.833767,
+1.867133,1.867133,
+1.900500,1.900500,
+1.933867,1.933867,
+1.967233,1.967233,
+2.000600,2.000600,
+2.033967,2.033967,
+2.067333,2.067333,
+2.100700,2.100700,
+2.134067,2.134067,
+2.167433,2.167433,
+2.200800,2.200800,
+2.234167,2.234167,
+2.267533,2.267533,
+2.300900,2.300900,
+2.334267,2.334267,
+2.367633,2.367633,
+2.401000,N/A,
+(exit status 0)
+
+$ <ffprobe> -v error -select_streams v:0 -show_entries frame=pts_time,pkt_dts_time -of csv=p=0 <work_dir>/segments/dis.m3u8
+1.433367,1.433367,
+1.466733,1.466733,
+1.500100,1.500100,
+1.533467,1.533467,
+1.566833,1.566833,
+1.600200,1.600200,
+1.633567,1.633567,
+1.666933,1.666933,
+1.700300,1.700300,
+1.733667,1.733667,
+1.767033,1.767033,
+1.800400,1.800400,
+1.833767,1.833767,
+1.867133,1.867133,
+1.900500,1.900500,
+1.933867,1.933867,
+1.967233,1.967233,
+2.000600,2.000600,
+2.033967,2.033967,
+2.067333,2.067333,
+2.100700,2.100700,
+2.134067,2.134067,
+2.167433,2.167433,
+2.200800,2.200800,
+2.234167,2.234167,
+2.267533,2.267533,
+2.300900,2.300900,
+2.334267,2.334267,
+2.367633,2.367633,
+2.401000,N/A,
+(exit status 0)
+
+$ <mirage_vmaf> --ref <work_dir>/segments/ref.m3u8 --dis <work_dir>/segments/dis.m3u8 --out <work_dir>/segments/mirage.json
+[INFO]  VMAFAnalyzer: 30 frames  mean=11.23  min=6.19  p5=6.38  [Analysis]
+mirage_vmaf: 30 frame pairs scored, report written to <work_dir>/segments/mirage.json
+(exit status 0)
+
+mirage_vmaf's report (alignment, frames scored, pooled mean):
+{
+ "paired": 30,
+ "failed": 0,
+ "failure_rate": 0,
+ "exceeded": false,
+ "unmatched_reference": 0,
+ "extra_distorted": 0,
+ "after_discontinuity": 0,
+ "discontinuities": 0,
+ "vmaf_contexts": [
+  {
+   "first_index": 0,
+   "pairs": 30
+  }
+ ],
+ "failures": [],
+ "frames_scored": 30,
+ "pooled_mean": 11.23457924609895
+}
+

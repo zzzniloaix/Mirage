@@ -1,0 +1,8 @@
+# The machine's sleep and wake events during these checks (2026-10-30T10:57:15Z to
+# 2026-10-30T11:31:59Z, run.log): the lines of macOS's power management log,
+# `pmset -g log`, whose type is Sleep, Wake or DarkWake and whose time falls in
+# them, read on the machine after they had ended. Each line's local time is
+# converted to UTC and its columns are joined with " | ": time, type, and the rest of
+# the line, the description with, where the log gives one, how long the state lasted.
+# Nothing else is changed.
+# No line of those types falls in them.

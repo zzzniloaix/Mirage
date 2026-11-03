@@ -1,0 +1,13 @@
+gear3_vs_gear5: FFmpeg exit 0 after 1214.5 s
+gear3_vs_gear5: mirage_vmaf exit 0 after 1274.8 s
+gear4_vs_gear5: FFmpeg exit 0 after 1285.8 s
+gear4_vs_gear5: mirage_vmaf exit 0 after 1434.1 s
+gear1_vs_gear5: mirage_vmaf exit 0 after 279.0 s
+gear2_vs_gear5: mirage_vmaf exit 0 after 355.5 s
+gear1_vs_gear5: FFmpeg exit 255 after 451.4 s
+gear2_vs_gear5: FFmpeg exit 255 after 630.0 s
+gear4_vs_gear5: FAIL  frames 53217 / 53946  max |delta| 28.782902  over 0.01: 1
+gear3_vs_gear5: PASS  frames 53946 / 53946  max |delta| 0.000000  over 0.01: 0
+gear2_vs_gear5: FAIL  frames None / None  max |delta| -  over 0.01: -
+gear1_vs_gear5: FAIL  frames None / None  max |delta| -  over 0.01: -
+overall: FAIL; reports in <out_dir>/consistency/acceptance-full/plain/delta.md

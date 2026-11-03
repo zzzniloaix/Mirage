@@ -1,0 +1,5 @@
+# The commands of this eval/ladder/pool_check.py run, one per pool size.
+$ /usr/bin/time -l <mirage_vmaf> --ladder <ladder> --frames 300 --out <out_dir>/jobs-1/report.json --jobs 1
+$ /usr/bin/time -l <mirage_vmaf> --ladder <ladder> --frames 300 --out <out_dir>/jobs-2/report.json --jobs 2
+$ /usr/bin/time -l <mirage_vmaf> --ladder <ladder> --frames 300 --out <out_dir>/jobs-4/report.json --jobs 4
+$ /usr/bin/time -l <mirage_vmaf> --ladder <ladder> --frames 300 --out <out_dir>/jobs-default/report.json

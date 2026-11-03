@@ -1,0 +1,60 @@
+# The rerun's per-frame values compared with the committed ones by the agent, from the raw reports, independently of eval/run_all.py: for every pair directory that has a mirage.json or an ffmpeg.json (or .xz) both under eval/consistency/ of the worktree of 475ace3 the rerun ran from, <worktree>, and under the rerun's <out_dir>/consistency/, the values of each report's "frames", in order, Mirage's "vmaf" and FFmpeg's "metrics", compared as they are; a frame that one report has and the other hasn't counts as differing. The ladder's report and the pooling series aren't compared here, nor anything but those values. The command, its output and exit status, then the script, verbatim.
+
+$ python3 -I verify_rerun.py <worktree> <out_dir>
+mirage.json: 141 pairs, 443307 committed per-frame values, 0 differing
+ffmpeg.json: 134 pairs, 442094 committed per-frame values, 0 differing
+(exit status 0)
+
+# verify_rerun.py:
+"""Recomputes a run_all rerun's comparison with the committed outputs from the raw reports,
+independently of eval/run_all.py: for every pair directory that has a mirage.json or an
+ffmpeg.json (or .xz) both under <repo>/eval/consistency and under <out>/consistency, the
+per-frame values compared as they are, Mirage's "vmaf" and FFmpeg's "metrics".
+
+usage: python3 -I verify_rerun.py <repo> <out>
+"""
+import json
+import lzma
+import os
+import sys
+
+repo, out = sys.argv[1], sys.argv[2]
+
+
+def load(p):
+    for name, op in ((p, open), (p + ".xz", lzma.open)):
+        if os.path.exists(name):
+            with op(name, "rt", encoding="utf-8") as f:
+                return json.load(f)
+    return None
+
+
+committed = os.path.join(repo, "eval", "consistency")
+rerun = os.path.join(out, "consistency")
+totals = {"mirage.json": [0, 0, 0], "ffmpeg.json": [0, 0, 0]}   # pairs, values, differing
+rows = []
+for root, dirs, files in os.walk(committed):
+    names = {f[:-3] if f.endswith(".xz") else f for f in files}
+    for side, key in (("mirage.json", "vmaf"), ("ffmpeg.json", "metrics")):
+        if side not in names:
+            continue
+        rel = os.path.relpath(root, committed)
+        old = load(os.path.join(root, side))
+        new = load(os.path.join(rerun, rel, side))
+        if old is None or new is None or not isinstance(old, dict) or "frames" not in old:
+            if new is None and old is not None and "frames" in (old or {}):
+                rows.append((rel, side, "not in the rerun"))
+            continue
+        a = [f.get(key) for f in new.get("frames") or []]
+        b = [f.get(key) for f in old.get("frames") or []]
+        d = sum(1 for x, y in zip(a, b) if x != y) + abs(len(a) - len(b))
+        t = totals[side]
+        t[0] += 1
+        t[1] += len(b)
+        t[2] += d
+        if d:
+            rows.append((rel, side, f"{d} of {len(b)} differ (rerun {len(a)})"))
+for side, (pairs, values, differing) in totals.items():
+    print(f"{side}: {pairs} pairs, {values} committed per-frame values, {differing} differing")
+for r in rows:
+    print("  ", *r)

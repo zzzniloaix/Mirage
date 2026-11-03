@@ -1,0 +1,49 @@
+# One pair's peak resident memory after its first N frame pairs: <copy_dir>/v9 (1080p60) against <copy_dir>/v8 (1080p60), each N one run, one at a time, with /usr/bin/time -l.
+
+$ /usr/bin/time -l <mirage_vmaf> --ref <copy_dir>/v9/prog_index.m3u8 --dis <copy_dir>/v8/prog_index.m3u8 --frames 1 --out <tmp>/f1.json
+mirage_vmaf: 1 frame pairs scored, report written to <tmp>/f1.json
+        0.61 real         0.11 user         0.04 sys
+           128778240  maximum resident set size
+           111477264  peak memory footprint
+
+$ /usr/bin/time -l <mirage_vmaf> --ref <copy_dir>/v9/prog_index.m3u8 --dis <copy_dir>/v8/prog_index.m3u8 --frames 2 --out <tmp>/f2.json
+mirage_vmaf: 2 frame pairs scored, report written to <tmp>/f2.json
+        0.14 real         0.17 user         0.04 sys
+           196952064  maximum resident set size
+           179716696  peak memory footprint
+
+$ /usr/bin/time -l <mirage_vmaf> --ref <copy_dir>/v9/prog_index.m3u8 --dis <copy_dir>/v8/prog_index.m3u8 --frames 5 --out <tmp>/f5.json
+mirage_vmaf: 5 frame pairs scored, report written to <tmp>/f5.json
+        0.19 real         0.36 user         0.05 sys
+           271532032  maximum resident set size
+           254411472  peak memory footprint
+
+$ /usr/bin/time -l <mirage_vmaf> --ref <copy_dir>/v9/prog_index.m3u8 --dis <copy_dir>/v8/prog_index.m3u8 --frames 10 --out <tmp>/f10.json
+mirage_vmaf: 10 frame pairs scored, report written to <tmp>/f10.json
+        0.25 real         0.65 user         0.04 sys
+           271499264  maximum resident set size
+           254378704  peak memory footprint
+
+$ /usr/bin/time -l <mirage_vmaf> --ref <copy_dir>/v9/prog_index.m3u8 --dis <copy_dir>/v8/prog_index.m3u8 --frames 30 --out <tmp>/f30.json
+mirage_vmaf: 30 frame pairs scored, report written to <tmp>/f30.json
+        0.53 real         1.85 user         0.04 sys
+           284573696  maximum resident set size
+           267420344  peak memory footprint
+
+$ /usr/bin/time -l <mirage_vmaf> --ref <copy_dir>/v9/prog_index.m3u8 --dis <copy_dir>/v8/prog_index.m3u8 --frames 60 --out <tmp>/f60.json
+mirage_vmaf: 60 frame pairs scored, report written to <tmp>/f60.json
+        0.96 real         3.64 user         0.05 sys
+           285605888  maximum resident set size
+           268419768  peak memory footprint
+
+$ /usr/bin/time -l <mirage_vmaf> --ref <copy_dir>/v9/prog_index.m3u8 --dis <copy_dir>/v8/prog_index.m3u8 --frames 120 --out <tmp>/f120.json
+mirage_vmaf: 120 frame pairs scored, report written to <tmp>/f120.json
+        1.76 real         7.09 user         0.05 sys
+           287801344  maximum resident set size
+           270598864  peak memory footprint
+
+$ /usr/bin/time -l <mirage_vmaf> --ref <copy_dir>/v9/prog_index.m3u8 --dis <copy_dir>/v8/prog_index.m3u8 --frames 300 --out <tmp>/f300.json
+mirage_vmaf: 300 frame pairs scored, report written to <tmp>/f300.json
+        4.23 real        17.59 user         0.07 sys
+           293093376  maximum resident set size
+           275907304  peak memory footprint

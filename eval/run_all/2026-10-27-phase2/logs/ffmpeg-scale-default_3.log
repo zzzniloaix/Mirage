@@ -1,0 +1,6 @@
+scale=1920:1080
+[Parsed_scale_0] w:640 h:360 fmt:yuv420p csp:unknown range:unknown sar:1/1 -> w:1920 h:1080 fmt:yuv420p csp:unknown range:unknown sar:1/1 flags:0x00000004
+scale=1920:1080:flags=bilinear
+[Parsed_scale_0] w:640 h:360 fmt:yuv420p csp:unknown range:unknown sar:1/1 -> w:1920 h:1080 fmt:yuv420p csp:unknown range:unknown sar:1/1 flags:0x00000002
+scale=1920:1080:flags=bicubic
+[Parsed_scale_0] w:640 h:360 fmt:yuv420p csp:unknown range:unknown sar:1/1 -> w:1920 h:1080 fmt:yuv420p csp:unknown range:unknown sar:1/1 flags:0x00000004

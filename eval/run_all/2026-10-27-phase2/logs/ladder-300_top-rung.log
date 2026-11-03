@@ -1,0 +1,10 @@
+gear4_vs_gear5: mirage_vmaf exit 0 after 11.1 s
+gear2_vs_gear5: mirage_vmaf exit 0 after 11.2 s
+gear3_vs_gear5: mirage_vmaf exit 0 after 11.2 s
+ladder: mirage_vmaf exit 0 after 14.7 s
+gear1_vs_gear5: mirage_vmaf exit 0 after 7.7 s
+gear4_vs_gear5: SAME  frames 300 / 300
+gear3_vs_gear5: SAME  frames 300 / 300
+gear2_vs_gear5: SAME  frames 300 / 300
+gear1_vs_gear5: SAME  frames 300 / 300
+overall: PASS; report in <out_dir>/consistency/ladder-300/top-rung/check.md
