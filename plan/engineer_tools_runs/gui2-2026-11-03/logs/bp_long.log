@@ -1,0 +1,25 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  Opening <scratch>/gui2/clips/long_1080p.mp4 (t=0.265)
+[INFO]  Demuxer: avformat_open_input 2 ms (1 streams, 0 programs) (t=0.267)
+[INFO]  Demuxer: avformat_find_stream_info 6 ms (t=0.273)
+[WARN]  No audio stream found
+[INFO]  Container: QuickTime / MOV
+[INFO]  Duration:  00:05:00
+[INFO]  Video:     h264 1920×1080 @ 25.000 fps  pixel_fmt=yuv420p
+[INFO]  Selected HW-capable decoder: h264 (default was h264)
+[INFO]  Decoder opened: h264 (1920×1080)  [HW: VideoToolbox requested]
+[INFO]  Opened <scratch>/gui2/clips/long_1080p.mp4 in 34 ms (t=0.299)
+[INFO]  VideoRenderer: 1920×1080 SDR (yuv420p → RGB24 sRGB)  matrix=BT.709  limited-range
+[INFO]  Subtitles: 0 choice(s); initial off (none available)
+[INFO]  ThumbnailStrip: open 2 ms, probe 5 ms (t=0.308)
+[INFO]  ThumbnailStrip: 150 keyframes found, decoding 150 thumbnails (stride 0.75 s, 160 px tall)
+[INFO]  ScrubDecoder: ready (open 2 ms, probe 5 ms) (t=0.308)
+[INFO]  FrameScan: stream 0 (h264) — 7500 frames, 195.8 MB in 0.06 s
+[INFO]  Decoder: VideoToolbox HW decode active (zero-copy IOSurface path)
+[INFO]  first-frame: pts=150.000 1920x1080 VideoToolbox, 170 ms after open, paused (t=0.471)
+[INFO]  switch-trace: first frame after seek pts=150.000 — took 169 ms
+[INFO]  VideoRenderer: HW zero-copy path ready (8-bit, BT.709 matrix, limited-range)
+[INFO]  playback paused (t=0.510)
+[INFO]  ThumbnailStrip: coarse pass done (19 thumbnails)
+[INFO]  ThumbnailStrip: decode complete (150 thumbnails)
+[INFO]  ui-snapshot: wrote <scratch>/gui2/bp_long.png (3200×2000, frame 90, hover=none, thumb_pts=none, sub="")

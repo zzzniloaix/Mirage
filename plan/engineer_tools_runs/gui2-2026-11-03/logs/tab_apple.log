@@ -1,0 +1,324 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  Opening https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8 (t=0.270)
+[INFO]  ManifestParser: parsed HLS — 0 tags, 24 variants from https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8
+[INFO]  HLS: master lists 24 variants over 8 playlists — opening a copy with 10 of them
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v5/prog_index.m3u8' for reading
+[https @ 0x7d350f000] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v9/prog_index.m3u8' for reading
+[https @ 0x7d350f000] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v8/prog_index.m3u8' for reading
+[https @ 0x7d350f000] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v7/prog_index.m3u8' for reading
+[https @ 0x7d350f000] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v6/prog_index.m3u8' for reading
+[https @ 0x7d350f000] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v4/prog_index.m3u8' for reading
+[https @ 0x7d350f000] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v3/prog_index.m3u8' for reading
+[https @ 0x7d350f000] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/prog_index.m3u8' for reading
+[https @ 0x7d350f000] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/prog_index.m3u8' for reading
+[https @ 0x7d350f000] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/prog_index.m3u8' for reading
+[https @ 0x7d350f000] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a1/prog_index.m3u8' for reading
+[https @ 0x7d350f000] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a2/prog_index.m3u8' for reading
+[https @ 0x7d350f000] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a3/prog_index.m3u8' for reading
+[https @ 0x7d350f000] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/s1/en/prog_index.m3u8' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v5/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v5/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v9/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v9/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v8/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v8/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v7/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v7/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v6/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v6/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v4/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v4/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v3/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v3/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a1/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a1/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a2/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a2/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a3/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a3/main.mp4' for reading
+[INFO]  Demuxer: avformat_open_input 3680 ms (14 streams, 10 programs, deduplicated master) (t=4.098)
+[INFO]  Demuxer: avformat_find_stream_info 59 ms (t=4.158)
+[INFO]  Container: Apple HTTP Live Streaming
+[INFO]  Duration:  00:10:00
+[INFO]  Video:     h264 1920×1080 @ 60.000 fps  pixel_fmt=yuv420p
+[INFO]  Audio:     aac 48000 Hz  2 ch  fmt=fltp
+[INFO]  Subtitles: 1 embedded track(s)
+[INFO]  Selected HW-capable decoder: h264 (default was h264)
+[INFO]  Decoder opened: h264 (1920×1080)  [HW: VideoToolbox requested]
+[INFO]  AudioPlayer: 48000 Hz stereo float32  device latency 30.0 ms (480 frames × 3 periods)
+[INFO]  Decoder opened: aac (0×0)
+[INFO]  AudioDecoder: 48000 Hz 2ch → 48000 Hz stereo f32
+[INFO]  Opened https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8 in 3994 ms (t=4.264)
+[INFO]  VideoRenderer: 1920×1080 SDR (yuv420p → RGB24 sRGB)  matrix=BT.709  limited-range
+[INFO]  MediaSession: helpers open variant playlists — scrub https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v9/prog_index.m3u8, thumbnails https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/prog_index.m3u8 (stream 7)
+[INFO]  SubtitleDecoder opened: webvtt (text)
+[INFO]  Subtitles: stream 13 read from the start
+[hls @ 0x7d252cf00] Now receiving playlist 13, segment 0
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/s1/en/fileSequence0.webvtt' for reading
+[INFO]  Subtitles: 1 choice(s); initial 13 · en · WebVTT (default)
+mime type is not rfc8216 compliant
+[hls @ 0x7ce45a580] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v9/main.mp4' for reading
+[INFO]  Decoder: VideoToolbox HW decode active (zero-copy IOSurface path)
+mime type is not rfc8216 compliant
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/s1/en/fileSequence1.webvtt' for reading
+[INFO]  Keyframes: stream 1 — 100 segments (600.0 s, independent) in https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v9/prog_index.m3u8
+[INFO]  first-frame: pts=10.017 1920x1080 VideoToolbox, 158 ms after open (t=4.424)
+[INFO]  VideoRenderer: HW zero-copy path ready (8-bit, BT.709 matrix, limited-range)
+[hls @ 0x7ce45a580] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v9/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v9/main.mp4' for reading
+[INFO]  ThumbnailStrip: sampling variant playlist https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/prog_index.m3u8 (270p), open + probe 447 ms (t=4.714)
+[INFO]  ThumbnailStrip: 0 keyframes in index for stream 0 — seek-sampling 48 points (stride 12.50 s)
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7d252db80] Packet corrupt (stream = 0, dts = 643000).
+[NULL @ 0x7d0bb8700] Invalid NAL unit size (27017 > 12697).
+[NULL @ 0x7d0bb8700] missing picture in access unit with size 12771
+[hls @ 0x7d252cf00] Packet corrupt (stream = 2, dts = 643000).
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7d252e080] Packet corrupt (stream = 0, dts = 644000).
+[NULL @ 0x7d0bb9880] Invalid NAL unit size (11523 > 5834).
+[NULL @ 0x7d0bb9880] missing picture in access unit with size 5909
+[hls @ 0x7d252cf00] Packet corrupt (stream = 3, dts = 644000).
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7d252e580] Packet corrupt (stream = 0, dts = 646000).
+[NULL @ 0x7d0bbaa00] Invalid NAL unit size (12966 > 3427).
+[NULL @ 0x7d0bbaa00] missing picture in access unit with size 3501
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7d252d180] Packet corrupt (stream = 0, dts = 647000).
+[NULL @ 0x7d2f86300] Invalid NAL unit size (3254 > 1470).
+[NULL @ 0x7d2f86300] missing picture in access unit with size 1545
+[hls @ 0x7d252cf00] Packet corrupt (stream = 4, dts = 646000).
+[hls @ 0x7d252cf00] Packet corrupt (stream = 0, dts = 647000).
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7d252ea80] Packet corrupt (stream = 0, dts = 326000).
+[NULL @ 0x7d0bbbb80] missing picture in access unit with size 105
+[hls @ 0x7d252cf00] Packet corrupt (stream = 5, dts = 326000).
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/s1/en/fileSequence2.webvtt' for reading
+[INFO]  ScrubDecoder: ready — variant playlist https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v9/prog_index.m3u8 (open + probe 485 ms) (t=4.752)
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7d252ef80] Packet corrupt (stream = 0, dts = 338000).
+[NULL @ 0x7cf9d8e00] Invalid NAL unit size (1999 > 75).
+[NULL @ 0x7cf9d8e00] missing picture in access unit with size 175
+[hls @ 0x7d252cf00] Packet corrupt (stream = 6, dts = 338000).
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7ce45b700] Packet corrupt (stream = 0, dts = 544512).
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7ce45b200] Packet corrupt (stream = 0, dts = 544512).
+[hls @ 0x7d252cf00] Packet corrupt (stream = 11, dts = 542976).
+[hls @ 0x7d252cf00] Packet corrupt (stream = 12, dts = 542976).
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7d252f480] Packet corrupt (stream = 0, dts = 344000).
+[NULL @ 0x7cf9d9f80] Invalid NAL unit size (4416 > 2933).
+[NULL @ 0x7cf9d9f80] missing picture in access unit with size 3033
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7d252f980] Packet corrupt (stream = 0, dts = 344000).
+[NULL @ 0x7cf9db100] Invalid NAL unit size (4416 > 2933).
+[NULL @ 0x7cf9db100] missing picture in access unit with size 3033
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7d2f97c00] Packet corrupt (stream = 0, dts = 344000).
+[NULL @ 0x7ce450380] Invalid NAL unit size (4416 > 2933).
+[NULL @ 0x7ce450380] missing picture in access unit with size 3033
+[hls @ 0x7d252cf00] Packet corrupt (stream = 7, dts = 344000).
+[hls @ 0x7d252cf00] Packet corrupt (stream = 8, dts = 344000).
+[hls @ 0x7d252cf00] Packet corrupt (stream = 9, dts = 344000).
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a1/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[https @ 0x7d385e000] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a1/main.mp4' for reading
+[https @ 0x7d3515000] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v9/main.mp4' for reading
+[INFO]  Keyframes: stream 1 — 100 playlist segment starts confirmed (1 read where predicted, first at 10.017 s): listed with the 4 keyframes read
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/s1/en/fileSequence3.webvtt' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[https @ 0x7d3c9e000] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a1/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[https @ 0x7d37a6000] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v9/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/s1/en/fileSequence4.webvtt' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[INFO]  ThumbnailStrip: coarse pass done (6 thumbnails)
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[INFO]  ConformProbe: https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8 — 11 playlists, 27 segments read, 0 sized, 58.5 MB in 4.3 s: 0 errors, 0 warnings
+[INFO]  conform_out: wrote <scratch>/gui2/tab_apple.json
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[https @ 0x7d385e000] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a1/main.mp4' for reading
+[https @ 0x7d3515000] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v9/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/s1/en/fileSequence5.webvtt' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[https @ 0x7d3c9e000] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a1/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[https @ 0x7d37a6000] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v9/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7ce459900] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/s1/en/fileSequence6.webvtt' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x7cd55a080] Found duplicated MOOV Atom. Skipped it
+[INFO]  ThumbnailStrip: decode complete (47 thumbnails)
+[https @ 0x7d385e000] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a1/main.mp4' for reading
+[https @ 0x7d3515000] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v9/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/s1/en/fileSequence7.webvtt' for reading
+[https @ 0x7d3c9e000] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a1/main.mp4' for reading
+[https @ 0x7d37a6000] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v9/main.mp4' for reading
+[hls @ 0x7d252cf00] Opening 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/s1/en/fileSequence8.webvtt' for reading
+[WARN]  ui-snapshot: timeout waiting for subtitle cue
+[INFO]  ui-snapshot: wrote <scratch>/gui2/tab_apple.png (3200×2000, frame 1800, hover=none, thumb_pts=none, sub="")

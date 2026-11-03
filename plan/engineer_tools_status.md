@@ -13,9 +13,9 @@ the loudness clips (it needs a display, like `pathb_snapshot_regression.sh`).
 The script and the other checks that need a display were run again on
 2026-11-03 and committed: `plan/engineer_tools_runs/gui-2026-11-03/`, "the
 GUI record" below. The first scripted runs' outputs were never committed;
-what only they showed is MEASUREMENT PENDING: the runs with `--no-hw`, and
-those on the 4K PQ AV1 file, the five-minute 1080p H.264 file and the raw
-H.264 stream, which the repository does not hold.
+what only they checked was run again in a second record, on generated clips
+where they had used files the repository does not hold
+(`plan/engineer_tools_runs/gui2-2026-11-03/`, "the second GUI record").
 
 ## P — Frame inspector
 
@@ -65,7 +65,8 @@ the player. Code: `src/FrameInfo.*` (pure, unit-tested),
   - H.264 SDR MP4 (x264, B-frames): type, number and timestamp match the
     pattern's burnt-in frame counter (the GUI record's
     `frame_inspector_sdr.png`: frame 50, I, key, 2.000000 s, with
-    VideoToolbox; with `--no-hw`: MEASUREMENT PENDING);
+    VideoToolbox; the second GUI record's `p_nohw.png`: the same with the
+    software decoder);
   - HEVC 10-bit tagged HDR10 (x265 with mastering display and light level
     SEI), VideoToolbox P010: the mastering primaries read as P3-D65, the
     luminance and MaxCLL/MaxFALL as encoded, x265's settings listed
@@ -132,8 +133,10 @@ probe maps the frame on screen once per new frame while it is on. Code:
   fall on the computed 100 % targets; the probe on the red bar), x265 HDR10
   (waveform with the nits scale, histogram): the GUI record's
   `scopes_parade.png`, `scopes_vectorscope.png`, `scopes_waveform_hdr.png`
-  and `scopes_histogram.png`. A 4K PQ AV1 file decoded by VideoToolbox into
-  P010 (waveform; the probe on a face): MEASUREMENT PENDING.
+  and `scopes_histogram.png`. A 4K PQ AV1 clip decoded by VideoToolbox into
+  P010: the waveform with the nits scale, the probe on the red bar (code
+  values, R′G′B′, PQ luminance), and P reading VideoToolbox p010le and the
+  PQ tags (the second GUI record's `sx_av1.png`, `p_av1.png`).
 
 **Not checked.** HLG content in the app (HLG only in a unit test); 4:2:2 /
 4:4:4 VideoToolbox buffers; rotated video (the probe maps the cursor as if
@@ -187,11 +190,11 @@ the summary says so). Code: `src/FrameScan.*` (with
   committed, and this branch's checks did not repeat them.
 - Scripted runs: the x264 clip (GOP of 50, B-frames: the summary and the bar
   pattern match the encode; the GUI record's `frame_sizes.png`: 200 frames,
-  I 4, P 86, B 110, GOP 50.0 frames). A five-minute 1080p H.264 file (the
-  view follows the frame on screen; the frame numbers agree with the frame
-  inspector's) and a raw H.264 elementary stream (no timestamps: the frame on
-  screen is found by frame-rate times, the bitrates and GOP durations come
-  from them): MEASUREMENT PENDING.
+  I 4, P 86, B 110, GOP 50.0 frames). Five minutes of 1080p H.264, 150 s in:
+  B's view at the frame on screen, P on frame 3750 at 150.000000 s as the
+  burnt-in counter (the second GUI record's `bp_long.png`). A raw H.264
+  elementary stream: no timestamps, so times come from the frame rate, and
+  the GOP durations and bit rates from them (`b_raw.png`).
 
 **Not checked.** Clicking (seek on click) in a scripted run — it sets the
 same absolute seek the seek bar uses; HLS scans; a video track switch during
@@ -343,7 +346,8 @@ draws; `tools/mirage_hlscheck.cpp` prints.
   fMP4 example over HTTP and on the demo package as local files. On the
   demo package the tab's report is the command line's, key for key (the GUI
   record: `compare_conform.py` in `record.txt`, both reports in `reports/`,
-  the tab in `conform_tab.png`); on Apple's example: MEASUREMENT PENDING.
+  the tab in `conform_tab.png`), and so it is on Apple's fMP4 example over
+  HTTP (the second GUI record's `tab_apple`).
 
 **Not checked.** Live playlists (the check reads the window listed when it
 starts; nothing follows reloads); encrypted segments (sized, not read);
