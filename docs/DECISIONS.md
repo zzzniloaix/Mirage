@@ -707,6 +707,33 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: owner (Jiayu Lin), adopting the agent's recommendation
 - **Date**: 2026-10-30
 
+### D-083 The engineer-tools panels go in as built (D-007's plan for them)
+
+- **Decision**: the D-007 plan in `plan/engineer_tools_decisions_pending.md`, section 1, is approved with its option 1, the panels as built. Every upload keeps a reference to the frame on screen until the next one (`upload_frame` in `run_session`); `VideoRenderer::interpretation()`, `AudioDecoder::set_tap` and the `LoudnessTap` in `MediaSession` stay; L measures the decoded audio before the resampler. The panels work only while they are open: S and B on threads of their own, L on the audio decoding thread.
+- **Owner's words**, translated by the agent: "As it is now (Recommended)", for which of the plan's three options the panels take.
+- **Alternatives**: keep the reference only while P, S or X is open, so that nothing changes per frame while they are closed, and opened while paused they show nothing until the next upload; leave the panels out of the player, as tools of their own that read files, like `mirage_vmaf`, which lose the frame on screen and the audio being heard.
+- **Rationale**: while the panels are closed, each frame shown costs one reference taken and dropped and a loop over its side data, and each decoded audio frame one relaxed atomic load; in exchange P, S and X show the frame on screen as soon as they open, paused or not.
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-03
+
+### D-084 The conformance checks keep their thresholds and error classes
+
+- **Decision**: the HLS and DASH conformance checks go in with the thresholds the code has (`src/HlsConform.h`: `kPeakSlack` 0.01, `kOverDeclared` 1.50, `kAverageSlack` 0.10, `kRateSlack` 0.002, `kDurationSlack` 0.050 s; `src/DashConform.h`: `kTimeSlack` 0.050 s, `kTimeBad` 0.500 s, `kAlignSlack` 0.100 s, `kAlignBad` 0.500 s, and a quarter and half of a nominal @duration) and with the findings that count as errors as they are. The other questions of the plan's section 2 stay open: a note for a @bandwidth between the two rates the DASH check computes, whether the Conformance tab sizes every segment by default, and how the player reaches the DASH check for an MPD it cannot play.
+- **Owner's words**, translated by the agent: "Use the current values for now (Recommended)".
+- **Alternatives**: change some of them before the merge.
+- **Rationale**: the values are the agent's; each is one line to change after the merge.
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-03
+
+### D-085 One PR for the engineer tools
+
+- **Decision**: the panels, the HLS conformance check and the DASH conformance check go to main in one PR, the three in their order.
+- **Owner's words**, translated by the agent: "One PR (Recommended)".
+- **Alternatives**: three PRs, one per part, each based on the one before until that one merges.
+- **Rationale**: one review and one merge; D-083 covers the only part that changes the player's render, decode and audio path.
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-03
+
 ---
 
 ## Measurement / process choices (proposed by the agent, confirmed by the owner)

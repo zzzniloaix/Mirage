@@ -5,14 +5,17 @@ S, X, B and L, the HLS conformance check (`mirage_hlscheck` and the
 Conformance tab of `N`) and the DASH conformance check (`mirage_dashcheck`).
 What each one does and how it was checked is in
 `plan/engineer_tools_status.md`. This file lists what the owner decides
-first. Nothing in it is decided yet: each item gives the options and the
-agent's recommendation.
+first, each item with its options and the agent's recommendation. On
+2026-11-03 the owner decided sections 1 to 3, each as recommended (D-083,
+D-084 and D-085 in `docs/DECISIONS.md`); what is still open is marked so.
 
 1. D-007: the panels' changes to the player
 2. The conformance checks: thresholds and error classes
 3. The shape of the PR
 
 ## 1. D-007: the panels' changes to the player
+
+**Decided** (2026-11-03): option 1, the panels as built (D-083).
 
 D-007 asks for a plan the owner approves before code changes the render or
 decode path. The panels were written first, as proofs of concept on a branch
@@ -91,6 +94,9 @@ Each of these would need a plan of its own:
 
 ## 2. The conformance checks: thresholds and error classes
 
+**Decided** (2026-11-03): the values and the error classes stay as they are
+(D-084). The last three questions of this section are still open.
+
 The values are the code's now. The owner keeps or changes each one; a change
 is one line. The recommendation is to keep them for the merge.
 
@@ -130,6 +136,8 @@ Also the owner's:
   path's, so a D-007 plan of its own.
 
 ## 3. The shape of the PR
+
+**Decided** (2026-11-03): one PR (D-085).
 
 1. **One PR (recommended)** from the top branch, with the three parts in
    their order: the panels, the HLS check, the DASH check. One review and
