@@ -1,0 +1,232 @@
+{
+ "master": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/master.m3u8",
+ "segments": 2,
+ "started": "2026-10-26T23:44:31Z",
+ "ended": "2026-10-26T23:45:36Z",
+ "playlists": [
+  {
+   "playlist": "v5/prog_index.m3u8",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v5/prog_index.m3u8",
+   "segments_kept": [
+    "fileSequence0.ts",
+    "fileSequence1.ts"
+   ],
+   "playlist_sha256_as_fetched": "d8826e49de47db9e196abfe49c5f1b453961c8449b7d1c862bce79bb893f01f5"
+  },
+  {
+   "playlist": "v9/prog_index.m3u8",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v9/prog_index.m3u8",
+   "segments_kept": [
+    "fileSequence0.ts",
+    "fileSequence1.ts"
+   ],
+   "playlist_sha256_as_fetched": "2ac1e472de0a58045059af9a867fee82db944590afdc07752f590cefb80a6980"
+  },
+  {
+   "playlist": "v8/prog_index.m3u8",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v8/prog_index.m3u8",
+   "segments_kept": [
+    "fileSequence0.ts",
+    "fileSequence1.ts"
+   ],
+   "playlist_sha256_as_fetched": "22f265fbf3ee93522fdf57df690ee2a49db6d3cad1a3be1d5b01deadcaded20a"
+  },
+  {
+   "playlist": "v7/prog_index.m3u8",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v7/prog_index.m3u8",
+   "segments_kept": [
+    "fileSequence0.ts",
+    "fileSequence1.ts"
+   ],
+   "playlist_sha256_as_fetched": "7b7d5974f7d500fd6b80802ae00e6e3109639ae31d6cacd318e01100a3f7d8ae"
+  },
+  {
+   "playlist": "v6/prog_index.m3u8",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v6/prog_index.m3u8",
+   "segments_kept": [
+    "fileSequence0.ts",
+    "fileSequence1.ts"
+   ],
+   "playlist_sha256_as_fetched": "6e75c4435d15fa290ed7558a32a81e5c88bd3381c3bc2c878411afb59c0a44c2"
+  },
+  {
+   "playlist": "v4/prog_index.m3u8",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v4/prog_index.m3u8",
+   "segments_kept": [
+    "fileSequence0.ts",
+    "fileSequence1.ts"
+   ],
+   "playlist_sha256_as_fetched": "deae1dc2813f3fa604ea614d44fd8c4c6c9ec2031d1747444bec82ee282d1e5a"
+  },
+  {
+   "playlist": "v3/prog_index.m3u8",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v3/prog_index.m3u8",
+   "segments_kept": [
+    "fileSequence0.ts",
+    "fileSequence1.ts"
+   ],
+   "playlist_sha256_as_fetched": "22316c7e8f17533db19b2dede508162c440659f46a5ef0dcdc411fd4a684bc8c"
+  },
+  {
+   "playlist": "v2/prog_index.m3u8",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v2/prog_index.m3u8",
+   "segments_kept": [
+    "fileSequence0.ts",
+    "fileSequence1.ts"
+   ],
+   "playlist_sha256_as_fetched": "6a3c45a436cfb5e9e754bfd3ecd377bed0df9637be9f1eb60a8298efc1324cf2"
+  }
+ ],
+ "files": [
+  {
+   "path": "master.m3u8",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/master.m3u8",
+   "bytes": 6289,
+   "sha256": "f2177c1350130e087f9d81af82f092ababfcfb34e5b01e52ff146a08b241e849"
+  },
+  {
+   "path": "v5/prog_index.m3u8",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v5/prog_index.m3u8",
+   "bytes": 251,
+   "sha256": "08c1c91e012b44f5be00779bb168e5a15686e4d0640866609dde721896a3c528"
+  },
+  {
+   "path": "v5/fileSequence0.ts",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v5/fileSequence0.ts",
+   "bytes": 1544984,
+   "sha256": "60c78a9bba5400e8f661ddb0ba41d9177427024377fa69abdc8e5d4d04480663"
+  },
+  {
+   "path": "v5/fileSequence1.ts",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v5/fileSequence1.ts",
+   "bytes": 1547240,
+   "sha256": "9ad820e1d4a6406bd6183d9929b4a2ffa1119870944ab761afd4cbc3680288ce"
+  },
+  {
+   "path": "v9/prog_index.m3u8",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v9/prog_index.m3u8",
+   "bytes": 251,
+   "sha256": "f986dcc40ebd5b368a98155a823ea6c83d75eafb989c76733b91deb2955ae3a0"
+  },
+  {
+   "path": "v9/fileSequence0.ts",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v9/fileSequence0.ts",
+   "bytes": 6006224,
+   "sha256": "6a819d003155123c56f29efd8e2e0330d3eed05d3c5cffef4f48a5b9580e4bca"
+  },
+  {
+   "path": "v9/fileSequence1.ts",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v9/fileSequence1.ts",
+   "bytes": 5994756,
+   "sha256": "12691d428002a42b20152fd9dde2468ee5de364a9aa5a4810fa99a5520813fed"
+  },
+  {
+   "path": "v8/prog_index.m3u8",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v8/prog_index.m3u8",
+   "bytes": 251,
+   "sha256": "c202a2ffeb5101c65e63e172a22fd681236c0ca34a4d1abb53846fa16e94bf66"
+  },
+  {
+   "path": "v8/fileSequence0.ts",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v8/fileSequence0.ts",
+   "bytes": 4648112,
+   "sha256": "2ebc0f79ff25b94baf4194e14cf6f3c8749dd62f58e2f093b1d96a6b40143702"
+  },
+  {
+   "path": "v8/fileSequence1.ts",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v8/fileSequence1.ts",
+   "bytes": 4604872,
+   "sha256": "b1e668f27b631f8e1026d109b58a9f291dc6be4b9b8126cc87154aee2aa029af"
+  },
+  {
+   "path": "v7/prog_index.m3u8",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v7/prog_index.m3u8",
+   "bytes": 251,
+   "sha256": "ac8995b7b553239f4b4b34d98ddb4ef4567b0588c9360400eeb357c8e7f2cf91"
+  },
+  {
+   "path": "v7/fileSequence0.ts",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v7/fileSequence0.ts",
+   "bytes": 3458824,
+   "sha256": "c90a5af71a6fedca4293f7c43fc4d4e954b00a9064ec4a5fcaedda3c3ce03def"
+  },
+  {
+   "path": "v7/fileSequence1.ts",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v7/fileSequence1.ts",
+   "bytes": 3456380,
+   "sha256": "d46774669063bc2af3a6de9fb362179657d224d62db41a688eace820e622127e"
+  },
+  {
+   "path": "v6/prog_index.m3u8",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v6/prog_index.m3u8",
+   "bytes": 251,
+   "sha256": "40216ff1bf7cd1c488591a17d67e55fe6e6a1993efd4ac84603feed667ab95fa"
+  },
+  {
+   "path": "v6/fileSequence0.ts",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v6/fileSequence0.ts",
+   "bytes": 2320860,
+   "sha256": "757d8eef92838a147d7d92631978671ae1464db4e5c7795c9fa916ccf10c7ca5"
+  },
+  {
+   "path": "v6/fileSequence1.ts",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v6/fileSequence1.ts",
+   "bytes": 2312024,
+   "sha256": "ffb031c5598c8a60fb1607fdd4b6a060dd466ddc35692d66c505bdcc9908f1d6"
+  },
+  {
+   "path": "v4/prog_index.m3u8",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v4/prog_index.m3u8",
+   "bytes": 251,
+   "sha256": "73687659b58963ca5d3a8faede19ff2e0f032f46214a5b522425a6fd08d22972"
+  },
+  {
+   "path": "v4/fileSequence0.ts",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v4/fileSequence0.ts",
+   "bytes": 850700,
+   "sha256": "0b1855990d21dc3f79ae6e4b56ff286c21a7315c13c6267f21375d52c30e3233"
+  },
+  {
+   "path": "v4/fileSequence1.ts",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v4/fileSequence1.ts",
+   "bytes": 848068,
+   "sha256": "d7b40579d6812a35417ef0fcc839f8a091627e7c2ea87d57c3c3bb7ebf08deb8"
+  },
+  {
+   "path": "v3/prog_index.m3u8",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v3/prog_index.m3u8",
+   "bytes": 249,
+   "sha256": "b7bee1efa74f2e566eb29cb2913388a9a4f29bb2f01e62b12f7d909515c7c359"
+  },
+  {
+   "path": "v3/fileSequence0.ts",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v3/fileSequence0.ts",
+   "bytes": 518504,
+   "sha256": "9bee4d4aed0ab7f94ed6bc5cb977389eccf732e5f5b398bd2d0abb8f3d624325"
+  },
+  {
+   "path": "v3/fileSequence1.ts",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v3/fileSequence1.ts",
+   "bytes": 559676,
+   "sha256": "5317c4c79ba44fa0a9e7020d85875cd75fa5750cd67130343080868dda5264d3"
+  },
+  {
+   "path": "v2/prog_index.m3u8",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v2/prog_index.m3u8",
+   "bytes": 249,
+   "sha256": "ea4686b6bb6a3150599db59f1d0d66c06124d45033bb90e984551165508dedb5"
+  },
+  {
+   "path": "v2/fileSequence0.ts",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v2/fileSequence0.ts",
+   "bytes": 282376,
+   "sha256": "9d991d28ae4520f83a670da922e0dea9bf604ead2c883d485e4ec4f545fee11d"
+  },
+  {
+   "path": "v2/fileSequence1.ts",
+   "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v2/fileSequence1.ts",
+   "bytes": 288580,
+   "sha256": "74625930e4c42398f03957388619fbe63209ff847f4ea5ae10a0575e36b2d876"
+  }
+ ]
+}

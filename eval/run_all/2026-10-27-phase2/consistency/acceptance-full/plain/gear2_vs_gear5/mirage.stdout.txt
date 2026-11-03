@@ -1,0 +1,3 @@
+[INFO]  VMAFAnalyzer: 6281 frames  mean=27.85  min=8.45  p5=26.20  [Analysis]
+[WARN]  VMAFAnalyzer: 82.89% of the frames failed to pair by timestamp (30420 of 36701: 117 extra distorted, 30303 after a discontinuity), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 6281 frame pairs that paired
+mirage_vmaf: 6281 frame pairs scored, report written to mirage.json

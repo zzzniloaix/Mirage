@@ -521,6 +521,7 @@ TEST_CASE("VMAFAnalyzer::analyze: frame limit, paired PTS, settings and inputs",
     CHECK(r.settings.bit_depth == 8);
     CHECK(r.settings.n_threads == 4);
     CHECK(r.settings.n_subsample == 1);
+    CHECK(r.settings == vmaf_settings({ .max_frames = 5 }));   // what it asked for
     CHECK(r.width == 192);
     CHECK(r.height == 108);
 
@@ -888,6 +889,11 @@ TEST_CASE("VMAFAnalyzer::analyze: a model file, identified by its SHA-256", "[vm
     CHECK(a.settings.model_sha256 == filehash::sha256_file(file.string(), err));
     CHECK(b.settings.model_sha256 == filehash::sha256_file(copy.string(), err));
     CHECK(a.settings.model_sha256 != b.settings.model_sha256);
+    // What it asked for, but the SHA-256, which only the analysis reads.
+    VMAFSettings asked = vmaf_settings({ .model = { .path = file.string() } });
+    CHECK(asked.model_sha256.empty());
+    asked.model_sha256 = a.settings.model_sha256;
+    CHECK(a.settings == asked);
     CHECK(a.per_frame == b.per_frame);
     CHECK(a.per_frame != VMAFAnalyzer::analyze(colored_ref_clip(), dis).per_frame);
     fs::remove(copy);
@@ -1256,7 +1262,8 @@ TEST_CASE("VMAFAnalyzer::analyze: a later start, measured from each input's star
     }
 }
 
-TEST_CASE("VMAFAnalyzer::analyze: MPEG-TS timestamps that restart midway stop the pairing", "[vmaf]")
+TEST_CASE("VMAFAnalyzer::analyze: MPEG-TS timestamps that restart midway, in one input or both",
+          "[vmaf]")
 {
     const std::string ts = make_ts_restart_clip("mirage_test_vmaf_restart.ts", 96, 54, 12, 6);
     const VMAFResult r = VMAFAnalyzer::analyze(ref_clip(), ts, { .record_pts = true });
@@ -1271,17 +1278,49 @@ TEST_CASE("VMAFAnalyzer::analyze: MPEG-TS timestamps that restart midway stop th
         CHECK(r.dis_index[k] == k);
         CHECK(std::abs(r.dis_pts[k] - r.alignment.dis_start - ms(k)) < 1e-9);
     }
-    // Then pairing stops, and the rest of both inputs counts as failed.
+    // The distorted input restarts alone, so the jumps aren't at the same
+    // place: the reference's frame 6, a frame after the distorted input's
+    // last, pairs with nothing, and pairing stops at its frame 7 (D-050).
     CHECK(r.alignment.discontinuities == 1);
-    CHECK(r.alignment.after_discontinuity == 12);
+    CHECK(r.alignment.unmatched_reference == 1);
+    CHECK(r.alignment.extra_distorted == 0);
+    CHECK(r.alignment.after_discontinuity == 11);
     CHECK(r.alignment.failed == 12);
     CHECK(r.alignment.failure_rate == 12.0 / 18.0);
     CHECK(r.alignment.exceeded);
     CHECK(r.ref_info.ended);
     CHECK(r.dis_info.ended);
-    REQUIRE(r.alignment.failures.size() == 12);
-    for (const VMAFAlignmentFailure& f : r.alignment.failures) CHECK(f.reason == "after_discontinuity");
-    CHECK(r.alignment.warning.find("12 after a discontinuity") != std::string::npos);
+    // Each input's discontinuity sequences, with the PTS of their first frames (D-057).
+    REQUIRE(r.alignment.ref_sequences.size() == 1);
+    CHECK(r.alignment.ref_sequences[0].first_index == 0);
+    CHECK(r.alignment.ref_sequences[0].frames == 12);
+    REQUIRE(r.alignment.dis_sequences.size() == 2);
+    CHECK(r.alignment.dis_sequences[0].first_index == 0);
+    CHECK(r.alignment.dis_sequences[0].frames == 6);
+    CHECK(r.alignment.dis_sequences[0].first_pts == r.dis_pts[0]);
+    CHECK(r.alignment.dis_sequences[1].first_index == 6);
+    CHECK(r.alignment.dis_sequences[1].frames == 6);
+    CHECK(r.alignment.dis_sequences[1].first_pts == r.alignment.dis_sequences[0].first_pts);
+
+    // Both inputs restart at frame 6, as two rungs at an EXT-X-DISCONTINUITY:
+    // every frame pairs, each sequence in its own libvmaf context.
+    const std::string ref_ts = make_ts_restart_clip("mirage_test_vmaf_restart_ref.ts", 96, 54, 12, 6);
+    const VMAFResult both = VMAFAnalyzer::analyze(ref_ts, ts, { .record_pts = true });
+    REQUIRE(both.error.empty());
+    CHECK(both.per_frame.size() == 12);
+    CHECK(both.alignment.discontinuities == 2);
+    CHECK(both.alignment.failed == 0);
+    CHECK(both.alignment.contexts == std::vector<VMAFContextRun>{ { 0, 6 }, { 6, 6 } });
+    for (int k = 0; k < 12; ++k) {
+        INFO(k);
+        CHECK(both.ref_index[k] == k);
+        CHECK(both.dis_index[k] == k);
+    }
+    // D-037's second minimum leaves out pairs 0 and 6, the contexts' first.
+    double others = both.per_frame[1];
+    for (std::size_t i = 1; i < 12; ++i)
+        if (i != 6) others = std::min(others, both.per_frame[i]);
+    CHECK(both.pooled.min_without_context_first_frames == others);
 }
 
 TEST_CASE("VMAFAnalyzer::start: the player's analysis records the alignment and its warning", "[vmaf]")
@@ -1309,9 +1348,10 @@ TEST_CASE("VMAFAnalyzer::start: the player's analysis records the alignment and 
 TEST_CASE("vmafnet: network URLs get the read limits, local inputs none", "[vmaf][vmafnet]")
 {
     for (const char* url : { "http://example.com/a.m3u8", "https://example.com/a.m3u8",
-                             "rtmp://example.com/live", "rtsp://example.com/live" }) {
+                             "rtsp://example.com/live" }) {
         INFO(url);
         CHECK(vmafnet::is_network_url(url));
+        CHECK(vmafnet::timeout_limits_io(url));
         AVDictionary* opts = nullptr;
         vmafnet::set_io_limits(&opts, url);
         const AVDictionaryEntry* timeout    = av_dict_get(opts, "timeout", nullptr, 0);
@@ -1320,6 +1360,21 @@ TEST_CASE("vmafnet: network URLs get the read limits, local inputs none", "[vmaf
         REQUIRE(rw_timeout);
         CHECK(std::string(timeout->value) == "5000000");
         CHECK(std::string(rw_timeout->value) == "5000000");
+        av_dict_free(&opts);
+    }
+    // rtmp's timeout would make the input listen instead of connecting
+    // (DECISIONS.md D-056): rw_timeout alone (tests/test_rtmp_input.cpp).
+    {
+        const std::string url = "rtmp://example.com/live";
+        CHECK(vmafnet::is_network_url(url));
+        CHECK_FALSE(vmafnet::timeout_limits_io(url));
+        AVDictionary* opts = nullptr;
+        vmafnet::set_io_limits(&opts, url);
+        CHECK(av_dict_get(opts, "timeout", nullptr, 0) == nullptr);
+        const AVDictionaryEntry* rw_timeout = av_dict_get(opts, "rw_timeout", nullptr, 0);
+        REQUIRE(rw_timeout);
+        CHECK(std::string(rw_timeout->value) == "5000000");
+        CHECK(av_dict_count(opts) == 1);
         av_dict_free(&opts);
     }
     for (const char* url : { "clip.mkv", "file:clip.mkv", "dir/a.m3u8", "data:text/plain,x" }) {

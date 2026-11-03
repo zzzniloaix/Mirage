@@ -1,0 +1,23 @@
+# The machine of the Phase 2 measurements: its cores and memory, as macOS reports them (docs/PHASE2_SURVEY.md, M1). Each command, then its output.
+
+$ sysctl hw.physicalcpu hw.logicalcpu
+hw.physicalcpu: 12
+hw.logicalcpu: 12
+
+$ sysctl hw.perflevel0.name hw.perflevel0.physicalcpu hw.perflevel1.name hw.perflevel1.physicalcpu
+hw.perflevel0.name: Performance
+hw.perflevel0.physicalcpu: 6
+hw.perflevel1.name: Efficiency
+hw.perflevel1.physicalcpu: 6
+
+$ sysctl hw.memsize
+hw.memsize: 38654705664
+
+$ sysctl -n machdep.cpu.brand_string
+Apple M3 Pro
+
+$ sw_vers
+ProductName:		macOS
+ProductVersion:		26.2
+BuildVersion:		25C56
+

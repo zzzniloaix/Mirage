@@ -1,0 +1,42 @@
+# One pair of Apple's advanced sample over every frame, from its CDN: v9 (1080p60) against v8 (1080p60), with the mirage_vmaf built in a new clean worktree of af17121 (eval/ladder/advanced-cdn-full-af17121/build.txt), alone, nothing else running, on AC power. Its resident memory (ps -o rss=, KiB) every 15 s while it ran, then its output and /usr/bin/time -l's lines about the frames, the time and the memory, then its exit status (P-073).
+
+$ shasum -a 256 <mirage_vmaf>
+7688608e11e226d4a78de113178470adf5bdcccc345a67e480fe82d6112fc4f4  <mirage_vmaf>
+
+$ /usr/bin/time -l <mirage_vmaf> --ref https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v9/prog_index.m3u8 --dis https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v8/prog_index.m3u8 --out <tmp>/v9_v8.json
+started 2026-10-27T20:31:28Z
+seconds rss_kib
+0 47040
+15 321280
+30 322240
+45 322256
+60 323168
+75 323168
+90 323168
+105 325040
+120 325040
+135 325056
+150 325072
+165 325072
+180 325104
+195 329408
+210 329408
+225 329440
+240 329472
+255 329472
+270 329504
+285 329504
+300 329536
+315 329568
+330 329568
+345 329600
+360 329632
+375 329632
+390 336080
+405 336096
+ended 2026-10-27T20:38:30Z
+mirage_vmaf: 36000 frame pairs scored, report written to <tmp>/v9_v8.json
+      419.80 real      1656.59 user         3.52 sys
+           345407488  maximum resident set size
+           326550296  peak memory footprint
+(exit status 0)

@@ -5,6 +5,7 @@
 #include "VMAFAlign.h"
 #include "VMAFColor.h"
 #include "VMAFNet.h"
+#include "VMAFSegments.h"
 
 #include <algorithm>
 #include <cstring>
@@ -150,6 +151,7 @@ struct DecodeCtx {
     int              vid_idx   = -1;
     DecodeState      state     = DecodeState::Reading;
     int              error     = 0;   // FFmpeg error that ended decoding; 0 = clean EOF / not ended
+    vmafsegments::SegmentWatch segments;   // the files the input's demuxer reads (D-055)
 
     DecodeCtx() = default;
     ~DecodeCtx() { close(); }
@@ -158,15 +160,19 @@ struct DecodeCtx {
 
     // A network input's reads wait at most 5 s, and a stop requested on `st`
     // interrupts a blocking call (src/VMAFNet.h, DECISIONS.md D-036). `st`
-    // must outlive the context: it is the interrupt callback's opaque.
+    // must outlive the context: it is the interrupt callback's opaque. An
+    // HLS input's segments are tried again as the player tries them, and
+    // the files its demuxer reads are watched (src/VMAFSegments.h, D-055).
     [[nodiscard]] bool open(const std::string& url, const std::stop_token& st)
     {
         fmt_ctx = avformat_alloc_context();
         if (!fmt_ctx) return false;
         fmt_ctx->interrupt_callback.callback = vmafnet::stop_requested;
         fmt_ctx->interrupt_callback.opaque   = const_cast<std::stop_token*>(&st);
+        segments.watch(fmt_ctx);
         AVDictionary* opts = nullptr;
         vmafnet::set_io_limits(&opts, url);
+        vmafsegments::set_hls_options(&opts);
         // On failure avformat_open_input frees fmt_ctx and nulls the pointer.
         const int r = avformat_open_input(&fmt_ctx, url.c_str(), nullptr, &opts);
         av_dict_free(&opts);
@@ -206,11 +212,17 @@ struct DecodeCtx {
                 continue;
             }
 
-            // Read the next video packet and feed it
+            // Read the next video packet and feed it. A file the hls demuxer
+            // went on without ends the input there, as a read error does
+            // (src/VMAFSegments.h, DECISIONS.md D-055).
             while (true) {
                 r = av_read_frame(fmt_ctx, pkt);
-                if (r < 0) {
-                    if (r != AVERROR_EOF) error = r;   // still drained like EOF
+                if (r == AVERROR_EOF) segments.ended();
+                if (r < 0 || !segments.lost().empty()) {
+                    if (r >= 0)
+                        av_packet_unref(pkt);   // read after the file gone without: not decoded
+                    else if (r != AVERROR_EOF)
+                        error = r;              // still drained like EOF
                     avcodec_send_packet(codec_ctx, nullptr);
                     state = DecodeState::Flushing;
                     break;
@@ -236,6 +248,15 @@ struct DecodeCtx {
         vid_idx = -1;
         state   = DecodeState::Reading;
         error   = 0;
+    }
+
+    // Why decoding ended on an error, for VMAFInputInfo::end_error: the file
+    // the hls demuxer went on without (D-055), else FFmpeg's error; empty
+    // for a clean end, or before the end.
+    std::string end_error() const
+    {
+        if (!segments.lost().empty()) return segments.lost();
+        return error ? av_error_text(error) : std::string();
     }
 
     int           width()   const { return codec_ctx ? codec_ctx->width   : 0; }
@@ -318,6 +339,16 @@ void record_alignment(VMAFAlignment& out, const vmafalign::Aligner& a,
     };
     input(Input::Reference, ref, ref_clock, out.ref_frame_rate, out.ref_start, out.ref_start_from);
     input(Input::Distorted, dis, dis_clock, out.dis_frame_rate, out.dis_start, out.dis_start_from);
+    const auto sequences = [&](Input in, const DecodeCtx& ctx) {
+        std::vector<VMAFSequence> list;
+        for (const vmafalign::Sequence& s : a.sequences(in))
+            list.push_back({ .first_index = s.first_index,
+                             .first_pts   = ctx.seconds(s.first_timestamp),
+                             .frames      = s.frames });
+        return list;
+    };
+    out.ref_sequences = sequences(Input::Reference, ref);
+    out.dis_sequences = sequences(Input::Distorted, dis);
 
     const vmafalign::Counts& c = a.counts();
     out.paired              = c.paired;
@@ -346,6 +377,22 @@ void record_alignment(VMAFAlignment& out, const vmafalign::Aligner& a,
 }
 
 }  // namespace
+
+// ── The settings ─────────────────────────────────────────────────────────────
+
+VMAFSettings vmaf_settings(const VMAFOptions& opts)
+{
+    const bool model_file = !opts.model.path.empty();
+    return {
+        .model        = model_file ? opts.model.path : opts.model.version,
+        .model_source = model_file ? "file" : "built-in",
+        .scaler       = std::string(vmaf_scaler_name(opts.scaler)),
+        .pix_fmt      = name_or_unknown(av_get_pix_fmt_name(kScorePixFmt)),
+        .bit_depth    = static_cast<int>(kScoreBpc),
+        .n_threads    = static_cast<int>(kThreads),
+        .n_subsample  = static_cast<int>(kSubsample),
+    };
+}
 
 // ── FFmpeg's versions ────────────────────────────────────────────────────────
 
@@ -386,15 +433,7 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
     result.ref_info = ref_ctx.info();
     result.dis_info = dis_ctx.info();
     const bool model_file = !opts.model.path.empty();
-    result.settings = {
-        .model        = model_file ? opts.model.path : opts.model.version,
-        .model_source = model_file ? "file" : "built-in",
-        .scaler       = std::string(vmaf_scaler_name(opts.scaler)),
-        .pix_fmt      = name_or_unknown(av_get_pix_fmt_name(kScorePixFmt)),
-        .bit_depth    = static_cast<int>(kScoreBpc),
-        .n_threads    = static_cast<int>(kThreads),
-        .n_subsample  = static_cast<int>(kSubsample),
-    };
+    result.settings = vmaf_settings(opts);
 
     // A yuv420p reference is used as it is, as FFmpeg's graph passes it on:
     // copied at its own size.
@@ -696,6 +735,7 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
             result.dis_index.push_back(step.dis_index);
         }
         if (!score_pair(ref_frame, dis_frame, step.ref_index)) break;
+        if (opts.scored) opts.scored->fetch_add(1, std::memory_order_relaxed);
 
         float pair_frac = std::min(static_cast<float>(frame_idx) /
                                    static_cast<float>(total_est), 0.99f);
@@ -708,15 +748,18 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
     }
 
     // Flush feature extractors, and collect the last context's scores. A
-    // cancelled analysis has none.
-    finish_context(!st.stop_requested());
-    if (st.stop_requested()) {
+    // cancelled analysis has none. The stop is read once: one requested
+    // after it leaves the analysis complete, its scores and pooled values
+    // both, not scores without pooled values.
+    const bool cancelled = st.stop_requested();
+    finish_context(!cancelled);
+    if (cancelled) {
         result.per_frame.clear();
         result.alignment.contexts.clear();
     }
 
     // Pooled stats
-    if (frame_idx > 0 && !st.stop_requested()) {
+    if (frame_idx > 0 && !cancelled) {
         // Pooled from the per-frame scores, with libvmaf's formulas for the
         // mean, the harmonic mean and the minimum, so that a pair scored in
         // one libvmaf context gets vmaf_score_pooled()'s values and one
@@ -742,7 +785,7 @@ void VMAFAnalyzer::analyze_pair(VMAFResult& result, std::stop_token st,
     // How each input ended (before cleanup() resets the decode contexts).
     auto record_end = [](const DecodeCtx& ctx, VMAFInputInfo& info) {
         info.ended     = ctx.state == DecodeState::Done;
-        info.end_error = ctx.error ? av_error_text(ctx.error) : std::string();
+        info.end_error = ctx.end_error();
     };
     record_end(ref_ctx, result.ref_info);
     record_end(dis_ctx, result.dis_info);
@@ -836,7 +879,7 @@ void VMAFAnalyzer::start_manifest(const std::vector<VariantStream>& variants)
 }
 
 VMAFResult VMAFAnalyzer::analyze(std::string ref_url, std::string dis_url,
-                                  const VMAFOptions& opts)
+                                  const VMAFOptions& opts, std::stop_token st)
 {
     VMAFResult result{
         .ref_url = std::move(ref_url),
@@ -844,7 +887,7 @@ VMAFResult VMAFAnalyzer::analyze(std::string ref_url, std::string dis_url,
         .label   = "Analysis",
     };
     std::atomic<float> progress{ 0.0f };
-    analyze_pair(result, std::stop_token{}, progress, 0.0f, 1.0f, opts);
+    analyze_pair(result, st, progress, 0.0f, 1.0f, opts);
     return result;
 }
 

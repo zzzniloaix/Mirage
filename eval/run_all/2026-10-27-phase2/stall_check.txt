@@ -1,0 +1,14 @@
+# The scoring processes of acceptance-full still running after the machine woke: each one's CPU time and state (ps), sampled twice 120 s apart, then each stopped with SIGTERM.
+sample 1 at 2026-10-28T03:23:47Z
+  ffmpeg       gear2_vs_gear5   cpu    4:13.51  state S
+  ffmpeg       gear1_vs_gear5   cpu    4:11.69  state S
+sample 2 at 2026-10-28T03:25:47Z
+  ffmpeg       gear2_vs_gear5   cpu    4:13.55  state S
+  ffmpeg       gear1_vs_gear5   cpu    4:11.72  state S
+stderr logs, last modified:
+  gear1_vs_gear5/ffmpeg.stderr.log 2026-10-27T23:18:54Z
+  gear2_vs_gear5/ffmpeg.stderr.log 2026-10-27T23:06:14Z
+SIGTERM to each at 2026-10-28T03:25:47Z
+  ffmpeg gear2_vs_gear5 still running after 10 s: a second SIGTERM at 2026-10-28T03:25:57Z
+  ffmpeg gear1_vs_gear5 still running after 10 s: a second SIGTERM at 2026-10-28T03:25:57Z
+running after that: 0

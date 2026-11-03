@@ -1,0 +1,440 @@
+# M5's gaps with D-050's pairing: the programs. <mirage_vmaf_1>, mirage_vmaf built with the macos-release preset in a new clean worktree of branch vmaf/phase-2 at the commit below (git status --porcelain: no output), which pairs discontinuity sequences only where their jumps are at the same place (D-050). <mirage_vmaf_2>, the one eval/run_all.sh built from 953d42e on vmaf/phase-1, whose SHA-256 eval/run_all/2026-10-27-defaults-full/builds/head/build.txt of that branch names, which stops pairing at the first discontinuity (D-028).
+$ git rev-parse HEAD
+af17121466abc8be9ac67faa01ba30fa79dee0c6
+
+# After M5 of docs/PHASE2_SURVEY.md, its gaps: an input's playlist without some of its segments and without a tag, as when FFmpeg's hls demuxer skips segments it can't read. Made by eval/phase2-survey/m5_gaps.py; each command, then its output.
+
+$ shasum -a 256 <mirage_vmaf_1>
+7688608e11e226d4a78de113178470adf5bdcccc345a67e480fe82d6112fc4f4  <mirage_vmaf_1>
+(exit status 0)
+
+$ shasum -a 256 <mirage_vmaf_2>
+aaac3630522dc4261f6fa27bb8e81dc66a64ba9860292ecdeae5e9164fb372d3  <mirage_vmaf_2>
+(exit status 0)
+
+$ <ffmpeg> -hide_banner -version
+ffmpeg version 8.1.1 Copyright (c) 2000-2026 the FFmpeg developers
+built with Apple clang version 21.0.0 (clang-2100.0.123.102)
+configuration: --prefix=/opt/homebrew/Cellar/ffmpeg-full/8.1.1 --enable-shared --enable-pthreads --enable-version3 --cc=clang --host-cflags= --host-ldflags= --enable-ffplay --enable-gnutls --enable-gpl --enable-libaom --enable-libaribb24 --enable-libbluray --enable-libdav1d --enable-libharfbuzz --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librav1e --enable-librist --enable-librubberband --enable-libsnappy --enable-libsrt --enable-libssh --enable-libsvtav1 --enable-libtesseract --enable-libtheora --enable-libvidstab --enable-libvmaf --enable-libvorbis --enable-libvpx --enable-libwebp --enable-libx264 --enable-libx265 --enable-libxml2 --enable-libxvid --enable-lzma --enable-libfontconfig --enable-libfreetype --enable-frei0r --enable-libass --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenjpeg --enable-libspeex --enable-libsoxr --enable-libzmq --enable-libzimg --enable-whisper --disable-libjack --disable-indev=jack --enable-videotoolbox --enable-audiotoolbox --enable-neon
+libavutil      60. 26.101 / 60. 26.101
+libavcodec     62. 28.101 / 62. 28.101
+libavformat    62. 12.101 / 62. 12.101
+libavdevice    62.  3.101 / 62.  3.101
+libavfilter    11. 14.101 / 11. 14.101
+libswscale      9.  5.101 /  9.  5.101
+libswresample   6.  3.101 /  6.  3.101
+
+Exiting with exit code 0
+(exit status 0)
+
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=640x360:rate=30000/1001 -t 36 -vf format=yuv420p,setparams=colorspace=bt709:range=tv -c:v mpeg2video -q:v 2 -g 1 -bf 0 -f hls -hls_time 2 -hls_list_size 0 -hls_playlist_type vod -hls_segment_filename <work_dir>/ref_%d.ts <work_dir>/ref.m3u8
+(exit status 0)
+
+ref.m3u8:
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:2
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXTINF:2.002000,
+ref_0.ts
+#EXTINF:2.002000,
+ref_1.ts
+#EXTINF:2.002000,
+ref_2.ts
+#EXTINF:2.002000,
+ref_3.ts
+#EXTINF:2.002000,
+ref_4.ts
+#EXTINF:2.002000,
+ref_5.ts
+#EXTINF:2.002000,
+ref_6.ts
+#EXTINF:2.002000,
+ref_7.ts
+#EXTINF:2.002000,
+ref_8.ts
+#EXTINF:2.002000,
+ref_9.ts
+#EXTINF:2.002000,
+ref_10.ts
+#EXTINF:2.002000,
+ref_11.ts
+#EXTINF:2.002000,
+ref_12.ts
+#EXTINF:2.002000,
+ref_13.ts
+#EXTINF:2.002000,
+ref_14.ts
+#EXTINF:2.002000,
+ref_15.ts
+#EXTINF:1.968633,
+ref_16.ts
+#EXTINF:2.002000,
+ref_17.ts
+#EXT-X-ENDLIST
+
+$ <ffmpeg> -hide_banner -nostdin -v error -f lavfi -i testsrc2=size=320x180:rate=30000/1001 -t 36 -vf format=yuv420p,setparams=colorspace=bt709:range=tv -c:v mpeg2video -q:v 2 -g 1 -bf 0 -f hls -hls_time 2 -hls_list_size 0 -hls_playlist_type vod -hls_segment_filename <work_dir>/dis_%d.ts <work_dir>/dis.m3u8
+(exit status 0)
+
+dis.m3u8:
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:2
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXTINF:2.002000,
+dis_0.ts
+#EXTINF:2.002000,
+dis_1.ts
+#EXTINF:2.002000,
+dis_2.ts
+#EXTINF:2.002000,
+dis_3.ts
+#EXTINF:2.002000,
+dis_4.ts
+#EXTINF:2.002000,
+dis_5.ts
+#EXTINF:2.002000,
+dis_6.ts
+#EXTINF:2.002000,
+dis_7.ts
+#EXTINF:2.002000,
+dis_8.ts
+#EXTINF:2.002000,
+dis_9.ts
+#EXTINF:2.002000,
+dis_10.ts
+#EXTINF:2.002000,
+dis_11.ts
+#EXTINF:2.002000,
+dis_12.ts
+#EXTINF:2.002000,
+dis_13.ts
+#EXTINF:2.002000,
+dis_14.ts
+#EXTINF:2.002000,
+dis_15.ts
+#EXTINF:1.968633,
+dis_16.ts
+#EXTINF:2.002000,
+dis_17.ts
+#EXT-X-ENDLIST
+
+ref_gap.m3u8:
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:2
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXTINF:2.002000,
+ref_0.ts
+#EXTINF:2.002000,
+ref_1.ts
+#EXTINF:2.002000,
+ref_2.ts
+#EXTINF:2.002000,
+ref_3.ts
+#EXTINF:2.002000,
+ref_10.ts
+#EXTINF:2.002000,
+ref_11.ts
+#EXTINF:2.002000,
+ref_12.ts
+#EXTINF:2.002000,
+ref_13.ts
+#EXTINF:2.002000,
+ref_14.ts
+#EXTINF:2.002000,
+ref_15.ts
+#EXTINF:1.968633,
+ref_16.ts
+#EXTINF:2.002000,
+ref_17.ts
+#EXT-X-ENDLIST
+
+dis_gap.m3u8:
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:2
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXTINF:2.002000,
+dis_0.ts
+#EXTINF:2.002000,
+dis_1.ts
+#EXTINF:2.002000,
+dis_2.ts
+#EXTINF:2.002000,
+dis_3.ts
+#EXTINF:2.002000,
+dis_4.ts
+#EXTINF:2.002000,
+dis_5.ts
+#EXTINF:2.002000,
+dis_6.ts
+#EXTINF:2.002000,
+dis_7.ts
+#EXTINF:2.002000,
+dis_8.ts
+#EXTINF:2.002000,
+dis_9.ts
+#EXTINF:1.968633,
+dis_16.ts
+#EXTINF:2.002000,
+dis_17.ts
+#EXT-X-ENDLIST
+
+dis_same.m3u8:
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:2
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXTINF:2.002000,
+dis_0.ts
+#EXTINF:2.002000,
+dis_1.ts
+#EXTINF:2.002000,
+dis_2.ts
+#EXTINF:2.002000,
+dis_3.ts
+#EXTINF:2.002000,
+dis_10.ts
+#EXTINF:2.002000,
+dis_11.ts
+#EXTINF:2.002000,
+dis_12.ts
+#EXTINF:2.002000,
+dis_13.ts
+#EXTINF:2.002000,
+dis_14.ts
+#EXTINF:2.002000,
+dis_15.ts
+#EXTINF:1.968633,
+dis_16.ts
+#EXTINF:2.002000,
+dis_17.ts
+#EXT-X-ENDLIST
+
+## one: ref_gap.m3u8 against dis.m3u8
+
+$ <mirage_vmaf_1> --ref <work_dir>/ref_gap.m3u8 --dis <work_dir>/dis.m3u8 --out <work_dir>/one_1.json
+[INFO]  VMAFAnalyzer: 240 frames  mean=9.87  min=0.00  p5=0.00  [Analysis]
+[WARN]  VMAFAnalyzer: 84.60% of the frames failed to pair by timestamp (1318 of 1558: 1 extra distorted, 1317 after a discontinuity), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 240 frame pairs that paired
+mirage_vmaf: 240 frame pairs scored, report written to <work_dir>/one_1.json
+[mpegts @ 0xc7700c280] Packet corrupt (stream = 0, dts = 843717).
+[hls @ 0xc7700c000] Packet corrupt (stream = 0, dts = 840714).
+mirage_vmaf: warning: 84.60% of the frames failed to pair by timestamp (1318 of 1558: 1 extra distorted, 1317 after a discontinuity), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 240 frame pairs that paired
+(exit status 0)
+
+<mirage_vmaf_1>'s report: the alignment, and the pairs whose frames' timestamps differ:
+{
+ "paired": 240,
+ "failed": 1318,
+ "failure_rate": 0.8459563543003851,
+ "exceeded": true,
+ "unmatched_reference": 0,
+ "extra_distorted": 1,
+ "after_discontinuity": 1317,
+ "discontinuities": 1,
+ "vmaf_contexts": [
+  {
+   "first_index": 0,
+   "pairs": 240
+  }
+ ],
+ "start": {
+  "reference": 1.4333666666666667,
+  "distorted": 1.4333666666666667
+ },
+ "frames_scored": 240,
+ "pairs_whose_pts_differ": 0,
+ "mean_vmaf_of_the_others": 9.873372
+}
+
+$ <mirage_vmaf_2> --ref <work_dir>/ref_gap.m3u8 --dis <work_dir>/dis.m3u8 --out <work_dir>/one_2.json
+[INFO]  VMAFAnalyzer: 240 frames  mean=9.87  min=0.00  p5=0.00  [Analysis]
+[WARN]  VMAFAnalyzer: 84.60% of the frames failed to pair by timestamp (1318 of 1558: 1318 after a discontinuity), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 240 frame pairs that paired
+mirage_vmaf: 240 frame pairs scored, report written to <work_dir>/one_2.json
+[mpegts @ 0xa9ec38280] Packet corrupt (stream = 0, dts = 843717).
+[hls @ 0xa9ec38000] Packet corrupt (stream = 0, dts = 840714).
+mirage_vmaf: warning: 84.60% of the frames failed to pair by timestamp (1318 of 1558: 1318 after a discontinuity), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 240 frame pairs that paired
+(exit status 0)
+
+<mirage_vmaf_2>'s report: the alignment, and the pairs whose frames' timestamps differ:
+{
+ "paired": 240,
+ "failed": 1318,
+ "failure_rate": 0.8459563543003851,
+ "exceeded": true,
+ "unmatched_reference": 0,
+ "extra_distorted": 0,
+ "after_discontinuity": 1318,
+ "discontinuities": 1,
+ "vmaf_contexts": [
+  {
+   "first_index": 0,
+   "pairs": 240
+  }
+ ],
+ "start": {
+  "reference": 1.4333666666666667,
+  "distorted": 1.4333666666666667
+ },
+ "frames_scored": 240,
+ "pairs_whose_pts_differ": 0,
+ "mean_vmaf_of_the_others": 9.873372
+}
+
+## both: ref_gap.m3u8 against dis_gap.m3u8
+
+$ <mirage_vmaf_1> --ref <work_dir>/ref_gap.m3u8 --dis <work_dir>/dis_gap.m3u8 --out <work_dir>/both_1.json
+[INFO]  VMAFAnalyzer: 240 frames  mean=9.87  min=0.00  p5=0.00  [Analysis]
+[WARN]  VMAFAnalyzer: 79.97% of the frames failed to pair by timestamp (958 of 1198: 1 extra distorted, 957 after a discontinuity), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 240 frame pairs that paired
+mirage_vmaf: 240 frame pairs scored, report written to <work_dir>/both_1.json
+[mpegts @ 0x843050280] Packet corrupt (stream = 0, dts = 843717).
+[hls @ 0x843050000] Packet corrupt (stream = 0, dts = 840714).
+[mpegts @ 0x843050780] Packet corrupt (stream = 0, dts = 1924797).
+[hls @ 0x843050500] Packet corrupt (stream = 0, dts = 1921794).
+mirage_vmaf: warning: 79.97% of the frames failed to pair by timestamp (958 of 1198: 1 extra distorted, 957 after a discontinuity), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 240 frame pairs that paired
+(exit status 0)
+
+<mirage_vmaf_1>'s report: the alignment, and the pairs whose frames' timestamps differ:
+{
+ "paired": 240,
+ "failed": 958,
+ "failure_rate": 0.7996661101836394,
+ "exceeded": true,
+ "unmatched_reference": 0,
+ "extra_distorted": 1,
+ "after_discontinuity": 957,
+ "discontinuities": 2,
+ "vmaf_contexts": [
+  {
+   "first_index": 0,
+   "pairs": 240
+  }
+ ],
+ "start": {
+  "reference": 1.4333666666666667,
+  "distorted": 1.4333666666666667
+ },
+ "frames_scored": 240,
+ "pairs_whose_pts_differ": 0,
+ "mean_vmaf_of_the_others": 9.873372
+}
+
+$ <mirage_vmaf_2> --ref <work_dir>/ref_gap.m3u8 --dis <work_dir>/dis_gap.m3u8 --out <work_dir>/both_2.json
+[INFO]  VMAFAnalyzer: 240 frames  mean=9.87  min=0.00  p5=0.00  [Analysis]
+[WARN]  VMAFAnalyzer: 79.97% of the frames failed to pair by timestamp (958 of 1198: 958 after a discontinuity), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 240 frame pairs that paired
+mirage_vmaf: 240 frame pairs scored, report written to <work_dir>/both_2.json
+[mpegts @ 0x700c38280] Packet corrupt (stream = 0, dts = 843717).
+[hls @ 0x700c38000] Packet corrupt (stream = 0, dts = 840714).
+[mpegts @ 0x700c38780] Packet corrupt (stream = 0, dts = 1924797).
+[hls @ 0x700c38500] Packet corrupt (stream = 0, dts = 1921794).
+mirage_vmaf: warning: 79.97% of the frames failed to pair by timestamp (958 of 1198: 958 after a discontinuity), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 240 frame pairs that paired
+(exit status 0)
+
+<mirage_vmaf_2>'s report: the alignment, and the pairs whose frames' timestamps differ:
+{
+ "paired": 240,
+ "failed": 958,
+ "failure_rate": 0.7996661101836394,
+ "exceeded": true,
+ "unmatched_reference": 0,
+ "extra_distorted": 0,
+ "after_discontinuity": 958,
+ "discontinuities": 2,
+ "vmaf_contexts": [
+  {
+   "first_index": 0,
+   "pairs": 240
+  }
+ ],
+ "start": {
+  "reference": 1.4333666666666667,
+  "distorted": 1.4333666666666667
+ },
+ "frames_scored": 240,
+ "pairs_whose_pts_differ": 0,
+ "mean_vmaf_of_the_others": 9.873372
+}
+
+## same: ref_gap.m3u8 against dis_same.m3u8
+
+$ <mirage_vmaf_1> --ref <work_dir>/ref_gap.m3u8 --dis <work_dir>/dis_same.m3u8 --out <work_dir>/same_1.json
+[INFO]  VMAFAnalyzer: 719 frames  mean=10.50  min=0.00  p5=0.00  [Analysis]
+mirage_vmaf: 719 frame pairs scored, report written to <work_dir>/same_1.json
+[mpegts @ 0x900c74280] Packet corrupt (stream = 0, dts = 843717).
+[hls @ 0x900c74000] Packet corrupt (stream = 0, dts = 840714).
+[mpegts @ 0x900c74780] Packet corrupt (stream = 0, dts = 843717).
+[hls @ 0x900c74500] Packet corrupt (stream = 0, dts = 840714).
+(exit status 0)
+
+<mirage_vmaf_1>'s report: the alignment, and the pairs whose frames' timestamps differ:
+{
+ "paired": 719,
+ "failed": 0,
+ "failure_rate": 0,
+ "exceeded": false,
+ "unmatched_reference": 0,
+ "extra_distorted": 0,
+ "after_discontinuity": 0,
+ "discontinuities": 2,
+ "vmaf_contexts": [
+  {
+   "first_index": 0,
+   "pairs": 240
+  },
+  {
+   "first_index": 240,
+   "pairs": 479
+  }
+ ],
+ "start": {
+  "reference": 1.4333666666666667,
+  "distorted": 1.4333666666666667
+ },
+ "frames_scored": 719,
+ "pairs_whose_pts_differ": 0,
+ "mean_vmaf_of_the_others": 10.501968
+}
+
+$ <mirage_vmaf_2> --ref <work_dir>/ref_gap.m3u8 --dis <work_dir>/dis_same.m3u8 --out <work_dir>/same_2.json
+[INFO]  VMAFAnalyzer: 240 frames  mean=9.87  min=0.00  p5=0.00  [Analysis]
+[WARN]  VMAFAnalyzer: 79.97% of the frames failed to pair by timestamp (958 of 1198: 958 after a discontinuity), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 240 frame pairs that paired
+mirage_vmaf: 240 frame pairs scored, report written to <work_dir>/same_2.json
+[mpegts @ 0x96f05c280] Packet corrupt (stream = 0, dts = 843717).
+[hls @ 0x96f05c000] Packet corrupt (stream = 0, dts = 840714).
+[mpegts @ 0x96f05c780] Packet corrupt (stream = 0, dts = 843717).
+[hls @ 0x96f05c500] Packet corrupt (stream = 0, dts = 840714).
+mirage_vmaf: warning: 79.97% of the frames failed to pair by timestamp (958 of 1198: 958 after a discontinuity), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 240 frame pairs that paired
+(exit status 0)
+
+<mirage_vmaf_2>'s report: the alignment, and the pairs whose frames' timestamps differ:
+{
+ "paired": 240,
+ "failed": 958,
+ "failure_rate": 0.7996661101836394,
+ "exceeded": true,
+ "unmatched_reference": 0,
+ "extra_distorted": 0,
+ "after_discontinuity": 958,
+ "discontinuities": 2,
+ "vmaf_contexts": [
+  {
+   "first_index": 0,
+   "pairs": 240
+  }
+ ],
+ "start": {
+  "reference": 1.4333666666666667,
+  "distorted": 1.4333666666666667
+ },
+ "frames_scored": 240,
+ "pairs_whose_pts_differ": 0,
+ "mean_vmaf_of_the_others": 9.873372
+}
+
+(exit status 0)

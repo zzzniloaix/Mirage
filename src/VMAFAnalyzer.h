@@ -78,7 +78,9 @@ struct VMAFInputInfo {
     int         time_base_num = 0;   // stream time base the frame timestamps are in
     int         time_base_den = 0;
     bool        ended = false;       // decoding reached the end of the input
-    std::string end_error;           // FFmpeg error that ended it; empty = clean end or not ended
+    // FFmpeg error that ended it, or the file its hls demuxer went on without
+    // (src/VMAFSegments.h, DECISIONS.md D-055); empty = clean end or not ended
+    std::string end_error;
 };
 
 // How one input's frames' color was converted before scoring, as FFmpeg's
@@ -106,8 +108,19 @@ struct VMAFAlignmentFailure {
                           // "duplicate_distorted", "no_timestamp", "after_discontinuity"
 };
 
+// One discontinuity sequence of an input (DECISIONS.md D-046), where it
+// starts and how many frames it has (D-057): an input that lacks frames at
+// the start of a sequence starts it later than the other input's of the same
+// rank.
+struct VMAFSequence {
+    int64_t first_index = 0;   // its first frame's position in its input, from 0
+    double  first_pts   = std::numeric_limits<double>::quiet_NaN();   // seconds; NaN without one
+    int64_t frames      = 0;   // its frames the analysis read
+};
+
 // One libvmaf context of a pair: the pairs it scored, from first_index on.
-// A new one starts after each gap in the reference's frames (D-028).
+// A new one starts after each gap in the reference's frames (D-028) and at
+// each discontinuity sequence but the first (D-046).
 struct VMAFContextRun {
     unsigned first_index = 0;
     unsigned pairs       = 0;
@@ -131,6 +144,8 @@ struct VMAFAlignment {
     double      ref_start = std::numeric_limits<double>::quiet_NaN();
     double      dis_start = std::numeric_limits<double>::quiet_NaN();
     std::string ref_start_from, dis_start_from;
+    // Each input's discontinuity sequences, in its order (D-057).
+    std::vector<VMAFSequence> ref_sequences, dis_sequences;
     int64_t     paired              = 0;
     int64_t     unmatched_reference = 0;
     int64_t     extra_distorted     = 0;
@@ -158,6 +173,9 @@ struct VMAFOptions {
     bool            record_pts = false;   // fill VMAFResult::ref_pts, dis_pts, ref_index, dis_index
     VMAFScaler      scaler     = VMAFScaler::Bicubic;    // scales the distorted frames (D-024)
     VMAFModelChoice model;
+    // Counted up by one for each frame pair scored, for a caller that watches
+    // the analysis from another thread (vmafladder's memory limit); null = none.
+    std::atomic<std::uint64_t>* scored = nullptr;
 };
 
 // One FFmpeg library and the version it reports at run time,
@@ -176,6 +194,11 @@ struct VMAFLibraryVersion {
 // src/VMAFColor.h follows libavfilter's negotiation; its rules are those of
 // FFmpeg 8.1.1 (DECISIONS.md D-021).
 std::vector<VMAFLibraryVersion> vmaf_ffmpeg_libraries();
+
+// The settings an analysis with `opts` scores with, as VMAFResult::settings
+// records them, but for a model file's SHA-256, which only the analysis
+// reads: empty here.
+VMAFSettings vmaf_settings(const VMAFOptions& opts);
 
 // Per-variant (or single-file) VMAF result.
 struct VMAFResult {
@@ -246,9 +269,10 @@ public:
     void start_manifest(const std::vector<VariantStream>& variants);
 
     // Score one pair on the calling thread and return its result: the same
-    // decoding and scoring as start(), plus what `opts` asks for.
+    // decoding and scoring as start(), plus what `opts` asks for. A stop
+    // requested on `st` ends it as cancel() ends an analysis.
     static VMAFResult analyze(std::string ref_url, std::string dis_url,
-                              const VMAFOptions& opts = {});
+                              const VMAFOptions& opts = {}, std::stop_token st = {});
 
     // Request cancellation and block until the worker exits.
     void cancel();

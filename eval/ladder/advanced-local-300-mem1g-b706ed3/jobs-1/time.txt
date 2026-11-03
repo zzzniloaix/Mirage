@@ -1,0 +1,18 @@
+       23.58 real        98.04 user         0.59 sys
+           304906240  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               19279  page reclaims
+                  75  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  20  voluntary context switches
+               91964  involuntary context switches
+       1875259641860  instructions retired
+        350582952524  cycles elapsed
+           287638248  peak memory footprint

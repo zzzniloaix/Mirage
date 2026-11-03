@@ -6,6 +6,7 @@
 
 #include "VMAFAnalyzer.h"
 
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <string_view>
@@ -24,6 +25,8 @@ struct Args {
     unsigned    frames = 0;     // --frames: score only the first N pairs; 0 = all
     VMAFScaler  scaler = VMAFOptions{}.scaler;   // --scaler: scales the distorted frames
     VMAFModelChoice model;      // --model (version) or --model-file (path)
+    unsigned    jobs = 0;       // --jobs: with --ladder, pairs scored at a time; 0 = default (D-044)
+    std::uint64_t memory_limit = 0;   // --memory-limit: with --ladder, bytes; 0 = none (D-045)
     std::string config;         // --config: the settings file read, as given; empty = none
     bool        help   = false; // -h / --help: print usage() and exit
 };
