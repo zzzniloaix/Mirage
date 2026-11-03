@@ -243,6 +243,21 @@ add_executable(mirage_vmaf
     src/VMAFCli.cpp
     src/VMAFReport.cpp
     src/JsonText.cpp
+    src/HlsAlign.cpp
+    src/TimelineModel.cpp
+    src/TimelineAxis.cpp
+    src/TimelineQuery.cpp
+    src/TimelineDetect.cpp
+    src/TimelineBuild.cpp
+    src/TimelineDoc.cpp
+    src/JsonRead.cpp
+    src/LadderReportRead.cpp
+    src/PlaylistEvents.cpp
+    src/Scte35.cpp
+    src/Scte35Events.cpp
+    src/SessionPlan.cpp
+    src/TimelineMedia.cpp
+    src/TimelineCli.cpp
 )
 
 target_include_directories(mirage_vmaf PRIVATE src)
@@ -260,6 +275,12 @@ target_compile_definitions(mirage_vmaf PRIVATE
 
 include(CTest)
 include(Catch)
+
+# The synthetic ladders' generator of the attribution tests is compiled with
+# optimization in every build type, Debug included (DECISIONS.md D-080):
+# testgen's prototype took 16.941 s to make a ladder without it, against
+# 2.312 s at -O2 (eval/phase3-survey/testgen.md §3.4).
+set_source_files_properties(tests/SyntheticLadder.cpp PROPERTIES COMPILE_OPTIONS "-O2")
 
 add_executable(mirage_tests
     tests/test_network_logger.cpp
@@ -293,6 +314,25 @@ add_executable(mirage_tests
     tests/test_rtmp_input.cpp
     tests/test_vmaf_segments.cpp
     tests/test_file_hash.cpp
+    tests/test_timeline_headers.cpp
+    tests/test_timeline_model.cpp
+    tests/test_timeline_axis.cpp
+    tests/test_timeline_query.cpp
+    tests/test_timeline_detect.cpp
+    tests/test_timeline_build.cpp
+    tests/test_timeline_doc.cpp
+    tests/test_json_read.cpp
+    tests/test_ladder_report_read.cpp
+    tests/test_playlist_events.cpp
+    tests/test_scte35.cpp
+    tests/test_scte35_events.cpp
+    tests/test_session_plan.cpp
+    tests/test_timeline_media.cpp
+    tests/test_timeline_cli.cpp
+    tests/test_synthetic_ladder.cpp
+    tests/test_attribution_acceptance.cpp
+    tests/test_attribution_session.cpp
+    tests/SyntheticLadder.cpp
     src/Demuxer.cpp
     src/NetworkLogger.cpp
     src/NetDescribe.cpp
@@ -326,6 +366,20 @@ add_executable(mirage_tests
     src/VMAFPool.cpp
     src/VMAFProcess.cpp
     src/FileHash.cpp
+    src/TimelineModel.cpp
+    src/TimelineAxis.cpp
+    src/TimelineQuery.cpp
+    src/TimelineDetect.cpp
+    src/TimelineBuild.cpp
+    src/TimelineDoc.cpp
+    src/JsonRead.cpp
+    src/LadderReportRead.cpp
+    src/PlaylistEvents.cpp
+    src/Scte35.cpp
+    src/Scte35Events.cpp
+    src/SessionPlan.cpp
+    src/TimelineMedia.cpp
+    src/TimelineCli.cpp
 )
 
 target_include_directories(mirage_tests PRIVATE
