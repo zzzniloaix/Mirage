@@ -327,6 +327,7 @@ add_executable(mirage_tests
     tests/test_manifest_parser.cpp
     tests/test_subtitle_decoder.cpp
     tests/test_yuv_matrix.cpp
+    tests/test_colour_interpretation.cpp
     tests/test_frame_info.cpp
     tests/test_scopes.cpp
     tests/test_sync.cpp
