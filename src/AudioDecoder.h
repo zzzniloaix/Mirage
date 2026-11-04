@@ -52,6 +52,9 @@ public:
     [[nodiscard]] bool open(AVCodecParameters* par, AudioPlayer& player, AVRational time_base);
 
     // Send one packet, pull all resulting frames, resample, push to player.
+    // With no decoder open (a reopen that failed: no decoder for the
+    // track), the packet's time is pushed as silence instead, so the audio
+    // clock — the master clock video follows — keeps going.
     void decode(AVPacket* pkt, AudioPlayer& player);
 
     // Flush codec + filter buffers after a seek.
@@ -116,6 +119,10 @@ private:
     double out_media_pts_  = 0.0;
     bool   pts_inited_     = false;
     double start_at_       = -1.0;   // start_at()
+    // push_silence(): where the silence pushed so far ends (media seconds);
+    // reset by flush() / reopen().
+    bool   silent_         = false;
+    double silent_until_   = 0.0;
 
     // Build (or rebuild) a filter graph with the given speed.
     // speed == 1.0 → passthrough (no filter, graph is null)
@@ -138,4 +145,9 @@ private:
     [[nodiscard]] bool update_resampler(const AVFrame* f, AudioPlayer& player);
     void drain_resampler(AudioPlayer& player);
     void free_resampler();
+
+    // decode() without a decoder: silence up to the end of `pkt` (to its
+    // start when it has no duration), from where the last silence ended or,
+    // for the first, from the packet's start; nothing before start_at().
+    void push_silence(const AVPacket* pkt, AudioPlayer& player);
 };

@@ -285,7 +285,8 @@ static void audio_decode_loop(AudioDecoder&     audio_decoder,
             // If this sentinel followed an audio stream switch, reopen the decoder.
             if (reopen) {
                 // On failure the decoder takes the new stream's packets and
-                // gives no audio (Decoder::open): the track stays silent.
+                // plays their time as silence (AudioDecoder::decode): the
+                // track stays silent, the audio clock goes on.
                 if (audio_decoder.reopen(demuxer.audio_codecpar(), audio_player,
                                          demuxer.audio_time_base())) {
                     open_failed.store(-1);

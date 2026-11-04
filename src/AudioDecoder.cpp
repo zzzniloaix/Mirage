@@ -23,18 +23,19 @@ AudioDecoder::~AudioDecoder()
 
 bool AudioDecoder::open(AVCodecParameters* par, AudioPlayer& player, AVRational time_base)
 {
-    if (!decoder_.open(par))
-        return false;
-
-    out_rate_ = player.sample_rate();
-    av_channel_layout_default(&out_layout_, 2);  // stereo
-
-    // The resampler comes with the first decoded frame (update_resampler):
-    // the codec parameters can differ from what the decoder puts out.
+    // Set without a decoder too: push_silence() works from them.
+    out_rate_  = player.sample_rate();
     time_base_ = time_base;
     if (!frame_)     frame_     = av_frame_alloc();
     if (!swr_frame_) swr_frame_ = av_frame_alloc();
 
+    if (!decoder_.open(par))
+        return false;
+
+    av_channel_layout_default(&out_layout_, 2);  // stereo
+
+    // The resampler comes with the first decoded frame (update_resampler):
+    // the codec parameters can differ from what the decoder puts out.
     logger::info("AudioDecoder: {} Hz {}ch → {} Hz stereo f32",
         par->sample_rate, par->ch_layout.nb_channels, out_rate_);
     return true;
@@ -298,6 +299,7 @@ void AudioDecoder::flush()
     decoder_.flush();
     out_media_pts_ = 0.0;
     pts_inited_    = false;
+    silent_        = false;
 
     // Drain and discard any frames in the filter graph by sending a null frame.
     if (filter_graph_ && filt_src_) {
@@ -322,6 +324,7 @@ bool AudioDecoder::reopen(AVCodecParameters* par, AudioPlayer& player, AVRationa
     decoder_.close();
     out_media_pts_ = 0.0;
     pts_inited_    = false;
+    silent_        = false;
     speed_         = 1.0;   // no graph now; next decode() rebuilds for requested_speed_
     tempo_         = 1.0;
     return open(par, player, time_base);
@@ -372,9 +375,42 @@ void AudioDecoder::pull_filter_output(AudioPlayer& player)
     av_frame_free(&out);
 }
 
+void AudioDecoder::push_silence(const AVPacket* pkt, AudioPlayer& player)
+{
+    if (!pkt || pkt->pts == AV_NOPTS_VALUE || !swr_frame_) return;
+    const double start = pkt->pts * av_q2d(time_base_);
+    const double end   = start + (pkt->duration > 0 ? pkt->duration * av_q2d(time_base_) : 0.0);
+    double from = silent_ ? silent_until_ : start;
+    if (start_at_ >= 0.0) from = std::max(from, start_at_);
+    silent_until_ = silent_ ? std::max(silent_until_, end) : end;
+    silent_       = true;
+    const long long n = std::llround((end - from) * out_rate_);
+    if (n <= 0) return;
+    start_at_ = -1.0;   // reached
+
+    av_frame_unref(swr_frame_);
+    swr_frame_->format      = AV_SAMPLE_FMT_FLT;
+    swr_frame_->sample_rate = out_rate_;
+    av_channel_layout_default(&swr_frame_->ch_layout, 2);
+    swr_frame_->nb_samples  = static_cast<int>(n);
+    if (av_frame_get_buffer(swr_frame_, 0) < 0) return;
+    std::memset(swr_frame_->data[0], 0, static_cast<std::size_t>(n) * 2 * sizeof(float));
+    swr_frame_->pts = static_cast<int64_t>(from * out_rate_);
+    if (!pts_inited_) {
+        out_media_pts_ = from;
+        pts_inited_    = true;
+    }
+    push_to_filter(swr_frame_, player);
+    av_frame_unref(swr_frame_);
+}
+
 void AudioDecoder::decode(AVPacket* pkt, AudioPlayer& player)
 {
     apply_pending_speed(player);
+    if (!decoder_.is_open()) {
+        push_silence(pkt, player);
+        return;
+    }
     decoder_.push(pkt);
 
     while (decoder_.pull(frame_)) {

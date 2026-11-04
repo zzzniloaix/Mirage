@@ -110,6 +110,46 @@ TEST_CASE("AudioDecoder::start_at — the audio starts at that sample", "[audio]
     }
 }
 
+TEST_CASE("AudioDecoder: a track with no decoder plays as silence, the clock going on", "[audio]")
+{
+    // A switch (reopen) to a track no decoder opens for: its packets' time
+    // is silence, from the switch's take-over point on, so the audio clock
+    // video follows does not stop.
+    Pcm pcm;
+    AudioPlayer player;
+    player.init_ring(kRate);
+    AudioDecoder dec;
+    REQUIRE(dec.open(pcm.par, player, { 1, kRate }));
+    feed(dec, player, 0, 3);                     // the old track: 0 .. 30 ms
+    AVCodecParameters* none = avcodec_parameters_alloc();
+    none->codec_type = AVMEDIA_TYPE_AUDIO;
+    none->codec_id   = AV_CODEC_ID_NONE;         // a decoder in no build
+    REQUIRE_FALSE(dec.reopen(none, player, { 1, kRate }));
+    dec.start_at(0.030);
+    auto packet = [&](std::int64_t pts, std::int64_t duration) {
+        AVPacket* pkt = av_packet_alloc();
+        REQUIRE(av_new_packet(pkt, 16) >= 0);
+        pkt->pts = pkt->dts = pts;
+        pkt->duration = duration;
+        dec.decode(pkt, player);
+        av_packet_free(&pkt);
+    };
+    for (int i = 0; i < 4; ++i) packet(1200 + i * kPkt, kPkt);   // 25 .. 65 ms
+    CHECK_THAT(player.buffered_seconds(), WithinAbs(0.065, 1e-9));   // 30 old + 35 silent
+    std::vector<float> out(static_cast<std::size_t>(3120) * 2);
+    player.fill_buffer(out.data(), 3120);
+    CHECK(out[2 * 1439] != 0.0f);                // the old track's last sample
+    CHECK(*std::max_element(out.begin() + 2 * 1440, out.end()) == 0.0f);
+    CHECK(*std::min_element(out.begin() + 2 * 1440, out.end()) == 0.0f);
+    CHECK_THAT(player.clock(), WithinAbs(0.065, 1e-9));
+
+    // Without a duration: silence up to each packet's start.
+    packet(3120, 0);
+    packet(3600, 0);                             // 65 .. 75 ms
+    CHECK_THAT(player.buffered_seconds(), WithinAbs(0.010, 1e-9));
+    avcodec_parameters_free(&none);
+}
+
 // ── The downmix to stereo ─────────────────────────────────────────────────────
 
 namespace {
