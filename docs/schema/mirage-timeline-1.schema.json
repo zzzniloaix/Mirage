@@ -1,0 +1,357 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Mirage timeline document, schema version 1",
+  "description": "The events of one ladder report's timeline on its reference's frames and the attributions of its drops, as mirage_vmaf timeline writes them (docs/TIMELINE_FORMAT.md; DECISIONS.md D-072). This file describes the ladder part, where the session part holds what a ladder alone has, session_plan null and sessions empty, until sessions are added in round 2 of Phase 3. It uses only type, enum, required, properties, additionalProperties and items, which the subset validator of tests/test_timeline_doc.cpp checks. Every field written from a double is typed number, since a whole double is written as an integer literal.",
+  "type": "object",
+  "required": [
+    "schema", "schema_version", "tool", "command", "ffmpeg_libraries", "options", "config_file",
+    "ladder_report", "session_plan", "axis", "variants", "sessions", "timeline", "detection",
+    "overlap", "attributions", "warnings"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "enum": ["mirage-timeline"] },
+    "schema_version": { "enum": [1] },
+    "tool": { "type": "string" },
+    "command": { "type": "string" },
+    "ffmpeg_libraries": {
+      "description": "Each FFmpeg library's version at run time, by name, as the ladder report lists its own (DECISIONS.md P-035).",
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "options": {
+      "description": "Every option of the build, with its value.",
+      "type": "object"
+    },
+    "config_file": {
+      "description": "The config file the options were read from, by its path as given and the SHA-256 of its bytes; null without one.",
+      "type": ["object", "null"],
+      "required": ["path", "sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "path": { "type": "string" },
+        "sha256": { "type": "string" }
+      }
+    },
+    "ladder_report": {
+      "description": "The ladder report the document was built from: its path, the SHA-256 of its bytes and of its scores digest, and its provenance as the report gives it.",
+      "type": "object",
+      "required": [
+        "path", "sha256", "scores_sha256", "status", "reference_mode", "model", "model_source",
+        "model_sha256", "scaler", "libvmaf_version", "libvmaf_package_version", "master"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "path": { "type": "string" },
+        "sha256": { "type": "string" },
+        "scores_sha256": { "type": "string" },
+        "status": { "type": "string" },
+        "reference_mode": { "type": "string" },
+        "model": { "type": "string" },
+        "model_source": { "type": "string" },
+        "model_sha256": { "type": ["string", "null"] },
+        "scaler": { "type": "string" },
+        "libvmaf_version": { "type": "string" },
+        "libvmaf_package_version": { "type": "string" },
+        "master": {
+          "type": "object",
+          "required": ["url", "location", "sha256"],
+          "additionalProperties": false,
+          "properties": {
+            "url": { "type": "string" },
+            "location": { "type": "string" },
+            "sha256": { "type": "string" }
+          }
+        }
+      }
+    },
+    "session_plan": {
+      "description": "The session plan of the build: null in a ladder's document, which has no session, until sessions are added in round 2 of Phase 3.",
+      "type": "null"
+    },
+    "axis": {
+      "description": "What events are placed on, the reference's frames, and the seconds offsets are printed in (DECISIONS.md D-073), with the check of the two clocks.",
+      "type": "object",
+      "required": [
+        "kind", "seconds", "frame_duration", "frames", "reference", "checked", "tick_den", "ticks",
+        "keys", "runs", "warnings"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "enum": ["reference-frames"] },
+        "seconds": { "enum": ["playlist-time", "frame-grid"] },
+        "frame_duration": { "type": "string" },
+        "frames": { "type": "integer" },
+        "reference": {
+          "type": "object",
+          "required": ["url", "time_base", "frame_rate", "sequences"],
+          "additionalProperties": false,
+          "properties": {
+            "url": { "type": "string" },
+            "time_base": { "type": "string" },
+            "frame_rate": { "type": "string" },
+            "sequences": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["first_index", "first_pts", "first_pts_ticks", "frames"],
+                "additionalProperties": false,
+                "properties": {
+                  "first_index": { "type": "integer" },
+                  "first_pts": { "type": ["number", "null"] },
+                  "first_pts_ticks": { "type": ["integer", "null"] },
+                  "frames": { "type": "integer" }
+                }
+              }
+            }
+          }
+        },
+        "checked": { "enum": ["segment-map", "report-only"] },
+        "tick_den": { "type": "integer" },
+        "ticks": {
+          "description": "Each reference frame's seconds in ticks of 1/tick_den s, as stretches of frames over which they step evenly.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["first", "frames", "first_tick", "step"],
+            "additionalProperties": false,
+            "properties": {
+              "first": { "type": "integer" },
+              "frames": { "type": "integer" },
+              "first_tick": { "type": "integer" },
+              "step": { "type": "integer" }
+            }
+          }
+        },
+        "keys": {
+          "description": "Each reference frame's media key, its sequence and its PTS in ticks of the reference's time base, as stretches of frames of one sequence over which the PTS step evenly or are all unknown.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["first", "frames", "sequence", "first_pts_ticks", "step"],
+            "additionalProperties": false,
+            "properties": {
+              "first": { "type": "integer" },
+              "frames": { "type": "integer" },
+              "sequence": { "type": "integer" },
+              "first_pts_ticks": { "type": ["integer", "null"] },
+              "step": { "type": "integer" }
+            }
+          }
+        },
+        "runs": {
+          "description": "Every run of frames the check found more than half a frame off: warnings, and the facts of a playlist without a segment map.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["test", "sequence", "first", "last", "frames", "largest_at", "largest", "warning"],
+            "additionalProperties": false,
+            "properties": {
+              "test": { "enum": ["clocks", "playlist-grid", "report-grid"] },
+              "sequence": { "type": "integer" },
+              "first": { "type": "integer" },
+              "last": { "type": "integer" },
+              "frames": { "type": "integer" },
+              "largest_at": { "type": "integer" },
+              "largest": { "type": "number" },
+              "warning": { "type": "boolean" }
+            }
+          }
+        },
+        "warnings": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "variants": {
+      "description": "Each scored playlist, the reference's and each pair's distorted one, with the master entries naming it and both of its BANDWIDTH ranks (DECISIONS.md D-075).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id", "role", "pair", "entries", "url", "bandwidth", "resolution", "codecs",
+          "rank_from_top", "rank_from_bottom", "playlist", "segment_map"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "integer" },
+          "role": { "enum": ["reference", "distorted"] },
+          "pair": { "type": ["integer", "null"] },
+          "entries": { "type": "array", "items": { "type": "integer" } },
+          "url": { "type": "string" },
+          "bandwidth": { "type": ["integer", "null"] },
+          "resolution": { "type": ["string", "null"] },
+          "codecs": { "type": ["string", "null"] },
+          "rank_from_top": { "type": ["integer", "null"] },
+          "rank_from_bottom": { "type": ["integer", "null"] },
+          "playlist": {
+            "type": ["object", "null"],
+            "required": ["url", "location", "sha256"],
+            "additionalProperties": false,
+            "properties": {
+              "url": { "type": "string" },
+              "location": { "type": "string" },
+              "sha256": { "type": "string" }
+            }
+          },
+          "segment_map": { "type": "string" }
+        }
+      }
+    },
+    "sessions": {
+      "description": "The sessions of the build: none in a ladder's document, until sessions are added in round 2 of Phase 3; an event's session names one of them.",
+      "type": "array",
+      "items": false
+    },
+    "timeline": {
+      "description": "Every event, once, in canonical order: a point at a reference frame or a span of reference frames, half-open.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id", "source", "type", "variant", "session", "segment", "ref_index", "ref_end", "t",
+          "t_end", "seq", "pts", "pts_ticks", "wallclock", "payload"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "source": { "enum": ["vmaf", "network", "playlist", "scte35", "player", "decoder"] },
+          "type": {
+            "enum": [
+              "context_start", "unpaired_frame",
+              "segment_request", "playlist_request",
+              "segment", "discontinuity", "program_date_time", "daterange", "tag", "period",
+              "cue_out", "cue_out_cont", "cue_in", "ad_break", "splice_point", "message", "cancel",
+              "variant_span", "variant_switch",
+              "keyframe", "corrupt_packet", "decode_error"
+            ]
+          },
+          "variant": { "type": ["integer", "null"] },
+          "session": { "type": ["integer", "null"] },
+          "segment": { "type": ["integer", "null"] },
+          "ref_index": { "type": "integer" },
+          "ref_end": { "type": ["integer", "null"] },
+          "t": { "type": "number" },
+          "t_end": { "type": ["number", "null"] },
+          "seq": { "type": "integer" },
+          "pts": { "type": ["number", "null"] },
+          "pts_ticks": { "type": ["integer", "null"] },
+          "wallclock": { "type": ["number", "null"] },
+          "payload": { "type": "object" }
+        }
+      }
+    },
+    "detection": {
+      "description": "The parameters detection ran with and the curves it ran on (DECISIONS.md D-077); null when no detection ran.",
+      "type": ["object", "null"],
+      "required": [
+        "threshold", "window", "min_points", "baseline", "warm_up", "context_first", "curves",
+        "session_rules"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "threshold": { "type": "number" },
+        "window": { "type": "integer" },
+        "min_points": { "type": "integer" },
+        "baseline": { "enum": ["median-non-low"] },
+        "warm_up": { "type": "integer" },
+        "context_first": { "enum": ["no-special-case"] },
+        "curves": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["kind", "index"],
+            "additionalProperties": false,
+            "properties": {
+              "kind": { "enum": ["pair"] },
+              "index": { "type": "integer" }
+            }
+          }
+        },
+        "session_rules": { "type": "null" }
+      }
+    },
+    "overlap": {
+      "description": "Which events an attribution lists (DECISIONS.md D-078).",
+      "type": "object",
+      "required": ["rule", "margin_before", "margin_after", "scope"],
+      "additionalProperties": false,
+      "properties": {
+        "rule": { "enum": ["half-open"] },
+        "margin_before": { "type": "string" },
+        "margin_after": { "type": "string" },
+        "scope": { "enum": ["curve-inputs"] }
+      }
+    },
+    "attributions": {
+      "description": "Each detected drop of a curve (detected true; none when detection is null), or an interval a user gave (detected false), which mirage_vmaf timeline never writes, with the events of the curve's own inputs that meet it, grouped by source in the order of the sources, each event named by its id.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "curve", "detected", "interval", "baseline", "min", "mean", "drop_magnitude", "mean_drop",
+          "overlapping_events"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "curve": {
+            "type": "object",
+            "required": ["kind", "index"],
+            "additionalProperties": false,
+            "properties": {
+              "kind": { "enum": ["pair"] },
+              "index": { "type": "integer" }
+            }
+          },
+          "detected": { "type": "boolean" },
+          "interval": {
+            "type": "object",
+            "required": ["ref_index", "ref_end", "t", "t_end", "points"],
+            "additionalProperties": false,
+            "properties": {
+              "ref_index": { "type": "integer" },
+              "ref_end": { "type": "integer" },
+              "t": { "type": "number" },
+              "t_end": { "type": "number" },
+              "points": { "type": "integer" }
+            }
+          },
+          "baseline": { "type": ["number", "null"] },
+          "min": { "type": ["number", "null"] },
+          "mean": { "type": ["number", "null"] },
+          "drop_magnitude": { "type": ["number", "null"] },
+          "mean_drop": { "type": ["number", "null"] },
+          "overlapping_events": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["source", "events"],
+              "additionalProperties": false,
+              "properties": {
+                "source": { "enum": ["vmaf", "network", "playlist", "scte35", "player", "decoder"] },
+                "events": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["event", "offset", "offset_end", "offset_frames", "offset_end_frames"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "event": { "type": "string" },
+                      "offset": { "type": "number" },
+                      "offset_end": { "type": ["number", "null"] },
+                      "offset_frames": { "type": "integer" },
+                      "offset_end_frames": { "type": ["integer", "null"] }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "warnings": {
+      "description": "What the build couldn't place, and why.",
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}
