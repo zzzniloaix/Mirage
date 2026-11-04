@@ -2720,6 +2720,23 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 }
             }
 
+            // A switch to a stream no decoder could be opened for
+            // (MediaSession::video_open_failed / audio_open_failed) gets
+            // nothing more: it ends at once, and says why.
+            for (PendingSwitch* p : { &vsw, &asw }) {
+                const bool video  = p == &vsw;
+                const int  failed = video ? ms.video_open_failed.load() : ms.audio_open_failed.load();
+                if (!p->active || failed < 0 || p->target != failed) continue;
+                p->active = false;
+                std::string codec = "?";
+                if (video) { for (const auto& t : demuxer.video_tracks()) if (t.stream_idx == failed) codec = t.codec_name; }
+                else       { for (const auto& t : demuxer.audio_tracks()) if (t.stream_idx == failed) codec = t.codec_name; }
+                const char* stays = video ? "blank" : "silent";
+                player_ui.toast(std::format("Switch to {}: no decoder for {} — the track stays {}", p->what, codec, stays));
+                logger::warn("switch: no decoder for {} (stream {}): the switch to {} ended, the track stays {}",
+                             codec, failed, p->what, stays);
+            }
+
             // Give up waiting visibly after a while; playback keeps trying.
             static constexpr auto kSwitchTimeout = std::chrono::seconds(20);
             for (PendingSwitch* p : { &vsw, &asw, &ssw }) {
@@ -3223,6 +3240,8 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 ti.pending_video    = vsw.active ? vsw.target : -1;
                 ti.pending_audio    = asw.active ? asw.target : -1;
                 ti.pending_subtitle = ssw.active ? ssw.target : -1;
+                ti.failed_video     = ms.video_open_failed.load();
+                ti.failed_audio     = ms.audio_open_failed.load();
                 ti.t                = glfwGetTime();
                 const ImVec2 disp   = ImGui::GetIO().DisplaySize;
                 ti.win_w            = disp.x;

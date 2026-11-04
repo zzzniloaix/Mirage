@@ -27,6 +27,7 @@ static void video_decode_loop(Decoder& decoder,
                                std::atomic<double>& decode_time_ms,
                                std::atomic<int>& video_epoch,
                                std::atomic<std::uint64_t>& seek_applied,
+                               std::atomic<int>& open_failed,
                                StageStats&       stats,
                                std::stop_token   st)
 {
@@ -174,11 +175,15 @@ static void video_decode_loop(Decoder& decoder,
             if (reopen) {
                 // On failure the decoder takes the new stream's packets and
                 // gives no frame (Decoder::open): the picture stays as it is.
-                if (!decoder.open(demuxer.video_codecpar(), try_hw))
+                if (decoder.open(demuxer.video_codecpar(), try_hw)) {
+                    open_failed.store(-1);
+                } else {
+                    open_failed.store(demuxer.video_stream_index());
                     logger::error("switch: no video decoder could be opened for stream {} ({}) — "
                                   "nothing from it can be shown",
                                   demuxer.video_stream_index(),
                                   avcodec_get_name(demuxer.video_codecpar()->codec_id));
+                }
                 skipping_unref = false;   // a new codec context
                 tb     = demuxer.video_time_base();
                 stream = demuxer.video_stream_index();
@@ -255,6 +260,7 @@ static void audio_decode_loop(AudioDecoder&     audio_decoder,
                                Queue<AVPacket*>& audioq,
                                std::atomic<int>& audio_stream,
                                const std::atomic<std::uint64_t>& drop_until_seek,
+                               std::atomic<int>& open_failed,
                                StageStats&       stats,
                                std::stop_token   st)
 {
@@ -280,13 +286,21 @@ static void audio_decode_loop(AudioDecoder&     audio_decoder,
             if (reopen) {
                 // On failure the decoder takes the new stream's packets and
                 // gives no audio (Decoder::open): the track stays silent.
-                if (!audio_decoder.reopen(demuxer.audio_codecpar(), audio_player,
-                                          demuxer.audio_time_base()))
+                if (audio_decoder.reopen(demuxer.audio_codecpar(), audio_player,
+                                         demuxer.audio_time_base())) {
+                    open_failed.store(-1);
+                    reopened_stream = demuxer.audio_stream_index();
+                } else {
+                    // Nor is it the stream decoded now: the render thread
+                    // ends the switch as failed, not as done.
+                    open_failed.store(demuxer.audio_stream_index());
+                    reopened_stream = -1;
+                    audio_stream.store(-1);
                     logger::error("switch: no audio decoder could be opened for stream {} ({}) — "
                                   "the track stays silent",
                                   demuxer.audio_stream_index(),
                                   avcodec_get_name(demuxer.audio_codecpar()->codec_id));
-                reopened_stream = demuxer.audio_stream_index();
+                }
                 logger::info("switch-trace: audio decoder reopened (t={:.3f})", logger::uptime());
             }
             // Where the audio after this sentinel starts, to the sample.
@@ -792,14 +806,14 @@ void MediaSession::start_threads()
 
     video_thread_ = std::jthread([this](std::stop_token st) {
         video_decode_loop(video_decoder, demuxer, videoq, frameq, try_hw_, decode_time_ms, video_epoch,
-                          video_seek_applied, video_stats, st);
+                          video_seek_applied, video_open_failed, video_stats, st);
         frameq.shutdown();
     });
 
     audio_thread_ = std::jthread([this](std::stop_token st) {
         if (has_audio)
             audio_decode_loop(audio_decoder, audio_player, demuxer, audioq, decoded_audio_stream,
-                              audio_drop_until_seek, audio_stats, st);
+                              audio_drop_until_seek, audio_open_failed, audio_stats, st);
     });
 
     // Subtitle decode thread idles until a track is selected (subq receives
