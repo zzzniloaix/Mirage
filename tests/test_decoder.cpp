@@ -1,7 +1,7 @@
 // Decoder: the decode errors it counts, the drain at the end of the stream
-// past a frame that failed (software decoding, frame threads), and a
-// decoder that could not be opened. Inputs from TestEncode.h, damaged here
-// on purpose.
+// past a frame that failed (software decoding, frame threads), the errors
+// under VideoToolbox counted as its own, and a decoder that could not be
+// opened. Inputs from TestEncode.h, damaged here on purpose.
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
@@ -18,6 +18,7 @@
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#include <libavutil/hwcontext.h>
 }
 
 using Catch::Matchers::ContainsSubstring;
@@ -79,13 +80,29 @@ Decoded decode_all(Decoder& d, const std::vector<AVPacket*>& pkts)
     return r;
 }
 
+// H.264 in MP4: each packet is length-prefixed NAL units, so one cut to a
+// third of its size is rejected whole (AVERROR_INVALIDDATA), and the frames
+// after it decode (with their reference missing). P-frames of a 48-frame
+// clip, one near the end: with frame threads its error comes out of the
+// drain, ahead of the last frames (the loop that stopped at the first error
+// lost them).
+const std::set<std::size_t> kDamaged = { 5, 17, 29, 46 };
+
+void cut_short(Packets& in)
+{
+    REQUIRE(in.pkts.size() == 48);
+    for (std::size_t i : kDamaged) {
+        AVPacket* p = in.pkts[i];
+        REQUIRE_FALSE(p->flags & AV_PKT_FLAG_KEY);
+        REQUIRE(av_packet_make_writable(p) >= 0);
+        av_shrink_packet(p, p->size / 3);
+    }
+}
+
 } // namespace
 
 TEST_CASE("Decoder: one error per damaged packet, and the drain gives every frame (software)", "[decoder]")
 {
-    // H.264 in MP4: each packet is length-prefixed NAL units, so one cut to a
-    // third of its size is rejected whole (AVERROR_INVALIDDATA), and the
-    // frames after it decode (with their reference missing).
     const auto path = testtemp::path("decoder_damage.mp4");
     testencode::Encode e;
     e.format = "mp4";
@@ -93,18 +110,8 @@ TEST_CASE("Decoder: one error per damaged packet, and the drain gives every fram
     e.gop    = 12;
     if (!testencode::encode(path, e)) SKIP("libx264 is not available");
     Packets in(path);
-    REQUIRE(in.pkts.size() == 48);
-
-    // P-frames, one near the end: with frame threads its error comes out of
-    // the drain, ahead of the last frames (the loop that stopped at the
-    // first error lost them).
-    const std::set<std::size_t> damaged = { 5, 17, 29, 46 };
-    for (std::size_t i : damaged) {
-        AVPacket* p = in.pkts[i];
-        REQUIRE_FALSE(p->flags & AV_PKT_FLAG_KEY);
-        REQUIRE(av_packet_make_writable(p) >= 0);
-        av_shrink_packet(p, p->size / 3);
-    }
+    cut_short(in);
+    const std::set<std::size_t>& damaged = kDamaged;
 
     Decoder d;
     REQUIRE(d.open(in.par, false));   // software: frame + slice threads, one per core
@@ -122,6 +129,40 @@ TEST_CASE("Decoder: one error per damaged packet, and the drain gives every fram
     CHECK_THAT(text, ContainsSubstring("4 decode errors (last: Invalid data found when processing input)"));
     CHECK_THAT(text, !ContainsSubstring("--no-hw"));
 }
+
+#ifndef MIRAGE_HEADLESS
+// Not in the headless configuration (MIRAGE_HEADLESS, CMakeLists.txt): it
+// builds where there may be no VideoToolbox. Tagged, to be picked or left
+// out in the others.
+TEST_CASE("Decoder: VideoToolbox's errors on damaged packets are counted as its own", "[decoder][videotoolbox]")
+{
+    AVBufferRef* dev = nullptr;
+    if (av_hwdevice_ctx_create(&dev, AV_HWDEVICE_TYPE_VIDEOTOOLBOX, nullptr, nullptr, 0) < 0)
+        SKIP("no VideoToolbox device");
+    av_buffer_unref(&dev);
+    const auto path = testtemp::path("decoder_damage_vt.mp4");
+    testencode::Encode e;
+    e.format = "mp4";
+    e.frames = 48;
+    e.gop    = 12;
+    e.width  = 320;
+    e.height = 240;
+    if (!testencode::encode(path, e)) SKIP("libx264 is not available");
+    Packets in(path);
+    cut_short(in);
+
+    Decoder d;
+    REQUIRE(d.open(in.par, true));
+    const Decoded r = decode_all(d, in.pkts);
+    if (!d.is_hw_active()) SKIP("VideoToolbox decoded none of this clip's frames");
+    const Decoder::Errors errs = d.errors();
+    INFO(r.frames << " frames; " << describe_decode_errors(errs));
+    CHECK(errs.errors >= static_cast<std::int64_t>(kDamaged.size()));
+    CHECK(errs.hw_run_max > 0);
+    CHECK(errs.hw_run == 0);   // frames came after the last error
+    CHECK_THAT(describe_decode_errors(errs), ContainsSubstring("--no-hw decodes in software"));
+}
+#endif
 
 TEST_CASE("Decoder: an undamaged stream counts nothing, and EOF after the drain is not an error", "[decoder]")
 {

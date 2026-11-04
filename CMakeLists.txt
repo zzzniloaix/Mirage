@@ -424,6 +424,9 @@ target_compile_definitions(mirage_tests PRIVATE
     MIRAGE_LIBVMAF_MODEL_DIR="${MIRAGE_LIBVMAF_MODEL_DIR}"
     # The built mirage_vmaf, which tests/test_vmaf_ladder.cpp runs as a program.
     MIRAGE_VMAF_PATH="$<TARGET_FILE:mirage_vmaf>"
+    # The headless configuration leaves out the tests that need the player's
+    # hardware (VideoToolbox decoding, tests/test_decoder.cpp).
+    $<$<BOOL:${MIRAGE_HEADLESS}>:MIRAGE_HEADLESS>
 )
 add_dependencies(mirage_tests mirage_vmaf)
 
