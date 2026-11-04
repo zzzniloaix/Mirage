@@ -325,8 +325,8 @@ Seen on the way: `--snapshot` writes a PNG (`src/main.cpp:2835`) where
 `src/main.cpp:541` says PPM.
 
 **Decided and implemented.** 3.1 (b), 3.2 (a) and 3.3 (D-090), in commits
-`c28bcfe`, `0068b00` and `2eb443e`, merged as `46449d8`. Beyond the plan
-(P-083):
+`c28bcfe`, `0068b00` and `2eb443e`, merged as `46449d8`, and `39ad661`.
+Beyond the plan (P-083):
 
 - The pure parts live in GL-free headers, so they can be unit-tested:
   `src/YuvMatrix.h` holds the constants and the binding rule,
@@ -341,6 +341,13 @@ Seen on the way: `--snapshot` writes a PNG (`src/main.cpp:2835`) where
   BT.601 and BT.709 from one variant to the next.
 - The frame inspector no longer says that the renderer reads the tags at
   open (`0068b00`).
+- The log prints a pixel format's unprintable bytes as '.' (`39ad661`,
+  after a code review of the merged branch).
+
+Still open: a `reconfigure()` that fails (a shader that does not link, no
+memory for the staging frame) is not tried again, and frames can go
+undrawn until the interpretation changes again. Nothing falls back at
+`init()` either.
 
 Tests: `[yuv]`, `[hw_binding]` and `[colour_interp]`. The snapshots have
 not been made yet. As the risks said, the frame inspector's "rendered as"
@@ -497,6 +504,7 @@ The commits:
 | `05165ea` | 4.1's VideoToolbox test |
 | `12105b8` | the merge of the six above |
 | `cfd6ae0` | 4.2 |
+| `3b4e646` | 4.2, after a code review of the merged branch |
 
 Beyond the plan (P-083):
 
@@ -510,6 +518,9 @@ Beyond the plan (P-083):
   (`e9ac2c9`), so the audio clock, which video follows, keeps going.
 - On a video track with no decoder, a seek does not wait for a frame, and
   the stall check does not say "Buffering" (`cfd6ae0`).
+- A frame no resampler can be made for plays its time as silence too
+  (`3b4e646`). Since 4.3 the resampler is made from the first decoded
+  frame, and such a frame was dropped, which stopped the audio clock.
 - The VideoToolbox test is compiled out of the headless build
   (`MIRAGE_HEADLESS`), because both builds run the same `'~[audio]'`.
 

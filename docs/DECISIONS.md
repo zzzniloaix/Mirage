@@ -2317,28 +2317,32 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
     - The thumbnails' decode thread works out its input's start itself, because it starts before the session has worked out its own.
     - `--ui-sub-at` asks for an absolute seek.
     - Left as they were: the seek bar's own `seek_to` on release, still dropped in `main.cpp` (now a PTS), and the GLFW scrub block that is never reached.
-  - D-090 (`c28bcfe`, `0068b00`, `2eb443e`):
+  - D-090 (`c28bcfe`, `0068b00`, `2eb443e`; `39ad661`, the lead agent's):
     - The pure parts live in GL-free headers (`src/YuvMatrix.h`, `src/ColourInterpretation.h`), where they are unit-tested.
     - sws is rebuilt on every change of interpretation. A change of the primaries alone, or of the transfer within one path, counts as a change of uniforms.
     - The samples' depth comes from `AVHWFramesContext::sw_format`. A buffer without an IOSurface is copied to the CPU, as a refused one is.
     - A matrix that no tag gives is kept across frame sizes, and derived again only when the HDR state flips. This is `2eb443e`, made at the lead agent's review: `c28bcfe` derived the matrix from each frame's size.
     - The frame inspector's texts no longer say that the renderer reads the tags at open (`0068b00`).
-  - D-091 (`7211671`, `defba3f`, `07dce07`, `651193e`, `e9ac2c9`, `05165ea`; `cfd6ae0`, the lead agent's):
+    - The log prints a pixel format's unprintable bytes as '.' (`39ad661`, after a code review of the merged branch).
+  - D-091 (`7211671`, `defba3f`, `07dce07`, `651193e`, `e9ac2c9`, `05165ea`; `cfd6ae0` and `3b4e646`, the lead agent's):
     - A stream that prefers an Lt/Rt or Pro Logic II downmix gets those levels and swr's matrix encoding, as `aresample` does.
     - After an error, a pull asks the codec again up to 64 times (`Decoder::kMaxErrorsPerPull`).
     - The counts carry over a reopen. Those of `--av-report` count from when the media opened.
     - `Decoder::open` frees the codec context on every failure, and `AudioDecoder::reopen` no longer leaks its frames.
     - An audio track with no decoder plays its packets' time as silence (`e9ac2c9`), so the audio clock keeps going.
     - On a video track with no decoder, a seek does not wait for a frame, and the stall check does not say "Buffering" (`cfd6ae0`).
+    - A frame no resampler can be made for (swr refuses its layout, say) plays its time as silence too (`3b4e646`, after a code review of the merged branch). Until then it was dropped, and the audio clock stopped.
     - The VideoToolbox test is compiled out of the headless build: `mirage_tests` gets `MIRAGE_HEADLESS` when the option is on.
-- **Alternatives**: HLS checked like the other inputs; a matrix derived from each frame's size (`c28bcfe`), which switches an untagged ladder between BT.601 and BT.709 from one variant to the next; the Lo/Ro levels whatever downmix the stream prefers; a track with no decoder left without audio, which stops the audio clock.
+- **Alternatives**: HLS checked like the other inputs; a matrix derived from each frame's size (`c28bcfe`), which switches an untagged ladder between BT.601 and BT.709 from one variant to the next; the Lo/Ro levels whatever downmix the stream prefers; a track with no decoder, or a frame no resampler takes, left without audio, which stops the audio clock.
 - **Rationale**: each follows the plan where it says something, and keeps the code's present behaviour where it says nothing.
 - **Open**:
   - When a stream gives an LFE level, it is passed to swr as `aresample` passes it (×0.707107 per side, `investigate-2026-11-03/audio/results.txt`, 2a). This is untested, since no FFmpeg encoder writes such a level.
   - 64 is the agent's value.
   - By the code, a seek's flush leaves samples in the resampler, as before, so resampled input plays a few samples from before the seek.
+  - By the code, a `reconfigure()` that fails (a shader that does not link, no memory for the staging frame) is not tried again. The renderer stays as far as it got, and frames can go undrawn until the interpretation changes again. Nothing falls back at `init()` either, where such a failure fails the session's start.
 - **Records**:
   - The unit tests at `cfd6ae0` (`plan/engineer_tools_runs/tests/macos-2026-11-04-cfd6ae0.txt`): every case passes in both builds. That is 464 test cases in the debug build and 463 in the headless one, which leaves out the VideoToolbox case, plus the 21 `[audio]` cases in each.
+  - The unit tests at `39ad661`, after `3b4e646` and its test: MEASUREMENT PENDING.
   - The scripted runs of each section's Check open player windows: MEASUREMENT PENDING.
 - **Who**: agent
 - **Date**: 2026-11-04
