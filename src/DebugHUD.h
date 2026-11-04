@@ -111,7 +111,9 @@ public:
                              int fb_w, int fb_h, float scale = 1.0f);
 
     // Draw a thin timeline strip above the scrub bar with coloured tick marks.
-    // Returns the pts seeked to if a click lands in the strip, or -1.
+    // The strip spans [0, duration] and tag times are positions on it, as on
+    // the seek bar (UiFormat.h). Returns the position clicked if a click lands
+    // in the strip, or -1.
     static constexpr int kTimelinePx = 10;  // strip height in framebuffer pixels
 
     double draw_timeline_ticks(const std::vector<TagEntry>& tags,

@@ -80,10 +80,11 @@ public:
     void upload_pending();
 
     // Draw the strip above the scrub bar. Call only while scrubbing.
-    // scrub_pos and duration are in seconds.
+    // scrub_pos: the PTS the highlight follows. Each thumbnail sits at its
+    //   position over duration (seconds from start, as on the seek bar).
     // bottom_off: height in framebuffer pixels already occupied below (ImGui bar,
     //   timeline ticks, waveform) — the strip sits immediately above this.
-    void draw(double scrub_pos, double duration, int fb_w, int fb_h,
+    void draw(double scrub_pos, double start, double duration, int fb_w, int fb_h,
               float bottom_off = 0.0f);
 
     // Keyframe navigation — available as soon as the container index is read
