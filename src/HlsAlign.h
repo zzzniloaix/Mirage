@@ -51,6 +51,20 @@ struct InitMap {
     ByteRange   range;
 };
 
+// A tag that marks a point on the timeline: EXT-X-DATERANGE (RFC 8216
+// §4.3.2.7: ad breaks, interstitials, chapters), or a tag named by the
+// caller (a packager's own cue tag) — where it sits among the segments.
+struct Marker {
+    std::string tag;                // without '#': "EXT-X-DATERANGE", or the name asked for
+    std::string id;                 // ID attribute; a tag without one: its value as written
+    std::string cls;                // CLASS
+    double      start_date = kNaN;  // START-DATE, Unix seconds (DATERANGE)
+    double      duration   = kNaN;  // DURATION, else PLANNED-DURATION; NaN = neither
+    int         before = 0;         // index of the segment listed after it (segments.size(): none)
+    int         line = 0;           // 1-based line of the tag
+    std::string value;              // everything after the tag's ':' as written
+};
+
 struct MediaTimeline {
     bool          ok = false;       // a media playlist with at least one segment
     int           version = 0;
@@ -64,6 +78,7 @@ struct MediaTimeline {
     int           discontinuities = 0;   // EXT-X-DISCONTINUITY tags
     std::vector<Segment> segments;
     std::vector<InitMap> maps;
+    std::vector<Marker>  markers;   // in playlist order
     std::vector<std::string> problems;   // spec violations found while parsing
 
     bool live() const { return !endlist && type != "VOD"; }
@@ -76,7 +91,10 @@ struct MediaTimeline {
 
 // `text` as a media playlist served from `base_url` (URIs made absolute
 // against it). ok = false for a master playlist or text that is not a playlist.
-MediaTimeline parse_media_timeline(const std::string& text, const std::string& base_url);
+// Every EXT-X-DATERANGE is kept in `markers`, and so is every tag named in
+// `marker_tags` (without '#', "EXT-X-CUE-OUT").
+MediaTimeline parse_media_timeline(const std::string& text, const std::string& base_url,
+                                   const std::vector<std::string>& marker_tags = {});
 
 // RFC 3986 §5.2 reference resolution (dot segments removed), the way FFmpeg
 // makes playlist URIs absolute. Local paths resolve against their directory.

@@ -14,12 +14,17 @@
 //    video packet's timestamps; the first video frame and a few audio frames
 //    decoded for the decoded size, transfer characteristics, channels and
 //    AAC object type (implicit SBR / PS shows only once decoded).
-// Encrypted segments (EXT-X-KEY other than NONE) are sized but not read.
+// Encrypted segments: SAMPLE-AES and SAMPLE-AES-CTR (FairPlay, Widevine,
+// PlayReady CENC) encrypt sample data only, so they are read without their
+// key — container, timestamps, keyframe flags, the clear NAL headers and the
+// decoder configuration — and nothing is decoded. AES-128 encrypts the
+// whole segment: sized, not read.
 // With a NetworkLogger installed, every request is logged as the
 // inspector's (NetInitiator::Inspector). A check runs on its own thread
 // with a few workers; stop() aborts the requests in flight.
 
 #include "HlsConform.h"
+#include "HlsMarkers.h"
 
 #include <algorithm>
 #include <atomic>
@@ -28,6 +33,7 @@
 #include <mutex>
 #include <stop_token>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <vector>
 
@@ -38,6 +44,10 @@ public:
         int  audio_segments = 1;    // read per audio rendition playlist; <= 0 = every segment
         bool sizes = true;          // size every segment (BANDWIDTH needs the peak); false = the ones read
         int  workers = 4;           // requests at a time
+        // Marker tags (without '#') kept beside EXT-X-DATERANGE for the
+        // marker check (HlsMarkers.h), a packager's own cue tag.
+        std::vector<std::string> marker_tags;
+        bool markers_only = false;  // the playlists only: no segment read or sized
     };
     enum class State : std::uint8_t { Idle, Running, Done, Failed, Stopped };
 
@@ -53,6 +63,10 @@ public:
         hls::MasterDecl                master;
         std::vector<hls::PlaylistRead> playlists;   // in MasterDecl::playlists() order
         hls::ConformReport             report;      // once Done (Stopped: over what was read)
+        // The marker check over every variant, audio and subtitle playlist
+        // (subtitle playlists are read for it only: no segment, no size).
+        std::vector<hls::MarkerIn>     marker_in;
+        hls::MarkerReport              markers;
         std::string                    error;       // Failed: why
         double                         seconds = 0.0;
     };
@@ -137,7 +151,14 @@ void parallel_for(std::size_t n, int workers, const std::stop_token& st, F&& fn)
 
 // What one segment's bytes hold (`data`: its init segment, if any, then
 // the segment), demuxed from memory. `bytes` is the segment's own size.
-hls::SegmentRead read_segment(const std::uint8_t* data, std::size_t n, int index, std::int64_t bytes);
+// `encrypted`: sample data encrypted (SAMPLE-AES / CENC) — demuxed only,
+// no decoder opened.
+hls::SegmentRead read_segment(const std::uint8_t* data, std::size_t n, int index, std::int64_t bytes,
+                              bool encrypted = false);
+
+// EXT-X-KEY METHODs whose segments read_segment can read without the key:
+// SAMPLE-AES, SAMPLE-AES-CTR, ISO-23001-7 (sample data only is encrypted).
+bool readable_without_key(std::string_view method);
 
 // The segment indices read out of `n`: the first, the last and evenly
 // spaced ones between, `k` in all (<= 0 or >= n: every one).

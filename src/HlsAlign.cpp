@@ -475,7 +475,8 @@ int MediaTimeline::index_of(std::int64_t seq) const
     return segments[static_cast<std::size_t>(i)].seq == seq ? static_cast<int>(i) : -1;
 }
 
-MediaTimeline parse_media_timeline(const std::string& text, const std::string& base_url)
+MediaTimeline parse_media_timeline(const std::string& text, const std::string& base_url,
+                                   const std::vector<std::string>& marker_tags)
 {
     MediaTimeline tl;
     bool header = false;
@@ -563,6 +564,27 @@ MediaTimeline parse_media_timeline(const std::string& text, const std::string& b
             } else if (tag == "#EXT-X-KEY") {
                 cur_key = attr(val, "METHOD").value_or("");
                 if (cur_key == "NONE") cur_key.clear();
+            } else if (tag == "#EXT-X-DATERANGE"
+                       || std::find(marker_tags.begin(), marker_tags.end(), tag.substr(1)) != marker_tags.end()) {
+                Marker mk;
+                mk.tag.assign(tag.substr(1));
+                mk.value.assign(val);
+                mk.line = line_no;
+                mk.before = static_cast<int>(tl.segments.size());
+                const auto id = attr(val, "ID");
+                mk.id = id ? *id : std::string(trim(val));
+                mk.cls = attr(val, "CLASS").value_or("");
+                if (const auto sd = attr(val, "START-DATE")) mk.start_date = parse_iso8601(*sd);
+                const auto dur = attr(val, "DURATION");
+                const auto planned = attr(val, "PLANNED-DURATION");
+                if (dur || planned) mk.duration = to_double(dur ? *dur : *planned);
+                if (tag == "#EXT-X-DATERANGE") {
+                    if (!id) tl.problems.push_back(std::format("line {}: EXT-X-DATERANGE without an ID", line_no));
+                    if (std::isnan(mk.start_date))
+                        tl.problems.push_back(std::format("line {}: EXT-X-DATERANGE without a START-DATE that parses",
+                                                          line_no));
+                }
+                tl.markers.push_back(std::move(mk));
             } else if (tag == "#EXT-X-SKIP") {
                 const std::int64_t skipped = to_int(attr(val, "SKIPPED-SEGMENTS").value_or("0"));
                 seq += skipped;

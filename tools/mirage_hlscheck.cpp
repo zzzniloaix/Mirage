@@ -3,18 +3,23 @@
 // CODECS against the decoder configurations, RESOLUTION, FRAME-RATE and
 // VIDEO-RANGE against the decoded video, the audio renditions' CHANNELS, and
 // every segment read: its first picture and its duration against EXTINF
-// (src/HlsConform.h, read by src/HlsConformProbe.h). No window, GL or ImGui.
-// Prints a table and the findings; --json writes the whole report.
+// (src/HlsConform.h, read by src/HlsConformProbe.h); and the break markers
+// of every variant, audio and subtitle playlist, EXT-X-DATERANGE and the
+// tags named by --marker-tag, against each other (src/HlsMarkers.h). No
+// window, GL or ImGui. Prints a table and the findings; --json writes the
+// whole report.
 //
 // Exit codes:
 //   0 — checked, no error found (warnings and notes may be listed)
-//   1 — checked, errors found
+//   1 — checked, errors found (conformance or markers)
 //   2 — bad arguments, or the master playlist could not be read
 
 #include "HlsConformProbe.h"
 #include "JsonText.h"
 
 #include <chrono>
+#include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <format>
@@ -41,6 +46,12 @@ const char* kUsage =
     "(RFC 8216), CODECS against the streams' decoder configurations, RESOLUTION,\n"
     "FRAME-RATE and VIDEO-RANGE against the decoded video, CHANNELS of the audio\n"
     "renditions, and the first picture and duration of every segment read.\n"
+    "Then the break markers of every variant, audio and subtitle playlist:\n"
+    "EXT-X-DATERANGE, and the tags named by --marker-tag, matched by ID; a tag\n"
+    "should come before the segment nearest the break, an interstitial's\n"
+    "START-DATE should fall on a segment boundary.\n"
+    "Encrypted segments: SAMPLE-AES / SAMPLE-AES-CTR are read without the key\n"
+    "(container and timestamps, nothing decoded); AES-128 ones are only sized.\n"
     "\n"
     "options:\n"
     "  --segments N|all        segments read in full per variant playlist (default 3:\n"
@@ -49,6 +60,10 @@ const char* kUsage =
     "  --no-sizes              size only the segments read: no request per segment,\n"
     "                          BANDWIDTH is then checked against a lower bound\n"
     "  --workers N             requests at a time (default 4)\n"
+    "  --marker-tag NAME       also match this tag as a marker (without '#', e.g.\n"
+    "                          EXT-X-CUE-OUT); its ID attribute, else its value,\n"
+    "                          pairs it with the others; repeatable\n"
+    "  --markers-only          the marker check only: playlists, no segment request\n"
     "  --json FILE             write the report as JSON\n"
     "  --quiet                 the findings only\n"
     "  --help\n"
@@ -116,6 +131,51 @@ void print_report(const ConformProbe::Result& r, bool quiet)
     }
 }
 
+void print_markers(const ConformProbe::Result& r, const std::vector<std::string>& tags, bool quiet)
+{
+    const auto& rep = r.markers;
+    if (!rep.any()) {
+        std::string what = "EXT-X-DATERANGE";
+        for (const auto& t : tags) what += ", " + t;
+        if (!quiet) std::printf("\nmarkers: none (no %s)\n", what.c_str());
+        return;
+    }
+    const auto& in = r.marker_in;
+    int notes = 0;
+    for (const auto& f : rep.findings) notes += f.sev == hls::Severity::Info ? 1 : 0;
+    std::size_t splices = 0;
+    for (const auto& ev : rep.events) splices += ev.splice ? 1 : 0;
+    std::printf("\nmarkers: %zu splice points over %zu playlists, reference %s\n", splices, in.size(),
+                rep.reference >= 0 ? in[static_cast<std::size_t>(rep.reference)].label.c_str() : "-");
+    if (!quiet) {
+        std::size_t others = 0, others_marked = 0;
+        for (const auto& ev : rep.events) {
+            if (!ev.splice) {
+                ++others;
+                others_marked = std::max(others_marked, ev.places.size());
+                continue;
+            }
+            int bad = 0;
+            for (const auto& p : ev.places) bad += p.sev == hls::Severity::Error || p.sev == hls::Severity::Warning;
+            std::printf("  %-20s %12s  marked in %zu, missing in %zu%s%s\n", ev.id.c_str(),
+                        std::isnan(ev.time) ? "-" : std::format("{:.3f} s", ev.time).c_str(), ev.places.size(),
+                        ev.missing.size(), bad ? std::format(", {} off", bad).c_str() : "",
+                        ev.cls.empty() ? "" : std::format("  [{}]", ev.cls).c_str());
+        }
+        if (others > 0)
+            std::printf("  and %zu other EXT-X-DATERANGE%s (no interstitial CLASS or SCTE-35: not splice points, "
+                        "not checked; in up to %zu playlist%s; listed in --json)\n", others, others == 1 ? "" : "s",
+                        others_marked, others_marked == 1 ? "" : "s");
+    }
+    std::printf("%d error%s, %d warning%s, %d note%s\n", rep.errors, rep.errors == 1 ? "" : "s", rep.warnings,
+                rep.warnings == 1 ? "" : "s", notes, notes == 1 ? "" : "s");
+    for (const auto& f : rep.findings) {
+        const char* tag = f.sev == hls::Severity::Error ? "ERROR" : f.sev == hls::Severity::Warning ? "warn " : "note ";
+        std::printf("%s %s\n", tag, f.title.c_str());
+        if (!f.detail.empty() && !quiet) std::printf("      %s\n", f.detail.c_str());
+    }
+}
+
 bool parse_count(std::string_view v, int& out)
 {
     if (v == "all") {
@@ -165,6 +225,14 @@ int main(int argc, char** argv)
                 std::fprintf(stderr, "mirage_hlscheck: --workers takes 1 to 16\n");
                 return 2;
             }
+        } else if (a == "--marker-tag") {
+            if (!value(v) || v.empty() || v.starts_with("#") || v.find(':') != std::string_view::npos) {
+                std::fprintf(stderr, "mirage_hlscheck: --marker-tag takes a tag name without '#', e.g. EXT-X-CUE-OUT\n");
+                return 2;
+            }
+            opts.marker_tags.emplace_back(v);
+        } else if (a == "--markers-only") {
+            opts.markers_only = true;
         } else if (a == "--json") {
             if (!value(v)) {
                 std::fprintf(stderr, "mirage_hlscheck: --json takes a file name\n");
@@ -209,14 +277,23 @@ int main(int argc, char** argv)
         std::fprintf(stderr, "mirage_hlscheck: %s\n", r.error.c_str());
         return 2;
     }
-    print_report(r, quiet);
+    if (!opts.markers_only) print_report(r, quiet);
+    print_markers(r, opts.marker_tags, quiet);
     if (!json_path.empty()) {
+        std::string text = hls::conformance_json(r.master, r.playlists, r.report, r.source);
+        // The marker check as one more member, when there are markers: the
+        // reports of streams without stay as they were.
+        if (r.markers.any() && text.ends_with("\n}\n")) {
+            text.resize(text.size() - 3);
+            text += ",\n  \"markers\": " + hls::markers_json(r.marker_in, r.markers) + "\n}\n";
+        }
         std::ofstream out(json_path, std::ios::binary);
-        out << hls::conformance_json(r.master, r.playlists, r.report, r.source);
+        out << text;
         if (!out) {
             std::fprintf(stderr, "mirage_hlscheck: cannot write %s\n", json_path.c_str());
             return 2;
         }
     }
-    return r.report.errors > 0 ? 1 : 0;
+    if (opts.markers_only) return r.markers.errors > 0 ? 1 : 0;
+    return r.report.errors > 0 || r.markers.errors > 0 ? 1 : 0;
 }

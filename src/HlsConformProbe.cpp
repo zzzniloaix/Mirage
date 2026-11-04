@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cstring>
 #include <format>
+#include <iterator>
 #include <limits>
 #include <map>
 #include <set>
@@ -224,11 +225,18 @@ std::vector<int> pick_segments(int n, int k)
     return out;
 }
 
-hls::SegmentRead read_segment(const std::uint8_t* data, std::size_t n, int index, std::int64_t bytes)
+bool readable_without_key(std::string_view method)
+{
+    return method == "SAMPLE-AES" || method == "SAMPLE-AES-CTR" || method == "ISO-23001-7";
+}
+
+hls::SegmentRead read_segment(const std::uint8_t* data, std::size_t n, int index, std::int64_t bytes,
+                              bool encrypted)
 {
     hls::SegmentRead r;
     r.index = index;
     r.bytes = bytes;
+    r.encrypted = encrypted;
 
     MemIO mem{ data, n };
     constexpr int kBuf = 64 * 1024;
@@ -264,7 +272,10 @@ hls::SegmentRead read_segment(const std::uint8_t* data, std::size_t n, int index
         cleanup();
         return r;
     }
-    if ((ret = avformat_find_stream_info(fc, nullptr)) < 0) {
+    // Probing decodes frames: of encrypted fMP4 that is ciphertext, and its
+    // moov already gives the decoder configuration, size and timescales.
+    const bool skip_probe = encrypted && std::string_view(fc->iformat->name).find("mp4") != std::string_view::npos;
+    if (!skip_probe && (ret = avformat_find_stream_info(fc, nullptr)) < 0) {
         r.error = "probing failed: " + av_error(ret);
         cleanup();
         return r;
@@ -316,9 +327,9 @@ hls::SegmentRead read_segment(const std::uint8_t* data, std::size_t n, int index
         }
         if (const AVPixFmtDescriptor* d = av_pix_fmt_desc_get(static_cast<AVPixelFormat>(par->format)))
             v.bit_depth = d->comp[0].depth;
-        vdec = open_decoder(par);
+        if (!encrypted) vdec = open_decoder(par);
     }
-    if (ai >= 0) adec = open_decoder(fc->streams[ai]->codecpar);
+    if (ai >= 0 && !encrypted) adec = open_decoder(fc->streams[ai]->codecpar);
 
     // The first frame decoded: what the stream really is (cropped size,
     // aspect, transfer as the bitstream signals it).
@@ -543,15 +554,22 @@ void ConformProbe::check(const std::stop_token& st, const std::string& source, s
     std::set<std::string> audio_uris;
     for (const auto& md : m.media)
         if (md.type == "AUDIO" && !md.uri.empty()) audio_uris.insert(md.uri);
-    std::vector<hls::PlaylistRead> pls(uris.size());
-    count_.playlists_total = static_cast<int>(uris.size());
-    parallel_for(uris.size(), o.workers, st, [&](std::size_t i) {
-        pls[i].uri = uris[i];
-        Fetched f = fetch(uris[i], -1, -1, static_cast<std::int64_t>(NetworkLogger::kMaxTextBody), st, received);
+    // Subtitle playlists after them, for the marker check only.
+    std::vector<std::string> all = uris;
+    {
+        std::set<std::string> seen(uris.begin(), uris.end());
+        for (const auto& md : m.media)
+            if (md.type == "SUBTITLES" && !md.uri.empty() && seen.insert(md.uri).second) all.push_back(md.uri);
+    }
+    std::vector<hls::PlaylistRead> pls(all.size());
+    count_.playlists_total = static_cast<int>(all.size());
+    parallel_for(all.size(), o.workers, st, [&](std::size_t i) {
+        pls[i].uri = all[i];
+        Fetched f = fetch(all[i], -1, -1, static_cast<std::int64_t>(NetworkLogger::kMaxTextBody), st, received);
         if (!f.ok()) {
             pls[i].error = f.error;
         } else {
-            pls[i].tl = hls::parse_media_timeline(f.body, f.final_url);
+            pls[i].tl = hls::parse_media_timeline(f.body, f.final_url, o.marker_tags);
             pls[i].target_tag = f.body.find("#EXT-X-TARGETDURATION:") != std::string::npos;
             if (!pls[i].tl.ok) {
                 std::string why;
@@ -561,9 +579,12 @@ void ConformProbe::check(const std::stop_token& st, const std::string& source, s
         }
         ++count_.playlists;
     });
+    std::vector<hls::PlaylistRead> subs(std::make_move_iterator(pls.begin() + static_cast<std::ptrdiff_t>(uris.size())),
+                                        std::make_move_iterator(pls.end()));
+    pls.resize(uris.size());
 
     // ── What to request ──────────────────────────────────────────────────────
-    struct Job { std::size_t pl; int seg; bool read; };
+    struct Job { std::size_t pl; int seg; bool read; bool encrypted = false; };
     std::vector<Job> jobs;
     std::map<std::pair<std::string, std::int64_t>, std::size_t> init_index;   // (uri, offset) → slot
     std::vector<std::pair<const hls::InitMap*, Fetched>> inits;
@@ -574,18 +595,21 @@ void ConformProbe::check(const std::stop_token& st, const std::string& source, s
         pr.sizes.assign(segs.size(), -1);
         for (std::size_t i = 0; i < segs.size(); ++i)
             if (!segs[i].range.whole()) pr.sizes[i] = segs[i].range.length;
+        if (o.markers_only) continue;
         const bool audio = audio_uris.contains(pr.uri);
         const std::vector<int> picks = conformprobe::pick_segments(static_cast<int>(segs.size()),
                                                                    audio ? o.audio_segments : o.segments);
         std::set<int> picked;
         for (const int i : picks) {
             const auto& s = segs[static_cast<std::size_t>(i)];
-            if (!s.key.empty() && s.key != "NONE") {
+            const bool encrypted = !s.key.empty() && s.key != "NONE";
+            if (encrypted && !conformprobe::readable_without_key(s.key)) {
                 pr.key = s.key;
                 continue;
             }
+            if (encrypted) pr.encrypted = s.key;
             picked.insert(i);
-            jobs.push_back({ p, i, true });
+            jobs.push_back({ p, i, true, encrypted });
             if (s.map >= 0) {
                 const hls::InitMap& mp = pr.tl.maps[static_cast<std::size_t>(s.map)];
                 const auto key = std::make_pair(mp.uri, mp.range.offset);
@@ -644,7 +668,7 @@ void ConformProbe::check(const std::stop_token& st, const std::string& source, s
             if (r.error.empty()) {
                 data += f.body;
                 r = conformprobe::read_segment(reinterpret_cast<const std::uint8_t*>(data.data()), data.size(), j.seg,
-                                               pr.sizes[si]);
+                                               pr.sizes[si], j.encrypted);
             }
         }
         {
@@ -657,10 +681,44 @@ void ConformProbe::check(const std::stop_token& st, const std::string& source, s
         std::sort(pr.reads.begin(), pr.reads.end(),
                   [](const hls::SegmentRead& a, const hls::SegmentRead& b) { return a.index < b.index; });
 
-    hls::ConformReport rep = hls::analyze_conformance(m, pls);
+    // Markers only: nothing was read to compare the declarations with.
+    hls::ConformReport rep = o.markers_only ? hls::ConformReport{} : hls::analyze_conformance(m, pls);
+
+    // ── Markers: every variant, audio and subtitle playlist ──────────────────
+    std::vector<hls::MarkerIn> marker_in;
+    {
+        const auto timeline_of = [&](const std::string& uri) -> const hls::PlaylistRead* {
+            for (const auto* v : { &pls, &subs })
+                for (const auto& p : *v)
+                    if (p.uri == uri) return &p;
+            return nullptr;
+        };
+        std::set<std::string> used;
+        const auto push = [&](const std::string& uri, std::string label, hls::Track kind) {
+            if (uri.empty() || !used.insert(uri).second) return;
+            const hls::PlaylistRead* p = timeline_of(uri);
+            if (!p || !p->error.empty() || !p->tl.ok) return;
+            marker_in.push_back({ std::move(label), kind, p->tl });
+        };
+        for (std::size_t i = 0; i < m.variants.size(); ++i) {
+            const auto& v = m.variants[i];
+            push(v.uri, v.height > 0 ? std::format("v{} {}p", i, v.height) : std::format("v{}", i), hls::Track::Video);
+        }
+        for (const auto& md : m.media) {
+            if (md.type != "AUDIO" && md.type != "SUBTITLES") continue;
+            const bool audio = md.type == "AUDIO";
+            std::string name = md.name.empty() ? md.language : md.name;
+            push(md.uri, std::format("{} {}/{}", audio ? "audio" : "subtitles", md.group_id, name),
+                 audio ? hls::Track::Audio : hls::Track::Text);
+        }
+    }
+    bool any_marker = false;
+    for (const auto& mi : marker_in) any_marker = any_marker || !mi.tl.markers.empty();
+    hls::MarkerReport markers = any_marker ? hls::analyze_markers(marker_in) : hls::MarkerReport{};
     const bool stopped = st.stop_requested();
-    logger::info("ConformProbe: {} — {} playlists, {} segments read, {} sized, {:.1f} MB in {:.1f} s: {} errors, "
-                 "{} warnings{}", source, pls.size(), count_.reads.load(), count_.sizes.load(),
+    logger::info("ConformProbe: {} — {} playlists{}, {} segments read, {} sized, {:.1f} MB in {:.1f} s: {} errors, "
+                 "{} warnings{}", source, pls.size(),
+                 subs.empty() ? std::string() : std::format(" (and {} subtitle, for the markers)", subs.size()), count_.reads.load(), count_.sizes.load(),
                  static_cast<double>(received.load()) / 1e6,
                  std::chrono::duration<double>(std::chrono::steady_clock::now() - t0_).count(), rep.errors,
                  rep.warnings, stopped ? " (stopped)" : "");
@@ -668,6 +726,8 @@ void ConformProbe::check(const std::stop_token& st, const std::string& source, s
         std::lock_guard lk(mtx_);
         result_.playlists = std::move(pls);
         result_.report = std::move(rep);
+        result_.marker_in = std::move(marker_in);
+        result_.markers = std::move(markers);
     }
     finish(stopped ? State::Stopped : State::Done);
 }
