@@ -6,8 +6,12 @@ What the engineer-tools checks found in the player itself
 happens, why, the fix the agent proposes, the alternatives, the risks and
 how a fix would be checked. D-007 asks for a plan the owner approves before
 a change to the render or decode path: sections 1, 3 and 4 are such
-changes, section 2 is the UI's. Nothing here is decided or changed yet;
-"Owner's choice" marks what is the owner's to pick.
+changes, section 2 is the UI's. "Owner's choice" marks what was the
+owner's to pick. The owner decided all four sections on 2026-11-03, each as
+the agent recommended (`docs/DECISIONS.md` D-088 to D-091). They are
+implemented on the branch `feat/player-fixes`. Each section ends with what
+was decided and the commits that implement it. P-083 lists the choices the
+implementation made beyond this plan.
 
 Records: `plan/engineer_tools_runs/seek-2026-11-03/` (section 1);
 `plan/engineer_tools_runs/gui-2026-11-03/` (sections 1 and 2);
@@ -73,6 +77,21 @@ watchdog's timing.
 above (a seek past its last keyframe but one gives a frame at or before the
 target), and with H.264 at a long GOP (the frame shown is the target's);
 the scripted seek of `gui-2026-11-03` then shows a frame.
+
+**Decided and implemented.** The plan as written (D-088), in commit
+`a7db00c`, merged as `6cc8f94`. Beyond the plan (P-083):
+
+- HLS is left out of the check. Near a segment's start, a target can fall
+  inside the B-frame delay, before the segment's first keyframe, and the
+  check would then fetch the segment before it.
+- Step 1's seek is checked too. On an MPEG-TS with B-frames, a seek to a
+  keyframe's PTS lands after that keyframe, because its DTS is earlier.
+- The last try seeks to a second before the media's start.
+- A network read error gives the wait up, and a track switch's
+  repositioning drops it.
+
+Tests: `tests/test_demuxer_seek.cpp` (`[demux][seek]`). The scripted seek
+has not been run again yet.
 
 ## 2. Positions are absolute PTS against a duration counted from 0
 
@@ -151,6 +170,22 @@ MPEG-TS above at 0 and 149, its end reading `00:05.960 / 00:06.000`);
 scripted runs: a scrub on an MPEG-TS that reaches its last frame, the
 frame-step toasts against the frame inspector's numbers, a snapshot of the
 end of the clip.
+
+**Decided and implemented.** Positions from the video stream's start, the
+PTS mode, and positions for the QA flags (D-089), in commit `0fb839f`,
+merged as `b6d1992`. Beyond the plan (P-083):
+
+- The PTS mode shows seconds to the millisecond ("PTS 1.480"), with no
+  duration after it.
+- The thumbnails' decode thread works out its input's start itself,
+  because it starts before the session has worked out its own.
+- `--ui-sub-at` asks for an absolute seek, instead of a delta from the PTS
+  on screen.
+
+Tests: `tests/test_ui_format.cpp` (`[ui]`). The scripted runs have not been
+made yet. Since the QA flags now take positions, the status file's
+`--ui-sub-at 5.2` (a PTS when it was run) is `--ui-sub-at 3.72` on that
+clip.
 
 ## 3. Colour
 
@@ -289,6 +324,29 @@ refused buffers (not measured).
 Seen on the way: `--snapshot` writes a PNG (`src/main.cpp:2835`) where
 `src/main.cpp:541` says PPM.
 
+**Decided and implemented.** 3.1 (b), 3.2 (a) and 3.3 (D-090), in commits
+`c28bcfe`, `0068b00` and `2eb443e`, merged as `46449d8`. Beyond the plan
+(P-083):
+
+- The pure parts live in GL-free headers, so they can be unit-tested:
+  `src/YuvMatrix.h` holds the constants and the binding rule,
+  `src/ColourInterpretation.h` the tags followed and the kind of a change.
+- sws is rebuilt on every change of interpretation, not only on an SDR/HDR
+  flip, because `--no-hw` and scrub frames need its new coefficients.
+- The samples' depth comes from the frames' `AVHWFramesContext::sw_format`.
+- A buffer without an IOSurface takes the same CPU copy as a refused one.
+- A matrix that no tag gives is kept across frame sizes, and derived again
+  only when the HDR state flips (`2eb443e`, after review). The first version
+  derived it from each frame's size, so an untagged ladder switched between
+  BT.601 and BT.709 from one variant to the next.
+- The frame inspector no longer says that the renderer reads the tags at
+  open (`0068b00`).
+
+Tests: `[yuv]`, `[hw_binding]` and `[colour_interp]`. The snapshots have
+not been made yet. As the risks said, the frame inspector's "rendered as"
+warnings no longer fire for the frame on screen, and the I panel's colour
+lines are still those of open.
+
 ## 4. Decode errors, the stereo downmix, the W strip
 
 ### 4.1 Decode errors are counted nowhere, and VideoToolbox loses a GOP to one damaged packet
@@ -420,12 +478,69 @@ the real-time thread; a longer buffer.
 **Check.** A unit test on `AudioPlayer`: a ramp's oldest entry 1.0 s before
 its newest, and a right-only signal no longer empty.
 
+**Decided and implemented.** Every recommendation of section 4 (D-091):
+
+- 4.1, option (1);
+- 4.2;
+- 4.3, (C), with (A) for the LFE unless a stream gives its level, and the
+  output not normalised;
+- 4.4.
+
+The commits:
+
+| Commit | What |
+|---|---|
+| `7211671` | 4.1 and 4.2 |
+| `defba3f` | 4.3 |
+| `07dce07` | 4.4 |
+| `651193e`, `e9ac2c9` | 4.2 |
+| `05165ea` | 4.1's VideoToolbox test |
+| `12105b8` | the merge of the six above |
+| `cfd6ae0` | 4.2 |
+
+Beyond the plan (P-083):
+
+- A stream that prefers an Lt/Rt or Pro Logic II downmix gets those levels
+  and swr's matrix encoding, as `aresample` does.
+- After an error, a pull asks the codec again up to 64 times
+  (`Decoder::kMaxErrorsPerPull`).
+- The counts carry over a track switch's reopen. Those of `--av-report`
+  count from when the media opened.
+- An audio track with no decoder plays its packets' time as silence
+  (`e9ac2c9`), so the audio clock, which video follows, keeps going.
+- On a video track with no decoder, a seek does not wait for a frame, and
+  the stall check does not say "Buffering" (`cfd6ae0`).
+- The VideoToolbox test is compiled out of the headless build
+  (`MIRAGE_HEADLESS`), because both builds run the same `'~[audio]'`.
+
+Still open: when a stream gives an LFE level, it is passed to swr as
+`aresample` passes it. swr then mixes the LFE into each side at that level
+× 0.707107 (2a). No FFmpeg encoder writes such a level, so this is
+untested.
+
+Tests:
+
+- `[decoder]` (`tests/test_decoder.cpp`; its VideoToolbox case is tagged
+  `[decoder][videotoolbox]`);
+- `tests/test_pipeline_state.cpp`;
+- `[audio]` in `tests/test_audio_decoder.cpp` and
+  `tests/test_audio_player.cpp`.
+
+The scripted runs have not been made yet.
+
 ## The owner's choices, together
 
 1. Section 1: the plan as written (recommended), the full index at open, or
-   leave it.
-2. Section 2: the plan, its origin, the PTS mode and the QA flags.
-3. Section 3: (to come).
-4. Section 4.1: VideoToolbox after errors, (1) to (4), and N.
-5. Section 4.3: the LFE, (A) to (D), and the normalisation.
-6. Sections 4.2 and 4.4 have no choice in them beyond yes or no.
+   leave it. Decided: the plan as written (D-088).
+2. Section 2: the plan, its origin, the PTS mode and the QA flags. Decided:
+   the plan, with the video stream's start as the origin, the PTS mode and
+   positions for the QA flags (D-089).
+3. Section 3: 3.1 (a) to (c), 3.2 (a) to (d). Decided: 3.1 (b), 3.2 (a) and
+   3.3 (D-090).
+4. Section 4.1: VideoToolbox after errors, (1) to (4), and N. Decided: (1)
+   (D-091).
+5. Section 4.3: the LFE, (A) to (D), and the normalisation. Decided: (C),
+   with (A) for the LFE unless a stream asks for it; the normalisation as
+   now (D-091).
+6. Sections 4.2 and 4.4 have no choice in them beyond yes or no. Decided:
+   yes (D-091).

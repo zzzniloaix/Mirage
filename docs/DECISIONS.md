@@ -739,6 +739,55 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: owner, adopting the agent's recommendation
 - **Date**: 2026-11-03
 
+### D-088 A backward seek waits for a video keyframe at or before its target (D-007's plan for it)
+
+- **Decision**: the D-007 plan in `plan/engineer_tools_player_fixes.md`, section 1, as written. After a backward seek on an input with video, the demuxer queues nothing until it has read a video keyframe at or before the frame to show. It seeks to the keyframe `KeyframeIndex` knows for certain; otherwise it seeks again from further back, 1, 2, 4, 8 … s, down to the media's start. Seeks in MP4 and Matroska, which land on keyframes from the container's index, read as before.
+- **Owner's words**, translated by the agent: "Check where it lands, and go back if it doesn't work (Recommended)".
+- **Alternatives**: index every keyframe at open by reading the whole input once (exact, but a full read before the first seek, and not for network inputs); no fix, so the player does what FFmpeg's command line does.
+- **Rationale**: on an MPEG-TS, a backward seek lands on a packet at or before its target that need not be a keyframe, and a seek after the last keyframe but one showed no frame (`plan/engineer_tools_runs/seek-2026-11-03/`). The check costs packets read again where the landing is wrong, and nothing where it is right.
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-03
+
+### D-089 The UI shows positions from the video's start, with a PTS mode
+
+- **Decision**: the plan's section 2. The UI shows positions: PTS minus the video stream's start time (else the container's, else 0; 0 for live). A fourth timecode mode shows the absolute PTS. The QA flags `--ui-sub-at`, `--speed-seq seek:` and `scrub:` take positions. The demuxer, the decoders, the clocks, the logs, the HUD's and the frame inspector's PTS rows, `B` and the Alignment tab keep the PTS.
+- **Owner's words**, translated by the agent: "Count from the video's start, and add a PTS mode (Recommended)". The option said that the QA flags would take positions too.
+- **Alternatives**: positions from the container's start, which `ffmpeg -ss` and VMAF count from; absolute PTS everywhere, with the bar spanning the start to the start plus the duration.
+- **Rationale**: the first frame reads 0 and is frame 0, as the frame inspector numbers it, and the PTS is one click away.
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-03
+
+### D-090 The renderer: constants at the container's depth, the frames' own tags, buffers bound at their depth (D-007's plan for them)
+
+- **Decision**: the plan's section 3, with 3.1 (b), 3.2 (a) and 3.3.
+  - The HW path's YUV→RGB constants come from the container's code values. The software path's SDR output gets `SWS_FULL_CHR_H_INT`, so that the two paths agree.
+  - `upload()` follows each frame's own colour tags and reconfigures the renderer when the interpretation changes.
+  - VideoToolbox's buffers are bound by their planes' bytes per element. A buffer the HW path cannot bind is copied to the CPU and converted by sws.
+- **Owner's words**, translated by the agent: "Fix all of it as recommended (Recommended)".
+- **Alternatives**:
+  - 3.1: (a) the HW constants alone; (c) software frames converted on the GPU.
+  - 3.2: (b) both programs built at open; (c) tag changes reported only; (d) a primaries uniform.
+  - 3.3: a table of fourccs, or a packed shader for 'y416'.
+- **Rationale**: 10-bit white fell short of white, and 8-bit greys were tinted. After a tag switch, PQ frames were drawn with the SDR program. 'x422', 'x444', 'sv44' and 'y416' were garbled or not drawn (`plan/engineer_tools_runs/investigate-2026-11-03/render/results.txt`, [C1] to [C10]).
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-03
+
+### D-091 Decode errors shown, a failed reopen handled, the stream's downmix levels, the W strip over both channels (D-007's plan for them)
+
+- **Decision**: the plan's section 4, as recommended.
+  - 4.1, option (1): `Decoder` counts decode errors. They show in the I panel's Decode line, in `--av-report` and in the startup watchdog, with `--no-hw` named next to VideoToolbox's errors. There is no fallback to software.
+  - 4.2: `push`, `pull` and `flush` do nothing without a codec context, and a track switch whose decoder cannot be opened says so.
+  - 4.3, (C) with (A): the stereo downmix follows the downmix levels a stream carries. The LFE is left out unless the stream gives its level, and the output is not normalised.
+  - 4.4: the W strip takes the peak of both channels, and its comment says 1.0 s.
+- **Owner's words**, translated by the agent: "All as recommended (Recommended)".
+- **Alternatives**:
+  - 4.1 (2) to (4): a fallback to software after N failures in a row, with or without decoding the current GOP again, or until the next keyframe.
+  - 4.3: (B) the LFE at a fixed level; (D) a control for it; `rematrix_maxval` 1 or a limiter for the normalisation.
+  - 4.4: two buffers, or peaks taken in the audio callback.
+- **Rationale**: for an engineer's player, seeing a failure matters more than hiding it. FFmpeg's own downmix and its AC-3 decoder leave the LFE out (`plan/engineer_tools_runs/investigate-2026-11-03/audio/results.txt`, 2b).
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-03
+
 ---
 
 ## Measurement / process choices (proposed by the agent, confirmed by the owner)
@@ -2253,4 +2302,44 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - No sleep or wake event during the checks (`power_log.txt`). Their runner logged the load averages only at each check's start and end (`run.log`).
 - **Who**: agent
 - **Date**: 2026-10-30
+- **Status**: pending owner confirmation
+
+### P-083 How D-088 to D-091 are implemented, and the records after them
+
+- **Choice**: four agents, one per section of `plan/engineer_tools_player_fixes.md`, each on a branch of its own from `feat/player-fixes-plan`, merged into `feat/player-fixes`. Where the plan was silent, or where they went beyond it:
+  - D-088 (`a7db00c`):
+    - HLS is left out of the check. Near a segment's start, a target can fall inside the B-frame delay, before the segment's first keyframe, and the check would then fetch the segment before it.
+    - Step 1's seek is checked too. On an MPEG-TS with B-frames, a seek to a keyframe's PTS lands after that keyframe, because its DTS is earlier.
+    - The last try seeks to a second before the media's start. A seek to the start itself lands after the first keyframe, for the same reason.
+    - A network read error gives the wait up. A track switch's repositioning drops it and is otherwise left as it was.
+  - D-089 (`0fb839f`):
+    - The PTS mode shows seconds to the millisecond ("PTS 1.480"), with no duration after it.
+    - The thumbnails' decode thread works out its input's start itself, because it starts before the session has worked out its own.
+    - `--ui-sub-at` asks for an absolute seek.
+    - Left as they were: the seek bar's own `seek_to` on release, still dropped in `main.cpp` (now a PTS), and the GLFW scrub block that is never reached.
+  - D-090 (`c28bcfe`, `0068b00`, `2eb443e`):
+    - The pure parts live in GL-free headers (`src/YuvMatrix.h`, `src/ColourInterpretation.h`), where they are unit-tested.
+    - sws is rebuilt on every change of interpretation. A change of the primaries alone, or of the transfer within one path, counts as a change of uniforms.
+    - The samples' depth comes from `AVHWFramesContext::sw_format`. A buffer without an IOSurface is copied to the CPU, as a refused one is.
+    - A matrix that no tag gives is kept across frame sizes, and derived again only when the HDR state flips. This is `2eb443e`, made at the lead agent's review: `c28bcfe` derived the matrix from each frame's size.
+    - The frame inspector's texts no longer say that the renderer reads the tags at open (`0068b00`).
+  - D-091 (`7211671`, `defba3f`, `07dce07`, `651193e`, `e9ac2c9`, `05165ea`; `cfd6ae0`, the lead agent's):
+    - A stream that prefers an Lt/Rt or Pro Logic II downmix gets those levels and swr's matrix encoding, as `aresample` does.
+    - After an error, a pull asks the codec again up to 64 times (`Decoder::kMaxErrorsPerPull`).
+    - The counts carry over a reopen. Those of `--av-report` count from when the media opened.
+    - `Decoder::open` frees the codec context on every failure, and `AudioDecoder::reopen` no longer leaks its frames.
+    - An audio track with no decoder plays its packets' time as silence (`e9ac2c9`), so the audio clock keeps going.
+    - On a video track with no decoder, a seek does not wait for a frame, and the stall check does not say "Buffering" (`cfd6ae0`).
+    - The VideoToolbox test is compiled out of the headless build: `mirage_tests` gets `MIRAGE_HEADLESS` when the option is on.
+- **Alternatives**: HLS checked like the other inputs; a matrix derived from each frame's size (`c28bcfe`), which switches an untagged ladder between BT.601 and BT.709 from one variant to the next; the Lo/Ro levels whatever downmix the stream prefers; a track with no decoder left without audio, which stops the audio clock.
+- **Rationale**: each follows the plan where it says something, and keeps the code's present behaviour where it says nothing.
+- **Open**:
+  - When a stream gives an LFE level, it is passed to swr as `aresample` passes it (×0.707107 per side, `investigate-2026-11-03/audio/results.txt`, 2a). This is untested, since no FFmpeg encoder writes such a level.
+  - 64 is the agent's value.
+  - By the code, a seek's flush leaves samples in the resampler, as before, so resampled input plays a few samples from before the seek.
+- **Records**:
+  - The unit tests at `cfd6ae0` (`plan/engineer_tools_runs/tests/macos-2026-11-04-cfd6ae0.txt`): every case passes in both builds. That is 464 test cases in the debug build and 463 in the headless one, which leaves out the VideoToolbox case, plus the 21 `[audio]` cases in each.
+  - The scripted runs of each section's Check open player windows: MEASUREMENT PENDING.
+- **Who**: agent
+- **Date**: 2026-11-04
 - **Status**: pending owner confirmation

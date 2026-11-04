@@ -50,13 +50,23 @@ The branches `feat/engineer-tools-poc-on-main` (the panels P, S, X, B and L), `f
   - On 2026-11-03 an agent listed the numbers of the documents, code comments and commit messages that no committed run backed. The lead agent backed what could be run again (`plan/engineer_tools_runs/tests/`, `plan/engineer_tools_runs/sidedata/` and, with a display, `plan/engineer_tools_runs/gui-2026-11-03/`), marked the rest MEASUREMENT PENDING, corrected what the records or the code contradict, and took the numbers out of three code comments.
   - After the merge, on branch `feat/engineer-tools-followups`, the lead agent wrote the Conformance tab's DASH MPD mode and the "safe" column of `mirage_dashcheck`'s table (D-084's decisions after the merge), and their record (`plan/engineer_tools_runs/dash-tab-2026-11-03/`).
   - For `plan/engineer_tools_player_fixes.md` (plans for the owner, no code changed), three agents investigated the findings in the existing player, read-only and without opening the player: the renderer's colour handling, the time display, decode errors and the downmix. Their programs and outputs are in `plan/engineer_tools_runs/investigate-2026-11-03/`. The lead agent investigated the seek, made its record (`plan/engineer_tools_runs/seek-2026-11-03/`) and wrote the plans.
-- **What the owner decided**: none of the code's design choices yet. `plan/engineer_tools_decisions_pending.md` lists them, the D-007 plan for the panels among them.
+  - On branch `feat/player-fixes` (from `feat/player-fixes-plan`), after the owner's decisions (D-088 to D-091), four agents implemented the four sections of `plan/engineer_tools_player_fixes.md`. Each worked on a branch and in a worktree of its own, without opening the player:
+    - the seek landing check (`a7db00c`);
+    - the positions (`0fb839f`);
+    - the colour fixes (`c28bcfe`, `0068b00`, `2eb443e`);
+    - the decode errors, failed reopens, downmix and W strip (`7211671`, `defba3f`, `07dce07`, `651193e`, `e9ac2c9`, `05165ea`).
+
+    The lead agent reviewed each branch against its plan and asked for what the plan had and the branch did not: `2eb443e` (the plan's rule for a matrix no tag gives), and `651193e` and `05165ea` (4.2's Tracks panel and 4.1's VideoToolbox test). It merged the four branches and wrote `cfd6ae0` (a video track with no decoder), the documents and the records. P-083 lists the agents' choices.
+- **What the owner decided**, each time adopting the agent's recommendation:
+  - D-083 to D-085 (2026-11-03): the three sections of `plan/engineer_tools_decisions_pending.md`;
+  - D-088 to D-091 (2026-11-03): the four sections of `plan/engineer_tools_player_fixes.md`.
 - **Statements in commit messages that no committed record backs**, none of them amended (later records cite these commits' ids):
   - `3dbd88a`: its tests "pass under ThreadSanitizer and under AddressSanitizer with UBSan", the suite passes but for the SidecarSubtitles case, and local files of 100 to 480 MB "scan in 0.05 to 0.12 s from the page cache". Scratch runs, none committed.
   - `2191dbe`: the 48 kHz coefficients "equal to 1e-15" (the test checks them to 1e-9), and the cross-check against FFmpeg's `ebur128` within 0.006 LU, 0.001 LU, 0.06 dB and 0.44 LU (the test allows 0.1, 0.1, 0.5 and 1.0). A scratch run, not committed.
   - `2b0b179`: in the scripted runs, "integrated loudness and LRA as FFmpeg's". That run is not committed; the run of 2026-11-03 shows it (`plan/engineer_tools_runs/gui-2026-11-03/`).
   - `eacc4cd`: "mirage_tests ~[audio] (the subtitle-fixture case fails as on main)". That run is not committed; at `eb0f9a6` every case passes (`plan/engineer_tools_runs/tests/macos-2026-11-03-eb0f9a6.txt`).
   - `8314657`: the HLS check's JSON on the demo package "the same byte for byte" once its code was shared. That run is not committed; `plan/engineer_tools_runs/tests/demos-2026-11-03-44f66cb.txt` shows it at `44f66cb`.
+  - `c28bcfe` and `2eb443e`: checked "with this commit's VideoRenderer and Decoder driven headless (an offscreen CGL context, no window)" on the generated bars and the tag-switch clips, and in `2eb443e`'s case also on an untagged clip whose frames change size. The agent's harness and its outputs are scratch files, not committed. The player's own snapshots of the same clips are MEASUREMENT PENDING.
 - **Pending owner confirmation**: the owner's review of these commits and of this section.
 
 ## VMAF code
