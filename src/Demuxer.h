@@ -74,9 +74,13 @@ public:
     void abort_io() { abort_io_.store(true); }
 
     // Request a seek to `seconds` from any thread: to the keyframe at or
-    // before it (HLS: the start of the segment holding it). key_at_or_after:
-    // to the first video keyframe whose dts is at or after `seconds` instead
-    // — how a keyframe inside an HLS segment is reached (KeyframeIndex.h).
+    // before it (HLS: the start of the segment holding it). A seek that
+    // lands after that keyframe (MPEG-TS has no index) queues nothing until
+    // a video keyframe at or before the frame to show is read, from further
+    // back if need be (read_loop: "Where a backward seek lands").
+    // key_at_or_after: to the first video keyframe whose dts is at or after
+    // `seconds` instead — how a keyframe inside an HLS segment is reached
+    // (KeyframeIndex.h).
     // show_from >= 0: playback resumes exactly there, not where the seek
     // lands — audio packets that end before it are not queued, and the video
     // decode thread drops frames before it (video_show_from).

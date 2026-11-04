@@ -7,9 +7,11 @@
 
 #include <algorithm>
 #include <cmath>
+#include <deque>
 #include <limits>
 #include <cstring>
 #include <format>
+#include <optional>
 #include <string_view>
 #include <thread>
 #include <chrono>
@@ -253,6 +255,130 @@ void Demuxer::read_loop(std::stop_token st,
         }
         return true;
     };
+    // Still routed to the queue it was read for (a switch may have changed that).
+    auto routed = [&](const AVPacket* p, Route route) {
+        return route == Route::Video ? p->stream_index == video_idx_
+             : route == Route::Audio ? p->stream_index == audio_idx_
+             : p->stream_index == subtitle_idx_;
+    };
+    // An audio packet about to be queued: where a seamless switch continues.
+    auto note_audio = [&](const AVPacket* p) {
+        if (const int64_t ts = (p->pts != AV_NOPTS_VALUE) ? p->pts : p->dts; ts != AV_NOPTS_VALUE)
+            audio_ahead = std::max(audio_ahead,
+                static_cast<double>(ts + std::max<int64_t>(p->duration, 0))
+                    * av_q2d(fmt_ctx_->streams[p->stream_index]->time_base));
+    };
+
+    // ── Where a backward seek lands ───────────────────────────────────────
+    // At or before its target: on a keyframe where the container has an
+    // index (MP4, Matroska), but an MPEG-TS has none, and FFmpeg's mpegts
+    // demuxer searches the file by dts and lands on a packet whose dts is at
+    // or before the target, keyframe or not — for a target at start_time
+    // too, as B-frames put the first keyframe's dts before it. Decoding
+    // starts at the first keyframe after the landing: one after the target,
+    // or none before the end. So
+    // after a backward seek with video (not HLS: its seeks land on segment
+    // starts, keyframes) nothing is queued until a video keyframe at or
+    // before the target is read; then the video from it on is, with the
+    // audio and subtitle packets read meanwhile, and the video before it is
+    // dropped. Read past the target without one, it seeks again from further
+    // back — 1 s before where it first sought, then 2, 4, 8 … s — and from
+    // the media's start it reads on without waiting. The decoders see none
+    // of a try that missed: the seek's one flush sentinel covers them all.
+    struct Landing {
+        double target = -1.0;   // the keyframe is at or before it (seconds, pts); < 0: none awaited
+        double from   = 0.0;    // where the first try sought (seconds)
+        double back   = 0.0;    // how far before `from` the try now sought (0: the first)
+        double audio_drop_before = -1.0;   // the seek's, for every try
+        std::vector<std::pair<AVPacket*, Route>> held;   // audio and subtitle packets of this try
+    };
+    Landing landing;
+    // Its keyframe read: what the try held, queued before anything read after it.
+    std::deque<std::pair<AVPacket*, Route>> released;
+    // A request repositioned the container: nothing is awaited any more.
+    auto drop_landing = [&] {
+        for (auto& [p, route] : landing.held) av_packet_free(&p);
+        landing.held.clear();
+        landing.target = -1.0;
+    };
+    // The keyframe was read, or the wait is given up: what was held goes on.
+    auto release_landing = [&] {
+        released.insert(released.end(), landing.held.begin(), landing.held.end());
+        landing.held.clear();
+        landing.target = -1.0;
+    };
+    // The last video keyframe at or before t that KeyframeIndex knows for
+    // certain (every packet from it to t was read), or none.
+    auto known_key = [&](double t) -> std::optional<KeyframeIndex::Keyframe> {
+        if (!kf_index_) return std::nullopt;
+        const int v = video_idx_;
+        const std::optional<KeyframeIndex::Keyframe> k = kf_index_->at_or_before(v, t);
+        if (!k || k->predicted || k->at_or_after) return std::nullopt;
+        if (k->pts >= t - 0.001) return k;   // the frame at t itself
+        const KeyframeIndex::Step back = kf_index_->step(v, t, /*forward*/ false);
+        if (back.certain && back.kf && std::abs(back.kf->pts - k->pts) < 1e-6) return k;
+        return std::nullopt;
+    };
+    // The try read past the target without the keyframe: the next one.
+    auto next_try = [&] {
+        const double media_start = fmt_ctx_->start_time != AV_NOPTS_VALUE
+                                 ? static_cast<double>(fmt_ctx_->start_time) / AV_TIME_BASE : 0.0;
+        landing.back = landing.back > 0.0 ? 2.0 * landing.back : 1.0;
+        const double at   = landing.from - landing.back;
+        const bool   last = at <= media_start + 0.001;   // (1 ms: the start itself, rounded)
+        auto seek_back = [&](double secs) {
+            return av_seek_frame(fmt_ctx_, -1, static_cast<int64_t>(secs * AV_TIME_BASE), AVSEEK_FLAG_BACKWARD);
+        };
+        // From the start: a second before it, for a first keyframe whose dts
+        // lies before start_time. A demuxer that refuses a target before its
+        // first frame is asked for start_time itself.
+        int r = seek_back(last ? media_start - 1.0 : at);
+        if (r < 0 && last) r = seek_back(media_start);
+        if (r < 0) {
+            char errbuf[AV_ERROR_MAX_STRING_SIZE];
+            av_strerror(r, errbuf, sizeof(errbuf));
+            logger::warn("Demuxer: seek to {:.3f} for a keyframe before {:.3f} failed: {} — reading on from where it was",
+                         last ? media_start : at, landing.target, errbuf);
+            release_landing();
+            return;
+        }
+        logger::info("Demuxer: no keyframe at or before {:.3f} after where the seek landed — reading again from {} (t={:.3f})",
+                     landing.target, last ? std::string("the start") : std::format("{:.3f}", at), logger::uptime());
+        for (auto& [p, route] : landing.held) av_packet_free(&p);
+        landing.held.clear();
+        if (last) landing.target = -1.0;
+        restart_run(true);
+        // A new position, as after the seek (nothing was queued since).
+        read_failures  = 0;
+        media_end      = -1.0;
+        resync_pending = false;
+        std::fill(last_dts.begin(),   last_dts.end(),   AV_NOPTS_VALUE);
+        std::fill(resync_dts.begin(), resync_dts.end(), AV_NOPTS_VALUE);
+        audio_drop_before = landing.audio_drop_before;
+    };
+    // A video packet read while a keyframe is awaited: true if it is that
+    // keyframe (what was held then goes on), false if it is not to be
+    // queued — and if it shows the target passed, the next try has begun.
+    auto landing_key = [&](const AVPacket* p) {
+        const AVRational tb    = fmt_ctx_->streams[video_idx_]->time_base;
+        const int64_t    pts   = p->pts != AV_NOPTS_VALUE ? p->pts : p->dts;
+        const int64_t    order = p->dts != AV_NOPTS_VALUE ? p->dts : p->pts;
+        if (pts == AV_NOPTS_VALUE) {   // nothing to tell by: queued as it comes
+            release_landing();
+            return true;
+        }
+        // Half a frame of tolerance, as the decode thread's (last_key_before).
+        const double tol = p->duration > 0 ? 0.5 * p->duration * av_q2d(tb) : 0.001;
+        if ((p->flags & AV_PKT_FLAG_KEY) && pts * av_q2d(tb) <= landing.target + tol) {
+            release_landing();
+            return true;
+        }
+        // Packets come in decode order, and a keyframe is shown after every
+        // frame decoded before it: none after this one is at or before the
+        // target once this one's dts (or pts) is past it.
+        if (order * av_q2d(tb) > landing.target + tol) next_try();
+        return false;
+    };
     set_state(DemuxState::Reading);
 
     while (!st.stop_requested()) {
@@ -440,6 +566,9 @@ void Demuxer::read_loop(std::stop_token st,
                     logger::warn("Demuxer: reposition to {:.3f} after track switch failed: {}", repo, errbuf);
                 } else {
                     moved = true;
+                    // A seek's keyframe still awaited: reading goes on from
+                    // here instead, as after any switch.
+                    drop_landing();
                 }
                 resync_pending = false;
                 logger::info("switch-trace: repositioned to {:.3f} (t={:.3f})", repo, logger::uptime());
@@ -474,6 +603,7 @@ void Demuxer::read_loop(std::stop_token st,
         if (exact_seek >= 0.0) { seek_secs = exact_seek; key_after = false; show_from = exact_seek; }
         if (seek_secs >= 0.0) {
             moved = true;
+            drop_landing();   // an earlier seek's (Where a backward seek lands)
             // A seek supersedes any seamless take-over point; a paused video
             // switch resumes the new track exactly at the seek target.
             video_resume_s_.store(exact_seek >= 0.0 ? exact_seek : -1.0);
@@ -504,10 +634,19 @@ void Demuxer::read_loop(std::stop_token st,
                 }
                 return av_seek_frame(fmt_ctx_, -1, static_cast<int64_t>(secs * AV_TIME_BASE), AVSEEK_FLAG_BACKWARD);
             };
-            int r = seek_to(seek_secs);
+            // Where a backward seek lands (above): the keyframe awaited is the
+            // one at or before the frame to show. Known for certain from what
+            // was read (KeyframeIndex), the first try seeks to it, as a
+            // keyframe step does.
+            const double want  = show_from >= 0.0 ? std::min(seek_secs, show_from) : seek_secs;
+            const bool   await = !key_after && !is_hls_ && video_idx_ >= 0;
+            const std::optional<KeyframeIndex::Keyframe> known = await ? known_key(want) : std::nullopt;
+            double sought = known ? known->seek_s : seek_secs;
+            int r = seek_to(sought);
+            if (r < 0 && known) r = seek_to(sought = seek_secs);
             // The hls demuxer's own start (its first packet's dts) can lie
             // just after start_time: a second try inside the first segment.
-            if (r < 0 && seek_secs < media_start + 1.0) r = seek_to(media_start + 1.0);
+            if (r < 0 && seek_secs < media_start + 1.0) r = seek_to(sought = media_start + 1.0);
             if (r < 0) {
                 char errbuf[AV_ERROR_MAX_STRING_SIZE];
                 av_strerror(r, errbuf, sizeof(errbuf));
@@ -557,6 +696,12 @@ void Demuxer::read_loop(std::stop_token st,
             videoq.push(flush_sentinel());
             if (audio_idx_ >= 0)            audioq.push(flush_sentinel());
             if (subq && subtitle_idx_ >= 0) subq->push(flush_sentinel());
+            if (await && r >= 0) {
+                landing.target = want;
+                landing.from   = sought;
+                landing.back   = 0.0;
+                landing.audio_drop_before = audio_drop_before;
+            }
         }
 
         // ── Resume a byte stream after a failed read ──────────────────────
@@ -580,13 +725,23 @@ void Demuxer::read_loop(std::stop_token st,
 
         // ── A packet held back for a request (deliver) ────────────────────
         if (held) {
-            AVPacket*  p      = std::exchange(held, nullptr);
-            const bool wanted = held_route == Route::Video ? p->stream_index == video_idx_
-                              : held_route == Route::Audio ? p->stream_index == audio_idx_
-                              : p->stream_index == subtitle_idx_;
-            if (moved || !wanted) av_packet_free(&p);   // read again from there / not routed any more
-            else if (!deliver(p, held_route)) continue; // held again: another request first
+            AVPacket* p = std::exchange(held, nullptr);
+            if (moved || !routed(p, held_route)) av_packet_free(&p);   // read again from there / not routed any more
+            else if (!deliver(p, held_route)) continue;                // held again: another request first
         }
+        // ── What a seek's landing held, its keyframe read ─────────────────
+        // (Where a backward seek lands.) Queued before anything read after it.
+        while (!released.empty()) {
+            auto [p, route] = released.front();
+            released.pop_front();
+            if (moved || !routed(p, route)) {   // read again from there / not routed any more
+                av_packet_free(&p);
+                continue;
+            }
+            if (route == Route::Audio) note_audio(p);
+            if (!deliver(p, route)) break;   // held: another request first
+        }
+        if (held) continue;
 
         // ── At the end of the media ───────────────────────────────────────
         // Idle (the decode threads stay up) until a seek or a track switch
@@ -671,6 +826,9 @@ void Demuxer::read_loop(std::stop_token st,
                 // itself; a plain byte stream is re-seeked (resync_pending).
                 ++read_failures;
                 restart_run(false);   // HLS may resume at a later segment: what is read next is not contiguous
+                // A seek's keyframe still awaited: reading recovers as after
+                // any seek, without the wait (what was held goes on).
+                if (landing.target >= 0.0) release_landing();
                 const auto delay = demux::retry_backoff(read_failures);
                 char errbuf[AV_ERROR_MAX_STRING_SIZE];
                 av_strerror((pb && pb->error < 0) ? pb->error : ret, errbuf, sizeof(errbuf));
@@ -708,6 +866,13 @@ void Demuxer::read_loop(std::stop_token st,
                 last_error_ = errbuf;
             }
             const bool fatal = ret != AVERROR_EOF || (is_network_ && read_failures > 0);
+            // The end, a seek's keyframe still awaited: none up to the end
+            // either — the next try (Where a backward seek lands).
+            if (!fatal && landing.target >= 0.0) {
+                if (pb) { pb->eof_reached = 0; pb->error = 0; }
+                next_try();
+                continue;
+            }
             if (fatal) exited_.store(true);
             ended_.store(true);
             switch_done_.store(switch_req_.load());   // nothing more will arrive
@@ -770,12 +935,6 @@ void Demuxer::read_loop(std::stop_token st,
         }
         if (pkt->stream_index == video_idx_) {
             const int64_t ts = (pkt->pts != AV_NOPTS_VALUE) ? pkt->pts : pkt->dts;
-            if (ts != AV_NOPTS_VALUE) {
-                const double end = static_cast<double>(ts + std::max<int64_t>(pkt->duration, 0))
-                                 * av_q2d(fmt_ctx_->streams[video_idx_]->time_base);
-                if (end > read_ahead_pts_.load(std::memory_order_relaxed))
-                    read_ahead_pts_.store(end, std::memory_order_relaxed);
-            }
             if (kf_index_) {
                 const bool first = kf_run_new;
                 if (kf_run_new) { kf_run = kf_index_->new_run(); kf_run_new = false; }
@@ -785,6 +944,17 @@ void Demuxer::read_loop(std::stop_token st,
                     kf_index_->observe(video_idx_, ts * av_q2d(vtb), dts * av_q2d(vtb),
                                        (pkt->flags & AV_PKT_FLAG_KEY) != 0, kf_run, first && kf_run_seg);
                 }
+            }
+            // A seek's keyframe awaited: the video before it is not queued.
+            if (landing.target >= 0.0 && !landing_key(pkt)) {
+                av_packet_unref(pkt);
+                continue;
+            }
+            if (ts != AV_NOPTS_VALUE) {
+                const double end = static_cast<double>(ts + std::max<int64_t>(pkt->duration, 0))
+                                 * av_q2d(fmt_ctx_->streams[video_idx_]->time_base);
+                if (end > read_ahead_pts_.load(std::memory_order_relaxed))
+                    read_ahead_pts_.store(end, std::memory_order_relaxed);
             }
             if (AVPacket* copy = av_packet_clone(pkt)) deliver(copy, Route::Video);
         } else if (pkt->stream_index == audio_idx_) {
@@ -800,19 +970,27 @@ void Demuxer::read_loop(std::stop_token st,
                 }
                 audio_drop_before = -1.0;
             }
-            if (const int64_t ts = (pkt->pts != AV_NOPTS_VALUE) ? pkt->pts : pkt->dts; ts != AV_NOPTS_VALUE)
-                audio_ahead = std::max(audio_ahead,
-                    static_cast<double>(ts + std::max<int64_t>(pkt->duration, 0))
-                        * av_q2d(fmt_ctx_->streams[audio_idx_]->time_base));
-            if (AVPacket* copy = av_packet_clone(pkt)) deliver(copy, Route::Audio);
+            if (AVPacket* copy = av_packet_clone(pkt)) {
+                if (landing.target >= 0.0) {   // until a seek's keyframe is read
+                    landing.held.emplace_back(copy, Route::Audio);
+                } else {
+                    note_audio(copy);
+                    deliver(copy, Route::Audio);
+                }
+            }
         } else if (subq && pkt->stream_index == subtitle_idx_) {
-            if (AVPacket* copy = av_packet_clone(pkt)) deliver(copy, Route::Subtitle);
+            if (AVPacket* copy = av_packet_clone(pkt)) {
+                if (landing.target >= 0.0) landing.held.emplace_back(copy, Route::Subtitle);
+                else                       deliver(copy, Route::Subtitle);
+            }
         }
 
         av_packet_unref(pkt);
     }
 
     av_packet_free(&held);
+    for (auto& [p, route] : landing.held) av_packet_free(&p);
+    for (auto& [p, route] : released)     av_packet_free(&p);
     av_packet_free(&pkt);
     set_state(DemuxState::Stopped);
 }
