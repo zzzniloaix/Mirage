@@ -60,6 +60,9 @@ struct PlayerUIState {
 // 15-parameter build()). Pointers are borrowed for the duration of build().
 struct PlayerUIInputs {
     double duration = 0.0, cur_pts = 0.0, buffered_end_pts = -1.0, fps = 0.0;
+    // Where the positions shown count from (UiFormat.h: timeline_start);
+    // cur_pts, buffered_end_pts and the keyframes stay absolute PTS.
+    double start = 0.0;
     bool   paused = false;
     double speed  = 1.0;
     float  volume = 1.0f;
