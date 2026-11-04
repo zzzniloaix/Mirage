@@ -338,6 +338,7 @@ add_executable(mirage_tests
     tests/test_subtitle_select.cpp
     tests/test_demux_retry.cpp
     tests/test_demuxer_switch.cpp
+    tests/test_demuxer_seek.cpp
     tests/test_track_groups.cpp
     tests/test_pipeline_state.cpp
     tests/test_hls_variants.cpp
