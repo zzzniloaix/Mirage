@@ -1,6 +1,7 @@
-// The colour interpretation VideoRenderer::upload() works out for each frame
-// (ColourInterpretation.h): the tags it follows, the defaults it derives, and
-// what a change asks of the renderer (nothing, the uniforms, the programs).
+// The colour interpretation VideoRenderer works out at open and for each
+// frame (ColourInterpretation.h): the tags it follows, the matrix it derives
+// or keeps, and what a change asks of the renderer (nothing, the uniforms,
+// the programs).
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -8,7 +9,7 @@
 
 namespace {
 
-// The renderer at open: the stream's tags, interpreted for its size.
+// The renderer at open (init()): the stream's tags, interpreted for its size.
 struct Followed {
     ColourTags           tags;
     ColourInterpretation interp;
@@ -23,7 +24,7 @@ Followed opened(const ColourTags& stream, int w, int h)
 InterpretationChange next_frame(Followed& f, const ColourTags& frame, int w, int h)
 {
     f.tags = follow_tags(f.tags, frame);
-    const ColourInterpretation next = interpret(f.tags, w, h);
+    const ColourInterpretation next = next_interpretation(f.interp, f.tags, w, h);
     const InterpretationChange change = classify_change(f.interp, next);
     f.interp = next;
     return change;
@@ -53,7 +54,7 @@ TEST_CASE("follow_tags: a frame's specified tag wins, an unspecified one keeps t
     CHECK(u.primaries == kSdr709.primaries);
 }
 
-TEST_CASE("interpret: an untagged matrix is derived for the HDR state and the size",
+TEST_CASE("interpret: at open, an untagged matrix is derived for the HDR state and the size",
           "[colour_interp]")
 {
     CHECK(interpret(kNone, 1920, 1080).cs == AVCOL_SPC_BT709);
@@ -124,28 +125,75 @@ TEST_CASE("classify_change: another matrix, range or primaries on the same path 
     CHECK(next_frame(g, kSdr709, 1920, 1080) == InterpretationChange::None);
 }
 
-TEST_CASE("resolver: an untagged stream's matrix follows the HDR state and the size",
-          "[colour_interp]")
+TEST_CASE("resolver: a size change with the matrix untagged changes nothing", "[colour_interp]")
 {
-    // Untagged HD SDR: BT.709 by size; a frame tagged PQ alone (no matrix):
-    // BT.2020, on the HDR path.
+    // An untagged SDR ladder whose variants cross 1280×720: the matrix found
+    // at open stays, either way, and no change is made (nor logged).
+    Followed f = opened(kNone, 960, 540);
+    CHECK(f.interp.cs == AVCOL_SPC_BT470BG);
+    CHECK(next_frame(f, kNone, 1280, 720) == InterpretationChange::None);
+    CHECK(next_frame(f, kNone, 1920, 1080) == InterpretationChange::None);
+    CHECK(next_frame(f, kNone, 960, 540) == InterpretationChange::None);
+    CHECK(f.interp.cs == AVCOL_SPC_BT470BG);
+
+    Followed g = opened(kNone, 1280, 720);
+    CHECK(g.interp.cs == AVCOL_SPC_BT709);
+    CHECK(next_frame(g, kNone, 960, 540) == InterpretationChange::None);
+    CHECK(g.interp.cs == AVCOL_SPC_BT709);
+
+    // The same on the HDR path: an untagged PQ ladder keeps BT.2020.
+    ColourTags pq_only;
+    pq_only.trc = AVCOL_TRC_SMPTE2084;
+    Followed h = opened(pq_only, 3840, 2160);
+    CHECK(next_frame(h, kNone, 640, 360) == InterpretationChange::None);
+    CHECK(h.interp.cs == AVCOL_SPC_BT2020_NCL);
+}
+
+TEST_CASE("resolver: an HDR flip with the matrix untagged derives it again", "[colour_interp]")
+{
+    // Untagged HD SDR (BT.709 at open), then frames tagged PQ alone: the
+    // matrix is derived for the HDR path, BT.2020.
     Followed f = opened(kNone, 1920, 1080);
     CHECK(f.interp.cs == AVCOL_SPC_BT709);
     ColourTags pq_only;
     pq_only.trc = AVCOL_TRC_SMPTE2084;
     CHECK(next_frame(f, pq_only, 1920, 1080) == InterpretationChange::Program);
     CHECK(f.interp.cs == AVCOL_SPC_BT2020_NCL);
+    // Back to SDR, at SD size: derived as at open, BT.601.
+    ColourTags sdr_only;
+    sdr_only.trc = AVCOL_TRC_BT709;
+    CHECK(next_frame(f, sdr_only, 720, 576) == InterpretationChange::Program);
+    CHECK(f.interp.cs == AVCOL_SPC_BT470BG);
+    // PQ ↔ HLG is no flip of the HDR state: the matrix stays.
+    Followed g = opened(pq_only, 1920, 1080);
+    ColourTags hlg_only;
+    hlg_only.trc = AVCOL_TRC_ARIB_STD_B67;
+    CHECK(next_frame(g, hlg_only, 720, 576) == InterpretationChange::Uniforms);
+    CHECK(g.interp.cs == AVCOL_SPC_BT2020_NCL);
 
-    // Untagged SDR going from HD to SD frames: BT.709, then BT.601.
-    Followed g = opened(kNone, 1920, 1080);
-    CHECK(next_frame(g, kNone, 720, 576) == InterpretationChange::Uniforms);
-    CHECK(g.interp.cs == AVCOL_SPC_BT470BG);
-
-    // A matrix a tag gave stays when a PQ frame gives none.
+    // A matrix a tag gave is not derived again: it stays across the flip.
     Followed h = opened({ AVCOL_SPC_BT709, AVCOL_RANGE_MPEG, AVCOL_TRC_UNSPECIFIED, AVCOL_PRI_UNSPECIFIED },
                         1920, 1080);
     CHECK(next_frame(h, pq_only, 1920, 1080) == InterpretationChange::Program);
     CHECK(h.interp.cs == AVCOL_SPC_BT709);
+}
+
+TEST_CASE("resolver: a specified matrix is kept across a size change", "[colour_interp]")
+{
+    // Tagged by the stream: BT.709 at SD size too.
+    Followed f = opened(kSdr709, 1920, 1080);
+    CHECK(next_frame(f, kNone, 720, 576) == InterpretationChange::None);
+    CHECK(f.interp.cs == AVCOL_SPC_BT709);
+
+    // Tagged by a frame: the tag wins, and stays at another size.
+    Followed g = opened(kNone, 720, 576);
+    CHECK(g.interp.cs == AVCOL_SPC_BT470BG);
+    ColourTags bt709;
+    bt709.cs = AVCOL_SPC_BT709;
+    CHECK(next_frame(g, bt709, 720, 576) == InterpretationChange::Uniforms);
+    CHECK(next_frame(g, kNone, 1920, 1080) == InterpretationChange::None);
+    CHECK(next_frame(g, kNone, 640, 360) == InterpretationChange::None);
+    CHECK(g.interp.cs == AVCOL_SPC_BT709);
 }
 
 TEST_CASE("resolver: the tag-switch stream changes once, at its first PQ frame",

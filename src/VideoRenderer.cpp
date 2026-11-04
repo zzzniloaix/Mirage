@@ -679,11 +679,14 @@ bool VideoRenderer::build_sws(AVPixelFormat src_fmt)
 void VideoRenderer::upload(AVFrame* frame)
 {
     // The frame's own colour tags first: a specified tag wins over the one
-    // followed so far, an unspecified one keeps it (follow_tags()); a change
-    // of interpretation reconfigures the renderer here, between two draws.
+    // followed so far, an unspecified one keeps it (follow_tags()), and a
+    // matrix no tag gives keeps the current one but across an SDR/HDR flip
+    // (next_interpretation()); a change of interpretation reconfigures the
+    // renderer here, between two draws.
     tags_ = follow_tags(tags_, { frame->colorspace, frame->color_range, frame->color_trc, frame->color_primaries });
-    const ColourInterpretation next = interpret(tags_, frame->width  > 0 ? frame->width  : src_w_,
-                                                       frame->height > 0 ? frame->height : src_h_);
+    const ColourInterpretation next = next_interpretation(interp_, tags_,
+                                                          frame->width  > 0 ? frame->width  : src_w_,
+                                                          frame->height > 0 ? frame->height : src_h_);
     if (const InterpretationChange change = classify_change(interp_, next);
         change != InterpretationChange::None && !reconfigure(next, change))
         return;

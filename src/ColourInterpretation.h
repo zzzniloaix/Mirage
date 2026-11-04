@@ -5,8 +5,9 @@ extern "C" {
 }
 
 // The colour interpretation VideoRenderer converts frames with, and how it
-// follows the frames' own tags. Pure functions — no GL; VideoRenderer::upload()
-// applies them to each frame before converting it.
+// follows the frames' own tags. Pure functions — no GL; VideoRenderer::init()
+// interprets the stream's tags, and upload() applies follow_tags() and
+// next_interpretation() to each frame before converting it.
 //
 // The frames' tags are followed, not the decoder context's: on a stream whose
 // tags switch, the context changes before the frames' own do
@@ -55,9 +56,10 @@ struct ColourInterpretation {
     return t;
 }
 
-// `tags` as a width × height frame is converted. A matrix no tag has given is
-// derived for the HDR state and the size: BT.2020 NCL on the HDR path; on the
-// SDR one BT.709 from 1280×720 up, BT.601 below. Any range but full is limited.
+// `tags` as a width × height frame is converted, at open (VideoRenderer::init()).
+// A matrix no tag has given is derived for the HDR state and the size:
+// BT.2020 NCL on the HDR path; on the SDR one BT.709 from 1280×720 up, BT.601
+// below. Any range but full is limited.
 [[nodiscard]] inline ColourInterpretation interpret(const ColourTags& tags, int width, int height)
 {
     ColourInterpretation i;
@@ -70,6 +72,21 @@ struct ColourInterpretation {
     i.range     = tags.range == AVCOL_RANGE_JPEG ? AVCOL_RANGE_JPEG : AVCOL_RANGE_MPEG;
     i.trc       = tags.trc;
     i.primaries = tags.primaries;
+    return i;
+}
+
+// The interpretation `cur` gives way to for a width × height frame, `tags`
+// being the tags followed once it arrived (follow_tags()). A matrix no tag
+// has given keeps cur's: an untagged ladder whose variants cross 1280×720
+// keeps one matrix. It is derived again, as at open (interpret()), only when
+// the frame flips the HDR state between SDR and PQ / HLG, so that untagged PQ
+// after untagged SDR is converted with BT.2020.
+[[nodiscard]] inline ColourInterpretation next_interpretation(const ColourInterpretation& cur,
+                                                              const ColourTags& tags, int width, int height)
+{
+    ColourInterpretation i = interpret(tags, width, height);
+    if (tags.cs == AVCOL_SPC_UNSPECIFIED && (hdr_mode_of(tags.trc) >= 0) == (hdr_mode_of(cur.trc) >= 0))
+        i.cs = cur.cs;
     return i;
 }
 

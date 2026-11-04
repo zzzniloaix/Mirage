@@ -62,9 +62,11 @@ public:
 
     // The colour interpretation frames are converted with, as of the last
     // upload(): the stream's tags at init(), then each frame's specified ones
-    // (an unspecified tag keeps the value before it); a matrix no tag gives is
-    // derived for the HDR state and the frame size, and any range but full is
-    // treated as limited (interpret()). Primaries are reported, not used.
+    // (an unspecified tag keeps the value before it). A matrix no tag gives is
+    // derived for the HDR state and the frame size at init() and again only
+    // when a frame flips between SDR and HDR; otherwise it is kept, whatever
+    // the frame size (next_interpretation()). Any range but full is treated as
+    // limited. Primaries are reported, not used.
     using Interpretation = ColourInterpretation;
     [[nodiscard]] Interpretation interpretation() const { return interp_; }
 
@@ -101,7 +103,7 @@ private:
     int   hdr_mode_ = -1;       // 0=PQ, 1=HLG, -1=SDR
 
     ColourTags           tags_;     // the tags followed (follow_tags())
-    ColourInterpretation interp_;   // what frames are converted with (interpret(tags_))
+    ColourInterpretation interp_;   // what frames are converted with (next_interpretation())
 
     struct SwsContext* sws_        = nullptr;
     AVFrame*           converted_  = nullptr;   // RGB24 (SDR) or RGB48LE (HDR)
