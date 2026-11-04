@@ -1,0 +1,452 @@
+$ git rev-parse HEAD
+0e448cb5a05e1cdcba5dc911a4caf1936752596e
+[exit status 0]
+
+$ git status --porcelain
+[exit status 0]
+
+$ sw_vers
+ProductName:		macOS
+ProductVersion:		26.6.2
+BuildVersion:		25G83
+[exit status 0]
+
+$ uptime
+13:10  up 4 days, 23:40, 4 users, load averages: 4.66 5.01 5.55
+[exit status 0]
+
+$ bash tests/engineer_tools_snapshots.sh build/macos-debug <scratch>/gui/snapshots
+── clips ──
+── snapshots ──
+  frame_inspector_sdr.png
+  frame_inspector_hdr.png
+  frame_inspector_tag_switch.png
+  scopes_waveform_hdr.png
+  scopes_vectorscope.png
+  scopes_parade.png
+  scopes_histogram.png
+  frame_sizes.png
+  loudness_51.png
+  loudness_aac.png
+── FFmpeg's ebur128 on the loudness clips (compare with the cards) ──
+  surround51.mkv:
+        I:         -22.1 LUFS
+        LRA:         0.0 LU
+        Peak:       -6.0 dBFS
+  x264_sdr.mp4:
+        I:         -21.1 LUFS
+        LRA:         0.0 LU
+        Peak:      -20.3 dBFS
+Output: <scratch>/gui/snapshots
+[exit status 0]
+
+$ /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -v error -y -f lavfi -i testsrc2=size=1920x1080:rate=60 -f lavfi -i sine=frequency=1000:sample_rate=48000 -t 45 -c:v libx264 -preset veryfast -pix_fmt yuv420p -g 120 -c:a aac -b:a 128k <scratch>/gui/cost_1080p60.mp4
+[exit status 0]
+
+$ uptime
+13:11  up 4 days, 23:41, 4 users, load averages: 6.14 5.31 5.61
+[exit status 0]
+
+$ HOME=<scratch>/gui/home build/macos-debug/mirage --qa-no-focus --window 1600x900 --av-report <scratch>/gui/cost_closed_1.json 30 <scratch>/gui/cost_1080p60.mp4 > cost_closed_1.log
+[exit status 0]
+
+$ cat <scratch>/gui/cost_closed_1.json
+{
+  "file": "cost_1080p60.mp4",
+  "initial_speed": 1,
+  "speed_seq": [],
+  "started": true,
+  "wall_s": 30.009,
+  "hw_decode": true,
+  "has_audio": true,
+  "audio_output_latency_s": 0.0300,
+  "audio_underruns": 0,
+  "audio_silent_frames": 0,
+  "audio_dropped_frames": 0,
+  "overall": {"speed":1,"t_start":0.000,"wall_s":30.009,"video_media_s":30.117,"audio_media_s":30.010,"video_rate":1.0036,"audio_rate":1.0000,"frames_presented":1808,"frames_dropped_late":0,"av_diff_media_s":{"mean":-0.000004,"p95_abs":0.003354,"max_abs":0.006667,"n":1771},"av_diff_wall_ms":{"mean":-0.003988,"p95_abs":3.354167,"max_abs":6.666667,"n":1771},"av_diff_wall_ms_settled":{"n":0},"underruns_settled":-1,"silent_frames_settled":-1,"video_rate_settled":0.0000,"audio_rate_settled":0.0000},
+  "segments": [
+    {"speed":1,"t_start":0.000,"wall_s":30.009,"video_media_s":30.117,"audio_media_s":30.010,"video_rate":1.0036,"audio_rate":1.0000,"frames_presented":1808,"frames_dropped_late":0,"av_diff_media_s":{"mean":-0.000397,"p95_abs":0.003354,"max_abs":0.110000,"n":1808},"av_diff_wall_ms":{"mean":-0.396571,"p95_abs":3.354167,"max_abs":110.000000,"n":1808},"av_diff_wall_ms_settled":{"mean":-0.004116,"p95_abs":3.354167,"max_abs":6.666667,"n":1741},"underruns_settled":0,"silent_frames_settled":0,"video_rate_settled":1.0000,"audio_rate_settled":1.0000}
+  ]
+}
+[exit status 0]
+
+$ uptime
+13:12  up 4 days, 23:42, 4 users, load averages: 5.30 5.20 5.55
+[exit status 0]
+
+$ HOME=<scratch>/gui/home build/macos-debug/mirage --qa-no-focus --window 1600x900 --ui-overlays PSXBL --av-report <scratch>/gui/cost_open_1.json 30 <scratch>/gui/cost_1080p60.mp4 > cost_open_1.log
+[exit status 0]
+
+$ cat <scratch>/gui/cost_open_1.json
+{
+  "file": "cost_1080p60.mp4",
+  "initial_speed": 1,
+  "speed_seq": [],
+  "started": true,
+  "wall_s": 30.014,
+  "hw_decode": true,
+  "has_audio": true,
+  "audio_output_latency_s": 0.0300,
+  "audio_underruns": 0,
+  "audio_silent_frames": 0,
+  "audio_dropped_frames": 0,
+  "overall": {"speed":1,"t_start":0.000,"wall_s":30.014,"video_media_s":30.150,"audio_media_s":30.020,"video_rate":1.0045,"audio_rate":1.0002,"frames_presented":1810,"frames_dropped_late":1,"av_diff_media_s":{"mean":-0.000004,"p95_abs":0.003354,"max_abs":0.006646,"n":1771},"av_diff_wall_ms":{"mean":-0.004000,"p95_abs":3.354167,"max_abs":6.645833,"n":1771},"av_diff_wall_ms_settled":{"n":0},"underruns_settled":-1,"silent_frames_settled":-1,"video_rate_settled":0.0000,"audio_rate_settled":0.0000},
+  "segments": [
+    {"speed":1,"t_start":0.000,"wall_s":30.014,"video_media_s":30.150,"audio_media_s":30.020,"video_rate":1.0045,"audio_rate":1.0002,"frames_presented":1810,"frames_dropped_late":1,"av_diff_media_s":{"mean":-0.000545,"p95_abs":0.003354,"max_abs":0.133333,"n":1810},"av_diff_wall_ms":{"mean":-0.545304,"p95_abs":3.354167,"max_abs":133.333333,"n":1810},"av_diff_wall_ms_settled":{"mean":0.001627,"p95_abs":3.354167,"max_abs":3.354167,"n":1741},"underruns_settled":0,"silent_frames_settled":0,"video_rate_settled":1.0000,"audio_rate_settled":1.0000}
+  ]
+}
+[exit status 0]
+
+$ uptime
+13:12  up 4 days, 23:42, 4 users, load averages: 5.63 5.33 5.59
+[exit status 0]
+
+$ HOME=<scratch>/gui/home build/macos-debug/mirage --qa-no-focus --window 1600x900 --av-report <scratch>/gui/cost_closed_2.json 30 <scratch>/gui/cost_1080p60.mp4 > cost_closed_2.log
+[exit status 0]
+
+$ cat <scratch>/gui/cost_closed_2.json
+{
+  "file": "cost_1080p60.mp4",
+  "initial_speed": 1,
+  "speed_seq": [],
+  "started": true,
+  "wall_s": 30.002,
+  "hw_decode": true,
+  "has_audio": true,
+  "audio_output_latency_s": 0.0300,
+  "audio_underruns": 0,
+  "audio_silent_frames": 0,
+  "audio_dropped_frames": 0,
+  "overall": {"speed":1,"t_start":0.000,"wall_s":30.002,"video_media_s":30.133,"audio_media_s":30.000,"video_rate":1.0044,"audio_rate":0.9999,"frames_presented":1809,"frames_dropped_late":1,"av_diff_media_s":{"mean":-0.000002,"p95_abs":0.003354,"max_abs":0.006667,"n":1771},"av_diff_wall_ms":{"mean":-0.002094,"p95_abs":3.354167,"max_abs":6.666667,"n":1771},"av_diff_wall_ms_settled":{"n":0},"underruns_settled":-1,"silent_frames_settled":-1,"video_rate_settled":0.0000,"audio_rate_settled":0.0000},
+  "segments": [
+    {"speed":1,"t_start":0.000,"wall_s":30.002,"video_media_s":30.133,"audio_media_s":30.000,"video_rate":1.0044,"audio_rate":0.9999,"frames_presented":1809,"frames_dropped_late":1,"av_diff_media_s":{"mean":-0.000566,"p95_abs":0.003354,"max_abs":0.133333,"n":1809},"av_diff_wall_ms":{"mean":-0.565863,"p95_abs":3.354167,"max_abs":133.333333,"n":1809},"av_diff_wall_ms_settled":{"mean":-0.002190,"p95_abs":3.354167,"max_abs":6.666667,"n":1741},"underruns_settled":0,"silent_frames_settled":0,"video_rate_settled":1.0000,"audio_rate_settled":1.0000}
+  ]
+}
+[exit status 0]
+
+$ uptime
+13:13  up 4 days, 23:43, 4 users, load averages: 5.01 5.24 5.55
+[exit status 0]
+
+$ HOME=<scratch>/gui/home build/macos-debug/mirage --qa-no-focus --window 1600x900 --ui-overlays PSXBL --av-report <scratch>/gui/cost_open_2.json 30 <scratch>/gui/cost_1080p60.mp4 > cost_open_2.log
+[exit status 0]
+
+$ cat <scratch>/gui/cost_open_2.json
+{
+  "file": "cost_1080p60.mp4",
+  "initial_speed": 1,
+  "speed_seq": [],
+  "started": true,
+  "wall_s": 30.010,
+  "hw_decode": true,
+  "has_audio": true,
+  "audio_output_latency_s": 0.0300,
+  "audio_underruns": 0,
+  "audio_silent_frames": 0,
+  "audio_dropped_frames": 0,
+  "overall": {"speed":1,"t_start":0.000,"wall_s":30.010,"video_media_s":30.150,"audio_media_s":30.010,"video_rate":1.0047,"audio_rate":1.0000,"frames_presented":1810,"frames_dropped_late":1,"av_diff_media_s":{"mean":-0.000004,"p95_abs":0.003354,"max_abs":0.006667,"n":1771},"av_diff_wall_ms":{"mean":-0.004000,"p95_abs":3.354167,"max_abs":6.666667,"n":1771},"av_diff_wall_ms_settled":{"n":0},"underruns_settled":-1,"silent_frames_settled":-1,"video_rate_settled":0.0000,"audio_rate_settled":0.0000},
+  "segments": [
+    {"speed":1,"t_start":0.000,"wall_s":30.010,"video_media_s":30.150,"audio_media_s":30.010,"video_rate":1.0047,"audio_rate":1.0000,"frames_presented":1810,"frames_dropped_late":1,"av_diff_media_s":{"mean":-0.000601,"p95_abs":0.003354,"max_abs":0.143333,"n":1810},"av_diff_wall_ms":{"mean":-0.600541,"p95_abs":3.354167,"max_abs":143.333333,"n":1810},"av_diff_wall_ms_settled":{"mean":-0.004116,"p95_abs":3.354167,"max_abs":6.666667,"n":1741},"underruns_settled":0,"silent_frames_settled":0,"video_rate_settled":1.0000,"audio_rate_settled":1.0000}
+  ]
+}
+[exit status 0]
+
+$ sh -c sh tests/hlscheck_demo.sh build/macos-headless/mirage_hlscheck <scratch>/gui/hlsdemo > <scratch>/gui/hlsdemo.out 2>&1
+[exit status 0]
+
+$ build/macos-headless/mirage_hlscheck --json <scratch>/gui/cli_default.json <scratch>/gui/hlsdemo/master.m3u8
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] non-existing PPS 0 referenced
+[h264 @ 0xb72c8dc00] no frame!
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[h264 @ 0xb72c8df80] non-existing PPS 0 referenced
+[INFO]  ConformProbe: <scratch>/gui/hlsdemo/master.m3u8 — 4 playlists, 10 segments read, 17 sized, 2.7 MB in 0.0 s: 5 errors, 5 warnings
+<scratch>/gui/hlsdemo/master.m3u8
+3 variants, 4 media playlists: 27 of 27 segments sized, 10 read, in 0.0 s
+
+  #  BANDWIDTH   peak        AVG    CODECS RES    FPS    RANGE  START  DUR    playlist
+  0  600 kb/s    1.03 Mb/s   warn   ERROR  ok     warn   ok     ok     ok     v1/index.m3u8
+  1  2.00 Mb/s   1.03 Mb/s   -      ok     ok     ok     ok     ERROR  note   v2/index.m3u8
+  2  4.00 Mb/s   2.39 Mb/s   -      ERROR  warn   ok     ERROR  ok     warn   v3/index.m3u8
+
+5 errors, 5 warnings, 4 notes
+ERROR v1/index.m3u8: BANDWIDTH 600 kb/s is 41.9% below the measured peak 1.03 Mb/s  [variants 0]
+      BANDWIDTH 600 kb/s (600000 b/s) is 41.9% below the peak segment bit rate 1.03 Mb/s (887 kb/s the variant's playlist + 145 kb/s its largest audio rendition), segment #1, 2.000 s (1032061 b/s). RFC 8216 §4.3.4.2: BANDWIDTH MUST be the largest sum of peak segment bit rates of any playable combination of renditions; a player that fits BANDWIDTH to its link can stall on this variant.
+ERROR v1/index.m3u8: CODECS names another profile than the stream's  [variants 0]
+      CODECS says H.264 Main, level 3.0 (avc1.4d401e); the stream is H.264 High, level 3.0 (avc1.64001e). Devices choose variants by the profile they can decode.
+ERROR v2/index.m3u8: segment #7 starts with a P/B picture  [variants 1]
+      A player that starts or switches there cannot show anything until the next random access point. One has no random access point at all: #7. EXT-X-INDEPENDENT-SEGMENTS says every segment decodes without the ones before it (RFC 8216 §4.3.5.1).
+ERROR v3/index.m3u8: CODECS level 3 below the stream's 3.1  [variants 2]
+      CODECS says HEVC Main 10, Main tier, level 3 (hvc1.2.4.L90.B0); the stream is HEVC Main 10, Main tier, level 3.1 (hvc1.2.4.L93.90): a device limited to level 3 can choose a variant it cannot decode.
+ERROR v3/index.m3u8: VIDEO-RANGE absent (SDR), the video is PQ  [variants 2]
+      No VIDEO-RANGE, which means SDR, but the video is PQ: 16 (PQ (SMPTE ST 2084)). draft-pantos-hls-rfc8216bis-22: VIDEO-RANGE MUST be PQ for transfer 16 and HLG for 18 (also mixed with SDR), SDR for 1, 6, 13, 14, 15; absent means SDR.
+warn  v1/index.m3u8: AVERAGE-BANDWIDTH -49% off the measured average  [variants 0]
+      AVERAGE-BANDWIDTH 500 kb/s is -49.2% off the average segment bit rate 983 kb/s (840 kb/s + 144 kb/s audio).
+warn  v1/index.m3u8: FRAME-RATE 30.000, the video is 25.000 fps  [variants 0]
+      FRAME-RATE 30.000; the segments read run at up to 25.000 fps. FRAME-RATE is the maximum frame rate, rounded to three decimal places (RFC 8216 §4.3.4.2).
+warn  audio "English" (a1/index.m3u8): CHANNELS "6", it decodes to 2 channels  [variants 0–2]
+      RFC 8216 §4.3.4.1: the first CHANNELS parameter is the largest number of independent, simultaneous channels in any segment of the rendition.
+warn  v3/index.m3u8: RESOLUTION 1920×1080, the video is 1280×720  [variants 2]
+      RESOLUTION 1920×1080 but the video decodes at 1280×720.
+warn  v3/index.m3u8: segment #0's pictures span -0.160 s off its EXTINF  [variants 2]
+      #0 1.840 s against 2.000 s. EXTINF is a segment's duration (RFC 8216 §4.3.2.1): players lay out the timeline, and seek, by it.
+note  v2/index.m3u8: BANDWIDTH 1.94 × the measured peak  [variants 1]
+      BANDWIDTH 2.00 Mb/s is 1.94 × the peak segment bit rate 1.03 Mb/s (888 kb/s the variant's playlist + 145 kb/s its largest audio rendition), segment #2, 1.520 s: players wait for a faster link than the variant needs.
+note  v2/index.m3u8: segment #4's pictures span -0.080 s off its EXTINF  [variants 1]
+      #4 1.520 s against 1.600 s. The segments have leading pictures (an open GOP, or cuts inside GOPs): the next segment's first pictures show in this one's time, so the spans differ from EXTINF by them.
+note  v3/index.m3u8: BANDWIDTH 1.67 × the measured peak  [variants 2]
+      BANDWIDTH 4.00 Mb/s is 1.67 × the peak segment bit rate 2.39 Mb/s (2.25 Mb/s the variant's playlist + 145 kb/s its largest audio rendition), segment #1, 2.000 s: players wait for a faster link than the variant needs.
+note  v3/index.m3u8: segments start with CRA pictures  [variants 2]
+      #3, 5: clean random access points. The RASL pictures that follow one reference the segment before, and are dropped when playback starts or switches there.
+[exit status 1]
+
+$ uptime
+13:14  up 4 days, 23:43, 4 users, load averages: 5.70 5.32 5.56
+[exit status 0]
+
+$ HOME=<scratch>/gui/home build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-net tab=conformance,conform=1,conform_out=<scratch>/gui/tab.json --ui-snapshot <scratch>/gui/conform_tab.png 120 --av-report <scratch>/gui/conform_tab_av.json 20 <scratch>/gui/hlsdemo/master.m3u8 > conform_tab.log
+[exit status 0]
+
+$ cat <scratch>/scripts/compare_conform.py
+# usage: python3 -I compare_conform.py <command line's --json> <the tab's conform_out>
+# The two conformance reports, key by key; "source" (the input as each was given it) is shown, not compared.
+import json, sys
+a, b = (json.load(open(p)) for p in sys.argv[1:3])
+print("command line:", a.get("summary"), "| tab:", b.get("summary"))
+print("source: command line", json.dumps(a.get("source")), "| tab", json.dumps(b.get("source")))
+diff = [k for k in sorted(set(a) | set(b)) if k != "source" and a.get(k) != b.get(k)]
+print("keys that differ, source aside:", diff if diff else "none")
+sys.exit(1 if diff else 0)
+[exit status 0]
+
+$ python3 -I <scratch>/scripts/compare_conform.py <scratch>/gui/cli_default.json <scratch>/gui/tab.json
+command line: {'variants': 3, 'playlists': 4, 'errors': 5, 'warnings': 5} | tab: {'variants': 3, 'playlists': 4, 'errors': 5, 'warnings': 5}
+source: command line "<scratch>/gui/hlsdemo/master.m3u8" | tab "<scratch>/gui/hlsdemo/master.m3u8"
+keys that differ, source aside: none
+[exit status 0]
+
+$ /opt/homebrew/opt/ffmpeg-full/bin/ffprobe -v error -show_entries format=start_time:stream=start_time -of default=nw=1 <scratch>/gui/snapshots/tagswitch.ts
+start_time=1.480000
+start_time=1.480000
+start_time=1.480000
+[exit status 0]
+
+$ uptime
+13:14  up 4 days, 23:43, 4 users, load averages: 6.12 5.41 5.59
+[exit status 0]
+
+$ HOME=<scratch>/gui/home build/macos-debug/mirage --qa-no-focus --window 1280x720 --ui-sub-at 5.2 --av-report <scratch>/gui/seek_hw.json 10 <scratch>/gui/snapshots/tagswitch.ts > seek_hw.log
+[exit status 0]
+
+$ cat <scratch>/gui/seek_hw.json
+{
+  "file": "tagswitch.ts",
+  "initial_speed": 1,
+  "speed_seq": [],
+  "started": false,
+  "wall_s": 0.000,
+  "hw_decode": false,
+  "has_audio": false,
+  "audio_output_latency_s": 0.0000,
+  "audio_underruns": 0,
+  "audio_silent_frames": 0,
+  "audio_dropped_frames": 0,
+  "overall": {"speed":1,"t_start":0.000,"wall_s":1.000,"video_media_s":0.000,"audio_media_s":0.000,"video_rate":0.0000,"audio_rate":0.0000,"frames_presented":0,"frames_dropped_late":0,"av_diff_media_s":{"n":0},"av_diff_wall_ms":{"n":0},"av_diff_wall_ms_settled":{"n":0},"underruns_settled":-1,"silent_frames_settled":-1,"video_rate_settled":0.0000,"audio_rate_settled":0.0000},
+  "segments": [
+    
+  ]
+}
+[exit status 0]
+
+$ uptime
+13:14  up 4 days, 23:44, 4 users, load averages: 6.83 5.62 5.66
+[exit status 0]
+
+$ HOME=<scratch>/gui/home build/macos-debug/mirage --qa-no-focus --window 1280x720 --no-hw --ui-sub-at 5.2 --av-report <scratch>/gui/seek_sw.json 10 <scratch>/gui/snapshots/tagswitch.ts > seek_sw.log
+[exit status 0]
+
+$ cat <scratch>/gui/seek_sw.json
+{
+  "file": "tagswitch.ts",
+  "initial_speed": 1,
+  "speed_seq": [],
+  "started": false,
+  "wall_s": 0.000,
+  "hw_decode": false,
+  "has_audio": false,
+  "audio_output_latency_s": 0.0000,
+  "audio_underruns": 0,
+  "audio_silent_frames": 0,
+  "audio_dropped_frames": 0,
+  "overall": {"speed":1,"t_start":0.000,"wall_s":1.000,"video_media_s":0.000,"audio_media_s":0.000,"video_rate":0.0000,"audio_rate":0.0000,"frames_presented":0,"frames_dropped_late":0,"av_diff_media_s":{"n":0},"av_diff_wall_ms":{"n":0},"av_diff_wall_ms_settled":{"n":0},"underruns_settled":-1,"silent_frames_settled":-1,"video_rate_settled":0.0000,"audio_rate_settled":0.0000},
+  "segments": [
+    
+  ]
+}
+[exit status 0]
+
+$ uptime
+13:14  up 4 days, 23:44, 4 users, load averages: 7.01 5.75 5.70
+[exit status 0]
+
+$ HOME=<scratch>/gui/home build/macos-debug/mirage --qa-no-focus --window 1280x720 --ui-snapshot <scratch>/gui/tagswitch_end.png 140 <scratch>/gui/snapshots/tagswitch.ts > end_bar.log
+[exit status 0]
+
+$ git status --porcelain
+[exit status 0]
+
+$ uptime
+13:15  up 4 days, 23:44, 4 users, load averages: 6.94 5.77 5.71
+[exit status 0]
+

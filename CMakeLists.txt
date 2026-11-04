@@ -4,13 +4,13 @@ project(Mirage C CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# MIRAGE_HEADLESS configures only mirage_vmaf and mirage_tests: not the player,
-# nor the dependencies only the player uses, OpenGL, GLFW, glad, stb, Dear
-# ImGui and nativefiledialog-extended (DECISIONS.md D-031); mirage_tests links
-# none of them. The macos-headless and linux-release presets set it; the
-# player builds on macOS only.
+# MIRAGE_HEADLESS configures only mirage_vmaf, mirage_hlscheck,
+# mirage_dashcheck and mirage_tests: not the player, nor the dependencies only the player uses,
+# OpenGL, GLFW, glad, stb, Dear ImGui and nativefiledialog-extended
+# (DECISIONS.md D-031); mirage_tests links none of them. The macos-headless
+# and linux-release presets set it; the player builds on macOS only.
 option(MIRAGE_HEADLESS
-    "Build mirage_vmaf and mirage_tests only, without the player" OFF)
+    "Build mirage_vmaf, mirage_hlscheck, mirage_dashcheck and mirage_tests only, without the player" OFF)
 
 # ── Dependencies ─────────────────────────────────────────────────────────────
 
@@ -153,6 +153,7 @@ if(NOT MIRAGE_HEADLESS)
         src/Demuxer.cpp
         src/Decoder.cpp
         src/AudioDecoder.cpp
+        src/LoudnessTap.cpp
         src/AudioPlayer.cpp
         src/VideoRenderer.cpp
         src/ScrubBar.cpp
@@ -163,9 +164,17 @@ if(NOT MIRAGE_HEADLESS)
         src/NetDescribe.cpp
         src/NetInspector.cpp
         src/NetInspectorAlign.cpp
+        src/NetInspectorConform.cpp
         src/NetInspectorResponse.cpp
         src/NetProbe.cpp
         src/TrackPanel.cpp
+        src/FrameInfo.cpp
+        src/FrameInspector.cpp
+        src/PixelView.cpp
+        src/Scopes.cpp
+        src/ScopesPanel.cpp
+        src/FramesPanel.cpp
+        src/LoudnessPanel.cpp
         src/TrackGroups.cpp
         src/ManifestParser.cpp
         src/PlayerUI.cpp
@@ -188,9 +197,14 @@ if(NOT MIRAGE_HEADLESS)
         src/HlsMaster.cpp
         src/HlsVariants.cpp
         src/HlsAlign.cpp
+        src/HlsConform.cpp
+        src/HlsConformProbe.cpp
+        src/JsonText.cpp
         src/DemuxRetry.cpp
         src/PipelineState.cpp
         src/KeyframeIndex.cpp
+        src/FrameScan.cpp
+        src/LoudnessMeter.cpp
     )
 
     target_include_directories(mirage PRIVATE
@@ -271,6 +285,50 @@ target_compile_definitions(mirage_vmaf PRIVATE
     MIRAGE_LIBVMAF_PACKAGE_VERSION="${MIRAGE_LIBVMAF_PACKAGE_VERSION}"
 )
 
+# ── Headless HLS conformance check ───────────────────────────────────────────
+
+# mirage_hlscheck: the network inspector's conformance check without the
+# player (src/HlsConform.h): a master playlist's declarations against its
+# media, as a table, findings and a JSON report. Links FFmpeg only.
+add_executable(mirage_hlscheck
+    tools/mirage_hlscheck.cpp
+    src/HlsConform.cpp
+    src/HlsConformProbe.cpp
+    src/HlsAlign.cpp
+    src/NetworkLogger.cpp
+    src/JsonText.cpp
+)
+
+target_include_directories(mirage_hlscheck PRIVATE src)
+
+target_link_libraries(mirage_hlscheck PRIVATE
+    PkgConfig::FFMPEG
+)
+
+# ── Headless DASH conformance check ──────────────────────────────────────────
+
+# mirage_dashcheck: the same check for an MPEG-DASH MPD (src/DashConform.h):
+# its Representations' declarations against their media, as a table,
+# findings and a JSON report. Links FFmpeg and pugixml.
+add_executable(mirage_dashcheck
+    tools/mirage_dashcheck.cpp
+    src/DashMpd.cpp
+    src/DashConform.cpp
+    src/DashConformProbe.cpp
+    src/HlsConform.cpp
+    src/HlsConformProbe.cpp
+    src/HlsAlign.cpp
+    src/NetworkLogger.cpp
+    src/JsonText.cpp
+)
+
+target_include_directories(mirage_dashcheck PRIVATE src)
+
+target_link_libraries(mirage_dashcheck PRIVATE
+    PkgConfig::FFMPEG
+    pugixml
+)
+
 # ── Unit tests ────────────────────────────────────────────────────────────────
 
 include(CTest)
@@ -287,6 +345,8 @@ add_executable(mirage_tests
     tests/test_manifest_parser.cpp
     tests/test_subtitle_decoder.cpp
     tests/test_yuv_matrix.cpp
+    tests/test_frame_info.cpp
+    tests/test_scopes.cpp
     tests/test_sync.cpp
     tests/test_audio_player.cpp
     tests/test_audio_decoder.cpp
@@ -303,6 +363,10 @@ add_executable(mirage_tests
     tests/test_keyframe_index.cpp
     tests/test_scrub_follow.cpp
     tests/test_hls_align.cpp
+    tests/test_hls_conform.cpp
+    tests/test_dash_conform.cpp
+    tests/test_frame_scan.cpp
+    tests/test_loudness_meter.cpp
     tests/test_json_text.cpp
     tests/test_vmaf_cli.cpp
     tests/test_vmaf_report.cpp
@@ -338,10 +402,14 @@ add_executable(mirage_tests
     src/NetDescribe.cpp
     src/NetProbe.cpp
     src/ManifestParser.cpp
+    src/FrameInfo.cpp
+    src/PixelView.cpp
+    src/Scopes.cpp
     src/SubtitleDecoder.cpp
     src/Sync.cpp
     src/AudioPlayer.cpp
     src/AudioDecoder.cpp
+    src/LoudnessTap.cpp
     src/Decoder.cpp
     src/UiFormat.cpp
     src/SubtitleSelect.cpp
@@ -351,11 +419,18 @@ add_executable(mirage_tests
     src/HlsMaster.cpp
     src/HlsVariants.cpp
     src/HlsAlign.cpp
+    src/HlsConform.cpp
+    src/HlsConformProbe.cpp
+    src/DashMpd.cpp
+    src/DashConform.cpp
+    src/DashConformProbe.cpp
     src/DemuxRetry.cpp
     src/TrackGroups.cpp
     src/PipelineState.cpp
     src/KeyframeIndex.cpp
     src/ScrubDecoder.cpp
+    src/FrameScan.cpp
+    src/LoudnessMeter.cpp
     src/JsonText.cpp
     src/VMAFCli.cpp
     src/VMAFReport.cpp

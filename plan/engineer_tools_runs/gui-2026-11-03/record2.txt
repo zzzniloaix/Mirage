@@ -1,0 +1,17 @@
+$ git rev-parse HEAD
+0e448cb5a05e1cdcba5dc911a4caf1936752596e
+[exit status 0]
+
+$ uptime
+13:18  up 4 days, 23:48, 4 users, load averages: 4.94 5.43 5.61
+[exit status 0]
+
+$ HOME=<scratch>/gui/home build/macos-debug/mirage --qa-no-focus --window 1600x900 --ui-overlays PSXBL --ui-snapshot <scratch>/gui/cost_open_panels.png 600 <scratch>/gui/cost_1080p60.mp4 > cost_open_panels.log
+[exit status 0]
+
+$ /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -nostdin -v error -i <scratch>/gui/snapshots/tagswitch.ts -f null -
+[exit status 0]
+
+$ git status --porcelain
+[exit status 0]
+

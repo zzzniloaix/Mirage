@@ -1,0 +1,20 @@
+[INFO]  DashProbe: https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.mpd — 7 Representations, 17 segments read, 1271 sized, 3.1 MB in 169.5 s: 1 errors, 1 warnings
+https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.mpd
+static MPD, 7 Representations in 2 AdaptationSets, @minBufferTime 10.000 s: 1288 of 1288 segments sized, 17 read, in 169.5 s
+
+  #  @bandwidth  needs       CODECS SIZE   FPS    AUDIO  COLOUR SAP    TIME   ALIGN  Representation
+  0  64 kb/s     65 kb/s     ok     -      -      ok     -      ok     warn   ok     audio_eng=64008 (audio, en)
+  1  128 kb/s    128 kb/s    ok     -      -      ok     -      ok     warn   ok     audio_eng=128002 (audio, en)
+  2  401 kb/s    392 kb/s    ok     ok     ok     -      -      ok     ok     ok     video_eng=401000 (video, 224×100)
+  3  751 kb/s    730 kb/s    ok     ok     ok     -      -      ok     ok     ok     video_eng=751000 (video, 448×200)
+  4  1.00 Mb/s   833 kb/s    ok     ok     ok     -      -      ok     ok     ok     video_eng=1001000 (video, 784×350)
+  5  1.50 Mb/s   1.45 Mb/s   ok     ok     ok     -      ok     ok     ok     ok     video_eng=1501000 (video, 1680×750)
+  6  2.20 Mb/s   2.13 Mb/s   ok     ok     ok     -      ok     ok     ok     ok     video_eng=2200000 (video, 1680×750)
+
+1 error, 1 warning, 1 note
+ERROR @bandwidth 64 kb/s below the 65 kb/s its segments need with @minBufferTime 10.000 s  [audio_eng=64008]
+      With @minBufferTime 10.000 s, delivered at 64 kb/s from the start of segment #1, segments #1–#184 (6.05 MB, 733.936 s of media) are not all in until 12.26 s after the last of them has finished playing; at 64 kb/s playout needs a @minBufferTime of 22.260 s. They need 65 kb/s (every segment in by the time it ends playing; 65 kb/s would hold even if each had to be in before it starts). ISO/IEC 23009-1 defines @bandwidth by this: delivered at @bandwidth from any segment start, playout begun @minBufferTime after the first bit never runs out. A player that fits @bandwidth to its link can stall on this Representation.
+warn  the segments end 0.064 s before the Period does  [audio_eng=64008, audio_eng=128002]
+      The last segment ends at 733.936 s, the Period at 734.000 s: players stall there or end early.
+note  @bandwidth of 1 Representation up to 0.16% below what the segments need  [audio_eng=128002]
+      Short by no more than 1% of the bit rate their segments need with @minBufferTime, as close as a @bandwidth taken from the encoder's bit rate, without the bytes of the segments' boxes, can come. The most: audio_eng=128002, 199 b/s.

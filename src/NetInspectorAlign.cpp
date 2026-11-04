@@ -33,39 +33,6 @@ hls::Track track_of(NetMedia m)
     return hls::Track::Unknown;
 }
 
-ImU32 sev_color(hls::Severity s)
-{
-    switch (s) {
-        case hls::Severity::Error:   return th::kError;
-        case hls::Severity::Warning: return th::kWarn;
-        case hls::Severity::Info:    return th::kAccent;
-        case hls::Severity::Ok:      return kColManifest;
-    }
-    return th::kTextDim;
-}
-
-void sev_icon(ImDrawList* dl, ImVec2 c, hls::Severity s)
-{
-    const ImU32 col = C(sev_color(s));
-    switch (s) {
-        case hls::Severity::Error:
-            dl->AddCircleFilled(c, 5.5f, col, 16);
-            dl->AddLine(ImVec2(c.x - 2.2f, c.y - 2.2f), ImVec2(c.x + 2.2f, c.y + 2.2f), C(th::rgba(15, 16, 20, 1.0f)), 1.5f);
-            dl->AddLine(ImVec2(c.x - 2.2f, c.y + 2.2f), ImVec2(c.x + 2.2f, c.y - 2.2f), C(th::rgba(15, 16, 20, 1.0f)), 1.5f);
-            break;
-        case hls::Severity::Warning:
-            dl->AddTriangleFilled(ImVec2(c.x, c.y - 5.5f), ImVec2(c.x + 6.0f, c.y + 4.8f), ImVec2(c.x - 6.0f, c.y + 4.8f), col);
-            break;
-        case hls::Severity::Info:
-            dl->AddCircle(c, 5.0f, col, 16, 1.5f);
-            break;
-        case hls::Severity::Ok:
-            dl->AddLine(ImVec2(c.x - 4.5f, c.y), ImVec2(c.x - 1.2f, c.y + 3.5f), col, 2.0f);
-            dl->AddLine(ImVec2(c.x - 1.2f, c.y + 3.5f), ImVec2(c.x + 5.0f, c.y - 4.0f), col, 2.0f);
-            break;
-    }
-}
-
 // Axis step (s) giving ticks at least `min_px` apart.
 double nice_step(double span, float width, float min_px)
 {

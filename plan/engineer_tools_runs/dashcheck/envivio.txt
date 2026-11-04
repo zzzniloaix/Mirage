@@ -1,0 +1,29 @@
+[INFO]  DashProbe: https://dash.akamaized.net/envivio/EnvivioDash3/manifest.mpd — 10 Representations, 28 segments read, 942 sized, 12.3 MB in 7.8 s: 2 errors, 1 warnings
+https://dash.akamaized.net/envivio/EnvivioDash3/manifest.mpd
+static MPD, 10 Representations in 2 AdaptationSets, @minBufferTime 5.000 s: 970 of 970 segments sized, 28 read, in 7.8 s
+
+  #  @bandwidth  needs       CODECS SIZE   FPS    AUDIO  COLOUR SAP    TIME   ALIGN  Representation
+  0  1.20 Mb/s   1.18 Mb/s   ok     ok     warn   -      -      ok     note   ok     v1_257 (video, 768×432)
+  1  1.85 Mb/s   1.82 Mb/s   ERROR  ok     warn   -      -      ok     note   ok     v2_257 (video, 1024×576)
+  2  2.85 Mb/s   2.80 Mb/s   ERROR  ok     warn   -      -      ok     note   ok     v3_257 (video, 1280×720)
+  3  200 kb/s    200 kb/s    note   ok     warn   -      -      ok     note   ok     v4_257 (video, 320×180)
+  4  300 kb/s    298 kb/s    note   ok     warn   -      -      ok     note   ok     v5_257 (video, 320×180)
+  5  4.30 Mb/s   4.21 Mb/s   ERROR  ok     warn   -      -      ok     note   ok     v6_257 (video, 1280×720)
+  6  5.30 Mb/s   5.20 Mb/s   ERROR  ok     warn   -      -      ok     note   ok     v7_257 (video, 1920×1080)
+  7  480 kb/s    477 kb/s    note   ok     warn   -      -      ok     note   ok     v8_257 (video, 512×288)
+  8  750 kb/s    741 kb/s    ok     ok     warn   -      -      ok     note   ok     v9_257 (video, 640×360)
+  9  131 kb/s    129 kb/s    ok     -      -      ok     -      ok     ok     -      v4_258 (audio, qaa)
+
+2 errors, 1 warning, 3 notes
+ERROR @codecs level 3.0 below the stream's 3.1  [v2_257, v3_257, v6_257]
+      @codecs says H.264 Main, level 3.0 (avc1.4D401E); the stream is H.264 Main, level 3.1 (avc1.4d401f): a device limited to level 3.0 can choose a Representation it cannot decode.
+ERROR @codecs level 3.0 below the stream's 4.0  [v7_257]
+      @codecs says H.264 Main, level 3.0 (avc1.4D401E); the stream is H.264 Main, level 4.0 (avc1.4d4028): a device limited to level 3.0 can choose a Representation it cannot decode.
+warn  @frameRate 30000/1001 but the video runs at 25.000 fps  [v1_257, v2_257, v3_257, v4_257, v5_257, v6_257 and 3 more]
+      @frameRate 30000/1001 (29.970); the segments run at 25.000.
+note  segment durations up to 316 ms off the MPD's  [v1_257, v2_257, v3_257, v4_257, v5_257, v6_257 and 3 more]
+      #97 -316 ms (@duration is nominal).
+note  @codecs level 3.0 above the stream's 1.2  [v4_257, v5_257]
+      @codecs says H.264 Main, level 3.0 (avc1.4D401E); the stream is H.264 Main, level 1.2 (avc1.4d400c): a device limited to level 1.2 skips a Representation it could decode.
+note  @codecs level 3.0 above the stream's 2.1  [v8_257]
+      @codecs says H.264 Main, level 3.0 (avc1.4D401E); the stream is H.264 Main, level 2.1 (avc1.4d4015): a device limited to level 2.1 skips a Representation it could decode.

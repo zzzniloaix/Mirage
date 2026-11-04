@@ -36,6 +36,11 @@ void NetInspector::reset()
     sel_rend_ = -1;
     sel_seq_ = -1;
     open_finding_ = -1;
+    conform_.clear();
+    conform_res_ = {};
+    conform_ver_ = ~0ull;
+    conform_sel_ = conform_open_ = -1;
+    qa_conform_started_ = false;
 }
 
 void NetInspector::qa_apply(const std::string& spec)
@@ -46,7 +51,11 @@ void NetInspector::qa_apply(const std::string& spec)
         const std::string item = spec.substr(pos, comma == std::string::npos ? std::string::npos : comma - pos);
         const auto eq = item.find('=');
         const std::string k = item.substr(0, eq), v = eq == std::string::npos ? "" : item.substr(eq + 1);
-        if (k == "tab")      tab_ = v == "manifest" ? Tab::Manifest : v == "alignment" ? Tab::Alignment : Tab::Network;
+        if (k == "tab")      tab_ = v == "manifest" ? Tab::Manifest : v == "alignment" ? Tab::Alignment
+                                  : v == "conformance" ? Tab::Conformance : Tab::Network;
+        if (k == "conform")  qa_conform_ = v != "0";
+        if (k == "conform_segments") conform_segments_ = std::max(0, std::atoi(v.c_str()));
+        if (k == "conform_out") qa_conform_out_ = v;
         if (k == "select")   (v == "playlist" ? qa_select_playlist_ : qa_select_segment_) = true;
         if (k == "detail")   detail_tab_ = v == "timing" ? 2 : v == "response" ? 1 : 0;
         if (k == "mode")     resp_mode_ = v == "segments" ? 1 : 0;
@@ -335,8 +344,8 @@ NetInspector::Out NetInspector::draw(const Inputs& in, float win_w, float win_h)
         dl->AddLine(ImVec2(x, kHeaderH - 0.5f), ImVec2(x + w, kHeaderH - 0.5f), C(th::kPanelBorder));
         ImFont* f = ui_fonts().ui;
         float tx = x + kPad + 2.0f;
-        const char* labels[] = { "Network", "Manifest", "Alignment" };
-        for (int i = 0; i < 3; ++i) {
+        const char* labels[] = { "Network", "Manifest", "Alignment", "Conformance" };
+        for (int i = 0; i < 4; ++i) {
             const ImVec2 ts = f->CalcTextSizeA(14.0f, FLT_MAX, 0.0f, labels[i]);
             ImGui::SetCursorScreenPos(ImVec2(tx - 8.0f, 0.0f));
             ImGui::PushID(i);
@@ -350,16 +359,17 @@ NetInspector::Out NetInspector::draw(const Inputs& in, float win_w, float win_h)
             if (active)
                 dl->AddRectFilled(ImVec2(tx - 2.0f, kHeaderH - 2.5f), ImVec2(tx + ts.x + 2.0f, kHeaderH - 0.5f),
                                   C(th::kAccent), 1.0f);
-            // Alignment: a red / amber count badge when something is off.
-            if (i == 2 && (align_.rep.errors > 0 || align_.rep.warnings > 0)) {
-                const int cnt = align_.rep.errors > 0 ? align_.rep.errors : align_.rep.warnings;
+            // Alignment, Conformance: a red / amber count badge when something is off.
+            const int errs = i == 2 ? align_.rep.errors : i == 3 ? conform_res_.report.errors : 0;
+            const int warns = i == 2 ? align_.rep.warnings : i == 3 ? conform_res_.report.warnings : 0;
+            if (errs > 0 || warns > 0) {
+                const int cnt = errs > 0 ? errs : warns;
                 const std::string b = std::to_string(cnt);
                 ImFont* fs = ui_fonts().ui_small;
                 const ImVec2 bs = fs->CalcTextSizeA(11.0f, FLT_MAX, 0.0f, b.c_str());
                 const float bw = std::max(16.0f, bs.x + 8.0f);
                 const ImVec2 b0(tx + ts.x + 4.0f, std::round(kHeaderH * 0.5f - 8.0f));
-                dl->AddRectFilled(b0, ImVec2(b0.x + bw, b0.y + 16.0f),
-                                  C(align_.rep.errors > 0 ? th::kError : th::kWarn), 8.0f);
+                dl->AddRectFilled(b0, ImVec2(b0.x + bw, b0.y + 16.0f), C(errs > 0 ? th::kError : th::kWarn), 8.0f);
                 dl->AddText(fs, 11.0f, ImVec2(std::round(b0.x + (bw - bs.x) * 0.5f), b0.y + 1.0f),
                             C(th::rgba(10, 10, 12, 1.0f)), b.c_str());
                 tx += bw + 4.0f;
@@ -379,10 +389,12 @@ NetInspector::Out NetInspector::draw(const Inputs& in, float win_w, float win_h)
     // The alignment model also feeds the tab's badge: kept current while
     // the sidebar is open (throttled inside).
     update_alignment(in);
+    conform_tick(in);
     ImGui::SetCursorScreenPos(ImVec2(x, body_y));
-    if (tab_ == Tab::Network)       draw_network(in, w, body_h);
-    else if (tab_ == Tab::Manifest) draw_manifest(in, out, w, body_h);
-    else                            draw_alignment(in, out, w, body_h);
+    if (tab_ == Tab::Network)        draw_network(in, w, body_h);
+    else if (tab_ == Tab::Manifest)  draw_manifest(in, out, w, body_h);
+    else if (tab_ == Tab::Alignment) draw_alignment(in, out, w, body_h);
+    else                             draw_conformance(in, out, w, body_h);
 
     // Keep the player's shortcuts alive. PlayerUI enables keyboard nav, and a
     // click on a row, chip or button leaves this window (or one of its child

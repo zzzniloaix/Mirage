@@ -1,0 +1,28 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  Opening <scratch>/gui/cost_1080p60.mp4 (t=0.225)
+[INFO]  Demuxer: avformat_open_input 2 ms (2 streams, 0 programs) (t=0.227)
+[INFO]  Demuxer: avformat_find_stream_info 5 ms (t=0.232)
+[INFO]  Container: QuickTime / MOV
+[INFO]  Duration:  00:00:45
+[INFO]  Video:     h264 1920×1080 @ 60.000 fps  pixel_fmt=yuv420p
+[INFO]  Audio:     aac 48000 Hz  1 ch  fmt=fltp
+[INFO]  Selected HW-capable decoder: h264 (default was h264)
+[INFO]  Decoder opened: h264 (1920×1080)  [HW: VideoToolbox requested]
+[INFO]  AudioPlayer: 48000 Hz stereo float32  device latency 30.0 ms (480 frames × 3 periods)
+[INFO]  Decoder opened: aac (0×0)
+[INFO]  AudioDecoder: 48000 Hz 1ch → 48000 Hz stereo f32
+[INFO]  Opened <scratch>/gui/cost_1080p60.mp4 in 108 ms (t=0.333)
+[INFO]  VideoRenderer: 1920×1080 SDR (yuv420p → RGB24 sRGB)  matrix=BT.709  limited-range
+[INFO]  Subtitles: 0 choice(s); initial off (none available)
+[INFO]  ThumbnailStrip: open 1 ms, probe 7 ms (t=0.344)
+[INFO]  ScrubDecoder: ready (open 1 ms, probe 7 ms) (t=0.344)
+[INFO]  ThumbnailStrip: 23 keyframes found, decoding 23 thumbnails (stride 0.11 s, 160 px tall)
+[INFO]  ThumbnailStrip: coarse pass done (3 thumbnails)
+[INFO]  Decoder: VideoToolbox HW decode active (zero-copy IOSurface path)
+[INFO]  first-frame: pts=0.000 1920x1080 VideoToolbox, 143 ms after open (t=0.479)
+[INFO]  VideoRenderer: HW zero-copy path ready (8-bit, BT.709 matrix, limited-range)
+[INFO]  ThumbnailStrip: decode complete (23 thumbnails)
+[INFO]  --av-report: wrote <scratch>/gui/cost_closed_1.json (30.0 s, 1808 frames)
+[INFO]  MediaSession: closing <scratch>/gui/cost_1080p60.mp4
+[INFO]  MediaSession: threads stopped (47 ms)
+[INFO]  ScrubDecoder: stopped (0 requests decoded from a keyframe read, 0 from a seek)

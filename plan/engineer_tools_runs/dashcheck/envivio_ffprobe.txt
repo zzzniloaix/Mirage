@@ -1,0 +1,14 @@
+# ffprobe on the 1024x576 Representation (v2_257) of the Envivio example: its init segment and first segment, joined.
+$ curl -s -o init.m4s https://dash.akamaized.net/envivio/EnvivioDash3/v2_257-Header.m4s
+$ curl -s -o seg1.m4s https://dash.akamaized.net/envivio/EnvivioDash3/v2_257-270146-i-1.m4s
+$ cat init.m4s seg1.m4s > joined.mp4
+$ ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,profile,level,width,height,r_frame_rate,avg_frame_rate -of default=nw=1 joined.mp4
+codec_name=h264
+profile=Main
+width=1024
+height=576
+level=31
+r_frame_rate=25/1
+avg_frame_rate=25/1
+$ ffprobe -v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets -of default=nw=1 joined.mp4
+nb_read_packets=50

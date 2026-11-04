@@ -867,6 +867,8 @@ void parse_fmp4(const std::uint8_t* data, std::size_t n, const InitInfo* init, S
             const std::int64_t shift = min_cts < 0 ? -min_cts : 0;
             tr.decode_start = static_cast<double>(base) / ts;
             tr.start = static_cast<double>(base + (any_sample ? min_pts_off : 0) + shift) / ts;
+            tr.iso_start = static_cast<double>(base + (any_sample ? min_pts_off : 0)) / ts;
+            tr.edit = static_cast<double>(it->edit_shift) / ts;
             if (it->edit_shift != 0)
                 tr.note = std::format("edit list shifts it by {}", format_seconds(-static_cast<double>(it->edit_shift) / ts));
             if (unknown_dur) tr.note += std::string(tr.note.empty() ? "" : "; ") + "sample durations unknown: first sample only";

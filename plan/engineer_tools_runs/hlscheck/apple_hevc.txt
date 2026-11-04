@@ -1,0 +1,63 @@
+[INFO]  ConformProbe: https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_adv_example_hevc/master.m3u8 — 21 playlists, 57 segments read, 0 sized, 100.6 MB in 4.3 s: 0 errors, 0 warnings
+https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_adv_example_hevc/master.m3u8
+54 variants, 21 media playlists: 1615 of 1615 segments sized, 57 read, in 4.3 s
+
+  #  BANDWIDTH   peak        AVG    CODECS RES    FPS    RANGE  START  DUR    playlist
+  0  2.52 Mb/s   2.52 Mb/s   ok     ok     ok     ok     ok     ok     ok     v5/prog_index.m3u8
+  1  9.87 Mb/s   9.87 Mb/s   ok     ok     ok     ok     ok     ok     ok     v9/prog_index.m3u8
+  2  7.32 Mb/s   7.32 Mb/s   ok     ok     ok     ok     ok     ok     ok     v8/prog_index.m3u8
+  3  5.42 Mb/s   5.42 Mb/s   ok     ok     ok     ok     ok     ok     ok     v7/prog_index.m3u8
+  4  3.61 Mb/s   3.61 Mb/s   ok     ok     ok     ok     ok     ok     ok     v6/prog_index.m3u8
+  5  1.48 Mb/s   1.48 Mb/s   ok     ok     ok     ok     ok     ok     ok     v4/prog_index.m3u8
+  6  1.02 Mb/s   1.02 Mb/s   ok     ok     ok     ok     ok     ok     ok     v3/prog_index.m3u8
+  7  583 kb/s    583 kb/s    ok     ok     ok     ok     ok     ok     ok     v2/prog_index.m3u8
+  8  339 kb/s    339 kb/s    ok     ok     ok     ok     ok     ok     ok     v1/prog_index.m3u8
+  9  2.75 Mb/s   2.75 Mb/s   ok     ok     ok     ok     ok     ok     ok     v5/prog_index.m3u8
+ 10  10.10 Mb/s  10.10 Mb/s  ok     ok     ok     ok     ok     ok     ok     v9/prog_index.m3u8
+ 11  7.54 Mb/s   7.54 Mb/s   ok     ok     ok     ok     ok     ok     ok     v8/prog_index.m3u8
+ 12  5.64 Mb/s   5.64 Mb/s   ok     ok     ok     ok     ok     ok     ok     v7/prog_index.m3u8
+ 13  3.83 Mb/s   3.83 Mb/s   ok     ok     ok     ok     ok     ok     ok     v6/prog_index.m3u8
+ 14  1.70 Mb/s   1.70 Mb/s   ok     ok     ok     ok     ok     ok     ok     v4/prog_index.m3u8
+ 15  1.24 Mb/s   1.24 Mb/s   ok     ok     ok     ok     ok     ok     ok     v3/prog_index.m3u8
+ 16  805 kb/s    805 kb/s    ok     ok     ok     ok     ok     ok     ok     v2/prog_index.m3u8
+ 17  562 kb/s    562 kb/s    ok     ok     ok     ok     ok     ok     ok     v1/prog_index.m3u8
+ 18  2.55 Mb/s   2.55 Mb/s   ok     ok     ok     ok     ok     ok     ok     v5/prog_index.m3u8
+ 19  9.90 Mb/s   9.90 Mb/s   ok     ok     ok     ok     ok     ok     ok     v9/prog_index.m3u8
+ 20  7.35 Mb/s   7.35 Mb/s   ok     ok     ok     ok     ok     ok     ok     v8/prog_index.m3u8
+ 21  5.45 Mb/s   5.45 Mb/s   ok     ok     ok     ok     ok     ok     ok     v7/prog_index.m3u8
+ 22  3.64 Mb/s   3.64 Mb/s   ok     ok     ok     ok     ok     ok     ok     v6/prog_index.m3u8
+ 23  1.51 Mb/s   1.51 Mb/s   ok     ok     ok     ok     ok     ok     ok     v4/prog_index.m3u8
+ 24  1.05 Mb/s   1.05 Mb/s   ok     ok     ok     ok     ok     ok     ok     v3/prog_index.m3u8
+ 25  613 kb/s    613 kb/s    ok     ok     ok     ok     ok     ok     ok     v2/prog_index.m3u8
+ 26  370 kb/s    370 kb/s    ok     ok     ok     ok     ok     ok     ok     v1/prog_index.m3u8
+ 27  2.16 Mb/s   2.16 Mb/s   ok     ok     ok     ok     ok     ok     ok     v14/prog_index.m3u8
+ 28  6.66 Mb/s   6.66 Mb/s   ok     ok     ok     ok     ok     ok     ok     v18/prog_index.m3u8
+ 29  5.43 Mb/s   5.43 Mb/s   ok     ok     ok     ok     ok     ok     ok     v17/prog_index.m3u8
+ 30  4.08 Mb/s   4.08 Mb/s   ok     ok     ok     ok     ok     ok     ok     v16/prog_index.m3u8
+ 31  2.76 Mb/s   2.76 Mb/s   ok     ok     ok     ok     ok     ok     ok     v15/prog_index.m3u8
+ 32  1.23 Mb/s   1.23 Mb/s   ok     ok     ok     ok     ok     ok     ok     v13/prog_index.m3u8
+ 33  902 kb/s    902 kb/s    ok     ok     ok     ok     ok     ok     ok     v12/prog_index.m3u8
+ 34  549 kb/s    549 kb/s    ok     ok     ok     ok     ok     ok     ok     v11/prog_index.m3u8
+ 35  341 kb/s    341 kb/s    ok     ok     ok     ok     ok     ok     ok     v10/prog_index.m3u8
+ 36  2.39 Mb/s   2.39 Mb/s   ok     ok     ok     ok     ok     ok     ok     v14/prog_index.m3u8
+ 37  6.89 Mb/s   6.89 Mb/s   ok     ok     ok     ok     ok     ok     ok     v18/prog_index.m3u8
+ 38  5.65 Mb/s   5.65 Mb/s   ok     ok     ok     ok     ok     ok     ok     v17/prog_index.m3u8
+ 39  4.30 Mb/s   4.30 Mb/s   ok     ok     ok     ok     ok     ok     ok     v16/prog_index.m3u8
+ 40  2.99 Mb/s   2.99 Mb/s   ok     ok     ok     ok     ok     ok     ok     v15/prog_index.m3u8
+ 41  1.45 Mb/s   1.45 Mb/s   ok     ok     ok     ok     ok     ok     ok     v13/prog_index.m3u8
+ 42  1.12 Mb/s   1.12 Mb/s   ok     ok     ok     ok     ok     ok     ok     v12/prog_index.m3u8
+ 43  771 kb/s    771 kb/s    ok     ok     ok     ok     ok     ok     ok     v11/prog_index.m3u8
+ 44  563 kb/s    563 kb/s    ok     ok     ok     ok     ok     ok     ok     v10/prog_index.m3u8
+ 45  2.19 Mb/s   2.19 Mb/s   ok     ok     ok     ok     ok     ok     ok     v14/prog_index.m3u8
+ 46  6.69 Mb/s   6.69 Mb/s   ok     ok     ok     ok     ok     ok     ok     v18/prog_index.m3u8
+ 47  5.46 Mb/s   5.46 Mb/s   ok     ok     ok     ok     ok     ok     ok     v17/prog_index.m3u8
+ 48  4.11 Mb/s   4.11 Mb/s   ok     ok     ok     ok     ok     ok     ok     v16/prog_index.m3u8
+ 49  2.80 Mb/s   2.80 Mb/s   ok     ok     ok     ok     ok     ok     ok     v15/prog_index.m3u8
+ 50  1.26 Mb/s   1.26 Mb/s   ok     ok     ok     ok     ok     ok     ok     v13/prog_index.m3u8
+ 51  932 kb/s    932 kb/s    ok     ok     ok     ok     ok     ok     ok     v12/prog_index.m3u8
+ 52  579 kb/s    579 kb/s    ok     ok     ok     ok     ok     ok     ok     v11/prog_index.m3u8
+ 53  371 kb/s    371 kb/s    ok     ok     ok     ok     ok     ok     ok     v10/prog_index.m3u8
+
+0 errors, 0 warnings, 1 note
+note  BANDWIDTH of 18 variants up to 0.027% below the measured peak  [variants 0–8, 27–35]
+      Short by no more than 1% of the peak segment bit rate, which RFC 8216 §4.3.4.2 makes the sum of each rendition's own peak: a peak computed per segment, or over the video and audio of the same time together, lands this close. The most: variant #8 (v1/prog_index.m3u8), 93 b/s.

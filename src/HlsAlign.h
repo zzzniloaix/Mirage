@@ -116,6 +116,11 @@ struct SegmentStart {
         std::uint32_t id    = 0;         // fMP4 track_ID / TS PID
         double        start = kNaN;      // earliest presentation time, seconds — as FFmpeg reports it
         double        decode_start = kNaN;
+        double        iso_start = kNaN;  // fMP4: tfdt plus the smallest composition offset, edit list
+                                         // applied — ISO/IEC 14496-12's earliest presentation time,
+                                         // which a DASH timeline gives (start adds FFmpeg's shift for
+                                         // negative composition offsets)
+        double        edit = 0.0;        // fMP4: the edit list's shift taken off tfdt, seconds
         double        local_zero = kNaN; // WebVTT: media time of cue time 00:00:00.000
         std::string   codec;
         std::string   note;              // "edit list −44 ms", "no init segment", …

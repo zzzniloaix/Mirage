@@ -1,0 +1,54 @@
+$ grep -n -E FETCHCONTENT_SOURCE_DIR_[A-Z0-9]+: <repo>/build/macos-debug/CMakeCache.txt <repo>/build/macos-headless/CMakeCache.txt
+<repo>/build/macos-headless/CMakeCache.txt:498:FETCHCONTENT_SOURCE_DIR_CATCH2:PATH=<scratch>/deps/catch2-src
+<repo>/build/macos-headless/CMakeCache.txt:502:FETCHCONTENT_SOURCE_DIR_MINIAUDIO:PATH=<scratch>/deps/miniaudio-src
+<repo>/build/macos-headless/CMakeCache.txt:506:FETCHCONTENT_SOURCE_DIR_PUGIXML:PATH=<scratch>/deps/pugixml-src
+<repo>/build/macos-debug/CMakeCache.txt:501:FETCHCONTENT_SOURCE_DIR_CATCH2:PATH=<scratch>/deps/catch2-src
+<repo>/build/macos-debug/CMakeCache.txt:505:FETCHCONTENT_SOURCE_DIR_IMGUI:PATH=<scratch>/deps/imgui-src
+<repo>/build/macos-debug/CMakeCache.txt:509:FETCHCONTENT_SOURCE_DIR_MINIAUDIO:PATH=<scratch>/deps/miniaudio-src
+<repo>/build/macos-debug/CMakeCache.txt:513:FETCHCONTENT_SOURCE_DIR_NFD:PATH=<scratch>/deps/nfd-src
+<repo>/build/macos-debug/CMakeCache.txt:517:FETCHCONTENT_SOURCE_DIR_PUGIXML:PATH=<scratch>/deps/pugixml-src
+<repo>/build/macos-debug/CMakeCache.txt:521:FETCHCONTENT_SOURCE_DIR_STB:PATH=<scratch>/deps/stb-src
+[exit status 0]
+
+$ diff -rq -x .git <scratch>/deps/catch2-src <main tree>/build/macos-debug/_deps/catch2-src
+[exit status 0]
+
+$ git -C <main tree>/build/macos-debug/_deps/catch2-src log -1 --format=%H %cs
+fa43b77429ba76c462b1898d6cd2f2d7a9416b14 2024-09-17
+[exit status 0]
+
+$ diff -rq -x .git <scratch>/deps/imgui-src <main tree>/build/macos-debug/_deps/imgui-src
+[exit status 0]
+
+$ git -C <main tree>/build/macos-debug/_deps/imgui-src log -1 --format=%H %cs
+97428e8ac99e339ce05eee531cf55b77b29ea709 2025-03-14
+[exit status 0]
+
+$ diff -rq -x .git <scratch>/deps/miniaudio-src <main tree>/build/macos-debug/_deps/miniaudio-src
+[exit status 0]
+
+$ git -C <main tree>/build/macos-debug/_deps/miniaudio-src log -1 --format=%H %cs
+9634bedb5b5a2ca38c1ee7108a9358a4e233f14d 2026-03-04
+[exit status 0]
+
+$ diff -rq -x .git <scratch>/deps/nfd-src <main tree>/build/macos-debug/_deps/nfd-src
+[exit status 0]
+
+$ git -C <main tree>/build/macos-debug/_deps/nfd-src log -1 --format=%H %cs
+86d5f2005fe1c00747348a12070fec493ea2407e 2024-08-03
+[exit status 0]
+
+$ diff -rq -x .git <scratch>/deps/pugixml-src <main tree>/build/macos-debug/_deps/pugixml-src
+[exit status 0]
+
+$ git -C <main tree>/build/macos-debug/_deps/pugixml-src log -1 --format=%H %cs
+db78afc2b7d8f043b4bc6b185635d949ea2ed2a8 2023-09-07
+[exit status 0]
+
+$ diff -rq -x .git <scratch>/deps/stb-src <main tree>/build/macos-debug/_deps/stb-src
+[exit status 0]
+
+$ git -C <main tree>/build/macos-debug/_deps/stb-src log -1 --format=%H %cs
+a7d4c2175630e1ea5b6f8dd00ab96fed0b97b96d 2026-10-19
+[exit status 0]
+
