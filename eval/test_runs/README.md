@@ -24,6 +24,7 @@ Local paths appear as `<repo>`, `<home>`, `<tmp>` and `<scratch>`.
 | `macos-2026-10-27-57b5ea5.txt` | `57b5ea555a6cacc29533fcb5a8e8c791cb0adf6c` (`vmaf/phase-2`) | `mirage_tests '~[audio]'`: all tests passed, 112445 assertions in 325 test cases, at the first run; the Python suites: 28, 136, 11, 16 and 8 tests, all OK (P-074) |
 | `macos-2026-10-29-93acc4d.txt` | `93acc4dca8b5863c08de86fba8164c7b85ddb9dc` (`vmaf/phase-2`) | `mirage_tests '~[audio]'`: all tests passed, 118170 assertions in 335 test cases, at the first run; the Python suites: 28, 136, 11, 16 and 14 tests, all OK; load averages 4.92, 7.75 and 15.31 at the start (P-077) |
 | `macos-2026-10-29-90153d6.txt` | `90153d6858ae1ec02411d883ed7e56c39c7fb67a` (`vmaf/phase-2`) | `mirage_tests '~[audio]'`: all tests passed, 118740 assertions in 348 test cases, at the first run; the Python suites: 28, 136, 11, 16 and 14 tests, all OK; load averages 4.65, 4.82 and 5.15 at the start; macOS 26.6.2 (25G83) (P-078) |
+| `macos-2026-11-04-2f81afe.txt` | `2f81afe` (`vmaf/phase-3`) | `mirage_tests '~[audio]'`: all tests passed, 325575 assertions in 533 test cases, at the first run; ctest: 546 of 546 passed; the Python suites: 28, 136, 11, 16 and 14 tests, OK. A ctest run before it failed one test, the Demuxer's seamless switches, which then passed in five runs of its own and the next ctest run: `macos-2026-11-04-2f81afe-demuxer.txt` (P-082) |
 
 ## Repeated runs of one test (P-031)
 

@@ -863,6 +863,24 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: owner, adopting the agent's recommendation
 - **Date**: 2026-11-03
 
+### D-086 A variant refused under D-081 (c) keeps none of the demux pass's frame facts
+
+- **Decision**: a variant whose frames don't all match the demux pass, which D-081 (c) leaves without a segment map and its segment-bound events, also keeps none of the pass's keyframes, corrupt packets or PTS: its media holds only the reason it was refused, with D-081 (c)'s warning (Q45, a question the implementation of WP06 raised).
+- **Owner's words**, translated by the agent: "Leave them out too (Recommended)".
+- **Alternatives**: keep its keyframe and corrupt-packet events, placed by the pass's frame order.
+- **Rationale**: those positions are in a frame order that the report contradicts, and D-081 places nothing it can't place exactly; D-069's ladders are never refused.
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-04
+
+### D-087 Cue-outs don't nest
+
+- **Decision**: a cue_out that another cue_out follows before any cue_in has no cue_in: it ends at the duration it declares, under D-076's order, or makes no ad_break and gets a warning; the later cue_out pairs with the next cue_in. No ad_break spans another, as a vendor's early notice before the cue-out proper would otherwise make (Google Video Stitcher's `X-TYPE="EABN"`) (Q46, a question the implementation of WP04 raised).
+- **Owner's words**, translated by the agent: "They don't nest (Recommended)".
+- **Alternatives**: each cue_out paired with the first cue_in after it, so that two breaks end at the same cue_in, one spanning the other, as the design's §5.5 reads literally.
+- **Rationale**: a break that spans another would list the second's cues as the first's; a cue_out without its own cue_in keeps its declared duration.
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-04
+
 ---
 
 ## Measurement / process choices (proposed by the agent, confirmed by the owner)
@@ -2393,4 +2411,25 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - The check of the documents' drafts (`eval/phase3-survey/review-docs/verify.md`) found three statements false against the records they cite and six minor issues, no blocker; the documents committed are corrected for all of them (`docs/PHASE3_SURVEY.md`).
 - **Who**: agent
 - **Date**: 2026-11-02
+- **Status**: pending owner confirmation
+
+### P-082 How round 1's first packages are built: WP00a, WP01, WP02, WP03, WP04, WP06 and WP10, and the design's process choices they use
+
+- **Choice**
+  - Each package of `eval/phase3-survey/design.md` §14 was built by an agent of the agent's in a worktree of its own, on a branch from `vmaf/phase-3`, and merged by the agent onto `vmaf/phase-3` (the design's P-AH): WP00a first and alone, the files of round 1 and of D-068's and D-070's round-2 modules as empty compiling files with their CMake lines and the declarations the later packages share (`3520ee4`, the design's P-C and P-AG); then WP01, WP02, WP03, WP04, WP06 and WP10 at the same time, each against WP00a's declarations, adding to the shared headers it owns and changing nothing they already declared. Two more agents reviewed them, three packages each, reading only; each package then had the reviews' fixes folded into its one commit by an agent, and the agent cherry-picked the six onto `vmaf/phase-3` after `main`'s merge (`dc6f4aa`): `aac47ed` (WP01), `16e13f7` (WP02), `3922c95` (WP03), `20ff699` (WP04), `c56d537` (WP06), `2f81afe` (WP10). Two of the reviews' findings were the owner's to answer, Q45 and Q46 (D-086, D-087), and one is a question of round 2, Q47.
+  - The design's process choices these packages use, as built:
+    - P-A, exact arithmetic: positions are int64 frame indices, PTS int64 ticks; the axis reads each EXTINF, which `hls::MediaTimeline` gives as a double, to the nanosecond, on a tick base common to the time base, the frame duration and the EXTINF, and bounds every position by the frames its pair read (WP01). The ladder report's PTS are recovered from its seconds exactly below 2^49 ticks (WP03).
+    - P-B: the core includes libavutil at most; only `src/TimelineMedia.cpp` opens inputs.
+    - P-D and P-F, the demux pass (WP06): each scored playlist read with its URL, location and SHA-256, and demuxed with its own recorder, which feeds a `vmafsegments::SegmentWatch` so that a file is lost exactly when the analyzer would lose it. A segment's bytes are counted as `avio_tell()` at its close less where its reads began, not as P-F's text says (`AVIOContext::bytes_read`), which counts the bytes the context read ahead past a byte range's end; over HTTP that count is tested in no ctest test until `tests/HttpFileServer.h` (WP07's) answers a Range header. A playlist with `EXT-X-MAP` or `EXT-X-KEY` gets no segment map: the files its initialization section or key opens aren't segments.
+    - P-G: packets to segments by byte position, frames in PTS order within a segment, every scored frame's PTS checked against the report; a variant that fails is refused under D-081 (c) and D-086.
+    - P-I and P-J: the canonical order (start, end, source in §3.1's order, type, variant, id), ids written `<source>/<type>/<variant>/<n>`, and the overlap index, a running maximum of ends over the events sorted by start, which `Timeline::build_index()` builds and every change to the events must rebuild (WP01).
+    - P-Q and P-U: the generator ported from testgen and compiled at `-O2` in every build type (WP00a, WP10); a ladder made once per media directory, so once per test case under ctest; `MIRAGE_KEEP_MEDIA` keeps each test case's media under a directory named from the test case's name, its characters outside `[A-Za-z0-9._-]` written `_`, and refuses a directory that isn't empty. WP10's test file makes more ladders than the design's §9.5 counts: besides the design's case, which makes one ladder twice, four cases make one each (the degraded ladder, the ads from 1 s and with continuous timestamps, and the encoder the build doesn't default to).
+    - P-T: test cases tagged `[timeline]` and their module's name.
+    - P-Y and P-Z (WP03): a JSON reader that keeps objects in order, refuses duplicate keys, nests at most 128 deep, reads numbers with `std::from_chars` and skips a byte order mark; the scores digest's canonical text, compact JSON with a version marker, PTS as ticks, covering every field the reader keeps but the paths.
+    - P-AK: the quote check of every new file and commit message.
+- **Alternatives**: the packages one after another in one worktree, which the design's §14 avoids so that each one's files have one owner; the reviews' fixes as commits of their own, where each package keeps one commit; P-F's count of the bytes read; a test file with the design's ladder case only.
+- **Rationale**: the shared declarations let six packages build at once without touching each other's files, and the reviews read each package against the design and the decisions before it merged. The byte count follows what FFmpeg's demuxer reads, which a test of four byte ranges of one file showed differs from what the context read.
+- **Result** (`eval/test_runs/macos-2026-11-04-2f81afe.txt`, at `2f81afe`): `mirage_tests '~[audio]'` passed at the first run, 325575 assertions in 533 test cases; ctest passed 546 of 546; the five Python suites passed, 28, 136, 11, 16 and 14 tests. Before that record, a ctest run at the same commit failed one test of 546, the Demuxer's seamless switches on a local file (`tests/test_demuxer_switch.cpp:492`: an audio packet's PTS of 5.25 s against a bound of 4.85 s plus 0.5), with load averages of 23.28, 18.02 and 15.30 just after; that test has failed now and then before (D-039), and passed in five runs of its own and in the next ctest run (`eval/test_runs/macos-2026-11-04-2f81afe-demuxer.txt`).
+- **Who**: agent
+- **Date**: 2026-11-04
 - **Status**: pending owner confirmation

@@ -6,7 +6,7 @@ What is open for the owner on `vmaf/phase-3`, §3 of the VMAF work order (the un
 
 44 questions, Q01 to Q44, in three rounds: 27 in round 1, the answers the work packages on the path to §3.2's two acceptance tests need before they start; 9 in round 2, those of sessions, the session fetch, the decoded SCTE-35 messages and the composite example; 8 in round 3, those of the UI, the conditional and later packages, and the differences to report. A question's round is the earliest round of the packages it blocks, and a round's packages start once all of its questions are answered (`eval/phase3-survey/design.md` §12, §14). Q26, Q39, Q43 and Q44 are answered item by item, an item's options numbered: "Q43 (c) 2". The questions marked D-007 (Q01, Q08, Q09, Q10, Q13, Q36, Q37 and Q41) have an answer that is, or includes, an approval or a ruling under D-007. "Blocks" names the work packages that wait for the answer; the packages are listed at the end. After the questions come the differences from the work order to report, and the agent's proposed process choices, to be recorded from P-082 on.
 
-The questions are the design's (`eval/phase3-survey/design/owner_questions.json`), rendered by `eval/phase3-survey/tools/render_pending.py` with the design's paths written as the repository has them and nothing else changed. They are as the design's revision 3 left them, after the third review's seven minor issues (`eval/phase3-survey/review-3/review.md`; `eval/phase3-survey/design/revision-3.md`). The owner's answers are marked here as each round's come in. Round 1's 27 questions were answered on 2026-11-02, every one as the agent recommends (D-071 to D-081); each is marked below. Rounds 2 and 3 are open.
+The questions are the design's (`eval/phase3-survey/design/owner_questions.json`), rendered by `eval/phase3-survey/tools/render_pending.py` with the design's paths written as the repository has them and nothing else changed. They are as the design's revision 3 left them, after the third review's seven minor issues (`eval/phase3-survey/review-3/review.md`; `eval/phase3-survey/design/revision-3.md`). The owner's answers are marked here as each round's come in. Round 1's 27 questions were answered on 2026-11-02, every one as the agent recommends (D-071 to D-081); each is marked below. Rounds 2 and 3 are open. Building round 1's first packages raised three more questions, Q45 to Q47, after round 3 below: the owner answered Q45 and Q46 on 2026-11-04 as the agent recommends (D-086, D-087), and Q47 joins round 2.
 
 ### Round 1: the path to §3.2's two acceptance tests (27 questions)
 
@@ -1091,6 +1091,50 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 **Why.** Each follows from decided items or facts of the code, and reporting them is the work order's rule; correcting a Phase 0 document is a separate call the owner can make with (b).
 
 **Blocks.** WP15b.
+
+## Questions raised by the implementation
+
+Questions that round 1's packages met and the design doesn't settle, each of whose answers changes an output. They continue the design's numbering.
+
+#### Q45. A variant refused under D-081 (c): its keyframes and corrupt packets
+
+*Round 1.* Raised by WP06.
+
+**Question.** D-081 (c) leaves a variant whose frames don't all match the demux pass without a segment map and its segment-bound events. Its keyframes and corrupt packets are placed by the pass's frame order, which the report contradicts. Are they kept?
+
+- **1. Left out too.** The refused variant's media holds only the reason; nothing is placed that can't be placed exactly.
+- **2. Kept, placed by the pass's frame order.** They may sit off their frames.
+
+**Agent's recommendation.** 1.
+
+**Answered** on 2026-11-04: 1, as the agent recommends (`docs/DECISIONS.md` D-086).
+
+#### Q46. Two cue-outs before a cue-in
+
+*Round 1.* Raised by WP04.
+
+**Question.** A playlist can have a second `EXT-X-CUE-OUT` before any `EXT-X-CUE-IN`, as Google Video Stitcher's early notice (`X-TYPE="EABN"`) before the cue-out proper. How are the ad breaks paired?
+
+- **1. They don't nest.** The first cue_out ends at its declared duration, or makes no break with a warning; the second pairs with the next cue_in.
+- **2. Each with the next cue_in.** Both breaks end at the same cue_in, one spanning the other, as the design's §5.5 reads literally.
+
+**Agent's recommendation.** 1.
+
+**Answered** on 2026-11-04: 1, as the agent recommends (`docs/DECISIONS.md` D-087).
+
+#### Q47. An `EXT-X-DATERANGE` with a malformed attribute and an SCTE-35 message
+
+*Round 2.* Raised by WP04's review; it decides what the SCTE-35 decoder (WP05) receives.
+
+**Question.** WP04 treats an `EXT-X-DATERANGE` as malformed when its attribute list doesn't parse or an attribute isn't of the type RFC 8216 §4.3.2.7 gives it (Wowza's unquoted `START-DATE`, `eval/phase3-survey/scte35.md` §2.5): the tag is kept raw with the reason, and none of its `SCTE35-*` messages is handed on. A `DATERANGE` without `ID` or `START-DATE`, which the RFC requires, is not refused, and the attribute-list reader accepts blanks around `,` and lowercase letters or `_` in names, which RFC 8216 §4.2 doesn't allow (`src/PlaylistEvents.cpp`). Which rule applies?
+
+- **1. Strict.** A malformed `DATERANGE` hands on no message, and one without `ID` or `START-DATE` is malformed too.
+- **2. Lenient for the messages.** Each `SCTE35-*` attribute that is itself a well-formed hexadecimal sequence is handed on with a warning, even when another attribute is malformed.
+- **3. As it is now.** Malformed tags hand on nothing; `ID` and `START-DATE` aren't required.
+
+**Agent's recommendation.** 2: the messages are what D-070 asks Phase 3 to read, and a vendor's malformed date says nothing about its message; the warning keeps the doubt visible.
+
+**Blocks.** WP05.
 
 ## Differences from the work order, to report
 
