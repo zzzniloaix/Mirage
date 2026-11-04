@@ -2754,6 +2754,11 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 logger::warn("switch: no decoder for {} (stream {}): the switch to {} ended, the track stays {}",
                              codec, failed, p->what, stays);
             }
+            // That video stream stays blank: no frame will come, so a seek
+            // does not wait for one, nor does the stall check below say
+            // "Buffering".
+            const bool video_blank = cur_video_stream >= 0 && cur_video_stream == ms.video_open_failed.load();
+            if (seek_wait && video_blank) seek_wait = false;
 
             // Give up waiting visibly after a while; playback keeps trying.
             static constexpr auto kSwitchTimeout = std::chrono::seconds(20);
@@ -2772,7 +2777,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             static constexpr double kShowAfter = 0.25;
             // (Not right after a seek / switch woke the demuxer at the end:
             // the last frame was presented long ago, but nothing is late.)
-            const bool stalled = !paused && !scrubbing && has_frame && !demuxer.ended()
+            const bool stalled = !paused && !scrubbing && has_frame && !demuxer.ended() && !video_blank
                 && secs(demux_resumed_at) >= kShowAfter
                 && frameq.size() == 0
                 && secs(last_present) > std::max(0.5, 2.5 * last_frame_dur / std::max(cur_speed, 0.25));
