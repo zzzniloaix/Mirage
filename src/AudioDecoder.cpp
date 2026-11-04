@@ -143,8 +143,9 @@ bool AudioDecoder::update_resampler(const AVFrame* f, AudioPlayer& player)
     }
     if (ret >= 0) ret = swr_init(swr_);
     if (ret < 0) {
-        // Until the input changes again: its frames are dropped (silence).
-        logger::error("AudioDecoder: no resampler for {} Hz {} {}: {} — dropping its audio",
+        // Until the input changes again: decode() plays its frames' time as
+        // silence.
+        logger::error("AudioDecoder: no resampler for {} Hz {} {}: {} — silence in its place",
                       f->sample_rate, layout, fmt ? fmt : "?", av_error_text(ret));
         swr_free(&swr_);
         return false;
@@ -377,9 +378,23 @@ void AudioDecoder::pull_filter_output(AudioPlayer& player)
 
 void AudioDecoder::push_silence(const AVPacket* pkt, AudioPlayer& player)
 {
-    if (!pkt || pkt->pts == AV_NOPTS_VALUE || !swr_frame_) return;
+    if (!pkt || pkt->pts == AV_NOPTS_VALUE) return;
     const double start = pkt->pts * av_q2d(time_base_);
-    const double end   = start + (pkt->duration > 0 ? pkt->duration * av_q2d(time_base_) : 0.0);
+    push_silence(start, start + (pkt->duration > 0 ? pkt->duration * av_q2d(time_base_) : 0.0), player);
+}
+
+void AudioDecoder::push_silence(const AVFrame* f, AudioPlayer& player)
+{
+    if (!f || f->pts == AV_NOPTS_VALUE) return;
+    const double start = f->pts * av_q2d(time_base_);
+    const double len   = f->sample_rate > 0 ? static_cast<double>(f->nb_samples) / f->sample_rate
+                       : f->duration > 0    ? f->duration * av_q2d(time_base_) : 0.0;
+    push_silence(start, start + len, player);
+}
+
+void AudioDecoder::push_silence(double start, double end, AudioPlayer& player)
+{
+    if (!swr_frame_) return;
     double from = silent_ ? silent_until_ : start;
     if (start_at_ >= 0.0) from = std::max(from, start_at_);
     silent_until_ = silent_ ? std::max(silent_until_, end) : end;
@@ -416,7 +431,10 @@ void AudioDecoder::decode(AVPacket* pkt, AudioPlayer& player)
     while (decoder_.pull(frame_)) {
         if (tap_) tap_->on_frame(frame_, time_base_);
         // Resample to float stereo, with a resampler made for this frame.
+        // None can be made: the frame's time as silence, so the audio clock
+        // goes on.
         if (!update_resampler(frame_, player)) {
+            push_silence(frame_, player);
             av_frame_unref(frame_);
             continue;
         }
@@ -479,6 +497,7 @@ void AudioDecoder::decode(AVPacket* pkt, AudioPlayer& player)
             }
 
             push_to_filter(swr_frame_, player);
+            silent_ = false;   // a later silence starts at its own frame
         }
 
         av_frame_unref(frame_);

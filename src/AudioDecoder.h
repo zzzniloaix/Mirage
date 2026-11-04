@@ -120,7 +120,7 @@ private:
     bool   pts_inited_     = false;
     double start_at_       = -1.0;   // start_at()
     // push_silence(): where the silence pushed so far ends (media seconds);
-    // reset by flush() / reopen().
+    // reset by flush() / reopen() and by decoded audio pushed.
     bool   silent_         = false;
     double silent_until_   = 0.0;
 
@@ -141,13 +141,16 @@ private:
 
     // A resampler for frame `f`: the one there, or a new one when f's input
     // or downmix levels differ (the old one drained into player first).
-    // False when none can be made for it (the frame is dropped).
+    // False when none can be made for it (decode() pushes its time as silence).
     [[nodiscard]] bool update_resampler(const AVFrame* f, AudioPlayer& player);
     void drain_resampler(AudioPlayer& player);
     void free_resampler();
 
     // decode() without a decoder: silence up to the end of `pkt` (to its
-    // start when it has no duration), from where the last silence ended or,
-    // for the first, from the packet's start; nothing before start_at().
+    // start when it has no duration). A frame no resampler takes: silence
+    // for its samples. Either from where the last silence ended or, for the
+    // first, from the packet's or frame's start; nothing before start_at().
     void push_silence(const AVPacket* pkt, AudioPlayer& player);
+    void push_silence(const AVFrame* f, AudioPlayer& player);
+    void push_silence(double start, double end, AudioPlayer& player);
 };

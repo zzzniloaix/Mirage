@@ -150,6 +150,38 @@ TEST_CASE("AudioDecoder: a track with no decoder plays as silence, the clock goi
     avcodec_parameters_free(&none);
 }
 
+TEST_CASE("AudioDecoder: frames no resampler takes play as silence, the clock going on", "[audio]")
+{
+    // 65 channels, more than swr mixes: the decoder opens, but no resampler
+    // can be made for its frames, so their time is silence.
+    AVCodecParameters* par = avcodec_parameters_alloc();
+    par->codec_type  = AVMEDIA_TYPE_AUDIO;
+    par->codec_id    = AV_CODEC_ID_PCM_S16LE;
+    par->sample_rate = kRate;
+    par->format      = AV_SAMPLE_FMT_S16;
+    av_channel_layout_default(&par->ch_layout, 65);
+    AudioPlayer player;
+    player.init_ring(kRate);
+    AudioDecoder dec;
+    REQUIRE(dec.open(par, player, { 1, kRate }));
+    for (int i = 0; i < 4; ++i) {                // 0 .. 40 ms, every sample 0x1111
+        AVPacket* pkt = av_packet_alloc();
+        REQUIRE(av_new_packet(pkt, kPkt * 65 * 2) >= 0);
+        std::fill_n(pkt->data, pkt->size, std::uint8_t{ 0x11 });
+        pkt->pts = pkt->dts = i * kPkt;
+        pkt->duration = kPkt;
+        dec.decode(pkt, player);
+        av_packet_free(&pkt);
+    }
+    CHECK_THAT(player.buffered_seconds(), WithinAbs(0.040, 1e-9));
+    std::vector<float> out(static_cast<std::size_t>(4 * kPkt) * 2);
+    player.fill_buffer(out.data(), 4 * kPkt);
+    CHECK(*std::max_element(out.begin(), out.end()) == 0.0f);
+    CHECK(*std::min_element(out.begin(), out.end()) == 0.0f);
+    CHECK_THAT(player.clock(), WithinAbs(0.040, 1e-9));
+    avcodec_parameters_free(&par);
+}
+
 // ── The downmix to stereo ─────────────────────────────────────────────────────
 
 namespace {
