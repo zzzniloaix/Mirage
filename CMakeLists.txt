@@ -332,6 +332,7 @@ add_executable(mirage_tests
     tests/test_sync.cpp
     tests/test_audio_player.cpp
     tests/test_audio_decoder.cpp
+    tests/test_decoder.cpp
     tests/test_queue.cpp
     tests/test_ui_format.cpp
     tests/test_thumb_plan.cpp

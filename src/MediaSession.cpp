@@ -172,7 +172,13 @@ static void video_decode_loop(Decoder& decoder,
             av_frame_free(&last_skipped);
             // If this sentinel followed a video stream switch, reopen the decoder.
             if (reopen) {
-                (void)decoder.open(demuxer.video_codecpar(), try_hw);
+                // On failure the decoder takes the new stream's packets and
+                // gives no frame (Decoder::open): the picture stays as it is.
+                if (!decoder.open(demuxer.video_codecpar(), try_hw))
+                    logger::error("switch: no video decoder could be opened for stream {} ({}) — "
+                                  "nothing from it can be shown",
+                                  demuxer.video_stream_index(),
+                                  avcodec_get_name(demuxer.video_codecpar()->codec_id));
                 skipping_unref = false;   // a new codec context
                 tb     = demuxer.video_time_base();
                 stream = demuxer.video_stream_index();
@@ -272,8 +278,14 @@ static void audio_decode_loop(AudioDecoder&     audio_decoder,
             }
             // If this sentinel followed an audio stream switch, reopen the decoder.
             if (reopen) {
-                (void)audio_decoder.reopen(demuxer.audio_codecpar(), audio_player,
-                                           demuxer.audio_time_base());
+                // On failure the decoder takes the new stream's packets and
+                // gives no audio (Decoder::open): the track stays silent.
+                if (!audio_decoder.reopen(demuxer.audio_codecpar(), audio_player,
+                                          demuxer.audio_time_base()))
+                    logger::error("switch: no audio decoder could be opened for stream {} ({}) — "
+                                  "the track stays silent",
+                                  demuxer.audio_stream_index(),
+                                  avcodec_get_name(demuxer.audio_codecpar()->codec_id));
                 reopened_stream = demuxer.audio_stream_index();
                 logger::info("switch-trace: audio decoder reopened (t={:.3f})", logger::uptime());
             }
@@ -902,6 +914,10 @@ PipelineSnapshot MediaSession::pipeline_snapshot() const
     s.video_in  = video_stats.packets.load(std::memory_order_relaxed);
     s.video_out = video_stats.frames.load(std::memory_order_relaxed);
     s.hw        = video_decoder.is_hw_active();
+    const Decoder::Errors ve = video_decoder.errors();
+    s.video_errors    = ve.errors;
+    s.video_hw_errors = ve.hw_run_max > 0;
+    if (ve.errors > 0) s.video_last_error = av_error_text(ve.last);
 
     s.has_audio = has_audio;
     if (has_audio) {

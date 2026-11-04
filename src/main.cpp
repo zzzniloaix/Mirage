@@ -2877,10 +2877,15 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         // ── Stream inspector (I key) ──────────────────────────────────────
         if (s_show_inspector.load()) {
             // Refresh the Decode line so it flips to "VideoToolbox" once the
-            // first HW frame lands (hw_active_ turns on inside Decoder::pull).
+            // first HW frame lands (hw_active_ turns on inside Decoder::pull),
+            // with the decode errors so far.
             if (decode_line_idx < inspector_lines.size()) {
+                const std::string errs = describe_decode_errors(video_decoder.errors());
                 inspector_lines[decode_line_idx].text =
-                    std::format("  Decode   {}", video_decoder.hw_type_name());
+                    std::format("  Decode   {}{}{}",
+                                video_decoder.is_open() ? video_decoder.hw_type_name()
+                                                        : "no decoder open (see the log)",
+                                errs.empty() ? "" : ": ", errs);
             }
             debug_hud.draw_inspector(inspector_lines, fb_av_w, fb_h, global_ps);
         }
@@ -3710,20 +3715,29 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                                        kKind[st.kind], st.speed, st.at_sec);
                 std::string fname = std::filesystem::path(open_path).filename().string();
                 std::erase_if(fname, [](char c) { return c == '"' || c == '\\'; });  // keep JSON valid
+                // Decode errors since the media opened (not since qa_t0: a
+                // decoder that never gives a frame fails before it).
+                const Decoder::Errors ve = video_decoder.errors();
+                std::string last_err = ve.errors > 0 ? av_error_text(ve.last) : std::string();
+                std::erase_if(last_err, [](char c) { return c == '"' || c == '\\'; });
                 std::ofstream f(av_report_path);
                 f << std::format(
                     "{{\n  \"file\": \"{}\",\n  \"initial_speed\": {},\n  \"speed_seq\": [{}],\n"
                     "  \"started\": {},\n  \"wall_s\": {:.3f},\n  \"hw_decode\": {},\n"
+                    "  \"video_decode_errors\": {},\n  \"video_decode_last_error\": \"{}\",\n"
+                    "  \"video_corrupt_frames\": {},\n  \"video_hw_error_run_max\": {},\n"
                     "  \"has_audio\": {},\n  \"audio_output_latency_s\": {:.4f},\n"
                     "  \"audio_underruns\": {},\n  \"audio_silent_frames\": {},\n"
-                    "  \"audio_dropped_frames\": {},\n"
+                    "  \"audio_dropped_frames\": {},\n  \"audio_decode_errors\": {},\n"
                     "  \"overall\": {},\n  \"segments\": [\n    {}\n  ]\n}}\n",
                     fname, cli_speed, req,
-                    qa_started, t, video_decoder.is_hw_active(), has_audio,
+                    qa_started, t, video_decoder.is_hw_active(),
+                    ve.errors, last_err, ve.corrupt, ve.hw_run_max, has_audio,
                     has_audio ? audio_player.output_latency_seconds() : 0.0,
                     has_audio ? audio_player.underrun_count() - qa_underruns0     : 0,
                     has_audio ? audio_player.silent_frames()  - qa_silent0        : 0,
                     has_audio ? audio_player.dropped_frames() - qa_dropped_audio0 : 0,
+                    has_audio ? audio_decoder.decode_errors().errors : 0,
                     av_segment_json(av_total), segs);
                 logger::info("--av-report: wrote {} ({:.1f} s, {} frames)",
                              av_report_path, t, av_total.presented);

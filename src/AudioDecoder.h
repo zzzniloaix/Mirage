@@ -60,6 +60,9 @@ public:
     // before the decode thread starts; null = none.
     void set_tap(LoudnessTap* tap) { tap_ = tap; }
 
+    // The audio codec's decode errors (Decoder::errors). Any thread.
+    Decoder::Errors decode_errors() const { return decoder_.errors(); }
+
 private:
     LoudnessTap* tap_ = nullptr;
     Decoder     decoder_;
