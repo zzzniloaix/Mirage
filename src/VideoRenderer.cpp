@@ -2,8 +2,12 @@
 #include "Logger.h"
 #include "YuvMatrix.h"
 
+#include <string>
+
 extern "C" {
 #include <libswscale/swscale.h>
+#include <libavutil/error.h>
+#include <libavutil/hwcontext.h>
 #include <libavutil/imgutils.h>
 #include <libavutil/pixdesc.h>
 }
@@ -55,8 +59,9 @@ void main() {
 //
 // Two rectangle textures: Y (single channel) + CbCr (two channels). Sampled
 // with non-normalized coords via textureSize(). YUV→RGB uses a precomputed
-// matrix + offset uniform (baked for the stream's colorspace + range +
-// bit depth), so the shader is agnostic to BT.601/709/2020 or 8/10-bit.
+// matrix + offset uniform (baked for the interpretation's colorspace + range
+// and the bound buffers' depth), so the shader is agnostic to BT.601/709/2020
+// or 8/10/16-bit.
 //
 // SDR variant: matrix output is display-referred BT.709 sRGB-encoded linear
 // approximation (matrix already includes the standard limited-range scaling).
@@ -265,14 +270,32 @@ static int av_cs_to_sws(AVColorSpace cs)
     }
 }
 
-// Map AVColorTransferCharacteristic to our HDR mode (0=PQ, 1=HLG, -1=SDR).
-static int detect_hdr_mode(AVColorTransferCharacteristic trc)
+static const char* matrix_name(AVColorSpace cs)
 {
-    switch (trc) {
-        case AVCOL_TRC_SMPTE2084:    return 0;   // PQ
-        case AVCOL_TRC_ARIB_STD_B67: return 1;   // HLG
-        default:                     return -1;
-    }
+    return cs == AVCOL_SPC_BT709                                  ? "BT.709"  :
+           cs == AVCOL_SPC_BT2020_NCL || cs == AVCOL_SPC_BT2020_CL ? "BT.2020" : "BT.601";
+}
+
+static const char* name_or(const char* n) { return n ? n : "?"; }
+
+// An interpretation's tags, for the log: "matrix=bt709 range=tv trc=bt709 primaries=bt709".
+static std::string interpretation_text(const ColourInterpretation& i)
+{
+    return std::format("matrix={} range={} trc={} primaries={}",
+        name_or(av_color_space_name(i.cs)), name_or(av_color_range_name(i.range)),
+        name_or(av_color_transfer_name(i.trc)), name_or(av_color_primaries_name(i.primaries)));
+}
+
+static const char* hdr_mode_name(int mode)
+{
+    return mode == 0 ? "HDR PQ" : mode == 1 ? "HDR HLG" : "SDR";
+}
+
+// A CVPixelBuffer pixel format as its four characters ('x420').
+static std::string fourcc_text(std::uint32_t pf)
+{
+    return { static_cast<char>(pf >> 24), static_cast<char>(pf >> 16),
+             static_cast<char>(pf >> 8),  static_cast<char>(pf) };
 }
 
 // ── VideoRenderer ─────────────────────────────────────────────────────────────
@@ -282,6 +305,7 @@ VideoRenderer::~VideoRenderer()
     if (sws_)          sws_freeContext(sws_);
     if (converted_)    av_frame_free(&converted_);
     if (hw_frame_ref_) av_frame_free(&hw_frame_ref_);
+    if (hw_copy_)      av_frame_free(&hw_copy_);
     if (tex_)          glDeleteTextures(1, &tex_);
     if (y_tex_)        glDeleteTextures(1, &y_tex_);
     if (uv_tex_)       glDeleteTextures(1, &uv_tex_);
@@ -296,95 +320,154 @@ bool VideoRenderer::init(int width, int height, AVPixelFormat src_fmt,
                          AVColorTransferCharacteristic trc,
                          AVColorPrimaries              primaries)
 {
-    src_w_     = width;
-    src_h_     = height;
-    trc_       = trc;
-    primaries_ = primaries;
+    src_w_ = width;
+    src_h_ = height;
 
-    hdr_mode_ = detect_hdr_mode(trc);
+    // The stream's tags; upload() follows each frame's own from there.
+    // interpret() defaults an untagged matrix: BT.2020 NCL for HDR, and for
+    // SDR a resolution-based heuristic (HD → BT.709, SD → BT.601).
+    tags_     = { colorspace, color_range, trc, primaries };
+    interp_   = interpret(tags_, width, height);
+    hdr_mode_ = hdr_mode_of(interp_.trc);
     hdr_      = (hdr_mode_ >= 0);
 
-    // For HDR, default colorspace to BT.2020 NCL when stream doesn't tag it.
-    // For SDR, fall back to resolution-based heuristic (HD → BT.709, SD → BT.601).
-    if (colorspace == AVCOL_SPC_UNSPECIFIED) {
-        colorspace = hdr_
-            ? AVCOL_SPC_BT2020_NCL
-            : ((width >= 1280 || height >= 720) ? AVCOL_SPC_BT709 : AVCOL_SPC_BT470BG);
-    }
-
-    cs_    = colorspace;
-    range_ = color_range;
-
     if (!build_sws(src_fmt)) return false;
-
-    const AVPixelFormat dst_fmt = hdr_ ? AV_PIX_FMT_RGB48LE : AV_PIX_FMT_RGB24;
-
-    // Staging frame, align=1 → tightly packed (no GL_UNPACK_ROW_LENGTH needed).
-    converted_         = av_frame_alloc();
-    converted_->format = dst_fmt;
-    converted_->width  = width;
-    converted_->height = height;
-    if (av_frame_get_buffer(converted_, 1) < 0) {
-        logger::error("VideoRenderer: av_frame_get_buffer failed");
-        return false;
-    }
-
+    if (!alloc_sw_target())  return false;
     if (!compile_shaders(hdr_)) return false;
 
     glGenVertexArrays(1, &vao_);
+    set_sw_uniforms();
 
-    // Texture format depends on path:
-    //   SDR → GL_RGB8  + GL_UNSIGNED_BYTE
-    //   HDR → GL_RGB16 + GL_UNSIGNED_SHORT
-    glGenTextures(1, &tex_);
-    glBindTexture(GL_TEXTURE_2D, tex_);
-    if (hdr_) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16, width, height, 0,
-                     GL_RGB, GL_UNSIGNED_SHORT, nullptr);
-    } else {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0,
-                     GL_RGB, GL_UNSIGNED_BYTE, nullptr);
-    }
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    glUseProgram(program_);
-    glUniform1i(glGetUniformLocation(program_, "tex_rgb"), 0);
-    if (hdr_)
-        glUniform1i(glGetUniformLocation(program_, "u_hdr_mode"), hdr_mode_);
-
-    const char* cs_name =
-        (colorspace == AVCOL_SPC_BT709)                                  ? "BT.709"  :
-        (colorspace == AVCOL_SPC_BT2020_NCL ||
-         colorspace == AVCOL_SPC_BT2020_CL)                              ? "BT.2020" : "BT.601";
-    const char* trc_name = av_color_transfer_name(trc);
-
-    const bool src_full = (color_range == AVCOL_RANGE_JPEG);
+    const char* trc_name = av_color_transfer_name(interp_.trc);
+    const bool  src_full = (interp_.range == AVCOL_RANGE_JPEG);
     if (hdr_) {
         logger::info("VideoRenderer: {}×{} HDR ({} → RGB48 → GLSL tonemap)  trc={}  matrix={}  {}",
             width, height, pix_fmt_name(src_fmt),
-            trc_name ? trc_name : "?", cs_name,
+            trc_name ? trc_name : "?", matrix_name(interp_.cs),
             src_full ? "full-range" : "limited-range");
     } else {
         logger::info("VideoRenderer: {}×{} SDR ({} → RGB24 sRGB)  matrix={}  {}",
             width, height, pix_fmt_name(src_fmt),
-            cs_name, src_full ? "full-range" : "limited-range");
+            matrix_name(interp_.cs), src_full ? "full-range" : "limited-range");
     }
     return true;
 }
 
-bool VideoRenderer::init_hw_lazy(bool ten_bit)
+bool VideoRenderer::alloc_sw_target()
 {
-    if (hw_shader_built_) return true;
+    // Staging frame, align=1 → tightly packed (no GL_UNPACK_ROW_LENGTH needed).
+    av_frame_free(&converted_);
+    converted_         = av_frame_alloc();
+    converted_->format = hdr_ ? AV_PIX_FMT_RGB48LE : AV_PIX_FMT_RGB24;
+    converted_->width  = src_w_;
+    converted_->height = src_h_;
+    if (av_frame_get_buffer(converted_, 1) < 0) {
+        logger::error("VideoRenderer: av_frame_get_buffer failed");
+        av_frame_free(&converted_);
+        return false;
+    }
 
+    // Texture format depends on path:
+    //   SDR → GL_RGB8  + GL_UNSIGNED_BYTE
+    //   HDR → GL_RGB16 + GL_UNSIGNED_SHORT
+    if (!tex_) {
+        glGenTextures(1, &tex_);
+        glBindTexture(GL_TEXTURE_2D, tex_);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    }
+    glBindTexture(GL_TEXTURE_2D, tex_);
+    if (hdr_) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16, src_w_, src_h_, 0,
+                     GL_RGB, GL_UNSIGNED_SHORT, nullptr);
+    } else {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, src_w_, src_h_, 0,
+                     GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+    }
+    glBindTexture(GL_TEXTURE_2D, 0);
+    return true;
+}
+
+void VideoRenderer::set_sw_uniforms()
+{
+    glUseProgram(program_);
+    glUniform1i(glGetUniformLocation(program_, "tex_rgb"), 0);
+    if (hdr_)
+        glUniform1i(glGetUniformLocation(program_, "u_hdr_mode"), hdr_mode_);
+}
+
+bool VideoRenderer::reconfigure(const ColourInterpretation& next, InterpretationChange change)
+{
+    const ColourInterpretation prev = interp_;
+    const int prev_mode = hdr_mode_;
+    interp_   = next;
+    hdr_mode_ = hdr_mode_of(next.trc);
+    hdr_      = (hdr_mode_ >= 0);
+    logger::info("VideoRenderer: the frame's colour tags change the interpretation: {} → {} ({} → {}{})",
+        interpretation_text(prev), interpretation_text(next), hdr_mode_name(prev_mode), hdr_mode_name(hdr_mode_),
+        change == InterpretationChange::Program ? ": programs rebuilt" : "");
+
+    if (change == InterpretationChange::Program) {
+        // The other fragment shaders, and the staging frame and texture in
+        // the other format (RGB24 / RGB48LE); the HW textures stay.
+        if (!compile_shaders(hdr_)) return false;
+        if (!alloc_sw_target())     return false;
+        if (hw_program_ && !build_hw_program()) return false;
+    }
+    // sws's destination follows the HDR mode, its coefficients the matrix and
+    // range: built again for the format it was built for.
+    if (sws_src_fmt_ != AV_PIX_FMT_NONE && !build_sws(sws_src_fmt_))
+        sws_src_fmt_ = AV_PIX_FMT_NONE;   // retried by the next SW frame
+    set_sw_uniforms();
+    set_hw_uniforms();
+    return true;
+}
+
+bool VideoRenderer::init_hw_lazy()
+{
 #ifdef __APPLE__
+    // Allocate rectangle texture handles. Storage is bound per-frame by
+    // CGLTexImageIOSurface2D, so no glTexImage2D up front.
+    if (!y_tex_) {
+        glGenTextures(1, &y_tex_);
+        glBindTexture(GL_TEXTURE_RECTANGLE, y_tex_);
+        glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_S,     GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_T,     GL_CLAMP_TO_EDGE);
+
+        glGenTextures(1, &uv_tex_);
+        glBindTexture(GL_TEXTURE_RECTANGLE, uv_tex_);
+        glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_S,     GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_T,     GL_CLAMP_TO_EDGE);
+
+        glBindTexture(GL_TEXTURE_RECTANGLE, 0);
+    }
+    return hw_program_ || build_hw_program();
+#else
+    return false;
+#endif
+}
+
+bool VideoRenderer::build_hw_program()
+{
+#ifdef __APPLE__
+    if (hw_program_) {
+        glDeleteProgram(hw_program_);
+        hw_program_ = 0;
+    }
     // Compile HW shader program (separate from the SW program_).
     GLuint vert = compile_shader(GL_VERTEX_SHADER,   kVertSrc);
     GLuint frag = compile_shader(GL_FRAGMENT_SHADER, hdr_ ? kFragHdrHw : kFragSdrHw);
-    if (!vert || !frag) return false;
+    if (!vert || !frag) {
+        if (vert) glDeleteShader(vert);
+        if (frag) glDeleteShader(frag);
+        return false;
+    }
 
     hw_program_ = glCreateProgram();
     glAttachShader(hw_program_, vert);
@@ -392,56 +475,35 @@ bool VideoRenderer::init_hw_lazy(bool ten_bit)
     glLinkProgram(hw_program_);
     GLint ok = 0;
     glGetProgramiv(hw_program_, GL_LINK_STATUS, &ok);
+    glDeleteShader(vert); glDeleteShader(frag);
     if (!ok) {
         char log[512];
         glGetProgramInfoLog(hw_program_, sizeof(log), nullptr, log);
         logger::error("HW shader link failed: {}", log);
-        glDeleteShader(vert); glDeleteShader(frag);
+        glDeleteProgram(hw_program_);
+        hw_program_ = 0;
         return false;
     }
-    glDeleteShader(vert); glDeleteShader(frag);
 
-    // Static uniforms: sampler bindings, YUV→RGB matrix + offset, HDR mode.
+    // Sampler bindings; the matrix, offset and HDR mode are set_hw_uniforms()'.
     glUseProgram(hw_program_);
     glUniform1i(glGetUniformLocation(hw_program_, "tex_y"),  0);
     glUniform1i(glGetUniformLocation(hw_program_, "tex_uv"), 1);
+    return true;
+#else
+    return false;
+#endif
+}
 
-    YuvMat m = make_yuv_matrix(cs_, range_);
+void VideoRenderer::set_hw_uniforms()
+{
+    if (!hw_program_ || !hw_container_bits_) return;   // no HW buffer bound yet
+    glUseProgram(hw_program_);
+    const YuvMat m = make_yuv_matrix(interp_.cs, interp_.range, hw_container_bits_, hw_sample_bits_);
     glUniformMatrix3fv(glGetUniformLocation(hw_program_, "u_yuv2rgb"), 1, GL_FALSE, m.m);
     glUniform3fv(glGetUniformLocation(hw_program_, "u_yuv_offset"), 1, m.offset);
     if (hdr_)
         glUniform1i(glGetUniformLocation(hw_program_, "u_hdr_mode"), hdr_mode_);
-
-    // Allocate rectangle texture handles. Storage is bound per-frame by
-    // CGLTexImageIOSurface2D, so no glTexImage2D up front.
-    glGenTextures(1, &y_tex_);
-    glBindTexture(GL_TEXTURE_RECTANGLE, y_tex_);
-    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_S,     GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_T,     GL_CLAMP_TO_EDGE);
-
-    glGenTextures(1, &uv_tex_);
-    glBindTexture(GL_TEXTURE_RECTANGLE, uv_tex_);
-    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_S,     GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_T,     GL_CLAMP_TO_EDGE);
-
-    glBindTexture(GL_TEXTURE_RECTANGLE, 0);
-
-    hw_shader_built_ = true;
-    logger::info("VideoRenderer: HW zero-copy path ready ({}-bit, {} matrix, {}-range)",
-        ten_bit ? 10 : 8,
-        cs_ == AVCOL_SPC_BT709        ? "BT.709"  :
-        cs_ == AVCOL_SPC_BT2020_NCL ||
-        cs_ == AVCOL_SPC_BT2020_CL    ? "BT.2020" : "BT.601",
-        range_ == AVCOL_RANGE_JPEG ? "full" : "limited");
-    return true;
-#else
-    (void)ten_bit;
-    return false;
-#endif
 }
 
 bool VideoRenderer::upload_hw(AVFrame* frame)
@@ -452,26 +514,50 @@ bool VideoRenderer::upload_hw(AVFrame* frame)
         logger::warn("upload_hw: frame->data[3] is null — cannot access CVPixelBuffer");
         return false;
     }
-    OSType pf = CVPixelBufferGetPixelFormatType(pixbuf);
+    const OSType pf     = CVPixelBufferGetPixelFormatType(pixbuf);
     IOSurfaceRef iosurf = CVPixelBufferGetIOSurface(pixbuf);
-    if (!iosurf) {
-        // Can happen if VT internally software-decoded (e.g. AV1 on M1/M2 without
-        // AV1 HW block) — the CVPixelBuffer is CPU-backed, no IOSurface exists.
-        // Fall back to SW upload path.
-        const char* fourcc = reinterpret_cast<const char*>(&pf);
-        logger::warn("upload_hw: no IOSurface (pixel format '{}{}{}{}') — VT may have SW-decoded; falling back",
-            fourcc[3], fourcc[2], fourcc[1], fourcc[0]);
+    const size_t planes = CVPixelBufferGetPlaneCount(pixbuf);
+    const size_t bpe_y  = iosurf ? IOSurfaceGetBytesPerElementOfPlane(iosurf, 0) : 0;
+    const size_t bpe_uv = iosurf ? IOSurfaceGetBytesPerElementOfPlane(iosurf, 1) : 0;
+
+    // The binding follows the planes' bytes per element: two planes of 1 and
+    // 2 bytes ('420v', '422v', '444v') as R8 / RG8, of 2 and 4 bytes ('x420',
+    // 'x422', 'x444', 'sv44', ...) as R16 / RG16 (hw_container_bits()). Any
+    // other buffer is refused here, before the frame is referenced: a packed
+    // one ('y416', ProRes 4444 with alpha), or one without an IOSurface,
+    // which VT may give when it decoded in software (e.g. AV1 on M1/M2
+    // without an AV1 HW block). upload() converts a CPU copy instead.
+    const int bits = iosurf ? hw_container_bits(planes, bpe_y, bpe_uv) : 0;
+    if (bits == 0) {
+        if (pf != hw_refused_) {
+            hw_refused_ = pf;
+            if (!iosurf)
+                logger::warn("VideoRenderer: '{}' buffers have no IOSurface (VT may have SW-decoded): "
+                             "copied to the CPU and converted by sws", fourcc_text(pf));
+            else
+                logger::warn("VideoRenderer: the HW path refuses '{}' buffers ({} planes, {} and {} bytes per element): "
+                             "copied to the CPU and converted by sws", fourcc_text(pf), planes, bpe_y, bpe_uv);
+        }
         return false;
     }
-    // Two supported VT bi-planar YUV layouts:
-    //   '420v' / '420f' = NV12       (8-bit, video/full range)
-    //   'x420' / 'xf20' = P010 P016  (10-bit, video/full range)
-    const bool ten_bit =
-        (pf == kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange) ||
-        (pf == kCVPixelFormatType_420YpCbCr10BiPlanarFullRange);
 
-    if (!hw_shader_built_) {
-        if (!init_hw_lazy(ten_bit)) return false;
+    const bool new_program = (hw_program_ == 0);
+    if (!init_hw_lazy()) return false;
+
+    // The matrix follows the buffers' depths: uploaded again when their
+    // format changes.
+    if (new_program || pf != hw_format_) {
+        const bool first = (hw_format_ == 0), changed = (pf != hw_format_);
+        hw_format_         = pf;
+        hw_container_bits_ = bits;
+        hw_sample_bits_    = hw_sample_bits(frame->hw_frames_ctx
+            ? reinterpret_cast<const AVHWFramesContext*>(frame->hw_frames_ctx->data)->sw_format
+            : AV_PIX_FMT_NONE, bits);
+        set_hw_uniforms();
+        if (changed)
+            logger::info("VideoRenderer: HW zero-copy path {}'{}' bound as {}, {}-bit samples ({} matrix, {}-range)",
+                first ? "ready: " : "now ", fourcc_text(pf), bits == 16 ? "R16 / RG16" : "R8 / RG8",
+                hw_sample_bits_, matrix_name(interp_.cs), interp_.range == AVCOL_RANGE_JPEG ? "full" : "limited");
     }
 
     // Take a ref so the CVPixelBuffer (and its IOSurface backing) stays alive
@@ -494,9 +580,9 @@ bool VideoRenderer::upload_hw(AVFrame* frame)
     const size_t wc = CVPixelBufferGetWidthOfPlane (pixbuf, 1);
     const size_t hc = CVPixelBufferGetHeightOfPlane(pixbuf, 1);
 
-    const GLenum y_internal  = ten_bit ? GL_R16  : GL_R8;
-    const GLenum uv_internal = ten_bit ? GL_RG16 : GL_RG8;
-    const GLenum sample_type = ten_bit ? GL_UNSIGNED_SHORT : GL_UNSIGNED_BYTE;
+    const GLenum y_internal  = bits == 16 ? GL_R16  : GL_R8;
+    const GLenum uv_internal = bits == 16 ? GL_RG16 : GL_RG8;
+    const GLenum sample_type = bits == 16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_BYTE;
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_RECTANGLE, y_tex_);
@@ -523,6 +609,27 @@ bool VideoRenderer::upload_hw(AVFrame* frame)
 #endif
 }
 
+AVFrame* VideoRenderer::copy_to_cpu(const AVFrame* frame)
+{
+    if (hw_copy_) av_frame_unref(hw_copy_);
+    else          hw_copy_ = av_frame_alloc();
+    if (!hw_copy_) return nullptr;
+    hw_copy_->format = AV_PIX_FMT_NONE;   // the pool's sw_format ('y416' → ayuv64le)
+    int ret = av_hwframe_transfer_data(hw_copy_, frame, 0);
+    if (ret >= 0) ret = av_frame_copy_props(hw_copy_, frame);
+    if (ret < 0) {
+        if (!hw_copy_failed_) {
+            char errbuf[AV_ERROR_MAX_STRING_SIZE];
+            av_strerror(ret, errbuf, sizeof(errbuf));
+            logger::warn("VideoRenderer: copying a VideoToolbox frame to the CPU failed: {}", errbuf);
+        }
+        hw_copy_failed_ = true;
+        return nullptr;
+    }
+    hw_copy_failed_ = false;
+    return hw_copy_;
+}
+
 bool VideoRenderer::build_sws(AVPixelFormat src_fmt)
 {
     if (sws_) {
@@ -541,19 +648,25 @@ bool VideoRenderer::build_sws(AVPixelFormat src_fmt)
 
     const AVPixelFormat dst_fmt = hdr_ ? AV_PIX_FMT_RGB48LE : AV_PIX_FMT_RGB24;
 
+    // SDR: full chroma interpolation, without which the RGB24 of 10-bit
+    // sources falls short of the exact values (plan/engineer_tools_runs/
+    // investigate-2026-11-03/render/results.txt [C4]). HDR goes without: no
+    // flag corrects the RGB48LE output, and SWS_FULL_CHR_H_INT corrupts its
+    // G and B ([C10]).
+    const int flags = hdr_ ? SWS_BILINEAR : (SWS_BILINEAR | SWS_FULL_CHR_H_INT);
     sws_ = sws_getContext(src_w_, src_h_, src_fmt,
                           src_w_, src_h_, dst_fmt,
-                          SWS_BILINEAR, nullptr, nullptr, nullptr);
+                          flags, nullptr, nullptr, nullptr);
     if (!sws_) {
         logger::error("VideoRenderer: sws_getContext failed for src_fmt={}",
             pix_fmt_name(src_fmt));
         return false;
     }
 
-    const bool src_full = (range_ == AVCOL_RANGE_JPEG);
+    const bool src_full = (interp_.range == AVCOL_RANGE_JPEG);
     int ret = sws_setColorspaceDetails(
         sws_,
-        sws_getCoefficients(av_cs_to_sws(cs_)), src_full ? 1 : 0,
+        sws_getCoefficients(av_cs_to_sws(interp_.cs)), src_full ? 1 : 0,
         sws_getCoefficients(hdr_ ? SWS_CS_BT2020 : SWS_CS_ITU709), 1,
         0, 1 << 16, 1 << 16);
     if (ret < 0)
@@ -565,16 +678,29 @@ bool VideoRenderer::build_sws(AVPixelFormat src_fmt)
 
 void VideoRenderer::upload(AVFrame* frame)
 {
+    // The frame's own colour tags first: a specified tag wins over the one
+    // followed so far, an unspecified one keeps it (follow_tags()); a change
+    // of interpretation reconfigures the renderer here, between two draws.
+    tags_ = follow_tags(tags_, { frame->colorspace, frame->color_range, frame->color_trc, frame->color_primaries });
+    const ColourInterpretation next = interpret(tags_, frame->width  > 0 ? frame->width  : src_w_,
+                                                       frame->height > 0 ? frame->height : src_h_);
+    if (const InterpretationChange change = classify_change(interp_, next);
+        change != InterpretationChange::None && !reconfigure(next, change))
+        return;
+
     // Zero-copy HW path: VT frame carries a CVPixelBuffer in data[3].
     // ScrubDecoder still returns SW frames (yuv420p/yuv420p10le), so the same
     // renderer must flip cleanly between the two paths.
-    if (frame->format == AV_PIX_FMT_VIDEOTOOLBOX && upload_hw(frame)) {
-        return;
-    }
     if (frame->format == AV_PIX_FMT_VIDEOTOOLBOX) {
-        // IOSurface bind failed — fall through to SW (won't happen in practice
-        // unless the CoreVideo/CGL path is broken, but keeps the pipeline alive).
-        logger::warn("VideoRenderer: HW upload failed, falling back to SW for this frame");
+        if (upload_hw(frame)) return;
+        // Not bound (a buffer upload_hw refuses, or a Core Video / CGL
+        // error): a CPU copy of the frame takes the SW path. sws accepts the
+        // copy's format for every VideoToolbox buffer tried (results.txt [C8]).
+        frame = copy_to_cpu(frame);
+        if (!frame) {
+            if (hw_frame_ref_) av_frame_free(&hw_frame_ref_);
+            return;
+        }
     }
 
     // SW path — release any stale HW ref so draw() dispatches to the SW program
@@ -589,19 +715,7 @@ void VideoRenderer::upload(AVFrame* frame)
         logger::info("VideoRenderer: frame size changed {}×{} → {}×{}", src_w_, src_h_, frame->width, frame->height);
         src_w_ = frame->width;
         src_h_ = frame->height;
-        av_frame_free(&converted_);
-        converted_         = av_frame_alloc();
-        converted_->format = hdr_ ? AV_PIX_FMT_RGB48LE : AV_PIX_FMT_RGB24;
-        converted_->width  = src_w_;
-        converted_->height = src_h_;
-        if (av_frame_get_buffer(converted_, 1) < 0) {
-            logger::error("VideoRenderer: av_frame_get_buffer failed");
-            av_frame_free(&converted_);
-            return;
-        }
-        glBindTexture(GL_TEXTURE_2D, tex_);
-        if (hdr_) glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16, src_w_, src_h_, 0, GL_RGB, GL_UNSIGNED_SHORT, nullptr);
-        else      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8,  src_w_, src_h_, 0, GL_RGB, GL_UNSIGNED_BYTE,  nullptr);
+        if (!alloc_sw_target()) return;
         sws_src_fmt_ = AV_PIX_FMT_NONE;   // force the rebuild below
     }
     if (!converted_) return;
@@ -629,7 +743,7 @@ void VideoRenderer::upload(AVFrame* frame)
 
 void VideoRenderer::draw()
 {
-    if (hw_frame_ref_) {
+    if (hw_frame_ref_ && hw_program_) {
         glUseProgram(hw_program_);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_RECTANGLE, y_tex_);
@@ -648,6 +762,10 @@ void VideoRenderer::draw()
 
 bool VideoRenderer::compile_shaders(bool hdr_path)
 {
+    if (program_) {   // an SDR/HDR flip (reconfigure()) replaces the program
+        glDeleteProgram(program_);
+        program_ = 0;
+    }
     GLuint vert = compile_shader(GL_VERTEX_SHADER,   kVertSrc);
     GLuint frag = compile_shader(GL_FRAGMENT_SHADER, hdr_path ? kFragHdr : kFragSdr);
     if (!vert || !frag) return false;

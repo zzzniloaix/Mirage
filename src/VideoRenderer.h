@@ -2,6 +2,10 @@
 
 #include <glad/gl.h>
 
+#include "ColourInterpretation.h"
+
+#include <cstdint>
+
 extern "C" {
 #include <libavutil/frame.h>
 #include <libavutil/pixfmt.h>
@@ -21,9 +25,15 @@ extern "C" {
 //
 // HW zero-copy path (VideoToolbox frames, both SDR and HDR):
 //   AV_PIX_FMT_VIDEOTOOLBOX → CVPixelBuffer → IOSurface → two RECT textures
-//   (Y-plane + CbCr-plane, NV12/P010 layout). GLSL does YUV→RGB on GPU using
-//   a precomputed matrix + offset, then either passthrough (SDR) or the same
-//   PQ/HLG tonemap chain (HDR). No sws, no CPU copy, no glTexSubImage2D.
+//   (Y-plane + CbCr-plane, NV12/P010 layout, 8- or 16-bit texels). GLSL does
+//   YUV→RGB on GPU using a precomputed matrix + offset, then either
+//   passthrough (SDR) or the same PQ/HLG tonemap chain (HDR). No sws, no CPU
+//   copy, no glTexSubImage2D. A buffer of another layout ('y416') is copied to
+//   the CPU and takes the SW pipeline.
+//
+// Each frame's own colour tags are followed (upload()): a change of
+// interpretation updates the uniforms, and a flip between SDR and HDR
+// rebuilds the programs and the staging frame too.
 class VideoRenderer {
 public:
     VideoRenderer() = default;
@@ -50,19 +60,13 @@ public:
     // 0=PQ, 1=HLG, -1 if SDR. Useful for debug HUD.
     [[nodiscard]] int hdr_mode() const { return hdr_mode_; }
 
-    // The colour interpretation frames are converted with: the stream's tags
-    // at init(), an unspecified matrix replaced by init()'s default, any range
-    // but full treated as limited. Primaries are reported, not used.
-    struct Interpretation {
-        AVColorSpace                  cs;
-        AVColorRange                  range;
-        AVColorTransferCharacteristic trc;
-        AVColorPrimaries              primaries;
-    };
-    [[nodiscard]] Interpretation interpretation() const
-    {
-        return { cs_, range_ == AVCOL_RANGE_JPEG ? AVCOL_RANGE_JPEG : AVCOL_RANGE_MPEG, trc_, primaries_ };
-    }
+    // The colour interpretation frames are converted with, as of the last
+    // upload(): the stream's tags at init(), then each frame's specified ones
+    // (an unspecified tag keeps the value before it); a matrix no tag gives is
+    // derived for the HDR state and the frame size, and any range but full is
+    // treated as limited (interpret()). Primaries are reported, not used.
+    using Interpretation = ColourInterpretation;
+    [[nodiscard]] Interpretation interpretation() const { return interp_; }
 
 private:
     GLuint vao_     = 0;
@@ -76,7 +80,19 @@ private:
     GLuint    y_tex_             = 0;    // GL_TEXTURE_RECTANGLE, R8 or R16 (luma)
     GLuint    uv_tex_            = 0;    // GL_TEXTURE_RECTANGLE, RG8 or RG16 (chroma)
     AVFrame*  hw_frame_ref_      = nullptr;
-    bool      hw_shader_built_   = false;
+
+    // The buffers the HW path bound last, which its matrix uniforms are built
+    // for: their pixel format ('x420', ...; 0 = none yet), container and
+    // sample depth. The matrix is uploaded again when the format changes.
+    std::uint32_t hw_format_         = 0;
+    int           hw_container_bits_ = 0;
+    int           hw_sample_bits_    = 0;
+    std::uint32_t hw_refused_        = 0;   // last buffer format refused (logged once)
+
+    // A VideoToolbox frame upload_hw() did not bind, copied to the CPU for
+    // the SW path; reused frame to frame.
+    AVFrame*      hw_copy_           = nullptr;
+    bool          hw_copy_failed_    = false;   // the last copy failed (logged once)
 
     int src_w_ = 0;
     int src_h_ = 0;
@@ -84,11 +100,8 @@ private:
     bool  hdr_      = false;
     int   hdr_mode_ = -1;       // 0=PQ, 1=HLG, -1=SDR
 
-    // Cached stream color params — used to build the HW-path YUV→RGB uniforms.
-    AVColorSpace cs_    = AVCOL_SPC_UNSPECIFIED;
-    AVColorRange range_ = AVCOL_RANGE_UNSPECIFIED;
-    AVColorTransferCharacteristic trc_       = AVCOL_TRC_UNSPECIFIED;   // as given to init()
-    AVColorPrimaries              primaries_ = AVCOL_PRI_UNSPECIFIED;   // as given to init()
+    ColourTags           tags_;     // the tags followed (follow_tags())
+    ColourInterpretation interp_;   // what frames are converted with (interpret(tags_))
 
     struct SwsContext* sws_        = nullptr;
     AVFrame*           converted_  = nullptr;   // RGB24 (SDR) or RGB48LE (HDR)
@@ -99,12 +112,38 @@ private:
     // (e.g., a scrub result arriving in a different yuv layout).
     [[nodiscard]] bool   build_sws(AVPixelFormat src_fmt);
 
-    // Lazily build the HW-path GL program + textures on first HW frame.
-    [[nodiscard]] bool   init_hw_lazy(bool ten_bit);
+    // (Re)allocate the SW path's staging frame (converted_) and texture
+    // (tex_) for the current size and HDR mode: at init, on a frame size
+    // change and on an SDR/HDR flip.
+    [[nodiscard]] bool   alloc_sw_target();
+
+    // Apply a new interpretation (upload(), between two draws): every time
+    // the uniforms of both programs and sws's coefficients; on a Program
+    // change the programs, the staging frame and texture and sws too.
+    [[nodiscard]] bool   reconfigure(const ColourInterpretation& next, InterpretationChange change);
+
+    // SW program uniforms: sampler, HDR mode.
+    void                 set_sw_uniforms();
+
+    // HW-path textures, made on the first HW frame and kept; the HW program,
+    // if there is none.
+    [[nodiscard]] bool   init_hw_lazy();
+
+    // Build hw_program_ (deleting any previous) for the current HDR mode.
+    [[nodiscard]] bool   build_hw_program();
+
+    // HW program uniforms: YUV→RGB matrix + offset for interp_ and the bound
+    // buffers' depths, HDR mode.
+    void                 set_hw_uniforms();
 
     // Upload the frame's CVPixelBuffer IOSurface planes into y_tex_/uv_tex_.
-    // Returns false on any Core Video / CGL error → caller can fall back to SW.
+    // Returns false for a buffer it refuses (hw_container_bits()) or on any
+    // Core Video / CGL error → caller copies the frame to the CPU instead.
     [[nodiscard]] bool   upload_hw(AVFrame* frame);
+
+    // A CPU copy of a VideoToolbox frame (av_hwframe_transfer_data, in its
+    // pool's software format) in hw_copy_, or nullptr.
+    [[nodiscard]] AVFrame* copy_to_cpu(const AVFrame* frame);
 
     [[nodiscard]] bool   compile_shaders(bool hdr_path);
     [[nodiscard]] GLuint compile_shader(GLenum type, const char* src);
