@@ -244,3 +244,53 @@ TEST_CASE("AudioPlayer clock: after a flush the first push sets it, before the d
     drain(p, 480);
     CHECK_THAT(p.clock(), WithinAbs(38.51, 1e-9));         // the device's from then on
 }
+
+// ── The W strip's peaks (copy_waveform) ───────────────────────────────────────
+
+TEST_CASE("AudioPlayer waveform: the peak of both channels, a right-only signal included", "[audio]")
+{
+    AudioPlayer p;
+    p.init_ring(kRate);
+    std::vector<float> buf(4800 * AudioPlayer::kChannels, 0.0f);
+    for (std::size_t i = 0; i < 4800; ++i) {
+        buf[2 * i]     = (i % 2) ? -0.25f : 0.25f;   // left
+        buf[2 * i + 1] = (i % 2) ? 0.5f : -0.5f;     // right, louder
+    }
+    p.push(buf.data(), 4800, 0.0, 0.1);
+    std::vector<float> wave(AudioPlayer::kWaveCap);
+    p.copy_waveform(wave.data(), AudioPlayer::kWaveCap);
+    const int entries = 4800 / AudioPlayer::kWaveStride;
+    for (int i = 0; i < entries; ++i) CHECK(wave[static_cast<std::size_t>(i)] == 0.5f);
+
+    p.flush();
+    for (std::size_t i = 0; i < 4800; ++i) buf[2 * i] = 0.0f;   // right only
+    p.push(buf.data(), 4800, 0.0, 0.1);
+    p.copy_waveform(wave.data(), AudioPlayer::kWaveCap);
+    for (int i = 0; i < entries; ++i) CHECK(wave[static_cast<std::size_t>(i)] == 0.5f);
+}
+
+TEST_CASE("AudioPlayer waveform: kWaveCap entries of kWaveStride frames are 1.0 s of output at 48 kHz", "[audio]")
+{
+    // A ramp: each frame's value is its time, in units of 2 s (so it stays
+    // within [0, 1]). The newest entry ends at the last frame pushed, the
+    // oldest one entry less than 1.0 s before it.
+    AudioPlayer p;
+    p.init_ring(kRate);
+    const int total = 2 * kRate;
+    std::vector<float> buf(4800 * AudioPlayer::kChannels);
+    for (int done = 0; done < total; done += 4800) {
+        for (int i = 0; i < 4800; ++i)
+            buf[2 * static_cast<std::size_t>(i)] = buf[2 * static_cast<std::size_t>(i) + 1] =
+                static_cast<float>(done + i) / static_cast<float>(total);
+        p.push(buf.data(), 4800, done / static_cast<double>(kRate), 0.1);
+        drain(p, 4800);
+    }
+    std::vector<float> wave(AudioPlayer::kWaveCap);
+    p.copy_waveform(wave.data(), AudioPlayer::kWaveCap);
+    const double newest_s = 2.0 * wave.back();
+    const double oldest_s = 2.0 * wave.front();
+    CHECK(AudioPlayer::kWaveCap * AudioPlayer::kWaveStride == kRate);
+    CHECK_THAT(newest_s, WithinAbs((total - 1) / static_cast<double>(kRate), 1e-5));
+    CHECK_THAT(newest_s - oldest_s,
+               WithinAbs(1.0 - AudioPlayer::kWaveStride / static_cast<double>(kRate), 1e-5));
+}

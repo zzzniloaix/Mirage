@@ -67,6 +67,9 @@ struct PipelineSnapshot {
     DecodeState  video = DecodeState::Starting;
     std::int64_t video_in = 0, video_out = 0;   // packets taken / frames decoded
     bool         hw = false;                    // VideoToolbox frames seen
+    std::int64_t video_errors = 0;              // decode errors (Decoder::errors)
+    std::string  video_last_error;              // the latest, in words ("" = none)
+    bool         video_hw_errors = false;       // some of them under VideoToolbox
 
     // Audio decode thread + device.
     bool         has_audio = false;
@@ -80,7 +83,8 @@ struct PipelineSnapshot {
 
 // One line of "name=value" fields, e.g. "t=10.0s paused=1 scrubbing=0
 // focused=1 | demux=push-video pkts v=90 a=55 s=0 ended=0 | videoq=64/64
-// audioq=30/128 subq=0 frameq=8/8 | video=wait-output in=26 out=9 hw=1 | audio=...".
+// audioq=30/128 subq=0 frameq=8/8 | video=wait-output in=26 out=9 hw=1
+// errors=0 | audio=...".
 std::string describe_pipeline(const PipelineSnapshot& s);
 
 // The most likely reason nothing is on screen, in words.

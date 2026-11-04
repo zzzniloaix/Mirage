@@ -140,6 +140,33 @@ TEST_CASE("diagnose: nothing read yet, a stopped demuxer, a stuck codec", "[pipe
 
     PipelineSnapshot n;
     CHECK_THAT(describe_pipeline(n), ContainsSubstring("audio=none"));
+    CHECK_THAT(describe_pipeline(n), ContainsSubstring("hw=0 errors=0 |"));
+}
+
+TEST_CASE("diagnose: a decoder that rejected packets says how many", "[pipeline_state]")
+{
+    // VideoToolbox failing on every packet: no frame, and the decoder is not
+    // waiting for more input — it fails on what it gets.
+    PipelineSnapshot s;
+    s.demux = DemuxState::Reading;
+    s.video_pkts = 30; s.video_in = 30; s.video = DecodeState::WaitPacket;
+    s.video_errors = 30; s.video_last_error = "Unknown error occurred"; s.video_hw_errors = true;
+    std::string d = diagnose_no_frame(s);
+    CHECK_THAT(d, ContainsSubstring("30 packet(s) and no frame yet: it rejected 30 of them (last error: Unknown error occurred)"));
+    CHECK_THAT(d, ContainsSubstring("--no-hw decodes in software"));
+    CHECK_THAT(d, !ContainsSubstring("waits for more input"));
+    CHECK_THAT(describe_pipeline(s), ContainsSubstring("in=30 out=0 hw=0 errors=30 last_error=\"Unknown error occurred\""));
+
+    // Some of them, in software: those, and the wait for more.
+    s.video_errors = 3; s.video_hw_errors = false;
+    s.video_last_error = "Invalid data found when processing input";
+    d = diagnose_no_frame(s);
+    CHECK_THAT(d, ContainsSubstring("it rejected 3 of them (last error: Invalid data found when processing input); "
+                                    "it waits for more input"));
+    CHECK_THAT(d, !ContainsSubstring("--no-hw"));
+
+    s.video = DecodeState::Decoding;
+    CHECK_THAT(diagnose_no_frame(s), ContainsSubstring("no frame out; it rejected 3 of them"));
 }
 
 // ── Demuxer state on a real read_loop ────────────────────────────────────────
