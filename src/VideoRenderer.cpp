@@ -2,6 +2,7 @@
 #include "Logger.h"
 #include "YuvMatrix.h"
 
+#include <cctype>
 #include <string>
 
 extern "C" {
@@ -291,11 +292,16 @@ static const char* hdr_mode_name(int mode)
     return mode == 0 ? "HDR PQ" : mode == 1 ? "HDR HLG" : "SDR";
 }
 
-// A CVPixelBuffer pixel format as its four characters ('x420').
+// A CVPixelBuffer pixel format as its four characters ('x420'), a byte
+// that is not printable as '.' (the numeric formats: 32ARGB is 0x20).
 static std::string fourcc_text(std::uint32_t pf)
 {
-    return { static_cast<char>(pf >> 24), static_cast<char>(pf >> 16),
-             static_cast<char>(pf >> 8),  static_cast<char>(pf) };
+    std::string s(4, '.');
+    for (int i = 0; i < 4; ++i) {
+        const auto c = static_cast<unsigned char>(pf >> (24 - 8 * i));
+        if (std::isprint(c)) s[static_cast<std::size_t>(i)] = static_cast<char>(c);
+    }
+    return s;
 }
 
 // ── VideoRenderer ─────────────────────────────────────────────────────────────
