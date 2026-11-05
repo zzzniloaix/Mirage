@@ -11,9 +11,11 @@
 // literals in fields the schema types "number" and read back with
 // number_of(), detection: null when no detection ran, the reader's refusals,
 // an unknown schema_version among them, what the writer writes without
-// checking and the reader refuses, the axis's stretches, those of the
-// 24000/1001 and 60000/1001 rates among them, the reference the axis is built
-// on, and the writing through a temporary file.
+// checking and the reader refuses, the axis's stretches with their rational
+// steps and phases (D-092 (a)) and their scales (D-099 (a)), those of the
+// 24000/1001, 60000/1001 and 30000/1001 rates among them, the null segment
+// map of a variant without a playlist (D-092 (c)), the reference the axis is
+// built on, and the writing through a temporary file.
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -744,10 +746,12 @@ void check_same(const std::vector<Attribution>& a, const std::vector<Attribution
 // The ad ladder with what its plain shape lacks, each value kind of the
 // layout's nullable fields among them: the reference's map refused, so its
 // axis is the frame grid with the fact of frames 125 to 199; margins; a
-// config file; v360 as a mezzanine would be, with no entry, BANDWIDTH, rank
-// or playlist; v180 without a RESOLUTION; and a payload of every value kind.
-// An event with a session and a wall clock comes with the session part,
-// whose sessions it can name (WP09b): a ladder's document has neither.
+// config file; v360 as a mezzanine would be, with no entry, BANDWIDTH, rank,
+// RESOLUTION, CODECS or playlist, and so no segment map, which keeps
+// Variant's default and is written null (D-092 (c)); v180 without a
+// RESOLUTION; and a payload of every value kind. An event with a session
+// and a wall clock comes with the session part, whose sessions it can name
+// (WP09b): a ladder's document has neither.
 Built varied()
 {
     Built b = ad_ladder({ .detect = true, .reference_refused = true,
@@ -762,8 +766,11 @@ Built varied()
     mezzanine.entries.clear();
     mezzanine.bandwidth = 0;
     mezzanine.rank_from_top = mezzanine.rank_from_bottom = 0;
+    mezzanine.resolution.reset();
+    mezzanine.codecs.reset();
     mezzanine.playlist_location.clear();
     mezzanine.playlist_sha256.clear();
+    mezzanine.segment_map = timeline::Variant{}.segment_map;
     t.variants[2].resolution.reset();
 
     Event corrupt;
@@ -804,6 +811,42 @@ Built varied()
             }
     t.warnings.push_back("a warning with \"quotes\" and a\ttab");
     return b;
+}
+
+// The ad ladder's document without its events, on an axis of `frames`
+// frames that the caller fills, its ticks of 1/tick_den s, its frame
+// duration `fd` and its time base `tb`, on the frame grid.
+Built hand_made(std::int64_t frames, std::int64_t tick_den, AVRational fd, AVRational tb)
+{
+    Built b = ad_ladder({ .detect = false });
+    b.timeline.events.clear();
+    b.timeline.build_index();
+    timeline::Axis& a = b.timeline.axis;
+    a.clock          = "frame-grid";
+    a.checked        = "report-only";
+    a.frames         = frames;
+    a.tick_den       = tick_den;
+    a.frame_duration = fd;
+    a.time_base      = tb;
+    a.ticks.clear();
+    a.keys.clear();
+    a.runs.clear();
+    a.warnings.clear();
+    return b;
+}
+
+// `b`'s document, checked against the schema, read back field by field and
+// written again to the same bytes.
+std::string round_trip(const Built& b)
+{
+    const std::string text = document(b);
+    CHECK(schema_failures(text).empty());
+    const Read r = read(text);
+    INFO(r.err);
+    REQUIRE(r.ok);
+    check_same(b.timeline, r.timeline);
+    CHECK(timeline::to_json(r.timeline, r.attributions, r.info) == text);
+    return text;
 }
 
 } // namespace
@@ -980,6 +1023,9 @@ TEST_CASE("timeline::to_json: the ad ladder's document, checked against the sche
     // The axis: the playlist time with its segment map, equal to the frame
     // grid on this ladder, so one stretch of seconds; three of media keys, the
     // ad's step back and the main content's step forward each starting one.
+    // The axis's ticks are the 90 kHz clock's, so every stretch has the scale
+    // 1 (D-099 (a)), and a frame is 3600 of them, so each stretch's step is
+    // the frame duration over 1 with the phase 0 (D-092 (a)).
     CHECK(text_of(at(doc, "axis.kind")) == R"("reference-frames")");
     CHECK(text_of(at(doc, "axis.seconds")) == R"("playlist-time")");
     CHECK(text_of(at(doc, "axis.frame_duration")) == R"("1/25")");
@@ -989,15 +1035,15 @@ TEST_CASE("timeline::to_json: the ad ladder's document, checked against the sche
           R"("sequences":[{"first_index":0,"first_pts":10,"first_pts_ticks":900000,"frames":75},)"
           R"({"first_index":75,"first_pts":10,"first_pts_ticks":900000,"frames":125}]})");
     CHECK(text_of(at(doc, "axis.checked")) == R"("segment-map")");
-    const std::int64_t den = b.timeline.axis.tick_den;
-    CHECK(text_of(at(doc, "axis.tick_den")) == std::to_string(den));
-    CHECK(den % 25 == 0);
+    CHECK(b.timeline.axis.tick_den == 90000);
+    CHECK(text_of(at(doc, "axis.tick_den")) == "90000");
     CHECK(text_of(at(doc, "axis.ticks")) ==
-          std::format(R"([{{"first":0,"frames":200,"first_tick":0,"step":{}}}])", den / 25));
+          R"([{"first":0,"frames":200,"first_tick":0,"step":"3600/1","phase":0,"scale":1}])");
     CHECK(text_of(at(doc, "axis.keys")) ==
-          R"([{"first":0,"frames":75,"sequence":0,"first_pts_ticks":900000,"step":3600},)"
-          R"({"first":75,"frames":50,"sequence":1,"first_pts_ticks":900000,"step":3600},)"
-          R"({"first":125,"frames":75,"sequence":1,"first_pts_ticks":1350000,"step":3600}])");
+          R"([{"first":0,"frames":75,"sequence":0,"first_pts_ticks":900000,"step":"3600/1","phase":0,"scale":1},)"
+          R"({"first":75,"frames":50,"sequence":1,"first_pts_ticks":900000,"step":"3600/1","phase":0,"scale":1},)"
+          R"({"first":125,"frames":75,"sequence":1,"first_pts_ticks":1350000,"step":"3600/1","phase":0,)"
+          R"("scale":1}])");
     CHECK(text_of(at(doc, "axis.runs")) == "[]");
     CHECK(text_of(at(doc, "axis.warnings")) == "[]");
 
@@ -1153,7 +1199,13 @@ TEST_CASE("timeline::to_json: the axis's stretches, on hand-made axes and exact 
 {
     // Ticks with steps that change, and two neighbours whose difference
     // doesn't fit in 64 bits; PTS of two sequences, unknown on two frames,
-    // and one more pair of neighbours too far apart for a step.
+    // and one more pair of neighbours too far apart for a step. A frame is
+    // 1/30 s: one tick of 1/30 s, the step the ticks try first and take
+    // (D-092 (a)), and 3000 of the ad ladder's 1/90000, which the PTS don't
+    // follow, so that they take whole steps. A PTS tick is no whole number
+    // of the axis's ticks of 1/30 s, so no stretch tries a scale (D-099 (a)).
+    // A stretch of one frame has the step 0/1 and the scale 1; frames without
+    // a PTS have them too, with the phase 0.
     constexpr std::int64_t kMin = std::numeric_limits<std::int64_t>::min();
     constexpr std::int64_t kMax = std::numeric_limits<std::int64_t>::max();
     Built b = ad_ladder({ .detect = false });
@@ -1178,16 +1230,20 @@ TEST_CASE("timeline::to_json: the axis's stretches, on hand-made axes and exact 
 
     json::Value doc = parsed(text);
     CHECK(text_of(at(doc, "axis.ticks")) ==
-          std::format(R"([{{"first":0,"frames":3,"first_tick":0,"step":1}},)"
-                      R"({{"first":3,"frames":2,"first_tick":10,"step":1}},)"
-                      R"({{"first":5,"frames":1,"first_tick":{},"step":0}},)"
-                      R"({{"first":6,"frames":2,"first_tick":{},"step":1}}])",
+          std::format(R"([{{"first":0,"frames":3,"first_tick":0,"step":"1/1","phase":0,"scale":1}},)"
+                      R"({{"first":3,"frames":2,"first_tick":10,"step":"1/1","phase":0,"scale":1}},)"
+                      R"({{"first":5,"frames":1,"first_tick":{},"step":"0/1","phase":0,"scale":1}},)"
+                      R"({{"first":6,"frames":2,"first_tick":{},"step":"1/1","phase":0,"scale":1}}])",
                       kMax, kMin));
     CHECK(text_of(at(doc, "axis.keys")) ==
-          std::format(R"([{{"first":0,"frames":3,"sequence":0,"first_pts_ticks":0,"step":3}},)"
-                      R"({{"first":3,"frames":2,"sequence":0,"first_pts_ticks":null,"step":0}},)"
-                      R"({{"first":5,"frames":2,"sequence":1,"first_pts_ticks":100,"step":3}},)"
-                      R"({{"first":7,"frames":1,"sequence":1,"first_pts_ticks":{},"step":0}}])",
+          std::format(R"([{{"first":0,"frames":3,"sequence":0,"first_pts_ticks":0,"step":"3/1","phase":0,)"
+                      R"("scale":1}},)"
+                      R"({{"first":3,"frames":2,"sequence":0,"first_pts_ticks":null,"step":"0/1","phase":0,)"
+                      R"("scale":1}},)"
+                      R"({{"first":5,"frames":2,"sequence":1,"first_pts_ticks":100,"step":"3/1","phase":0,)"
+                      R"("scale":1}},)"
+                      R"({{"first":7,"frames":1,"sequence":1,"first_pts_ticks":{},"step":"0/1","phase":0,)"
+                      R"("scale":1}}])",
                       kMin));
     CHECK(text_of(at(doc, "axis.runs")) ==
           R"([{"test":"clocks","sequence":0,"first":3,"last":4,"frames":2,"largest_at":3,"largest":-0.04,)"
@@ -1199,6 +1255,13 @@ TEST_CASE("timeline::to_json: the axis's stretches, on hand-made axes and exact 
     REQUIRE(r.ok);
     check_same(b.timeline, r.timeline);
     CHECK(timeline::to_json(r.timeline, r.attributions, r.info) == text);
+
+    // Frames without a PTS have no step, so no scale either: 1 alone.
+    json::Value scaled = parsed(text);
+    at(scaled, "axis.keys[1].scale") = integer_value(2);
+    const Read sr = read(text_of(scaled));
+    CHECK_FALSE(sr.ok);
+    CHECK(sr.err == "axis.keys[1].scale is 2, not 1, for frames without a PTS");
 
     // An axis without frames, as a default Axis has, writes no stretch.
     Built e = ad_ladder({ .detect = false });
@@ -1219,36 +1282,308 @@ TEST_CASE("timeline::to_json: the axis's stretches, on hand-made axes and exact 
     CHECK(er.timeline.axis.keys.empty());
 }
 
+TEST_CASE("timeline::to_json: rational steps with a phase, exact to the tick and at 64-bit extremes",
+          "[timeline][timeline_doc]")
+{
+    using i128 = __int128;
+    constexpr std::int64_t kMin = std::numeric_limits<std::int64_t>::min();
+    constexpr std::int64_t kMax = std::numeric_limits<std::int64_t>::max();
+
+    // 20 frames at 24000/1001 fps, the ticks and the PTS both on a 90 kHz
+    // clock, where a frame is 15015/4 ticks (D-092 (a)): values rounded to
+    // the nearest tick, halves up, follow that step with the phase 2. A value
+    // a tick off starts a new stretch, here one of a whole step with the
+    // frame after it, and the frames after those follow the frame duration
+    // again, the ticks with the phase 1. The axis's ticks are the PTS's, so
+    // every stretch has the scale 1 (D-099 (a)).
+    {
+        Built b = hand_made(20, 90000, { 1001, 24000 }, kTs);
+        timeline::Axis& a = b.timeline.axis;
+        const auto rounded = [](std::int64_t k) { return (15015 * k + 2) / 4; };
+        for (std::int64_t k = 0; k < 20; ++k) {
+            a.ticks.push_back(rounded(k));
+            a.keys.push_back({ .sequence = 0, .pts = kOrigin + rounded(k) });
+        }
+        a.ticks[15] -= 1;
+        *a.keys[10].pts += 1;
+        json::Value doc = parsed(round_trip(b));
+        CHECK(text_of(at(doc, "axis.ticks")) ==
+              R"([{"first":0,"frames":15,"first_tick":0,"step":"15015/4","phase":2,"scale":1},)"
+              R"({"first":15,"frames":2,"first_tick":56305,"step":"3755/1","phase":0,"scale":1},)"
+              R"({"first":17,"frames":3,"first_tick":63814,"step":"15015/4","phase":1,"scale":1}])");
+        CHECK(text_of(at(doc, "axis.keys")) ==
+              R"([{"first":0,"frames":10,"sequence":0,"first_pts_ticks":900000,"step":"15015/4","phase":2,)"
+              R"("scale":1},)"
+              R"({"first":10,"frames":2,"sequence":0,"first_pts_ticks":937539,"step":"3752/1","phase":0,)"
+              R"("scale":1},)"
+              R"({"first":12,"frames":8,"sequence":0,"first_pts_ticks":945045,"step":"15015/4","phase":2,)"
+              R"("scale":1}])");
+    }
+
+    // 12 frames of 1/3 s. Ticks of 1/(2^62 + 1) s, so that a frame is
+    // (2^62 + 1)/3 ticks, from INT64_MIN: k times that step passes 2^63 from
+    // k = 2 on, and only a 128-bit intermediate computes the ticks. PTS on a
+    // time base of 1 s, a step of 1/3, from INT64_MAX - 4 to INT64_MAX with
+    // the phase 2. The ticks also try the scale 2^62 + 1, the axis's ticks to
+    // a PTS tick, with the step 1/3, and take the frame duration in their own
+    // ticks with the scale 1, which holds more of them.
+    const std::int64_t huge = (std::int64_t{ 1 } << 62) + 1;
+    CHECK(2 * static_cast<i128>(huge) > kMax);
+    Built b = hand_made(12, huge, { 1, 3 }, { 1, 1 });
+    for (std::int64_t k = 0; k < 12; ++k) {
+        b.timeline.axis.ticks.push_back(static_cast<std::int64_t>(kMin + static_cast<i128>(k) * huge / 3));
+        b.timeline.axis.keys.push_back({ .sequence = 0, .pts = kMax - 4 + (k + 2) / 3 });
+    }
+    CHECK(b.timeline.axis.keys.back().pts == kMax);
+    const std::string text = round_trip(b);
+    json::Value doc = parsed(text);
+    CHECK(text_of(at(doc, "axis.ticks")) ==
+          std::format(R"([{{"first":0,"frames":12,"first_tick":{},"step":"{}/3","phase":0,"scale":1}}])", kMin,
+                      huge));
+    CHECK(text_of(at(doc, "axis.keys")) ==
+          std::format(R"([{{"first":0,"frames":12,"sequence":0,"first_pts_ticks":{},"step":"1/3","phase":2,)"
+                      R"("scale":1}}])",
+                      kMax - 4));
+
+    // A step no writer takes, with both terms and the phase near 2^63, is
+    // read exactly as the formula gives it.
+    json::Value big = parsed(text);
+    const std::int64_t num = kMax, den = kMax - 1, phase = kMax - 2;
+    at(big, "axis.ticks[0].step")  = string_value(std::format("{}/{}", num, den));
+    at(big, "axis.ticks[0].phase") = integer_value(phase);
+    Read r = read(text_of(big));
+    INFO(r.err);
+    REQUIRE(r.ok);
+    REQUIRE(r.timeline.axis.ticks.size() == 12);
+    for (std::int64_t k = 0; k < 12; ++k)
+        CHECK(r.timeline.axis.ticks[static_cast<std::size_t>(k)] ==
+              static_cast<std::int64_t>(kMin + (phase + static_cast<i128>(k) * num) / den));
+
+    // One tick past either end is refused, naming the stretch: PTS from
+    // INT64_MAX - 3 end at INT64_MAX + 1, and ticks from INT64_MIN that step
+    // by -1/3 with the phase 2 pass INT64_MIN at the fourth frame.
+    json::Value over = parsed(text);
+    at(over, "axis.keys[0].first_pts_ticks") = integer_value(kMax - 3);
+    r = read(text_of(over));
+    CHECK_FALSE(r.ok);
+    CHECK(r.err == "axis.keys[0]'s values go past 64 bits");
+    json::Value under = parsed(text);
+    at(under, "axis.ticks[0].step")  = string_value("-1/3");
+    at(under, "axis.ticks[0].phase") = integer_value(2);
+    r = read(text_of(under));
+    CHECK_FALSE(r.ok);
+    CHECK(r.err == "axis.ticks[0]'s values go past 64 bits");
+
+    // The step INT64_MIN/1 between INT64_MAX and -1, and two PTS too far
+    // apart for any step, each a stretch of its own.
+    Built ends = hand_made(2, 1, { 1, 1 }, { 1, 1 });
+    ends.timeline.axis.ticks = { kMax, -1 };
+    ends.timeline.axis.keys  = { { .sequence = 0, .pts = kMin }, { .sequence = 0, .pts = kMax } };
+    json::Value ends_doc = parsed(round_trip(ends));
+    CHECK(text_of(at(ends_doc, "axis.ticks")) ==
+          std::format(R"([{{"first":0,"frames":2,"first_tick":{},"step":"{}/1","phase":0,"scale":1}}])", kMax,
+                      kMin));
+    CHECK(text_of(at(ends_doc, "axis.keys")) ==
+          std::format(R"([{{"first":0,"frames":1,"sequence":0,"first_pts_ticks":{},"step":"0/1","phase":0,)"
+                      R"("scale":1}},)"
+                      R"({{"first":1,"frames":1,"sequence":0,"first_pts_ticks":{},"step":"0/1","phase":0,)"
+                      R"("scale":1}}])",
+                      kMin, kMax));
+}
+
+TEST_CASE("timeline::to_json: stretches with a scale, exact to the tick and at 64-bit extremes",
+          "[timeline][timeline_doc]")
+{
+    using i128 = __int128;
+    constexpr std::int64_t kMin = std::numeric_limits<std::int64_t>::min();
+    constexpr std::int64_t kMax = std::numeric_limits<std::int64_t>::max();
+
+    // 20 frames at 24000/1001 fps on the playlist time, the PTS on a 90 kHz
+    // clock rounded to the nearest tick, halves up, and the axis's ticks of
+    // 1/720000 s, 8 to a PTS tick, following them as within one segment
+    // (D-099 (a)): the ticks take the frame duration in PTS ticks, 15015/4,
+    // with the phase 2 and the scale 8, one stretch; the PTS take the same
+    // step with the scale 1.
+    const auto rounded = [](std::int64_t k) { return (15015 * k + 2) / 4; };
+    Built b = hand_made(20, 720000, { 1001, 24000 }, kTs);
+    timeline::Axis& a = b.timeline.axis;
+    a.clock   = "playlist-time";
+    a.checked = "segment-map";
+    for (std::int64_t k = 0; k < 20; ++k) {
+        a.ticks.push_back(8 * rounded(k));
+        a.keys.push_back({ .sequence = 0, .pts = kOrigin + rounded(k) });
+    }
+    json::Value doc = parsed(round_trip(b));
+    CHECK(text_of(at(doc, "axis.ticks")) ==
+          R"([{"first":0,"frames":20,"first_tick":0,"step":"15015/4","phase":2,"scale":8}])");
+    CHECK(text_of(at(doc, "axis.keys")) ==
+          R"([{"first":0,"frames":20,"sequence":0,"first_pts_ticks":900000,"step":"15015/4","phase":2,)"
+          R"("scale":1}])");
+
+    // A tick off the formula by one, no multiple of the scale, and one off by
+    // the scale, a PTS tick, each start a new stretch, of a whole step with
+    // the frame after it, and the frames after those follow the frame
+    // duration with the scale again, the last ones with the phase 1. Every
+    // tick comes back exactly.
+    a.ticks[10] += 1;
+    a.ticks[15] -= 8;
+    doc = parsed(round_trip(b));
+    CHECK(text_of(at(doc, "axis.ticks")) ==
+          R"([{"first":0,"frames":10,"first_tick":0,"step":"15015/4","phase":2,"scale":8},)"
+          R"({"first":10,"frames":2,"first_tick":300305,"step":"30023/1","phase":0,"scale":1},)"
+          R"({"first":12,"frames":3,"first_tick":360360,"step":"15015/4","phase":2,"scale":8},)"
+          R"({"first":15,"frames":2,"first_tick":450440,"step":"30040/1","phase":0,"scale":1},)"
+          R"({"first":17,"frames":3,"first_tick":510512,"step":"15015/4","phase":1,"scale":8}])");
+
+    // 64-bit extremes. Ticks of 1/2^62 s on a time base of 1 s, so that the
+    // axis has 2^62 ticks to a PTS tick, and frames of 1/2 s: 7 frames from
+    // INT64_MIN at 2^62 times floor((1 + k) / 2) end at 2^62, one stretch of
+    // the step 1/2 with the phase 1 and the scale 2^62; the PTS of the same
+    // frames from INT64_MAX - 3 end at INT64_MAX, with the scale 1.
+    const std::int64_t scale = std::int64_t{ 1 } << 62;
+    Built e = hand_made(7, scale, { 1, 2 }, { 1, 1 });
+    for (std::int64_t k = 0; k < 7; ++k) {
+        e.timeline.axis.ticks.push_back(
+            static_cast<std::int64_t>(kMin + static_cast<i128>(scale) * ((1 + k) / 2)));
+        e.timeline.axis.keys.push_back({ .sequence = 0, .pts = kMax - 3 + (1 + k) / 2 });
+    }
+    CHECK(e.timeline.axis.ticks.back() == scale);
+    CHECK(e.timeline.axis.keys.back().pts == kMax);
+    const std::string text = round_trip(e);
+    json::Value ends = parsed(text);
+    CHECK(text_of(at(ends, "axis.ticks")) ==
+          std::format(R"([{{"first":0,"frames":7,"first_tick":{},"step":"1/2","phase":1,"scale":{}}}])", kMin,
+                      scale));
+    CHECK(text_of(at(ends, "axis.keys")) ==
+          std::format(R"([{{"first":0,"frames":7,"sequence":0,"first_pts_ticks":{},"step":"1/2","phase":1,)"
+                      R"("scale":1}}])",
+                      kMax - 3));
+
+    // What the reader takes that no writer writes, as the formula gives it:
+    // the scale INT64_MAX with the step 1/3, from INT64_MIN to INT64_MAX - 1;
+    // and a key's PTS with the scale 2 and a step back of 1/2, from
+    // INT64_MIN + 6 to INT64_MIN.
+    const auto changed = [&text](const std::function<void(json::Value&)>& change) {
+        json::Value d = parsed(text);
+        change(d);
+        return read(text_of(d));
+    };
+    Read r = changed([](json::Value& d) {
+        at(d, "axis.ticks[0].step")  = string_value("1/3");
+        at(d, "axis.ticks[0].phase") = integer_value(0);
+        at(d, "axis.ticks[0].scale") = integer_value(kMax);
+        at(d, "axis.keys[0].first_pts_ticks") = integer_value(kMin + 6);
+        at(d, "axis.keys[0].step")  = string_value("-1/2");
+        at(d, "axis.keys[0].scale") = integer_value(2);
+    });
+    INFO(r.err);
+    REQUIRE(r.ok);
+    CHECK(r.timeline.axis.ticks == std::vector<std::int64_t>{ kMin, kMin, kMin, -1, -1, -1, kMax - 1 });
+    std::vector<std::int64_t> pts;
+    for (const timeline::MediaKey& k : r.timeline.axis.keys) pts.push_back(k.pts.value_or(0));
+    CHECK(pts == std::vector<std::int64_t>{ kMin + 6, kMin + 6, kMin + 4, kMin + 4, kMin + 2, kMin + 2, kMin });
+
+    // Past 64 bits with a scale, refused, naming the stretch: the scale
+    // INT64_MAX on a quotient of 3, and on one of 6 x INT64_MAX, beyond 2^64,
+    // which the reader refuses before it multiplies; a key's PTS from
+    // INT64_MAX - 3 with the scale 2; and one from INT64_MIN + 5 that steps
+    // back with the scale 2.
+    const auto refusal = [&changed](const std::function<void(json::Value&)>& change) {
+        const Read x = changed(change);
+        CHECK_FALSE(x.ok);
+        return x.err;
+    };
+    CHECK(refusal([](json::Value& d) { at(d, "axis.ticks[0].scale") = integer_value(kMax); }) ==
+          "axis.ticks[0]'s values go past 64 bits");
+    CHECK(refusal([](json::Value& d) {
+              at(d, "axis.ticks[0].step")  = string_value("9223372036854775807/1");
+              at(d, "axis.ticks[0].phase") = integer_value(0);
+              at(d, "axis.ticks[0].scale") = integer_value(kMax);
+          }) == "axis.ticks[0]'s values go past 64 bits");
+    CHECK(refusal([](json::Value& d) { at(d, "axis.keys[0].scale") = integer_value(2); }) ==
+          "axis.keys[0]'s values go past 64 bits");
+    CHECK(refusal([](json::Value& d) {
+              at(d, "axis.keys[0].first_pts_ticks") = integer_value(kMin + 5);
+              at(d, "axis.keys[0].step")  = string_value("-1/2");
+              at(d, "axis.keys[0].scale") = integer_value(2);
+          }) == "axis.keys[0]'s values go past 64 bits");
+}
+
 TEST_CASE("timeline::to_json: the axis's stretches where a frame isn't a whole number of ticks",
           "[timeline][timeline_doc]")
 {
-    // A reference of two 2.002 s segments at 24000/1001 fps (48 frames each)
-    // and at 60000/1001 fps (120 each), its PTS on MPEG-TS's 90 kHz clock
-    // rounded to the nearest tick, halves up, as a muxer writes them, through
-    // build_axis() with its segment map. A frame is 15015/4 ticks (3753.75) at
-    // the first rate and 3003/2 (1501.5) at the second, so the PTS step 3754,
-    // 3754, 3753, 3754 and 1502, 1501, and the stretches, WP08's encoding
-    // pending the owner (src/TimelineDoc.h), start every 4 frames and every 2:
-    // they grow with the frames there, not with the segments. The axis still
-    // reads back exactly.
+    // A reference of four 2.002 s segments at 24000/1001 fps (48 frames
+    // each), at 60000/1001 fps (120 each) and at 30000/1001 fps (60 each),
+    // its PTS on MPEG-TS's 90 kHz clock rounded to the nearest tick, halves
+    // up, as a muxer writes them, restarting at a discontinuity before the
+    // third segment, so that the report has two sequences of two segments
+    // each. Through build_axis(), with its segment map, under EXTINF that are
+    // the segments' frames (2.002), under whole seconds (2) and under EXTINF
+    // in millionths a microsecond longer than the frames (2.002001), and with
+    // the map refused (D-081 (c)). A frame is 15015/4 PTS ticks (3753.75) at
+    // the first rate, 3003/2 (1501.5) at the second and 3003 at the third,
+    // and the axis has 8, 4 and 2 ticks to a PTS tick with EXTINF in
+    // thousandths, and 200, 100 and 100 with EXTINF in millionths, which need
+    // finer ticks. Every kind of value takes a number of stretches that
+    // doesn't grow with the frames (D-092 (a), D-099 (a)):
+    // - the keys, one stretch per sequence: the rounded PTS follow the frame
+    //   duration in PTS ticks with a phase and the scale 1;
+    // - the frame grid's ticks, a whole number of the axis's ticks a frame,
+    //   one stretch;
+    // - the playlist time's ticks, which follow the PTS within a segment,
+    //   the frame duration in PTS ticks with the axis's ticks to a PTS tick
+    //   as the scale and the PTS's phase: one stretch for the whole reference
+    //   under EXTINF that are the frames, the discontinuity included, and one
+    //   per segment under the others, each segment starting at the sum of
+    //   the EXTINF before it, short of where the frames before it end, or
+    //   past it. At 30000/1001 fps the frame duration in the axis's ticks,
+    //   6006/1 or 300300/1 with the scale 1, holds the same frames as 3003/1
+    //   with the scale 2 or 100, and is taken, as the step tried first
+    //   (src/TimelineDoc.h).
+    // Every axis reads back exactly and is written again to the same bytes.
     struct Rate {
         AVRational   rate;
-        std::int64_t per_segment;
-        std::vector<std::int64_t> stretch_frames;   // the frames of each stretch, ticks' and keys'
-        std::int64_t key_step;                      // the PTS step of every stretch but a last single frame
+        std::int64_t per_segment;      // the frames of a 2.002 s segment
+        std::int64_t per_pts_tick;     // the axis's ticks to a PTS tick, EXTINF in thousandths
+        std::string  pts_step;         // the frame duration in PTS ticks
+        std::int64_t pts_phase;        // the phase of the rounded PTS, and of the playlist time
+        std::string  grid_step;        // the frame duration in the axis's ticks
+        std::string  playlist_step;    // the playlist time's step and scale
+        std::int64_t playlist_scale;
+        std::int64_t fine_per_pts_tick;   // the same three with EXTINF in millionths
+        std::string  fine_step;
+        std::int64_t fine_scale;
     };
-    std::vector<std::int64_t> at_24(1, 3);
-    at_24.insert(at_24.end(), 23, 4);
-    at_24.push_back(1);
-    const std::vector<Rate> rates = { { { 24000, 1001 }, 48, at_24, 3754 },
-                                      { { 60000, 1001 }, 120, std::vector<std::int64_t>(120, 2), 1502 } };
+    const std::vector<Rate> rates = {
+        { { 24000, 1001 }, 48, 8, "15015/4", 2, "30030/1", "15015/4", 8, 200, "15015/4", 200 },
+        { { 60000, 1001 }, 120, 4, "3003/2", 1, "6006/1", "3003/2", 4, 100, "3003/2", 100 },
+        { { 30000, 1001 }, 60, 2, "3003/1", 0, "6006/1", "6006/1", 1, 100, "300300/1", 1 },
+    };
+    // Four segments of `extinf` seconds, a discontinuity before the third.
+    const auto playlist_text = [](std::string_view extinf) {
+        std::string out = "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:3\n"
+                          "#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-PLAYLIST-TYPE:VOD\n";
+        for (int k = 0; k < 4; ++k) {
+            if (k == 2) out += "#EXT-X-DISCONTINUITY\n";
+            out += std::format("#EXTINF:{},\ns{}.ts\n", extinf, k);
+        }
+        return out + "#EXT-X-ENDLIST\n";
+    };
+    const auto stretch = [](std::int64_t first, std::int64_t frames, std::int64_t tick, std::string_view step,
+                            std::int64_t phase, std::int64_t scale) {
+        return std::format(R"({{"first":{},"frames":{},"first_tick":{},"step":"{}","phase":{},"scale":{}}})",
+                           first, frames, tick, step, phase, scale);
+    };
     for (const Rate& r : rates) {
         INFO(std::format("{}/{} fps", r.rate.num, r.rate.den));
-        const std::int64_t frames = 2 * r.per_segment;
-        // round(i x 90000 x den / num), halves up, from 10 s.
-        const auto pts = [&r](std::int64_t i) {
+        const std::int64_t sequence = 2 * r.per_segment;   // the frames of a sequence
+        const std::int64_t frames   = 2 * sequence;
+        // round(j x 90000 x den / num), halves up, from 10 s, j counting from
+        // the first frame of the frame's sequence.
+        const auto pts = [&r, sequence](std::int64_t i) {
+            const std::int64_t j     = i % sequence;
             const std::int64_t twice = 2 * 90000 * static_cast<std::int64_t>(r.rate.den);
-            return kOrigin + (i * twice + r.rate.num) / (2 * static_cast<std::int64_t>(r.rate.num));
+            return kOrigin + (j * twice + r.rate.num) / (2 * static_cast<std::int64_t>(r.rate.num));
         };
         timeline::LadderScores s = ad_report();
         s.pairs.resize(1);
@@ -1267,58 +1602,85 @@ TEST_CASE("timeline::to_json: the axis's stretches where a frame isn't a whole n
             p.vmaf.push_back(95.0);
         }
         p.context_first = { 0 };
-        p.ref_sequences = { { .first_index = 0, .first_pts = pts(0), .frames = frames } };
+        p.ref_sequences = { { .first_index = 0, .first_pts = pts(0), .frames = sequence },
+                            { .first_index = sequence, .first_pts = pts(sequence), .frames = sequence } };
         p.dis_sequences = p.ref_sequences;
 
         timeline::VariantMedia media;
-        for (std::int64_t k = 0; k < 2; ++k)
+        for (std::int64_t k = 0; k < 4; ++k)
             media.segments.push_back(
                 { .seq = k, .first_index = k * r.per_segment, .frames = r.per_segment, .bytes = 1000 });
         for (std::int64_t i = 0; i < frames; ++i) media.pts.push_back(pts(i));
-        const std::string playlist = "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:3\n"
-                                     "#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-PLAYLIST-TYPE:VOD\n"
-                                     "#EXTINF:2.002,\ns0.ts\n#EXTINF:2.002,\ns1.ts\n#EXT-X-ENDLIST\n";
-        const timeline::PlaylistEvents parsed_playlist =
-            timeline::parse_playlist_events(playlist, url_of(0), 0);
-        REQUIRE(parsed_playlist.error.empty());
+        timeline::VariantMedia refused;
+        refused.refused = std::string(kRefusal);
 
-        timeline::Timeline t;
-        t.axis = timeline::build_axis(s, &media, &parsed_playlist.timeline);
-        const std::string first_warning = t.axis.warnings.empty() ? std::string() : t.axis.warnings.front();
-        INFO(first_warning);
-        REQUIRE(t.axis.clock == "playlist-time");
-        REQUIRE(t.axis.warnings.empty());
-        timeline::Variant ref;
-        ref.index = 0;
-        ref.url   = url_of(0);
-        t.variants.push_back(ref);
-        timeline::DocInfo info;
-        std::string       err;
-        REQUIRE(timeline::reference_info(s, t.axis, info.reference, err));
-        const std::string text = timeline::to_json(t, {}, info);
-        CHECK(schema_failures(text).empty());
+        const std::string keys =
+            std::format(R"([{{"first":0,"frames":{0},"sequence":0,"first_pts_ticks":{1},"step":"{2}","phase":{3},)"
+                        R"("scale":1}},{{"first":{0},"frames":{0},"sequence":1,"first_pts_ticks":{1},)"
+                        R"("step":"{2}","phase":{3},"scale":1}}])",
+                        sequence, kOrigin, r.pts_step, r.pts_phase);
+        struct Case {
+            bool        with_map;
+            std::string extinf;
+        };
+        for (const Case& c :
+             { Case{ true, "2.002" }, Case{ true, "2" }, Case{ true, "2.002001" }, Case{ false, "2.002" } }) {
+            INFO((c.with_map ? "the playlist time, EXTINF " + c.extinf : std::string("the frame grid")));
+            const timeline::PlaylistEvents playlist =
+                timeline::parse_playlist_events(playlist_text(c.extinf), url_of(0), 0);
+            REQUIRE(playlist.error.empty());
+            timeline::Timeline t;
+            t.axis = timeline::build_axis(s, c.with_map ? &media : &refused, &playlist.timeline);
+            const std::string first_warning = t.axis.warnings.empty() ? std::string() : t.axis.warnings.front();
+            INFO(first_warning);
+            REQUIRE(t.axis.clock == (c.with_map ? "playlist-time" : "frame-grid"));
+            REQUIRE(t.axis.warnings.empty());
+            REQUIRE(t.axis.runs.empty());
+            const bool         fine = c.extinf == "2.002001";
+            const std::int64_t den  = t.axis.tick_den;
+            CHECK(den == 90000 * (fine ? r.fine_per_pts_tick : r.per_pts_tick));
+            timeline::Variant ref;
+            ref.index = 0;
+            ref.url   = url_of(0);
+            t.variants.push_back(ref);
+            timeline::DocInfo info;
+            std::string       err;
+            REQUIRE(timeline::reference_info(s, t.axis, info.reference, err));
+            REQUIRE(info.reference.sequences.size() == 2);
+            const std::string text = timeline::to_json(t, {}, info);
+            CHECK(schema_failures(text).empty());
 
-        json::Value doc = parsed(text);
-        for (const char* name : { "axis.ticks", "axis.keys" }) {
-            INFO(name);
-            std::vector<std::int64_t> lengths;
-            for (const json::Value& stretch : *at(doc, name).array())
-                lengths.push_back(*stretch.find("frames")->integer());
-            CHECK(lengths == r.stretch_frames);
+            json::Value doc = parsed(text);
+            CHECK(at(doc, "axis.keys").array()->size() == 2);
+            CHECK(text_of(at(doc, "axis.keys")) == keys);
+            std::string ticks;
+            if (!c.with_map) {
+                ticks = stretch(0, frames, 0, r.grid_step, 0, 1);
+            } else if (c.extinf == "2.002") {
+                ticks = stretch(0, frames, 0, r.playlist_step, r.pts_phase, r.playlist_scale);
+            } else {
+                // Each segment at the sum of the EXTINF before it, in the axis's ticks.
+                const std::int64_t extinf = fine ? 2002001 * den / 1000000 : 2 * den;
+                for (std::int64_t k = 0; k < 4; ++k)
+                    ticks += (k == 0 ? "" : ",") +
+                             stretch(k * r.per_segment, r.per_segment, k * extinf,
+                                     fine ? r.fine_step : r.playlist_step, r.pts_phase,
+                                     fine ? r.fine_scale : r.playlist_scale);
+            }
+            CHECK(at(doc, "axis.ticks").array()->size() == (c.with_map && c.extinf != "2.002" ? 4u : 1u));
+            CHECK(text_of(at(doc, "axis.ticks")) == "[" + ticks + "]");
+
+            const Read back = read(text);
+            INFO(back.err);
+            REQUIRE(back.ok);
+            CHECK(back.timeline.axis.ticks == t.axis.ticks);
+            REQUIRE(back.timeline.axis.keys.size() == t.axis.keys.size());
+            for (std::size_t i = 0; i < t.axis.keys.size(); ++i) {
+                CHECK(back.timeline.axis.keys[i].sequence == t.axis.keys[i].sequence);
+                CHECK(back.timeline.axis.keys[i].pts == t.axis.keys[i].pts);
+            }
+            CHECK(timeline::to_json(back.timeline, back.attributions, back.info) == text);
         }
-        const json::Value::Array& keys = *at(doc, "axis.keys").array();
-        for (std::size_t k = 0; k < keys.size(); ++k) {
-            const bool single = *keys[k].find("frames")->integer() == 1;
-            CHECK(*keys[k].find("step")->integer() == (single ? 0 : r.key_step));
-        }
-
-        const Read back = read(text);
-        INFO(back.err);
-        REQUIRE(back.ok);
-        CHECK(back.timeline.axis.ticks == t.axis.ticks);
-        REQUIRE(back.timeline.axis.keys.size() == t.axis.keys.size());
-        for (std::size_t i = 0; i < t.axis.keys.size(); ++i)
-            CHECK(back.timeline.axis.keys[i].pts == t.axis.keys[i].pts);
     }
 }
 
@@ -1326,7 +1688,10 @@ TEST_CASE("timeline::to_json: the axis's stretches where a frame isn't a whole n
 
 TEST_CASE("timeline::from_json: a reader round trip", "[timeline][timeline_doc]")
 {
-    for (const Built& b : { ad_ladder(), ad_ladder({ .detect = false }), varied() }) {
+    // The refused shape's reference keeps its playlist and so its refusal
+    // (D-081 (c)); varied()'s, a mezzanine, has neither (D-092 (c)).
+    for (const Built& b : { ad_ladder(), ad_ladder({ .detect = false }), ad_ladder({ .reference_refused = true }),
+                            varied() }) {
         const std::string text = document(b);
         CHECK(schema_failures(text).empty());
         const Read r = read(text);
@@ -1614,8 +1979,75 @@ TEST_CASE("timeline::from_json: refusals, each naming the key", "[timeline][time
     CHECK(refused(set("axis.ticks[0].frames", integer_value(201))) ==
           "axis.ticks[0].frames is 201: the stretches cover the axis's 200 frames, a frame or more each");
     CHECK(refused(set("axis.keys[1].first_pts_ticks", json::Value{})) ==
-          "axis.keys[1].step is 3600, not 0, for frames without a PTS");
-    CHECK(refused(set("axis.ticks[0].step", integer_value(std::numeric_limits<std::int64_t>::max()))) ==
+          R"(axis.keys[1].step is "3600/1", not "0/1", for frames without a PTS)");
+    CHECK(refused(set("axis.ticks[0].step", string_value("9223372036854775807/1"))) ==
+          "axis.ticks[0]'s values go past 64 bits");
+    CHECK(refused(set("axis.keys[0].step", string_value("-9223372036854775808/1"))) ==
+          "axis.keys[0]'s values go past 64 bits");
+    // Their steps and phases (D-092 (a)): a step in lowest terms with a
+    // positive denominator, and a phase below that denominator.
+    CHECK(refused(set("axis.ticks[0].step", integer_value(3600))) ==
+          "axis.ticks[0].step is an integer, not a string");
+    CHECK(refused(set("axis.ticks[0].step", string_value("3600"))) ==
+          R"(axis.ticks[0].step is "3600", not a rational "num/den")");
+    CHECK(refused(set("axis.ticks[0].step", string_value("3600/0"))) ==
+          R"(axis.ticks[0].step is "3600/0", whose denominator isn't positive)");
+    CHECK(refused(set("axis.ticks[0].step", string_value("-3600/-1"))) ==
+          R"(axis.ticks[0].step is "-3600/-1", whose denominator isn't positive)");
+    CHECK(refused(set("axis.ticks[0].step", string_value("7200/2"))) ==
+          R"(axis.ticks[0].step is "7200/2", not in lowest terms)");
+    CHECK(refused(set("axis.keys[0].step", string_value("0/2"))) ==
+          R"(axis.keys[0].step is "0/2", not in lowest terms)");
+    CHECK(refused(set("axis.ticks[0].phase", integer_value(1))) ==
+          R"(axis.ticks[0].phase is 1, not a phase of the step "3600/1", from 0 to 0)");
+    CHECK(refused([](json::Value& d) {
+              at(d, "axis.ticks[0].step")  = string_value("7201/2");
+              at(d, "axis.ticks[0].phase") = integer_value(-1);
+          }) == R"(axis.ticks[0].phase is -1, not a phase of the step "7201/2", from 0 to 1)");
+    CHECK(refused([](json::Value& d) {
+              at(d, "axis.keys[2].step")  = string_value("7201/2");
+              at(d, "axis.keys[2].phase") = integer_value(2);
+          }) == R"(axis.keys[2].phase is 2, not a phase of the step "7201/2", from 0 to 1)");
+    CHECK(refused(set("axis.ticks[0].phase", string_value("0"))) ==
+          "axis.ticks[0].phase is a string, not an integer");
+    CHECK(refused([](json::Value& d) { erase(d, "axis.keys[0]", "phase"); }) ==
+          "no axis.keys[0].phase: schema version 1 has it");
+    // A rational's terms in their shortest form, as the writer writes them,
+    // so that a rational has one text: no leading zero and no "-0", which
+    // std::from_chars takes, in a step as in WP08's rationals; a "+", which
+    // it doesn't, is no rational at all.
+    const std::string not_shortest =
+        ", whose terms aren't in their shortest form: no leading zero, and no sign on 0";
+    CHECK(refused(set("axis.ticks[0].step", string_value("0003600/0001"))) ==
+          R"(axis.ticks[0].step is "0003600/0001")" + not_shortest);
+    CHECK(refused(set("axis.ticks[0].step", string_value("3600/01"))) ==
+          R"(axis.ticks[0].step is "3600/01")" + not_shortest);
+    CHECK(refused(set("axis.keys[2].step", string_value("-0/1"))) ==
+          R"(axis.keys[2].step is "-0/1")" + not_shortest);
+    CHECK(refused([](json::Value& d) {
+              at(d, "axis.keys[1].first_pts_ticks") = json::Value{};
+              at(d, "axis.keys[1].step")            = string_value("-00/1");
+          }) == R"(axis.keys[1].step is "-00/1")" + not_shortest);
+    CHECK(refused(set("axis.reference.time_base", string_value("1/090000"))) ==
+          R"(axis.reference.time_base is "1/090000")" + not_shortest);
+    CHECK(refused(set("overlap.margin_after", string_value("-0/1"))) ==
+          R"(overlap.margin_after is "-0/1")" + not_shortest);
+    CHECK(refused(set("axis.ticks[0].step", string_value("+3600/1"))) ==
+          R"(axis.ticks[0].step is "+3600/1", not a rational "num/den")");
+    // Their scales (D-099 (a)): an integer from 1, in every stretch of both
+    // kinds, with which the values still stay within 64 bits.
+    CHECK(refused([](json::Value& d) { erase(d, "axis.ticks[0]", "scale"); }) ==
+          "no axis.ticks[0].scale: schema version 1 has it");
+    CHECK(refused([](json::Value& d) { erase(d, "axis.keys[2]", "scale"); }) ==
+          "no axis.keys[2].scale: schema version 1 has it");
+    CHECK(refused(set("axis.ticks[0].scale", integer_value(0))) == "axis.ticks[0].scale is 0, not a scale from 1");
+    CHECK(refused(set("axis.keys[1].scale", integer_value(-8))) == "axis.keys[1].scale is -8, not a scale from 1");
+    CHECK(refused(set("axis.ticks[0].scale", string_value("8"))) ==
+          "axis.ticks[0].scale is a string, not an integer");
+    CHECK(refused(set("axis.ticks[0].scale", json::Value{ 1.5 })) ==
+          "axis.ticks[0].scale is a number, not an integer");
+    CHECK(refused(set("axis.keys[0].scale", json::Value{})) == "axis.keys[0].scale is null, not an integer");
+    CHECK(refused(set("axis.ticks[0].scale", integer_value(std::numeric_limits<std::int64_t>::max()))) ==
           "axis.ticks[0]'s values go past 64 bits");
     CHECK(refused(set("axis.ticks", json::Value{ json::Value::Array{} })) ==
           "axis.ticks covers 0 of the axis's 200 frames");
@@ -1690,6 +2122,90 @@ TEST_CASE("timeline::from_json: refusals, each naming the key", "[timeline][time
     }
 }
 
+TEST_CASE("timeline::from_json: a variant without a playlist has a null segment map (D-092 (c))",
+          "[timeline][timeline_doc]")
+{
+    // varied()'s reference is a mezzanine, a reference that isn't a playlist
+    // (design §5.2): every value it doesn't have is null, its segment map
+    // among them, and the map comes back as Variant's default.
+    const Built b = varied();
+    const std::string text = document(b);
+    CHECK(schema_failures(text).empty());
+    json::Value doc = parsed(text);
+    CHECK(text_of(at(doc, "variants[0]")) ==
+          R"({"id":0,"role":"reference","pair":null,"entries":[],"url":"http://test.invalid/ladder/v360/)"
+          R"(index.m3u8","bandwidth":null,"resolution":null,"codecs":null,"rank_from_top":null,)"
+          R"("rank_from_bottom":null,"playlist":null,"segment_map":null})");
+    CHECK(text_of(at(doc, "variants[1].segment_map")) == R"("ok")");
+    const Read r = read(text);
+    INFO(r.err);
+    REQUIRE(r.ok);
+    REQUIRE(r.timeline.variants.size() == 3);
+    const timeline::Variant& mezzanine = r.timeline.variants[0];
+    CHECK(mezzanine.segment_map == "ok");
+    CHECK(mezzanine.playlist_location.empty());
+    CHECK(mezzanine.playlist_sha256.empty());
+    CHECK(timeline::to_json(r.timeline, r.attributions, r.info) == text);
+
+    // The map is null exactly when the playlist is.
+    const auto refused = [&text](const std::function<void(json::Value&)>& change) {
+        json::Value d = parsed(text);
+        change(d);
+        const Read x = read(text_of(d));
+        CHECK_FALSE(x.ok);
+        return x.err;
+    };
+    const std::string no_map =
+        "variants[0].segment_map is a string, not null: a variant without a playlist has no segment map "
+        "(D-092 (c))";
+    CHECK(refused([](json::Value& d) { at(d, "variants[0].segment_map") = string_value("ok"); }) == no_map);
+    CHECK(refused([](json::Value& d) {
+              at(d, "variants[0].segment_map") = string_value("refused: " + std::string(kRefusal));
+          }) == no_map);
+    CHECK(refused([](json::Value& d) { at(d, "variants[0].segment_map") = integer_value(0); }) ==
+          "variants[0].segment_map is an integer, not null: a variant without a playlist has no segment map "
+          "(D-092 (c))");
+    const std::string with_playlist = R"(is null, but the variant has a playlist, whose map is "ok" or a )"
+                                      R"(refusal that starts "refused: " (D-092 (c)))";
+    CHECK(refused([](json::Value& d) { at(d, "variants[1].segment_map") = json::Value{}; }) ==
+          "variants[1].segment_map " + with_playlist);
+    CHECK(refused([](json::Value& d) { at(d, "variants[0].playlist") = at(d, "variants[1].playlist"); }) ==
+          "variants[0].playlist.url disagrees with the variant's url");
+    CHECK(refused([](json::Value& d) {
+              at(d, "variants[0].playlist") = at(d, "variants[1].playlist");
+              at(d, "variants[0].playlist.url") = at(d, "variants[0].url");
+          }) == "variants[0].segment_map " + with_playlist);
+
+    // A playlist with neither a location nor a SHA-256, which the writer
+    // gives as null, the map with it, is refused whatever the map: written
+    // again, the variant would come out as other bytes, or be refused.
+    for (const std::string& map : { std::string("ok"), "refused: " + std::string(kRefusal) }) {
+        INFO(map);
+        CHECK(refused([&map](json::Value& d) {
+                  at(d, "variants[0].playlist")          = at(d, "variants[1].playlist");
+                  at(d, "variants[0].playlist.url")      = at(d, "variants[0].url");
+                  at(d, "variants[0].playlist.location") = string_value("");
+                  at(d, "variants[0].playlist.sha256")   = string_value("");
+                  at(d, "variants[0].segment_map")       = string_value(map);
+              }) == "variants[0].playlist has an empty location and an empty sha256: a variant read from no "
+                    "playlist has playlist null (D-092 (c))");
+    }
+    // One of the two makes a playlist: such a variant is read and written
+    // again as it was.
+    json::Value one = parsed(text);
+    at(one, "variants[0].playlist")          = at(one, "variants[1].playlist");
+    at(one, "variants[0].playlist.url")      = at(one, "variants[0].url");
+    at(one, "variants[0].playlist.location") = string_value("");
+    at(one, "variants[0].segment_map")       = string_value("ok");
+    const Read o = read(text_of(one));
+    INFO(o.err);
+    REQUIRE(o.ok);
+    CHECK(o.timeline.variants[0].playlist_location.empty());
+    CHECK(o.timeline.variants[0].playlist_sha256 == r.timeline.variants[1].playlist_sha256);
+    json::Value again = parsed(timeline::to_json(o.timeline, o.attributions, o.info));
+    CHECK(text_of(at(again, "variants[0]")) == text_of(at(one, "variants[0]")));
+}
+
 TEST_CASE("timeline::to_json: what breaks its preconditions is written, and from_json() refuses it",
           "[timeline][timeline_doc]")
 {
@@ -1746,6 +2262,16 @@ TEST_CASE("timeline::to_json: what breaks its preconditions is written, and from
     b = good;
     b.timeline.variants[2].pair = 0;
     CHECK(refusal(b) == "variants[2].pair is 0, the pair of variants[1] too");
+
+    // A variant without a playlist whose segment map isn't Variant's default:
+    // written as given, where the document has null for the map it can't
+    // have (D-092 (c)).
+    b = good;
+    b.timeline.variants[0].playlist_location.clear();
+    b.timeline.variants[0].playlist_sha256.clear();
+    b.timeline.variants[0].segment_map = "refused: " + std::string(kRefusal);
+    CHECK(refusal(b) == "variants[0].segment_map is a string, not null: a variant without a playlist has no "
+                        "segment map (D-092 (c))");
 
     // Detection's options that check_options() refuses, and a detected
     // attribution without the detection.

@@ -25,28 +25,59 @@
 //   are a session's (D-068), and none has a wall clock, which only observed
 //   events have (D-073).
 // - Additions to §8's layout, each needed to read a document back without
-//   its media (design §3.5) and none of them settled by the design: the
-//   axis's seconds and media keys, one of each per reference frame, written
-//   as stretches of frames over which they step evenly (axis.tick_den,
-//   axis.ticks, axis.keys); every run of the check of design §4.2
-//   (axis.runs), the facts among them, which Axis::warnings leaves out; and
-//   each sequence's first PTS in ticks (first_pts_ticks) beside its
-//   seconds. Evenly spaced frames take one stretch of each, as at 25 fps on
-//   MPEG-TS's 90 kHz clock, where a frame is 3600 ticks. Where a frame isn't
-//   a whole number of ticks the PTS a muxer rounds step unevenly, and so do
-//   the playlist time's ticks that follow them: a frame at 24000/1001 fps is
-//   3753.75 ticks of that clock and one at 60000/1001 fps 1501.5, so a new
-//   stretch starts every 4 frames, or every 2 (tests/test_timeline_doc.cpp).
-//   The stretches then grow with the frames, not with the segments as
-//   design §8's "Size" has it for the events; a measurement of the
-//   documents' size at those rates is unrecorded. The encoding is pending
-//   the owner (below).
+//   its media (design §3.5): the axis's seconds and media keys, one of each
+//   per reference frame (axis.tick_den, axis.ticks, axis.keys); every run of
+//   the check of design §4.2 (axis.runs), the facts among them, which
+//   Axis::warnings leaves out; and each sequence's first PTS in ticks
+//   (first_pts_ticks) beside its seconds. D-092 (a) settles how the
+//   per-frame values are written, and (d) keeps axis.runs.
+// - The per-frame values as stretches (D-092 (a), D-099 (a)). A stretch
+//   holds frames first to first + frames - 1, frame first + k at
+//   first_tick + scale * floor((phase + k * num) / den), a key's PTS from
+//   first_pts_ticks alike, its step "num/den" in lowest terms with a
+//   positive denominator, its phase from 0 to den - 1 and its scale a whole
+//   number from 1, so that a step can be a frame that isn't a whole number
+//   of ticks, and the scale the number of the values' ticks to one tick of
+//   the clock their frames follow, 1 for a plain stretch. A frame that
+//   doesn't follow starts a new stretch: every value comes back exactly,
+//   whatever it is. The writer tries, for each stretch, the frame duration
+//   in the values' own ticks first, of 1/tick_den s for the seconds and of
+//   the time base for the PTS, with the scale 1; for the seconds next, where
+//   the axis has a whole number above 1 of ticks to a PTS tick, the frame
+//   duration in PTS ticks with that number as the scale, since within a
+//   segment the playlist time follows the PTS (src/TimelineAxis.h); and
+//   last a whole step, the difference between the stretch's first two
+//   values, with the scale 1. It takes the one that covers the most frames,
+//   the first tried on a tie, with the smallest phase the frames allow; a
+//   stretch of one frame, and the frames without a PTS, have the step 0/1,
+//   the phase 0 and the scale 1. At 25 fps on MPEG-TS's 90 kHz clock the
+//   axis's ticks are the clock's, a frame is 3600 of them, a whole step, and
+//   the ad ladder's axis takes one stretch of ticks and three of keys, the
+//   ad's restart of its timestamps and the main content's return each
+//   starting one. At 24000/1001 fps a frame is 3753.75 ticks of that clock
+//   and at 60000/1001 fps 1501.5, and the axis has 8 or 4 ticks to a PTS
+//   tick with EXTINF in thousandths, as in the test, and a multiple of that
+//   where an EXTINF needs finer ticks, 200 or 100 with the test's EXTINF in
+//   millionths: the PTS a muxer rounds to the nearest tick follow the steps
+//   15015/4 and 3003/2, one stretch of keys per sequence; the frame grid's
+//   seconds, a whole number of the axis's ticks a frame, take one stretch;
+//   and the playlist time's take the PTS's steps with the axis's ticks to a
+//   PTS tick as the scale, following that multiple, one stretch for the
+//   whole reference where each EXTINF is its segment's frames, a
+//   discontinuity included, and one per segment where the EXTINF aren't,
+//   whole seconds or finer. At 30000/1001 fps a frame is 3003 ticks of the
+//   clock, the axis has 2 to a PTS tick, and 6006/1 with the scale 1 holds
+//   the same frames as 3003/1 with the scale 2, so the playlist time's
+//   ticks take the first, tried first. tests/test_timeline_doc.cpp asserts
+//   each of these counts.
 // - Numbers. Integers as integer literals; every double through
 //   json::number (src/JsonText.h), which writes a whole double as an integer
 //   literal, so the schema types each such field "number"; null for NaN and
 //   for an absent value. Rationals exactly, as "num/den": time bases, frame
-//   rates, frame durations, margins. Seconds are doubles for output only,
-//   computed from exact ticks (the design's P-A).
+//   rates, frame durations, margins and the stretches' steps, each term in
+//   its shortest form, as std::format writes an integer, so that a rational
+//   has one text. Seconds are doubles for output only, computed from exact
+//   ticks (the design's P-A).
 // - Order. Keys in §8's order; events in canonical order (the design's P-I),
 //   each written once and named by its id wherever an attribution lists it;
 //   variants and attributions in the order given. Identical inputs that
@@ -63,52 +94,113 @@
 //   of one pair or two references, an event, a variant, a session or a
 //   curve that isn't there, and seconds or offsets that disagree with the
 //   axis. It also refuses what the rules above and the decisions rule out:
-//   a session part other than a ladder's; an axis whose stretches don't
-//   cover its frames, or whose clock and check aren't paired as
-//   build_axis() pairs them, the playlist time with the segment map and
-//   the frame grid with the report only (src/TimelineAxis.h); an event
-//   whose sequence is negative or whose media key isn't the axis's key at
-//   its ref_index (Event::key, src/TimelineModel.h); a network or player
-//   event without a session; a wall clock on an event of another source
-//   (D-073); and a detected attribution where detection is null (D-077).
-//   It takes one thing that mirage_vmaf timeline never writes: an
+//   a rational whose terms aren't in their shortest form; a session part
+//   other than a ladder's; an axis whose stretches don't cover its frames,
+//   whose steps, phases or scales break the per-frame values' rules (a
+//   step not in lowest terms or whose denominator isn't positive, a phase
+//   outside 0 to den - 1, a scale below 1, and for frames without a PTS a
+//   step other than 0/1 or a scale other than 1), whose values pass 64
+//   bits, or whose clock and check aren't paired as build_axis() pairs
+//   them, the playlist time with the segment map and the frame grid with
+//   the report only (src/TimelineAxis.h); a variant's playlist with neither
+//   a location nor a SHA-256, which to_json() writes as null, and a
+//   segment_map that isn't null exactly when the playlist is (D-092 (c));
+//   an event whose sequence is negative or whose media key isn't the axis's
+//   key at its ref_index (Event::key, src/TimelineModel.h); a network or
+//   player event without a session; a wall clock on an event of another
+//   source (D-073); and a detected attribution where detection is null
+//   (D-077). It takes one thing that mirage_vmaf timeline never writes: an
 //   attribution whose detected is false, an interval a user gave rather
 //   than a drop (design §6.1), whether detection ran or not, so that the
 //   answers of mirage_vmaf attribute (WP09a) can take this layout.
 //   Timeline::curves stays empty: the caller fills it from the ladder report
 //   the document names, once that report's hashes match.
 //
-// Choices pending the owner. Each changes the output, the design and D-072
-// leave it open, and the code does what is said here until the owner
-// answers; the place that makes each says so.
-// - The axis's per-frame values as stretches (above), against plain
-//   per-frame values or another encoding; and axis.runs, an addition to
-//   §8's axis, where design §4.2 writes each run to axis.warnings and gives
-//   the facts no place.
-// - Forms and names §8 leaves open: a curve as {"kind", "index"}, where
-//   design §7's --curve writes "pair:<k>"; time bases, frame rates, the
-//   frame duration and the margins as "num/den" strings, since a margin of
-//   1/3 s has no exact decimal; overlap.scope "curve-inputs"; the runs'
-//   tests "clocks", "playlist-grid" and "report-grid"; the stretches'
-//   members (first, frames, first_tick and step; first, frames, sequence,
-//   first_pts_ticks and step); detection.curves, the curves detect() ran
-//   on, with session_rules null; and overlapping_events with all six
-//   groups, empty ones included.
-// - A variant's pair and a curve's index: the pair's position among the
-//   ladder report's complete pairs, which Timeline::curves follows, the
-//   query's scope reaches through Curve::variant and the reader's curve
-//   check relies on; not the report's own pairs[].index, which skips the
-//   number of a pair that failed, so that the two differ once one does.
-// - Sentinels: null for the BANDWIDTH and both ranks of a variant without
-//   entries, and for the playlist of a variant not read from one; a
-//   segment_map that is "ok" or a refusal, so that a reference that isn't a
-//   playlist, a mezzanine (design §5.2), says "ok", Variant's default, for
-//   a map it doesn't have.
-// - The reader's strictness within version 1: every key required, none
-//   unknown and every value in seconds recomputed, so that any later
-//   addition to the layout needs another schema_version, where
+// The owner's choices (D-092, of 2026-11-05), on the forms that WP08 left
+// open because they change the output and neither the design nor D-072
+// settles them; the place that makes each cites its letter.
+// - (a) The per-frame values as stretches with a rational step and a phase,
+//   as above, the stretches growing with the segments, not the frames, but
+//   in two cases pending the owner (below); implemented here, with D-099
+//   (a)'s scale.
+// - (b) A pair's number, in variants[].pair, in a curve's index and in
+//   design §7's --curve pair:<k>, is the ladder report's own pairs[].index,
+//   which skips the number of a pair that failed. A later package
+//   implements it once WP09a, whose builder fills Variant::pair and whose
+//   CLI parses --curve, has merged. Until then the number is the pair's
+//   position among the report's complete pairs, which Timeline::curves
+//   follows, the query's scope reaches through Curve::variant and the
+//   reader's curve check relies on, and which is the same number while no
+//   pair has failed.
+// - (c) A value a variant doesn't have is null: the BANDWIDTH and both
+//   ranks of a variant without entries or that isn't a rung, and the
+//   playlist of a variant not read from one, as WP08 wrote them; and then
+//   its segment_map too, where WP08 wrote "ok", since a reference that
+//   isn't a playlist, a mezzanine (design §5.2), has no map. The reader
+//   takes null there exactly when the playlist is null, and gives it back
+//   as Variant's default, "ok"; implemented here.
+// - (d) The rest stays as WP08 built it: axis.runs; a curve as {"kind",
+//   "index"}, where design §7's --curve writes "pair:<k>"; time bases, frame
+//   rates, the frame duration and the margins as "num/den" strings;
+//   overlap.scope "curve-inputs"; the runs' tests "clocks", "playlist-grid"
+//   and "report-grid"; the stretches' members (first, frames, first_tick;
+//   first, frames, sequence, first_pts_ticks), with (a)'s step and phase
+//   and D-099 (a)'s scale; detection.curves, the curves detect() ran on,
+//   with session_rules null; overlapping_events with all six groups, empty
+//   ones included; and a strict reader within version 1, every key
+//   required, none unknown and every value in seconds recomputed, so that
+//   any addition to the layout takes another schema_version, where
 //   LadderReportRead passes over keys it doesn't know in later report
 //   layouts.
+//
+// The owner's choices (D-099, of 2026-11-05), on what WP08b left open in
+// implementing D-092 (a) and (c):
+// - (a) The scale, as above. The playlist time's ticks, kept in a whole
+//   number of the axis's ticks to a PTS tick, 8 and 4 at 24000/1001 and
+//   60000/1001 fps on MPEG-TS's 90 kHz clock with EXTINF in thousandths,
+//   follow the PTS of their segment with that number as the scale and the
+//   frame duration in PTS ticks as the step, where no step of D-092 (a)'s
+//   formula alone followed them; so they too grow with the segments. Every
+//   stretch of both kinds has a scale, and the writer gives a key's PTS the
+//   scale 1; the case found since that would need another is pending the
+//   owner (below). Implemented here.
+// - (b) WP08b's other choices, as built: where several steps and phases
+//   hold the same frames, the step that covers the most frames, the frame
+//   duration on a tie, the smallest phase, and 0/1 with the scale 1 for a
+//   stretch of one frame; whole steps for the keys of an axis without a
+//   frame duration (0/1), even where axis.reference.frame_rate is known;
+//   and a variant without a playlist whose segment map isn't Variant's
+//   default written as given, for the reader to refuse (to_json()).
+//
+// Pending the owner, each as built here, changing a document's bytes or
+// what the reader takes and no value read back:
+// - A choice made in implementing D-099 (a). Where the frame duration in
+//   the axis's ticks with the scale 1 and the frame duration in PTS ticks
+//   with a scale above 1 hold the same frames, the writer takes the first,
+//   which it tries first: so at 30000/1001 fps on the 90 kHz clock, a frame
+//   being a whole 3003 PTS ticks, the playlist time's ticks have 6006/1 with
+//   the scale 1, not 3003/1 with the scale 2, which D-099 (a) read literally
+//   gives. D-099 (b)'s tie goes to the frame duration over a whole step and
+//   doesn't choose between two frame durations.
+// - What the reader takes for the scale: any from 1 on both kinds of
+//   stretch, the keys' too, which the writer gives the scale 1, and 1 alone
+//   for frames without a PTS. The other choice, the scale 1 alone on every
+//   key stretch, would refuse a later writer's keys with a scale (below),
+//   which this reader takes within version 1.
+// - The case D-099 (a) asks to be reported, where a key's PTS need a scale
+//   other than 1: PTS rounded to a clock coarser than their time base, as a
+//   millisecond clock written on MPEG-TS's 90 kHz one, follow neither frame
+//   duration, so the keys, with the scale 1, and the playlist time's ticks,
+//   with the axis's ticks to a PTS tick as the scale, take stretches that
+//   grow with the frames.
+// - A sequence at another frame rate than the reference's, as an ad after
+//   its discontinuity can be (design §4.2), whose frame isn't a whole
+//   number of PTS ticks: the writer tries the reference's frame duration
+//   and whole steps alone (D-092 (a), D-099 (b)), so that the sequence's
+//   stretches grow with its frames, in keys and ticks alike.
+// Every value comes back exactly in each case, and a writer that chose
+// otherwise, or tried more steps or scales, would stay within version 1 as
+// long as the reader takes the scales it takes now.
 //
 // Core code (design §3.1): plain structs and text in and out, and libavutil's
 // rationals only. Nothing here reads a file; write_document() alone writes
@@ -236,7 +328,10 @@ struct DocInfo {
 //   them (above), no wall clock, its variant -1 or an index into the
 //   variants, and its media key the axis's key at its ref_index;
 // - each Variant::index its position, one variant at most the reference,
-//   and no two naming one pair;
+//   and no two naming one pair; a variant without a playlist (no location
+//   and no SHA-256) with Variant's default segment_map, "ok", which the
+//   document gives as null (D-092 (c)), any other value being written as
+//   it is, for the reader to refuse (D-099 (b));
 // - names unique within each payload object, in the options and among the
 //   FFmpeg libraries, as JSON's objects need (src/JsonRead.h);
 // - the axis as build_axis() makes it, a tick and a media key per frame, at
@@ -257,12 +352,14 @@ std::string to_json(const Timeline& timeline, const std::vector<Attribution>& at
 // warnings, its curves left empty; into `attributions` each attribution,
 // every Found naming its event by its index in those events, and each
 // searched interval widened again by the overlap record's margins (widen());
-// into `info` the rest. A number of a payload or of the options comes back
-// in the form of its text: an integer literal as std::int64_t, any other
-// number as a double, so that a whole double written by json::number comes
-// back as an integer; number_of() takes either. On a refusal `err` says why
-// and the three outputs are left as default values; otherwise `err` is
-// empty.
+// into `info` the rest. The axis's stretches come back as a tick and a
+// media key per frame (D-092 (a), D-099 (a)), and the null segment_map of a
+// variant without a playlist as Variant's default, "ok" (D-092 (c)). A
+// number of a payload or of the options comes back in the form of its
+// text: an integer literal as std::int64_t, any other number as a double,
+// so that a whole double written by json::number comes back as an integer;
+// number_of() takes either. On a refusal `err` says why and the three
+// outputs are left as default values; otherwise `err` is empty.
 bool from_json(std::string_view text, Timeline& timeline, std::vector<Attribution>& attributions,
                DocInfo& info, std::string& err);
 

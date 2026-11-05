@@ -109,33 +109,37 @@
         "checked": { "enum": ["segment-map", "report-only"] },
         "tick_den": { "type": "integer" },
         "ticks": {
-          "description": "Each reference frame's seconds in ticks of 1/tick_den s, as stretches of frames over which they step evenly.",
+          "description": "Each reference frame's seconds in ticks of 1/tick_den s, as stretches of frames (DECISIONS.md D-092 (a), D-099 (a)): frame first + k of a stretch is at the tick first_tick + scale * floor((phase + k * num) / den), where step is the rational \"num/den\" in lowest terms with a positive denominator, phase an integer from 0 to den - 1 and scale an integer from 1, the number of ticks to one tick of the clock the frames follow, 1 for a plain stretch.",
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["first", "frames", "first_tick", "step"],
+            "required": ["first", "frames", "first_tick", "step", "phase", "scale"],
             "additionalProperties": false,
             "properties": {
               "first": { "type": "integer" },
               "frames": { "type": "integer" },
               "first_tick": { "type": "integer" },
-              "step": { "type": "integer" }
+              "step": { "type": "string" },
+              "phase": { "type": "integer" },
+              "scale": { "type": "integer" }
             }
           }
         },
         "keys": {
-          "description": "Each reference frame's media key, its sequence and its PTS in ticks of the reference's time base, as stretches of frames of one sequence over which the PTS step evenly or are all unknown.",
+          "description": "Each reference frame's media key, its sequence and its PTS in ticks of the reference's time base, as stretches of frames of one sequence (DECISIONS.md D-092 (a), D-099 (a)): frame first + k has the PTS first_pts_ticks + scale * floor((phase + k * num) / den), by the rule of ticks, or every frame's PTS is unknown, with first_pts_ticks null, step \"0/1\", phase 0 and scale 1.",
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["first", "frames", "sequence", "first_pts_ticks", "step"],
+            "required": ["first", "frames", "sequence", "first_pts_ticks", "step", "phase", "scale"],
             "additionalProperties": false,
             "properties": {
               "first": { "type": "integer" },
               "frames": { "type": "integer" },
               "sequence": { "type": "integer" },
               "first_pts_ticks": { "type": ["integer", "null"] },
-              "step": { "type": "integer" }
+              "step": { "type": "string" },
+              "phase": { "type": "integer" },
+              "scale": { "type": "integer" }
             }
           }
         },
@@ -183,6 +187,7 @@
           "rank_from_top": { "type": ["integer", "null"] },
           "rank_from_bottom": { "type": ["integer", "null"] },
           "playlist": {
+            "description": "The media playlist as the build read it again, its location and sha256 not both empty; null for a variant not read from a playlist (DECISIONS.md D-092 (c)).",
             "type": ["object", "null"],
             "required": ["url", "location", "sha256"],
             "additionalProperties": false,
@@ -192,7 +197,10 @@
               "sha256": { "type": "string" }
             }
           },
-          "segment_map": { "type": "string" }
+          "segment_map": {
+            "description": "\"ok\", or \"refused: \" and why (DECISIONS.md D-081 (c)), for a variant read from a playlist; null for one that wasn't, which has no segment map (DECISIONS.md D-092 (c)).",
+            "type": ["string", "null"]
+          }
         }
       }
     },
