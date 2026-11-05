@@ -3139,6 +3139,10 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         }
 
         // ── Top-bar info chips (refreshed ~1 Hz) ─────────────────────────────
+        // A video track no decoder could be opened for shows nothing: its
+        // chips say what the track declares, not what the old track left on
+        // screen (plan/engineer_tools_player_fixes.md, 5.4).
+        const bool video_blank_now = cur_video_stream >= 0 && cur_video_stream == ms.video_open_failed.load();
         if (now - last_info_upd >= std::chrono::seconds(1)) {
             last_info_upd = now;
             const AVCodecParameters* vpar = demuxer.video_codecpar();
@@ -3148,10 +3152,19 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             if (const char* prof = avcodec_profile_name(vpar->codec_id, vpar->profile))
                 codec += std::string(" ") + prof;
             ui_info.codec  = codec;
-            ui_info.res    = std::format("{}×{}", shown_w, shown_h);
-            ui_info.fps    = stream_fps > 0.0 ? fps_text(stream_fps) : "";
-            ui_info.hdr    = renderer.hdr_mode() == 0 || renderer.hdr_mode() == 1;
-            ui_info.range  = renderer.hdr_mode() == 0 ? "HDR10" : renderer.hdr_mode() == 1 ? "HLG" : "SDR";
+            if (video_blank_now) {
+                const AVRational afr = demuxer.fmt_ctx()->streams[demuxer.video_stream_index()]->avg_frame_rate;
+                ui_info.res   = std::format("{}×{}", vpar->width, vpar->height);
+                ui_info.fps   = afr.num > 0 && afr.den > 0 ? fps_text(av_q2d(afr)) : "";
+                ui_info.hdr   = vpar->color_trc == AVCOL_TRC_SMPTE2084 || vpar->color_trc == AVCOL_TRC_ARIB_STD_B67;
+                ui_info.range = vpar->color_trc == AVCOL_TRC_SMPTE2084   ? "HDR10"
+                              : vpar->color_trc == AVCOL_TRC_ARIB_STD_B67 ? "HLG" : "SDR";
+            } else {
+                ui_info.res   = std::format("{}×{}", shown_w, shown_h);
+                ui_info.fps   = stream_fps > 0.0 ? fps_text(stream_fps) : "";
+                ui_info.hdr   = renderer.hdr_mode() == 0 || renderer.hdr_mode() == 1;
+                ui_info.range = renderer.hdr_mode() == 0 ? "HDR10" : renderer.hdr_mode() == 1 ? "HLG" : "SDR";
+            }
 
             // HLS exposes each variant as an AVProgram (in master-playlist
             // order); the one carrying both routed streams is playing — or,
@@ -3162,7 +3175,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         }
         // Cheap and state-dependent (HW becomes active after the first decoded
         // frame): keep these current every frame.
-        ui_info.decode  = video_decoder.is_hw_active() ? "HW VT" : "SW";
+        ui_info.decode  = video_blank_now ? "no decoder" : video_decoder.is_hw_active() ? "HW VT" : "SW";
         ui_info.dropped = static_cast<int>(total_dropped);
 
         // Overlay toggles (keys or UI) → OSD toast.
