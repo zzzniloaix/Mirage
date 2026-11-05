@@ -560,6 +560,14 @@ opening `B` scans it at once over the share.
   `--ui-sub-at 5.2` above was a PTS: since D-089 the flag takes a position.
   A stream that flags no keyframe before the target is decoded from its
   start (D-093).
+- **On an MPEG-TS, the scrub preview and the step back land after the
+  keyframe before their target.** Both go through `ScrubDecoder`, whose
+  seek is FFmpeg's own, as the demuxer's was before D-088. Scrubbed to PTS
+  2.68 in the tag-switch MPEG-TS, the preview is the next keyframe's frame
+  (4.48), and in its last GOP there is none. A step back from 3.08 lands on
+  4.48. In an MP4 the preview is the target's frame
+  (`plan/engineer_tools_runs/fixes-gui-2026-11-05/`). D-088 did not cover
+  it; a fix is the owner's to decide.
 - **FFmpeg's hls muxer writes EXTINF 2.000 for fMP4 segments of 46 and 53
   frames at 25 fps** (x265, open GOP, the demo package's `v3`; `demo.json.xz`
   lists each segment's frame count). The conformance check reports it. The

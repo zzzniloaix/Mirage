@@ -104,8 +104,15 @@ I-frame, only from an IDR, so a capped seek showed nothing
 `66751ed` adds a test of such a stream and says why in the landing's
 comment.
 
-Tests: `tests/test_demuxer_seek.cpp` (`[demux][seek]`). The scripted seek
-has not been run again yet.
+Tests: `tests/test_demuxer_seek.cpp` (`[demux][seek]`). Scripted runs
+(`plan/engineer_tools_runs/fixes-gui-2026-11-05/`): the seek of
+`gui-2026-11-03` that showed no frame now shows the target's frame, with
+and without VideoToolbox. On the stream without flagged keyframes, a seek
+50 s in reads from the start and shows the target's frame, 3592 ms after
+the seek with VideoToolbox and 311 ms after it with `--no-hw`, with the
+screen locked. Found on the way: the scrub preview and the step back,
+which `ScrubDecoder` serves, still land after the keyframe before their
+target on an MPEG-TS.
 
 ## 2. Positions are absolute PTS against a duration counted from 0
 
@@ -204,8 +211,11 @@ on FFmpeg's MPEG-TS of AAC and H.264, whose audio starts 0.021333 s before
 its video (`plan/engineer_tools_runs/review-2026-11-05/`), the bar ran past
 the end and the remaining time did not reach 0.
 
-Tests: `tests/test_ui_format.cpp` (`[ui]`). The scripted runs have not been
-made yet. Since the QA flags now take positions, the status file's
+Tests: `tests/test_ui_format.cpp` (`[ui]`). Scripted runs
+(`fixes-gui-2026-11-05/`): the end of the MPEG-TS reads 00:05.960 /
+00:06.000, and so does that of a clip whose audio starts 0.541333 s first,
+with the bar full. A step forward lands on the next frame. A step back on
+the MPEG-TS lands on the next keyframe (section 1's finding). Since the QA flags now take positions, the status file's
 `--ui-sub-at 5.2` (a PTS when it was run) is `--ui-sub-at 3.72` on that
 clip.
 
@@ -371,8 +381,14 @@ memory for the staging frame) is not tried again, and frames can go
 undrawn until the interpretation changes again. Nothing falls back at
 `init()` either.
 
-Tests: `[yuv]`, `[hw_binding]` and `[colour_interp]`. The snapshots have
-not been made yet. As the risks said, the frame inspector's "rendered as"
+Tests: `[yuv]`, `[hw_binding]` and `[colour_interp]`. Snapshots
+(`fixes-gui-2026-11-05/`): 10-bit white is 255 and the 8-bit 4:2:0 greys
+are neutral. Every buffer above is drawn, and 'y416' is converted on the
+CPU. After their switch, the tag-switch clips equal their second part
+alone. The bars' centres with and without VideoToolbox are equal, but for
+HDR, which the software path does not correct (3.1), and for 8-bit 4:2:2
+and 4:4:4: one code higher with VideoToolbox, not explained yet. As the
+risks said, the frame inspector's "rendered as"
 warnings no longer fire for the frame on screen, and the I panel's colour
 lines are still those of open.
 
@@ -559,7 +575,10 @@ Tests:
 - `[audio]` in `tests/test_audio_decoder.cpp` and
   `tests/test_audio_player.cpp`.
 
-The scripted runs have not been made yet.
+Scripted runs (`fixes-gui-2026-11-05/`): 4.1 counts and shows decode
+errors as FFmpeg's command line does (82 with VideoToolbox), and a switch
+to a video track with no decoder ends at once. 4.2's audio switch and 4.4
+need audio output, which the locked screen stopped: MEASUREMENT PENDING.
 
 ## The owner's choices, together
 

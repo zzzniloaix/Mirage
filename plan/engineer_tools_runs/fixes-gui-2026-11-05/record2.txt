@@ -1,0 +1,264 @@
+$ git rev-parse HEAD
+3d2b8cc4b58792c6c05b7c8a07afcce1695fa84f
+[exit status 0]
+
+$ git status --porcelain
+[exit status 0]
+
+$ sw_vers
+ProductName:		macOS
+ProductVersion:		26.6.2
+BuildVersion:		25G83
+[exit status 0]
+
+$ sh -c ioreg -n Root -d1 -a | plutil -extract IOConsoleUsers xml1 -o - - | grep -A1 CGSSessionScreenIsLocked
+		<key>CGSSessionScreenIsLocked</key>
+		<true/>
+[exit status 0]
+
+$ cmake --build --preset macos-debug
+ninja: no work to do.
+[exit status 0]
+
+$ sh -c cd '<scratch>/gui3/clips' && shasum -a 256 tagswitch.ts h264.mp4
+bf67349daa1b1e91bc68da6af5967a5a5c0cf344a418992a16bc91b4e92a15fc  tagswitch.ts
+e3ecf193d1a73f07cefdc3fed3fe62c36269c64161355d4688c24e0eedb5840c  h264.mp4
+[exit status 0]
+
+$ uptime
+ 7:22  up 6 days, 17:52, 5 users, load averages: 10.79 17.21 15.90
+[exit status 0]
+
+$ HOME=<scratch>/gui3b/home build/macos-debug/mirage --qa-no-focus --no-hw --snapshot <scratch>/gui3b/colour/bars_sdr10_sw.png 10 plan/engineer_tools_runs/investigate-2026-11-03/render/clips/bars_sdr10.mp4 > colour/bars_sdr10_sw.log
+[exit status 0]
+
+$ uptime
+ 7:22  up 6 days, 17:52, 5 users, load averages: 10.79 17.21 15.90
+[exit status 0]
+
+$ HOME=<scratch>/gui3b/home build/macos-debug/mirage --qa-no-focus --no-hw --snapshot <scratch>/gui3b/colour/bars_pq_sw.png 10 plan/engineer_tools_runs/investigate-2026-11-03/render/clips/bars_pq.mp4 > colour/bars_pq_sw.log
+[exit status 0]
+
+$ uptime
+ 7:22  up 6 days, 17:52, 5 users, load averages: 10.79 17.21 15.90
+[exit status 0]
+
+$ HOME=<scratch>/gui3b/home build/macos-debug/mirage --qa-no-focus --no-hw --snapshot <scratch>/gui3b/colour/bars8_hevc_sw.png 10 plan/engineer_tools_runs/investigate-2026-11-03/render/clips/bars8_hevc.mp4 > colour/bars8_hevc_sw.log
+[exit status 0]
+
+$ uptime
+ 7:22  up 6 days, 17:52, 5 users, load averages: 10.09 16.96 15.82
+[exit status 0]
+
+$ HOME=<scratch>/gui3b/home build/macos-debug/mirage --qa-no-focus --no-hw --snapshot <scratch>/gui3b/colour/bars_prores422hq_sw.png 10 plan/engineer_tools_runs/investigate-2026-11-03/render/clips/bars_prores422hq.mov > colour/bars_prores422hq_sw.log
+[exit status 0]
+
+$ uptime
+ 7:22  up 6 days, 17:52, 5 users, load averages: 10.09 16.96 15.82
+[exit status 0]
+
+$ HOME=<scratch>/gui3b/home build/macos-debug/mirage --qa-no-focus --no-hw --snapshot <scratch>/gui3b/colour/bars_prores4444_sw.png 10 plan/engineer_tools_runs/investigate-2026-11-03/render/clips/bars_prores4444.mov > colour/bars_prores4444_sw.log
+[exit status 0]
+
+$ uptime
+ 7:23  up 6 days, 17:52, 5 users, load averages: 10.09 16.96 15.82
+[exit status 0]
+
+$ HOME=<scratch>/gui3b/home build/macos-debug/mirage --qa-no-focus --no-hw --snapshot <scratch>/gui3b/colour/bars_prores4444a_sw.png 10 plan/engineer_tools_runs/investigate-2026-11-03/render/clips/bars_prores4444a.mov > colour/bars_prores4444a_sw.log
+[exit status 0]
+
+$ uptime
+ 7:23  up 6 days, 17:52, 5 users, load averages: 11.04 17.04 15.86
+[exit status 0]
+
+$ HOME=<scratch>/gui3b/home build/macos-debug/mirage --qa-no-focus --no-hw --snapshot <scratch>/gui3b/colour/bars_hevc422_sw.png 10 plan/engineer_tools_runs/investigate-2026-11-03/render/clips/bars_hevc422.mp4 > colour/bars_hevc422_sw.log
+[exit status 0]
+
+$ uptime
+ 7:23  up 6 days, 17:52, 5 users, load averages: 11.04 17.04 15.86
+[exit status 0]
+
+$ HOME=<scratch>/gui3b/home build/macos-debug/mirage --qa-no-focus --no-hw --snapshot <scratch>/gui3b/colour/bars_hevc444_sw.png 10 plan/engineer_tools_runs/investigate-2026-11-03/render/clips/bars_hevc444.mp4 > colour/bars_hevc444_sw.log
+[exit status 0]
+
+$ uptime
+ 7:23  up 6 days, 17:52, 5 users, load averages: 11.04 17.04 15.86
+[exit status 0]
+
+$ HOME=<scratch>/gui3b/home build/macos-debug/mirage --qa-no-focus --no-hw --snapshot <scratch>/gui3b/colour/bars_h264_422_sw.png 10 plan/engineer_tools_runs/investigate-2026-11-03/render/clips/bars_h264_422.mp4 > colour/bars_h264_422_sw.log
+[exit status 0]
+
+$ uptime
+ 7:23  up 6 days, 17:52, 5 users, load averages: 11.04 17.04 15.86
+[exit status 0]
+
+$ HOME=<scratch>/gui3b/home build/macos-debug/mirage --qa-no-focus --no-hw --snapshot <scratch>/gui3b/colour/bars_hevc444_8_sw.png 10 plan/engineer_tools_runs/investigate-2026-11-03/render/clips/bars_hevc444_8.mp4 > colour/bars_hevc444_8_sw.log
+[exit status 0]
+
+$ python3 -I plan/engineer_tools_runs/investigate-2026-11-03/render/bars_at.py <scratch>/gui3b/colour/bars_sdr10_sw.png
+<scratch>/gui3b/colour/bars_sdr10_sw.png (2560x731): 0,0,0 69,69,69 130,130,130 192,192,192 255,255,255 255,255,255 214,116,18
+[exit status 0]
+
+$ build/macos-debug/snapshot_diff <scratch>/gui3/colour/bars_sdr10_hw.png <scratch>/gui3b/colour/bars_sdr10_sw.png
+snapshot_diff: 2560x731, max=23, mean=0.029, pixels>20=731 (budget 5000)
+[exit status 0]
+
+$ python3 -I plan/engineer_tools_runs/investigate-2026-11-03/render/bars_at.py <scratch>/gui3b/colour/bars_pq_sw.png
+<scratch>/gui3b/colour/bars_pq_sw.png (2560x731): 0,0,0 8,8,8 54,54,54 149,149,149 251,251,251 252,252,252 224,0,0
+[exit status 0]
+
+$ build/macos-debug/snapshot_diff <scratch>/gui3/colour/bars_pq_hw.png <scratch>/gui3b/colour/bars_pq_sw.png
+snapshot_diff: 2560x731, max=39, mean=1.029, pixels>20=5117 (budget 5000)
+[exit status 1]
+
+$ python3 -I plan/engineer_tools_runs/investigate-2026-11-03/render/bars_at.py <scratch>/gui3b/colour/bars8_hevc_sw.png
+<scratch>/gui3b/colour/bars8_hevc_sw.png (2560x731): 0,0,0 69,69,69 128,128,128 191,191,191 255,255,255 255,255,255 212,114,16
+[exit status 0]
+
+$ build/macos-debug/snapshot_diff <scratch>/gui3/colour/bars8_hevc_hw.png <scratch>/gui3b/colour/bars8_hevc_sw.png
+snapshot_diff: 2560x731, max=25, mean=0.035, pixels>20=1462 (budget 5000)
+[exit status 0]
+
+$ python3 -I plan/engineer_tools_runs/investigate-2026-11-03/render/bars_at.py <scratch>/gui3b/colour/bars_prores422hq_sw.png
+<scratch>/gui3b/colour/bars_prores422hq_sw.png (2560x731): 0,0,0 69,69,69 130,130,130 192,192,192 255,255,255 255,255,255 205,112,23
+[exit status 0]
+
+$ build/macos-debug/snapshot_diff <scratch>/gui3/colour/bars_prores422hq_hw.png <scratch>/gui3b/colour/bars_prores422hq_sw.png
+snapshot_diff: 2560x731, max=13, mean=0.021, pixels>20=0 (budget 5000)
+[exit status 0]
+
+$ python3 -I plan/engineer_tools_runs/investigate-2026-11-03/render/bars_at.py <scratch>/gui3b/colour/bars_prores4444_sw.png
+<scratch>/gui3b/colour/bars_prores4444_sw.png (2560x731): 0,0,0 69,69,69 130,130,130 192,192,192 255,255,255 255,255,255 205,112,23
+[exit status 0]
+
+$ build/macos-debug/snapshot_diff <scratch>/gui3/colour/bars_prores4444_hw.png <scratch>/gui3b/colour/bars_prores4444_sw.png
+snapshot_diff: 2560x731, max=1, mean=0.003, pixels>20=0 (budget 5000)
+[exit status 0]
+
+$ python3 -I plan/engineer_tools_runs/investigate-2026-11-03/render/bars_at.py <scratch>/gui3b/colour/bars_prores4444a_sw.png
+<scratch>/gui3b/colour/bars_prores4444a_sw.png (2560x731): 0,0,0 69,69,69 130,130,130 192,192,192 255,255,255 255,255,255 205,112,23
+[exit status 0]
+
+$ build/macos-debug/snapshot_diff <scratch>/gui3/colour/bars_prores4444a_hw.png <scratch>/gui3b/colour/bars_prores4444a_sw.png
+snapshot_diff: 2560x731, max=48, mean=0.073, pixels>20=5117 (budget 5000)
+[exit status 1]
+
+$ python3 -I plan/engineer_tools_runs/investigate-2026-11-03/render/bars_at.py <scratch>/gui3b/colour/bars_hevc422_sw.png
+<scratch>/gui3b/colour/bars_hevc422_sw.png (2560x731): 0,0,0 69,69,69 130,130,130 192,192,192 255,255,255 255,255,255 205,112,23
+[exit status 0]
+
+$ build/macos-debug/snapshot_diff <scratch>/gui3/colour/bars_hevc422_hw.png <scratch>/gui3b/colour/bars_hevc422_sw.png
+snapshot_diff: 2560x731, max=25, mean=0.028, pixels>20=731 (budget 5000)
+[exit status 0]
+
+$ python3 -I plan/engineer_tools_runs/investigate-2026-11-03/render/bars_at.py <scratch>/gui3b/colour/bars_hevc444_sw.png
+<scratch>/gui3b/colour/bars_hevc444_sw.png (2560x731): 0,0,0 69,69,69 130,130,130 192,192,192 255,255,255 255,255,255 205,112,23
+[exit status 0]
+
+$ build/macos-debug/snapshot_diff <scratch>/gui3/colour/bars_hevc444_hw.png <scratch>/gui3b/colour/bars_hevc444_sw.png
+snapshot_diff: 2560x731, max=19, mean=0.022, pixels>20=0 (budget 5000)
+[exit status 0]
+
+$ python3 -I plan/engineer_tools_runs/investigate-2026-11-03/render/bars_at.py <scratch>/gui3b/colour/bars_h264_422_sw.png
+<scratch>/gui3b/colour/bars_h264_422_sw.png (2560x731): 0,0,0 69,69,69 129,129,129 192,192,192 255,255,255 255,255,255 204,111,22
+[exit status 0]
+
+$ build/macos-debug/snapshot_diff <scratch>/gui3/colour/bars_h264_422_hw.png <scratch>/gui3b/colour/bars_h264_422_sw.png
+snapshot_diff: 2560x731, max=24, mean=0.161, pixels>20=1462 (budget 5000)
+[exit status 0]
+
+$ python3 -I plan/engineer_tools_runs/investigate-2026-11-03/render/bars_at.py <scratch>/gui3b/colour/bars_hevc444_8_sw.png
+<scratch>/gui3b/colour/bars_hevc444_8_sw.png (2560x731): 0,0,0 69,69,69 129,129,129 192,192,192 255,255,255 255,255,255 204,112,23
+[exit status 0]
+
+$ build/macos-debug/snapshot_diff <scratch>/gui3/colour/bars_hevc444_8_hw.png <scratch>/gui3b/colour/bars_hevc444_8_sw.png
+snapshot_diff: 2560x731, max=19, mean=0.099, pixels>20=0 (budget 5000)
+[exit status 0]
+
+$ uptime
+ 7:23  up 6 days, 17:53, 5 users, load averages: 17.60 18.20 16.28
+[exit status 0]
+
+$ HOME=<scratch>/gui3b/home build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-overlays P --speed-seq pause@1,fwd@2,snap@3 --ui-snapshot <scratch>/gui3b/steps_fwd.png 1 <scratch>/gui3/clips/tagswitch.ts > steps_fwd.log
+[exit status 0]
+
+$ grep -E speed-seq|step landed|ui-snapshot <scratch>/gui3b/steps_fwd.log
+[INFO]  --speed-seq: t=1.00 event 1 0
+[INFO]  --speed-seq: t=2.03 event 9 0
+[INFO]  --speed-seq: fwd step landed at pts 2.520 1280x720
+[INFO]  --speed-seq: t=3.02 event 10 0
+[INFO]  ui-snapshot: wrote <scratch>/gui3b/steps_fwd.png (3200×2000) — pts=2.520 1280x720 (paused)
+[exit status 0]
+
+$ uptime
+ 7:23  up 6 days, 17:53, 5 users, load averages: 16.43 17.95 16.20
+[exit status 0]
+
+$ HOME=<scratch>/gui3b/home build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-overlays P --speed-seq pause@1.6,back@2,snap@6 --ui-snapshot <scratch>/gui3b/steps_back.png 1 <scratch>/gui3/clips/tagswitch.ts > steps_back.log
+[exit status 0]
+
+$ grep -E speed-seq|step landed|ui-snapshot|ScrubDecoder <scratch>/gui3b/steps_back.log
+[INFO]  ScrubDecoder: ready (open 2 ms, probe 13 ms) (t=0.356)
+[INFO]  --speed-seq: t=1.60 event 1 0
+[INFO]  --speed-seq: t=2.02 event 8 0
+[INFO]  --speed-seq: back step landed at pts 4.480 1280x720 stream 0 (from 3.080, request 3.020, 56 ms)
+[INFO]  --speed-seq: t=6.01 event 10 0
+[INFO]  ui-snapshot: wrote <scratch>/gui3b/steps_back.png (3200×2000) — pts=4.480 1280x720 (paused)
+[INFO]  ScrubDecoder: stopped (0 requests decoded from a keyframe read, 1 from a seek)
+[exit status 0]
+
+$ uptime
+ 7:23  up 6 days, 17:53, 5 users, load averages: 14.73 17.54 16.08
+[exit status 0]
+
+$ HOME=<scratch>/gui3b/home build/macos-debug/mirage --qa-no-focus --window 1280x720 --speed-seq scrub:1.2@3,snap@5 --ui-snapshot <scratch>/gui3b/scrub_gop1.png 1 <scratch>/gui3/clips/tagswitch.ts > scrub_gop1.log
+[exit status 0]
+
+$ grep -E speed-seq|ui-snapshot|ScrubDecoder <scratch>/gui3b/scrub_gop1.log
+[INFO]  ScrubDecoder: ready (open 1 ms, probe 6 ms) (t=0.357)
+[INFO]  --speed-seq: scrub to position 1.200 (pts 2.680)
+[INFO]  --speed-seq: t=3.00 event 6 1.2
+[INFO]  --speed-seq: t=5.00 event 10 0
+[INFO]  ui-snapshot: wrote <scratch>/gui3b/scrub_gop1.png (2560×1440) — scrub preview pts=4.480 1280x720 for 2.680
+[INFO]  ScrubDecoder: stopped (0 requests decoded from a keyframe read, 1 from a seek)
+[exit status 0]
+
+$ uptime
+ 7:23  up 6 days, 17:53, 5 users, load averages: 13.34 17.14 15.95
+[exit status 0]
+
+$ HOME=<scratch>/gui3b/home build/macos-debug/mirage --qa-no-focus --window 1280x720 --speed-seq scrub:4.2@3,snap@5 --ui-snapshot <scratch>/gui3b/scrub_gop2.png 1 <scratch>/gui3/clips/tagswitch.ts > scrub_gop2.log
+[exit status 0]
+
+$ grep -E speed-seq|ui-snapshot|ScrubDecoder <scratch>/gui3b/scrub_gop2.log
+[INFO]  ScrubDecoder: ready (open 3 ms, probe 13 ms) (t=0.708)
+[INFO]  --speed-seq: scrub to position 4.200 (pts 5.680)
+[INFO]  --speed-seq: t=3.00 event 6 4.2
+[INFO]  --speed-seq: t=5.01 event 10 0
+[INFO]  ui-snapshot: wrote <scratch>/gui3b/scrub_gop2.png (2560×1440) — scrub preview pts=-1.000 0x0 for 5.680
+[INFO]  ScrubDecoder: stopped (0 requests decoded from a keyframe read, 1 from a seek)
+[exit status 0]
+
+$ uptime
+ 7:23  up 6 days, 17:53, 5 users, load averages: 12.43 16.89 15.87
+[exit status 0]
+
+$ HOME=<scratch>/gui3b/home build/macos-debug/mirage --qa-no-focus --window 1280x720 --speed-seq scrub:3.2@3,snap@5 --ui-snapshot <scratch>/gui3b/scrub_mp4.png 1 <scratch>/gui3/clips/h264.mp4 > scrub_mp4.log
+[exit status 0]
+
+$ grep -E speed-seq|ui-snapshot|ScrubDecoder <scratch>/gui3b/scrub_mp4.log
+[INFO]  ScrubDecoder: ready (open 2 ms, probe 10 ms) (t=0.691)
+[INFO]  --speed-seq: scrub to position 3.200 (pts 3.200)
+[INFO]  --speed-seq: t=3.00 event 6 3.2
+[INFO]  --speed-seq: t=5.00 event 10 0
+[INFO]  ui-snapshot: wrote <scratch>/gui3b/scrub_mp4.png (2560×1440) — scrub preview pts=3.200 1280x720 for 3.200
+[INFO]  ScrubDecoder: stopped (0 requests decoded from a keyframe read, 1 from a seek)
+[exit status 0]
+
+$ git status --porcelain
+[exit status 0]
+
+$ uptime
+ 7:24  up 6 days, 17:53, 5 users, load averages: 11.35 16.51 15.75
+[exit status 0]
+
