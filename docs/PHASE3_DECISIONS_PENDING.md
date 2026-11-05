@@ -1136,6 +1136,102 @@ Questions that round 1's packages met and the design doesn't settle, each of who
 
 **Blocks.** WP05.
 
+#### Q48. The axis's per-frame values where a frame isn't a whole number of ticks
+
+*Round 1.* Raised by WP08's review.
+
+**Question.** WP08 writes each reference frame's playlist-time ticks and media key, which design §8 doesn't list but `attribute` needs without the media, as stretches of frames with a whole step. Where a frame isn't a whole number of ticks (24000/1001 and 60000/1001 fps on MPEG-TS's 90 kHz clock), the PTS step alternates, the stretches cover 4 or 2 frames, and the document grows with frames, past what one value per frame would take (the review's probe, not committed). How are they written?
+
+- **1. Stretches with a rational step and a phase.** The k-th frame's value is first + floor((phase + k × num) / den): exact, and the document grows with segments at every common rate.
+- **2. One value per frame.** The simplest; the document grows with frames.
+- **3. Only what the ladder report doesn't hold.** The axis is restored from the document and the report together, so `attribute` would always need `--report`.
+- **4. As built.** Stretches with a whole step.
+
+**Agent's recommendation.** 1.
+
+**Answered** on 2026-11-05: 1, as the agent recommends (`docs/DECISIONS.md` D-092 (a)).
+
+#### Q49. Which number a pair has in the document
+
+*Round 1.* Raised by WP08's review.
+
+**Question.** WP08 writes `variants[].pair` and a curve's `index` as the pair's position among the report's complete pairs. The report's own `pairs[].index` is the plan's and skips the number of a pair that failed, so the two differ once a pair fails. Which number do the document and `--curve pair:<k>` use?
+
+- **1. The report's `pairs[].index`.** The one a reader of the report sees; the code maps it to the position.
+- **2. The position among the complete pairs.** As built.
+
+**Agent's recommendation.** 1.
+
+**Answered** on 2026-11-05: 1, as the agent recommends (`docs/DECISIONS.md` D-092 (b)).
+
+#### Q50. Values a variant doesn't have
+
+*Round 1.* Raised by WP08's review.
+
+**Question.** WP08 writes null for the bandwidth, both ranks and the playlist of a variant without master entries (a mezzanine reference) or one that isn't a rung. A mezzanine reference has no segment map either, but WP08's reader takes only `"ok"` or `"refused: …"`, so its document says `"ok"`. How are these written?
+
+- **1. Null, the segment map too.**
+- **2. Null, the segment map `"none"`.**
+- **3. As built.** Null, the segment map `"ok"`.
+
+**Agent's recommendation.** 1: the document writes only what its inputs show.
+
+**Answered** on 2026-11-05: 1, as the agent recommends (`docs/DECISIONS.md` D-092 (c)).
+
+#### Q51. WP08's other forms, and how strict its reader is
+
+*Round 1.* Raised by WP08's review.
+
+**Question.** Forms design §8 leaves open, each of which changes the output, as WP08 built them: `axis.runs` for the runs of §4.2's check; a curve as `{"kind", "index"}`; rationals as `"num/den"` strings; `overlap.scope` `"curve-inputs"`; the runs' tests `"clocks"`, `"playlist-grid"` and `"report-grid"`; the stretches' member names; `detection.curves` with `session_rules` null; all six groups of overlapping events, empty ones included; and a strict reader (every key required, unknown keys refused, every value in seconds recomputed), so that any addition takes a new `schema_version`. Are they kept?
+
+- **1. All as built.**
+- **2. Each asked on its own.**
+
+**Agent's recommendation.** 1.
+
+**Answered** on 2026-11-05: 1, as the agent recommends (`docs/DECISIONS.md` D-092 (d)).
+
+#### Q52. Playlist-time ticks in a unit finer than the PTS clock
+
+*Round 1.* Raised by WP08b.
+
+**Question.** At 24000/1001 and 60000/1001 fps on a 90 kHz clock, build_axis() keeps the playlist-time ticks in a unit 8 and 4 times finer than the PTS, so a PTS rounded by one tick moves them by 8 or 4; D-092 (a)'s formula moves by 0 or 1 a frame, so those ticks still start a stretch every 4 or 2 frames. How are they written?
+
+- **1. A whole multiplier on the floor term**, a new member of the stretches: all three kinds of values grow with segments.
+- **2. Per segment, as following the keys' PTS**, the axis's own rule, with the formula as fallback.
+- **3. As built.** They grow with frames at those rates.
+- **4. One value per frame**, for those ticks only.
+
+**Agent's recommendation.** 1.
+
+**Answered** on 2026-11-05: 1, as the agent recommends (`docs/DECISIONS.md` D-099 (a)).
+
+#### Q53. WP08b's encoding details
+
+*Round 1.* Raised by WP08b.
+
+**Question.** Three choices that change a document's bytes but no value read back: which step and phase hold frames that several would (the longest stretch, the frame duration on a tie, the smallest phase, 0/1 for one frame); whole steps for the keys of an axis without a frame duration; and a variant without a playlist whose segment map isn't Variant's default, written as given for the reader to refuse. Are they kept?
+
+- **1. All as built.**
+- **2. Each asked on its own.**
+
+**Agent's recommendation.** 1.
+
+**Answered** on 2026-11-05: 1, as the agent recommends (`docs/DECISIONS.md` D-099 (b)).
+
+#### Q54. WP09a's choices
+
+*Round 1.* Raised by WP09a's review.
+
+**Question.** Eight choices WP09a made where the design is silent, each of which changes an output: the layout of `attribute --format json`; how ranks and labels are counted; where a segment ends; the payload names of the vmaf and decoder-side events; attribute's defaults (margins, `--auto`'s parameters, drop numbering, which curves are answered); exit statuses; how finely warnings are given; and the forms of the options record and the config file. Are they kept as built?
+
+- **1. All as built.**
+- **2. Each asked on its own.**
+
+**Agent's recommendation.** 1.
+
+**Answered** on 2026-11-05: 1, as the agent recommends (`docs/DECISIONS.md` D-099 (c)).
+
 ## Differences from the work order, to report
 
 The design lists 14 differences between what Phase 3 would build and what the work order's §3 asks (`eval/phase3-survey/design.md` §11). None of them is removed by editing a document, as the work order's constraints require: each is reported here and in the description of Phase 3's PR (WP15c, in the wording WP15b settles), and both pass the quote check before they are committed or posted (P-AK). Each names the question that settles it; "Q42" marks those that no option of Phase 3 removes, which Q42 asks the owner how to handle.
