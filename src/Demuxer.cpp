@@ -285,6 +285,11 @@ void Demuxer::read_loop(std::stop_token st,
     // back — 1 s before where it first sought, then 2, 4, 8 … s — and from
     // the media's start it reads on without waiting. The decoders see none
     // of a try that missed: the seek's one flush sentinel covers them all.
+    // A stream may flag no keyframe after its first: an H.264 MPEG-TS whose
+    // I-frames are neither IDR nor marked by a recovery point SEI. Its tries
+    // then go back to the start, and everything up to the target is decoded.
+    // That is deliberate (D-093): with more than one reference, FFmpeg's
+    // H.264 decoder makes no frame from such an I-frame, only from an IDR.
     struct Landing {
         double target = -1.0;   // the keyframe is at or before it (seconds, pts); < 0: none awaited
         double from   = 0.0;    // where the first try sought (seconds)

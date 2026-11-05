@@ -14,6 +14,10 @@
 //  * The same H.264 in MP4 and Matroska: one read, from where FFmpeg's own
 //    seek lands (the container index's keyframe), as before.
 //  * A keyframe KeyframeIndex knows for certain is sought directly.
+//  * H.264 in MPEG-TS whose keyframes after the first are not flagged: the
+//    tries go back to the start, the frame shown is the target's, and from
+//    16 s back the decoder makes none (D-093). A flagged GOP of 20 s: its
+//    keyframe, from 32 s back.
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -35,6 +39,7 @@
 
 extern "C" {
 #include <libavcodec/avcodec.h>
+#include <libavcodec/bsf.h>
 #include <libavformat/avformat.h>
 #include <libavutil/channel_layout.h>
 #include <libavutil/frame.h>
@@ -63,6 +68,7 @@ struct Clip {
     int  gop     = 0;
     int  bframes = -1;
     bool audio   = false;
+    const char* bsf = "";   // the video's bitstream filters (av_bsf_list_parse_str), if any
 };
 
 // Writes `c` under testtemp::dir(); empty if its video encoder is missing.
@@ -156,13 +162,28 @@ std::string write_clip(const Clip& c)
             write_audio(af);
         }
     };
+    AVBSFContext* bsf = nullptr;
+    if (*c.bsf) {
+        REQUIRE(av_bsf_list_parse_str(c.bsf, &bsf) >= 0);
+        REQUIRE(avcodec_parameters_from_context(bsf->par_in, venc[0]) >= 0);
+        bsf->time_base_in = venc[0]->time_base;
+        REQUIRE(av_bsf_init(bsf) >= 0);
+    }
+    auto put_video = [&](AVCodecContext* e, AVPacket* p) {   // p: in e's time base
+        av_packet_rescale_ts(p, e->time_base, vs->time_base);
+        p->stream_index = vs->index;
+        REQUIRE(av_interleaved_write_frame(oc, p) >= 0);
+    };
     auto write_video = [&](AVCodecContext* e, const AVFrame* f) {
         REQUIRE(avcodec_send_frame(e, f) >= 0);
         while (avcodec_receive_packet(e, pkt) == 0) {
             audio_until(static_cast<double>(pkt->dts) / kFps + 0.1);
-            av_packet_rescale_ts(pkt, e->time_base, vs->time_base);
-            pkt->stream_index = vs->index;
-            REQUIRE(av_interleaved_write_frame(oc, pkt) >= 0);
+            if (!bsf) {
+                put_video(e, pkt);
+                continue;
+            }
+            REQUIRE(av_bsf_send_packet(bsf, pkt) >= 0);
+            while (av_bsf_receive_packet(bsf, pkt) == 0) put_video(e, pkt);
         }
     };
     AVFrame* f = av_frame_alloc();
@@ -184,6 +205,11 @@ std::string write_clip(const Clip& c)
             write_video(venc[static_cast<std::size_t>(part)], f);
         }
         write_video(venc[static_cast<std::size_t>(part)], nullptr);   // this encode ends here
+    }
+    if (bsf) {
+        REQUIRE(av_bsf_send_packet(bsf, nullptr) >= 0);
+        while (av_bsf_receive_packet(bsf, pkt) == 0) put_video(venc.back(), pkt);
+        av_bsf_free(&bsf);
     }
     if (aenc) {
         audio_until(1e9);
@@ -526,6 +552,65 @@ TEST_CASE("Demuxer: a keyframe KeyframeIndex knows for certain is sought directl
         seek(r, t, s);
         if (tracked) CHECK(reads_since(idx, before) == 1);   // straight to the keyframe
         else         CHECK(reads_since(idx, before) > 1);    // to the target, then from further back
+        REQUIRE_FALSE(s.video.empty());
+        CHECK_THAT(pts_s(r.d, s.video.front()), WithinAbs(kfs[1], 1e-6));
+        CHECK_THAT(shown(decode(r.d, s.video), t), WithinAbs(t, 1e-6));
+    }
+}
+
+TEST_CASE("Demuxer: a seek into an MPEG-TS whose keyframes after the first are not flagged reads from the start",
+          "[demux][seek]")
+{
+    SECTION("open GOPs without SEI: the target's frame, decoded from the start") {
+        // Every SEI taken out of open GOPs: their I-frames are neither IDR
+        // nor marked by a recovery point, so FFmpeg's parser flags only the
+        // first frame as a keyframe. The tries find none at or before the
+        // target and go back to the media's start (D-093).
+        const std::string path = write_clip({ .name = "mirage_test_seek_unflagged.ts", .format = "mpegts",
+                                              .encoder = "libx264", .params = "scenecut=0:open-gop=1",
+                                              .frames = 30 * kFps, .gop = 2 * kFps, .bframes = 2,
+                                              .bsf = "filter_units=remove_types=6" });
+        if (path.empty()) SKIP("no H.264 encoder (libx264)");
+        const std::vector<double> kfs = keyframes_of(path);
+        REQUIRE(kfs.size() == 1);
+        const double t = kfs[0] + 25.0;
+        Reader r;
+        REQUIRE(r.d.open(path));
+        KeyframeIndex idx;
+        idx.set_stream(r.d.video_stream_index(), kfs[0], kFrame, /*tracked*/ false);
+        r.start(&idx);
+        const std::uint32_t before = idx.new_run();
+        Seeked s;
+        seek(r, t, s);
+        // The first try, the ones 1, 2, 4, 8 and 16 s back, and the start.
+        CHECK(reads_since(idx, before) == 7);
+        REQUIRE_FALSE(s.video.empty());
+        CHECK_THAT(pts_s(r.d, s.video.front()), WithinAbs(kfs[0], 1e-6));
+        CHECK_THAT(shown(decode(r.d, s.video), t), WithinAbs(t, 1e-6));
+        // Why from the start: from 16 s back, where its I-frames are, the
+        // decoder (FFmpeg 8.1.1's H.264, with x264's default three
+        // references) makes no frame at all. It starts at an IDR or a
+        // recovery point, and this stream has one IDR, its first frame.
+        const auto from16 = std::find_if(s.video.begin(), s.video.end(), [&](const AVPacket* p) {
+            return p->dts != AV_NOPTS_VALUE && p->dts * av_q2d(r.d.video_time_base()) >= t - 16.0;
+        });
+        REQUIRE(from16 != s.video.end());
+        CHECK(decode(r.d, std::vector<AVPacket*>(from16, s.video.end())).empty());
+    }
+    SECTION("a flagged GOP longer than 16 s: its keyframe, from 32 s back") {
+        constexpr int kLong = 20 * kFps;
+        const std::string path = write_clip({ .name = "mirage_test_seek_gop20.ts", .format = "mpegts",
+                                              .encoder = "libx264", .params = "scenecut=0:b-adapt=0",
+                                              .frames = 2 * kLong + 5 * kFps, .gop = kLong, .bframes = 2 });
+        if (path.empty()) SKIP("no H.264 encoder (libx264)");
+        const std::vector<double> kfs = keyframes_of(path);
+        REQUIRE(kfs.size() == 3);
+        const double t = kfs[1] + 18.0;   // 18 s after the keyframe before it
+        Reader r;
+        REQUIRE(r.d.open(path));
+        r.start();
+        Seeked s;
+        seek(r, t, s);
         REQUIRE_FALSE(s.video.empty());
         CHECK_THAT(pts_s(r.d, s.video.front()), WithinAbs(kfs[1], 1e-6));
         CHECK_THAT(shown(decode(r.d, s.video), t), WithinAbs(t, 1e-6));
