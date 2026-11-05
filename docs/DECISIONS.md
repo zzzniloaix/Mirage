@@ -2375,7 +2375,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Records**:
   - The unit tests at `cfd6ae0` (`plan/engineer_tools_runs/tests/macos-2026-11-04-cfd6ae0.txt`): every case passes in both builds. That is 464 test cases in the debug build and 463 in the headless one, which leaves out the VideoToolbox case, plus the 21 `[audio]` cases in each.
   - The checks behind D-093 and D-094 (`plan/engineer_tools_runs/review-2026-11-05/`).
-  - The unit tests at `66751ed`, after `3b4e646`, `39ad661`, `63cde27` and their tests: MEASUREMENT PENDING.
+  - The unit tests at `ed98a2b`, whose code is `66751ed`'s (`plan/engineer_tools_runs/tests/macos-2026-11-05-ed98a2b.txt`): every case passes in both builds. That is 466 test cases in the debug build and 465 in the headless one, plus the 22 `[audio]` cases in each.
   - The scripted runs of each section's Check open player windows: MEASUREMENT PENDING.
 - **Who**: agent
 - **Date**: 2026-11-04 (for D-093 and D-094, 2026-11-05)
