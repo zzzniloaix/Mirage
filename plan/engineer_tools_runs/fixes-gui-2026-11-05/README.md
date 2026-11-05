@@ -86,10 +86,13 @@ third run's.
     flag corrects ([C10]). In `bars_prores4444a` 5117 pixels, 7 × 731 (the
     capture's height), differ by more than 20 (max 48); the centres are
     equal.
-  - Not explained yet: 8-bit 4:2:2 (H.264) and 4:4:4 (HEVC). Bar 2 (Y 127,
-    exactly 129.25) shows as 130 with VideoToolbox and 129 without, and
-    bar 6 is up to one code higher. VideoToolbox returns the
-    same codes as FFmpeg ([C1]).
+  - 8-bit 4:2:2 (H.264) and 4:4:4 (HEVC): bar 2 shows as 130 with
+    VideoToolbox and 129 without, and bar 6 is up to one code higher, as
+    `bars_at.py` reads one pixel. This is no bug. These clips' bar 2 is a
+    dither of 127 and 128, which the two paths filter in a different order
+    (`plan/engineer_tools_player_fixes.md` 5.2,
+    `plan/engineer_tools_runs/fixes2-2026-11-05/`). This line first said it
+    was not explained yet.
 
 ## Section 4: decode errors, a track with no decoder, the W strip (D-091)
 
@@ -122,15 +125,19 @@ third run's.
 ## Found on the way
 
 The scrub preview and the step back go through `ScrubDecoder`, which seeks
-for itself. On an MPEG-TS they land after the keyframe before their
-target, as the demuxer did before D-088: the preview shows the next
-keyframe's frame, or none in the last GOP, and the step back lands on the
-next keyframe. In an MP4 the preview is the target's frame. D-088 changed
-`Demuxer::read_loop` only.
+for itself. On an MPEG-TS they landed after the keyframe before their
+target, as the demuxer did before D-088: the preview showed the next
+keyframe's frame, or none in the last GOP, and the step back landed on
+the next keyframe. In an MP4 the preview is the target's frame. D-088
+changed `Demuxer::read_loop` only. Fixed since (plan section 5.1).
 
-The I panel's Decode line is cut at the panel's edge: `noise_I.png` shows
-"VideoToolbox: 67 decode errors (last: Invalid data found when processin".
+The I panel's Decode line is cut short: `noise_I.png` shows "VideoToolbox:
+67 decode errors (last: Invalid data found when processin". This line
+first said the cut was at the panel's edge. In fact the HUD's text buffer
+was full, in a panel sized for the whole line. It is fixed (plan section
+5.3).
 
 After the switch to the EVC track, the badges read "EVC 1280×720": the new
 track's codec beside the size of the old track's last frame. The EVC track
 is 640×360, and none of its frames is decoded (`record3/evc_tracks.png`).
+Fixed since (plan section 5.4).

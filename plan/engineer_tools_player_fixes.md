@@ -720,6 +720,19 @@ names:
 
 **Check.** `evc_tracks.png` again.
 
+**Implemented** under D-095 (P-085): 5.1 in `9b8f04a`, 5.3 in `7d3ee19` and
+`380b5fd`, 5.4 in `ec2e8e6`; 5.2 needs no code. The record of the checks
+is `plan/engineer_tools_runs/fixes2-2026-11-05/`:
+
+- 5.1: the scrub to PTS 2.68 now shows 2.680, the one to 5.68 shows 5.680,
+  and the one to the end shows the last frame. The step back from 3.080
+  lands on 3.040.
+- 5.2: the dither of bar 2, the same decoded both ways.
+- 5.3: the whole Decode line, and "HDR (PQ -> tonemap)".
+- 5.4: the badges "EVC", "640×360", "30", "SDR", "no decoder".
+
+The unit tests: `plan/engineer_tools_runs/tests/macos-2026-11-05-57c3a10.txt`.
+
 ## The owner's choices, together
 
 1. Section 1: the plan as written (recommended), the full index at open, or

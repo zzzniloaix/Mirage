@@ -2382,8 +2382,8 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - 64 is the agent's value.
   - By the code, a seek's flush leaves samples in the resampler, as before, so resampled input plays a few samples from before the seek.
   - By the code, a `reconfigure()` that fails (a shader that does not link, no memory for the staging frame) is not tried again. The renderer stays as far as it got, and frames can go undrawn until the interpretation changes again. Nothing falls back at `init()` either, where such a failure fails the session's start.
-  - From the scripted runs: on an MPEG-TS, the scrub preview and the step back, which `ScrubDecoder` serves with its own seek, land after the keyframe before their target, as the demuxer did before D-088. D-088 did not cover them; a fix is the owner's to decide (D-007).
-  - From the scripted runs: with VideoToolbox, 8-bit 4:2:2 and 4:4:4 bars are one code higher than without it (130 for 129.25), and VideoToolbox returns FFmpeg's codes. 4:2:0 and 10-bit agree. Not explained yet.
+  - From the scripted runs: on an MPEG-TS, the scrub preview and the step back, which `ScrubDecoder` serves with its own seek, landed after the keyframe before their target, as the demuxer did before D-088. Fixed since, under D-095 (plan section 5.1, P-085).
+  - From the scripted runs: with VideoToolbox, `bars_at.py` reads bar 2 of the 8-bit 4:2:2 and 4:4:4 clips one code higher than without it. Explained since: that bar is a dither of 127 and 128, which the two paths filter in a different order. It is no bug (plan section 5.2).
 - **Records**:
   - The unit tests at `cfd6ae0` (`plan/engineer_tools_runs/tests/macos-2026-11-04-cfd6ae0.txt`): every case passes in both builds. That is 464 test cases in the debug build and 463 in the headless one, which leaves out the VideoToolbox case, plus the 21 `[audio]` cases in each.
   - The checks behind D-093 and D-094 (`plan/engineer_tools_runs/review-2026-11-05/`).
@@ -2391,4 +2391,27 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - The scripted runs of each section's Check (`plan/engineer_tools_runs/fixes-gui-2026-11-05/`): sections 1 to 3 and 4.1 at `3d2b8cc` with the screen locked, then 4.2, 4.4 and the timed seek of section 1 at `6f5ec80` with it unlocked (`record3.txt`). Every section's Check is made.
 - **Who**: agent
 - **Date**: 2026-11-04 (for D-093 and D-094, 2026-11-05)
+- **Status**: pending owner confirmation
+
+### P-085 How plan section 5 is implemented (D-095), and its records
+
+- **Choice**: under D-095 the lead agent planned section 5 of `plan/engineer_tools_player_fixes.md` (`377475a`) and audited the plan with the audit-docs skill: four cycles, 16 issues fixed. Then it made the fixes:
+  - 5.1 (`9b8f04a`): after its seek, `ScrubDecoder`'s request waits for a keyframe at or before `seek_pts`, as `Demuxer::read_loop` does (D-088).
+    - Packets are read but not decoded until then. A packet whose dts passes `seek_pts`, or the end of the media, starts the next try, 1, 2, 4 … s further back.
+    - From the media's start (a second before it, or start_time when that is refused) it reads on without waiting (D-093). A failed seek gives up the wait.
+    - HLS is left out (its input format, "hls"). The KeyframeIndex way in takes the same check when it misses, and every packet still goes to the index.
+  - 5.2: no code. Bar 2 of the 8-bit 4:2:2 and 4:4:4 clips is a dither of 127 and 128. The HW path filters it before converting, and the software path after.
+  - 5.3 (`7d3ee19`, `380b5fd`): the text buffer grows to 1024 bytes a character. Measuring and drawing take the same text from `easy_font_ascii()`, with each UTF-8 character as one ASCII stand-in.
+  - 5.4 (`ec2e8e6`): on a blank video track, the size, frame-rate and range chips come from the track's codec parameters, stream frame rate and transfer, and the decode chip says "no decoder".
+- **Alternatives**:
+  - 5.1: a cap on the tries, as D-093 first had it and withdrew.
+  - 5.2: filtering in the shader, the agent's scratch fix. It changed nothing, because the samples themselves differ.
+  - 5.3: a larger fixed buffer, or non-ASCII dropped.
+- **Rationale**: 5.1 brings D-088 and D-093 to the other component that seeks. 5.3 and 5.4 show what is there.
+- **Open**: the thumbnails' decoder (`ThumbnailStrip`) seeks in the MPEG-TS too. Its decoder fills the logs with errors there ("Could not find ref with POC"), and where it lands was not checked.
+- **Records**:
+  - `plan/engineer_tools_runs/fixes2-2026-11-05/`: 5.1 to 5.4 at `380b5fd`.
+  - The unit tests at `57c3a10` (`plan/engineer_tools_runs/tests/macos-2026-11-05-57c3a10.txt`): every case passes in both builds. That is 467 test cases in the debug build and 466 in the headless one, plus the 22 `[audio]` cases in each.
+- **Who**: agent, under D-095
+- **Date**: 2026-11-05
 - **Status**: pending owner confirmation
