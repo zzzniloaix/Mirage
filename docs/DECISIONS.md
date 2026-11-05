@@ -813,6 +813,16 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: owner, adopting the agent's recommendation
 - **Date**: 2026-11-04
 
+
+### D-095 Bugs found on the way are fixed without asking: the agent plans, audits and fixes them
+
+- **Decision**: a small bug the agent finds on the way, in a check or a review, is fixed without asking the owner first. The agent writes the plan D-007 asks for, audits the plan itself, then fixes, tests and records the bug, and reports what it did. By the agent's reading, three things stay the owner's: design choices, outward actions (a push, a PR), and anything hard to undo.
+- **Owner's words**, translated by the agent: "If you have bugs, just fix them. Make a plan yourself, audit the plan yourself, fix it yourself. Small things like this you don't need to ask me about."
+- **Alternatives**: the owner approving each fix of the render or decode path first, as D-007 had it.
+- **Rationale**: the agent had asked whether to plan fixes for two findings of the scripted checks, the scrub preview's landing on an MPEG-TS and a one-code colour offset, and the owner answered this way.
+- **Who**: owner
+- **Date**: 2026-11-05
+
 ---
 
 ## Measurement / process choices (proposed by the agent, confirmed by the owner)

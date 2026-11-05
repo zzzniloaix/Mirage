@@ -580,6 +580,144 @@ an audio or a video track with no decoder ends at once, the Tracks panel
 says so, and the audio clock goes on. The W strip shows a right-only
 signal.
 
+## 5. Found by the scripted checks
+
+The scripted checks of sections 1 to 4
+(`plan/engineer_tools_runs/fixes-gui-2026-11-05/`) found four things:
+three bugs (5.1, 5.3, 5.4) and a difference that is no bug (5.2). Under
+D-095 the agent plans such fixes, audits the plan and makes them itself.
+5.1 changes the decode path, so it is planned here, as D-007 asks.
+
+### 5.1 On an MPEG-TS, the scrub preview and the step back land after the keyframe before their target
+
+**What happens.** `ScrubDecoder` serves the scrub preview and the step
+back (`src/main.cpp:2636-2668`) with a seek of its own:
+`avformat_seek_file` with the target as its largest timestamp
+(`src/ScrubDecoder.cpp:492-507`). On an MPEG-TS this lands on a packet at or
+before the target, keyframe or not, as playback's seek did before D-088.
+Decoding then starts at the next keyframe, and the first frame at or past
+the target is posted (`:575-598`). Its other way in is a keyframe that
+KeyframeIndex knows (`:515-521`), but only when that keyframe lies within
+2.5 s of the target or the index is trusted, and a miss there falls back
+to the same seek (`:579-590`).
+
+In the tag-switch MPEG-TS, whose keyframes are at PTS 1.48 and 4.48:
+
+- a scrub to PTS 2.68 shows 4.480;
+- a scrub to PTS 5.68 shows nothing, and so does one to the end;
+- a step back from 3.080 lands on 4.480.
+
+In an MP4, whose index gives the keyframe, the preview is the target's
+frame (`record2.txt`).
+
+**Plan.** D-088's landing check, in `ScrubDecoder`'s request.
+
+- After the seek, packets are read but not decoded until the stream gives
+  a keyframe at or before the seek's target, with half a frame of
+  tolerance. The target is the request's, kept inside the media (`seek_pts`,
+  `src/ScrubDecoder.cpp:487-488`). That keyframe and what follows go to the
+  decoder.
+- Two things show the keyframe was missed: a packet whose dts (its pts when
+  it has none) lies past that target, or the end of the media. Either way
+  the request seeks again from further back: 1, 2, 4 … s before where the
+  first try sought.
+- From the media's start, a second before it (or start_time itself, when
+  the demuxer refuses that), it reads on without waiting, with no cap
+  (D-093).
+- A try whose seek fails gives up the wait and reads on, as D-088 does.
+- The miss of the KeyframeIndex way in goes through the same check.
+- Every packet read still goes to KeyframeIndex (`report()`), and a newer
+  request still stops the work at the next packet.
+- HLS is left out, as in D-088, because its seeks land on segment
+  starts. An input is HLS when its input format's name is "hls", as
+  `Demuxer::is_hls_` tells (`src/Demuxer.cpp:1109`).
+
+**Risks.** On an MPEG-TS each try reads the packets up to the target. A
+preview in a stream with no flagged keyframe before its target decodes from
+the start, as playback does since D-093. A drag's newer requests stop that
+work, so the preview comes once the drag stops.
+
+**Check.** Unit tests in `tests/test_demuxer_seek.cpp`: `ScrubDecoder` on
+the joined HEVC MPEG-TS (a request in its last GOP), on H.264 in MPEG-TS
+with a long GOP (a request 2 s after a keyframe), and on MP4 (one seek, as
+before), each giving the target's frame, and a request at the end of the
+MPEG-TS giving its last frame. The scripted runs `scrub_gop1`,
+`scrub_gop2`, `scrub_end` and `steps_back` again.
+
+### 5.2 The 8-bit 4:2:2 and 4:4:4 bars, one code apart: no bug
+
+**What happens.** `fixes-gui-2026-11-05/` reads bar 2 of the 8-bit 4:2:2
+and 4:4:4 clips as 130 with VideoToolbox and as 129 without, through
+`bars_at.py`, which reads one pixel per bar. Its README calls this not
+explained yet.
+
+**Why.** The clips' bar 2 is not one code. They were made in 8 bits from
+the 10-bit bars (`investigate-2026-11-03/render/results.txt`, [CLIPS]). Y
+509, which is 127.25 in 8-bit codes, became an ordered dither: of bar 2's
+luma samples over every row, 5376 are 127 and 1792 are 128, as decoded with
+and without VideoToolbox alike. The 8-bit 4:2:0 clip, made from 8-bit raw
+frames, holds 126 throughout, and the 10-bit 4:2:2 one 509 (the check below).
+
+The two paths then filter in a different order, and both are right. The
+HW path mixes neighbouring samples before converting them, so between a
+127 row and a 128 one it gives 129.25 to 129.83, which round to 129 or 130
+from one place to the next. The software path converts each sample first
+(129 or 130), then filters the RGB. The agent's first reading, that the
+GPU's filtering was inexact, rested on rows it had not looked at, and its
+scratch fix, filtering in the shader, changed nothing.
+
+**Plan.** No change to the code. The README's "not explained yet" and
+P-083's open item are corrected.
+
+**Check.** The luma codes of bar 2 over every row of each clip's first
+frame, decoded with FFmpeg's command line, in the fix's record.
+
+### 5.3 The I panel's long lines are cut short
+
+**What happens.** DebugHUD's text drawing gives stb_easy_font a vertex
+buffer of 16384 bytes (`src/DebugHUD.cpp:862`). stb_easy_font truncates
+when its buffer is too small, and "expect it to use an average of ~270
+bytes per character" (`stb_easy_font.h:51-52`). A longer line stops where
+the buffer is full, while the panel is sized for the whole line
+(`stb_easy_font_width`). The Decode line with VideoToolbox's errors stops
+at "when processin" (`noise_I.png`), with the panel wider than the text.
+The record's README first called this a cut at the panel's edge.
+
+Measuring has a fault of its own. The panels measure the raw text with
+`stb_easy_font_width` (`src/DebugHUD.cpp:158`, `212`, `755`, `777`), which
+indexes its glyph table with c − 32 for any byte, as drawing does. Drawing
+maps non-ASCII to '?' first (`:865-869`), but measuring does not. The I
+panel's Dynamic line can read "HDR (PQ → tonemap)"
+(`src/MediaSession.cpp:729-730`), whose '→' reads past the table.
+
+**Plan.**
+
+- A buffer that grows to the line's length times 1024 bytes, kept from one
+  call to the next. No glyph takes more than 11 quads of 64 bytes
+  (`stb_easy_font_charinfo`, 'X').
+- Measuring and drawing take the same text, non-ASCII mapped to '?', from
+  one helper.
+
+**Check.** `noise_I.png` again: the whole Decode line. An HDR clip's I
+panel: the panel as wide as its widest line.
+
+### 5.4 After a switch to a video track with no decoder, the badges mix two tracks
+
+**What happens.** The codec chip comes from the stream now selected
+(EVC). The size, frame-rate and range chips come from what was last on
+screen: the old track's 1280×720, the frame rate shown before, and the
+renderer's mode (`shown_w`, `stream_fps`, `renderer.hdr_mode()`,
+`src/main.cpp:3150-3154`). The decode chip says "SW" (`:3165`).
+
+**Plan.** On a blank video track, the one `MediaSession::video_open_failed`
+names:
+
+- the size, frame-rate and range chips show what the track declares (its
+  codec parameters' size, its stream's frame rate, its transfer);
+- the decode chip shows "no decoder".
+
+**Check.** `evc_tracks.png` again.
+
 ## The owner's choices, together
 
 1. Section 1: the plan as written (recommended), the full index at open, or
