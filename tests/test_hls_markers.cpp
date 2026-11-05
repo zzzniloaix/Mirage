@@ -274,3 +274,19 @@ TEST_CASE("read_segment — CENC fMP4 read without its key", "[hls_markers][encr
     CHECK(r.first == FirstPicture::Idr);                  // CENC keeps the NAL headers clear
     CHECK(r.media_duration == Approx(2.0).margin(0.001));
 }
+
+TEST_CASE("marker_tag_candidates: a packager's own tags with an ID, not RFC 8216's", "[hls][markers]")
+{
+    const std::string text =
+        "#EXTM3U\n#EXT-X-VERSION:7\n#EXT-X-TARGETDURATION:6\n"
+        "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"a\",NAME=\"x\"\n"              // GROUP-ID is not an ID
+        "#EXT-X-DATERANGE:ID=\"break-1\",START-DATE=\"2024-03-01T12:00:06Z\"\n"
+        "#EXTINF:6.0,\ns0.ts\n"
+        "#EXT-X-CUE-MARKER:ID=\"break-1\",KIND=\"start\"\r\n"
+        "#EXT-X-OTHER-CUE:TYPE=\"x\",ID=\"post\"\n"
+        "#EXT-X-CUE-OUT:30\n"                                            // no ID: not offered
+        "#EXT-X-CUE-MARKER:ID=\"break-2\"\n"
+        "#EXTINF:6.0,\ns1.ts\n#EXT-X-ENDLIST\n";
+    CHECK(marker_tag_candidates(text) == std::vector<std::string>{ "EXT-X-CUE-MARKER", "EXT-X-OTHER-CUE" });
+    CHECK(marker_tag_candidates("#EXTM3U\n#EXTINF:6.0,\ns0.ts\n").empty());
+}

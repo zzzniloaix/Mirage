@@ -77,6 +77,12 @@ MarkerReport analyze_markers(const std::vector<MarkerIn>& in);
 // The report as a JSON object: {"reference": …, "events": [...], "findings": [...]}.
 std::string markers_json(const std::vector<MarkerIn>& in, const MarkerReport& r);
 
+// Tags in a media playlist that look like a packager's own break markers:
+// not one of RFC 8216's (or its draft's), and carrying an ID attribute — what
+// --marker-tag could be given. Names without '#', each once, in order of
+// appearance.
+std::vector<std::string> marker_tag_candidates(std::string_view playlist_text);
+
 // The playlist time of date `d` (Unix seconds) by the segments'
 // PROGRAM-DATE-TIME (explicit or carried on): the last segment dated at or
 // before it. NaN when no segment before it has a date.

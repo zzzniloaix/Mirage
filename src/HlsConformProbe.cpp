@@ -562,6 +562,7 @@ void ConformProbe::check(const std::stop_token& st, const std::string& source, s
             if (md.type == "SUBTITLES" && !md.uri.empty() && seen.insert(md.uri).second) all.push_back(md.uri);
     }
     std::vector<hls::PlaylistRead> pls(all.size());
+    std::vector<std::vector<std::string>> candidates(all.size());
     count_.playlists_total = static_cast<int>(all.size());
     parallel_for(all.size(), o.workers, st, [&](std::size_t i) {
         pls[i].uri = all[i];
@@ -570,6 +571,7 @@ void ConformProbe::check(const std::stop_token& st, const std::string& source, s
             pls[i].error = f.error;
         } else {
             pls[i].tl = hls::parse_media_timeline(f.body, f.final_url, o.marker_tags);
+            candidates[i] = hls::marker_tag_candidates(f.body);
             pls[i].target_tag = f.body.find("#EXT-X-TARGETDURATION:") != std::string::npos;
             if (!pls[i].tl.ok) {
                 std::string why;
@@ -728,6 +730,12 @@ void ConformProbe::check(const std::stop_token& st, const std::string& source, s
         result_.report = std::move(rep);
         result_.marker_in = std::move(marker_in);
         result_.markers = std::move(markers);
+        result_.tag_candidates.clear();
+        for (const auto& c : candidates)
+            for (const auto& name : c)
+                if (std::find(result_.tag_candidates.begin(), result_.tag_candidates.end(), name)
+                    == result_.tag_candidates.end())
+                    result_.tag_candidates.push_back(name);
     }
     finish(stopped ? State::Stopped : State::Done);
 }

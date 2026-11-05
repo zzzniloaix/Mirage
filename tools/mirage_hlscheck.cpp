@@ -7,7 +7,8 @@
 // of every variant, audio and subtitle playlist, EXT-X-DATERANGE and the
 // tags named by --marker-tag, against each other (src/HlsMarkers.h). No
 // window, GL or ImGui. Prints a table and the findings; --json writes the
-// whole report.
+// whole report, --html the same report as a page to read in a browser
+// (src/HlsReportHtml.h).
 //
 // Exit codes:
 //   0 — checked, no error found (warnings and notes may be listed)
@@ -15,6 +16,7 @@
 //   2 — bad arguments, or the master playlist could not be read
 
 #include "HlsConformProbe.h"
+#include "HlsReportHtml.h"
 #include "JsonText.h"
 
 #include <chrono>
@@ -65,6 +67,8 @@ const char* kUsage =
     "                          pairs it with the others; repeatable\n"
     "  --markers-only          the marker check only: playlists, no segment request\n"
     "  --json FILE             write the report as JSON\n"
+    "  --html FILE             write the report as an HTML page: self-contained, no\n"
+    "                          request, opens offline in any browser\n"
     "  --quiet                 the findings only\n"
     "  --help\n"
     "\n"
@@ -195,7 +199,7 @@ bool parse_count(std::string_view v, int& out)
 int main(int argc, char** argv)
 {
     ConformProbe::Options opts;
-    std::string url, json_path;
+    std::string url, json_path, html_path;
     bool quiet = false;
     for (int i = 1; i < argc; ++i) {
         const std::string_view a = argv[i];
@@ -239,6 +243,12 @@ int main(int argc, char** argv)
                 return 2;
             }
             json_path = v;
+        } else if (a == "--html") {
+            if (!value(v)) {
+                std::fprintf(stderr, "mirage_hlscheck: --html takes a file name\n");
+                return 2;
+            }
+            html_path = v;
         } else if (a == "--quiet") {
             quiet = true;
         } else if (a.starts_with("-") && a.size() > 1) {
@@ -279,20 +289,20 @@ int main(int argc, char** argv)
     }
     if (!opts.markers_only) print_report(r, quiet);
     print_markers(r, opts.marker_tags, quiet);
-    if (!json_path.empty()) {
-        std::string text = hls::conformance_json(r.master, r.playlists, r.report, r.source);
-        // The marker check as one more member, when there are markers: the
-        // reports of streams without stay as they were.
-        if (r.markers.any() && text.ends_with("\n}\n")) {
-            text.resize(text.size() - 3);
-            text += ",\n  \"markers\": " + hls::markers_json(r.marker_in, r.markers) + "\n}\n";
-        }
-        std::ofstream out(json_path, std::ios::binary);
-        out << text;
-        if (!out) {
-            std::fprintf(stderr, "mirage_hlscheck: cannot write %s\n", json_path.c_str());
+    if (!json_path.empty() || !html_path.empty()) {
+        const std::string text = hls::with_markers(hls::conformance_json(r.master, r.playlists, r.report, r.source),
+                                                   r.marker_in, r.markers);
+        auto write = [](const std::string& path, const std::string& body) {
+            std::ofstream out(path, std::ios::binary);
+            out << body;
+            if (out) return true;
+            std::fprintf(stderr, "mirage_hlscheck: cannot write %s\n", path.c_str());
+            return false;
+        };
+        if (!json_path.empty() && !write(json_path, text)) return 2;
+        if (!html_path.empty()
+            && !write(html_path, hls::report_html(text, hls::run_meta_json(r.seconds, opts.markers_only, opts.marker_tags))))
             return 2;
-        }
     }
     if (opts.markers_only) return r.markers.errors > 0 ? 1 : 0;
     return r.report.errors > 0 || r.markers.errors > 0 ? 1 : 0;

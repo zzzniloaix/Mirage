@@ -67,6 +67,9 @@ public:
         // (subtitle playlists are read for it only: no segment, no size).
         std::vector<hls::MarkerIn>     marker_in;
         hls::MarkerReport              markers;
+        // Tags carrying an ID that are not RFC 8216's, in any playlist read
+        // (hls::marker_tag_candidates): what Options::marker_tags could name.
+        std::vector<std::string>       tag_candidates;
         std::string                    error;       // Failed: why
         double                         seconds = 0.0;
     };

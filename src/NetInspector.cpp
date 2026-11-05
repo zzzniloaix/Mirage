@@ -4,6 +4,7 @@
 #include "NetInspectorUi.h"
 #include "NetworkLogger.h"
 
+#include <algorithm>
 #include <set>
 
 using namespace netui;
@@ -36,10 +37,13 @@ void NetInspector::reset()
     sel_rend_ = -1;
     sel_seq_ = -1;
     open_finding_ = -1;
-    conform_.clear();
-    conform_res_ = {};
-    conform_ver_ = ~0ull;
-    conform_sel_ = conform_open_ = -1;
+    // A master checked by its URL does not depend on what is playing.
+    if (!conform_from_url_) {
+        conform_.clear();
+        conform_res_ = {};
+        conform_ver_ = ~0ull;
+        conform_sel_ = conform_open_ = marker_ev_open_ = marker_open_ = -1;
+    }
     qa_conform_started_ = false;
 }
 
@@ -51,6 +55,13 @@ void NetInspector::qa_apply(const std::string& spec)
         const std::string item = spec.substr(pos, comma == std::string::npos ? std::string::npos : comma - pos);
         const auto eq = item.find('=');
         const std::string k = item.substr(0, eq), v = eq == std::string::npos ? "" : item.substr(eq + 1);
+        if (k == "hls") {    // the rest of the spec, commas and all: a master URL
+            std::snprintf(hls_url_, sizeof(hls_url_), "%s", spec.substr(pos + 4).c_str());
+            tab_ = Tab::Conformance;
+            conform_dash_ = false;
+            qa_hls_ = true;
+            break;
+        }
         if (k == "dash") {   // the rest of the spec, commas and all: an MPD URL
             std::snprintf(dash_url_, sizeof(dash_url_), "%s", spec.substr(pos + 5).c_str());
             tab_ = Tab::Conformance;
@@ -62,6 +73,14 @@ void NetInspector::qa_apply(const std::string& spec)
         if (k == "conform")  qa_conform_ = v != "0";
         if (k == "conform_segments") conform_segments_ = std::max(0, std::atoi(v.c_str()));
         if (k == "conform_out") qa_conform_out_ = v;
+        if (k == "conform_html") qa_conform_html_ = v;
+        if (k == "markers_only") markers_only_ = v != "0";
+        if (k == "marker_open") qa_marker_open_ = std::atoi(v.c_str());
+        if (k == "marker_tags") {
+            std::string tags = v;
+            std::replace(tags.begin(), tags.end(), '+', ' ');
+            std::snprintf(marker_tags_, sizeof(marker_tags_), "%s", tags.c_str());
+        }
         if (k == "select")   (v == "playlist" ? qa_select_playlist_ : qa_select_segment_) = true;
         if (k == "detail")   detail_tab_ = v == "timing" ? 2 : v == "response" ? 1 : 0;
         if (k == "mode")     resp_mode_ = v == "segments" ? 1 : 0;
@@ -366,7 +385,7 @@ NetInspector::Out NetInspector::draw(const Inputs& in, float win_w, float win_h)
                 dl->AddRectFilled(ImVec2(tx - 2.0f, kHeaderH - 2.5f), ImVec2(tx + ts.x + 2.0f, kHeaderH - 0.5f),
                                   C(th::kAccent), 1.0f);
             // Alignment, Conformance: a red / amber count badge when something is off.
-            const int errs = i == 2 ? align_.rep.errors : i == 3 ? conform_res_.report.errors : 0;
+            const int errs = i == 2 ? align_.rep.errors : i == 3 ? conform_res_.report.errors + conform_res_.markers.errors : 0;
             const int warns = i == 2 ? align_.rep.warnings : i == 3 ? conform_res_.report.warnings : 0;
             if (errs > 0 || warns > 0) {
                 const int cnt = errs > 0 ? errs : warns;

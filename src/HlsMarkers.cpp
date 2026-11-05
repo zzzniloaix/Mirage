@@ -85,6 +85,42 @@ bool splices(const Marker& m)
 
 } // namespace
 
+std::vector<std::string> marker_tag_candidates(std::string_view text)
+{
+    // RFC 8216 and draft-pantos-hls-rfc8216bis: the tags a player knows.
+    static constexpr std::string_view kKnown[] = {
+        "EXTM3U", "EXTINF", "EXT-X-VERSION", "EXT-X-BYTERANGE", "EXT-X-DISCONTINUITY", "EXT-X-KEY", "EXT-X-MAP",
+        "EXT-X-PROGRAM-DATE-TIME", "EXT-X-DATERANGE", "EXT-X-TARGETDURATION", "EXT-X-MEDIA-SEQUENCE",
+        "EXT-X-DISCONTINUITY-SEQUENCE", "EXT-X-ENDLIST", "EXT-X-PLAYLIST-TYPE", "EXT-X-I-FRAMES-ONLY", "EXT-X-MEDIA",
+        "EXT-X-STREAM-INF", "EXT-X-I-FRAME-STREAM-INF", "EXT-X-SESSION-DATA", "EXT-X-SESSION-KEY",
+        "EXT-X-INDEPENDENT-SEGMENTS", "EXT-X-START", "EXT-X-GAP", "EXT-X-BITRATE", "EXT-X-PART", "EXT-X-PART-INF",
+        "EXT-X-SERVER-CONTROL", "EXT-X-PRELOAD-HINT", "EXT-X-RENDITION-REPORT", "EXT-X-SKIP", "EXT-X-DEFINE",
+        "EXT-X-CONTENT-STEERING", "EXT-X-ALLOW-CACHE",
+    };
+    std::vector<std::string> out;
+    std::size_t pos = 0;
+    while (pos < text.size()) {
+        std::size_t eol = text.find('\n', pos);
+        if (eol == std::string_view::npos) eol = text.size();
+        std::string_view line = text.substr(pos, eol - pos);
+        pos = eol + 1;
+        if (!line.empty() && line.back() == '\r') line.remove_suffix(1);
+        if (!line.starts_with("#EXT")) continue;
+        const std::size_t colon = line.find(':');
+        if (colon == std::string_view::npos) continue;
+        const std::string_view name = line.substr(1, colon - 1);
+        const std::string_view value = line.substr(colon + 1);
+        if (std::find(std::begin(kKnown), std::end(kKnown), name) != std::end(kKnown)) continue;
+        // An ID attribute: "ID=" first, or after a comma (not GROUP-ID=, …).
+        bool id = value.starts_with("ID=");
+        for (std::size_t at = value.find(",ID="); !id && at != std::string_view::npos; at = value.find(",ID=", at + 1))
+            id = true;
+        if (!id) continue;
+        if (std::find(out.begin(), out.end(), name) == out.end()) out.emplace_back(name);
+    }
+    return out;
+}
+
 double playlist_time_of_date(const MediaTimeline& tl, double d)
 {
     if (std::isnan(d)) return kNaN;

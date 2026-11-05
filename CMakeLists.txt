@@ -198,6 +198,7 @@ if(NOT MIRAGE_HEADLESS)
         src/HlsVariants.cpp
         src/HlsAlign.cpp
         src/HlsMarkers.cpp
+        src/HlsReportHtml.cpp
         src/HlsConform.cpp
         src/HlsConformProbe.cpp
         src/DashMpd.cpp
@@ -285,6 +286,7 @@ add_executable(mirage_hlscheck
     src/HlsConformProbe.cpp
     src/HlsAlign.cpp
     src/HlsMarkers.cpp
+    src/HlsReportHtml.cpp
     src/NetworkLogger.cpp
     src/JsonText.cpp
 )
@@ -349,6 +351,7 @@ add_executable(mirage_tests
     tests/test_scrub_follow.cpp
     tests/test_hls_align.cpp
     tests/test_hls_markers.cpp
+    tests/test_hls_report_html.cpp
     tests/test_hls_conform.cpp
     tests/test_dash_conform.cpp
     tests/test_frame_scan.cpp
@@ -387,6 +390,7 @@ add_executable(mirage_tests
     src/HlsVariants.cpp
     src/HlsAlign.cpp
     src/HlsMarkers.cpp
+    src/HlsReportHtml.cpp
     src/HlsConform.cpp
     src/HlsConformProbe.cpp
     src/DashMpd.cpp
