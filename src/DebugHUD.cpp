@@ -16,13 +16,40 @@
 
 // stb_easy_font indexes its glyph tables with (c - 32) for any byte, so
 // UTF-8 (em-dash, CJK, "▶") reads out of bounds. What is drawn and what is
-// measured both have non-ASCII bytes as '?'.
+// measured both take each UTF-8 character as one ASCII stand-in: the arrows,
+// dashes, dot and times sign the panels' texts use as their look-alikes,
+// anything else as '?'.
 static std::string easy_font_ascii(const char* text)
 {
-    std::string ascii(text ? text : "");
-    for (char& ch : ascii)
-        if (static_cast<unsigned char>(ch) >= 0x80) ch = '?';
-    return ascii;
+    std::string out;
+    const auto* p = reinterpret_cast<const unsigned char*>(text ? text : "");
+    while (*p) {
+        if (*p < 0x80) {
+            out += static_cast<char>(*p++);
+            continue;
+        }
+        // One sequence: its length from the lead byte, then its code point.
+        const int len = (*p & 0xE0) == 0xC0 ? 2 : (*p & 0xF0) == 0xE0 ? 3 : (*p & 0xF8) == 0xF0 ? 4 : 1;
+        char32_t  cp  = len == 2 ? (*p & 0x1Fu) : len == 3 ? (*p & 0x0Fu) : len == 4 ? (*p & 0x07u) : 0u;
+        int i = 1;
+        for (; i < len && (p[i] & 0xC0) == 0x80; ++i) cp = (cp << 6) | (p[i] & 0x3Fu);
+        p += i;
+        if (i < len) {   // a broken sequence
+            out += '?';
+            continue;
+        }
+        switch (cp) {
+            case 0x2192: out += "->";  break;   // →
+            case 0x2190: out += "<-";  break;   // ←
+            case 0x2014:                         // —
+            case 0x2013: out += '-';   break;   // –
+            case 0x00B7: out += '.';   break;   // ·
+            case 0x00D7: out += 'x';   break;   // ×
+            case 0x2026: out += "..."; break;   // …
+            default:     out += '?';   break;
+        }
+    }
+    return out;
 }
 
 // The width stb_easy_font draws `text` at, in its units (scale 1).

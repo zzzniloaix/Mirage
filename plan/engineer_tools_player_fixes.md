@@ -695,11 +695,13 @@ panel's Dynamic line can read "HDR (PQ → tonemap)"
 - A buffer that grows to the line's length times 1024 bytes, kept from one
   call to the next. No glyph takes more than 11 quads of 64 bytes
   (`stb_easy_font_charinfo`, 'X').
-- Measuring and drawing take the same text, non-ASCII mapped to '?', from
-  one helper.
+- Measuring and drawing take the same text, from one helper. Each UTF-8
+  character becomes one ASCII stand-in: '->' for '→', '-' for '—' and '–',
+  '.' for '·', 'x' for '×', and '?' for anything else. Drawing used to make
+  a '?' of each byte, so the Dynamic line read "HDR (PQ ??? tonemap)".
 
 **Check.** `noise_I.png` again: the whole Decode line. An HDR clip's I
-panel: the panel as wide as its widest line.
+panel: the panel as wide as its widest line, and its Dynamic line readable.
 
 ### 5.4 After a switch to a video track with no decoder, the badges mix two tracks
 
