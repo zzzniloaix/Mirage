@@ -9,15 +9,18 @@ a change to the render or decode path: sections 1, 3 and 4 are such
 changes, section 2 is the UI's. "Owner's choice" marks what was the
 owner's to pick. The owner decided all four sections on 2026-11-03, each as
 the agent recommended (`docs/DECISIONS.md` D-088 to D-091). They are
-implemented on the branch `feat/player-fixes`. Each section ends with what
-was decided and the commits that implement it. P-083 lists the choices the
+implemented on the branch `feat/player-fixes`. A code review of that branch
+then raised two more questions, which the owner decided too (D-093 for
+section 1, D-094 for section 2). Each section ends with what was decided
+and the commits that implement it. P-083 lists the choices the
 implementation made beyond this plan.
 
 Records: `plan/engineer_tools_runs/seek-2026-11-03/` (section 1);
 `plan/engineer_tools_runs/gui-2026-11-03/` (sections 1 and 2);
 `plan/engineer_tools_runs/investigate-2026-11-03/` (sections 3 and 4: the
 programs agents ran against the code, read-only, with their outputs, which
-the sections cite by their tags). Line numbers are those of commit
+the sections cite by their tags);
+`plan/engineer_tools_runs/review-2026-11-05/` (D-093 and D-094). Line numbers are those of commit
 `0b50883`.
 
 ## 1. A seek that lands after the keyframe before its target shows no frame
@@ -89,6 +92,17 @@ the scripted seek of `gui-2026-11-03` then shows a frame.
 - The last try seeks to a second before the media's start.
 - A network read error gives the wait up, and a track switch's
   repositioning drops it.
+
+After the code review, D-093 settled what happens when no keyframe is
+flagged before a seek's target. FFmpeg flags only the first frame of an
+H.264 MPEG-TS whose I-frames are neither IDR nor marked by a recovery point
+SEI, so the tries go back to the media's start, and everything up to the
+target is decoded. The owner first chose a cap at 16 s, then withdrew it.
+With three references, FFmpeg's H.264 decoder makes no frame from such an
+I-frame, only from an IDR, so a capped seek showed nothing
+(`plan/engineer_tools_runs/review-2026-11-05/`). The code is unchanged.
+`66751ed` adds a test of such a stream and says why in the landing's
+comment.
 
 Tests: `tests/test_demuxer_seek.cpp` (`[demux][seek]`). The scripted seek
 has not been run again yet.
@@ -181,6 +195,14 @@ merged as `b6d1992`. Beyond the plan (P-083):
   because it starts before the session has worked out its own.
 - `--ui-sub-at` asks for an absolute seek, instead of a delta from the PTS
   on screen.
+
+After the code review, D-094 changed the span of the seek bar and the
+duration the UI shows. They run from the video's first frame to the
+media's end, the container's start plus its duration (`63cde27`). The
+container's duration counts from its earliest stream, often the audio. So
+on FFmpeg's MPEG-TS of AAC and H.264, whose audio starts 0.021333 s before
+its video (`plan/engineer_tools_runs/review-2026-11-05/`), the bar ran past
+the end and the remaining time did not reach 0.
 
 Tests: `tests/test_ui_format.cpp` (`[ui]`). The scripted runs have not been
 made yet. Since the QA flags now take positions, the status file's
@@ -555,3 +577,11 @@ The scripted runs have not been made yet.
    now (D-091).
 6. Sections 4.2 and 4.4 have no choice in them beyond yes or no. Decided:
    yes (D-091).
+7. After the code review, section 1: a cap on the tries. First: at 16 s,
+   at 16 s or the longest keyframe interval seen, or none. Decided: at
+   16 s. Then, with the agent's description of it corrected: none, the cap
+   with the decoder's `output_corrupt`, or the cap as it was. Decided: none
+   (D-093).
+8. After the code review, section 2: the duration shown and the bar's span,
+   to the media's end or the container's duration as before. Decided: to
+   the media's end (D-094).

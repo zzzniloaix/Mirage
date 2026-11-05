@@ -60,12 +60,15 @@ The branches `feat/engineer-tools-poc-on-main` (the panels P, S, X, B and L), `f
 
     After the merge, the lead agent ran Claude Code's code review (`/code-review` at its high level) on the merged code against `d99099b`. It checked each of the nine findings against the code, a unit test or a committed record:
     - fixed by the lead agent: a frame no resampler can be made for was dropped, which stopped the audio clock (`3b4e646`, with a test); the renderer's log wrote a pixel format's unprintable bytes (`39ad661`);
-    - left to the owner: in an MPEG-TS whose keyframes after the first are not flagged, a seek reads from the media's start; with audio starting before video, the seek bar runs past the media's end;
+    - decided by the owner: in an MPEG-TS whose keyframes after the first are not flagged, a seek reads from the media's start (D-093); with audio starting before video, the seek bar ran past the media's end (D-094, `63cde27`);
     - noted in P-083, or already there: a failed `reconfigure()` is not tried again; the GLFW scrub block is never reached;
     - not borne out: `SWS_FULL_CHR_H_INT` changes neither the output nor the time of 8-bit 4:2:0 sources (`investigate-2026-11-03/render/results.txt`, [C4]); at open, `av_find_best_stream` with a decoder ignores the streams that have none (its documentation in `libavformat/avformat.h`); FFmpeg's decode loop drops the packet at each error, so the errors a pull counts are failed packets.
+
+    For the first of the owner's two, the lead agent recommended a cap at 16 s on the seek's tries. It described the cap as landing on the target's frame whenever an I-frame lay within those 16 s, and the owner chose it. That description rested on a scratch check of a clip with one reference. The cap's own unit test, on a clip with x264's default three references, then failed: from 16 s back, the decoder made no frame. The lead agent did not commit the cap. It told the owner, who withdrew it (D-093). It then committed the checks behind both decisions (`plan/engineer_tools_runs/review-2026-11-05/`).
 - **What the owner decided**, each time adopting the agent's recommendation:
   - D-083 to D-085 (2026-11-03): the three sections of `plan/engineer_tools_decisions_pending.md`;
-  - D-088 to D-091 (2026-11-03): the four sections of `plan/engineer_tools_player_fixes.md`.
+  - D-088 to D-091 (2026-11-03): the four sections of `plan/engineer_tools_player_fixes.md`;
+  - D-093 and D-094 (2026-11-04; D-093 changed on 2026-11-05): the two questions the code review of `feat/player-fixes` raised.
 - **Statements in commit messages that no committed record backs**, none of them amended (later records cite these commits' ids):
   - `3dbd88a`: its tests "pass under ThreadSanitizer and under AddressSanitizer with UBSan", the suite passes but for the SidecarSubtitles case, and local files of 100 to 480 MB "scan in 0.05 to 0.12 s from the page cache". Scratch runs, none committed.
   - `2191dbe`: the 48 kHz coefficients "equal to 1e-15" (the test checks them to 1e-9), and the cross-check against FFmpeg's `ebur128` within 0.006 LU, 0.001 LU, 0.06 dB and 0.44 LU (the test allows 0.1, 0.1, 0.5 and 1.0). A scratch run, not committed.

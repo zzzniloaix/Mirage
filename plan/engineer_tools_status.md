@@ -558,6 +558,8 @@ opening `B` scans it at once over the share.
   (`record2.txt`). Investigated since, in section 1 of
   `plan/engineer_tools_player_fixes.md`, and fixed under D-088. Note that
   `--ui-sub-at 5.2` above was a PTS: since D-089 the flag takes a position.
+  A stream that flags no keyframe before the target is decoded from its
+  start (D-093).
 - **FFmpeg's hls muxer writes EXTINF 2.000 for fMP4 segments of 46 and 53
   frames at 25 fps** (x265, open GOP, the demo package's `v3`; `demo.json.xz`
   lists each segment's frame count). The conformance check reports it. The
@@ -569,7 +571,8 @@ opening `B` scans it at once over the share.
 - On the same MPEG-TS, whose start time is 1.48 s (`ffprobe` in the GUI
   record's `record.txt`), the control bar shows the absolute PTS against a
   duration counted from 0: `00:07.040 / 00:06.000` (`tagswitch_end.png`).
-  Fixed under D-089, in section 2 of the same plan.
+  Fixed under D-089, in section 2 of the same plan. Since D-094 the
+  duration runs from the video's first frame to the media's end.
 - **FFmpeg's dash muxer writes `maxSegmentDuration` from `-seg_duration`,
   not from the segments it cuts**: PT2.0S over segments of up to 2.960 s (a
   GOP of 37 frames at 25 fps), 2.120 s (x265) and 2.005 s (AAC) in the DASH

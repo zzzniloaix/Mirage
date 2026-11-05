@@ -788,6 +788,31 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: owner, adopting the agent's recommendation
 - **Date**: 2026-11-03
 
+### D-093 A seek finds no keyframe before its target: D-088's tries go on to the media's start, with no cap
+
+- **Decision**: D-088 stays as written. When no flagged keyframe lies at or before a seek's target, the tries go back to the media's start, and everything up to the target is decoded. The owner first chose a cap at 16 s and then withdrew it.
+- **Owner's words**, translated by the agent: on 2026-11-04, "Back off 16 s at most (Recommended)". On 2026-11-05, told that the agent's description of the cap was wrong: "Withdraw the cap, back to D-088 (Recommended)".
+- **Alternatives**:
+  - the cap at 16 s, after which the try's position is read again without waiting (the first choice);
+  - a cap at 16 s or the longest keyframe interval seen, whichever is longer;
+  - the cap with the decoder's `output_corrupt` flag, so that the frames FFmpeg marks as possibly corrupt are shown.
+- **Rationale**:
+  - A code review of the merged branch found the case. In an H.264 MPEG-TS whose I-frames are neither IDR nor marked by a recovery point SEI, FFmpeg flags only the first frame as a keyframe, so a seek in it decodes from the start, and the cost grows with the target's position.
+  - The agent first said that with the cap, the target's frame would show whenever an I-frame lay within the 16 s. A unit test then showed otherwise.
+  - With three references, x264's default, FFmpeg 8.1.1's H.264 decoder makes no frame from such an I-frame. With one it starts there. With `output_corrupt` it makes frames, but flags nearly all of them as corrupt, and D-091's counts (the I panel's Decode line, `--av-report`) would count each one (`plan/engineer_tools_runs/review-2026-11-05/`).
+  - With three references only an IDR starts it, here the first frame, so only reading from the start lands on the target (`tests/test_demuxer_seek.cpp`).
+- **Who**: owner, adopting the agent's recommendation (both times)
+- **Date**: 2026-11-04 (the cap), 2026-11-05 (withdrawn)
+
+### D-094 The seek bar spans from the video's first frame to the media's end
+
+- **Decision**: the duration the UI shows, and the seek bar's span, run from where positions count from (D-089: the video stream's start) to the media's end, which is the container's start plus its duration. Everywhere else the container's duration stays as it is.
+- **Owner's words**, translated by the agent: "From the video's first frame to the end (Recommended)".
+- **Alternatives**: the container's duration, as ffprobe gives it, as before.
+- **Rationale**: avformat counts the container's duration from its earliest stream, often the audio, while the bar starts at the video's first frame. So when the audio starts first, the bar ran past the media's end: the playhead could not reach it, and the remaining time did not reach 0. On FFmpeg's MPEG-TS of AAC and H.264, the audio starts at 1.458667 s, the video at 1.48 s, and the container lasts 6.021333 s (`plan/engineer_tools_runs/review-2026-11-05/`). The same code review found it.
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-04
+
 ---
 
 ## Measurement / process choices (proposed by the agent, confirmed by the owner)
@@ -2304,7 +2329,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Date**: 2026-10-30
 - **Status**: pending owner confirmation
 
-### P-083 How D-088 to D-091 are implemented, and the records after them
+### P-083 How D-088 to D-091, D-093 and D-094 are implemented, and the records after them
 
 - **Choice**: four agents, one per section of `plan/engineer_tools_player_fixes.md`, each on a branch of its own from `feat/player-fixes-plan`, merged into `feat/player-fixes`. Where the plan was silent, or where they went beyond it:
   - D-088 (`a7db00c`):
@@ -2333,6 +2358,13 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
     - On a video track with no decoder, a seek does not wait for a frame, and the stall check does not say "Buffering" (`cfd6ae0`).
     - A frame no resampler can be made for (swr refuses its layout, say) plays its time as silence too (`3b4e646`, after a code review of the merged branch). Until then it was dropped, and the audio clock stopped.
     - The VideoToolbox test is compiled out of the headless build: `mirage_tests` gets `MIRAGE_HEADLESS` when the option is on.
+  - D-093 (`66751ed`, the lead agent's): the code as D-088 left it.
+    - A test in `tests/test_demuxer_seek.cpp` covers a seek into an MPEG-TS whose keyframes after the first are not flagged. It checks seven reads, the video queued from the first frame, the target's frame, and no frame at all from the packets 16 s back. `write_clip()` takes a bitstream filter for it.
+    - The landing's comment says why such a seek reads from the start.
+    - The cap first chosen was written and tested, but not committed. Its test failed on the claim the decision rested on: from 16 s back, the decoder made no frame.
+  - D-094 (`63cde27`, the lead agent's):
+    - `ui::timeline_duration()` (`src/UiFormat.h`, unit-tested) gives the span. `MediaSession::timeline_dur_s` keeps it, and `main.cpp` passes it wherever the container's duration was taken: the control bar, the seek bar, the thumbnails' places on it, the timeline strip, the VMAF marker and the QA flags' scrub.
+    - `MediaSession::duration` stays the container's, and so does the thumbnails' sampling.
 - **Alternatives**: HLS checked like the other inputs; a matrix derived from each frame's size (`c28bcfe`), which switches an untagged ladder between BT.601 and BT.709 from one variant to the next; the Lo/Ro levels whatever downmix the stream prefers; a track with no decoder, or a frame no resampler takes, left without audio, which stops the audio clock.
 - **Rationale**: each follows the plan where it says something, and keeps the code's present behaviour where it says nothing.
 - **Open**:
@@ -2342,8 +2374,9 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - By the code, a `reconfigure()` that fails (a shader that does not link, no memory for the staging frame) is not tried again. The renderer stays as far as it got, and frames can go undrawn until the interpretation changes again. Nothing falls back at `init()` either, where such a failure fails the session's start.
 - **Records**:
   - The unit tests at `cfd6ae0` (`plan/engineer_tools_runs/tests/macos-2026-11-04-cfd6ae0.txt`): every case passes in both builds. That is 464 test cases in the debug build and 463 in the headless one, which leaves out the VideoToolbox case, plus the 21 `[audio]` cases in each.
-  - The unit tests at `39ad661`, after `3b4e646` and its test: MEASUREMENT PENDING.
+  - The checks behind D-093 and D-094 (`plan/engineer_tools_runs/review-2026-11-05/`).
+  - The unit tests at `66751ed`, after `3b4e646`, `39ad661`, `63cde27` and their tests: MEASUREMENT PENDING.
   - The scripted runs of each section's Check open player windows: MEASUREMENT PENDING.
 - **Who**: agent
-- **Date**: 2026-11-04
+- **Date**: 2026-11-04 (for D-093 and D-094, 2026-11-05)
 - **Status**: pending owner confirmation

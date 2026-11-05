@@ -73,7 +73,7 @@ Or drag-and-drop a file onto the launch screen.
 
 Drag the seek bar at the bottom of the window. A thumbnail strip appears showing keyframes. The highlighted thumbnail tracks the frame actually decoded at the current position. Audio is muted during drag and resumes 300 ms after release.
 
-The time next to the bar counts from the video's first frame on every input, MPEG-TS and HLS included: the first frame reads 00:00.000 and is frame 0. Click it to cycle through time / frames / remaining / PTS; PTS is the frame's absolute PTS in seconds, as ffprobe and the logs give it. The HUD, the frame inspector's PTS row, `B` and the Alignment tab show absolute PTS.
+The time next to the bar counts from the video's first frame on every input, MPEG-TS and HLS included: the first frame reads 00:00.000 and is frame 0. The duration after it, like the bar, runs from there to the media's end, so it can be a little shorter than ffprobe's when the audio starts first. Click it to cycle through time / frames / remaining / PTS; PTS is the frame's absolute PTS in seconds, as ffprobe and the logs give it. The HUD, the frame inspector's PTS row, `B` and the Alignment tab show absolute PTS.
 
 ### Debug overlays
 
