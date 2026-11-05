@@ -14,6 +14,8 @@
 //  * The same H.264 in MP4 and Matroska: one read, from where FFmpeg's own
 //    seek lands (the container index's keyframe), as before.
 //  * A keyframe KeyframeIndex knows for certain is sought directly.
+//  * ScrubDecoder's own seek, for the scrub preview and the step back, lands
+//    as playback's does (plan/engineer_tools_player_fixes.md, 5.1).
 //  * H.264 in MPEG-TS whose keyframes after the first are not flagged: the
 //    tries go back to the start, the frame shown is the target's, and from
 //    16 s back the decoder makes none (D-093). A flagged GOP of 20 s: its
@@ -24,6 +26,7 @@
 
 #include "Demuxer.h"
 #include "KeyframeIndex.h"
+#include "ScrubDecoder.h"
 #include "TestTemp.h"
 
 #include <algorithm>
@@ -614,5 +617,87 @@ TEST_CASE("Demuxer: a seek into an MPEG-TS whose keyframes after the first are n
         REQUIRE_FALSE(s.video.empty());
         CHECK_THAT(pts_s(r.d, s.video.front()), WithinAbs(kfs[1], 1e-6));
         CHECK_THAT(shown(decode(r.d, s.video), t), WithinAbs(t, 1e-6));
+    }
+}
+
+// ── The scrub preview: ScrubDecoder's own seek ──────────────────────────────
+
+namespace {
+
+// ScrubDecoder opened on `path` as playback opens it: its best video stream,
+// in that stream's time base.
+void open_scrub(ScrubDecoder& sd, const std::string& path, KeyframeIndex* index = nullptr)
+{
+    Demuxer d;
+    REQUIRE(d.open(path));
+    if (index) sd.set_keyframes(index);
+    sd.open(path, d.video_stream_index(), d.video_time_base());
+}
+
+// The pts (seconds) of the frame ScrubDecoder posts for a request at t.
+double scrub_frame(ScrubDecoder& sd, double t)
+{
+    const std::uint64_t serial = sd.request(t);
+    AVFrame* f      = nullptr;
+    int      stream = -1;
+    REQUIRE(wait_for([&] { return (f = sd.poll_frame(serial, &stream)) != nullptr; }, 30.0));
+    REQUIRE(f->pts != AV_NOPTS_VALUE);
+    const double pts = f->pts * av_q2d(f->time_base);
+    av_frame_free(&f);
+    return pts;
+}
+
+} // namespace
+
+TEST_CASE("ScrubDecoder: a request into an MPEG-TS gives the target's frame, as playback's seek does",
+          "[demux][seek][scrub]")
+{
+    SECTION("the joined HEVC MPEG-TS: inside its last GOP, and past its end") {
+        const std::string path = write_clip({ .name = "mirage_test_scrub_joined.ts", .format = "mpegts",
+                                              .encoder = "libx265", .params = "log-level=error:scenecut=0",
+                                              .parts = 2, .frames = 3 * kFps });
+        if (path.empty()) SKIP("no HEVC encoder (libx265)");
+        const std::vector<double> kfs = keyframes_of(path);
+        REQUIRE(kfs.size() == 2);
+        ScrubDecoder sd;
+        open_scrub(sd, path);
+        for (const int frame : { 30, 80, 130 }) {
+            const double t = kfs[0] + frame * kFrame;
+            CAPTURE(frame, t);
+            CHECK_THAT(scrub_frame(sd, t), WithinAbs(t, 1e-6));
+        }
+        // Past the last frame, the request is the last frame's.
+        const double last = kfs[0] + (3 * kFps * 2 - 1) * kFrame;
+        CHECK_THAT(scrub_frame(sd, last + 0.5), WithinAbs(last, 1e-6));
+    }
+    SECTION("H.264 in MPEG-TS with a long GOP: 2 s after a keyframe") {
+        const std::string path = write_clip({ .name = "mirage_test_scrub_longgop.ts", .format = "mpegts",
+                                              .encoder = "libx264", .params = "scenecut=0:b-adapt=0",
+                                              .frames = 3 * kGop, .gop = kGop, .bframes = 2 });
+        if (path.empty()) SKIP("no H.264 encoder (libx264)");
+        const std::vector<double> kfs = keyframes_of(path);
+        REQUIRE(kfs.size() == 3);
+        ScrubDecoder sd;
+        open_scrub(sd, path);
+        for (const std::size_t g : { std::size_t{ 0 }, std::size_t{ 1 } }) {
+            const double t = kfs[g] + 2 * kFps * kFrame;
+            CAPTURE(g, t);
+            CHECK_THAT(scrub_frame(sd, t), WithinAbs(t, 1e-6));
+        }
+    }
+    SECTION("MP4: one seek, from the index's keyframe, as before") {
+        const std::string path = write_clip({ .name = "mirage_test_scrub_longgop.mp4", .format = "mp4",
+                                              .encoder = "libx264", .params = "scenecut=0:b-adapt=0",
+                                              .frames = 3 * kGop, .gop = kGop, .bframes = 2 });
+        if (path.empty()) SKIP("no H.264 encoder (libx264)");
+        const std::vector<double> kfs = keyframes_of(path);
+        REQUIRE(kfs.size() == 3);
+        KeyframeIndex idx;
+        ScrubDecoder sd;
+        open_scrub(sd, path, &idx);
+        const double t = kfs[1] + 2 * kFps * kFrame;
+        const std::uint32_t before = idx.new_run();
+        CHECK_THAT(scrub_frame(sd, t), WithinAbs(t, 1e-6));
+        CHECK(reads_since(idx, before) == 1);
     }
 }
