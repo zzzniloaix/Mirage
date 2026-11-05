@@ -10,6 +10,27 @@
 #include <cmath>
 #include <cstdio>
 #include <limits>
+#include <string>
+
+// ── Text ──────────────────────────────────────────────────────────────────────
+
+// stb_easy_font indexes its glyph tables with (c - 32) for any byte, so
+// UTF-8 (em-dash, CJK, "▶") reads out of bounds. What is drawn and what is
+// measured both have non-ASCII bytes as '?'.
+static std::string easy_font_ascii(const char* text)
+{
+    std::string ascii(text ? text : "");
+    for (char& ch : ascii)
+        if (static_cast<unsigned char>(ch) >= 0x80) ch = '?';
+    return ascii;
+}
+
+// The width stb_easy_font draws `text` at, in its units (scale 1).
+static float easy_font_width(const char* text)
+{
+    std::string ascii = easy_font_ascii(text);
+    return static_cast<float>(stb_easy_font_width(ascii.data()));
+}
 
 // ── Shaders ───────────────────────────────────────────────────────────────────
 
@@ -155,7 +176,7 @@ void DebugHUD::draw(const DebugInfo& info, int fb_w, int fb_h, float scale)
     float max_text_w = 0.0f;
     for (const char* ln : lines)
         max_text_w = std::max(max_text_w,
-            static_cast<float>(stb_easy_font_width(const_cast<char*>(ln))) * scale);
+            easy_font_width(ln) * scale);
 
     // Room on the right for the close button the UI draws in the corner.
     float panel_w = max_text_w + pad * 2.0f + 18.0f * scale;
@@ -209,7 +230,7 @@ void DebugHUD::draw_inspector(const std::vector<InspectorLine>& lines,
     float max_text_w = 0.0f;
     for (const auto& ln : lines)
         max_text_w = std::max(max_text_w,
-            static_cast<float>(stb_easy_font_width(const_cast<char*>(ln.text.c_str()))) * scale);
+            easy_font_width(ln.text.c_str()) * scale);
 
     float panel_w = max_text_w + pad * 2.0f;
     float panel_h = line_h * static_cast<float>(lines.size()) + pad * 2.0f - line_sp;
@@ -752,8 +773,7 @@ void DebugHUD::draw_subtitle(const std::string& text,
     // Compute the widest line for the backing box.
     float max_w = 0.0f;
     for (const auto& ln : lines) {
-        float w = static_cast<float>(stb_easy_font_width(const_cast<char*>(ln.c_str())))
-                * sub_scale;
+        float w = easy_font_width(ln.c_str()) * sub_scale;
         if (w > max_w) max_w = w;
     }
     const int   n_lines = static_cast<int>(lines.size());
@@ -774,8 +794,7 @@ void DebugHUD::draw_subtitle(const std::string& text,
     // Center each line within the panel.
     float ty = panel_y + pad_y;
     for (const auto& ln : lines) {
-        float w = static_cast<float>(stb_easy_font_width(const_cast<char*>(ln.c_str())))
-                * sub_scale;
+        float w = easy_font_width(ln.c_str()) * sub_scale;
         float tx = panel_x + (panel_w - w) * 0.5f;
         draw_text(ln.c_str(), tx, ty, 1.0f, 1.0f, 1.0f, sub_scale, fb_w, fb_h);
         ty += line_h;
@@ -859,17 +878,15 @@ float DebugHUD::draw_text(const char* text, float px, float py,
     // stb_easy_font vertex: { float x, y, z; uint8_t col[4]; } = 16 bytes.
     // Render at origin then scale+translate to target position.
     struct StbVert { float x, y, z; uint8_t col[4]; };
-    static char vbuf[16384];
+    std::string ascii = easy_font_ascii(text);
+    // stb_easy_font stops at the end of its buffer: room for the whole line.
+    // No glyph takes more than 11 quads of 64 bytes ('X'), so 1024 bytes a
+    // character is enough; the buffer is kept from one call to the next.
+    static std::vector<char> vbuf(16384);
+    if (vbuf.size() < ascii.size() * 1024) vbuf.resize(ascii.size() * 1024);
 
-    // stb_easy_font indexes its glyph tables with (c - 32) for any byte, so
-    // UTF-8 (em-dash, CJK, "▶") reads out of bounds. Map non-ASCII to '?'.
-    std::string ascii(text);
-    for (char& ch : ascii)
-        if (static_cast<unsigned char>(ch) >= 0x80) ch = '?';
-    text = ascii.c_str();
-
-    int num_quads = stb_easy_font_print(0.0f, 0.0f, const_cast<char*>(text),
-                                         nullptr, vbuf, sizeof(vbuf));
+    int num_quads = stb_easy_font_print(0.0f, 0.0f, ascii.data(), nullptr,
+                                         vbuf.data(), static_cast<int>(vbuf.size()));
     if (num_quads == 0) return 0.0f;
 
     // Convert quads (GL_QUADS, 4 verts each) → triangles (2 per quad, 6 verts each).
@@ -878,7 +895,7 @@ float DebugHUD::draw_text(const char* text, float px, float py,
     std::vector<float> tri;
     tri.reserve(num_tris * 3 * 2);  // 3 verts/tri, 2 floats/vert
 
-    auto* src = reinterpret_cast<StbVert*>(vbuf);
+    auto* src = reinterpret_cast<StbVert*>(vbuf.data());
     for (int q = 0; q < num_quads; ++q) {
         StbVert* v = src + q * 4;
         // quad → two CCW triangles: (0,1,2) and (0,2,3)
@@ -900,7 +917,7 @@ float DebugHUD::draw_text(const char* text, float px, float py,
                  tri.data(), GL_DYNAMIC_DRAW);
     glDrawArrays(GL_TRIANGLES, 0, num_tris * 3);
 
-    return static_cast<float>(stb_easy_font_width(const_cast<char*>(text))) * scale;
+    return static_cast<float>(stb_easy_font_width(ascii.data())) * scale;
 }
 
 // ── VMAF panel ────────────────────────────────────────────────────────────────
