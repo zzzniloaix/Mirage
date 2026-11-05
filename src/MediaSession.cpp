@@ -783,16 +783,17 @@ void MediaSession::build_info()
 
     // Sidecar cue times are file-relative; the player clock is stream PTS.
     // The UI shows positions, PTS from the video stream's start (else the
-    // container's; 0 for live).
+    // container's; 0 for live), up to the media's end.
     {
         const AVFormatContext* fc = demuxer.fmt_ctx();
         const AVStream* vs = fc->streams[demuxer.video_stream_index()];
         if (vs->start_time != AV_NOPTS_VALUE) video_start_s = vs->start_time * av_q2d(vs->time_base);
         constexpr double kNone = std::numeric_limits<double>::quiet_NaN();
-        timeline_start_s = ui::timeline_start(
-            vs->start_time != AV_NOPTS_VALUE ? video_start_s : kNone,
-            fc->start_time != AV_NOPTS_VALUE ? static_cast<double>(fc->start_time) / AV_TIME_BASE : kNone,
-            duration);
+        const double container_start = fc->start_time != AV_NOPTS_VALUE
+                                     ? static_cast<double>(fc->start_time) / AV_TIME_BASE : kNone;
+        timeline_start_s = ui::timeline_start(vs->start_time != AV_NOPTS_VALUE ? video_start_s : kNone,
+                                              container_start, duration);
+        timeline_dur_s   = ui::timeline_duration(container_start, duration, timeline_start_s);
     }
 
     // Estimate one-frame duration from the video stream's average frame rate.

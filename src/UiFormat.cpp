@@ -14,6 +14,13 @@ double timeline_start(double video_start, double container_start, double duratio
     return 0.0;
 }
 
+double timeline_duration(double container_start, double duration, double start)
+{
+    if (!(duration > 0.0) || !std::isfinite(container_start)) return duration;
+    const double span = container_start + duration - start;
+    return span > 0.0 ? span : duration;
+}
+
 double position(double pts, double start)
 {
     return pts - start;

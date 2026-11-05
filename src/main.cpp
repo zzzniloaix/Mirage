@@ -1196,7 +1196,9 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
     Queue<AVFrame*>& frameq           = ms.frameq;
     const bool       has_audio        = ms.has_audio;
     const bool       local_media      = ms.local_media;
-    const double     duration         = ms.duration;
+    // What the UI shows and the seek bar spans: from timeline_start_s to the
+    // media's end (D-094), not the container's duration (ms.duration).
+    const double     duration         = ms.timeline_dur_s;
     const AVRational video_tb         = ms.video_tb;
     const int        coded_w = ms.coded_w, coded_h = ms.coded_h;
     const int        vid_w   = ms.vid_w,   vid_h   = ms.vid_h;

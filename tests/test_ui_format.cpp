@@ -27,6 +27,19 @@ TEST_CASE("timeline_start: the video's start, else the container's, else 0; 0 fo
     CHECK(timeline_start(1.48, 1.4, 0.0) == 0.0);     // unknown duration
 }
 
+TEST_CASE("timeline_duration: from the start to the media's end, not the container's duration", "[ui]")
+{
+    const double none = std::numeric_limits<double>::quiet_NaN();
+    // FFmpeg's MPEG-TS of AAC and H.264: the audio from 1.458667 s, the video
+    // from 1.48 s, the container's duration 6.021333 s from the audio's start.
+    CHECK_THAT(timeline_duration(1.458667, 6.021333, 1.48), WithinAbs(6.0, 1e-9));
+    CHECK(timeline_duration(1.48, 6.0, 1.48) == 6.0);       // the video first: the container's duration
+    CHECK(timeline_duration(none, 6.0, 1.48) == 6.0);       // no container start: as it is
+    CHECK(timeline_duration(1.4, -1.0, 0.0) == -1.0);       // live
+    CHECK(timeline_duration(1.4, 0.0, 1.48) == 0.0);        // unknown duration
+    CHECK(timeline_duration(0.0, 6.0, 7.0) == 6.0);         // no end after the start: as it is
+}
+
 TEST_CASE("position / pts_at: from the start and back, never a negative PTS", "[ui]")
 {
     CHECK_THAT(position(7.44, kStart), WithinAbs(5.96, 1e-9));

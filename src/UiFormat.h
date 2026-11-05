@@ -19,6 +19,13 @@ namespace ui {
 // (duration <= 0): 0, so the display stays the stream's own clock.
 double timeline_start(double video_start, double container_start, double duration);
 
+// The duration the UI shows and the seek bar spans, from `start` to the
+// media's end (D-094): the container's start plus its duration, which
+// avformat counts from the earliest stream, often the audio. The container's
+// duration as it is when its start is not known (NaN), for live or unknown
+// durations (duration <= 0), and when the end is not after `start`.
+double timeline_duration(double container_start, double duration, double start);
+
 // Position of a PTS, and the PTS at a position. pts_at never returns less
 // than 0: a seek target below 0 means "none".
 double position(double pts, double start);

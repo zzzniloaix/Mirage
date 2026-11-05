@@ -114,6 +114,7 @@ public:
     double     frame_dt = 1.0 / 60.0; // one frame, from avg_frame_rate
     double     video_start_s = 0.0;   // video stream start_time (sidecar cue offset)
     double     timeline_start_s = 0.0;   // where the positions the UI shows count from (UiFormat.h)
+    double     timeline_dur_s   = -1.0;  // the duration the UI shows, from there to the end (timeline_duration)
     // HLS: playback opened a deduplicated copy of the master — the hls
     // demuxer's program p is EXT-X-STREAM-INF hls_kept[p] of `manifest`.
     // Empty: the master as served (program p = variant p).
