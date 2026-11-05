@@ -1,0 +1,44 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  Opening <scratch>/gui3/clips/av_ac4.mov (t=0.256)
+[INFO]  Demuxer: avformat_open_input 1 ms (3 streams, 0 programs) (t=0.257)
+[INFO]  Demuxer: avformat_find_stream_info 4 ms (t=0.260)
+[INFO]  Container: QuickTime / MOV
+[INFO]  Duration:  00:00:10
+[INFO]  Video:     h264 1280×720 @ 30.000 fps  pixel_fmt=yuv420p
+[INFO]  Audio:     aac 48000 Hz  2 ch  fmt=fltp
+[INFO]  Selected HW-capable decoder: h264 (default was h264)
+[INFO]  Decoder opened: h264 (1280×720)  [HW: VideoToolbox requested]
+[INFO]  AudioPlayer: 48000 Hz stereo float32  device latency 30.0 ms (480 frames × 3 periods)
+[INFO]  Decoder opened: aac (0×0)
+[INFO]  AudioDecoder: 48000 Hz 2ch → 48000 Hz stereo f32
+[INFO]  Opened <scratch>/gui3/clips/av_ac4.mov in 150 ms (t=0.405)
+[INFO]  VideoRenderer: 1280×720 SDR (yuv420p → RGB24 sRGB)  matrix=BT.709  limited-range
+[INFO]  AudioDecoder: resampler 48000 Hz stereo fltp → 48000 Hz stereo flt, FFmpeg's default downmix levels
+[INFO]  Subtitles: 0 choice(s); initial off (none available)
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0xbc715a300] Could not find codec parameters for stream 2 (Audio: ac4 (ac-4 / 0x342D6361), 48000 Hz, stereo, 18 kb/s): unspecified sample format
+Consider increasing the value for the 'analyzeduration' (0) and 'probesize' (5000000) options
+[INFO]  ScrubDecoder: ready (open 1 ms, probe 4 ms) (t=0.412)
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0xbc715aa80] Could not find codec parameters for stream 2 (Audio: ac4 (ac-4 / 0x342D6361), 48000 Hz, stereo, 18 kb/s): unspecified sample format
+Consider increasing the value for the 'analyzeduration' (0) and 'probesize' (5000000) options
+[INFO]  ThumbnailStrip: open 1 ms, probe 6 ms (t=0.414)
+[INFO]  ThumbnailStrip: 2 keyframes found, decoding 2 thumbnails (stride 0.03 s, 160 px tall)
+[INFO]  ThumbnailStrip: coarse pass done (1 thumbnails)
+[INFO]  ThumbnailStrip: decode complete (2 thumbnails)
+[INFO]  Decoder: VideoToolbox HW decode active (zero-copy IOSurface path)
+[INFO]  first-frame: pts=0.000 1280x720 VideoToolbox, 135 ms after open (t=0.542)
+[INFO]  VideoRenderer: HW zero-copy path ready: '420v' bound as R8 / RG8, 8-bit samples (BT.709 matrix, limited-range)
+[INFO]  --qa-switch: t=2.02 a#2
+[INFO]  switch-trace: request audio -> stream 2 at 2.130 (t=2.560)
+[INFO]  Audio stream switched to index 2 (seamless, from 2.837) (t=2.560)
+[INFO]  switch-trace: repositioned to 2.837 (t=2.560)
+[ERROR] No decoder found for ac4 (codec id 86119)
+[ERROR] switch: no audio decoder could be opened for stream 2 (ac4) — the track stays silent
+[INFO]  switch-trace: audio decoder reopened (t=2.731)
+[WARN]  switch: no decoder for ac4 (stream 2): the switch to fra · ac4 2ch ended, the track stays silent
+[INFO]  --speed-seq: t=2.52 event 12 84
+[INFO]  --speed-seq: t=3.02 event 10 0
+[INFO]  ui-snapshot: wrote <scratch>/gui3c/ac4_tracks.png (2560×1440) — pts=3.133 1280x720
+[INFO]  --av-report: wrote <scratch>/gui3c/ac4.json (6.0 s, 160 frames)
+[INFO]  MediaSession: closing <scratch>/gui3/clips/av_ac4.mov
+[INFO]  MediaSession: threads stopped (48 ms)
+[INFO]  ScrubDecoder: stopped (0 requests decoded from a keyframe read, 0 from a seek)

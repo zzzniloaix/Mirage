@@ -1,24 +1,28 @@
 # The player fixes' scripted checks (2026-11-05)
 
 These are the checks of `plan/engineer_tools_player_fixes.md` (each
-section's Check) that open the player's window. They ran at commit
-`3d2b8cc` (`feat/player-fixes`; its code is `66751ed`'s) with its debug
-build, on macOS 26.6.2. The record is in the form of `eval/test_runs/`:
-each command, then its output and exit status, with `uptime` before each
-window. Another session's builds ran on the machine meanwhile; the load
-averages are in the records. Local paths appear as `<scratch>` and
-`<repo>`.
+section's Check) that open the player's window. They ran with the debug
+build of `feat/player-fixes`, whose code is `66751ed`'s, on macOS 26.6.2:
+`record.txt` and `record2.txt` at commit `3d2b8cc`, `record3.txt` at
+`6f5ec80`. The commits in between add records and documents only. The
+records are in the form of `eval/test_runs/`: each command, then its output
+and exit status, with `uptime` before each window. Another session's builds
+ran on the machine meanwhile; the load averages are in the records. Local
+paths appear as `<scratch>` and `<repo>`.
 
-The screen was locked throughout; `record2.txt` shows it. CoreAudio then
-plays nothing, so video, which follows the audio clock, hardly moves in a
-clip with audio. The runs whose check needs that playback (4.2 and 4.4)
-show nothing yet. `run3.sh` makes them again, and it refuses to run while
-the screen is locked: MEASUREMENT PENDING.
+The screen was locked during the first two runs; `record2.txt` shows it.
+CoreAudio then plays nothing, so in a clip with audio the video, which
+follows the audio clock, hardly moves. `record3.txt` makes again, with the
+screen unlocked, the runs that need audio output: a control clip, 4.2 and
+4.4, and the timed seek of section 1. `run3.sh` refuses to run while the
+screen is locked. The locked runs' files are kept, and `record3/` holds the
+third run's.
 
 | Files | What |
 |---|---|
 | `record.txt` | `run.sh`: the clips it makes, then each section's runs |
 | `record2.txt` | `run2.sh`: the ten `--no-hw` runs of the bars that `run.sh` skipped, and their comparisons with its HW captures; the frame steps, one capture per run; the scrub preview |
+| `record3.txt` | `run3.sh`: the runs that need audio output, the screen unlocked |
 | `run.sh`, `run2.sh`, `run3.sh` | the scripts (`SP`: the scratch folder). `record.txt` was made before `player()` stopped setting `n`: it overwrote the bars loop's own `n`, so each second call named a log in a folder that does not exist, and the shell ran nothing (exit status 1) |
 | `tools/` | `make_ac4_mov.c`, `make_evc_mov.c`: copy a clip and add an AC-4 audio or an EVC video stream of made-up packets, for which this FFmpeg has no decoder |
 | `snapshots/` | the captures at half size (FFmpeg's lanczos scaler). The full-size captures, which `bars_at.py` and `snapshot_diff` read, stay in the scratch folder |
@@ -34,9 +38,10 @@ the screen is locked: MEASUREMENT PENDING.
 - `nosei.ts`: 60 s of H.264 with open GOPs and every SEI taken out, with
   three references. FFmpeg flags one keyframe in it. A seek to position 50
   goes back to the start (seven tries) and shows the target's frame, PTS
-  51.480 (testsrc's count 50 in `seek_nosei_*.png`). The first frame after
-  the seek came 3592 ms after it with VideoToolbox, and 311 ms after it
-  with `--no-hw`. Its audio did not play, and `run3.sh` times it again.
+  51.480 (testsrc's count 50 in `seek_nosei_*.png`). With the screen
+  unlocked (`record3.txt`), the first frame after the seek came 1233 ms
+  after it with VideoToolbox and 135 ms after it with `--no-hw`. With the
+  screen locked it took 3592 ms and 311 ms.
 
 ## Section 2: positions (D-089, D-094)
 
@@ -96,12 +101,23 @@ the screen is locked: MEASUREMENT PENDING.
   - With `--no-hw` the 3 s report counts 2 decode errors and 7 corrupt
     frames. Over the whole clip, FFmpeg's command line in software counts
     3 decode errors.
-- 4.2 and 4.4 ran with the screen locked. Every report with audio has
-  `audio_media_s` 0. The switch to EVC says "No decoder found for evc",
-  ends at once, and leaves the track blank (`logs/evc_tracks.log`). The
-  switch to AC-4 takes over at 1.003 s, which playback never reached
-  (`reports/ac4.json`: `video_media_s` 0.467), so its log says nothing
-  about the decoder. MEASUREMENT PENDING (`run3.sh`).
+- 4.2 and 4.4 (`record3.txt`, the screen unlocked):
+  - The control, `av_src.mp4` played plainly, has 5.067 s of video and
+    4.95 s of audio in 5.026 s.
+  - The switch to AC-4 says "No decoder found for ac4" and ends at once,
+    and the track stays silent. The Tracks panel shows "No decoder for ac4"
+    under it (`record3/ac4_tracks.png`). The audio clock goes on: the 8 s
+    report has 8.133 s of video and 8.0 s of audio, with no underrun
+    (`reports/record3/ac4_report.json`).
+  - The switch to EVC says "No decoder found for evc", ends at once, and
+    leaves the track blank, and the Tracks panel shows "No decoder for evc"
+    (`record3/evc_tracks.png`). A seek on that blank track does not wait,
+    and no "Buffering" shows (`logs/record3/evc_seek.log`).
+  - The W strip of the clip whose left channel is silent is no longer
+    empty (`record3/r_only_W.png`).
+- In `record.txt`, with the screen locked, every report with audio has
+  `audio_media_s` 0. The AC-4 switch's take-over point, 1.003 s, was never
+  reached there (`video_media_s` 0.467).
 
 ## Found on the way
 
@@ -114,3 +130,7 @@ next keyframe. In an MP4 the preview is the target's frame. D-088 changed
 
 The I panel's Decode line is cut at the panel's edge: `noise_I.png` shows
 "VideoToolbox: 67 decode errors (last: Invalid data found when processin".
+
+After the switch to the EVC track, the badges read "EVC 1280×720": the new
+track's codec beside the size of the old track's last frame. The EVC track
+is 640×360, and none of its frames is decoded (`record3/evc_tracks.png`).

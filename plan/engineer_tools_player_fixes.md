@@ -108,9 +108,8 @@ Tests: `tests/test_demuxer_seek.cpp` (`[demux][seek]`). Scripted runs
 (`plan/engineer_tools_runs/fixes-gui-2026-11-05/`): the seek of
 `gui-2026-11-03` that showed no frame now shows the target's frame, with
 and without VideoToolbox. On the stream without flagged keyframes, a seek
-50 s in reads from the start and shows the target's frame, 3592 ms after
-the seek with VideoToolbox and 311 ms after it with `--no-hw`, with the
-screen locked. Found on the way: the scrub preview and the step back,
+50 s in reads from the start and shows the target's frame, 1233 ms after
+the seek with VideoToolbox and 135 ms after it with `--no-hw`. Found on the way: the scrub preview and the step back,
 which `ScrubDecoder` serves, still land after the keyframe before their
 target on an MPEG-TS.
 
@@ -576,9 +575,10 @@ Tests:
   `tests/test_audio_player.cpp`.
 
 Scripted runs (`fixes-gui-2026-11-05/`): 4.1 counts and shows decode
-errors as FFmpeg's command line does (82 with VideoToolbox), and a switch
-to a video track with no decoder ends at once. 4.2's audio switch and 4.4
-need audio output, which the locked screen stopped: MEASUREMENT PENDING.
+errors as FFmpeg's command line does (82 with VideoToolbox). A switch to
+an audio or a video track with no decoder ends at once, the Tracks panel
+says so, and the audio clock goes on. The W strip shows a right-only
+signal.
 
 ## The owner's choices, together
 

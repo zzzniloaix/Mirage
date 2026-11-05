@@ -2378,7 +2378,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - The unit tests at `cfd6ae0` (`plan/engineer_tools_runs/tests/macos-2026-11-04-cfd6ae0.txt`): every case passes in both builds. That is 464 test cases in the debug build and 463 in the headless one, which leaves out the VideoToolbox case, plus the 21 `[audio]` cases in each.
   - The checks behind D-093 and D-094 (`plan/engineer_tools_runs/review-2026-11-05/`).
   - The unit tests at `ed98a2b`, whose code is `66751ed`'s (`plan/engineer_tools_runs/tests/macos-2026-11-05-ed98a2b.txt`): every case passes in both builds. That is 466 test cases in the debug build and 465 in the headless one, plus the 22 `[audio]` cases in each.
-  - The scripted runs of each section's Check (`plan/engineer_tools_runs/fixes-gui-2026-11-05/`), at `3d2b8cc`, the screen locked. They cover sections 1 to 3 and 4.1. 4.2's audio switch and 4.4 need audio output: MEASUREMENT PENDING (`run3.sh` there).
+  - The scripted runs of each section's Check (`plan/engineer_tools_runs/fixes-gui-2026-11-05/`): sections 1 to 3 and 4.1 at `3d2b8cc` with the screen locked, then 4.2, 4.4 and the timed seek of section 1 at `6f5ec80` with it unlocked (`record3.txt`). Every section's Check is made.
 - **Who**: agent
 - **Date**: 2026-11-04 (for D-093 and D-094, 2026-11-05)
 - **Status**: pending owner confirmation
