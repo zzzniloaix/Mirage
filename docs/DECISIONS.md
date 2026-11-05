@@ -739,6 +739,37 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: owner, adopting the agent's recommendation
 - **Date**: 2026-11-03
 
+D-086 to D-095 are on branches not yet merged; whoever merges later puts the entries in number order.
+
+### D-096 The HLS check matches break markers across renditions, reads encrypted segments without their key, and writes its report as a page
+
+- **Decision**: `mirage_hlscheck` and the Conformance tab check where each variant, audio and subtitle playlist marks its breaks (`src/HlsMarkers.h`): `EXT-X-DATERANGE`, and the tags named by `--marker-tag`, matched by ID. A tag should come before the segment nearest the break, an interstitial or SCTE-35 `START-DATE` should fall on a segment boundary, a rendition carrying a tag should mark every break; `--markers-only` reads the playlists alone. SAMPLE-AES, SAMPLE-AES-CTR and ISO-23001-7 segments are read without their key (container, timestamps and the clear NAL headers; nothing decoded); AES-128 ones are only sized. `--html FILE` writes the report as one self-contained page (`src/HlsReportHtml.h`).
+- **Owner's words**, translated by the agent: "start doing it now", after the agent's account of why the check could not read an encrypted stream and what the marker check would add; for the page, "the HLS report is still not good, can you make it more stylish and readable", and after looking at it, "looks OK, commit it".
+- **Alternatives**: decrypt the segments, which needs keys and a licence server this repository has no business with; leave the marker check to a script outside the repository; a text report only.
+- **Rationale**: the playlists of a protected stream are readable, and so are everything but the samples of a SAMPLE-AES segment: the timing and alignment checks need no key. A page reads better than the terminal table and can be attached to a ticket as it is.
+- **Pending**: `kMarkerSlack`, the 50 ms within which a marker counts as on a boundary, is the agent's value; the owner has not decided it.
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-04 and 2026-11-05
+
+### D-097 The player shows the marker check: a URL mode, marker cards, the Alignment timeline
+
+- **Decision**: in this order, (1) the Conformance tab checks an HLS master given by URL or path as well as the one playing, so a stream the player cannot open (DRM) is still checked, the result kept across media like the DASH mode's (D-084); (2) a Break markers section above the findings, a card per splice point with each rendition's marker, offset and a seek to three seconds before the break, a marker-tag field, a Markers only switch, tags with an ID offered as candidates, and Export HTML; (3) the Alignment tab's timeline draws each splice point and where each rendition marks it. The open path is untouched; playing DRM content is not part of this repository.
+- **Owner's words**, translated by the agent: "start in this order", for the agent's proposal of these three steps, URL mode first.
+- **Alternatives**: the findings in the existing list only; ticks on the seek bar (offered as a later addition); a fallback in the open path for DRM streams, which needs a D-007 plan.
+- **Rationale**: the URL mode is what lets a DRM stream be checked in the player at all, without the open path; the cards give the numbers, the timeline shows the offset at a glance.
+- **Measured** (2026-11-05): on the package `tests/hlsmarkers_demo.sh` makes, the tab's JSON report is the command line's byte for byte, the master playing and by URL (`plan/engineer_tools_runs/hls-markers-2026-11-05/`).
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-05
+
+### D-098 The marker PR is stacked on PR #6, its records after it opens
+
+- **Decision**: PR #7 (`feat/hls-markers`) holds the marker work alone, based on PR #6's branch `feat/engineer-tools-followups`, and is retargeted to `main` once #6 merges. The player fixes it was first written over stay on their own branch. Its records (D-096 to D-098, `docs/AI_CONTRIBUTIONS.md`, the run record) come in a commit after the PR opened.
+- **Owner's words**, translated by the agent: "Stack on PR #6 (Recommended)"; "Open PR now, records later (Recommended)".
+- **Alternatives**: push the player fixes too and stack two PRs; wait for #6 to merge and open against `main`; the records before the PR.
+- **Rationale**: the two commits apply to PR #6's branch without a conflict, and on `main` they do not; a PR of the marker work alone reviews on its own. The one change the move needed: the seek takes a playlist position, as the Manifest tab's tags do on that branch.
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-05
+
 ---
 
 ## Measurement / process choices (proposed by the agent, confirmed by the owner)

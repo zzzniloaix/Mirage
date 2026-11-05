@@ -1,0 +1,114 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  Opening <scratch>/demo/master.m3u8 (t=0.254)
+[INFO]  ManifestParser: parsed HLS — 0 tags, 3 variants from <scratch>/demo/master.m3u8
+[hls @ 0xba94fe300] Opening '<scratch>/demo/a1/index.m3u8' for reading
+[hls @ 0xba94fe300] Opening '<scratch>/demo/v1/index.m3u8' for reading
+[hls @ 0xba94fe300] Opening '<scratch>/demo/v2/index.m3u8' for reading
+[hls @ 0xba94fe300] Opening '<scratch>/demo/v3/index.m3u8' for reading
+[hls @ 0xba94fe300] Opening '<scratch>/demo/a1/s0.ts' for reading
+[hls @ 0xba94fe300] Opening '<scratch>/demo/v1/s0.ts' for reading
+[hls @ 0xba94fe300] Opening '<scratch>/demo/v2/s0.ts' for reading
+[hls @ 0xba94fe300] Opening '<scratch>/demo/v3/init.mp4' for reading
+[hls @ 0xba94fe300] Opening '<scratch>/demo/v3/s0.m4s' for reading
+[INFO]  Demuxer: avformat_open_input 6 ms (4 streams, 3 programs) (t=0.260)
+[hls @ 0xba94fe300] Opening '<scratch>/demo/v3/s1.m4s' for reading
+[INFO]  Demuxer: avformat_find_stream_info 4 ms (t=0.264)
+[INFO]  Container: Apple HTTP Live Streaming
+[INFO]  Duration:  00:00:12
+[INFO]  Video:     hevc 1280×720 @ 25.000 fps  pixel_fmt=yuv420p10le
+[INFO]  Audio:     aac 48000 Hz  2 ch  fmt=fltp
+[INFO]  Selected HW-capable decoder: hevc (default was hevc)
+[INFO]  Decoder opened: hevc (1280×720)  [HW: VideoToolbox requested]
+[INFO]  AudioPlayer: 48000 Hz stereo float32  device latency 30.0 ms (480 frames × 3 periods)
+[INFO]  Decoder opened: aac (0×0)
+[INFO]  AudioDecoder: 48000 Hz 2ch → 48000 Hz stereo f32
+[INFO]  Opened <scratch>/demo/master.m3u8 in 169 ms (t=0.423)
+[INFO]  VideoRenderer: 1280×720 HDR (yuv420p10le → RGB48 → GLSL tonemap)  trc=smpte2084  matrix=BT.2020  limited-range
+[INFO]  MediaSession: helpers open variant playlists — scrub <scratch>/demo/v3/index.m3u8, thumbnails <scratch>/demo/v3/index.m3u8 (stream 3)
+[INFO]  Keyframes: stream 3 — 6 segments (12.1 s) in <scratch>/demo/v3/index.m3u8
+[hls @ 0xba96d3700] Opening '<scratch>/demo/v3/init.mp4' for reading
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/init.mp4' for reading
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/s0.m4s' for reading
+[hls @ 0xba96d3700] Opening '<scratch>/demo/v3/s0.m4s' for reading
+[INFO]  Subtitles: 0 choice(s); initial off (none available)
+[INFO]  ThumbnailStrip: sampling variant playlist <scratch>/demo/v3/index.m3u8 (720p, the playing one), open + probe 1 ms (t=0.427)
+[INFO]  ThumbnailStrip: 0 keyframes in index for stream 0 — seek-sampling 13 points (stride 0.92 s)
+[INFO]  ScrubDecoder: ready — variant playlist <scratch>/demo/v3/index.m3u8 (open + probe 1 ms) (t=0.427)
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/init.mp4' for reading
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/s0.m4s' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0xba96d3c00] Found duplicated MOOV Atom. Skipped it
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/init.mp4' for reading
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/s3.m4s' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0xba96d3c00] Found duplicated MOOV Atom. Skipped it
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/s4.m4s' for reading
+[INFO]  ThumbnailStrip: coarse pass done (2 thumbnails)
+[hls @ 0xba96d3480] The m3u8 list sequence may have been wrapped.
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/init.mp4' for reading
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/s0.m4s' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0xba96d3c00] Found duplicated MOOV Atom. Skipped it
+[hls @ 0xba96d3480] The m3u8 list sequence may have been wrapped.
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/init.mp4' for reading
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/s0.m4s' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0xba96d3c00] Found duplicated MOOV Atom. Skipped it
+[hls @ 0xba96d3480] The m3u8 list sequence may have been wrapped.
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/init.mp4' for reading
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/s1.m4s' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0xba96d3c00] Found duplicated MOOV Atom. Skipped it
+[hls @ 0xba96d3480] The m3u8 list sequence may have been wrapped.
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/s2.m4s' for reading
+[hls @ 0xba96d3480] The m3u8 list sequence may have been wrapped.
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/init.mp4' for reading
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/s1.m4s' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0xba96d3c00] Found duplicated MOOV Atom. Skipped it
+[hls @ 0xba96d3480] The m3u8 list sequence may have been wrapped.
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/s2.m4s' for reading
+[hls @ 0xba96d3480] The m3u8 list sequence may have been wrapped.
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/init.mp4' for reading
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/s2.m4s' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0xba96d3c00] Found duplicated MOOV Atom. Skipped it
+[hls @ 0xba96d3480] The m3u8 list sequence may have been wrapped.
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/s3.m4s' for reading
+[INFO]  Decoder: VideoToolbox HW decode active (zero-copy IOSurface path)
+[INFO]  first-frame: pts=0.400 1280x720 VideoToolbox, 114 ms after open (t=0.541)
+[INFO]  VideoRenderer: HW zero-copy path ready (10-bit, BT.2020 matrix, limited-range)
+[hls @ 0xba96d3480] The m3u8 list sequence may have been wrapped.
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/init.mp4' for reading
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/s2.m4s' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0xba96d3c00] Found duplicated MOOV Atom. Skipped it
+[hls @ 0xba96d3480] The m3u8 list sequence may have been wrapped.
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/s3.m4s' for reading
+[hls @ 0xba94fe300] Opening '<scratch>/demo/a1/s1.ts' for reading
+[hls @ 0xba94fe300] Opening '<scratch>/demo/v3/s2.m4s' for reading
+[WARN]  Keyframes: stream 3 — the playlist's segment starts don't match the keyframes read (1 contradiction: keyframes at 1.920 and 4.040 were read in one go, none at the start predicted at 2.080): only keyframes read are listed
+[hls @ 0xba96d3480] The m3u8 list sequence may have been wrapped.
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/init.mp4' for reading
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/s3.m4s' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0xba96d3c00] Found duplicated MOOV Atom. Skipped it
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/s4.m4s' for reading
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/init.mp4' for reading
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/s4.m4s' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0xba96d3c00] Found duplicated MOOV Atom. Skipped it
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/s5.m4s' for reading
+[hls @ 0xba96d3480] The m3u8 list sequence may have been wrapped.
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/init.mp4' for reading
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/s4.m4s' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0xba96d3c00] Found duplicated MOOV Atom. Skipped it
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/s5.m4s' for reading
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/init.mp4' for reading
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/s5.m4s' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0xba96d3c00] Found duplicated MOOV Atom. Skipped it
+[hls @ 0xba96d3480] The m3u8 list sequence may have been wrapped.
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/init.mp4' for reading
+[hls @ 0xba96d3480] Opening '<scratch>/demo/v3/s5.m4s' for reading
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0xba96d3c00] Found duplicated MOOV Atom. Skipped it
+[INFO]  ThumbnailStrip: decode complete (5 thumbnails)
+[hls @ 0xba94fe300] Opening '<scratch>/demo/a1/s2.ts' for reading
+[hls @ 0xba94fe300] Opening '<scratch>/demo/v3/s3.m4s' for reading
+[hls @ 0xba94fe300] Opening '<scratch>/demo/a1/s3.ts' for reading
+[hls @ 0xba94fe300] Opening '<scratch>/demo/v3/s4.m4s' for reading
+[hls @ 0xba94fe300] Opening '<scratch>/demo/a1/s4.ts' for reading
+[hls @ 0xba94fe300] Opening '<scratch>/demo/v3/s5.m4s' for reading
+[hls @ 0xba94fe300] Opening '<scratch>/demo/a1/s5.ts' for reading
+[hls @ 0xba94fe300] Opening '<scratch>/demo/a1/s6.ts' for reading
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=9.307)
+[INFO]  ui-snapshot: wrote <scratch>/align.png (3200×2000, frame 300, hover=none, thumb_pts=none, sub="")

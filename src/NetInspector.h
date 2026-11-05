@@ -72,9 +72,13 @@ public:
     // "finding=<n>" (expand the n-th finding), "tab=conformance",
     // "conform=1" (run the conformance check once the manifest is known),
     // "conform_segments=<n>" (0 = every segment), "conform_out=<path>" (write
-    // its JSON report there when it is done), "dash=<MPD URL or path>" (the
-    // tab's DASH mode, checking that MPD at once; last, as the URL may hold
-    // commas).
+    // its JSON report there when it is done), "conform_html=<path>" (and its
+    // HTML report), "marker_tags=<A+B>" (tags for the marker check, '+'
+    // between), "markers_only=1", "marker_open=<n>" (expand the n-th event),
+    // "dash=<MPD URL or path>" (the tab's DASH
+    // mode, checking that MPD at once) or "hls=<master URL or path>" (the
+    // HLS check of that master, whatever is playing); dash= and hls= last, as
+    // the URL may hold commas.
     void qa_apply(const std::string& spec);
 
     // QA: the alignment report as text (findings, then one line per rendition).
@@ -176,6 +180,10 @@ private:
         std::uint64_t                 cat_learned = 0;
         double                        built_at = -1.0;
         int                           missing_playlists = 0;
+        // The break markers of the same playlists (HlsMarkers.h), with the
+        // Conformance tab's marker tags: drawn on the timeline.
+        std::string                   marker_tags;
+        hls::MarkerReport             markers;
     };
     AlignModel    align_;
     Scope         scope_ = Scope::InUse;
@@ -206,7 +214,25 @@ private:
     int                  conform_sel_ = -1;       // variant row clicked: its findings only
     int                  conform_open_ = -1;      // finding expanded
     bool                 qa_conform_ = false, qa_conform_started_ = false;
-    std::string          qa_conform_out_;
+    std::string          qa_conform_out_, qa_conform_html_;
+    // A master given by URL or path instead of the one playing: what cannot
+    // be played (DRM) can still be checked. Kept across media sessions.
+    char                 hls_url_[2048] = {};
+    bool                 conform_from_url_ = false;   // the result is hls_url_'s
+    bool                 qa_hls_ = false;             // "hls=<url>": check it once
+    // The marker check (HlsMarkers.h): tags beside EXT-X-DATERANGE, typed
+    // as names with blanks or commas between; markers only = playlists only.
+    char                 marker_tags_[512] = {};
+    bool                 markers_only_ = false;
+    bool                 conform_run_markers_only_ = false;   // the result shown was one
+    int                  marker_ev_open_ = -1;    // splice point expanded
+    int                  marker_open_ = -1;       // marker finding expanded
+    int                  qa_marker_open_ = -1;    // "marker_open=<n>", once the result is in
+    std::string          export_note_;            // where Export HTML wrote, or why it could not
+    std::vector<std::string> marker_tag_list() const;
+    std::string          report_json() const;     // conformance + markers, as --json writes
+    bool                 export_html(const std::string& path);
+    void                 draw_markers(const Inputs& in, Out& out, float cw, bool seekable);
     // Its DASH mode: an MPD by URL, checked by a probe of its own; kept across
     // media sessions (it does not depend on what is playing).
     void start_dash();

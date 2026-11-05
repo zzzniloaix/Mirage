@@ -42,6 +42,7 @@ constexpr ImWchar kUiRanges[] = {
     0x00D7, 0x00D7,
     0x2026, 0x2026,
     0x00B7, 0x00B7,
+    0x2212, 0x2212,   // − minus sign (the HLS checks' offsets)
     0x2190, 0x21FF,   // arrows (← → ↑ ↓ ⇧) for the shortcut card
     0x2318, 0x2318,   // ⌘
     0x25A0, 0x25FF,   // geometric shapes (● ◆ ▶)
