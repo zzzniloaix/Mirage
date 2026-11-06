@@ -732,6 +732,14 @@ void NetInspector::draw_markers(const Inputs& in, Out& out, float cw, bool seeka
         return i >= 0 && i < static_cast<int>(res.marker_in.size()) ? res.marker_in[static_cast<std::size_t>(i)].label
                                                                     : std::format("#{}", i);
     };
+    // The labels as the cards' rows show them: without what every label of a group shares at either
+    // end. A group's NAMEs may differ in one token anywhere: at the head, the middle or the tail.
+    std::vector<std::string> all_labels;
+    for (const auto& mi : res.marker_in) all_labels.push_back(mi.label);
+    const std::vector<std::string> distinct = ui::distinct_labels(all_labels);
+    auto row_label = [&](int i) {
+        return i >= 0 && i < static_cast<int>(distinct.size()) ? distinct[static_cast<std::size_t>(i)] : label(i);
+    };
     int splices = 0, others = 0;
     for (const auto& ev : mk.events) (ev.splice ? splices : others) += 1;
 
@@ -827,21 +835,20 @@ void NetInspector::draw_markers(const Inputs& in, Out& out, float cw, bool seeka
         std::stable_sort(places.begin(), places.end(), [](const auto* a, const auto* b) {
             return rank(a->sev) > rank(b->sev);
         });
-        // The Rendition column as wide as its widest label, in the room the other columns leave
-        // (130 px at least, as it was), so the offsets stay in view. A label still wider is cut in
-        // the middle: a group's renditions share the head of their NAME and differ at its tail (a
-        // language, the channels). The whole label shows on hover.
+        // The Rendition column as wide as its widest row label, in the room the other columns leave
+        // (130 px at least, as it was), so the offsets stay in view. A row label still wider is cut
+        // in the middle. The whole label shows on hover.
         constexpr float kMarkerW = 132.0f, kAtW = 66.0f, kBoundaryW = 92.0f, kOffW = 64.0f, kGaugeW = 110.0f;
         constexpr float kCellPadX = 6.0f;
         const float room = cw - (kMarkerW + kAtW + kBoundaryW + kOffW + kGaugeW)
                          - 6.0f * 2.0f * kCellPadX;   // and the six columns' cell padding
         float rend_w = 130.0f;
-        for (const auto* p : places) rend_w = std::max(rend_w, ImGui::CalcTextSize(label(p->rendition).c_str()).x);
-        for (const int m : ev.missing) rend_w = std::max(rend_w, ImGui::CalcTextSize(label(m).c_str()).x);
+        for (const auto* p : places) rend_w = std::max(rend_w, ImGui::CalcTextSize(row_label(p->rendition).c_str()).x);
+        for (const int m : ev.missing) rend_w = std::max(rend_w, ImGui::CalcTextSize(row_label(m).c_str()).x);
         rend_w = std::min(rend_w, std::max(130.0f, std::floor(room)));
         const auto rendition_cell = [&](int r) {
             const std::string full = label(r);
-            const std::string shown = ui::ellipsize_middle(full, rend_w, [](const std::string& t) {
+            const std::string shown = ui::ellipsize_middle(row_label(r), rend_w, [](const std::string& t) {
                 return ImGui::CalcTextSize(t.c_str()).x;
             });
             ImGui::TextUnformatted(shown.c_str());

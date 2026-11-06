@@ -106,6 +106,36 @@ TEST_CASE("ellipsize_middle: head and tail kept, whole UTF-8 characters", "[ui]"
     CHECK(ellipsize_middle("audio main/commentary-stereo-fr", 14.0f, chars) == "audio …ereo-fr");
 }
 
+// ── distinct_labels ───────────────────────────────────────────────────────────
+
+TEST_CASE("distinct_labels: a group's shared ends dropped, in whole tokens", "[ui]")
+{
+    using V = std::vector<std::string>;
+    // NAMEs that differ only at the head, the tail shared: what tells them apart stays.
+    CHECK(distinct_labels({ "audio aud/aa_main_x 256K", "audio aud/bb_main_x 256K" })
+          == V{ "audio aud/aa…", "audio aud/bb…" });
+    // Only in the middle: both ends go.
+    CHECK(distinct_labels({ "audio aud/main_en_stereo", "audio aud/main_fr_stereo", "audio aud/main_de_stereo" })
+          == V{ "audio aud/…en…", "audio aud/…fr…", "audio aud/…de…" });
+    // Only at the tail: the head goes.
+    CHECK(distinct_labels({ "audio aud/main-stereo-en", "audio aud/main-stereo-fr" })
+          == V{ "audio aud/…en", "audio aud/…fr" });
+    // Whole tokens only: "en" is no token shared with "en_sdh", and "256K" with "128K" shares no token.
+    CHECK(distinct_labels({ "subtitles subs/en", "subtitles subs/en_sdh" })
+          == V{ "subtitles subs/en", "subtitles subs/en_sdh" });
+    CHECK(distinct_labels({ "audio aud/aa_main_x 256K", "audio aud/bb_main_x 256K", "audio aud/cc_main_y 128K" })
+          == V{ "audio aud/aa_main_x 256K", "audio aud/bb_main_x 256K", "audio aud/cc_main_y 128K" });
+    // Each group apart; a label alone in its group, and a variant's (no '/'), stay whole.
+    CHECK(distinct_labels({ "v0 1080p", "audio a/x_1", "audio a/y_1", "audio b/z_2", "subtitles s/en_cc",
+                            "subtitles s/fr_cc" })
+          == V{ "v0 1080p", "audio a/x…", "audio a/y…", "audio b/z_2", "subtitles s/en…",
+                "subtitles s/fr…" });
+    // Two-byte characters are never cut: the cut falls at a separator.
+    CHECK(distinct_labels({ "audio aud/éa_x", "audio aud/éb_x" })
+          == V{ "audio aud/éa…", "audio aud/éb…" });
+    CHECK(distinct_labels({}).empty());
+}
+
 // ── SubChoice::label ──────────────────────────────────────────────────────────
 
 TEST_CASE("SubChoice::label formats embedded and sidecar choices", "[ui]")

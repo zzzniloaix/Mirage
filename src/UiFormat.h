@@ -37,4 +37,12 @@ int index_at_or_before(const std::vector<double>& pts, double t, double max_gap)
 std::string ellipsize_middle(const std::string& s, float max_w,
                              const std::function<float(const std::string&)>& width);
 
+// What tells a group's labels apart: each label without the longest prefix
+// and suffix, in whole tokens (split at ' ', '/', '_', '-', '.'), that every
+// label of its group shares. A group is the labels with the same head up to
+// and including the first '/' ("audio aud/"). The head is kept, and "…"
+// marks each end dropped. A label alone in its group, or one with no '/',
+// comes back whole. The result is in the order of `labels`.
+std::vector<std::string> distinct_labels(const std::vector<std::string>& labels);
+
 } // namespace ui
