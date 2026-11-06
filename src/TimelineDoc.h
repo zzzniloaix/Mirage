@@ -72,8 +72,8 @@
 //   coarser clock, as an ad at 24000/1001 fps on a millisecond clock, whose
 //   frame of 1001/24 ms has a denominator above 8, follows none of these
 //   steps over all its frames, and its stretches grow with its frames:
-//   neither part of D-100 names that case, which stays as built, pending
-//   the owner (kOwnFrames, src/TimelineDoc.cpp). At 25 fps on MPEG-TS's
+//   neither part of D-100 names that case, which the owner kept as built
+//   (D-101 (a); kOwnFrames, src/TimelineDoc.cpp). At 25 fps on MPEG-TS's
 //   90 kHz clock the axis's ticks are the clock's, a frame is 3600 of them,
 //   a whole step, and the ad ladder's axis takes one stretch of ticks and
 //   three of keys, the ad's restart of its timestamps and the main
@@ -244,6 +244,23 @@
 // whole step, and taken only where they cover more frames, so that a
 // stretch that WP08b's steps hold keeps WP08b's form (D-099 (b)). Every
 // value comes back exactly in each case.
+//
+// The owner's choices (D-101, of 2026-11-06), on the two that WP08c left
+// pending, neither changing a value read back, both as built:
+// - (a) A sequence at another frame rate whose PTS were rounded to a
+//   coarser clock, whose frame in units of that clock has a denominator
+//   above 8, follows none of these steps over all its frames, and its
+//   stretches grow with its frames (above).
+// - (b) WP08c's other choices: D-100 (b)'s steps for every window of 2
+//   to 8 values, in units of the factor the first differences share;
+//   that factor refined where (a)'s step stops at a value it doesn't
+//   divide; D-100's steps tried last and taken only where they cover
+//   more frames; no step of D-100's that is a whole number, and whole
+//   steps alone without a frame duration; a step of D-100's holding a
+//   value off every step with the frames around it, and the shortest
+//   window on a tie; and the pairs' numbers as above (pair_number(),
+//   curve_of_pair()), a curve reference that names no pair written null
+//   for the reader to refuse.
 //
 // Core code (design §3.1): plain structs and text in and out, and libavutil's
 // rationals only. Nothing here reads a file; write_document() alone writes

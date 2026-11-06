@@ -921,6 +921,18 @@ D-088 to D-091 and D-093 to D-098 are on branches not yet merged; whoever merges
 - **Who**: owner, adopting the agent's recommendation
 - **Date**: 2026-11-06
 
+### D-101 A sequence at another frame rate on a coarser clock, and WP08c's other choices, stay as built
+
+- **Decision**: two answers on what WP08c's review left to the owner (Q58, Q59):
+  - (a) A sequence at another frame rate than the axis's whose PTS were rounded to a coarser clock, as an ad at 24000/1001, 30000/1001 or 60000/1001 fps on a millisecond clock, whose frame of 1001/24, 1001/30 or 1001/60 ms has a denominator above 8, follows none of D-100's steps over all its frames, so that its stretches grow with its frames: this stays as built, the limit stated in `docs/TIMELINE_FORMAT.md`, `src/TimelineDoc.h` and `src/TimelineDoc.cpp` (Q58).
+  - (b) WP08c's other choices stay as built (Q59): D-100 (b)'s steps tried for every window of 2 to 8 values, in units of the factor the stretch's first differences share where they share one; that factor taken from the first 8 differences and refined where D-100 (a)'s step stops at a value it doesn't divide; the frame durations first, then the whole step, then D-100's steps, which are taken only where they hold more frames; no step of D-100's that is a whole number, and whole steps alone on an axis without a frame duration; a step of D-100's that can hold a value off every step with the frames around it, and the shortest window on a tie among D-100 (b)'s steps; and D-092 (b) as built: a curve read back placed at its pair's rank among the variants' numbers, a report whose pairs aren't in the plan's order or whose `pairs[].index` is beyond an int refused by the timeline build, and a curve reference that names no pair written null for the reader to refuse.
+  - Nothing changes: documents stay at schema version 1, and every value comes back exactly.
+- **Owner's words**, translated by the agent: "Q58: option 1; Q59: option 1".
+- **Alternatives**: (a) D-100 (b) also trying longer windows, so that the steps of the common frame rates up to 60 fps on a millisecond or a 1/600 s clock, whose denominators go up to 100, are found, at up to that many steps per stretch. (b) Each item asked on its own.
+- **Rationale**: (a) As the agent recommended: the case needs a coarser clock and an ad at another frame rate at once, the stretches grow with the ad's frames only, and the limit is stated; longer windows would have the writer try many more steps for every stretch to cover it. WP08c's review measured the case with a probe that isn't committed, so its figures are left out. (b) As the agent recommended: none of them changes a value read back.
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-06
+
 ---
 
 ## Measurement / process choices (proposed by the agent, confirmed by the owner)
@@ -2496,6 +2508,7 @@ P-083 is on a branch not yet merged; whoever merges later puts the entries in nu
 - **Alternatives**: the three packages at once against WP00a's declarations, which §14 orders otherwise, since each uses the one before; the owner's answers left for the end of round 1, which would have had WP08's encoding redone after WP09a and WP11a were built on it; the second commits kept as they are on `vmaf/phase-3`.
 - **Rationale**: building each package on the one before let its agent use what that one built and read its commit message, and asking each review's questions at once let the encoding settle before more was built on it. One commit per package keeps `vmaf/phase-3` as P-082's packages are, one commit each with its whole message.
 - **Result** (`eval/test_runs/macos-2026-11-06-74d7215.txt`, at `74d7215`): `mirage_tests '~[audio]'` passed at the first run, 501535 assertions in 584 test cases, §3.2's two acceptance tests among them, one test case of four sections; ctest passed 597 of 597; the five Python suites passed, 28, 136, 11, 16 and 14 tests.
+- **Overtaken** (2026-11-06, D-101): the owner answered Q58 and Q59, which the Choice calls open, as the agent recommended, keeping WP08c as built.
 - **Who**: agent
 - **Date**: 2026-11-06
 - **Status**: pending owner confirmation

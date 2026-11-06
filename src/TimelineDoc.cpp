@@ -286,7 +286,7 @@ struct Tries {
 // or 60000/1001 fps on a millisecond clock, whose frame is 1001/24, 1001/30
 // or 1001/60 ms, follows no step tried over more than part of its frames,
 // so that its stretches grow with its frames. Neither part of D-100 names
-// that case: it stays as built, pending the owner.
+// that case, which the owner kept as built (D-101 (a)).
 constexpr std::size_t kOwnFrames = 8;
 
 // The factor the differences of values[from + 1] to values[from +
