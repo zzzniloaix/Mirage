@@ -173,7 +173,9 @@ std::string set_auto(AttributeArgs& a, std::string_view v)
 }
 
 // --curve pair:<k>: k, the pair's number, the ladder report's pairs[].index
-// (D-092 (b)), which answer_query() maps to its curve.
+// (D-092 (b)), which answer_query() maps to its curve. Design §7's
+// session:<id>, a session's curve, is WP09b's: refused here as any other
+// text.
 std::string set_curve(AttributeArgs& a, std::string_view v)
 {
     constexpr std::string_view kPair = "pair:";
@@ -1088,7 +1090,11 @@ Payload attribute_options(const AttributeArgs& a, const std::string& report)
         { "drop", a.query == Query::Drop ? Value{ a.drop } : Value{} },
         { "auto", Value{ a.query == Query::Auto } },
         { "report", Value{ report } },
-        { "curve", a.curve ? Value{ std::format("pair:{}", a.curve->number) } : Value{} },
+        // A session's curve, design §7's session:<id>, is WP09b's to record:
+        // none is recorded for it here, and answer_query() refuses it.
+        { "curve", a.curve && a.curve->kind == CurveRef::Kind::Pair
+                       ? Value{ std::format("pair:{}", a.curve->number) }
+                       : Value{} },
         { "threshold", Value{ a.detect.threshold } },
         { "window", int_or_null(a.detect.window) },
         { "min-points", int_or_null(a.detect.min_points) },
@@ -1116,11 +1122,15 @@ std::string answer_text(const Timeline& timeline, const std::vector<CurveRef>& c
 {
     std::string out;
     for (const CurveRef c : curves) {
-        if (c.index < 0 || static_cast<std::size_t>(c.index) >= timeline.curves.size()) continue;
+        // A pair's curve; a session's, and its answers, are WP09b's to print:
+        // nothing is printed for them here.
+        if (c.kind != CurveRef::Kind::Pair || c.index < 0 ||
+            static_cast<std::size_t>(c.index) >= timeline.curves.size())
+            continue;
         out += "\n" + curve_header(timeline, c);
         bool any = false;
         for (std::size_t i = 0; i < answers.size(); ++i) {
-            if (answers[i].curve.index != c.index) continue;
+            if (answers[i].curve.kind != c.kind || answers[i].curve.index != c.index) continue;
             any = true;
             out += answer_block(timeline, answers[i], i < numbers.size() ? numbers[i] : 0);
         }
@@ -1217,6 +1227,11 @@ std::optional<Failure> answer_query(const AttributeArgs& args, const Timeline& t
                                     const std::vector<Attribution>& recorded,
                                     const timeline::DocInfo& info, Answer& out)
 {
+    // A session's curve, design §7's --curve session:<id>, is WP09b's to
+    // answer: set_curve() makes none, and one given here is refused, since a
+    // document this reader takes has no session (src/TimelineDoc.h).
+    if (args.curve && args.curve->kind != CurveRef::Kind::Pair)
+        return Failure{ "--curve names a session's curve: the document has no session", 2 };
     // --curve names a pair by its number, the report's pairs[].index: the
     // curve whose variant has it (D-092 (b)); a number no complete pair of
     // the document has is an argument it doesn't fit (D-099 (c)).
@@ -1258,7 +1273,9 @@ std::optional<Failure> answer_query(const AttributeArgs& args, const Timeline& t
         // The document's detected drops, numbered as the answer lists them.
         std::vector<const Attribution*> drops;
         for (const Attribution& a : recorded)
-            if (a.detected && (!asked || a.curve.index == asked->index)) drops.push_back(&a);
+            if (a.detected &&
+                (!asked || (a.curve.kind == asked->kind && a.curve.index == asked->index)))
+                drops.push_back(&a);
         if (static_cast<std::size_t>(args.drop) > drops.size()) {
             // Why its detection is null, by the command that wrote it:
             // mirage_vmaf timeline's document was built without W and N, and

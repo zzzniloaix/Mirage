@@ -672,6 +672,16 @@ std::vector<Attribution> attribute_drops(const Timeline& timeline, const std::ve
     std::vector<Attribution> out;
     if (!detect.given()) return out;
     for (const CurveRef c : curves) {
+        // A session's drops are its pairs' drops clipped to the spans that
+        // played them, not drops of its own curve (D-077; design §6.3):
+        // WP07's session_drops() (src/SessionPlan.h), which WP09b brings into
+        // the build. A session's curve is refused here.
+        if (c.kind == CurveRef::Kind::Session) {
+            err = std::format("the curve of the session at place {}: a session's drops are its "
+                              "pairs' drops clipped to its spans (D-077), not drops of its own curve",
+                              c.index);
+            return {};
+        }
         // A curve is its place in Timeline::curves; a message names it by its
         // pair's number, the report's pairs[].index (D-092 (b)).
         if (c.kind != CurveRef::Kind::Pair || c.index < 0 ||

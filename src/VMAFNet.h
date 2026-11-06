@@ -6,7 +6,8 @@
 // fails instead of waiting for good, and both an interrupt callback on the
 // run's stop token, so a cancel interrupts a read that waits (the
 // master's: vmafladder::read_master()). Header-only: mirage_vmaf doesn't
-// link the player's FfOpen and its network logger.
+// link the player's FfOpen; it links the player's network logger for the
+// timeline's session fetch alone (D-104).
 
 #include <stop_token>
 #include <string>

@@ -49,10 +49,11 @@ constexpr std::array<std::string_view, 3> kDecoderTypes = { "keyframe", "corrupt
 // the reference's frames (D-073), the axis's two clocks and the check's two
 // states (src/TimelineAxis.h); the overlap of D-078, half-open on reference
 // frames, over the events of a curve's own inputs (Q28 (a)); the curve kinds
-// of CurveRef, a pair's alone until WP07 adds a session's. Design §8 names
-// the clocks, the checks and the roles; kOverlapScope's name, a curve's kind
-// "pair" in its {"kind", "index"} form and the run tests' names below are
-// WP08's, which D-092 (d) keeps (src/TimelineDoc.h).
+// of CurveRef, a pair's alone until WP09b writes and reads a session's
+// (CurveRef::Kind::Session). Design §8 names the clocks, the checks and the
+// roles; kOverlapScope's name, a curve's kind "pair" in its {"kind",
+// "index"} form and the run tests' names below are WP08's, which D-092 (d)
+// keeps (src/TimelineDoc.h).
 constexpr std::string_view kAxisKind       = "reference-frames";
 constexpr std::string_view kPlaylistTime   = "playlist-time";
 constexpr std::string_view kFrameGrid      = "frame-grid";
@@ -545,7 +546,9 @@ std::string strings_json(const std::vector<std::string>& list, std::string_view 
 // number, the ladder report's own pairs[].index (D-092 (b)), that of the
 // curve's variant (pair_number()), where CurveRef::index is the curve's
 // place in Timeline::curves; null for a curve that names no pair, which the
-// schema and the reader refuse (src/TimelineDoc.h).
+// schema and the reader refuse (src/TimelineDoc.h). A session's curve names
+// no pair either, so until WP09b gives it a form of its own it is written
+// {"kind": "pair", "index": null}, which the reader refuses for its index.
 std::string curve_json(const Timeline& t, CurveRef curve)
 {
     const std::optional<int> pair = pair_number(t, curve);
@@ -1718,7 +1721,8 @@ private:
     // ascending order of their numbers, the report's order of its complete
     // pairs, where attach_curves() puts the report's curves
     // (src/TimelineBuild.h). A number no variant has is refused, naming the
-    // key; two variants with one number variants() has refused already.
+    // key; two variants with one number variants() has refused already. Any
+    // kind but "pair" is refused: a session's curve is WP09b's to read.
     bool curve(const json::Value& v, const Path& at, const Timeline& t, CurveRef& out)
     {
         std::string  kind;

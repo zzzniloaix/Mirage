@@ -243,7 +243,9 @@ set_source_files_properties(src/VMAFPool.cpp PROPERTIES COMPILE_OPTIONS "-ffp-co
 # mirage_vmaf: the player's VMAF analyzer without a window, GL or ImGui
 # (DECISIONS.md D-017). Links FFmpeg and libvmaf only. Its ladder scoring
 # (D-029) reads master playlists itself, with HlsMaster's URI resolution,
-# not through the player's ManifestParser and its network logger.
+# not through the player's ManifestParser. The player's network logger is
+# compiled in unchanged for the timeline's session fetch (src/SessionFetch.h),
+# which installs it for the fetch alone and times each file with it (D-104).
 add_executable(mirage_vmaf
     tools/mirage_vmaf.cpp
     src/VMAFAlign.cpp
@@ -258,6 +260,7 @@ add_executable(mirage_vmaf
     src/VMAFReport.cpp
     src/JsonText.cpp
     src/HlsAlign.cpp
+    src/NetworkLogger.cpp
     src/TimelineModel.cpp
     src/TimelineAxis.cpp
     src/TimelineQuery.cpp
@@ -271,6 +274,7 @@ add_executable(mirage_vmaf
     src/Scte35Events.cpp
     src/SessionPlan.cpp
     src/TimelineMedia.cpp
+    src/SessionFetch.cpp
     src/TimelineCli.cpp
 )
 
@@ -391,6 +395,7 @@ add_executable(mirage_tests
     tests/test_scte35.cpp
     tests/test_scte35_events.cpp
     tests/test_session_plan.cpp
+    tests/test_session_fetch.cpp
     tests/test_timeline_media.cpp
     tests/test_timeline_cli.cpp
     tests/test_synthetic_ladder.cpp
@@ -454,6 +459,7 @@ add_executable(mirage_tests
     src/Scte35Events.cpp
     src/SessionPlan.cpp
     src/TimelineMedia.cpp
+    src/SessionFetch.cpp
     src/TimelineCli.cpp
 )
 

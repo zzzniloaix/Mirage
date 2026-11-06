@@ -115,6 +115,8 @@ std::vector<std::size_t> Timeline::overlapping(std::int64_t a, std::int64_t b) c
 
 Curve curve_points(const Timeline& timeline, CurveRef curve)
 {
+    // A session's curve, the played variants' scores over its spans (design
+    // §4.4), is WP07's to derive: until then it has no points.
     if (curve.kind == CurveRef::Kind::Pair && curve.index >= 0 &&
         static_cast<std::size_t>(curve.index) < timeline.curves.size())
         return timeline.curves[static_cast<std::size_t>(curve.index)];

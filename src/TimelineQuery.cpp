@@ -51,6 +51,9 @@ Attribution attribute(const Timeline& timeline, CurveRef curve, Interval interva
     a.curve    = curve;
     a.interval = interval;
     a.searched = interval;
+    // A session's curve and its scope, the played variant's events in each
+    // span, the reference's and the session's own (D-078), are WP07's: until
+    // then nothing is found for it.
     if (curve.kind != CurveRef::Kind::Pair || curve.index < 0 ||
         static_cast<std::size_t>(curve.index) >= timeline.curves.size())
         return a;

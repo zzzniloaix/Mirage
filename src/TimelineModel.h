@@ -106,11 +106,63 @@ struct Curve {
 };
 
 // Names a curve, for the query and detection (design §6.1): a pair's, which
-// Timeline::curves holds. A session's, derived from its pairs' curves, is
-// the kind sessions add (D-068).
+// Timeline::curves holds. A session's, Kind::Session (D-068), is derived
+// from its pairs' curves over its spans and never stored (design §4.4): its
+// index is into Timeline::sessions.
 struct CurveRef {
-    enum class Kind : std::uint8_t { Pair } kind = Kind::Pair;
-    int index = 0;                               // into Timeline::curves
+    enum class Kind : std::uint8_t { Pair, Session } kind = Kind::Pair;
+    int index = 0;                               // into Timeline::curves, or Timeline::sessions
+};
+
+// One span of a scripted session (D-068): the reference frames over which
+// it plays one variant, from one span of its plan, a master entry with the
+// first and last media sequence numbers it plays (D-105 (a); PlanSpan,
+// src/SessionPlan.h): the reference frames of those segments, reached
+// through the pair where the variant is a distorted one (design §5.1).
+// Half-open, [ref_index, ref_end), as an event's span is (D-078). The
+// members come in design §8's order.
+struct Span {
+    int          variant   = -1;         // index into Timeline::variants of the variant it plays
+    std::size_t  entry     = 0;          // the plan's master entry, among the master's from 0
+    std::int64_t first_seq = 0;          // the first and the last media sequence number it plays,
+    std::int64_t last_seq  = 0;          // both included, as the plan gives them
+    std::int64_t ref_index = 0;          // the reference frame it starts at
+    // Exclusive: the end of its last segment's span on the reference's frames
+    // (design §5.1), where the next span, if any, starts (D-105 (a)). A
+    // segment that no paired frame of its input follows ends one past where
+    // its own last paired frame sits, as src/TimelineBuild.h places a
+    // segment (D-099 (c)).
+    std::int64_t ref_end   = 0;
+    // false where it plays the reference, the top rung in top-rung mode,
+    // which has no score: the session's curve has no point there and no drop
+    // is found there, and the document marks the span so (D-105 (b)).
+    bool         scored    = true;
+};
+
+// A scripted session (D-068): the variant played over each span of the
+// reference's frames, from a plan of segment ranges (D-105 (a); SessionPlan,
+// src/SessionPlan.h), and the UTC time from which the wall clock of its
+// observed events, its fetch's requests, counts (D-073). Its curve is, at
+// each reference frame of a span, the score of that span's variant there,
+// derived from the pairs' curves by curve_points() (design §4.4), with no
+// point in a span that isn't scored. Its own events (its spans, switches and
+// requests) carry its index in Event::session.
+struct Session {
+    std::string id;                      // in a document; --curve session:<id> names it (design §7, §8)
+    std::string name;                    // its plan's name (SessionPlan::name)
+    // The UTC time sampled as its fetch started, from which Event::wallclock_us
+    // of each of its requests counts, in microseconds on one steady clock
+    // (D-073); nullopt: its files weren't fetched, and none of its events has
+    // a wall clock. Pending the owner: what a session whose files weren't
+    // fetched (--fetch off, design §7) holds here, and so what a document
+    // writes in its sessions[].wallclock_anchor_utc, which design §8 doesn't
+    // mark "| null"; and the anchor's text form. The type leaves each answer
+    // open: nullopt written null or "", or an anchor sampled with no fetch.
+    std::optional<std::string> wallclock_anchor_utc;
+    // In play order, one per span of its plan, each starting where the one
+    // before it ended: a plan that leaves a gap or overlaps is refused, naming
+    // the frames (D-105 (a)).
+    std::vector<Span> spans;
 };
 
 // The timeline of one ladder report: the axis, the variants, the pairs'
@@ -122,6 +174,9 @@ struct Timeline {
     std::vector<Variant>     variants;
     std::vector<Curve>       curves;      // one per pair of the report, in its order
     std::vector<Event>       events;      // in canonical order (design §4.7)
+    // The scripted session it was built with, at most one (D-072); empty for
+    // a ladder alone. Event::session and a session's CurveRef index it.
+    std::vector<Session>     sessions;
     std::vector<std::string> warnings;    // anchors that couldn't be placed, and why (design §5.1)
 
     // The overlap index (the design's P-J), which build_index() makes: for

@@ -1,5 +1,6 @@
 // The timeline's headers in one translation unit (eval/phase3-survey/design.md
-// §3.2), and the types the packages of its first round share, used as values.
+// §3.2), and the types the packages of its first two rounds share, used as
+// values.
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -8,6 +9,7 @@
 #include "PlaylistEvents.h"
 #include "Scte35.h"
 #include "Scte35Events.h"
+#include "SessionFetch.h"
 #include "SessionPlan.h"
 #include "SyntheticLadder.h"
 #include "TimelineAxis.h"
@@ -47,6 +49,18 @@ TEST_CASE("timeline headers: the shared declarations are complete, copyable type
     timeline::CueInput cue;
     cue.anchor = timeline::MediaPtsAnchor{};
 
+    // Round 2's: a session of one span and its curve, a plan, and a fetched
+    // file with one row (D-104, D-105).
+    timeline::Session session;
+    session.spans.push_back({ .variant = 1, .entry = 1, .first_seq = 0, .last_seq = 2,
+                              .ref_index = 0, .ref_end = 3 });
+    t.sessions.push_back(session);
+    const timeline::CurveRef session_curve{ .kind = timeline::CurveRef::Kind::Session, .index = 0 };
+    timeline::SessionPlan plan;
+    plan.spans.push_back({ .entry = 1, .first_seq = 0, .last_seq = 2 });
+    timeline::Request request;
+    request.chain.emplace_back();
+
     const timeline::Timeline copy = t;
     CHECK(copy.events.size() == 1);
     CHECK(copy.events[0].payload.size() == 2);
@@ -55,4 +69,15 @@ TEST_CASE("timeline headers: the shared declarations are complete, copyable type
     CHECK(scores.pairs.size() == 1);
     CHECK(media.segments.size() == 1);
     CHECK(std::holds_alternative<timeline::MediaPtsAnchor>(cue.anchor));
+
+    CHECK(copy.sessions.size() == 1);
+    CHECK(copy.sessions[0].spans[0].scored);
+    CHECK_FALSE(copy.sessions[0].wallclock_anchor_utc.has_value());
+    CHECK(timeline::CurveRef{}.kind == timeline::CurveRef::Kind::Pair);
+    CHECK(session_curve.kind == timeline::CurveRef::Kind::Session);
+    CHECK(plan.spans.size() == 1);
+    CHECK(request.kind == timeline::FetchedFile::Master);
+    CHECK(request.variant == -1);
+    CHECK_FALSE(request.segment.has_value());
+    CHECK(request.chain[0].t_sent == -1);
 }
