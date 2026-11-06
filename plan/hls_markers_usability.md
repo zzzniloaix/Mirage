@@ -157,6 +157,37 @@ renditions you cannot tell which row is which without widening the panel.
 tail. Rows of two heights are harder to scan, and the tail alone loses the
 group.
 
+**Found on the owner's packages, after `2eab999`.** The cut in the middle
+does not tell their renditions apart either.
+- Each NAME has the language near its head, then tokens that every language
+  shares, then the same representation ID at its tail.
+- So each row read "audio aud/x…" and the shared tail. The head and the
+  tail are kept, and neither is the part that differs.
+- The record's names package shared its head only, so the cut looked right
+  there.
+
+**Fix 2.**
+- Each label drops what every label of its group shares, at both ends, in
+  whole tokens: the text between ' ', '/', '_', '-' and '.'.
+- A group is the labels with the same head up to the first '/', such as
+  "audio aud/". That head stays, and "…" marks each end dropped.
+- A label alone in its group, or one with no '/' (a variant), stays whole.
+- The groups are taken over every rendition the check read, not one card.
+  A rendition then reads the same in every card. What is left of two
+  different labels differs, since the same text is dropped from each.
+- The cut in the middle then applies to what is left, and the full label
+  still shows on hover.
+- `ui::distinct_labels` in `src/UiFormat.h` does it: pure and unit-tested,
+  among others with labels that differ only in the middle.
+
+**Alternatives to fix 2.**
+- A LANGUAGE column from EXT-X-MEDIA. It does not tell apart two
+  renditions of one language: a stereo and a surround one, or two roles.
+- Keeping only the tokens that vary, position by position. That needs
+  NAMEs of the same shape.
+- Dropping what one card's labels share. A rendition would then read
+  differently from card to card.
+
 ## 4. A missing marker is a warning, a misplaced one an error (owner's choice)
 
 **What happens.** Take a rendition that marks the other breaks with a tag
