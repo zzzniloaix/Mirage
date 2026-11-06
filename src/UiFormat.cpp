@@ -4,6 +4,7 @@
 #include <cmath>
 #include <format>
 #include <map>
+#include <set>
 #include <string_view>
 
 namespace ui {
@@ -144,6 +145,73 @@ std::vector<std::string> distinct_labels(const std::vector<std::string>& labels)
         for (std::size_t k = 0; k < idx.size(); ++k)
             out[idx[k]] = head + (p > 0 ? "…" : "") + std::string(names[k].substr(p, names[k].size() - p - s))
                         + (s > 0 ? "…" : "");
+    }
+    return out;
+}
+
+std::vector<std::string> row_labels(const std::vector<std::string>& labels)
+{
+    const auto sep = [](char c) { return c == ' ' || c == '/' || c == '_' || c == '-' || c == '.'; };
+    struct Tok { std::size_t b, e; };   // a token's bytes [b, e)
+    const auto tokens = [&](std::string_view s) {
+        std::vector<Tok> t;
+        for (std::size_t i = 0; i < s.size();) {
+            while (i < s.size() && sep(s[i])) ++i;
+            const std::size_t b = i;
+            while (i < s.size() && !sep(s[i])) ++i;
+            if (i > b) t.push_back({ b, i });
+        }
+        return t;
+    };
+    const std::vector<std::string> ends = distinct_labels(labels);   // the fallback, with the head
+    std::vector<std::string> out(labels.size());
+    std::map<std::string, std::vector<std::size_t>> groups;          // head up to the first '/' → labels
+    for (std::size_t i = 0; i < labels.size(); ++i) {
+        const auto slash = labels[i].find('/');
+        if (slash == std::string::npos) out[i] = labels[i];
+        else groups[labels[i].substr(0, slash + 1)].push_back(i);
+    }
+    for (const auto& [head, idx] : groups) {
+        const auto fallback = [&] {
+            for (const std::size_t i : idx) out[i] = ends[i].substr(head.size());
+        };
+        if (idx.size() < 2) {
+            fallback();
+            continue;
+        }
+        std::vector<std::string_view> names;   // what follows the head
+        std::vector<std::vector<Tok>> toks;
+        std::map<std::string_view, std::size_t> having;   // token → how many names have it
+        for (const std::size_t i : idx) {
+            names.push_back(std::string_view(labels[i]).substr(head.size()));
+            toks.push_back(tokens(names.back()));
+            std::set<std::string_view> mine;
+            for (const Tok& t : toks.back()) mine.insert(names.back().substr(t.b, t.e - t.b));
+            for (const auto w : mine) ++having[w];
+        }
+        std::vector<std::string> rows(idx.size());
+        std::set<std::string> seen;
+        bool ok = true;
+        for (std::size_t k = 0; k < idx.size() && ok; ++k) {
+            const std::string_view n = names[k];
+            std::set<std::string_view> used;
+            std::size_t prev = std::string::npos;   // the last token kept
+            for (std::size_t j = 0; j < toks[k].size(); ++j) {
+                const std::string_view w = n.substr(toks[k][j].b, toks[k][j].e - toks[k][j].b);
+                if (having[w] == idx.size() || !used.insert(w).second) continue;   // every name has it, or kept once
+                if (prev != std::string::npos)
+                    rows[k] += prev + 1 == j ? std::string(n.substr(toks[k][prev].e, toks[k][j].b - toks[k][prev].e))
+                                             : std::string(" ");
+                rows[k] += w;
+                prev = j;
+            }
+            ok = !rows[k].empty() && seen.insert(rows[k]).second;
+        }
+        if (!ok) {
+            fallback();
+            continue;
+        }
+        for (std::size_t k = 0; k < idx.size(); ++k) out[idx[k]] = rows[k];
     }
     return out;
 }

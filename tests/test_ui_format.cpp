@@ -3,6 +3,8 @@
 #include "UiFormat.h"
 #include "SubtitleSelect.h"
 
+#include <set>
+#include <string>
 #include <vector>
 
 using namespace ui;
@@ -134,6 +136,58 @@ TEST_CASE("distinct_labels: a group's shared ends dropped, in whole tokens", "[u
     CHECK(distinct_labels({ "audio aud/éa_x", "audio aud/éb_x" })
           == V{ "audio aud/éa…", "audio aud/éb…" });
     CHECK(distinct_labels({}).empty());
+}
+
+// ── row_labels ────────────────────────────────────────────────────────────────
+
+TEST_CASE("row_labels: the tokens not all of a group's labels have, at a column's width", "[ui]")
+{
+    using V = std::vector<std::string>;
+    // The shape that defeats both ends: one group, three codec families each with its own layout and
+    // bit-rate tail, the language at the head, tokens every label has in between. Made-up values.
+    const V langs = { "aa", "bb-CC", "dd", "ee-419", "ff", "gg-HH", "ii", "jj-KK", "ll", "mm" };
+    const V fams = { "%s_MAIN_CODA_PKG_L51_ENC_SCHM CODA_1_PKG_ENC_SCHM_256K",
+                     "%s_MAIN_CODB_PKG_STEREO_ENC_SCHM CODB_PKG_ENC_SCHM_128K",
+                     "%s_MAIN_CODC_PKG_L71_ENC_SCHM CODC_1_PKG_ENC_SCHM_1000K" };
+    V labels = { "v0 720p" };
+    for (const auto& l : langs)
+        for (const auto& f : fams) {
+            const auto at = f.find("%s");
+            labels.push_back("audio aud/" + f.substr(0, at) + l + f.substr(at + 2));
+        }
+    labels.push_back("subtitles subs/aa_forced");
+    labels.push_back("subtitles subs/bb-CC_forced");
+    REQUIRE(labels.size() == 33);
+    const V rows = row_labels(labels);
+    CHECK(rows[0] == "v0 720p");
+    CHECK(rows[1] == "aa CODA L51 1 256K");      // MAIN, PKG, ENC, SCHM dropped; CODA once
+    CHECK(rows[2] == "aa CODB STEREO 128K");
+    CHECK(rows[3] == "aa CODC L71 1 1000K");
+    CHECK(rows[4] == "bb-CC CODA L51 1 256K");   // "bb-CC" keeps its '-'
+    CHECK(rows[31] == "aa");                     // "forced" is in both subtitles labels
+    CHECK(rows[32] == "bb-CC");
+    // Cut in the middle to 16 characters, about the column's default width: still one of a kind each.
+    const auto chars = [](const std::string& t) {
+        float n = 0.0f;
+        for (const char c : t) n += (static_cast<unsigned char>(c) & 0xC0) != 0x80 ? 1.0f : 0.0f;
+        return n;
+    };
+    std::set<std::string> shown;
+    for (std::size_t i = 1; i <= 30; ++i) shown.insert(ellipsize_middle(rows[i], 16.0f, chars));
+    CHECK(shown.size() == 30);
+
+    // The record's packages: a shared head, and a shared tail.
+    CHECK(row_labels({ "audio aud/commentary-and-description-stereo-english",
+                       "audio aud/commentary-and-description-stereo-french",
+                       "audio aud/commentary-and-description-surround-english" })
+          == V{ "stereo-english", "stereo-french", "surround-english" });
+    CHECK(row_labels({ "audio aud/aa_main_tone-x_2ch_enc 256K", "audio aud/bb_main_tone-x_2ch_enc 256K" })
+          == V{ "aa", "bb" });
+    // A row left empty: the group falls back to distinct_labels, without the head.
+    CHECK(row_labels({ "subtitles subs/en_main", "subtitles subs/en_main_sdh" }) == V{ "…main", "…main_sdh" });
+    // A label alone in its group loses only its head.
+    CHECK(row_labels({ "audio aud/aa_main", "subtitles subs/en" }) == V{ "aa_main", "en" });
+    CHECK(row_labels({}).empty());
 }
 
 // ── SubChoice::label ──────────────────────────────────────────────────────────

@@ -45,4 +45,14 @@ std::string ellipsize_middle(const std::string& s, float max_w,
 // comes back whole. The result is in the order of `labels`.
 std::vector<std::string> distinct_labels(const std::vector<std::string>& labels);
 
+// A narrow column's rows for `labels`, grouped as distinct_labels groups
+// them. In a group of two or more, a row keeps only the tokens that not
+// every label of the group has, wherever they are, each once and in order.
+// Adjacent tokens keep the separator between them, and a run dropped becomes
+// one space. The group's head is dropped: the caller shows the kind. A group
+// in which this leaves a row empty, or two rows alike, gets distinct_labels'
+// rows without the head instead. A label with no '/' comes back whole, and a
+// label alone in its group without its head. In the order of `labels`.
+std::vector<std::string> row_labels(const std::vector<std::string>& labels);
+
 } // namespace ui

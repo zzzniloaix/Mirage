@@ -385,6 +385,7 @@ void NetInspector::conform_tick(const Inputs& in)
     if (qa_marker_open_ >= 0 && conform_.state() == ConformProbe::State::Done) {
         marker_ev_open_ = hls::splice_event(conform_res_.markers, qa_marker_open_);
         qa_marker_open_ = -1;
+        qa_log_rows_ = marker_ev_open_ >= 0;
     }
     if (!qa_conform_html_.empty() && conform_.state() == ConformProbe::State::Done) {
         export_html(qa_conform_html_);
@@ -732,13 +733,20 @@ void NetInspector::draw_markers(const Inputs& in, Out& out, float cw, bool seeka
         return i >= 0 && i < static_cast<int>(res.marker_in.size()) ? res.marker_in[static_cast<std::size_t>(i)].label
                                                                     : std::format("#{}", i);
     };
-    // The labels as the cards' rows show them: without what every label of a group shares at either
-    // end. A group's NAMEs may differ in one token anywhere: at the head, the middle or the tail.
+    // The labels as the cards' rows show them: the tokens of a group's labels that not all of them have.
+    // A group's NAMEs may differ in a token anywhere, and share others anywhere (ui::row_labels). The
+    // group's head ("audio aud/") goes too; a bar in the kind's colour stands for it.
     std::vector<std::string> all_labels;
     for (const auto& mi : res.marker_in) all_labels.push_back(mi.label);
-    const std::vector<std::string> distinct = ui::distinct_labels(all_labels);
+    const std::vector<std::string> rows_text = ui::row_labels(all_labels);
     auto row_label = [&](int i) {
-        return i >= 0 && i < static_cast<int>(distinct.size()) ? distinct[static_cast<std::size_t>(i)] : label(i);
+        return i >= 0 && i < static_cast<int>(rows_text.size()) ? rows_text[static_cast<std::size_t>(i)] : label(i);
+    };
+    auto kind_color = [&](int i) {
+        const hls::Track k = i >= 0 && i < static_cast<int>(res.marker_in.size())
+                           ? res.marker_in[static_cast<std::size_t>(i)].kind : hls::Track::Unknown;
+        return k == hls::Track::Video ? kColVideo : k == hls::Track::Audio ? kColAudio
+             : k == hls::Track::Text ? kColSubs : kColOther;
     };
     int splices = 0, others = 0;
     for (const auto& ev : mk.events) (ev.splice ? splices : others) += 1;
@@ -835,24 +843,31 @@ void NetInspector::draw_markers(const Inputs& in, Out& out, float cw, bool seeka
         std::stable_sort(places.begin(), places.end(), [](const auto* a, const auto* b) {
             return rank(a->sev) > rank(b->sev);
         });
-        // The Rendition column as wide as its widest row label, in the room the other columns leave
-        // (130 px at least, as it was), so the offsets stay in view. A row label still wider is cut
-        // in the middle. The whole label shows on hover.
+        // The Rendition column as wide as its widest row, in the room the other columns leave (130 px
+        // at least, as it was), so the offsets stay in view. A row still wider is cut in the middle.
+        // The whole label shows on hover.
         constexpr float kMarkerW = 132.0f, kAtW = 66.0f, kBoundaryW = 92.0f, kOffW = 64.0f, kGaugeW = 110.0f;
-        constexpr float kCellPadX = 6.0f;
+        constexpr float kCellPadX = 6.0f, kBarW = 7.0f;   // the kind's bar and the gap after it
         const float room = cw - (kMarkerW + kAtW + kBoundaryW + kOffW + kGaugeW)
                          - 6.0f * 2.0f * kCellPadX;   // and the six columns' cell padding
         float rend_w = 130.0f;
-        for (const auto* p : places) rend_w = std::max(rend_w, ImGui::CalcTextSize(row_label(p->rendition).c_str()).x);
-        for (const int m : ev.missing) rend_w = std::max(rend_w, ImGui::CalcTextSize(row_label(m).c_str()).x);
+        for (const auto* p : places)
+            rend_w = std::max(rend_w, kBarW + ImGui::CalcTextSize(row_label(p->rendition).c_str()).x);
+        for (const int m : ev.missing) rend_w = std::max(rend_w, kBarW + ImGui::CalcTextSize(row_label(m).c_str()).x);
         rend_w = std::min(rend_w, std::max(130.0f, std::floor(room)));
+        const bool log_rows = qa_log_rows_ && open;   // QA: the rows as shown, once, for marker_open=
         const auto rendition_cell = [&](int r) {
             const std::string full = label(r);
-            const std::string shown = ui::ellipsize_middle(row_label(r), rend_w, [](const std::string& t) {
+            const std::string shown = ui::ellipsize_middle(row_label(r), rend_w - kBarW, [](const std::string& t) {
                 return ImGui::CalcTextSize(t.c_str()).x;
             });
+            const ImVec2 bp = ImGui::GetCursorScreenPos();
+            ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(bp.x, bp.y + 3.0f), ImVec2(bp.x + 3.0f, bp.y + 11.0f),
+                                                      C(kind_color(r)), 1.0f);
+            ImGui::SetCursorScreenPos(ImVec2(bp.x + kBarW, bp.y));
             ImGui::TextUnformatted(shown.c_str());
             if (shown != full && ImGui::IsItemHovered()) ui::tooltip(full.c_str());
+            if (log_rows) logger::info("conformance: card {} row: {}", ev.id, shown);
         };
         constexpr ImGuiTableFlags kTbl = ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit
             | ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_ScrollX;
@@ -900,6 +915,7 @@ void NetInspector::draw_markers(const Inputs& in, Out& out, float cw, bool seeka
             }
             ImGui::EndTable();
         }
+        if (log_rows) qa_log_rows_ = false;
         ImGui::PopID();
         ImGui::PopStyleColor();
         ImGui::PopStyleVar();

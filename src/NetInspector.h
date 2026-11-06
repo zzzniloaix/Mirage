@@ -244,6 +244,7 @@ private:
     int                  marker_ev_open_ = -1;    // splice point expanded
     int                  marker_open_ = -1;       // marker finding expanded
     int                  qa_marker_open_ = -1;    // "marker_open=<n>", once the result is in
+    bool                 qa_log_rows_ = false;    // that card's rows go to the log as shown, once
     std::string          export_note_;            // where Export HTML wrote, or why it could not
     std::vector<std::string> marker_tag_list() const;
     std::string          report_json() const;     // conformance + markers, as --json writes
