@@ -51,19 +51,22 @@
 // ids, ranks or warnings. So the test reaches what it checks through what the
 // decisions settle:
 // - a rung by its master entry and its URI (D-075), and the rung's curve
-//   through its variant's pair, the document's own link from a curve to its
-//   variant, whichever numbering of the pairs the owner keeps
-//   (src/TimelineDoc.h), found again in each document, each answer
-//   included, so that no document's numbering is used on another;
+//   through its variant's pair, the report's pairs[].index, by which the
+//   document names a curve (D-092 (b)), each curve read back mapped to it
+//   by timeline::pair_number() (src/TimelineDoc.h), found again in each
+//   document, each answer included, so that nothing of one document is
+//   used on another;
 // - an event by its source's group, its type, its variant and the media
 //   sequence number of its segment, and a tag's by its line, not by its id;
 // - attribute given --report, --curve and all three parameters, so that it
-//   relies on none of its defaults that are pending (src/TimelineCli.h).
-// It takes two forms as built that are pending the owner, each read by one
+//   relies on none of its defaults, which the owner kept as built (D-099
+//   (c); src/TimelineCli.h).
+// It takes two forms that the owner kept as built, each read by one
 // function only: the layout of attribute's JSON, a timeline document whose
-// attributions are the answer (src/TimelineCli.h), by read_answer(); and
-// the list of the curves detection ran on (detection.curves,
-// docs/TIMELINE_FORMAT.md), by detected_pairs().
+// attributions are the answer (D-099 (c); src/TimelineCli.h), by
+// read_answer(); and the list of the curves detection ran on
+// (detection.curves, D-092 (d); docs/TIMELINE_FORMAT.md), by
+// detected_pairs().
 //
 // One test case with a section per case, so that ctest runs the four cases
 // in one process and each ladder is made once (the design's P-Q): four
@@ -195,23 +198,26 @@ Doc read_doc(const std::string& text)
 }
 
 // attribute --format json's answer, read back. It is a timeline document
-// whose attributions are the answer, as src/TimelineCli.h makes it: a layout
-// the implementation chose and the owner hasn't settled, so that another
-// layout changes this function only. Nothing else takes more of an answer
-// than its Doc: its rungs and their curves are found in its own variants
-// (rungs_in()).
+// whose attributions are the answer, as src/TimelineCli.h makes it: the
+// implementation's layout, which the owner kept as built (D-099 (c)), read
+// by this function only. Nothing else takes more of an answer than its Doc:
+// its rungs and their curves are found in its own variants (rungs_in()).
 Doc read_answer(const std::string& text) { return read_doc(text); }
 
-// The pairs whose curves detection ran on, as `d`'s record of detection
-// lists them, in its order; none where no detection ran. The list
-// (detection.curves) is a form pending the owner (docs/TIMELINE_FORMAT.md),
-// so that another form changes this function only.
+// The numbers of the pairs whose curves detection ran on, as `d`'s record of
+// detection lists them, in its order; none where no detection ran. A number
+// is the report's pairs[].index, as Variant::pair holds it (D-092 (b)): a
+// curve read back is its place among the document's curves, which
+// timeline::pair_number() maps to its pair's number, -1 for none. The list
+// (detection.curves) is WP08's form, which the owner kept (D-092 (d)), read
+// by this function only.
 std::vector<int> detected_pairs(const Doc& d)
 {
     std::vector<int> out;
     if (!d.info.detection) return out;
     for (const timeline::CurveRef& c : d.info.detection->curves)
-        if (c.kind == timeline::CurveRef::Kind::Pair) out.push_back(c.index);
+        if (c.kind == timeline::CurveRef::Kind::Pair)
+            out.push_back(timeline::pair_number(d.timeline, c).value_or(-1));
     return out;
 }
 
@@ -276,7 +282,7 @@ int rung_variant(const timeline::Timeline& t, const Layout& layout, int rung)
 }
 
 // A case's rungs in one document: indices into its variants, and the two
-// lower rungs' curves.
+// lower rungs' curves, by their pairs' numbers (D-092 (b)).
 struct Rungs {
     int reference = -1, low = -1, control = -1;
     int low_pair = -1, control_pair = -1;
@@ -285,8 +291,8 @@ struct Rungs {
 // The rungs of `layout` in `d`, each by its master entry and its URI
 // (D-075): the reference, the top rung in top-rung mode (D-002), which is no
 // pair's distorted input, and the two lower rungs, each with its curve
-// through its variant's pair. Each document is read so, in its own
-// numbering: the timeline document and each answer.
+// through its variant's pair. Each document is read so, from its own
+// variants: the timeline document and each answer.
 Rungs rungs_in(const Doc& d, const Layout& layout)
 {
     const timeline::Timeline& t = d.timeline;
@@ -305,12 +311,15 @@ Rungs rungs_in(const Doc& d, const Layout& layout)
     return r;
 }
 
-// The attributions of `d` on the curve of pair `pair`, in order.
+// The attributions of `d` on the curve of the pair numbered `pair`, the
+// report's pairs[].index as Variant::pair holds it, in order: each
+// attribution's curve, its place among the document's curves, mapped to its
+// pair's number by timeline::pair_number() (D-092 (b)).
 std::vector<const Attribution*> on_curve(const Doc& d, int pair)
 {
     std::vector<const Attribution*> out;
     for (const Attribution& a : d.attributions)
-        if (a.curve.kind == timeline::CurveRef::Kind::Pair && a.curve.index == pair) out.push_back(&a);
+        if (timeline::pair_number(d.timeline, a.curve) == pair) out.push_back(&a);
     return out;
 }
 

@@ -53,6 +53,24 @@
 // time past the axis: a frame has to start at or after its t0, and its t1
 // can't be after the axis's end, where the last frame ends.
 //
+// A pair's number (D-092 (b)). --curve pair:<k>, the answers' text and every
+// error name a pair as the document does, by the ladder report's own
+// pairs[].index, the plan's, which skips the number of a pair that failed:
+// --curve's k is mapped to the curve whose variant has that number
+// (timeline::curve_of_pair(), src/TimelineDoc.h), and a k that no complete
+// pair of the document has is an argument the document doesn't fit, exit
+// status 2.
+//
+// attribute --format json writes a timeline document (D-099 (c)) of the
+// same schema whose command is "attribute": the timeline of the document
+// queried, its axis, variants, events and warnings as they were read; the
+// answer as its attributions, each drop of --auto and --drop with detected
+// true, each curve's answer to --interval and --frames with detected false;
+// attribute's own options, config file, FFmpeg libraries and margins; the
+// ladder report it read, by its path as attribute took it and both its
+// hashes; and as detection, --auto's parameters with the curves it ran on,
+// the document's record for --drop, or null for an interval.
+//
 // Exit statuses (the design's P-W), as mirage_vmaf's: 0 written; 1 a
 // failure: an input that can't be read or is refused (D-081 (a), (b)), a
 // report whose hashes the document doesn't name, a document that wouldn't
@@ -112,6 +130,15 @@ enum class Query : std::uint8_t {
 
 enum class Format : std::uint8_t { Text, Json };
 
+// A curve as --curve names it (design §7): pair:<k>, by the pair's number,
+// the ladder report's pairs[].index (D-092 (b)), not by the curve's place in
+// Timeline::curves, which answering it finds (timeline::curve_of_pair()). A
+// session's, session:<id>, comes with sessions (WP09b).
+struct CurveName {
+    timeline::CurveRef::Kind kind = timeline::CurveRef::Kind::Pair;
+    int number = 0;                      // pair:<k>: k, the pair's number
+};
+
 // mirage_vmaf attribute's options.
 struct AttributeArgs {
     std::string timeline;                // --timeline: the document to query
@@ -120,7 +147,7 @@ struct AttributeArgs {
     AVRational  from = { 0, 1 }, to = { 0, 1 };   // --interval, exact
     std::int64_t first = 0, last = 0;    // --frames
     std::int64_t drop = 0;               // --drop
-    std::optional<timeline::CurveRef> curve;   // --curve pair:<k>; nullopt: every pair's
+    std::optional<CurveName> curve;      // --curve pair:<k>; nullopt: every pair's
     timeline::DetectOptions detect;      // with --auto (D-077)
     timeline::QueryOptions  overlap;     // --margin-before, --margin-after (D-078)
     Format      format = Format::Text;   // --format
@@ -179,8 +206,9 @@ timeline::Payload attribute_options(const AttributeArgs& args, const std::string
 std::string no_detection_note(const timeline::DetectOptions& detect);
 
 // The text of an answer (the design's P-AD), after its header: for each of
-// `curves` in turn a line naming the curve, its variant and the reference
-// by entry, URI and both ranks (D-075), then each attribution of
+// `curves` in turn a line naming the curve by its pair's number (D-092
+// (b)), its variant and the reference by entry, URI and both ranks (D-075),
+// then each attribution of
 // `answers` on that curve, in order: a drop's block (its number, from
 // `numbers`, parallel to `answers`, its reference frames and seconds, its
 // points, baseline, minimum, mean and both magnitudes, Q27 (c)) or a

@@ -172,14 +172,17 @@ std::string set_auto(AttributeArgs& a, std::string_view v)
     return {};
 }
 
+// --curve pair:<k>: k, the pair's number, the ladder report's pairs[].index
+// (D-092 (b)), which answer_query() maps to its curve.
 std::string set_curve(AttributeArgs& a, std::string_view v)
 {
     constexpr std::string_view kPair = "pair:";
     const std::optional<std::int64_t> k =
         v.starts_with(kPair) ? whole(v.substr(kPair.size())) : std::nullopt;
     if (!k || *k > INT_MAX)
-        return std::format("wants pair:<k>, the curve of the k-th complete pair from 0, not '{}'", v);
-    a.curve = CurveRef{ .kind = CurveRef::Kind::Pair, .index = static_cast<int>(*k) };
+        return std::format("wants pair:<k>, the curve of the ladder report's pair k, as its "
+                           "pairs[].index numbers it, not '{}'", v);
+    a.curve = CurveName{ .kind = CurveRef::Kind::Pair, .number = static_cast<int>(*k) };
     return {};
 }
 
@@ -274,8 +277,8 @@ const std::array kAttributeOptions = {
              false, set_auto },
     AOption{ "--report", "<report.json>", "the ladder report the document names (default: the path "
              "the document gives)", Form::Any, false, false, set_report<AttributeArgs> },
-    AOption{ "--curve", "pair:<k>", "the curve of the k-th complete pair, from 0 (default: every "
-             "pair's)", Form::Any, false, false, set_curve },
+    AOption{ "--curve", "pair:<k>", "the curve of the report's pair k, by its pairs[].index (default: "
+             "every pair's)", Form::Any, false, false, set_curve },
     AOption{ "--threshold", "T", "with --auto: a point more than T VMAF points below its baseline is "
              "low (default 6)", Form::Auto, false, false, set_threshold_of<AttributeArgs> },
     AOption{ "--window", "W", "with --auto: the baseline is the median of the last W points that "
@@ -727,11 +730,18 @@ int reference_variant(const Timeline& t)
     return -1;
 }
 
+// A curve by its pair's number (D-092 (b)), as --curve names it.
+std::string curve_text(const Timeline& t, CurveRef c)
+{
+    const std::optional<int> pair = timeline::pair_number(t, c);
+    return pair ? std::format("pair:{}", *pair) : std::string("of no pair");
+}
+
 std::string curve_header(const Timeline& t, CurveRef c)
 {
     const int v   = t.curves[static_cast<std::size_t>(c.index)].variant;
     const int ref = reference_variant(t);
-    return std::format("Curve pair:{}: {}, scored against {}\n", c.index, variant_text(t, v),
+    return std::format("Curve {}: {}, scored against {}\n", curve_text(t, c), variant_text(t, v),
                        ref < 0 ? std::string("no reference") : variant_text(t, ref));
 }
 
@@ -1078,7 +1088,7 @@ Payload attribute_options(const AttributeArgs& a, const std::string& report)
         { "drop", a.query == Query::Drop ? Value{ a.drop } : Value{} },
         { "auto", Value{ a.query == Query::Auto } },
         { "report", Value{ report } },
-        { "curve", a.curve ? Value{ std::format("pair:{}", a.curve->index) } : Value{} },
+        { "curve", a.curve ? Value{ std::format("pair:{}", a.curve->number) } : Value{} },
         { "threshold", Value{ a.detect.threshold } },
         { "window", int_or_null(a.detect.window) },
         { "min-points", int_or_null(a.detect.min_points) },
@@ -1207,16 +1217,29 @@ std::optional<Failure> answer_query(const AttributeArgs& args, const Timeline& t
                                     const std::vector<Attribution>& recorded,
                                     const timeline::DocInfo& info, Answer& out)
 {
+    // --curve names a pair by its number, the report's pairs[].index: the
+    // curve whose variant has it (D-092 (b)); a number no complete pair of
+    // the document has is an argument it doesn't fit (D-099 (c)).
+    std::optional<CurveRef> asked;
     if (args.curve) {
-        if (static_cast<std::size_t>(args.curve->index) >= t.curves.size())
-            return Failure{ std::format("--curve pair:{}: the document has {} pairs' curves, from "
-                                        "pair:0", args.curve->index, t.curves.size()), 2 };
-        out.curves = { *args.curve };
+        asked = timeline::curve_of_pair(t, args.curve->number);
+        if (!asked) {
+            const std::vector<CurveRef> all = timeline::pair_curve_refs(t);
+            std::string has = all.empty() ? std::string("it has none")
+                                          : all.size() == 1 ? std::string("its curve is ")
+                                                            : std::string("its curves are ");
+            for (std::size_t i = 0; i < all.size(); ++i)
+                has += std::format("{}{}", i == 0 ? "" : i + 1 == all.size() ? " and " : ", ",
+                                   curve_text(t, all[i]));
+            return Failure{ std::format("--curve pair:{}: the document has no curve of pair {}: {}",
+                                        args.curve->number, args.curve->number, has), 2 };
+        }
+        out.curves = { *asked };
     } else {
         out.curves = timeline::pair_curve_refs(t);
     }
     const std::string on_curve =
-        args.curve ? std::format(" on curve pair:{}", args.curve->index) : std::string();
+        args.curve ? std::format(" on curve pair:{}", args.curve->number) : std::string();
 
     switch (args.query) {
     case Query::Auto: {
@@ -1235,7 +1258,7 @@ std::optional<Failure> answer_query(const AttributeArgs& args, const Timeline& t
         // The document's detected drops, numbered as the answer lists them.
         std::vector<const Attribution*> drops;
         for (const Attribution& a : recorded)
-            if (a.detected && (!args.curve || a.curve.index == args.curve->index)) drops.push_back(&a);
+            if (a.detected && (!asked || a.curve.index == asked->index)) drops.push_back(&a);
         if (static_cast<std::size_t>(args.drop) > drops.size()) {
             // Why its detection is null, by the command that wrote it:
             // mirage_vmaf timeline's document was built without W and N, and

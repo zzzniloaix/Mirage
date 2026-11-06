@@ -194,9 +194,10 @@ std::optional<std::int64_t> ticks_per_pts_tick(std::int64_t tick_den, AVRational
 // 0 <= phase < step.den and scale >= 1, so that frame `first` is at `value`.
 // The scale is 1 but where the values are kept in a unit `scale` times finer
 // than the clock their frames follow, as the playlist time's ticks are
-// (ticks_per_pts_tick()). The values run monotonically in k, the scale being
-// positive, so they all fit in 64 bits when the first and the last do
-// (stretch_fits()).
+// (ticks_per_pts_tick()) and PTS rounded to a clock coarser than their time
+// base (shared_scale(); D-100 (a)). The values run monotonically in k, the
+// scale being positive, so they all fit in 64 bits when the first and the
+// last do (stretch_fits()).
 struct Stretch {
     std::int64_t first  = 0;
     std::int64_t frames = 0;
@@ -258,40 +259,153 @@ Follow follow(std::span<const std::int64_t> values, std::size_t from, Step step,
 struct Try {
     Step         step;
     std::int64_t scale = 1;
+    bool operator==(const Try&) const = default;
 };
 
+// What the stretches of one kind of value try, beside what their own values
+// give (stretches()): the frame durations, each in its order with its
+// scale (D-092 (a), D-099 (a)), and the frame duration in the values' own
+// ticks, from which D-100 (a)'s step is made; none of either without a frame
+// duration.
+struct Tries {
+    std::vector<Try>    frame;
+    std::optional<Step> own;
+};
+
+// The values from which a stretch's own candidates are made (D-100): its
+// first kOwnFrames differences from its first value, or as many as there
+// are. (b)'s step (values[i + m] - values[i]) / m, in units of the factor
+// they share (shared_scale()), is the frame duration of the stretch's frames
+// exactly when m is a multiple of that step's denominator, so that with m
+// from 2 to kOwnFrames a step of any denominator up to kOwnFrames is found:
+// 15015/4 at 24000/1001 fps and 3003/2 at 60000/1001 fps on MPEG-TS's 90 kHz
+// clock among them (tests/test_timeline_doc.cpp). A step of a larger
+// denominator isn't found so, and (a)'s step is the axis's frame duration:
+// a sequence at another frame rate than the axis's whose PTS were rounded to
+// a clock coarser than their time base, as an ad at 24000/1001, 30000/1001
+// or 60000/1001 fps on a millisecond clock, whose frame is 1001/24, 1001/30
+// or 1001/60 ms, follows no step tried over more than part of its frames,
+// so that its stretches grow with its frames. Neither part of D-100 names
+// that case: it stays as built, pending the owner.
+constexpr std::size_t kOwnFrames = 8;
+
+// The factor the differences of values[from + 1] to values[from +
+// kOwnFrames] from values[from] share, their greatest common divisor, where
+// it is above 1 and within 64 bits; 1 otherwise, as where the values follow
+// their own ticks. Where PTS were rounded to a clock coarser than their time
+// base it is that clock's tick in the values' ticks, 90 PTS ticks for a
+// millisecond on the 90 kHz clock, or a multiple of it where a frame is so
+// close to a whole number of the clock's ticks that the first differences
+// are all multiples of more: on a clock of 1/600 s, 150 PTS ticks, a frame
+// at 24000/1001, 30000/1001 and 60000/1001 fps is 1001/40, 1001/50 and
+// 1001/100 of its ticks, and the first 8 differences are multiples of 25,
+// 20 and 10 of them (tests/test_timeline_doc.cpp), a factor stretches()
+// refines. For the playlist time's ticks, which follow the PTS within a
+// segment, it is that times the axis's ticks to a PTS tick (D-100 (a)).
+std::int64_t shared_scale(std::span<const std::int64_t> values, std::size_t from)
+{
+    i128 g = 0;
+    for (std::size_t k = 1; k <= kOwnFrames && from + k < values.size(); ++k)
+        g = gcd_of(g, static_cast<i128>(values[from + k]) - values[from]);
+    return g > 1 && fits_int64(g) ? static_cast<std::int64_t>(g) : 1;
+}
+
 // The stretches of `values`, the first of them at frame `offset` (D-092
-// (a), D-099). A stretch tries the steps of `frame`, each a frame duration
-// with its scale, in their order, then the whole step, the difference
-// between its first two values, with the scale 1, and takes the one that
-// covers the most frames, the first tried on a tie, so that the frame
-// duration wins a tie with the whole step; it ends before the first value
-// that doesn't follow, with the smallest phase its values take, and a
-// stretch of one value has the step 0/1, the phase 0 and the scale 1.
-// Without a frame duration the steps are whole. These are WP08b's choices,
-// which D-099 (b) keeps; which frame durations are tried, and the order of
-// two that tie, are axis_json()'s, pending the owner (src/TimelineDoc.h).
-// Whatever the values, each comes back exactly, and the same values give the
-// same stretches.
-std::vector<Stretch> stretches(std::span<const std::int64_t> values, std::span<const Try> frame,
+// (a), D-099, D-100). A stretch tries, in this order:
+// - the steps of `tries.frame`, each a frame duration with its scale: the
+//   frame duration in the values' own ticks with the scale 1, and for the
+//   axis's ticks the frame duration in PTS ticks with the axis's ticks to a
+//   PTS tick as the scale (D-099 (a));
+// - the whole step, the difference between its first two values, with the
+//   scale 1;
+// - where its first values' differences share a factor G above 1
+//   (shared_scale()), the frame duration in units of G of the values' ticks
+//   with the scale G (D-100 (a)): for PTS rounded to a clock of G PTS ticks,
+//   the frame duration in units of that clock, and for the playlist time's
+//   ticks the same with G the clock's tick times the axis's ticks to a PTS
+//   tick. Where it stops at a value whose difference from the first the
+//   factor doesn't divide, it is tried again in units of the factor the two
+//   share, while that is above 1, so that where G, from the first values
+//   alone, is a multiple of the clock's tick, the tick itself is tried, a
+//   scale that divides every difference of the stretch, as D-100 (a) has it;
+// - the steps its own first values give, (values[i + m] - values[i]) / (m x
+//   G) for m from 2 to kOwnFrames, with the scale G, or 1 where they share no
+//   factor (D-100 (b)): for a sequence at another frame rate than the
+//   axis's, its own frame duration.
+// It takes the one that covers the most frames, the first tried on a tie,
+// so that the axis's frame duration wins every tie, and D-100's steps win
+// only by covering more frames than the frame durations and the whole step,
+// WP08b's forms being kept otherwise (D-099 (b)); it ends before the first
+// value that doesn't follow, with the smallest phase its values take, and a
+// stretch of one value has the step 0/1, the phase 0 and the scale 1 (D-099
+// (b)). A step of D-100's that is a whole number, in units of G, is no
+// candidate: it covers no more frames than the whole step, nor, for (a)'s,
+// than the frame duration in the values' own ticks, both tried before it.
+// Without a frame duration the steps are whole (D-099 (b)). Of two frame
+// durations that cover the same frames the first tried is taken, as D-100
+// (c) keeps it. Whatever the values, each comes back exactly, and the same
+// values give the same stretches. Each step tried is followed only as far as
+// its values do, and a stretch tries at most kOwnFrames + 2 steps beside
+// (a)'s, whose factor at least halves each time, a proper divisor of the one
+// before it, so that they number fewer than 64: the writer stays linear in
+// the frames.
+std::vector<Stretch> stretches(std::span<const std::int64_t> values, const Tries& tries,
                                std::int64_t offset)
 {
     std::vector<Stretch> out;
+    // The steps the stretch at hand has tried, each with the frames it
+    // follows, so that none is followed twice.
+    std::vector<std::pair<Try, std::size_t>> tried;
     const std::size_t n = values.size();
     for (std::size_t i = 0; i < n;) {
         Stretch s{ .first = offset + static_cast<std::int64_t>(i), .frames = 1, .value = values[i] };
-        const auto take = [&](const Try& t) {
-            if (const Follow f = follow(values, i, t.step, t.scale);
-                static_cast<std::int64_t>(f.frames) > s.frames) {
+        tried.clear();
+        // Follows `t` from values[i], keeps it where it covers more frames
+        // than every step tried before it, and gives the frames it covers.
+        const auto take = [&](const Try& t) -> std::size_t {
+            for (const auto& [before, frames] : tried)
+                if (before == t) return frames;
+            const Follow f = follow(values, i, t.step, t.scale);
+            tried.emplace_back(t, f.frames);
+            if (static_cast<std::int64_t>(f.frames) > s.frames) {
                 s.frames = static_cast<std::int64_t>(f.frames);
                 s.step   = t.step;
                 s.phase  = f.phase;
                 s.scale  = t.scale;
             }
+            return f.frames;
         };
-        for (const Try& t : frame) take(t);
+        for (const Try& t : tries.frame) take(t);
         if (i + 1 < n && fits_int64(static_cast<i128>(values[i + 1]) - values[i]))
             take({ .step = { .num = values[i + 1] - values[i], .den = 1 } });
+        if (tries.own && i + 1 < n) {
+            // G divides each of the differences (b)'s steps are made of,
+            // which shared_scale() takes them from.
+            const std::int64_t g = shared_scale(values, i);
+            // (a)'s, in units of G and then, wherever it stops at a value
+            // whose difference from the first the factor doesn't divide, in
+            // units of the factor the two share, while that is above 1: a
+            // proper divisor, so that the factor at least halves each time.
+            // It ends where the step stops at a value the factor divides,
+            // which names no smaller one, and where the step is whole, as it
+            // then is in units of every divisor of the factor, holding what
+            // the frame duration in the values' own ticks holds.
+            for (std::int64_t factor = g; factor > 1;) {
+                const std::optional<Step> a =
+                    step_of(tries.own->num, static_cast<i128>(tries.own->den) * factor);
+                if (!a || a->den == 1) break;
+                const std::size_t end = i + take({ .step = *a, .scale = factor });
+                if (end >= n) break;
+                const i128 diff = static_cast<i128>(values[end]) - values[i];
+                if (diff % factor == 0) break;
+                factor = static_cast<std::int64_t>(gcd_of(factor, diff));
+            }
+            for (std::size_t m = 2; m <= kOwnFrames && i + m < n; ++m)
+                if (const std::optional<Step> b =
+                        step_of((static_cast<i128>(values[i + m]) - values[i]) / g, static_cast<i128>(m));
+                    b && b->den > 1)
+                    take({ .step = *b, .scale = g });
+        }
         out.push_back(s);
         i += static_cast<std::size_t>(s.frames);
     }
@@ -311,7 +425,7 @@ struct KeyStretch {
     std::int64_t scale  = 1;
 };
 
-std::vector<KeyStretch> key_stretches(const std::vector<MediaKey>& keys, std::span<const Try> frame)
+std::vector<KeyStretch> key_stretches(const std::vector<MediaKey>& keys, const Tries& tries)
 {
     std::vector<KeyStretch> out;
     std::vector<std::int64_t> pts;
@@ -329,12 +443,28 @@ std::vector<KeyStretch> key_stretches(const std::vector<MediaKey>& keys, std::sp
         } else {
             pts.clear();
             for (std::size_t k = i; k < j; ++k) pts.push_back(*keys[k].pts);
-            for (const Stretch& s : stretches(pts, frame, static_cast<std::int64_t>(i)))
+            for (const Stretch& s : stretches(pts, tries, static_cast<std::int64_t>(i)))
                 out.push_back({ .first = s.first, .frames = s.frames, .sequence = keys[i].sequence,
                                 .pts = s.value, .step = s.step, .phase = s.phase, .scale = s.scale });
         }
         i = j;
     }
+    return out;
+}
+
+// ── A pair's number ──────────────────────────────────────────────────────────
+
+// The pairs' numbers of the variants of `t`, the report's pairs[].index of
+// each (D-092 (b)), in ascending order: the order of the report's complete
+// pairs, and so of its curves (src/LadderReportRead.h), by which a timeline
+// without curves, one read back from a document, places a curve reference
+// (pair_number(), curve_of_pair()).
+std::vector<int> pair_numbers(const Timeline& t)
+{
+    std::vector<int> out;
+    for (const Variant& v : t.variants)
+        if (v.pair >= 0) out.push_back(v.pair);
+    std::sort(out.begin(), out.end());
     return out;
 }
 
@@ -412,14 +542,15 @@ std::string strings_json(const std::vector<std::string>& list, std::string_view 
 
 // A curve as {"kind", "index"}, where design §7's --curve option writes
 // "pair:<k>": WP08's form, which D-092 (d) keeps. The index is the pair's
-// position among the report's complete pairs, as Timeline::curves holds
-// them. D-092 (b) makes it the report's own pairs[].index, which a later
-// package implements with WP09a's builder, which fills Variant::pair, and
-// its --curve option; the two are the same number while no pair has failed
-// (src/TimelineDoc.h).
-std::string curve_json(CurveRef curve)
+// number, the ladder report's own pairs[].index (D-092 (b)), that of the
+// curve's variant (pair_number()), where CurveRef::index is the curve's
+// place in Timeline::curves; null for a curve that names no pair, which the
+// schema and the reader refuse (src/TimelineDoc.h).
+std::string curve_json(const Timeline& t, CurveRef curve)
 {
-    return std::format("{{\"kind\": {}, \"index\": {}}}", quote(kPairCurve), curve.index);
+    const std::optional<int> pair = pair_number(t, curve);
+    return std::format("{{\"kind\": {}, \"index\": {}}}", quote(kPairCurve),
+                       pair ? std::format("{}", *pair) : std::string("null"));
 }
 
 std::string file_json(const FileRef& f)
@@ -463,34 +594,31 @@ std::string axis_json(const Axis& a, const ReferenceInfo& ref)
     // time follows the PTS (src/TimelineAxis.h), at 8 or 4 of the axis's
     // ticks to a PTS tick at 24000/1001 and 60000/1001 fps on MPEG-TS's 90 kHz
     // clock with EXTINF in thousandths, and at a multiple of that where an
-    // EXTINF needs finer ticks, the scale following it. The keys try no
-    // scale: the writer gives a key's PTS the scale 1 (D-099 (a)). Without a
-    // frame duration both take whole steps (D-099 (b)).
+    // EXTINF needs finer ticks, the scale following it. Both kinds then try
+    // a whole step, and last what their own values give (stretches()): the
+    // frame duration on a clock coarser than their ticks, with its tick as
+    // the scale, for PTS rounded to such a clock, as a millisecond one or
+    // one of 1/600 s written on the 90 kHz clock (D-100 (a)), and the step
+    // the stretch's own first values give, for a sequence at another frame
+    // rate than the reference's, as an ad after its discontinuity can be
+    // (design §4.2; D-100 (b)). Without a frame duration both take whole
+    // steps (D-099 (b)).
     //
-    // Pending the owner (src/TimelineDoc.h), as built here, each changing
-    // the stretches and not a value:
-    // - Where the two frame durations hold the same frames, as wherever a
-    //   frame is a whole number of PTS ticks, the first, tried first, is
-    //   taken: 6006/1 with the scale 1 at 30000/1001 fps on the 90 kHz clock,
-    //   where D-099 (a) read literally gives 3003/1 with the scale 2.
-    // - PTS rounded to a clock coarser than their time base, as a millisecond
-    //   clock written on the 90 kHz one, follow neither frame duration: the
-    //   keys, which try no scale, and the playlist time's ticks, whose scale
-    //   is the axis's ticks to a PTS tick, take stretches that grow with the
-    //   frames.
-    // - A sequence at another frame rate than the reference's, as an ad after
-    //   its discontinuity can be (design §4.2), whose frame isn't a whole
-    //   number of PTS ticks, follows neither either: its stretches grow with
-    //   its frames, in keys and ticks alike.
+    // Where the two frame durations hold the same frames, as wherever a
+    // frame is a whole number of PTS ticks, the first, tried first, is
+    // taken: 6006/1 with the scale 1 at 30000/1001 fps on the 90 kHz clock,
+    // not 3003/1 with the scale 2, as D-100 (c) keeps it.
     const std::optional<Step> frame_ticks = frame_step(a.frame_duration, a.tick_den, 1);
     const std::optional<Step> frame_pts =
         frame_step(a.frame_duration, a.time_base.den, a.time_base.num);
     const std::optional<std::int64_t> per_pts_tick = ticks_per_pts_tick(a.tick_den, a.time_base);
-    std::vector<Try> tick_tries, key_tries;
-    if (frame_ticks) tick_tries.push_back({ .step = *frame_ticks });
+    Tries tick_tries, key_tries;
+    tick_tries.own = frame_ticks;
+    key_tries.own  = frame_pts;
+    if (frame_ticks) tick_tries.frame.push_back({ .step = *frame_ticks });
     if (frame_pts && per_pts_tick)
-        tick_tries.push_back({ .step = *frame_pts, .scale = *per_pts_tick });
-    if (frame_pts) key_tries.push_back({ .step = *frame_pts });
+        tick_tries.frame.push_back({ .step = *frame_pts, .scale = *per_pts_tick });
+    if (frame_pts) key_tries.frame.push_back({ .step = *frame_pts });
     std::vector<std::string> ticks;
     for (const Stretch& s : stretches(a.ticks, tick_tries, 0))
         ticks.push_back(std::format("{{\"first\": {}, \"frames\": {}, \"first_tick\": {}, "
@@ -585,20 +713,20 @@ std::string event_json(const Event& e, const Axis& a)
         opt_number(wallclock), payload_json(e.payload));
 }
 
-std::string detection_json(const std::optional<Detection>& d)
+std::string detection_json(const std::optional<Detection>& d, const Timeline& t)
 {
     if (!d || !d->options.given()) return "null";
     std::string out = "{";
     for (const auto& [name, value] : detection_record(d->options))
         out += std::format("{}: {}, ", quote(name), value_json(value));
-    // The curves detect() ran on, and session_rules null: WP08's reading of
-    // design §8's "curves" and "session_rules", which D-092 (d) keeps
-    // (src/TimelineDoc.h). The rules that clip a pair's drops to a session's
-    // spans (design §6.3) are the session part's (WP09b): a ladder has no
-    // session.
+    // The curves detect() ran on, each by its pair's number (D-092 (b)), and
+    // session_rules null: WP08's reading of design §8's "curves" and
+    // "session_rules", which D-092 (d) keeps (src/TimelineDoc.h). The rules
+    // that clip a pair's drops to a session's spans (design §6.3) are the
+    // session part's (WP09b): a ladder has no session.
     out += "\"curves\": [";
     for (std::size_t i = 0; i < d->curves.size(); ++i)
-        out += (i == 0 ? "" : ", ") + curve_json(d->curves[i]);
+        out += (i == 0 ? "" : ", ") + curve_json(t, d->curves[i]);
     return out + "], \"session_rules\": null}";
 }
 
@@ -632,7 +760,7 @@ std::string attribution_json(const Attribution& a, const Timeline& t)
                               quote(source_name(static_cast<Source>(s))), lines(found, "          "));
     }
     std::string out = "{\n";
-    out += "      \"curve\": " + curve_json(a.curve) + ",\n";
+    out += "      \"curve\": " + curve_json(t, a.curve) + ",\n";
     out += std::format("      \"detected\": {},\n", a.detected ? "true" : "false");
     out += std::format("      \"interval\": {{\"ref_index\": {}, \"ref_end\": {}, \"t\": {}, "
                        "\"t_end\": {}, \"points\": {}}},\n",
@@ -1158,9 +1286,9 @@ private:
     // the step "num/den" with 64-bit terms (terms()) in lowest terms and a
     // positive denominator, so that a step has one pair of terms; the phase
     // an integer from 0 to den - 1; the scale an integer from 1, on either
-    // kind of stretch, the keys' too, which the writer gives the scale 1
-    // (D-099 (a)), and 1 alone for frames without a PTS (axis()). What the
-    // reader takes for the scale is pending the owner (src/TimelineDoc.h).
+    // kind of stretch, the keys' too, and 1 alone for frames without a PTS
+    // (axis()), as D-100 (c) keeps it: the steps and scales D-100 (a) and (b)
+    // have the writer try are among those it took before them.
     bool rule(const json::Value& s, const Path& at, Stretch& out)
     {
         const Path  step_at = at.member("step"), phase_at = at.member("phase");
@@ -1306,7 +1434,7 @@ private:
                            // phase is 0, and the scale 1, as WP08 wrote the step
                            // 0 for them; frames with one, any scale rule()
                            // takes. Both are what the reader takes for the
-                           // scale, pending the owner (src/TimelineDoc.h).
+                           // scale, which D-100 (c) keeps (src/TimelineDoc.h).
                            if (!first) {
                                if (st.step != Step{})
                                    return fail(std::format("{} is {}, not \"0/1\", for frames "
@@ -1583,13 +1711,14 @@ private:
         return true;
     }
 
-    // A curve, named by a variant's pair: the pair's position among the
-    // report's complete pairs, which Timeline::curves follows and the query's
-    // scope reaches through Curve::variant. D-092 (b) makes the number the
-    // report's own pairs[].index, which skips the number of a pair that
-    // failed; a later package implements it with WP09a's builder and its
-    // --curve option, and the two are the same while no pair has failed
-    // (src/TimelineDoc.h).
+    // A curve, named by its pair's number, the ladder report's own
+    // pairs[].index (D-092 (b)), which a variant's pair holds: given back as
+    // the curve whose variant has it (curve_of_pair()). A timeline read back
+    // has no curves yet, so that is its place among the variants' pairs in
+    // ascending order of their numbers, the report's order of its complete
+    // pairs, where attach_curves() puts the report's curves
+    // (src/TimelineBuild.h). A number no variant has is refused, naming the
+    // key; two variants with one number variants() has refused already.
     bool curve(const json::Value& v, const Path& at, const Timeline& t, CurveRef& out)
     {
         std::string  kind;
@@ -1598,12 +1727,13 @@ private:
         if (!exact(v, kCurveKeys, at) || !one_of(m(v, "kind"), at.member("kind"), kinds, kind) ||
             !count(m(v, "index"), at.member("index"), i))
             return false;
-        const bool named = std::any_of(t.variants.begin(), t.variants.end(),
-                                       [i](const Variant& var) { return var.pair == i; });
-        if (!named)
+        const std::optional<CurveRef> c = i <= std::numeric_limits<int>::max()
+                                              ? curve_of_pair(t, static_cast<int>(i))
+                                              : std::nullopt;
+        if (!c)
             return fail(std::format("{} is {}, the pair of none of the variants",
                                     text_of(at.member("index")), i));
-        out = { .kind = CurveRef::Kind::Pair, .index = static_cast<int>(i) };
+        out = *c;
         return true;
     }
 
@@ -1822,6 +1952,37 @@ std::optional<double> number_of(const Value& value)
     return std::nullopt;
 }
 
+std::optional<int> pair_number(const Timeline& timeline, CurveRef curve)
+{
+    if (curve.kind != CurveRef::Kind::Pair || curve.index < 0) return std::nullopt;
+    const auto k = static_cast<std::size_t>(curve.index);
+    if (timeline.curves.empty()) {
+        const std::vector<int> numbers = pair_numbers(timeline);
+        return k < numbers.size() ? std::optional<int>(numbers[k]) : std::nullopt;
+    }
+    if (k >= timeline.curves.size()) return std::nullopt;
+    const int v = timeline.curves[k].variant;
+    if (v < 0 || static_cast<std::size_t>(v) >= timeline.variants.size()) return std::nullopt;
+    const int pair = timeline.variants[static_cast<std::size_t>(v)].pair;
+    return pair >= 0 ? std::optional<int>(pair) : std::nullopt;
+}
+
+std::optional<CurveRef> curve_of_pair(const Timeline& timeline, int pair)
+{
+    if (pair < 0) return std::nullopt;
+    if (timeline.curves.empty()) {
+        const std::vector<int> numbers = pair_numbers(timeline);
+        const auto it = std::lower_bound(numbers.begin(), numbers.end(), pair);
+        if (it == numbers.end() || *it != pair) return std::nullopt;
+        return CurveRef{ .kind = CurveRef::Kind::Pair, .index = static_cast<int>(it - numbers.begin()) };
+    }
+    for (std::size_t k = 0; k < timeline.curves.size(); ++k) {
+        const CurveRef c{ .kind = CurveRef::Kind::Pair, .index = static_cast<int>(k) };
+        if (pair_number(timeline, c) == pair) return c;
+    }
+    return std::nullopt;
+}
+
 bool reference_info(const LadderScores& scores, const Axis& axis, ReferenceInfo& out,
                     std::string& err)
 {
@@ -1893,7 +2054,7 @@ std::string to_json(const Timeline& timeline, const std::vector<Attribution>& at
     out += "  \"variants\": " + lines(variants, "    ") + ",\n";
     out += "  \"sessions\": [],\n";
     out += "  \"timeline\": " + lines(events, "    ") + ",\n";
-    out += "  \"detection\": " + detection_json(info.detection) + ",\n";
+    out += "  \"detection\": " + detection_json(info.detection, timeline) + ",\n";
     out += "  \"overlap\": " + overlap_json(info.overlap) + ",\n";
     out += "  \"attributions\": " + lines(attribution_items, "    ") + ",\n";
     out += "  \"warnings\": " + strings_json(timeline.warnings, "    ") + "\n";

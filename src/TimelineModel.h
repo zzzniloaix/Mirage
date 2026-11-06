@@ -82,7 +82,8 @@ struct Interval {
 // entry's index and its URI; its two BANDWIDTH ranks are labels (D-075).
 struct Variant {
     int index = -1;                      // its position in Timeline::variants
-    int pair  = -1;                      // the pair whose distorted input it is; -1: the reference
+    int pair  = -1;                      // the report's pairs[].index of the pair whose distorted
+                                         // input it is (D-092 (b)); -1: the reference
     std::vector<std::size_t> entries;    // the master's entries naming it, in the master's order
     std::string url;                     // as the ladder report gives it
     std::string playlist_location;       // where the build read it from, after redirects

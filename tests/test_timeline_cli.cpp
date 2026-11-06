@@ -7,7 +7,9 @@
 // mirage_vmaf runs them (the design's P-T), on a synthetic ad ladder
 // (tests/SyntheticLadder.h) scored by mirage_vmaf --ladder: their outputs
 // and exit statuses (P-W), intervals and frames past the axis, a lone
-// --window, a redacted copy of the report and one that changed.
+// --window, a report whose pairs' numbers skip a failed pair with --curve by
+// those numbers (D-092 (b)), a redacted copy of the report and one that
+// changed.
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -313,8 +315,10 @@ TEST_CASE("timelinecli::parse_attribute: each query, the curve, the format, the 
                       "--out", "a.json", "--report", "r.json", "--margin-before", "0.5" }, b).empty());
     CHECK(b.query == Query::Frames);
     CHECK((b.first == 75 && b.last == 124));
+    // --curve names a pair by its number, the report's pairs[].index (D-092
+    // (b)), which the answer maps to its curve.
     REQUIRE(b.curve);
-    CHECK((b.curve->kind == CurveRef::Kind::Pair && b.curve->index == 1));
+    CHECK((b.curve->kind == CurveRef::Kind::Pair && b.curve->number == 1));
     CHECK(b.format == Format::Json);
     CHECK(b.out == "a.json");
     CHECK(b.report == "r.json");
@@ -406,7 +410,7 @@ TEST_CASE("timelinecli::parse_attribute: a config file, its query one setting, -
     REQUIRE(parse_a({ "--config", "drop.conf", "--timeline", "t", "--interval", "1:2" }, c, files).empty());
     CHECK(c.query == Query::Interval);
     REQUIRE(c.curve);
-    CHECK(c.curve->index == 1);
+    CHECK(c.curve->number == 1);
 
     AttributeArgs d;
     REQUIRE(parse_a({ "--config", "auto.conf", "--min-points", "3" }, d, files).empty());
@@ -711,6 +715,11 @@ TEST_CASE("timelinecli::answer_text: a drop's block, then its events by source, 
           "\nCurve pair:0: entries 1, 3 (http://h/low.m3u8, 320x180, BANDWIDTH 300000; rank 2 from the top, "
           "1 from the bottom), scored against entry 0 (http://h/top.m3u8, 640x360, BANDWIDTH 900000; rank 1 "
           "from the top, 2 from the bottom)\n  no drop\n");
+    // The curve at place 0 is named by its pair's number, the report's
+    // pairs[].index, here the plan's pair 3 (D-092 (b)).
+    t.variants[1].pair = 3;
+    CHECK(timelinecli::answer_text(t, { CurveRef{ .index = 0 } }, {}, {})
+              .starts_with("\nCurve pair:3: entries 1, 3 ("));
 }
 
 // ── The subcommands, run as mirage_vmaf runs them ────────────────────────────
@@ -943,6 +952,79 @@ TEST_CASE("mirage_vmaf timeline and attribute: run as programs on a synthetic ad
         CHECK(contains(drop.out, "\nDrop 1: reference frames 75-124 (50 frames)"));
     }
 
+    SECTION("a report whose pairs' numbers skip a failed pair: the document, --curve and the answers take "
+            "the report's numbers (D-092 (b))")
+    {
+        // The ladder's report as if the plan's pair 1 had failed and v180
+        // were its pair 2: its complete pairs' pairs[].index 0 and 2, the
+        // second pair's first key renumbered in the report's text.
+        std::string text = read_text(report);
+        const std::string second = ",\n    {\n      \"index\": 1,\n";
+        const std::size_t at = text.find(second);
+        REQUIRE(at != std::string::npos);
+        text.replace(at, second.size(), ",\n    {\n      \"index\": 2,\n");
+        const std::string skipped = (dir / "ad.skipped.json").string();
+        const std::string doc     = (dir / "ad.skipped.timeline.json").string();
+        write_text(skipped, text);
+        const ToolRun built = run_tool({ "timeline", "--report", skipped, "--out", doc, "--window", "50",
+                                         "--min-points", "12" });
+        INFO(built.err);
+        REQUIRE(built.status == 0);
+        const std::string doc_text = read_text(doc);
+        CHECK(contains(doc_text, R"("curves": [{"kind": "pair", "index": 0}, {"kind": "pair", "index": 2}])"));
+        CHECK(contains(doc_text, R"("curve": {"kind": "pair", "index": 2})"));
+        const Doc d = read_doc(doc_text);
+        INFO(d.err);
+        REQUIRE(d.ok);
+        REQUIRE(d.timeline.variants.size() == 3);
+        CHECK(d.timeline.variants[1].pair == 0);
+        CHECK(d.timeline.variants[2].pair == 2);
+        REQUIRE(d.attributions.size() == 1);
+        CHECK(d.attributions[0].curve.index == 1);   // v180's curve, at its place among the pairs
+
+        // --curve takes the report's number; the failed pair's is no curve of
+        // the document's, an argument it doesn't fit (exit status 2).
+        const ToolRun drop = run_tool({ "attribute", "--timeline", doc, "--drop", "1", "--curve", "pair:2" });
+        INFO(drop.err);
+        REQUIRE(drop.status == 0);
+        CHECK(contains(drop.out, "Query: the document's drop 1 on curve pair:2 (--drop)\n"));
+        CHECK(contains(drop.out, "\nCurve pair:2: entry 2 ("));
+        CHECK(contains(drop.out, "\nDrop 1: reference frames 75-124 (50 frames)"));
+        const ToolRun failed = run_tool({ "attribute", "--timeline", doc, "--frames", "1-2", "--curve", "pair:1" });
+        CHECK(failed.status == 2);
+        CHECK(failed.err == "mirage_vmaf attribute: --curve pair:1: the document has no curve of pair 1: its "
+                            "curves are pair:0 and pair:2\n");
+
+        // --auto on every curve, as text: each curve by its pair's number.
+        const ToolRun again = run_tool({ "attribute", "--timeline", doc, "--auto", "--window", "50",
+                                         "--min-points", "12" });
+        INFO(again.err);
+        REQUIRE(again.status == 0);
+        CHECK(contains(again.out, "\nCurve pair:0: entry 1 ("));
+        CHECK(contains(again.out, ")\n  no drop\n\nCurve pair:2: entry 2 ("));
+        CHECK_FALSE(contains(again.out, "Curve pair:1"));
+
+        // And as JSON: the answer names pair 2, its curve the second again.
+        const std::string answer = (dir / "ad.skipped.auto.json").string();
+        const ToolRun as_json = run_tool({ "attribute", "--timeline", doc, "--auto", "--window", "50",
+                                           "--min-points", "12", "--curve", "pair:2", "--format", "json",
+                                           "--out", answer });
+        INFO(as_json.err);
+        REQUIRE(as_json.status == 0);
+        const std::string answered = read_text(answer);
+        CHECK(contains(answered, R"("curves": [{"kind": "pair", "index": 2}])"));
+        const Doc e = read_doc(answered);
+        INFO(e.err);
+        REQUIRE(e.ok);
+        CHECK(e.info.command == "attribute");
+        CHECK(std::get<std::string>(option(e.info.options, "curve")->v) == "pair:2");
+        REQUIRE(e.attributions.size() == 1);
+        CHECK(e.attributions[0].curve.index == 1);
+        REQUIRE(e.info.detection);
+        REQUIRE(e.info.detection->curves.size() == 1);
+        CHECK(e.info.detection->curves[0].index == 1);
+    }
+
     SECTION("a redacted copy of the report is taken by its scores digest; a changed one isn't (D-072)")
     {
         // The eval scripts replace local paths with placeholders before a
@@ -994,7 +1076,8 @@ TEST_CASE("mirage_vmaf timeline and attribute: run as programs on a synthetic ad
                                  "given when it was built (D-077)"));
         const ToolRun curve = run_tool({ "attribute", "--timeline", detected, "--frames", "1-2", "--curve", "pair:2" });
         CHECK(curve.status == 2);
-        CHECK(curve.err == "mirage_vmaf attribute: --curve pair:2: the document has 2 pairs' curves, from pair:0\n");
+        CHECK(curve.err == "mirage_vmaf attribute: --curve pair:2: the document has no curve of pair 2: its curves "
+                           "are pair:0 and pair:1\n");
         const ToolRun frames = run_tool({ "attribute", "--timeline", detected, "--frames", "190-200" });
         CHECK(frames.status == 2);
         CHECK(frames.err == "mirage_vmaf attribute: --frames 190-200: the document's axis has 200 reference "

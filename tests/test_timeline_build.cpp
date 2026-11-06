@@ -16,9 +16,9 @@
 // placed, ad breaks ended by their declared duration, corrupt packets with
 // their boundaries, the same as the adapter's next_boundary() gives, a
 // mezzanine reference, the ranks of a master with shared and equal
-// BANDWIDTHs, inputs that don't fit, the curves read back from a report,
-// detection's attributions, and the same document from the same inputs
-// twice.
+// BANDWIDTHs, inputs that don't fit, the curves read back from a report, a
+// report whose pairs' numbers skip a failed pair (D-092 (b)), detection's
+// attributions, and the same document from the same inputs twice.
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -462,8 +462,9 @@ TEST_CASE("timeline::build: a distorted input on a coarser grid, placed through 
     s.reference_url     = s.entries[0].url;
     s.reference_entries = { 0 };
     // The plan's pair 2, as if pairs 0 and 1 had failed: the build's
-    // warnings name it by that number, the report's pairs[].index, as the
-    // axis's do, though it is the first complete pair (variant 1, curve 0).
+    // warnings and its variant name it by that number, the report's
+    // pairs[].index (D-092 (b)), as the axis's do, though it is the first
+    // complete pair (variant 1, curve 0).
     timeline::PairScores p;
     p.index         = 2;
     p.entries       = { 1 };
@@ -552,7 +553,10 @@ TEST_CASE("timeline::build: a distorted input on a coarser grid, placed through 
     CHECK(int_member(unpaired[1]->payload, "index") == 3);
     CHECK(any_warning(t, "pair 2: 1 unpaired frame of its distorted input after its last paired frame, "
                          "the first at frame 10, is left out (D-081 (d))"));
-    CHECK(t.variants[1].pair == 0);   // its position among the complete pairs, until D-092 (b)'s package
+    CHECK(t.variants[1].pair == 2);   // the plan's number (D-092 (b))
+    REQUIRE(t.curves.size() == 1);
+    CHECK(t.curves[0].variant == 1);
+    CHECK(timeline::pair_number(t, CurveRef{ .index = 0 }) == 2);
 
     // The second libvmaf context starts at the pair whose frames are 4 and 8.
     const auto starts = events_of(t, "context_start", 1);
@@ -1072,7 +1076,7 @@ TEST_CASE("timeline::pair_curves, attach_curves and pair_curve_refs: the curves 
     timeline::Timeline beyond = built(ad_inputs());
     beyond.variants[2].pair = 5;
     CHECK_FALSE(timeline::attach_curves(beyond, s, err));
-    CHECK(err == "the document's variant 2 names pair 5, but the ladder report has 2 complete pairs");
+    CHECK(err == "the document's variant 2 names pair 5, but the ladder report's complete pairs are 0 and 1");
     CHECK(beyond.curves.size() == 2);   // unchanged
 
     timeline::Timeline twice = built(ad_inputs());
@@ -1083,8 +1087,99 @@ TEST_CASE("timeline::pair_curves, attach_curves and pair_curve_refs: the curves 
     timeline::Timeline missing = built(ad_inputs());
     missing.variants.pop_back();
     CHECK_FALSE(timeline::attach_curves(missing, s, err));
-    CHECK(err == "the ladder report's complete pair 1 (its pairs[].index 1) is the pair of none of the "
-                 "document's variants");
+    CHECK(err == "the ladder report's complete pair 1 is the pair of none of the document's variants");
+}
+
+TEST_CASE("timeline::build, the document and attach_curves: a report whose pairs' numbers skip a failed "
+          "pair (D-092 (b))", "[timeline][timeline_build]")
+{
+    // The ad ladder as if the plan's pair 1 had failed and v180 were its
+    // pair 2: the report's complete pairs are numbered 0 and 2.
+    timeline::BuildInputs in = ad_inputs();
+    in.scores.pairs[1].index = 2;
+    const timeline::Timeline t = built(in);
+
+    // The variants hold the report's numbers; the curves keep their places,
+    // v180's the second, on variant 2.
+    REQUIRE(t.variants.size() == 3);
+    CHECK(t.variants[0].pair == -1);
+    CHECK(t.variants[1].pair == 0);
+    CHECK(t.variants[2].pair == 2);
+    REQUIRE(t.curves.size() == 2);
+    CHECK(t.curves[1].variant == 2);
+    CHECK(timeline::pair_number(t, CurveRef{ .index = 1 }) == 2);
+    CHECK(timeline::curve_of_pair(t, 2)->index == 1);
+    CHECK_FALSE(timeline::curve_of_pair(t, 1));
+
+    // Detection finds v180's ad on the curve at place 1, pair 2's.
+    timeline::DetectOptions options;
+    options.window     = 50;
+    options.min_points = 12;
+    std::string err;
+    const std::vector<Attribution> drops =
+        timeline::attribute_drops(t, timeline::pair_curve_refs(t), options, {}, err);
+    INFO(err);
+    REQUIRE(drops.size() == 1);
+    CHECK(drops[0].curve.index == 1);
+    CHECK((drops[0].interval.ref_index == 75 && drops[0].interval.ref_end == 125));
+
+    // The document names the pair by its number everywhere.
+    timeline::DocInfo info = doc_info(in.scores, t);
+    info.detection = timeline::Detection{ .options = options, .curves = timeline::pair_curve_refs(t) };
+    const std::string text = timeline::to_json(t, drops, info);
+    CHECK(contains(text, R"("id": 2, "role": "distorted", "pair": 2,)"));
+    CHECK(contains(text, R"("curves": [{"kind": "pair", "index": 0}, {"kind": "pair", "index": 2}])"));
+    CHECK(contains(text, R"("curve": {"kind": "pair", "index": 2})"));
+    CHECK_FALSE(contains(text, R"({"kind": "pair", "index": 1})"));
+
+    // Read back, the curve at its place again; the report's curves attached
+    // each on the variant whose pair is its pairs[].index, and the document
+    // written again to the same bytes.
+    timeline::Timeline       back;
+    std::vector<Attribution> attributions;
+    timeline::DocInfo        back_info;
+    REQUIRE(timeline::from_json(text, back, attributions, back_info, err));
+    REQUIRE(attributions.size() == 1);
+    CHECK(attributions[0].curve.index == 1);
+    REQUIRE(timeline::attach_curves(back, in.scores, err));
+    REQUIRE(back.curves.size() == 2);
+    CHECK(back.curves[0].variant == 1);
+    CHECK(back.curves[1].variant == 2);
+    CHECK(back.curves[1].vmaf == in.scores.pairs[1].vmaf);
+    CHECK(timeline::to_json(back, attributions, back_info) == text);
+
+    // attach_curves() names a pair by its number: the failed pair's, which no
+    // complete pair has; a complete pair no variant names; pairs out of the
+    // plan's order, which the curves' places couldn't follow.
+    timeline::Timeline failed = back;
+    failed.variants[2].pair = 1;
+    CHECK_FALSE(timeline::attach_curves(failed, in.scores, err));
+    CHECK(err == "the document's variant 2 names pair 1, but the ladder report's complete pairs are 0 and 2");
+    timeline::Timeline missing = back;
+    missing.variants.pop_back();
+    CHECK_FALSE(timeline::attach_curves(missing, in.scores, err));
+    CHECK(err == "the ladder report's complete pair 2 is the pair of none of the document's variants");
+    timeline::LadderScores none = in.scores;
+    none.pairs.clear();
+    CHECK_FALSE(timeline::attach_curves(failed, none, err));
+    CHECK(err == "the document's variant 1 names pair 0, but the ladder report has no complete pair");
+    timeline::LadderScores reversed = in.scores;
+    std::swap(reversed.pairs[0], reversed.pairs[1]);
+    CHECK_FALSE(timeline::attach_curves(failed, reversed, err));
+    CHECK(err == "the ladder report's pairs[1].index is 0, not after the pair before it (2): pairs come in "
+                 "the plan's order, which a document's curves follow (D-092 (b))");
+
+    // build() takes the pairs as read_ladder_report() gives them: their
+    // numbers rising, each within an int.
+    timeline::BuildInputs out_of_order = in;
+    std::swap(out_of_order.scores.pairs[0], out_of_order.scores.pairs[1]);
+    CHECK(timeline::build(out_of_order, err).variants.empty());
+    CHECK(err == "the ladder report's pairs[1].index is 0, not after the pair before it (2): pairs come in "
+                 "the plan's order, which the timeline numbers them by (D-092 (b))");
+    timeline::BuildInputs huge = in;
+    huge.scores.pairs[1].index = std::size_t{ 1 } << 40;
+    CHECK(timeline::build(huge, err).variants.empty());
+    CHECK(err == "the ladder report's pairs[1].index is 1099511627776, beyond a pair's number (D-092 (b))");
 }
 
 TEST_CASE("timeline::attribute_drops: each pair's drops with the events of its curve's inputs "
@@ -1150,7 +1245,7 @@ TEST_CASE("timeline::attribute_drops: each pair's drops with the events of its c
     CHECK(timeline::attribute_drops(t, timeline::pair_curve_refs(t), bad, {}, err).empty());
     CHECK(contains(err, "threshold"));
     CHECK(timeline::attribute_drops(t, { CurveRef{ .index = 5 } }, options, {}, err).empty());
-    CHECK(err == "the timeline has no curve pair:5: it has 2 pairs' curves");
+    CHECK(err == "the timeline has no curve at place 5: it has 2 pairs' curves");
     timeline::Timeline odd = t;
     odd.curves[0].vmaf.pop_back();
     CHECK(timeline::attribute_drops(odd, timeline::pair_curve_refs(odd), options, {}, err).empty());

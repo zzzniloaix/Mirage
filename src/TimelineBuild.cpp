@@ -1,10 +1,12 @@
 #include "TimelineBuild.h"
 
 #include "TimelineAxis.h"
+#include "TimelineDoc.h"
 
 #include <algorithm>
 #include <cstddef>
 #include <format>
+#include <limits>
 #include <map>
 #include <utility>
 
@@ -27,6 +29,19 @@ Value pts_value(std::optional<std::int64_t> ticks, AVRational tb)
 std::string plural(std::size_t n, std::string_view one, std::string_view many)
 {
     return std::format("{} {}", n, n == 1 ? one : many);
+}
+
+// The report's complete pairs by their numbers (D-092 (b)), for a message:
+// "the ladder report's complete pairs are 0 and 2".
+std::string pairs_text(const LadderScores& s)
+{
+    if (s.pairs.empty()) return "the ladder report has no complete pair";
+    std::string list;
+    for (std::size_t k = 0; k < s.pairs.size(); ++k)
+        list += std::format("{}{}", k == 0 ? "" : k + 1 == s.pairs.size() ? " and " : ", ",
+                            s.pairs[k].index);
+    return std::format("the ladder report's complete {} {}",
+                       s.pairs.size() == 1 ? "pair is" : "pairs are", list);
 }
 
 // The line of a playlist event or cue, which its payload starts with
@@ -434,9 +449,9 @@ private:
         return Value{};
     }
 
-    // A pair's warnings name it by the report's pairs[].index, the plan's, as
-    // the axis's do (src/TimelineAxis.cpp), not by its position among the
-    // complete pairs, which Variant::pair still is (see build()).
+    // A pair's warnings name it by its number, the report's pairs[].index,
+    // the plan's, as the axis's do (src/TimelineAxis.cpp) and as
+    // Variant::pair holds it (D-092 (b)).
     void vmaf_events(std::size_t k)
     {
         const PairScores& p = s_.pairs[k];
@@ -529,21 +544,36 @@ Timeline build(const BuildInputs& in, std::string& err)
             return {};
         }
     }
+    // Each pair's number, its pairs[].index, rising in the plan's order, as
+    // read_ladder_report() checks it, so that curve k, the k-th complete
+    // pair's, is also the k-th in the order of the pairs' numbers, where a
+    // document read back places a curve (src/TimelineDoc.h, curve_of_pair()).
+    for (std::size_t k = 0; k < s.pairs.size(); ++k) {
+        const std::size_t index = s.pairs[k].index;
+        if (index > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
+            err = std::format("the ladder report's pairs[{}].index is {}, beyond a pair's number "
+                              "(D-092 (b))", k, index);
+            return {};
+        }
+        if (k > 0 && index <= s.pairs[k - 1].index) {
+            err = std::format("the ladder report's pairs[{}].index is {}, not after the pair before it "
+                              "({}): pairs come in the plan's order, which the timeline numbers them "
+                              "by (D-092 (b))", k, index, s.pairs[k - 1].index);
+            return {};
+        }
+    }
 
     Timeline t;
     const std::vector<std::int64_t> rungs = rung_bandwidths(s);
     t.variants.push_back(
         make_variant(0, -1, s.reference_entries, s.reference_url, s, rungs, in.variants[0]));
-    // Variant::pair is the pair's position among the complete pairs, k, as
-    // the curves' order and --curve pair:<k> are, and as src/TimelineDoc.h
-    // writes and reads it. The owner's D-092 (b) makes a pair's number in the
-    // document, in curve references and in --curve the report's own
-    // pairs[].index, mapped by the code to that position: a later package
-    // makes that change across the document's writer and reader, this
-    // builder and the CLI. The build's warnings already name a pair by its
-    // pairs[].index (vmaf_events()).
+    // Variant::pair is the pair's number, its pairs[].index, the plan's,
+    // which skips the number of a pair that failed (D-092 (b)): the document
+    // names a curve by it, and so do --curve and the build's warnings
+    // (vmaf_events()). Curve k, on variant k + 1, keeps its place among the
+    // complete pairs (pair_curves()).
     for (std::size_t k = 0; k < s.pairs.size(); ++k)
-        t.variants.push_back(make_variant(static_cast<int>(k) + 1, static_cast<int>(k),
+        t.variants.push_back(make_variant(static_cast<int>(k) + 1, static_cast<int>(s.pairs[k].index),
                                           s.pairs[k].entries, s.pairs[k].dis_url, s, rungs,
                                           in.variants[k + 1]));
 
@@ -577,16 +607,32 @@ std::vector<Curve> pair_curves(const LadderScores& scores)
 bool attach_curves(Timeline& timeline, const LadderScores& scores, std::string& err)
 {
     err.clear();
+    // Each complete pair by its number, its pairs[].index (D-092 (b)), in
+    // the plan's order, as read_ladder_report() checks it: then curve k is
+    // the k-th in the order of the pairs' numbers too, the place from_json()
+    // gives a curve reference of its pair (src/TimelineDoc.h).
+    std::map<std::size_t, std::size_t> place;   // a pair's number -> its place among the complete pairs
+    for (std::size_t k = 0; k < scores.pairs.size(); ++k) {
+        const std::size_t index = scores.pairs[k].index;
+        if (k > 0 && index <= scores.pairs[k - 1].index) {
+            err = std::format("the ladder report's pairs[{}].index is {}, not after the pair before it "
+                              "({}): pairs come in the plan's order, which a document's curves follow "
+                              "(D-092 (b))", k, index, scores.pairs[k - 1].index);
+            return false;
+        }
+        place.emplace(index, k);
+    }
     std::vector<int> variant_of(scores.pairs.size(), -1);
     for (std::size_t i = 0; i < timeline.variants.size(); ++i) {
         const int pair = timeline.variants[i].pair;
         if (pair < 0) continue;
-        if (static_cast<std::size_t>(pair) >= scores.pairs.size()) {
-            err = std::format("the document's variant {} names pair {}, but the ladder report has {}",
-                              i, pair, plural(scores.pairs.size(), "complete pair", "complete pairs"));
+        const auto it = place.find(static_cast<std::size_t>(pair));
+        if (it == place.end()) {
+            err = std::format("the document's variant {} names pair {}, but {}", i, pair,
+                              pairs_text(scores));
             return false;
         }
-        int& v = variant_of[static_cast<std::size_t>(pair)];
+        int& v = variant_of[it->second];
         if (v >= 0) {
             err = std::format("the document's variants {} and {} both name pair {}", v, i, pair);
             return false;
@@ -595,8 +641,8 @@ bool attach_curves(Timeline& timeline, const LadderScores& scores, std::string& 
     }
     for (std::size_t k = 0; k < variant_of.size(); ++k)
         if (variant_of[k] < 0) {
-            err = std::format("the ladder report's complete pair {} (its pairs[].index {}) is the "
-                              "pair of none of the document's variants", k, scores.pairs[k].index);
+            err = std::format("the ladder report's complete pair {} is the pair of none of the "
+                              "document's variants", scores.pairs[k].index);
             return false;
         }
     std::vector<Curve> curves = pair_curves(scores);
@@ -626,16 +672,20 @@ std::vector<Attribution> attribute_drops(const Timeline& timeline, const std::ve
     std::vector<Attribution> out;
     if (!detect.given()) return out;
     for (const CurveRef c : curves) {
+        // A curve is its place in Timeline::curves; a message names it by its
+        // pair's number, the report's pairs[].index (D-092 (b)).
         if (c.kind != CurveRef::Kind::Pair || c.index < 0 ||
             static_cast<std::size_t>(c.index) >= timeline.curves.size()) {
-            err = std::format("the timeline has no curve pair:{}: it has {}", c.index,
+            err = std::format("the timeline has no curve at place {}: it has {}", c.index,
                               plural(timeline.curves.size(), "pair's curve", "pairs' curves"));
             return {};
         }
         std::string why;
         const std::vector<Drop> drops = timeline::detect(curve_points(timeline, c), detect, why);
         if (!why.empty()) {
-            err = std::format("curve pair:{}: {}", c.index, why);
+            const std::optional<int> pair = pair_number(timeline, c);
+            err = pair ? std::format("curve pair:{}: {}", *pair, why)
+                       : std::format("the curve at place {}, whose variant is no pair's: {}", c.index, why);
             return {};
         }
         for (const Drop& d : drops) {

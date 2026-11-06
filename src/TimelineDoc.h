@@ -45,31 +45,69 @@
 //   the time base for the PTS, with the scale 1; for the seconds next, where
 //   the axis has a whole number above 1 of ticks to a PTS tick, the frame
 //   duration in PTS ticks with that number as the scale, since within a
-//   segment the playlist time follows the PTS (src/TimelineAxis.h); and
-//   last a whole step, the difference between the stretch's first two
-//   values, with the scale 1. It takes the one that covers the most frames,
-//   the first tried on a tie, with the smallest phase the frames allow; a
-//   stretch of one frame, and the frames without a PTS, have the step 0/1,
-//   the phase 0 and the scale 1. At 25 fps on MPEG-TS's 90 kHz clock the
-//   axis's ticks are the clock's, a frame is 3600 of them, a whole step, and
-//   the ad ladder's axis takes one stretch of ticks and three of keys, the
-//   ad's restart of its timestamps and the main content's return each
-//   starting one. At 24000/1001 fps a frame is 3753.75 ticks of that clock
-//   and at 60000/1001 fps 1501.5, and the axis has 8 or 4 ticks to a PTS
-//   tick with EXTINF in thousandths, as in the test, and a multiple of that
-//   where an EXTINF needs finer ticks, 200 or 100 with the test's EXTINF in
-//   millionths: the PTS a muxer rounds to the nearest tick follow the steps
-//   15015/4 and 3003/2, one stretch of keys per sequence; the frame grid's
-//   seconds, a whole number of the axis's ticks a frame, take one stretch;
-//   and the playlist time's take the PTS's steps with the axis's ticks to a
-//   PTS tick as the scale, following that multiple, one stretch for the
-//   whole reference where each EXTINF is its segment's frames, a
-//   discontinuity included, and one per segment where the EXTINF aren't,
-//   whole seconds or finer. At 30000/1001 fps a frame is 3003 ticks of the
-//   clock, the axis has 2 to a PTS tick, and 6006/1 with the scale 1 holds
-//   the same frames as 3003/1 with the scale 2, so the playlist time's
-//   ticks take the first, tried first. tests/test_timeline_doc.cpp asserts
-//   each of these counts.
+//   segment the playlist time follows the PTS (src/TimelineAxis.h); then,
+//   for both, a whole step, the difference between the stretch's first two
+//   values, with the scale 1; and last what the stretch's own first values
+//   give (D-100). Where their differences from the first share a factor G
+//   above 1, the frame duration in units of G of the values' ticks with the
+//   scale G, and where that stops at a value whose difference from the
+//   first G doesn't divide, in units of the factor the two share, while that
+//   is above 1, so that PTS rounded to a clock coarser than their time base,
+//   as a millisecond clock or one of 1/600 s written on MPEG-TS's 90 kHz one,
+//   follow it with the clock's tick as the scale, even where the first
+//   differences share a multiple of that tick (D-100 (a)); and the steps the
+//   stretch's first values give, (v[i + m] - v[i]) / (m x G) for m from 2
+//   to 8, with the scale G, or 1 where they share no factor, so that a
+//   sequence at another frame rate than the reference's, as an ad after its
+//   discontinuity can be (design §4.2), follows its own frame duration
+//   (D-100 (b)). It takes the one that covers the most frames, the first
+//   tried on a tie, with the smallest phase the frames allow, so that
+//   D-100's steps are taken only where they cover more frames than the
+//   frame durations and the whole step; a stretch of one frame, and the
+//   frames without a PTS, have the step 0/1, the phase 0 and the scale 1. A
+//   step of D-100's that is a whole number, in units of G, isn't tried, the
+//   whole step or the frame duration holding as many frames with the scale
+//   1, and an axis without a frame duration takes whole steps alone (D-099
+//   (b)). A sequence at another frame rate whose PTS were rounded to a
+//   coarser clock, as an ad at 24000/1001 fps on a millisecond clock, whose
+//   frame of 1001/24 ms has a denominator above 8, follows none of these
+//   steps over all its frames, and its stretches grow with its frames:
+//   neither part of D-100 names that case, which stays as built, pending
+//   the owner (kOwnFrames, src/TimelineDoc.cpp). At 25 fps on MPEG-TS's
+//   90 kHz clock the axis's ticks are the clock's, a frame is 3600 of them,
+//   a whole step, and the ad ladder's axis takes one stretch of ticks and
+//   three of keys, the ad's restart of its timestamps and the main
+//   content's return each starting one. At 24000/1001 fps a frame is
+//   3753.75 ticks of that clock and at 60000/1001 fps 1501.5, and the axis
+//   has 8 or 4 ticks to a PTS tick with EXTINF in thousandths, as in the
+//   test, and a multiple of that where an EXTINF needs finer ticks, 200 or
+//   100 with the test's EXTINF in millionths: the PTS a muxer rounds to the
+//   nearest tick follow the steps 15015/4 and 3003/2, one stretch of keys
+//   per sequence; the frame grid's seconds, a whole number of the axis's
+//   ticks a frame, take one stretch; and the playlist time's take the PTS's
+//   steps with the axis's ticks to a PTS tick as the scale, following that
+//   multiple, one stretch for the whole reference where each EXTINF is its
+//   segment's frames, a discontinuity included, and one per segment where
+//   the EXTINF aren't, whole seconds or finer. At 30000/1001 fps a frame is
+//   3003 ticks of the clock, the axis has 2 to a PTS tick, and 6006/1 with
+//   the scale 1 holds the same frames as 3003/1 with the scale 2, so the
+//   playlist time's ticks take the first, tried first. PTS that are 90
+//   times a count of milliseconds take, at 24000/1001, 30000/1001 and
+//   60000/1001 fps, the steps 1001/24, 1001/30 and 1001/60 with the scale 90
+//   for the keys and 90 times the axis's ticks to a PTS tick for the
+//   playlist time's ticks, in the same numbers of stretches; PTS that are
+//   150 times a count of ticks of a 1/600 s clock, the steps 1001/40,
+//   1001/50 and 1001/100 with the scale 150 and 150 times the axis's ticks
+//   to a PTS tick, where each segment is a whole number of the clock's
+//   ticks, though their first 8 differences share 25, 20 and 10 times that
+//   tick. An ad after a discontinuity at 24000/1001 fps in 25 fps content,
+//   or at 60000/1001 fps in 30000/1001 fps content, takes 15015/4 or 3003/2
+//   for its keys, one stretch, and for the playlist time's ticks, the
+//   second with the scale 2, one stretch from its second frame, the main
+//   content's stretch before it holding its first where each EXTINF is its
+//   segment's frames. A value off one of these steps is held by a stretch
+//   of another, and the step holds the frames after that stretch again.
+//   tests/test_timeline_doc.cpp asserts each of these counts.
 // - Numbers. Integers as integer literals; every double through
 //   json::number (src/JsonText.h), which writes a whole double as an integer
 //   literal, so the schema types each such field "number"; null for NaN and
@@ -114,24 +152,29 @@
 //   than a drop (design §6.1), whether detection ran or not, so that the
 //   answers of mirage_vmaf attribute (WP09a) can take this layout.
 //   Timeline::curves stays empty: the caller fills it from the ladder report
-//   the document names, once that report's hashes match.
+//   the document names, once that report's hashes match (attach_curves(),
+//   src/TimelineBuild.h), and a curve reference comes back at the place
+//   among the pairs' numbers where that puts its pair's curve (D-092 (b);
+//   curve_of_pair()).
 //
 // The owner's choices (D-092, of 2026-11-05), on the forms that WP08 left
 // open because they change the output and neither the design nor D-072
 // settles them; the place that makes each cites its letter.
 // - (a) The per-frame values as stretches with a rational step and a phase,
-//   as above, the stretches growing with the segments, not the frames, but
-//   in two cases pending the owner (below); implemented here, with D-099
-//   (a)'s scale.
+//   as above, the stretches growing with the segments, not the frames;
+//   implemented here, with D-099 (a)'s scale and D-100's candidates.
 // - (b) A pair's number, in variants[].pair, in a curve's index and in
 //   design §7's --curve pair:<k>, is the ladder report's own pairs[].index,
-//   which skips the number of a pair that failed. A later package
-//   implements it once WP09a, whose builder fills Variant::pair and whose
-//   CLI parses --curve, has merged. Until then the number is the pair's
-//   position among the report's complete pairs, which Timeline::curves
-//   follows, the query's scope reaches through Curve::variant and the
-//   reader's curve check relies on, and which is the same number while no
-//   pair has failed.
+//   the plan's, which skips the number of a pair that failed; implemented
+//   here and in WP09a's builder and CLI (src/TimelineBuild.h,
+//   src/TimelineCli.h). In memory Variant::pair holds it, while
+//   Timeline::curves stays positional, curve k the report's k-th complete
+//   pair, which the query's scope reaches through Curve::variant, and
+//   CurveRef::index an index into it. The writer writes a curve reference
+//   as the pair's number of its curve's variant, and the reader gives a
+//   number back as the curve whose variant has it, refusing, with the key
+//   named, a number no variant has, and two variants with one number
+//   (pair_number(), curve_of_pair()).
 // - (c) A value a variant doesn't have is null: the BANDWIDTH and both
 //   ranks of a variant without entries or that isn't a rung, and the
 //   playlist of a variant not read from one, as WP08 wrote them; and then
@@ -161,9 +204,9 @@
 //   follow the PTS of their segment with that number as the scale and the
 //   frame duration in PTS ticks as the step, where no step of D-092 (a)'s
 //   formula alone followed them; so they too grow with the segments. Every
-//   stretch of both kinds has a scale, and the writer gives a key's PTS the
-//   scale 1; the case found since that would need another is pending the
-//   owner (below). Implemented here.
+//   stretch of both kinds has a scale. Implemented here; the case found
+//   since where a key's PTS need a scale other than 1, PTS on a coarser
+//   clock, is D-100 (a)'s (below).
 // - (b) WP08b's other choices, as built: where several steps and phases
 //   hold the same frames, the step that covers the most frames, the frame
 //   duration on a tie, the smallest phase, and 0/1 with the scale 1 for a
@@ -172,35 +215,35 @@
 //   and a variant without a playlist whose segment map isn't Variant's
 //   default written as given, for the reader to refuse (to_json()).
 //
-// Pending the owner, each as built here, changing a document's bytes or
-// what the reader takes and no value read back:
-// - A choice made in implementing D-099 (a). Where the frame duration in
-//   the axis's ticks with the scale 1 and the frame duration in PTS ticks
-//   with a scale above 1 hold the same frames, the writer takes the first,
-//   which it tries first: so at 30000/1001 fps on the 90 kHz clock, a frame
-//   being a whole 3003 PTS ticks, the playlist time's ticks have 6006/1 with
-//   the scale 1, not 3003/1 with the scale 2, which D-099 (a) read literally
-//   gives. D-099 (b)'s tie goes to the frame duration over a whole step and
-//   doesn't choose between two frame durations.
-// - What the reader takes for the scale: any from 1 on both kinds of
-//   stretch, the keys' too, which the writer gives the scale 1, and 1 alone
-//   for frames without a PTS. The other choice, the scale 1 alone on every
-//   key stretch, would refuse a later writer's keys with a scale (below),
-//   which this reader takes within version 1.
-// - The case D-099 (a) asks to be reported, where a key's PTS need a scale
-//   other than 1: PTS rounded to a clock coarser than their time base, as a
-//   millisecond clock written on MPEG-TS's 90 kHz one, follow neither frame
-//   duration, so the keys, with the scale 1, and the playlist time's ticks,
-//   with the axis's ticks to a PTS tick as the scale, take stretches that
-//   grow with the frames.
-// - A sequence at another frame rate than the reference's, as an ad after
-//   its discontinuity can be (design §4.2), whose frame isn't a whole
-//   number of PTS ticks: the writer tries the reference's frame duration
-//   and whole steps alone (D-092 (a), D-099 (b)), so that the sequence's
-//   stretches grow with its frames, in keys and ticks alike.
-// Every value comes back exactly in each case, and a writer that chose
-// otherwise, or tried more steps or scales, would stay within version 1 as
-// long as the reader takes the scales it takes now.
+// The owner's choices (D-100, of 2026-11-06), on the four that WP08b built
+// and left pending, each changing a document's bytes or what the reader
+// takes and no value read back:
+// - (a) PTS rounded to a clock coarser than their time base, as a
+//   millisecond clock written on MPEG-TS's 90 kHz one, which followed
+//   neither frame duration, so that the keys and the playlist time's ticks
+//   took stretches that grew with the frames: the writer also tries the
+//   frame duration in units of a factor that the stretch's differences
+//   share, with that factor as the scale, the one its first differences
+//   share and, where that stops at a value it doesn't divide, the factors
+//   that value's difference shares with it, as above. Implemented here.
+// - (b) A sequence at another frame rate than the reference's, as an ad
+//   after its discontinuity can be (design §4.2), whose frame isn't a whole
+//   number of PTS ticks, which took stretches that grew with its frames:
+//   the writer also tries, after the axis's frame duration, the steps its
+//   own first values give, as above. Implemented here.
+// - (c) Two as built. Where the frame duration in the axis's ticks with the
+//   scale 1 and the frame duration in PTS ticks with a scale above 1 hold
+//   the same frames, the writer takes the first, which it tries first: so
+//   at 30000/1001 fps on the 90 kHz clock, a frame being a whole 3003 PTS
+//   ticks, the playlist time's ticks have 6006/1 with the scale 1, not
+//   3003/1 with the scale 2. And the reader takes any scale from 1 on both
+//   kinds of stretch, the keys' too, and 1 alone for frames without a PTS,
+//   which also takes what (a) and (b) have the writer write: documents stay
+//   at version 1.
+// The steps of (a) and (b) are tried after the frame durations and the
+// whole step, and taken only where they cover more frames, so that a
+// stretch that WP08b's steps hold keeps WP08b's form (D-099 (b)). Every
+// value comes back exactly in each case.
 //
 // Core code (design §3.1): plain structs and text in and out, and libavutil's
 // rationals only. Nothing here reads a file; write_document() alone writes
@@ -244,6 +287,25 @@ std::span<const std::string_view> event_types(Source source);
 // value that is no number. One accessor for every reader of a document's
 // payloads, the attribute subcommand's and the player's among them.
 std::optional<double> number_of(const Value& value);
+
+// A pair's number (D-092 (b)): the ladder report's own pairs[].index, the
+// plan's, which skips the number of a pair that failed, and which
+// Variant::pair holds. A document names a curve by it, as --curve pair:<k>
+// does; in memory a curve is CurveRef::index, its place in
+// Timeline::curves, curve k being the report's k-th complete pair on the
+// variant whose pair is that pair's number.
+//
+// The number of `curve`'s pair: that of its curve's variant, where the
+// timeline has curves; for a timeline without curves, as from_json() gives
+// one, the curve's place among the variants' pairs' numbers in ascending
+// order, where attach_curves() puts the report's curves (src/TimelineBuild.h),
+// since the report lists its complete pairs in the plan's order
+// (src/LadderReportRead.h). nullopt for a curve that isn't there, or whose
+// variant is no pair's.
+std::optional<int> pair_number(const Timeline& timeline, CurveRef curve);
+// The curve of pair `pair`, the one pair_number() gives that number, by the
+// same two rules; nullopt where no variant's pair has it.
+std::optional<CurveRef> curve_of_pair(const Timeline& timeline, int pair);
 
 // A file named by its path as given and the SHA-256 of its bytes.
 struct FileRef {
@@ -339,6 +401,12 @@ struct DocInfo {
 //   from reference_info() for that axis;
 // - check_options() passing on the detection's options, and a detected
 //   attribution only with the detection that found it;
+// - each CurveRef, an attribution's and detection's, a curve that
+//   pair_number() gives a number: one of Timeline::curves, on a distorted
+//   variant, as build() and attach_curves() give them, or for a timeline
+//   without curves, as from_json() gives one, a place among its pairs; one
+//   that names no pair is written with the index null, which the schema and
+//   the reader refuse;
 // - each Found::event an index into the events: one past them is written
 //   as null, which the schema and the reader refuse.
 // A document that breaks one of them is written all the same. from_json()
@@ -354,7 +422,11 @@ std::string to_json(const Timeline& timeline, const std::vector<Attribution>& at
 // searched interval widened again by the overlap record's margins (widen());
 // into `info` the rest. The axis's stretches come back as a tick and a
 // media key per frame (D-092 (a), D-099 (a)), and the null segment_map of a
-// variant without a playlist as Variant's default, "ok" (D-092 (c)). A
+// variant without a playlist as Variant's default, "ok" (D-092 (c)). Each
+// curve reference, a pair's number (D-092 (b)), comes back as the CurveRef
+// of the curve whose variant has that number, by curve_of_pair(): its place
+// among the variants' pairs in ascending order, at which attach_curves()
+// puts the report's curve of that pair (src/TimelineBuild.h). A
 // number of a payload or of the options comes back in the form of its
 // text: an integer literal as std::int64_t, any other number as a double,
 // so that a whole double written by json::number comes back as an integer;

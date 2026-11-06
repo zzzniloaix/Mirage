@@ -22,21 +22,24 @@
 //
 // - Variants (design §4.5; D-075). Variant 0 is the reference; variant k + 1
 //   is the distorted input of the report's k-th complete pair, which curve k
-//   scores: a variant's pair is its curve's index, the pair's position among
-//   the complete pairs, as src/TimelineDoc.h numbers them, until the package
-//   that implements the owner's D-092 (b) numbers it by the report's
-//   pairs[].index (see build() in TimelineBuild.cpp). A variant's
-//   entries are those the report gives it, none for a mezzanine; its
-//   BANDWIDTH is the highest of theirs (D-081 (e)), and its RESOLUTION and
-//   CODECS are those of the entry with that BANDWIDTH, the first of equal
-//   ones in the master's order. Its two ranks are counted among the master's
-//   video playlists, each URL once at the highest BANDWIDTH of its video
-//   entries, whether or not the run scored it: from the top, 1 plus the
-//   playlists of a higher BANDWIDTH; from the bottom, 1 plus those of a
-//   lower one; so playlists of equal BANDWIDTH share a rank. A variant
-//   without entries has no rank (0). Which entry gives RESOLUTION and
-//   CODECS, and the set and the ties of the ranks, D-075 and D-081 (e) left
-//   open; the owner's D-099 (c) keeps them as written here.
+//   scores. A variant's pair is that pair's number, the report's own
+//   pairs[].index, the plan's, which skips the number of a pair that failed
+//   (D-092 (b)), and by which the document, the warnings and --curve name
+//   the pair, while curve k keeps its place (src/TimelineDoc.h,
+//   pair_number()). The pairs come in the plan's order, as
+//   read_ladder_report() gives them, so that the curves' places follow the
+//   pairs' numbers. A variant's entries are those the report gives it, none
+//   for a mezzanine; its BANDWIDTH is the highest of theirs (D-081 (e)), and
+//   its RESOLUTION and CODECS are those of the entry with that BANDWIDTH,
+//   the first of equal ones in the master's order. Its two ranks are
+//   counted among the master's video playlists, each URL once at the
+//   highest BANDWIDTH of its video entries, whether or not the run scored
+//   it: from the top, 1 plus the playlists of a higher BANDWIDTH; from the
+//   bottom, 1 plus those of a lower one; so playlists of equal BANDWIDTH
+//   share a rank. A variant without entries has no rank (0). Which entry
+//   gives RESOLUTION and CODECS, and the set and the ties of the ranks,
+//   D-075 and D-081 (e) left open; the owner's D-099 (c) keeps them as
+//   written here.
 // - Placement (design §5.1). A reference frame sits at itself. A distorted
 //   frame sits at the reference frame it is paired with, and one that isn't
 //   paired at the next paired frame of its input, by index (D-081 (d)); a
@@ -63,7 +66,7 @@
 //   each kind and input; a libvmaf context that starts at no scored frame of
 //   its pair or off the axis, one warning each; and a cue_out that makes no
 //   ad break (pair_breaks()'s warnings). This granularity is the owner's
-//   D-099 (c). A warning about a pair names it by the report's
+//   D-099 (c). A warning about a pair names it by its number, the report's
 //   pairs[].index, as the axis's warnings do. A variant the demux pass refused
 //   keeps none of its segment-bound events, keyframes or corrupt packets
 //   (D-081 (c), D-086): one warning says so, and its cues take no part in
@@ -172,9 +175,11 @@ struct BuildInputs {
 // The timeline of a ladder (see above): its axis, variants, curves and
 // events, the events in canonical order with their ids and the overlap index
 // built, and its warnings. Empty, with `err` saying why, when the inputs
-// don't fit together: one VariantRead per variant and no other, and each
+// don't fit together: one VariantRead per variant and no other, each
 // playlist one that parse_playlist_events() read, without an error, for the
-// variant it is given for. Otherwise `err` is empty, whatever the warnings.
+// variant it is given for, and the pairs' numbers rising in the report's
+// order within an int, as read_ladder_report() gives them (D-092 (b)).
+// Otherwise `err` is empty, whatever the warnings.
 //
 // It places through the pairs as read_ladder_report() checks them: each
 // pair's reference and distorted positions rise from frame to frame, each
@@ -196,9 +201,15 @@ std::vector<Curve> pair_curves(const LadderScores& scores);
 
 // Gives `timeline`, read back from a document (src/TimelineDoc.h, which
 // leaves the curves to the caller), the curves of `scores`, the ladder report
-// it names, curve k on the variant whose pair is k. Returns false, with `err`
-// saying why and `timeline` unchanged, when the document's variants and the
-// report's complete pairs don't name each other one for one.
+// it names: curve k from the report's k-th complete pair, scores.pairs[k],
+// on the variant whose pair is that pair's number, pairs[k].index (D-092
+// (b)). As the report lists its complete pairs in the plan's order, curve k
+// is the k-th of the document's pairs in the order of their numbers, the
+// place from_json() gives a curve reference of that pair. Returns false,
+// with `err` saying why, naming each pair by its number, and `timeline`
+// unchanged, when the document's variants and the report's complete pairs
+// don't name each other one for one, or the report's pairs don't come in
+// the plan's order.
 bool attach_curves(Timeline& timeline, const LadderScores& scores, std::string& err);
 
 // Every pair's curve of `timeline`, in order: what detection runs on for a
@@ -210,8 +221,9 @@ std::vector<CurveRef> pair_curve_refs(const Timeline& timeline);
 // detected true, and the baseline and both magnitudes those of its drop
 // (Q27 (c)), attribute() giving its points, minimum and mean. In the order
 // of `curves`, and each curve's drops in its order. None when W and N aren't
-// both given. Empty, with `err` naming the curve and why, when a curve isn't
-// one the timeline has or one detect() takes, or an option is one
+// both given. Empty, with `err` saying why, when a curve isn't one the
+// timeline has, or isn't one detect() takes, named then by its pair's
+// number (pair_number(), src/TimelineDoc.h), or an option is one
 // check_options() refuses; otherwise `err` is empty.
 std::vector<Attribution> attribute_drops(const Timeline& timeline, const std::vector<CurveRef>& curves,
                                          const DetectOptions& detect, const QueryOptions& query,

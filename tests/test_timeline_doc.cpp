@@ -13,9 +13,13 @@
 // an unknown schema_version among them, what the writer writes without
 // checking and the reader refuses, the axis's stretches with their rational
 // steps and phases (D-092 (a)) and their scales (D-099 (a)), those of the
-// 24000/1001, 60000/1001 and 30000/1001 rates among them, the null segment
-// map of a variant without a playlist (D-092 (c)), the reference the axis is
-// built on, and the writing through a temporary file.
+// 24000/1001, 60000/1001 and 30000/1001 rates among them, and the steps and
+// scales D-100 has the writer try, for PTS on a millisecond clock and on one
+// of 1/600 s and for an ad at another frame rate, values off each of them,
+// and the whole step where it holds as many frames, a pair's number, the
+// report's pairs[].index (D-092 (b)), the null segment map of a variant
+// without a playlist (D-092 (c)), the reference the axis is built on, and
+// the writing through a temporary file.
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -40,6 +44,7 @@
 #include <functional>
 #include <iterator>
 #include <limits>
+#include <numeric>
 #include <optional>
 #include <sstream>
 #include <string>
@@ -849,6 +854,163 @@ std::string round_trip(const Built& b)
     return text;
 }
 
+// A reference of the shape the tests of the axis's stretches give
+// build_axis(): its segments, each of `frames` frames with its EXTINF text
+// and an EXT-X-DISCONTINUITY before it or not, every frame's PTS on
+// MPEG-TS's 90 kHz clock, the report's sequences of it and its frame rate.
+struct Segment {
+    std::int64_t frames;
+    std::string  extinf;
+    bool         discontinuity = false;
+};
+struct Reference {
+    AVRational                      rate;
+    std::vector<Segment>            segments;
+    std::vector<std::int64_t>       pts;
+    std::vector<timeline::Sequence> sequences;
+};
+
+// The axis of `r` as build_axis() makes it of a report of one pair that
+// pairs every frame, with the reference's segment map or with it refused
+// (D-081 (c)), on a timeline of the reference's variant alone, and its
+// document, checked against the schema, read back exactly and written again
+// to the same bytes.
+struct AxisDoc {
+    timeline::Timeline timeline;
+    std::string        text;
+};
+AxisDoc axis_document(const Reference& r, bool with_map)
+{
+    timeline::LadderScores s = ad_report();
+    s.pairs.resize(1);
+    timeline::PairScores& p = s.pairs[0];
+    p.ref_rate = p.dis_rate = r.rate;
+    p.ref_index.clear();
+    p.dis_index.clear();
+    p.ref_pts.clear();
+    p.dis_pts.clear();
+    p.vmaf.clear();
+    for (std::size_t i = 0; i < r.pts.size(); ++i) {
+        p.ref_index.push_back(static_cast<std::int64_t>(i));
+        p.dis_index.push_back(static_cast<std::int64_t>(i));
+        p.ref_pts.push_back(r.pts[i]);
+        p.dis_pts.push_back(r.pts[i]);
+        p.vmaf.push_back(95.0);
+    }
+    p.context_first = { 0 };
+    p.ref_sequences = p.dis_sequences = r.sequences;
+
+    std::string playlist = "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:5\n#EXT-X-MEDIA-SEQUENCE:0\n"
+                           "#EXT-X-PLAYLIST-TYPE:VOD\n";
+    timeline::VariantMedia media;
+    std::int64_t first = 0;
+    for (std::size_t k = 0; k < r.segments.size(); ++k) {
+        const Segment& g = r.segments[k];
+        if (g.discontinuity) playlist += "#EXT-X-DISCONTINUITY\n";
+        playlist += std::format("#EXTINF:{},\ns{}.ts\n", g.extinf, k);
+        media.segments.push_back(
+            { .seq = static_cast<std::int64_t>(k), .first_index = first, .frames = g.frames, .bytes = 1000 });
+        first += g.frames;
+    }
+    playlist += "#EXT-X-ENDLIST\n";
+    REQUIRE(first == static_cast<std::int64_t>(r.pts.size()));
+    media.pts = r.pts;
+    timeline::VariantMedia refused;
+    refused.refused = std::string(kRefusal);
+    const timeline::PlaylistEvents events = timeline::parse_playlist_events(playlist, url_of(0), 0);
+    REQUIRE(events.error.empty());
+
+    AxisDoc out;
+    timeline::Timeline& t = out.timeline;
+    t.axis = timeline::build_axis(s, with_map ? &media : &refused, &events.timeline);
+    REQUIRE(t.axis.clock == (with_map ? "playlist-time" : "frame-grid"));
+    REQUIRE(t.axis.frames == first);
+    timeline::Variant ref;
+    ref.index = 0;
+    ref.url   = url_of(0);
+    t.variants.push_back(ref);
+    timeline::DocInfo info;
+    std::string       err;
+    REQUIRE(timeline::reference_info(s, t.axis, info.reference, err));
+    out.text = timeline::to_json(t, {}, info);
+    CHECK(schema_failures(out.text).empty());
+    const Read back = read(out.text);
+    INFO(back.err);
+    REQUIRE(back.ok);
+    CHECK(back.timeline.axis.ticks == t.axis.ticks);
+    REQUIRE(back.timeline.axis.keys.size() == t.axis.keys.size());
+    for (std::size_t i = 0; i < t.axis.keys.size(); ++i) {
+        CHECK(back.timeline.axis.keys[i].sequence == t.axis.keys[i].sequence);
+        CHECK(back.timeline.axis.keys[i].pts == t.axis.keys[i].pts);
+    }
+    CHECK(timeline::to_json(back.timeline, back.attributions, back.info) == out.text);
+    return out;
+}
+
+// One stretch as the document writes it, a stretch of ticks or of keys.
+std::string tick_stretch(std::int64_t first, std::int64_t frames, std::int64_t tick, std::string_view step,
+                         std::int64_t phase, std::int64_t scale)
+{
+    return std::format(R"({{"first":{},"frames":{},"first_tick":{},"step":"{}","phase":{},"scale":{}}})", first,
+                       frames, tick, step, phase, scale);
+}
+std::string key_stretch(std::int64_t first, std::int64_t frames, std::int64_t sequence, std::int64_t pts,
+                        std::string_view step, std::int64_t phase, std::int64_t scale)
+{
+    return std::format(R"({{"first":{},"frames":{},"sequence":{},"first_pts_ticks":{},"step":"{}","phase":{},)"
+                       R"("scale":{}}})",
+                       first, frames, sequence, pts, step, phase, scale);
+}
+
+// round(j x unit x den / num), halves up: the j-th frame's timestamp at the
+// frame rate num/den on a clock of `unit` ticks a second, from the first's.
+std::int64_t rounded_at(std::int64_t j, AVRational rate, std::int64_t unit)
+{
+    return (2 * j * unit * rate.den + rate.num) / (2 * static_cast<std::int64_t>(rate.num));
+}
+
+// A stretch of a document's axis.ticks or axis.keys as the tests of values
+// off a step look at it: its first frame, its frames, its step and its
+// scale.
+struct Seen {
+    std::int64_t first = 0, frames = 0;
+    std::string  step;
+    std::int64_t scale = 1;
+};
+
+// The stretches of `doc`'s array `path` whose first frame is from `from` to
+// `to` - 1, in their order.
+std::vector<Seen> seen(json::Value& doc, std::string_view path, std::int64_t from, std::int64_t to)
+{
+    std::vector<Seen> out;
+    for (const json::Value& s : *at(doc, path).array())
+        if (const std::int64_t first = *s.find("first")->integer(); first >= from && first < to)
+            out.push_back({ .first  = first,
+                            .frames = *s.find("frames")->integer(),
+                            .step   = *s.find("step")->string(),
+                            .scale  = *s.find("scale")->integer() });
+    return out;
+}
+
+// That `list` has one stretch before the first of the frames `off`, whose
+// values are off a step, and two from each of them: one that starts at it,
+// and one of the step `step` with the scale `scale` after it, which ends at
+// the next of them or, after the last, at `end`.
+void check_off(const std::vector<Seen>& list, const std::vector<std::int64_t>& off, std::string_view step,
+               std::int64_t scale, std::int64_t end)
+{
+    REQUIRE(list.size() == 1 + 2 * off.size());
+    for (std::size_t k = 0; k < off.size(); ++k) {
+        INFO(std::format("the value off at frame {}", off[k]));
+        const Seen& from  = list[1 + 2 * k];
+        const Seen& after = list[2 + 2 * k];
+        CHECK(from.first == off[k]);
+        CHECK(after.step == step);
+        CHECK(after.scale == scale);
+        CHECK(after.first + after.frames == (k + 1 < off.size() ? off[k + 1] : end));
+    }
+}
+
 } // namespace
 
 // ── The validator ────────────────────────────────────────────────────────────
@@ -1292,10 +1454,14 @@ TEST_CASE("timeline::to_json: rational steps with a phase, exact to the tick and
     // 20 frames at 24000/1001 fps, the ticks and the PTS both on a 90 kHz
     // clock, where a frame is 15015/4 ticks (D-092 (a)): values rounded to
     // the nearest tick, halves up, follow that step with the phase 2. A value
-    // a tick off starts a new stretch, here one of a whole step with the
-    // frame after it, and the frames after those follow the frame duration
-    // again, the ticks with the phase 1. The axis's ticks are the PTS's, so
-    // every stretch has the scale 1 (D-099 (a)).
+    // a tick off starts a new stretch. For the keys it is one of a whole
+    // step with the frame after it, and the frames after those follow the
+    // frame duration again. For the ticks, the step its own first values
+    // give, 11263/3, the difference of its fourth value from its first over
+    // 3 (D-100 (b)), holds it and the 3 frames after it, more than the frame
+    // duration or a whole step would, and the last frame is a stretch of its
+    // own. The axis's ticks are the PTS's, so every stretch has the scale 1
+    // (D-099 (a)).
     {
         Built b = hand_made(20, 90000, { 1001, 24000 }, kTs);
         timeline::Axis& a = b.timeline.axis;
@@ -1309,8 +1475,8 @@ TEST_CASE("timeline::to_json: rational steps with a phase, exact to the tick and
         json::Value doc = parsed(round_trip(b));
         CHECK(text_of(at(doc, "axis.ticks")) ==
               R"([{"first":0,"frames":15,"first_tick":0,"step":"15015/4","phase":2,"scale":1},)"
-              R"({"first":15,"frames":2,"first_tick":56305,"step":"3755/1","phase":0,"scale":1},)"
-              R"({"first":17,"frames":3,"first_tick":63814,"step":"15015/4","phase":1,"scale":1}])");
+              R"({"first":15,"frames":4,"first_tick":56305,"step":"11263/3","phase":2,"scale":1},)"
+              R"({"first":19,"frames":1,"first_tick":71321,"step":"0/1","phase":0,"scale":1}])");
         CHECK(text_of(at(doc, "axis.keys")) ==
               R"([{"first":0,"frames":10,"sequence":0,"first_pts_ticks":900000,"step":"15015/4","phase":2,)"
               R"("scale":1},)"
@@ -1421,10 +1587,12 @@ TEST_CASE("timeline::to_json: stretches with a scale, exact to the tick and at 6
           R"("scale":1}])");
 
     // A tick off the formula by one, no multiple of the scale, and one off by
-    // the scale, a PTS tick, each start a new stretch, of a whole step with
-    // the frame after it, and the frames after those follow the frame
-    // duration with the scale again, the last ones with the phase 1. Every
-    // tick comes back exactly.
+    // the scale, a PTS tick, each start a new stretch. The first is one of a
+    // whole step with the frame after it, and the frames after those follow
+    // the frame duration with the scale again. The second's differences share
+    // the factor 8, and the step its own first values give in units of it,
+    // 11263/3 with the scale 8 (D-100 (b)), holds it and the 3 frames after
+    // it, the last frame a stretch of its own. Every tick comes back exactly.
     a.ticks[10] += 1;
     a.ticks[15] -= 8;
     doc = parsed(round_trip(b));
@@ -1432,8 +1600,8 @@ TEST_CASE("timeline::to_json: stretches with a scale, exact to the tick and at 6
           R"([{"first":0,"frames":10,"first_tick":0,"step":"15015/4","phase":2,"scale":8},)"
           R"({"first":10,"frames":2,"first_tick":300305,"step":"30023/1","phase":0,"scale":1},)"
           R"({"first":12,"frames":3,"first_tick":360360,"step":"15015/4","phase":2,"scale":8},)"
-          R"({"first":15,"frames":2,"first_tick":450440,"step":"30040/1","phase":0,"scale":1},)"
-          R"({"first":17,"frames":3,"first_tick":510512,"step":"15015/4","phase":1,"scale":8}])");
+          R"({"first":15,"frames":4,"first_tick":450440,"step":"11263/3","phase":2,"scale":8},)"
+          R"({"first":19,"frames":1,"first_tick":570568,"step":"0/1","phase":0,"scale":1}])");
 
     // 64-bit extremes. Ticks of 1/2^62 s on a time base of 1 s, so that the
     // axis has 2^62 ticks to a PTS tick, and frames of 1/2 s: 7 frames from
@@ -1681,6 +1849,449 @@ TEST_CASE("timeline::to_json: the axis's stretches where a frame isn't a whole n
             }
             CHECK(timeline::to_json(back.timeline, back.attributions, back.info) == text);
         }
+    }
+}
+
+TEST_CASE("timeline::to_json: the axis's stretches of PTS on a clock coarser than their time base (D-100 (a))",
+          "[timeline][timeline_doc]")
+{
+    // The reference of the test above, four 2.002 s segments at 24000/1001,
+    // 60000/1001 and 30000/1001 fps with a discontinuity before the third,
+    // through build_axis(), but its PTS 90 times a count of milliseconds,
+    // each frame's rounded to the nearest millisecond, halves up, as a remux
+    // of a millisecond clock into MPEG-TS without re-encoding gives. A frame
+    // is 1001/24, 1001/60 and 1001/30 ms, so that neither frame duration of
+    // D-099 follows the PTS, and the factor the differences of a stretch's
+    // values share does (D-100 (a)): 90 for the keys, 90 times the axis's
+    // ticks to a PTS tick for the playlist time's ticks, and the frame
+    // duration in milliseconds, with the phase of their rounding:
+    // - the keys, one stretch per sequence with the scale 90;
+    // - the playlist time's ticks, one stretch for the whole reference under
+    //   EXTINF that are the frames, the discontinuity included, and one per
+    //   segment under whole seconds and under EXTINF in millionths, which
+    //   need finer ticks, 200, 100 and 100 to a PTS tick;
+    // - the frame grid's ticks, without the map, one stretch of the frame
+    //   duration in the axis's ticks.
+    // A reference whose segments hold twice the frames takes as many
+    // stretches. Every axis reads back exactly and is written again to the
+    // same bytes (axis_document()).
+    struct Rate {
+        AVRational   rate;
+        std::int64_t per_segment;         // the frames of a 2.002 s segment
+        std::int64_t per_pts_tick;        // the axis's ticks to a PTS tick, EXTINF in thousandths
+        std::int64_t fine_per_pts_tick;   // the same with EXTINF in millionths
+        std::string  step;                // the frame duration in milliseconds
+        std::int64_t phase;               // of the rounded milliseconds
+        std::string  grid_step;           // the frame duration in the axis's ticks
+    };
+    const std::vector<Rate> rates = {
+        { { 24000, 1001 }, 48, 8, 200, "1001/24", 12, "30030/1" },
+        { { 60000, 1001 }, 120, 4, 100, "1001/60", 30, "6006/1" },
+        { { 30000, 1001 }, 60, 2, 100, "1001/30", 15, "6006/1" },
+    };
+    // Four segments of `frames` frames, EXTINF `extinf`, a discontinuity
+    // before the third; the PTS 90 times the milliseconds of each frame from
+    // its sequence's first, from 10 s, a sequence being two segments.
+    const auto reference = [](const Rate& r, std::int64_t frames, const std::string& extinf) {
+        Reference ref;
+        ref.rate = r.rate;
+        for (int k = 0; k < 4; ++k) ref.segments.push_back({ frames, extinf, k == 2 });
+        for (std::int64_t i = 0; i < 4 * frames; ++i)
+            ref.pts.push_back(kOrigin + 90 * rounded_at(i % (2 * frames), r.rate, 1000));
+        ref.sequences = { { .first_index = 0, .first_pts = kOrigin, .frames = 2 * frames },
+                          { .first_index = 2 * frames, .first_pts = kOrigin, .frames = 2 * frames } };
+        return ref;
+    };
+    struct Case {
+        bool        with_map;
+        std::string extinf, extinf_twice;   // for segments of the frames, and of twice them
+    };
+    for (const Rate& r : rates) {
+        INFO(std::format("{}/{} fps", r.rate.num, r.rate.den));
+        const std::int64_t sequence = 2 * r.per_segment;
+        const std::int64_t frames   = 2 * sequence;
+        const std::string  keys = "[" + key_stretch(0, sequence, 0, kOrigin, r.step, r.phase, 90) + "," +
+                                  key_stretch(sequence, sequence, 1, kOrigin, r.step, r.phase, 90) + "]";
+        for (const Case& c : { Case{ true, "2.002", "4.004" }, Case{ true, "2", "4" },
+                               Case{ true, "2.002001", "4.004002" }, Case{ false, "2.002", "4.004" } }) {
+            INFO((c.with_map ? "the playlist time, EXTINF " + c.extinf : std::string("the frame grid")));
+            const AxisDoc d = axis_document(reference(r, r.per_segment, c.extinf), c.with_map);
+            const bool         fine = c.extinf == "2.002001";
+            const std::int64_t den  = d.timeline.axis.tick_den;
+            const std::int64_t per  = fine ? r.fine_per_pts_tick : r.per_pts_tick;
+            CHECK(den == 90000 * per);
+            CHECK(d.timeline.axis.warnings.empty());
+            json::Value doc = parsed(d.text);
+            CHECK(text_of(at(doc, "axis.keys")) == keys);
+            std::string ticks;
+            if (!c.with_map) {
+                ticks = tick_stretch(0, frames, 0, r.grid_step, 0, 1);
+            } else if (c.extinf == "2.002") {
+                ticks = tick_stretch(0, frames, 0, r.step, r.phase, 90 * per);
+            } else {
+                // Each segment at the sum of the EXTINF before it, in the axis's ticks.
+                const std::int64_t extinf = fine ? 2002001 * den / 1000000 : 2 * den;
+                for (std::int64_t k = 0; k < 4; ++k)
+                    ticks += (k == 0 ? "" : ",") +
+                             tick_stretch(k * r.per_segment, r.per_segment, k * extinf, r.step, r.phase, 90 * per);
+            }
+            CHECK(text_of(at(doc, "axis.ticks")) == "[" + ticks + "]");
+
+            // Twice the frames a segment, as many stretches.
+            const AxisDoc twice = axis_document(reference(r, 2 * r.per_segment, c.extinf_twice), c.with_map);
+            json::Value twice_doc = parsed(twice.text);
+            CHECK(twice.timeline.axis.frames == 2 * frames);
+            CHECK(at(twice_doc, "axis.keys").array()->size() == 2);
+            CHECK(at(twice_doc, "axis.ticks").array()->size() == at(doc, "axis.ticks").array()->size());
+        }
+    }
+}
+
+TEST_CASE("timeline::to_json: the axis's stretches of PTS on a 1/600 s clock, where the first differences "
+          "share more than its tick (D-100 (a))", "[timeline][timeline_doc]")
+{
+    // Four 10.01 s segments at 24000/1001, 30000/1001 and 60000/1001 fps with
+    // a discontinuity before the third, through build_axis(), the PTS 150
+    // times a count of ticks of a 1/600 s clock, each frame's rounded to the
+    // nearest, halves up. A frame is 1001/40, 1001/50 and 1001/100 of those
+    // ticks, so close to 25, 20 and 10 of them that the first 8 differences
+    // of a stretch's values from its first are multiples of 25, 20 and 10
+    // ticks, and the factor they share that many times the clock's tick: the
+    // frame duration in units of that factor holds the frames only until a
+    // frame's rounding moves, where the writer tries it again in units of
+    // the factor that frame's difference shares with it, the clock's tick
+    // (D-100 (a)):
+    // - the keys, one stretch per sequence, the frame duration in ticks of
+    //   the clock with the scale 150;
+    // - the playlist time's ticks, one stretch for the whole reference under
+    //   EXTINF that are the frames, a segment being 6006 ticks of the clock,
+    //   the discontinuity included, and one per segment under whole seconds
+    //   and under EXTINF in millionths, with the scale 150 times the axis's
+    //   ticks to a PTS tick;
+    // - the frame grid's ticks, without the map, one stretch of the frame
+    //   duration in the axis's ticks.
+    // A reference whose segments hold twice the frames takes as many
+    // stretches. Every axis reads back exactly and is written again to the
+    // same bytes (axis_document()). Under whole seconds the check of design
+    // §4.2 finds the later segments' playlist time more than half a frame
+    // before the frame grid, each EXTINF being 0.01 s short; its runs aren't
+    // this test's.
+    struct Rate {
+        AVRational   rate;
+        std::int64_t per_segment;         // the frames of a 10.01 s segment
+        std::int64_t near;                // the clock's ticks the first 8 differences are multiples of
+        std::int64_t per_pts_tick;        // the axis's ticks to a PTS tick, EXTINF in hundredths
+        std::int64_t fine_per_pts_tick;   // the same with EXTINF in millionths
+        std::string  step;                // the frame duration in ticks of the clock
+        std::int64_t phase;               // of the rounded ticks
+        std::string  grid_step;           // the frame duration in the axis's ticks
+    };
+    const std::vector<Rate> rates = {
+        { { 24000, 1001 }, 240, 25, 8, 200, "1001/40", 20, "30030/1" },
+        { { 30000, 1001 }, 300, 20, 2, 100, "1001/50", 25, "6006/1" },
+        { { 60000, 1001 }, 600, 10, 4, 100, "1001/100", 50, "6006/1" },
+    };
+    // Four segments of `frames` frames, EXTINF `extinf`, a discontinuity
+    // before the third; the PTS 150 times the clock's ticks of each frame
+    // from its sequence's first, from 10 s, a sequence being two segments.
+    const auto reference = [](const Rate& r, std::int64_t frames, const std::string& extinf) {
+        Reference ref;
+        ref.rate = r.rate;
+        for (int k = 0; k < 4; ++k) ref.segments.push_back({ frames, extinf, k == 2 });
+        for (std::int64_t i = 0; i < 4 * frames; ++i)
+            ref.pts.push_back(kOrigin + 150 * rounded_at(i % (2 * frames), r.rate, 600));
+        ref.sequences = { { .first_index = 0, .first_pts = kOrigin, .frames = 2 * frames },
+                          { .first_index = 2 * frames, .first_pts = kOrigin, .frames = 2 * frames } };
+        return ref;
+    };
+    struct Case {
+        bool        with_map;
+        std::string extinf, extinf_twice;   // for segments of the frames, and of twice them
+    };
+    for (const Rate& r : rates) {
+        INFO(std::format("{}/{} fps", r.rate.num, r.rate.den));
+        const std::int64_t sequence = 2 * r.per_segment;
+        const std::int64_t frames   = 2 * sequence;
+        {
+            const Reference ref = reference(r, r.per_segment, "10.01");
+            std::int64_t    shared = 0;
+            for (std::size_t k = 1; k <= 8; ++k) shared = std::gcd(shared, ref.pts[k] - ref.pts[0]);
+            CHECK(shared == 150 * r.near);
+        }
+        const std::string keys = "[" + key_stretch(0, sequence, 0, kOrigin, r.step, r.phase, 150) + "," +
+                                 key_stretch(sequence, sequence, 1, kOrigin, r.step, r.phase, 150) + "]";
+        for (const Case& c : { Case{ true, "10.01", "20.02" }, Case{ true, "10", "20" },
+                               Case{ true, "10.010001", "20.020002" }, Case{ false, "10.01", "20.02" } }) {
+            INFO((c.with_map ? "the playlist time, EXTINF " + c.extinf : std::string("the frame grid")));
+            const AxisDoc d = axis_document(reference(r, r.per_segment, c.extinf), c.with_map);
+            const bool         fine = c.extinf == "10.010001";
+            const std::int64_t den  = d.timeline.axis.tick_den;
+            const std::int64_t per  = fine ? r.fine_per_pts_tick : r.per_pts_tick;
+            CHECK(den == 90000 * per);
+            CHECK(d.timeline.axis.warnings.empty() == (c.extinf != "10"));
+            json::Value doc = parsed(d.text);
+            CHECK(text_of(at(doc, "axis.keys")) == keys);
+            std::string ticks;
+            if (!c.with_map) {
+                ticks = tick_stretch(0, frames, 0, r.grid_step, 0, 1);
+            } else if (c.extinf == "10.01") {
+                ticks = tick_stretch(0, frames, 0, r.step, r.phase, 150 * per);
+            } else {
+                // Each segment at the sum of the EXTINF before it, in the axis's ticks.
+                const std::int64_t extinf = fine ? 10010001 * den / 1000000 : 10 * den;
+                for (std::int64_t k = 0; k < 4; ++k)
+                    ticks += (k == 0 ? "" : ",") + tick_stretch(k * r.per_segment, r.per_segment, k * extinf,
+                                                                r.step, r.phase, 150 * per);
+            }
+            CHECK(text_of(at(doc, "axis.ticks")) == "[" + ticks + "]");
+
+            // Twice the frames a segment, as many stretches.
+            const AxisDoc twice = axis_document(reference(r, 2 * r.per_segment, c.extinf_twice), c.with_map);
+            json::Value twice_doc = parsed(twice.text);
+            CHECK(twice.timeline.axis.frames == 2 * frames);
+            CHECK(at(twice_doc, "axis.keys").array()->size() == 2);
+            CHECK(at(twice_doc, "axis.ticks").array()->size() == at(doc, "axis.ticks").array()->size());
+        }
+
+        // Values off the clock's step, under EXTINF that are the frames: a
+        // key a PTS tick off at frame 100, no multiple of the scale, and one
+        // a tick of the clock off at frame 350, a multiple of it off the
+        // formula, neither a segment's first frame, and with them the
+        // playlist time's ticks. A stretch starts at each, and the frame
+        // duration in ticks of the clock with its scale, found again from
+        // the factor the first differences after it share, holds the frames
+        // after its stretch, to the next value off or to the end, of the
+        // first sequence for the keys and of the reference for the ticks.
+        // Every value comes back exactly (axis_document()).
+        {
+            INFO("two values off");
+            const std::vector<std::int64_t> off = { 100, 350 };
+            Reference ref = reference(r, r.per_segment, "10.01");
+            ref.pts[100] += 1;
+            ref.pts[350] += 150;
+            const AxisDoc d = axis_document(ref, true);
+            json::Value doc = parsed(d.text);
+            INFO(text_of(at(doc, "axis.keys")));
+            INFO(text_of(at(doc, "axis.ticks")));
+            const std::int64_t per = r.per_pts_tick;
+            for (const auto& [list, scale, end] :
+                 { std::tuple{ seen(doc, "axis.keys", 0, sequence), std::int64_t{ 150 }, sequence },
+                   std::tuple{ seen(doc, "axis.ticks", 0, frames), 150 * per, frames } }) {
+                check_off(list, off, r.step, scale, end);
+                REQUIRE_FALSE(list.empty());
+                CHECK(list[0].step == r.step);
+                CHECK(list[0].scale == scale);
+                CHECK(list[0].frames == 100);
+            }
+        }
+    }
+}
+
+TEST_CASE("timeline::to_json: the axis's stretches of an ad at another frame rate after its discontinuity, "
+          "and of values off its step (D-100 (b))", "[timeline][timeline_doc]")
+{
+    // Two segments of the main content, an ad of two segments after an
+    // EXT-X-DISCONTINUITY, and two of the main content after another,
+    // through build_axis(), each EXTINF its segment's frames, the PTS on
+    // MPEG-TS's 90 kHz clock rounded to the nearest tick, halves up: 25 fps
+    // content with an ad at 24000/1001 fps, and 30000/1001 fps content with
+    // an ad at 60000/1001 fps. The ad restarts its timestamps at the main
+    // content's origin, and the main content comes back 8 s and 8.008 s
+    // after it, within the report's second sequence, the ad's, as the
+    // aligner keeps a jump forward under 10 s (src/VMAFAlign.h). An ad's
+    // frame, 15015/4 and 3003/2 PTS ticks, is neither the axis's frame
+    // duration, 3600 and 3003, nor a whole step, and the step the stretch's
+    // own first values give is (D-100 (b)): the keys take it for the ad,
+    // and the playlist time's ticks too, with the scale 2 where the axis has
+    // 2 ticks to a PTS tick. Each EXTINF being its segment's frames, a
+    // stretch of ticks runs on into the first frame of the next part, which
+    // the playlist time puts where the step puts it, so that the ad's
+    // stretch of ticks starts at its second frame. Without the map the frame
+    // grid's ticks are one stretch, and the keys the same as with it. A
+    // reference whose segments hold twice the frames takes as many
+    // stretches. Every axis reads back exactly and is written again to the
+    // same bytes (axis_document()). The check of design §4.2 finds the ad
+    // off the axis's frame grid; its runs aren't this test's.
+    struct Rate {
+        AVRational   main, ad;
+        std::int64_t main_frames, ad_frames;   // a segment's
+        std::string  main_extinf, ad_extinf;
+        std::int64_t back;                     // the main content's PTS after the ad, from 10 s
+        std::int64_t per_pts_tick;             // the axis's ticks to a PTS tick
+        std::string  main_step, ad_step;       // in PTS ticks
+        std::int64_t ad_phase;                 // of the ad's rounded PTS
+        std::int64_t ad_tick_phase;            // of the same from the ad's second frame
+        std::string  grid_step;                // the main content's frame duration in the axis's ticks
+    };
+    const std::vector<Rate> rates = {
+        { { 25, 1 }, { 24000, 1001 }, 50, 48, "2", "2.002", 720000, 1, "3600/1", "15015/4", 2, 1, "3600/1" },
+        { { 30000, 1001 }, { 60000, 1001 }, 60, 120, "2.002", "2.002", 720720, 2, "3003/1", "3003/2", 1, 0,
+          "6006/1" },
+    };
+    const auto reference = [](const Rate& r, std::int64_t times) {
+        Reference ref;
+        ref.rate = r.main;
+        const std::int64_t main = times * r.main_frames, ad = times * r.ad_frames;
+        const std::string  main_extinf = times == 1 ? r.main_extinf : r.main_extinf == "2" ? "4" : "4.004";
+        const std::string  ad_extinf   = times == 1 ? r.ad_extinf : "4.004";
+        for (int k = 0; k < 6; ++k)
+            ref.segments.push_back({ k == 2 || k == 3 ? ad : main, k == 2 || k == 3 ? ad_extinf : main_extinf,
+                                     k == 2 || k == 4 });
+        for (std::int64_t i = 0; i < 2 * main; ++i) ref.pts.push_back(kOrigin + rounded_at(i, r.main, 90000));
+        for (std::int64_t j = 0; j < 2 * ad; ++j) ref.pts.push_back(kOrigin + rounded_at(j, r.ad, 90000));
+        for (std::int64_t i = 0; i < 2 * main; ++i)
+            ref.pts.push_back(kOrigin + times * r.back + rounded_at(i, r.main, 90000));
+        ref.sequences = { { .first_index = 0, .first_pts = kOrigin, .frames = 2 * main },
+                          { .first_index = 2 * main, .first_pts = kOrigin, .frames = 2 * ad + 2 * main } };
+        return ref;
+    };
+    for (const Rate& r : rates) {
+        INFO(std::format("{}/{} fps content, an ad at {}/{} fps", r.main.num, r.main.den, r.ad.num, r.ad.den));
+        const std::int64_t main = 2 * r.main_frames, ad = 2 * r.ad_frames;   // each part's frames
+        const std::int64_t frames = 2 * main + ad;
+        const std::string  keys = "[" + key_stretch(0, main, 0, kOrigin, r.main_step, 0, 1) + "," +
+                                  key_stretch(main, ad, 1, kOrigin, r.ad_step, r.ad_phase, 1) + "," +
+                                  key_stretch(main + ad, main, 1, kOrigin + r.back, r.main_step, 0, 1) + "]";
+        for (const bool with_map : { true, false }) {
+            INFO((with_map ? "the playlist time" : "the frame grid"));
+            const AxisDoc d = axis_document(reference(r, 1), with_map);
+            const timeline::Axis& a = d.timeline.axis;
+            CHECK(a.tick_den == 90000 * r.per_pts_tick);
+            json::Value doc = parsed(d.text);
+            CHECK(text_of(at(doc, "axis.keys")) == keys);
+            // The frame duration in the axis's ticks, and the ad's step in
+            // PTS ticks with the axis's ticks to a PTS tick as the scale,
+            // from the ad's second frame.
+            const auto tick_at = [&a](std::int64_t i) { return a.ticks[static_cast<std::size_t>(i)]; };
+            const std::string ticks =
+                with_map ? tick_stretch(0, main + 1, 0, r.grid_step, 0, 1) + "," +
+                               tick_stretch(main + 1, ad, tick_at(main + 1), r.ad_step, r.ad_tick_phase,
+                                            r.per_pts_tick) +
+                               "," + tick_stretch(main + ad + 1, main - 1, tick_at(main + ad + 1), r.grid_step, 0, 1)
+                         : tick_stretch(0, frames, 0, r.grid_step, 0, 1);
+            CHECK(text_of(at(doc, "axis.ticks")) == "[" + ticks + "]");
+
+            // Twice the frames a segment, as many stretches.
+            const AxisDoc twice = axis_document(reference(r, 2), with_map);
+            json::Value twice_doc = parsed(twice.text);
+            CHECK(twice.timeline.axis.frames == 2 * frames);
+            CHECK(at(twice_doc, "axis.keys").array()->size() == 3);
+            CHECK(at(twice_doc, "axis.ticks").array()->size() == at(doc, "axis.ticks").array()->size());
+        }
+
+        // Values off the ad's step: two of its keys a PTS tick off, at its
+        // frames 5 and 50, the first among the 8 values after its first, of
+        // which the steps its first stretch tries are made, and with them its
+        // playlist-time ticks, by the scale 2 at 60000/1001 fps. A stretch
+        // starts at each, and the ad's step, with its scale, holds the frames
+        // after its stretch, to the next value off or to the ad's end, where
+        // a stretch of ticks runs on into the main content's first frame, so
+        // that the ad's frames take 5 stretches; the frame grid's ticks don't
+        // follow the PTS. Every value comes back exactly (axis_document()).
+        for (const bool with_map : { true, false }) {
+            INFO((with_map ? "the playlist time" : "the frame grid") + std::string(", two values off"));
+            const std::vector<std::int64_t> off = { main + 5, main + 50 };
+            Reference ref = reference(r, 1);
+            for (const std::int64_t i : off) ref.pts[static_cast<std::size_t>(i)] += 1;
+            const AxisDoc d = axis_document(ref, with_map);
+            json::Value doc = parsed(d.text);
+            INFO(text_of(at(doc, "axis.keys")));
+            INFO(text_of(at(doc, "axis.ticks")));
+            check_off(seen(doc, "axis.keys", main, main + ad), off, r.ad_step, 1, main + ad);
+            if (with_map)
+                check_off(seen(doc, "axis.ticks", main + 1, main + ad + 1), off, r.ad_step, r.per_pts_tick,
+                          main + ad + 1);
+            else
+                CHECK(text_of(at(doc, "axis.ticks")) == "[" + tick_stretch(0, frames, 0, r.grid_step, 0, 1) + "]");
+        }
+    }
+}
+
+TEST_CASE("timeline::to_json: values off the steps of D-100 (a) still start a new stretch and come back exact",
+          "[timeline][timeline_doc]")
+{
+    // 72 frames at 24000/1001 fps on a hand-made axis: the keys 90 times a
+    // count of milliseconds, the ticks 720 times it, as the playlist time's
+    // with 8 axis ticks to a PTS tick, which follow 1001/24 with the scales
+    // 90 and 720 (D-100 (a)). A key a PTS tick off, no multiple of the
+    // scale, and one a millisecond off, a multiple of it off the formula,
+    // and a tick 8 off, a PTS tick, each end the stretch before them there,
+    // and the stretches after them follow the frame duration in milliseconds
+    // again; every value comes back exactly. The test of an ad at another
+    // frame rate above puts values off D-100 (b)'s steps.
+    Built b = hand_made(72, 720000, { 1001, 24000 }, kTs);
+    timeline::Axis& a = b.timeline.axis;
+    a.clock   = "playlist-time";
+    a.checked = "segment-map";
+    for (std::int64_t k = 0; k < 72; ++k) {
+        const std::int64_t ms = rounded_at(k, { 24000, 1001 }, 1000);
+        a.ticks.push_back(720 * ms);
+        a.keys.push_back({ .sequence = 0, .pts = kOrigin + 90 * ms });
+    }
+    *a.keys[30].pts += 1;
+    *a.keys[50].pts += 90;
+    a.ticks[40] += 8;
+    json::Value doc = parsed(round_trip(b));
+    const json::Value::Array& keys  = *at(doc, "axis.keys").array();
+    const json::Value::Array& ticks = *at(doc, "axis.ticks").array();
+    const auto starts = [](const json::Value::Array& list) {
+        std::vector<std::int64_t> out;
+        for (const json::Value& s : list) out.push_back(*s.find("first")->integer());
+        return out;
+    };
+    INFO(text_of(at(doc, "axis.keys")));
+    INFO(text_of(at(doc, "axis.ticks")));
+    // The stretch before each value off ends at it.
+    const std::vector<std::int64_t> key_starts = starts(keys), tick_starts = starts(ticks);
+    CHECK(std::ranges::count(key_starts, 30) == 1);
+    CHECK(std::ranges::count(key_starts, 50) == 1);
+    CHECK(std::ranges::count(tick_starts, 40) == 1);
+    CHECK(text_of(keys.front()) == key_stretch(0, 30, 0, kOrigin, "1001/24", 12, 90));
+    CHECK(text_of(ticks.front()) == tick_stretch(0, 40, 0, "1001/24", 12, 720));
+    // After them, the frame duration in milliseconds with its scale again.
+    CHECK(text_of(*keys.back().find("step")) == R"("1001/24")");
+    CHECK(text_of(*keys.back().find("scale")) == "90");
+    CHECK(text_of(*ticks.back().find("step")) == R"("1001/24")");
+    CHECK(text_of(*ticks.back().find("scale")) == "720");
+}
+
+TEST_CASE("timeline::to_json: a step of D-100's is taken only where it holds more frames than the whole step",
+          "[timeline][timeline_doc]")
+{
+    // 50 frames at 25 fps and at 24000/1001 fps on a hand-made axis, the
+    // ticks and the PTS both on a 90 kHz clock, rounded to the nearest
+    // tick, halves up, frame 48, the last but one, 7 ticks late, so that the
+    // last two frames are a stretch of their own. Their one difference is
+    // the factor their differences share, so that D-100 (a)'s step in units
+    // of it, with it as the scale, holds both, as the whole step does: the
+    // whole step, tried before D-100's steps, is taken, with the scale 1,
+    // the form WP08b gave a stretch that a whole step holds (D-099 (b)), so
+    // that D-100's steps win only by holding more frames. Every value comes
+    // back exactly.
+    struct Rate {
+        AVRational   frame;   // the frame duration
+        std::string  step;    // the frames' step in ticks
+        std::int64_t phase;
+    };
+    for (const Rate& r : { Rate{ { 1, 25 }, "3600/1", 0 }, Rate{ { 1001, 24000 }, "15015/4", 2 } }) {
+        INFO(std::format("frames of {}/{} s", r.frame.num, r.frame.den));
+        Built b = hand_made(50, 90000, r.frame, kTs);
+        timeline::Axis& a = b.timeline.axis;
+        for (std::int64_t k = 0; k < 50; ++k) {
+            const std::int64_t tick = (2 * k * 90000 * r.frame.num + r.frame.den) / (2 * r.frame.den);
+            a.ticks.push_back(tick);
+            a.keys.push_back({ .sequence = 0, .pts = kOrigin + tick });
+        }
+        a.ticks[48] += 7;
+        *a.keys[48].pts += 7;
+        const std::string whole = std::format("{}/1", a.ticks[49] - a.ticks[48]);
+        const std::string ticks = tick_stretch(0, 48, 0, r.step, r.phase, 1) + "," +
+                                  tick_stretch(48, 2, a.ticks[48], whole, 0, 1);
+        const std::string keys  = key_stretch(0, 48, 0, kOrigin, r.step, r.phase, 1) + "," +
+                                  key_stretch(48, 2, 0, *a.keys[48].pts, whole, 0, 1);
+        json::Value doc = parsed(round_trip(b));
+        CHECK(text_of(at(doc, "axis.ticks")) == "[" + ticks + "]");
+        CHECK(text_of(at(doc, "axis.keys")) == "[" + keys + "]");
     }
 }
 
@@ -2204,6 +2815,121 @@ TEST_CASE("timeline::from_json: a variant without a playlist has a null segment 
     CHECK(o.timeline.variants[0].playlist_sha256 == r.timeline.variants[1].playlist_sha256);
     json::Value again = parsed(timeline::to_json(o.timeline, o.attributions, o.info));
     CHECK(text_of(at(again, "variants[0]")) == text_of(at(one, "variants[0]")));
+}
+
+TEST_CASE("timeline::to_json and from_json: a pair's number is the report's pairs[].index (D-092 (b))",
+          "[timeline][timeline_doc]")
+{
+    // The ad ladder as if the plan's pair 1 had failed and v180 were its
+    // pair 2: the report's complete pairs are numbered 0 and 2, and so are
+    // the variants' pairs, while v180's curve keeps its place, 1, in
+    // Timeline::curves, which CurveRef::index names.
+    Built b = ad_ladder();
+    b.scores.pairs[1].index     = 2;
+    b.timeline.variants[2].pair = 2;
+    b.info.report.scores_sha256 = filehash::sha256_hex(timeline::scores_text(b.scores));
+    const timeline::Timeline& t = b.timeline;
+    CHECK(timeline::pair_number(t, CurveRef{ .index = 0 }) == 0);
+    CHECK(timeline::pair_number(t, CurveRef{ .index = 1 }) == 2);
+    CHECK_FALSE(timeline::pair_number(t, CurveRef{ .index = 2 }));
+    CHECK_FALSE(timeline::pair_number(t, CurveRef{ .index = -1 }));
+    REQUIRE(timeline::curve_of_pair(t, 2));
+    CHECK(timeline::curve_of_pair(t, 2)->index == 1);
+    CHECK(timeline::curve_of_pair(t, 0)->index == 0);
+    CHECK_FALSE(timeline::curve_of_pair(t, 1));
+    CHECK_FALSE(timeline::curve_of_pair(t, -1));
+
+    // Written, every curve reference is its pair's number.
+    REQUIRE(b.attributions.size() == 1);
+    REQUIRE(b.attributions[0].curve.index == 1);
+    const std::string text = document(b);
+    CHECK(schema_failures(text).empty());
+    json::Value doc = parsed(text);
+    CHECK(text_of(at(doc, "variants[1].pair")) == "0");
+    CHECK(text_of(at(doc, "variants[2].pair")) == "2");
+    CHECK(text_of(at(doc, "detection.curves")) == R"([{"kind":"pair","index":0},{"kind":"pair","index":2}])");
+    CHECK(text_of(at(doc, "attributions[0].curve")) == R"({"kind":"pair","index":2})");
+
+    // Read back, each number is the curve whose variant has it: without
+    // curves, its place among the variants' pairs by their numbers, where
+    // the report's curves go (attach_curves(), src/TimelineBuild.h).
+    const Read r = read(text);
+    INFO(r.err);
+    REQUIRE(r.ok);
+    CHECK(r.timeline.curves.empty());
+    CHECK(r.timeline.variants[2].pair == 2);
+    REQUIRE(r.attributions.size() == 1);
+    CHECK(r.attributions[0].curve.index == 1);
+    REQUIRE(r.info.detection);
+    REQUIRE(r.info.detection->curves.size() == 2);
+    CHECK((r.info.detection->curves[0].index == 0 && r.info.detection->curves[1].index == 1));
+    CHECK(timeline::pair_number(r.timeline, CurveRef{ .index = 1 }) == 2);
+    CHECK_FALSE(timeline::pair_number(r.timeline, CurveRef{ .index = 2 }));
+    CHECK(timeline::curve_of_pair(r.timeline, 2)->index == 1);
+    CHECK_FALSE(timeline::curve_of_pair(r.timeline, 1));
+    CHECK(timeline::to_json(r.timeline, r.attributions, r.info) == text);
+    // With the report's curves attached, the same numbers and bytes.
+    timeline::Timeline attached = r.timeline;
+    std::string err;
+    REQUIRE(timeline::attach_curves(attached, b.scores, err));
+    REQUIRE(attached.curves.size() == 2);
+    CHECK(attached.curves[1].variant == 2);
+    CHECK(attached.curves[1].vmaf == b.scores.pairs[1].vmaf);
+    CHECK(timeline::curve_of_pair(attached, 2)->index == 1);
+    CHECK(timeline::to_json(attached, r.attributions, r.info) == text);
+
+    // A number no variant has, the failed pair's among them, refused naming
+    // the key; two variants with one number too.
+    const auto refused = [&text](const std::function<void(json::Value&)>& change) {
+        json::Value d = parsed(text);
+        change(d);
+        const Read x = read(text_of(d));
+        CHECK_FALSE(x.ok);
+        return x.err;
+    };
+    CHECK(refused([](json::Value& d) { at(d, "attributions[0].curve.index") = integer_value(1); }) ==
+          "attributions[0].curve.index is 1, the pair of none of the variants");
+    CHECK(refused([](json::Value& d) { at(d, "detection.curves[0].index") = integer_value(3); }) ==
+          "detection.curves[0].index is 3, the pair of none of the variants");
+    CHECK(refused([](json::Value& d) {
+              at(d, "attributions[0].curve.index") = integer_value(std::int64_t{ 1 } << 40);
+          }) == "attributions[0].curve.index is 1099511627776, the pair of none of the variants");
+    CHECK(refused([](json::Value& d) { at(d, "variants[1].pair") = integer_value(2); }) ==
+          "variants[2].pair is 2, the pair of variants[1] too");
+
+    // A curve reference that names no pair is written with the index null,
+    // which the schema and the reader refuse.
+    Built none = b;
+    none.attributions[0].curve.index = 5;
+    const std::string none_text = document(none);
+    CHECK(none_text.find(R"("curve": {"kind": "pair", "index": null})") != std::string::npos);
+    CHECK_FALSE(schema_failures(none_text).empty());
+    const Read nr = read(none_text);
+    CHECK_FALSE(nr.ok);
+    CHECK(nr.err == "attributions[0].curve.index is null, not an integer");
+
+    // Variants listed in another order than their pairs' numbers, v180 the
+    // pair 0 and v270 the pair 2, the curves in the order of the numbers:
+    // each curve is named by its variant's pair, and read back at its
+    // pair's place by number, the report's order of its curves.
+    Built swapped = b;
+    swapped.timeline.variants[1].pair = 2;
+    swapped.timeline.variants[2].pair = 0;
+    std::swap(swapped.timeline.curves[0], swapped.timeline.curves[1]);
+    REQUIRE(swapped.timeline.curves[0].variant == 2);
+    swapped.attributions[0].curve.index = 0;   // v180's drop
+    const std::string swapped_text = document(swapped);
+    json::Value sdoc = parsed(swapped_text);
+    CHECK(text_of(at(sdoc, "attributions[0].curve")) == R"({"kind":"pair","index":0})");
+    CHECK(text_of(at(sdoc, "detection.curves")) == R"([{"kind":"pair","index":0},{"kind":"pair","index":2}])");
+    const Read sr = read(swapped_text);
+    INFO(sr.err);
+    REQUIRE(sr.ok);
+    CHECK(sr.attributions[0].curve.index == 0);
+    CHECK(timeline::curve_of_pair(sr.timeline, 0)->index == 0);
+    CHECK(timeline::curve_of_pair(sr.timeline, 2)->index == 1);
+    CHECK(timeline::pair_number(sr.timeline, CurveRef{ .index = 0 }) == 0);
+    CHECK(timeline::to_json(sr.timeline, sr.attributions, sr.info) == swapped_text);
 }
 
 TEST_CASE("timeline::to_json: what breaks its preconditions is written, and from_json() refuses it",
