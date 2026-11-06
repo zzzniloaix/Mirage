@@ -770,6 +770,23 @@ D-086 to D-095 are on branches not yet merged; whoever merges later puts the ent
 - **Who**: owner, adopting the agent's recommendation
 - **Date**: 2026-11-05
 
+D-099 to D-101 are on branches not yet merged; whoever merges later puts the entries in number order.
+
+### D-102 A missing break marker is graded as a misplaced one of its kind
+
+- **Decision**: take a rendition that marks the other breaks with a tag but not this one, where its timeline reaches the break. It gets the grade of a misplaced marker of the same kind.
+  - A missing tag asked for with `--marker-tag` (a packager's own) is an error, as one a segment off is.
+  - A missing `EXT-X-DATERANGE` is a warning, as a `START-DATE` off a segment boundary is.
+  - Both were warnings under D-096. A stream with a missing tag now makes `mirage_hlscheck` exit with status 1.
+- **Owner's words**, translated by the agent: "Grade it as a misplaced one of its kind (Recommended)".
+- **Alternatives**:
+  - always an error, a missing `EXT-X-DATERANGE` included;
+  - a warning by default, raised by an option (`--missing-marker error` and a chip in the tab);
+  - a warning, as before.
+- **Rationale**: a player that splits a rendition from the others at that rendition's own tag has no break there at all. That is at least as bad as a break one segment out. The owner reported the case on 2026-11-06, from an encrypted package with about 110 audio renditions (`plan/hls_markers_usability.md`, section 4).
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-06
+
 ---
 
 ## Measurement / process choices (proposed by the agent, confirmed by the owner)
@@ -2284,4 +2301,38 @@ D-086 to D-095 are on branches not yet merged; whoever merges later puts the ent
   - No sleep or wake event during the checks (`power_log.txt`). Their runner logged the load averages only at each check's start and end (`run.log`).
 - **Who**: agent
 - **Date**: 2026-10-30
+- **Status**: pending owner confirmation
+
+P-081 to P-085 are on branches not yet merged; whoever merges later puts the entries in number order.
+
+### P-086 How `plan/hls_markers_usability.md` is implemented (D-095, D-102), and its records
+
+- **Choice**: under D-095 the agent planned the fixes the owner asked for on 2026-11-06 (`plan/hls_markers_usability.md`, `71d263a`). It audited the plan against the code (five line references and one source corrected), then made the fixes in `2eab999`. Section 4 is D-102. Where the plan was silent, or where the agent went beyond it:
+  - Section 1, the check with nothing playing:
+    - The launcher docks the inspector as playback does, and centres its card in the space left. Esc closes the inspector there, and a width the user drags is saved.
+    - `--ui-snapshot` on the launcher waits for `NetInspector::qa_idle()`, then for `<frame>` frames, and for 300 s at most (the agent's value). A probe never started counts as idle. The first version also waited for a result version that a hidden tab never syncs, so a failed open's capture hung; that was fixed before the commit.
+    - A failed open under `--ui-snapshot` now captures the launcher and exits with status 0. Before, it waited for the alarm.
+    - "Check it" is offered for an MPD too: this FFmpeg opens none, and the tab has a DASH mode.
+    - The launcher's error text is cut to its banner by the existing `ellipsize`, with the whole text on hover. Before, a long one ran past the banner.
+    - `run_session` still applies `--ui-net` to every session. A spec applied on the launcher is applied again when a file then plays.
+  - Section 2: the 2026-11-05 record's `marker_open=1` opened the demo's `break-1`, the event after `chapter-1`. It is `marker_open=0` now.
+  - Section 3: the plan's first rule, a column up to 45% of the card, pushed the offsets and the gauge out of view at the inspector's automatic width (scratch runs, not committed). The column takes the room the other columns leave instead, 130 px at least, as before.
+  - Section 4: the JSON gets `"missing_severity"` beside `"missing"`. A key is added and none is changed. The page reads a report without it as warnings.
+  - Section 5: `--help` only; the text output stays as it was.
+- **Alternatives**: those of the plan's sections; for section 3, the plan's first rule.
+- **Rationale**: each follows the plan where it says something, and the owner's report where it says nothing.
+- **Open**:
+  - No scripted run clicked the launcher's link or the banner's "Check it", or pressed `N` there. "Check it" calls `NetInspector::check_url`, as `hls=` and `dash=` do.
+  - The record parsed the HTML page's script with JavaScriptCore and checked the data it reads, but did not open the page in a browser.
+  - No run drew the Alignment timeline's circle for a missing marker, now red for a missing tag: the names package has no media to play.
+  - On `feat/player-fixes` the inspector's `seek_to` is an absolute PTS (D-089). This branch's "Play from 3 s before the break" gives a position, as PR #7 does. Whichever of the two branches merges later converts it with `ui::pts_at(…, in.start)`, as the Manifest tab's seek does there.
+- **Records**:
+  - `plan/engineer_tools_runs/hls-markers-usability-2026-11-06/`, at `efed1c7`, whose code is `2eab999`'s. It covers:
+    - the check from the launcher with nothing playing, and `tests/hlsmarkers_gui.sh` passing;
+    - each tab's JSON report, the command line's byte for byte;
+    - the names package's two errors;
+    - the session's way in, as before.
+  - The unit tests at `efed1c7` (`plan/engineer_tools_runs/tests/macos-2026-11-06-efed1c7.txt`): every case passes in both builds. That is 446 test cases in each, plus the 13 `[audio]` cases in each.
+- **Who**: agent, under D-095
+- **Date**: 2026-11-06
 - **Status**: pending owner confirmation

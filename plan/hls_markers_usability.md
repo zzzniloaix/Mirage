@@ -11,6 +11,10 @@ covers sections 1 to 3 and 5, which change no render or decode path (D-007).
 Section 4 is the owner's choice (D-102). Line numbers are those of commit
 `ee046dc`.
 
+**Implemented** in `2eab999`. The owner decided section 4 as the agent
+recommended, option (A) (D-102). P-086 lists the choices beyond this plan.
+The record is `plan/engineer_tools_runs/hls-markers-usability-2026-11-06/`.
+
 ## 1. The Conformance check needs something playing
 
 **What happens.** `mirage --ui-net "…,hls=<master>"` with no media argument
@@ -179,6 +183,8 @@ a break one segment out.
 The agent recommends (A): each kind of marker is graded the same whether
 it is missing or misplaced. With (A) or (B), the exit status is 1 for such
 a stream.
+
+**Decided** (D-102, 2026-11-06): (A).
 
 **Fix, once decided.**
 - The finding's severity.

@@ -71,6 +71,17 @@ The branch `feat/hls-markers` (PR #7), on `feat/engineer-tools-followups`. Every
 - **Statements in commit messages that no committed record backs**, none of them amended:
   - `906bf5e` (its message written for `a47df08`, on the branch over the player fixes): "The demo package's JSON report is byte-identical; its text gains one line" and "Headless 471 and debug 472 cases pass". Scratch runs on that other branch, not committed; on this branch `plan/engineer_tools_runs/hls-markers-2026-11-05/` has the tests' run.
   - `8810ec4`: "the JSON written is unchanged" by the report refactor. A scratch run, not committed; the record compares the command line with the tab, not with the code before the refactor.
+- **The usability fixes (2026-11-06)**, on the branch `feat/hls-markers-usability`, from `feat/hls-markers`:
+  - **What the owner asked**: four usability fixes, relayed by the agent session that had used the marker check on encrypted packages, and the grade of a missing marker (D-102).
+  - **What the AI did**: the lead agent of `feat/player-fixes`, another session, did all of it.
+    - It planned the fixes under D-095 (`plan/hls_markers_usability.md`, `71d263a`) and audited the plan against the code. Five line references and one source were corrected.
+    - It made the fixes in `2eab999` and wrote the record's scripts (`efed1c7`) and the records.
+    - It asked the owner the one question the plan left open: the grade of a missing marker.
+  - **What it got wrong on the way**, both caught in scratch runs before the commit:
+    - The plan's first rule for the Rendition column (up to 45% of the card) pushed the offsets and the gauge out of view at the inspector's automatic width.
+    - The first `qa_idle()` waited for a result version that a hidden tab never syncs, so a failed open's capture hung until the alarm.
+    - The plan and P-086 say what replaced them.
+  - **What the owner decided**: D-102, adopting the agent's recommendation.
 - **Pending owner confirmation**: the owner's review of these commits and of this section.
 
 ## VMAF code

@@ -1,0 +1,34 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  Opening enc/master.m3u8 (t=0.195)
+[INFO]  ManifestParser: parsed HLS — 0 tags, 3 variants from enc/master.m3u8
+[hls @ 0x98a515400] Opening 'enc/a1/index.m3u8' for reading
+[hls @ 0x98a515400] Opening 'enc/v1/index.m3u8' for reading
+[hls @ 0x98a515400] Opening 'enc/v2/index.m3u8' for reading
+[hls @ 0x98a515400] Opening 'enc/v3/index.m3u8' for reading
+[hls @ 0x98a515400] Unable to open key file skd://made-up-key, Invalid data found when processing input
+[hls @ 0x98a515400] Failed to open segment 0 of playlist 0
+[hls @ 0x98a515400] Segment 0 of playlist 0 failed too many times, skipping
+[hls @ 0x98a515400] Unable to open key file skd://made-up-key, Invalid data found when processing input
+[hls @ 0x98a515400] Failed to open segment 1 of playlist 0
+[hls @ 0x98a515400] Segment 1 of playlist 0 failed too many times, skipping
+[hls @ 0x98a515400] Unable to open key file skd://made-up-key, Invalid data found when processing input
+[hls @ 0x98a515400] Failed to open segment 2 of playlist 0
+[hls @ 0x98a515400] Segment 2 of playlist 0 failed too many times, skipping
+[hls @ 0x98a515400] Unable to open key file skd://made-up-key, Invalid data found when processing input
+[hls @ 0x98a515400] Failed to open segment 3 of playlist 0
+[hls @ 0x98a515400] Segment 3 of playlist 0 failed too many times, skipping
+[hls @ 0x98a515400] Unable to open key file skd://made-up-key, Invalid data found when processing input
+[hls @ 0x98a515400] Failed to open segment 4 of playlist 0
+[hls @ 0x98a515400] Segment 4 of playlist 0 failed too many times, skipping
+[hls @ 0x98a515400] Unable to open key file skd://made-up-key, Invalid data found when processing input
+[hls @ 0x98a515400] Failed to open segment 5 of playlist 0
+[hls @ 0x98a515400] Segment 5 of playlist 0 failed too many times, skipping
+[hls @ 0x98a515400] Unable to open key file skd://made-up-key, Invalid data found when processing input
+[hls @ 0x98a515400] Failed to open segment 6 of playlist 0
+[hls @ 0x98a515400] Segment 6 of playlist 0 failed too many times, skipping
+[hls @ 0x98a515400] Error when loading first segment 'enc/a1/s0.ts'
+[ERROR] avformat_open_input failed: Invalid data found when processing input
+[INFO]  Opened enc/master.m3u8 in 24 ms (t=0.219)
+[INFO]  MediaSession: closing enc/master.m3u8
+[INFO]  MediaSession: threads stopped (0 ms)
+[INFO]  ui-snapshot: wrote <scratch>/hlsfix-rec/enc_fail.png (launcher, after a failed open)

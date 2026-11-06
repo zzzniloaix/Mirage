@@ -1,0 +1,38 @@
+{
+  "source": "demo/master.m3u8",
+  "summary": {"variants": 3, "playlists": 4, "errors": 0, "warnings": 0},
+  "independent_segments": true,
+  "variants": [
+    {"index": 0, "line": 5, "uri": "demo/v1/index.m3u8",
+     "declared": {"bandwidth": 600000, "average_bandwidth": 500000, "codecs": ["avc1.4d401e", "mp4a.40.2"], "resolution": "640x360", "frame_rate": 30, "video_range": null, "audio": "aac"},
+     "measured": null},
+    {"index": 1, "line": 7, "uri": "demo/v2/index.m3u8",
+     "declared": {"bandwidth": 2000000, "average_bandwidth": null, "codecs": ["avc1.64001e", "mp4a.40.2"], "resolution": "640x360", "frame_rate": 25, "video_range": null, "audio": "aac"},
+     "measured": null},
+    {"index": 2, "line": 9, "uri": "demo/v3/index.m3u8",
+     "declared": {"bandwidth": 4000000, "average_bandwidth": null, "codecs": ["hvc1.2.4.L90.B0", "mp4a.40.2"], "resolution": "1920x1080", "frame_rate": 25, "video_range": null, "audio": "aac"},
+     "measured": null}
+  ],
+  "findings": [
+  ],
+  "playlists": [
+    {"uri": "demo/v1/index.m3u8", "error": null, "target_duration": 2, "segments": 6, "sized": 0, "bytes": 0, "duration": 12, "key": null, "reads": []},
+    {"uri": "demo/v2/index.m3u8", "error": null, "target_duration": 2, "segments": 8, "sized": 0, "bytes": 0, "duration": 12.120000000000001, "key": null, "reads": []},
+    {"uri": "demo/v3/index.m3u8", "error": null, "target_duration": 2, "segments": 6, "sized": 0, "bytes": 0, "duration": 12.120000000000001, "key": null, "reads": []},
+    {"uri": "demo/a1/index.m3u8", "error": null, "target_duration": 2, "segments": 7, "sized": 0, "bytes": 0, "duration": 12.031998, "key": null, "reads": []}
+  ],
+  "markers": {"reference": 0, "slack": 0.05, "renditions": ["v0 360p", "v1 360p", "v2 1080p", "audio aac/English"],
+    "events": [
+      {"id": "chapter-1", "class": null, "time": 2, "time_from": "EXT-X-DATERANGE START-DATE in v0 360p", "splice": false, "places": [
+        {"rendition": 0, "tag": "EXT-X-DATERANGE", "line": 7, "at": 2, "expected": 2, "nearest_boundary": 2, "nearest_sequence": 1, "before_sequence": null, "off": 0, "severity": "ok"},
+        {"rendition": 1, "tag": "EXT-X-DATERANGE", "line": 7, "at": 2.000000057220459, "expected": 2, "nearest_boundary": 1.56, "nearest_sequence": 1, "before_sequence": null, "off": 0.440000057220459, "severity": "ok"},
+        {"rendition": 2, "tag": "EXT-X-DATERANGE", "line": 8, "at": 2, "expected": 2, "nearest_boundary": 2, "nearest_sequence": 1, "before_sequence": null, "off": 0, "severity": "ok"}], "missing": [], "missing_severity": []},
+      {"id": "break-1", "class": "com.apple.hls.interstitial", "time": 6, "time_from": "EXT-X-DATERANGE START-DATE in v0 360p", "splice": true, "places": [
+        {"rendition": 0, "tag": "EXT-X-DATERANGE", "line": 10, "at": 6, "expected": 6, "nearest_boundary": 6, "nearest_sequence": 3, "before_sequence": null, "off": 0, "severity": "ok"},
+        {"rendition": 1, "tag": "EXT-X-DATERANGE", "line": 10, "at": 6.00000023841858, "expected": 6, "nearest_boundary": 6.000000000000001, "nearest_sequence": 4, "before_sequence": null, "off": 2.384185791015625e-07, "severity": "ok"},
+        {"rendition": 2, "tag": "EXT-X-DATERANGE", "line": 11, "at": 6.299999952316284, "expected": 6, "nearest_boundary": 6, "nearest_sequence": 3, "before_sequence": null, "off": 0.2999999523162842, "severity": "warning"},
+        {"rendition": 3, "tag": "EXT-X-CUE-MARKER", "line": 11, "at": 4.010666, "expected": 6, "nearest_boundary": 6.015998999999999, "nearest_sequence": 3, "before_sequence": 2, "off": -2.0053329999999994, "severity": "error"}], "missing": [], "missing_severity": []}],
+    "findings": [
+      {"severity": "error", "title": "break-1: #EXT-X-CUE-MARKER in audio aac/English is one segment early", "detail": "Line 11: it comes before segment #2 at 4.011 s (0:04.011), −1.989 s from the event at 6.000 s (0:06.000) (EXT-X-DATERANGE START-DATE in v0 360p). The boundary nearest the event is 6.016 s (0:06.016) (segment #3), +16 ms from it. A player splices audio aac/English 2.005 s away from the renditions that mark it there.", "renditions": [3]},
+      {"severity": "warning", "title": "break-1: START-DATE is +300 ms off a segment boundary in v2 1080p", "detail": "Line 11: START-DATE falls at 6.300 s (0:06.300); the nearest boundary is 6.000 s (0:06.000) (segment #3). A player splicing the interstitial there cuts inside a segment, or moves the cut to a boundary 300 ms away.", "renditions": [2]}], "errors": 1, "warnings": 1}
+}
