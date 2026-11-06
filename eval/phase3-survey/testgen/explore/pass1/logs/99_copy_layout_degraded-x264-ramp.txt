@@ -1,0 +1,5 @@
+$ cp media/degraded-x264-ramp/layout.json reports/degraded-x264-ramp.layout.json
+(in <out>/testgen)
+--- stdout ---
+--- stderr ---
+--- exit status 0, wall time 0.009 s (time.monotonic) ---

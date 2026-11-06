@@ -1,0 +1,16 @@
+$ python3 -I -B tools/doc_sizes.py <out>/design-evaluation/out degraded-x264-v270.json degraded-x264-v180.json ad-x264-v180.json ad-x264-v270.json degraded-mpeg2-v270.json ad-mpeg2-v180.json ad-x264-origin1-v180.json ad-x264-session-ad-switch.json
+(in <out>/design-evaluation)
+started 2026-11-01T04:44:47.375172Z, ended 2026-11-01T04:44:47.408737Z, exit status 0, wall 0.033 s
+--- stdout ---
+document	bytes	events	by source	attributions	frames in the ladder report's pairs
+degraded-x264-v270.json	9526	32	decoder 16, playlist 16	1	(see the report)
+degraded-x264-v180.json	8577	32	decoder 16, playlist 16	0	(see the report)
+ad-x264-v180.json	14462	44	decoder 16, playlist 20, scte35 8	1	(see the report)
+ad-x264-v270.json	11615	44	decoder 16, playlist 20, scte35 8	0	(see the report)
+degraded-mpeg2-v270.json	9530	32	decoder 16, playlist 16	1	(see the report)
+ad-mpeg2-v180.json	14463	44	decoder 16, playlist 20, scte35 8	1	(see the report)
+ad-x264-origin1-v180.json	14470	44	decoder 16, playlist 20, scte35 8	1	(see the report)
+ad-x264-session-ad-switch.json	14461	35	decoder 8, network 8, player 5, playlist 10, scte35 4	1	(see the report)
+--- stderr ---
+
+--- end ---

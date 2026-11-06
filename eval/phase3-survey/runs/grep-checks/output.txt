@@ -1,0 +1,20 @@
+== automatic switching or bandwidth estimation in the code
+   grep -rniE abr|adaptive bitrate|bandwidth estimat|throughput estimat <repo>/src <repo>/tools
+(no match)
+== request_video_switch: its definition and its callers
+   grep -rn request_video_switch( <repo>/src <repo>/tools
+<repo>/src/Demuxer.cpp:85:void Demuxer::request_video_switch(int stream_idx, double pos, bool exact, double keep_until)
+<repo>/src/Demuxer.h:138:    void request_video_switch(int stream_idx, double pos = -1.0, bool exact = false, double keep_until = -1.0);
+<repo>/src/main.cpp:1553:        demuxer.request_video_switch(stream_idx, last_pts, paused_now, keep);
+== AV_CODEC_FLAG_COPY_OPAQUE or opaque_ref in the code and tests
+   grep -rnE COPY_OPAQUE|opaque_ref <repo>/src <repo>/tools <repo>/tests
+(no match)
+== AVPacket::pos read in the code and tests
+   grep -rnE pkt->pos|packet->pos|p->pos <repo>/src <repo>/tools <repo>/tests
+<repo>/tests/test_rtmp_input.cpp:217:                        pkt->pos = -1;
+== CUE-OUT, CUE-IN or OATCLS in RFC 8216
+   grep -nE CUE-OUT|CUE-IN|OATCLS <out>/rfc/rfc8216.txt
+(no match)
+== CUE-OUT forms in the repository's tests
+   grep -rn EXT-X-CUE-OUT <repo>/tests
+<repo>/tests/test_manifest_parser.cpp:59:#EXT-X-CUE-OUT:DURATION=30

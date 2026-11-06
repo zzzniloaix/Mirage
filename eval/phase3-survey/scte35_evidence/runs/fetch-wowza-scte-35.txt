@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/wowza-scte-35/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://www.wowza.com/docs/scte-35'
+date_utc: 2026-11-01T03:47:51Z
+http_code=200
+url_effective=https://www.wowza.com/docs/insert-ad-markers-for-ssai-delivery-with-a-wowza-streaming-engine-live-stream
+size_download=368478
+content_type=text/html; charset=UTF-8
+curl_exit=0
+sha256=1c629866131026385fe9c308b7bd1d3ec5bcab3f587801dafee9926eea4c53e2

@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/datatracker-rfc8216bis/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://datatracker.ietf.org/api/v1/doc/document/draft-pantos-hls-rfc8216bis/?format=json'
+date_utc: 2026-11-01T03:38:07Z
+http_code=200
+url_effective=https://datatracker.ietf.org/api/v1/doc/document/draft-pantos-hls-rfc8216bis/?format=json
+size_download=2030
+content_type=application/json
+curl_exit=0
+sha256=2186c3f11392ee18635850e130a6210a99eeb5d6d6ed2cd1eb9854c90cc18c70

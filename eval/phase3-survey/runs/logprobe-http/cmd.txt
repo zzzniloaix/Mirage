@@ -1,0 +1,2 @@
+cwd: <out>/runs/fixture-data
+command: '<out>/probe/bin/logprobe' 'http' '.' 'dis/tagged.m3u8'

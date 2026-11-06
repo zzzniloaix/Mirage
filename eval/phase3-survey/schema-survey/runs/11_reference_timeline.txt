@@ -1,0 +1,16 @@
+# One command of the schema survey, run in <repo> by tools/run.py, started 2026-11-01T03:40:34Z, ended 2026-11-01T03:40:34Z (UTC).
+# <repo>: the worktree of vmaf/phase-3 at 75cf6e0; <out>: the survey's output directory; <scratch>: the scratch directory.
+# The command, then its standard output and standard error as they came, then its exit status.
+
+$ python3 -I <out>/schema-survey/tools/reference_timeline.py eval/ladder/acceptance-c673738/advanced-cdn-full/jobs-default/report.json.xz
+report: eval/ladder/acceptance-c673738/advanced-cdn-full/jobs-default/report.json.xz
+reference: https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v9/prog_index.m3u8; the pair with the most frames: index 0
+pair 0 (https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v5/prog_index.m3u8): 36000 frames; grid reference; frame rates reference 60/1, distorted 60/1; off_grid_reference 0; ref_index steps {1: 35999}; ref_pts 10.016666666666667 to 610, rising at every frame: True; every ref_index among the biggest pair's: True
+pair 1 (https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v8/prog_index.m3u8): 36000 frames; grid reference; frame rates reference 60/1, distorted 60/1; off_grid_reference 0; ref_index steps {1: 35999}; ref_pts 10.016666666666667 to 610, rising at every frame: True; every ref_index among the biggest pair's: True
+pair 2 (https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v7/prog_index.m3u8): 36000 frames; grid reference; frame rates reference 60/1, distorted 60/1; off_grid_reference 0; ref_index steps {1: 35999}; ref_pts 10.016666666666667 to 610, rising at every frame: True; every ref_index among the biggest pair's: True
+pair 3 (https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v6/prog_index.m3u8): 36000 frames; grid reference; frame rates reference 60/1, distorted 60/1; off_grid_reference 0; ref_index steps {1: 35999}; ref_pts 10.016666666666667 to 610, rising at every frame: True; every ref_index among the biggest pair's: True
+pair 4 (https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v4/prog_index.m3u8): 18000 frames; grid distorted; frame rates reference 60/1, distorted 30/1; off_grid_reference 18000; ref_index steps {2: 17999}; ref_pts 10.016666666666667 to 609.9833333333333, rising at every frame: True; every ref_index among the biggest pair's: True
+pair 5 (https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v3/prog_index.m3u8): 18000 frames; grid distorted; frame rates reference 60/1, distorted 30/1; off_grid_reference 18000; ref_index steps {2: 17999}; ref_pts 10.016666666666667 to 609.9833333333333, rising at every frame: True; every ref_index among the biggest pair's: True
+pair 6 (https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/v2/prog_index.m3u8): 18000 frames; grid distorted; frame rates reference 60/1, distorted 30/1; off_grid_reference 18000; ref_index steps {2: 17999}; ref_pts 10.016666666666667 to 609.9833333333333, rising at every frame: True; every ref_index among the biggest pair's: True
+reference frames scored by any pair: 36000; each with one ref_pts in every pair that scored it: True
+(exit status 0)

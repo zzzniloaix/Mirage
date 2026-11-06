@@ -1,0 +1,77 @@
+command (cwd <out>/scte35_evidence): python3 -I tools/hls_tags.py Unified Remix AVOD demo master downloads/stream-unified-avod-k8s-master/body Unified Remix AVOD demo video=4017000 downloads/stream-unified-avod-k8s-video4017000/body Unified Remix AVOD demo video=608000 downloads/stream-unified-avod-k8s-video608000/body Unified Remix AVOD demo audio=130000 downloads/stream-unified-avod-k8s-audio130000/body Unified live scte35.isml master downloads/stream-unified-live-scte35-master/body Unified live scte35.isml media downloads/stream-unified-live-scte35-media/body Unified live scte35-no-splicing.isml master downloads/stream-unified-live-scte35-nosplice-master/body Unified live scte35-no-splicing.isml media downloads/stream-unified-live-scte35-nosplice-media/body Mux test stream dai-discontinuity-deltatre downloads/stream-mux-dai-deltatre-master/body threefive examples/hls/scte35.m3u8 (repository file) downloads/threefive-old-examples_hls_scte35.m3u8/body
+date_utc: 2026-11-01T04:18:40Z
+tool sha256: 6d1da7f8a2082658fb47d7c5001a4a0c960f0247704757470f41642e1102ce28  tools/build_vectors.py
+tool sha256: 43553cf5f9b59689d1e576b7c3e155390e518dafcb162443170f0e126ec5982c  tools/check_vectors.py
+tool sha256: 12ca135799c24d24a217a97c7173b233e459c4b74454b11af90cf011b7e9042e  tools/cue_positions.py
+tool sha256: ea5b756f6aebcef51a2bb5bbed43413a24ddaf34f5827273353d162b5888ecbd  tools/hls_tags.py
+tool sha256: 1198bc8093385554dc76dbf33b39eba1e268e04bd41029204eb515a9a2bad424  tools/html2text.py
+tool sha256: 2d0d1cf92518bfdaae87df6074f2f5cba87094ce6370a9f93692e68b442623ed  tools/pdftext.py
+tool sha256: bb4cef1ddae32dc390b419725a8dd855db5b29cf09393ac13075346bb7d0429b  tools/scte35_decode.py
+tool sha256: 68725f0ab733b49592947589b2c1487c2860e90d2139648bd01962a844586a33  tools/ts_pid_payload.py
+tool sha256: a6776bd3814f82dda3a9f23c742e8b44b19ff14219a75815705ed5b85f1d6b69  tools/ts_probe.py
+tool sha256: 31eaa39d0407aef0b730c3040c99c60547baa671bc42bdac69f17039fe79fe4a  tools/build_parser_probe.sh
+tool sha256: d5c54a09eac63794dc001f0aa52d4fe3cda311723f0d47ba1b1675e47848b04a  tools/cue_positions_all.sh
+tool sha256: 7cbb2161e7335376fcd6f6bd2f96281787bdb449b7e82494dc4a78ebb143f39d  tools/derive_all.sh
+tool sha256: d76a774d051045faf19a109b5d8f79bb79e384f26477b2e82b0137b9a108529f  tools/fetch.sh
+tool sha256: 05f5b16a93a29786124d69d7e5f6bbd233fd2661416449381e8e50e599f90c76  tools/pipeline.sh
+tool sha256: df159afaa73c1c23ecc8bf5ea69cf75e4d668b19f36e6658e8539d19173ebe5f  tools/repo_grep.sh
+tool sha256: bfbac2ffbe328635c262072da72d6fd3923bfcc5e70f44b8c0b2507a818fee8e  tools/run.sh
+tool sha256: f50c6568c519b76f507c5c20a8fc22a1856af0244678962334cf41a0cc61da74  tools/same_daterange.sh
+output (stdout and stderr):
+== Unified Remix AVOD demo master
+   master playlist, 2988 bytes, 0 EXTINF, EXT-X-PLAYLIST-TYPE None, EXT-X-ENDLIST no -> master
+   other tags: ['# AUDIO groups', '# keyframes', '# variants']
+== Unified Remix AVOD demo video=4017000
+   media playlist, 10186 bytes, 45 EXTINF, EXT-X-PLAYLIST-TYPE VOD, EXT-X-ENDLIST yes -> VOD
+   EXT-X-CUE-OUT: 1 (first: #EXT-X-CUE-OUT:30)
+   EXT-X-CUE-IN: 1 (first: #EXT-X-CUE-IN)
+   EXT-X-DATERANGE: 1 (first: #EXT-X-DATERANGE:ID="0-10",START-DATE="1970-01-01T00:00:10Z",PLANNED-DURATION=30,SCTE35-OUT=<vector unified-avod-demo:21:SCTE35-OUT>)
+   EXT-X-PROGRAM-DATE-TIME: 3 (first: #EXT-X-PROGRAM-DATE-TIME:1970-01-01T00:00:00Z)
+   other tags: ['#USP-X-TIMESTAMP-MAP']
+== Unified Remix AVOD demo video=608000
+   media playlist, 10141 bytes, 45 EXTINF, EXT-X-PLAYLIST-TYPE VOD, EXT-X-ENDLIST yes -> VOD
+   EXT-X-CUE-OUT: 1 (first: #EXT-X-CUE-OUT:30)
+   EXT-X-CUE-IN: 1 (first: #EXT-X-CUE-IN)
+   EXT-X-DATERANGE: 1 (first: #EXT-X-DATERANGE:ID="0-10",START-DATE="1970-01-01T00:00:10Z",PLANNED-DURATION=30,SCTE35-OUT=<vector unified-avod-demo:21:SCTE35-OUT>)
+   EXT-X-PROGRAM-DATE-TIME: 3 (first: #EXT-X-PROGRAM-DATE-TIME:1970-01-01T00:00:00Z)
+   other tags: ['#USP-X-TIMESTAMP-MAP']
+== Unified Remix AVOD demo audio=130000
+   media playlist, 10425 bytes, 45 EXTINF, EXT-X-PLAYLIST-TYPE VOD, EXT-X-ENDLIST yes -> VOD
+   EXT-X-CUE-OUT: 1 (first: #EXT-X-CUE-OUT:30)
+   EXT-X-CUE-IN: 1 (first: #EXT-X-CUE-IN)
+   EXT-X-DATERANGE: 1 (first: #EXT-X-DATERANGE:ID="0-10",START-DATE="1970-01-01T00:00:10Z",PLANNED-DURATION=30,SCTE35-OUT=<vector unified-avod-demo:21:SCTE35-OUT>)
+   EXT-X-PROGRAM-DATE-TIME: 3 (first: #EXT-X-PROGRAM-DATE-TIME:1970-01-01T00:00:00Z)
+   other tags: ['#USP-X-TIMESTAMP-MAP']
+== Unified live scte35.isml master
+   master playlist, 735 bytes, 0 EXTINF, EXT-X-PLAYLIST-TYPE None, EXT-X-ENDLIST no -> master
+   other tags: ['# AUDIO groups', '# keyframes', '# variants']
+== Unified live scte35.isml media
+   media playlist, 24966 bytes, 312 EXTINF, EXT-X-PLAYLIST-TYPE None, EXT-X-ENDLIST no -> live (no EXT-X-ENDLIST)
+   EXT-X-CUE-OUT: 5 (first: #EXT-X-CUE-OUT:38.4)
+   EXT-X-CUE-IN: 5 (first: #EXT-X-CUE-IN)
+   EXT-X-DATERANGE: 5 (first: #EXT-X-DATERANGE:ID="14827259-1793505248",START-DATE="2026-11-01T03:54:08.640000Z",PLANNED-DURATION=38.4,SCTE35-OUT=<a message of this live stream, not in scte35_vectors.json>)
+   EXT-X-PROGRAM-DATE-TIME: 11 (first: #EXT-X-PROGRAM-DATE-TIME:2026-11-01T03:53:59.040000Z)
+   other tags: ['#USP-X-TIMESTAMP-MAP']
+== Unified live scte35-no-splicing.isml master
+   master playlist, 771 bytes, 0 EXTINF, EXT-X-PLAYLIST-TYPE None, EXT-X-ENDLIST no -> master
+   other tags: ['# AUDIO groups', '# keyframes', '# variants']
+== Unified live scte35-no-splicing.isml media
+   media playlist, 28795 bytes, 313 EXTINF, EXT-X-PLAYLIST-TYPE None, EXT-X-ENDLIST no -> live (no EXT-X-ENDLIST)
+   EXT-X-CUE-OUT: 5 (first: #EXT-X-CUE-OUT:38.4)
+   EXT-X-CUE-IN: 5 (first: #EXT-X-CUE-IN)
+   EXT-X-DATERANGE: 5 (first: #EXT-X-DATERANGE:ID="14827259-1793505248",START-DATE="2026-11-01T03:54:08.640000Z",PLANNED-DURATION=38.4,SCTE35-OUT=<a message of this live stream, not in scte35_vectors.json>)
+   EXT-X-PROGRAM-DATE-TIME: 11 (first: #EXT-X-PROGRAM-DATE-TIME:2026-11-01T03:53:59.040000Z)
+   other tags: ['#USP-X-TIMESTAMP-MAP']
+== Mux test stream dai-discontinuity-deltatre
+   media playlist, 2758 bytes, 29 EXTINF, EXT-X-PLAYLIST-TYPE EVENT, EXT-X-ENDLIST yes -> VOD
+   EXT-X-DISCONTINUITY: 4 (first: #EXT-X-DISCONTINUITY)
+   EXT-X-KEY: 10 (first: #EXT-X-KEY:METHOD=AES-128,URI="key1.json?f=1041&s=0&p=1822767&m=1506045858",IV=0x000000000000000000000000001BD02F)
+   EXT-X-KEY methods: ['AES-128', 'NONE']
+   other tags: ['#EXT-X-YOSPACE-ANALYTICS-URL']
+== threefive examples/hls/scte35.m3u8 (repository file)
+   media playlist, 1918 bytes, 24 EXTINF, EXT-X-PLAYLIST-TYPE VOD, EXT-X-ENDLIST yes -> VOD
+   EXT-X-CUE-OUT: 2 (first: #EXT-X-CUE-OUT:30.000)
+   EXT-X-CUE-OUT-CONT: 5 (first: #EXT-X-CUE-OUT-CONT:ElapsedTime=2.000,Duration=30,SCTE35=<vector threefive-2024:examples/hls/scte35.m3u8:8>)
+   EXT-X-CUE-IN: 2 (first: #EXT-X-CUE-IN)
+   EXT-OATCLS-SCTE35: 4 (first: #EXT-OATCLS-SCTE35:<vector threefive-2024:examples/hls/scte35.m3u8:8>)
+exit=0

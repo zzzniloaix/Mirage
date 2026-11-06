@@ -1,0 +1,11 @@
+$ sh tools/git_state.sh <repo>
+(in <out>/design-evaluation)
+started 2026-11-01T04:29:48.432915Z, ended 2026-11-01T04:29:48.594133Z, exit status 0, wall 0.161 s
+--- stdout ---
+75cf6e09e2e122b138afa880f2ee9a8ff0e4ec89
+vmaf/phase-3
+status --short (empty = clean):
+75cf6e09e2e122b138afa880f2ee9a8ff0e4ec89 Record the owner's decisions of 2026-10-30 evening: D-066 to D-070
+--- stderr ---
+
+--- end ---

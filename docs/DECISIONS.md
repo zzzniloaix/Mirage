@@ -8,6 +8,8 @@ Each entry records the decision, the alternatives, the rationale, who decided an
 
 A pending entry is append-only (D-060): what is found after it was written goes in dated lines of its own before its **Who**, such as `- **Correction** (date): …`, and the text above them stays as written. Since D-060 the entries say "agent" alone in their **Who** lines; `docs/AI_CONTRIBUTIONS.md` names the model.
 
+Since 2026-11-02 the **Who** lines name the owner as "owner" alone: on that day the owner decided that their name comes off the repository's text, and it was taken out of the earlier **Who** lines, the only change made to those entries.
+
 ---
 
 ## Design decisions (owner)
@@ -33,7 +35,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - The cause of the discrepancy may directly decide #3 (the default scaler).
 - **Known cost**: §1's changes may shift the scores again, so §5 has to be re-run after §1. The Phase 1 PR will be large.
 - **Correction**: the first draft of this entry (2026-10-22) listed §1 and §8 as Phase 2 and Phase 3, which doesn't match the work order's phases. The cause was the agent's wording of the options when asking, not the owner's decision. After reading the work order, the owner confirmed the current wording.
-- **Who**: owner (Jiayu Lin)
+- **Who**: owner
 - **Date**: 2026-10-22
 
 ### D-002 Default reference mode: top-rung (mode B)
@@ -47,7 +49,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - Public streams rarely come with a mezzanine. With top-rung as the default, they can be scored directly.
   - The output still has to carry a `reference_mode` field, and scores from the two modes must not be mixed in one report.
   - In the default mode, the other rungs must be scaled encodes of the same source as the top rung, or the scores mean nothing. bipbop 16x9 doesn't satisfy this (see "Baseline" in the gap report), which makes the ladder choice in #14 more important.
-- **Who**: owner (Jiayu Lin)
+- **Who**: owner
 - **Date**: 2026-10-22
 
 ### D-003 Default scaler deferred until the §5 diagnosis
@@ -58,7 +60,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - Decide bilinear now (the current code's behavior).
 - **Rationale**: the 5-point discrepancy measured in Phase 0 was obtained with bilinear on both sides, so it doesn't necessarily come from the scaler itself. Choosing a default before seeing the scaler's actual effect on scores would have no data behind it.
 - **Resolved by**: D-024 (2026-10-23), bicubic.
-- **Who**: owner (Jiayu Lin), adopting the agent's suggestion
+- **Who**: owner, adopting the agent's suggestion
 - **Date**: 2026-10-23
 
 ### D-004 #4–#8 deferred until their sections start
@@ -70,7 +72,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Alternatives**: decide each one now.
 - **Rationale**: all of these change scores. As with D-003, they are decided once there's measured data.
 - **Resolved by** (2026-10-23): D-025 (#4), D-026 (#5), D-027 (#6) and D-028 (#7). #8 stays with Phase 4.
-- **Who**: owner (Jiayu Lin), adopting the agent's suggestion
+- **Who**: owner, adopting the agent's suggestion
 - **Date**: 2026-10-23
 
 ### D-005 Phase 0 baseline scores are a record of the current state only, not paper data
@@ -78,7 +80,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Decision**: the scores in `eval/baseline/` serve only as Phase 0's record of the current state. Every number in the paper comes from runs made after §5 passes.
 - **Alternatives**: put the baseline scores in the paper, e.g. as a before-the-fix comparison, with the reason stated.
 - **Rationale**: under equivalent conditions Mirage and FFmpeg libvmaf differ by about 5 points, and the cause hasn't been found (see "Baseline" in the gap report).
-- **Who**: owner (Jiayu Lin), adopting the agent's suggestion
+- **Who**: owner, adopting the agent's suggestion
 - **Date**: 2026-10-23
 
 ### D-006 libvmaf version: record both the package version and the runtime version
@@ -88,7 +90,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - Record only the runtime version (the literal requirement of §1.1).
   - Record only the package version.
 - **Rationale**: the two disagree on this machine. Recording both is the only way to tell which build was used when reproducing.
-- **Who**: owner (Jiayu Lin), adopting the agent's suggestion
+- **Who**: owner, adopting the agent's suggestion
 - **Date**: 2026-10-23
 
 ### D-007 Any refactor touching the render or decode path needs a plan first
@@ -96,7 +98,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Decision**: for any refactor that changes the render or decode path (e.g. §4's scoring of played frames, or moving the analyzer out of `MediaSession`), the agent first writes a plan for the owner to approve, and changes code only after approval.
 - **Alternatives**: do small refactors directly and explain them in the PR; only large ones need a plan first.
 - **Rationale**: hard rule 3 of the work order.
-- **Who**: owner (Jiayu Lin), adopting the agent's suggestion
+- **Who**: owner, adopting the agent's suggestion
 - **Date**: 2026-10-23
 
 ### D-008 Mirage is licensed GPL-3.0-or-later
@@ -109,7 +111,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - GPLv2-only isn't an option: it's incompatible with the linked GPLv3 FFmpeg build.
 - **Rationale**: the ffmpeg-full 8.1.1 that Mirage links is GPL-3.0-or-later (`--enable-gpl --enable-version3`, see item 9 of the gap report). Choosing the same license keeps the terms for source and binary distribution simplest.
 - **Open**: whether legal or the company's open-source process has to confirm this is for the owner to check.
-- **Who**: owner (Jiayu Lin)
+- **Who**: owner
 - **Date**: 2026-10-23
 
 ### D-009 FFmpeg is standardized on ffmpeg-full
@@ -125,7 +127,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Not decided**: the other two parts of #11 (whether glad's generated output is committed, and the scope of Linux support) are decided when §8 starts.
 - **Correction** (2026-10-23, D-032): the first alternative says that standardizing on `ffmpeg` would need a separately installed FFmpeg with libvmaf. On the machine of the measurements that isn't so: Homebrew's plain `ffmpeg` 8.1.1 there is built with `--enable-libvmaf` as well (`eval/baseline/environment.txt`, line 163, in the output of its `-buildconf`). The decision stands on its other reasons.
 - **Resolved by**: D-031 (2026-10-23), for the other two parts of #11.
-- **Who**: owner (Jiayu Lin)
+- **Who**: owner
 - **Date**: 2026-10-23
 
 ### D-010 Merge fix/high-speed-playback into main first; VMAF work goes to main through PRs
@@ -138,7 +140,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - PR into `fix/high-speed-playback` and leave `main` alone.
   - Open a long-lived vmaf branch and merge it into `main` before submission.
 - **Rationale**: `main` was 6 commits behind `a4e0289` and could fast-forward. With `main` as the target, a VMAF PR's diff shows only VMAF changes.
-- **Who**: owner (Jiayu Lin)
+- **Who**: owner
 - **Date**: 2026-10-23
 
 ### D-011 The evaluation uses self-encoded ladders
@@ -151,7 +153,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - All rungs come from one source clip. That meets the precondition of D-002 (top-rung reference by default) and also allows mezzanine mode.
   - Controllable and reproducible, and test cases such as dropped frames and discontinuities can be built deliberately.
   - The rungs of bipbop 16x9 used in Phase 0 were rendered separately and are unsuitable for measuring quality (see "Baseline" in the gap report).
-- **Who**: owner (Jiayu Lin)
+- **Who**: owner
 - **Date**: 2026-10-23
 
 ### D-012 Rewrite all history; commit emails become the GitHub noreply address
@@ -166,7 +168,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - Old → new: the baseline commit `a4e02895d2d9c51c620e6c140f5566944c80ec71` → `1bab7a3104cf9149300eafd3d3deb7ae4a9c6f69`, with tree `61765e415978c5a9735a3a6a3e245c52d0e6be99` unchanged. Every `a4e0289` in the gap report, in this log (P-001, D-010) and in the raw outputs in `eval/` refers to this commit. The raw outputs are kept as they are and are not changed to the new SHA.
   - The 7 commits of `vmaf/phase-0` were also rewritten per D-013 and D-014, so their trees did change.
 - **Correction** (2026-10-30, D-065): the repository is public again before the submission; the owner confirmed on 2026-10-30 that making it public was intentional.
-- **Who**: owner (Jiayu Lin)
+- **Who**: owner
 - **Date**: 2026-10-23
 
 ### D-013 The work order stays out of the repository
@@ -176,7 +178,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - Commit it with the passages unsuitable for publication removed, noting that it was edited.
   - Commit it as is.
 - **Rationale**: the work order contains the owner's personal information and isn't suitable for a repository that will be public.
-- **Who**: owner (Jiayu Lin)
+- **Who**: owner
 - **Date**: 2026-10-23
 
 ### D-014 Local machine details redacted in the Phase 0 raw outputs
@@ -195,7 +197,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Originals**: the unredacted originals are kept in the owner's private local backup and aren't committed.
 - **Alternatives**: keep the outputs as they are.
 - **Rationale**: the machine name and local paths are irrelevant to reproduction and shouldn't be in a public repository.
-- **Who**: owner (Jiayu Lin)
+- **Who**: owner
 - **Date**: 2026-10-23
 
 ### D-015 Phase 0 signed off
@@ -205,7 +207,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - Phase 1 can start. For its scope and order, see D-001.
   - Phase 0 is submitted to `main` as one PR, per hard rule 5 of the work order (D-010).
 - **Alternatives**: read the whole gap report before signing off.
-- **Who**: owner (Jiayu Lin)
+- **Who**: owner
 - **Date**: 2026-10-23
 
 ### D-016 Color matrix and range mismatches: convert like FFmpeg
@@ -218,7 +220,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Background**: on 2026-10-23 a scratch probe located the cause of the Phase 0 discrepancy. bipbop's 640x360 and 416x234 rungs are tagged `smpte170m` (BT.601), while the gear5 reference is tagged `bt709` (`eval/baseline/diagnostics/ffprobe_rungs.txt`). FFmpeg's verbose log shows its `scale` filter converting the distorted frames (`csp:smpte170m` → `csp:bt709`); Mirage didn't convert. The probe's outputs weren't committed, so its numbers aren't recorded here. The §5 work reproduces the effect with committed outputs (MEASUREMENT PENDING).
 - **Measured** (note added 2026-10-23, D-032): the committed runs reproduce the effect: before the conversion in `eval/consistency/diag-before-300/`, after it in `eval/consistency/diag-after-300/` and, over every frame, `eval/consistency/acceptance-full/`, with the color tag cases in `eval/consistency/color-cases-before/` and `color-cases-after/`. What D-016 means in practice is D-021 for a yuv420p reference and D-022 for other references.
 - **Implication**: Mirage's scores change for every pair whose tags differ, such as bipbop's 640x360 and 416x234 rungs.
-- **Who**: owner (Jiayu Lin)
+- **Who**: owner
 - **Date**: 2026-10-23
 
 ### D-017 Headless scoring through a separate mirage_vmaf tool
@@ -226,7 +228,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Decision**: Mirage's scorer runs without the GUI through a separate small executable, `mirage_vmaf`, built from the same `VMAFAnalyzer.cpp`. The player isn't changed for this.
 - **Alternatives**: a `--vmaf-score <ref> <dis>` mode in the main `mirage` binary. It would have to branch before GLFW starts, because `main()` creates the window before it parses most flags.
 - **Rationale**: it leaves the player untouched, §6's bench / sweep modes can live there later, and the repository already has a standalone of this kind (`snapshot_diff`).
-- **Who**: owner (Jiayu Lin)
+- **Who**: owner
 - **Date**: 2026-10-23
 
 ### D-018 Inputs of the committed §5 delta report
@@ -236,7 +238,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - The same rungs, first 300 frames only.
   - Both: 300 frames while iterating, full length as the acceptance output.
 - **Rationale**: it matches the Phase 0 baseline and gives the most complete evidence.
-- **Who**: owner (Jiayu Lin)
+- **Who**: owner
 - **Date**: 2026-10-23
 
 ### D-019 §5 pass threshold
@@ -244,7 +246,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Decision**: a frame fails the §5 check if |Mirage − FFmpeg| > 0.01. The delta report also gives the maximum and mean per-frame |Δ| and the number of frames over the threshold, as the work order asks.
 - **Alternatives**: a stricter threshold, e.g. 0.001. That is measurable, because Mirage will write scores at full precision.
 - **Rationale**: it is the work order's §5 target.
-- **Who**: owner (Jiayu Lin)
+- **Who**: owner
 - **Date**: 2026-10-23
 
 ### D-020 Phase 1's open packages: the agent's recommendations adopted
@@ -253,7 +255,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Owner's words**: "Yea I see you have recommendations, then we can run with your recommendations"; for #7, "All failures", "1%" and "Warn".
 - **Not covered, still open**: the source clips and encoding parameters of D-011; D-008's question whether legal or the company's open-source process has to confirm the license; the player's own JSON export (difference 9 of the pending document, which had no firm recommendation).
 - **Alternatives**: deciding each package separately.
-- **Who**: owner (Jiayu Lin)
+- **Who**: owner
 - **Date**: 2026-10-23
 
 ### D-021 D-016 in practice for a yuv420p reference: FFmpeg 8.1.1's rules, and a refusal for matrices libswscale can't convert
@@ -266,7 +268,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - The paper states that an untagged input is taken as BT.601 with limited range.
 - **Alternatives**: converting nothing when either input lacks a tag, or making the handling of untagged inputs configurable; for a matrix libswscale lacks, scoring without converting and warning, as before D-016.
 - **Rationale**: D-016's rationale is matching a plain `ffmpeg -lavfi libvmaf` run. For yuv420p references the committed runs show Mirage doing so on every frame (`eval/consistency/color-cases-after/`, `diag-after-300/`, `acceptance-full/`), and FFmpeg gives no score to match for a pair it refuses (`eval/consistency/color-cases-before/refused/`, `format-cases-before/refused/`).
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-020)
+- **Who**: owner, adopting the agent's recommendation (D-020)
 - **Date**: 2026-10-23
 
 ### D-022 References that aren't yuv420p: convert the reference, as FFmpeg's graph does
@@ -274,7 +276,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Decision**: when the reference's frames aren't yuv420p (10-bit, 4:2:2, 4:4:4, yuvj420p and the other formats FFmpeg's §5 graph has to convert), Mirage converts the reference to the distorted frames' color matrix and range, with `sws_scale_frame()` and the flags of the scale filter FFmpeg inserts for it (bicubic), and leaves the distorted frames' color as it is; the distorted frames are still scaled with the chosen scaler (D-024). With D-026, this conversion is also what brings a 10-bit reference to 8 bits. The acceptance test is the reference format cases (`eval/consistency/format-cases-before/`, `format-cases-after/`): after the change every case is expected to pass, `j01` with its scores from before D-016. Until it is implemented, P-030's warning stays.
 - **Alternatives**: following D-016's wording, converting the distorted frames and only keeping a yuvj420p reference's range; refusing such references; today's behavior with the warning.
 - **Rationale**: D-016's rationale is parity with plain FFmpeg, and for these references FFmpeg's graph converts the reference (`eval/consistency/format-cases-before/checks.txt`, check 2). Since D-016, Mirage's scores differ from FFmpeg's for every such reference whose tags differ from the distorted input's, and for a full range reference with the same tags (`eval/consistency/format-cases-after/main/delta.md`).
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-020)
+- **Who**: owner, adopting the agent's recommendation (D-020)
 - **Date**: 2026-10-23
 
 ### D-023 A frame exactly at the §5 threshold passes
@@ -282,7 +284,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Decision**: D-019 stands: a frame fails if |Mirage − FFmpeg| > 0.01, so a frame at exactly 0.01 passes. The paper's method text states this boundary, which differs from the work order's "< 0.01".
 - **Alternatives**: failing a frame when |Mirage − FFmpeg| ≥ 0.01, as the work order words it.
 - **Rationale**: the two differ only for a frame at exactly 0.01.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-020)
+- **Who**: owner, adopting the agent's recommendation (D-020)
 - **Date**: 2026-10-23
 
 ### D-024 The default scaler is bicubic (#3)
@@ -290,7 +292,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Decision**: bicubic scales the distorted frames to the reference's size by default, in the player and in `mirage_vmaf`, where `--scaler` keeps bilinear and lanczos as options. The §5 delta tool's default becomes bicubic as well, for both sides. This resolves D-003. The full-length §5 report of D-018 is made again with it; the bilinear report stays committed as the record it is. The paper states the scaler.
 - **Alternatives**: bilinear, the default until now and the setting of the committed §5 runs other than the scaler runs; lanczos.
 - **Rationale**: it is the work order's suggestion (§1.3) and what FFmpeg's scale filter uses when no scaler is named (`eval/consistency/ffmpeg-scale-default/checks.txt`), so the scores are what a reader gets from a plain `ffmpeg` command with a plain `scale` filter. Each of the three scalers passes §5 when both sides use it (`eval/consistency/scalers-300/checks.txt`, check 3), and no score so far is paper data (D-005). Against bilinear, bicubic raises the scores by 6.775801 to 11.113910 on average per pair over the first 300 frames (`eval/consistency/scalers-300/scaler_effect.md`).
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-020)
+- **Who**: owner, adopting the agent's recommendation (D-020)
 - **Date**: 2026-10-23
 
 ### D-025 The default model stays vmaf_v0.6.1 (#4)
@@ -298,7 +300,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Decision**: libvmaf's built-in vmaf_v0.6.1 stays the default model. The other built-in models and model files stay options, recorded in each report (`--model`, `--model-file`). A model chosen from the reference's resolution may come later as an option, once the owner sets its resolution limit.
 - **Alternatives**: vmaf_v0.6.1neg; vmaf_4k_v0.6.1; a rule by resolution now.
 - **Rationale**: FFmpeg's libvmaf filter uses it unless told otherwise (`eval/consistency/ffmpeg-libvmaf-filter/checks.txt`), and every committed §5 run used it apart from the other models' runs in `eval/consistency/models-300/`.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-020)
+- **Who**: owner, adopting the agent's recommendation (D-020)
 - **Date**: 2026-10-23
 
 ### D-026 Frames are scored at 8 bits for now (#5)
@@ -306,7 +308,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Decision**: every input stays converted to 8-bit yuv420p before scoring. Once D-011's ladders exist, a 10-bit SDR ladder is scored at 8 bits and at its own bit depth, on both sides, and the owner decides again with that measurement.
 - **Alternatives**: the inputs' own bit depth when both have more than 8 bits; configurable.
 - **Rationale**: FFmpeg's §5 graph scores at 8 bits as well (`format=yuv420p` on both inputs), and no ladder of 10-bit SDR rungs encoded from one source is at hand to measure the difference (MEASUREMENT PENDING). How a 10-bit reference reaches 8 bits is D-022's conversion.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-020)
+- **Who**: owner, adopting the agent's recommendation (D-020)
 - **Date**: 2026-10-23
 
 ### D-027 Pooling definitions (#6)
@@ -318,7 +320,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - Percentiles p1, p5, p10, p25 and p50: computed by Mirage with linear interpolation (Hyndman and Fan's definition 7), in the analyzer that the player and `mirage_vmaf` share, so the player's p5 changes from `sorted[n * 5 / 100]` to this definition too.
 - **Alternatives**: for the percentiles, today's `sorted[floor(n * p / 100)]` or nearest rank; the plain harmonic mean, with a rule for frames at 0; the minimum over every frame only.
 - **Rationale**: the three percentile definitions differ by at most 0.000276 over every frame of the four pairs, and by up to 0.093440 over 300 frames (`eval/pooling/acceptance-full/pooling.md`, `eval/pooling/bipbop16x9/pooling.md`); with linear interpolation, the default of common analysis tools, readers recomputing the percentiles from the per-frame scores get the same values. libvmaf's harmonic mean is defined when frames score 0 and is what FFmpeg reports. libvmaf's minimum keeps parity with FFmpeg, and the minimum without the first frame is the one that says something about the encode.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-020)
+- **Who**: owner, adopting the agent's recommendation (D-020)
 - **Date**: 2026-10-23
 
 ### D-028 Frames are paired by timestamp (§1.4, #7)
@@ -339,7 +341,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - Failures are always counted and listed.
 - **Alternatives**: rule B (FFmpeg's framesync rule), or A with B's pairing reported next to it; absolute timestamps; options (a) or (c) for frame-rate mismatches; (b), (c) or (d) for discontinuities; motion across gaps, or stand-in frames; for #7, unmatched reference frames over all reference frames, a threshold of 0.1% or any failure, and refusing or flagging the report above the threshold.
 - **Rationale**: rule A follows the reference variant's timeline, which §3.1 uses for attribution, and never scores a pair whose frames don't match; where it differs from FFmpeg's rule B, the delta tool reports the difference instead of hiding it. The work order rules out silent scores; with a warning every score stays available and the failures are visible.
-- **Who**: owner (Jiayu Lin): the plan's choices adopting the agent's recommendation (D-020); #7's definition, threshold and action chosen by the owner
+- **Who**: owner: the plan's choices adopting the agent's recommendation (D-020); #7's definition, threshold and action chosen by the owner
 - **Date**: 2026-10-23
 
 ### D-029 Reference modes in mirage_vmaf (§1.2)
@@ -350,7 +352,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - §1.2's acceptance, both modes on one ladder with the difference documented, waits for D-011's clips.
 - **Alternatives**: another name, or letting the user declare `top-rung` or `mezzanine` for a pair; ladder scoring that mirrors the player's `start_manifest`, every entry with its errors recorded; ladder scoring deferred to Phase 2.
 - **Rationale**: a pair given on the command line is neither of §7's two modes; the design keeps the two modes' results apart and gives a failed rung the exit status a failed pair has.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-020)
+- **Who**: owner, adopting the agent's recommendation (D-020)
 - **Date**: 2026-10-23
 
 ### D-030 A config file for mirage_vmaf
@@ -358,7 +360,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Decision**: `mirage_vmaf --config FILE` reads settings as `name = value` lines with the long options' names, through the same option table as the command line, which overrides the file; the report records the file's path and SHA-256 next to the effective settings. The eval tooling is exempt from the work order's config-file constraint: each run's `run.cmd.txt` records every option.
 - **Alternatives**: JSON; TOML, which needs a parser the repository doesn't have; a config file for the eval tooling as well.
 - **Rationale**: no new dependency, and nothing can be set in one place but not the other.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-020)
+- **Who**: owner, adopting the agent's recommendation (D-020)
 - **Date**: 2026-10-23
 
 ### D-031 The rest of the build strategy (§8, #11), the README and vcpkg.json
@@ -372,7 +374,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Alternatives**: generating glad at build time as now, or pinning its environment; macOS only, or full Linux support with the player; a Nix flake, both, or neither; correcting the README in place, or leaving it; keeping `vcpkg.json`, or making it a pinned second route.
 - **Rationale**: the glad step is the only build step that failed in either build check, and its output is the same in every build so far (`eval/build_check/macos-2026-10-23-6a6661f.txt`); every committed score comes from `mirage_vmaf` and the eval tooling, which need only FFmpeg and libvmaf; Homebrew can't install the measured versions, and a container can; the build steps belong in one place that the build checks verify.
 - **Known limit**: the machine of the measurements has no container runtime, so the image and the Linux build can be written there but not run; their runs are MEASUREMENT PENDING until one is available.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-020)
+- **Who**: owner, adopting the agent's recommendation (D-020)
 - **Date**: 2026-10-23
 
 ### D-032 Smaller Phase 1 items
@@ -385,13 +387,13 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - The paper's method text states that the §5 tool adds `scale=W:H:flags=<scaler>` to FFmpeg's distorted input, since FFmpeg's libvmaf filter refuses inputs of different sizes (difference 3 of the pending document).
   - D-009 gets a correction note and D-016 a note citing the committed runs, as D-001 has its correction.
 - **Alternatives**: as the packages list them.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-020)
+- **Who**: owner, adopting the agent's recommendation (D-020)
 - **Date**: 2026-10-23
 
 ### D-033 The process choices P-006 to P-032 are confirmed
 
 - **Decision**: the agent's measurement and process choices P-006 to P-032 are confirmed as their entries state them.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-020)
+- **Who**: owner, adopting the agent's recommendation (D-020)
 - **Date**: 2026-10-23
 
 ### D-034 What implementing D-020 to D-033 left open: the agent's recommendations adopted
@@ -400,7 +402,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Owner's words**: "yea just go with the recommendations", in answer to the agent's summary of the open items and its recommendations.
 - **Not covered, still open**: D-011's source clips and encoding parameters, for which the agent's recommendation is that the owner choose them; D-008's question whether legal or the company's open-source process has to confirm the license, which has no recommendation, and with it the license texts next to glad's loader (P-053).
 - **Alternatives**: deciding each item separately.
-- **Who**: owner (Jiayu Lin)
+- **Who**: owner
 - **Date**: 2026-10-26
 
 ### D-035 D-022 where FFmpeg changes the distorted frames' color: FFmpeg's negotiation
@@ -408,7 +410,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Decision**: where D-022's wording and FFmpeg 8.1.1's negotiation differ, for a distorted input without a range tag, or not in plain YUV, against a reference that isn't yuv420p, Mirage follows FFmpeg's negotiation, as the code does since `22e2874` (option 1 of "D-022's wording and FFmpeg's negotiation"). A committed delta run of both kinds of input shows what the two tools do with them.
 - **Alternatives**: D-022's wording, with a rule for distorted frames that aren't YCbCr; refusing such pairs.
 - **Rationale**: D-022's rationale is parity with a plain `ffmpeg -lavfi libvmaf` run, and its wording describes the committed cases, in which the two agree.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-034)
+- **Who**: owner, adopting the agent's recommendation (D-034)
 - **Date**: 2026-10-26
 
 ### D-036 Network reads with a time limit in the analyzer
@@ -416,7 +418,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Decision**: the analyzer that `mirage_vmaf` and the player share sets FFmpeg's `timeout` and `rw_timeout` to 5 s on network inputs, the values of `src/FfOpen.cpp`, and gives each input an interrupt callback on its stop token, so that a read that waits longer fails and a cancel interrupts a read; `src/VMAFLadder.cpp` reads a master playlist with the same limits (option 2 of "A network read without a time limit").
 - **Alternatives**: no limit, as before; the player's reconnect and segment retry options as well; the limit as an option of `mirage_vmaf` and its config file.
 - **Rationale**: a read that waits longer becomes a failure that the report and the §5 check show, instead of a process that waits until the §5 tool's 6 h limit (P-062, P-065), and the player's cancel interrupts a read. A limit changes no score of a run whose reads succeed.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-034)
+- **Who**: owner, adopting the agent's recommendation (D-034)
 - **Date**: 2026-10-26
 
 ### D-037 The minimum without the first frame, and a second minimum without the first pair of every libvmaf context
@@ -424,7 +426,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Decision**: the report keeps D-027's minimum without the first frame, and adds, under a name of its own, the minimum without the first pair of every libvmaf context; for a pair scored in one context the two are the same (option 4 of "D-027: the minimum without the first frame").
 - **Alternatives**: D-027's value only; another name for it; the first pair of every context left out instead.
 - **Rationale**: in `eval/consistency/align-cases-d028/main/a01_dropped_distorted/` D-027's value is the score of the first pair of the second context, which has no motion to a frame before it; the second value carries D-027's reason, a minimum that says something about the encode, to every such pair.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-034)
+- **Who**: owner, adopting the agent's recommendation (D-034)
 - **Date**: 2026-10-26
 
 ### D-038 D-006 outside Homebrew: the libvmaf package version from the build
@@ -432,14 +434,14 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Decision**: where the library's path names no version, a build gives the libvmaf package version as a CMake cache variable, which the Dockerfile sets to the release it builds, and `run_delta.py` takes the same as an option for FFmpeg's side (option 2 of "D-006 outside Homebrew").
 - **Alternatives**: `unknown`, with the run-time version, as before; pkg-config's version, which is the run-time version.
 - **Rationale**: whoever builds libvmaf knows the release, and D-006 asks for both versions.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-034)
+- **Who**: owner, adopting the agent's recommendation (D-034)
 - **Date**: 2026-10-26
 
 ### D-039 The plan for the intermittent Demuxer test is approved
 
 - **Decision**: experiments 1 to 3 of `docs/plans/demuxer-switch-test.md` run on the machine of the measurements, as the plan describes them; experiment 4, scripted runs of the player, only if experiments 1 or 2 point at the switch.
 - **Rationale**: the experiments change no code under `src/`; what they show decides whether the test or `Demuxer` would change, each by a later decision.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-034)
+- **Who**: owner, adopting the agent's recommendation (D-034)
 - **Date**: 2026-10-26
 
 ### D-040 Items kept as they are
@@ -454,68 +456,68 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - the headless configuration and the Docker image as they are (P-054, P-055), Debian's packages to be pinned from `snapshot.debian.org` once a container runtime shows that the image builds;
   - the player's own JSON export until §7's schema (difference 9);
   - the commit messages that state a wrong count or rest on no record, left as they are and disclosed in `docs/AI_CONTRIBUTIONS.md`.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-034)
+- **Who**: owner, adopting the agent's recommendation (D-034)
 - **Date**: 2026-10-26
 
 ### D-041 The process choices P-033 to P-065 are confirmed
 
 - **Decision**: the agent's measurement and process choices P-033 to P-065 are confirmed as their entries state them.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-034)
+- **Who**: owner, adopting the agent's recommendation (D-034)
 - **Date**: 2026-10-26
 
 ### D-042 Phase 2's survey: the agent's recommendations adopted
 
 - **Decision**: the owner starts Phase 2 (§2, ladder orchestration) on the branch `vmaf/phase-2`, made from `vmaf/phase-1` before Phase 1 is merged, and adopts every recommendation of `docs/PHASE2_SURVEY.md` (P2-1 to P2-11). D-043 to D-049 record each decision.
 - **Owner's words**: "yep go on", to starting the Phase 2 survey on a separate branch; "yep go with recommendations", to the survey's recommendations.
-- **Who**: owner (Jiayu Lin)
+- **Who**: owner
 - **Date**: 2026-10-26
 
 ### D-043 The pool scores whole pairs, in mirage_vmaf's ladder mode only
 
 - **Decision**: the pool of §2 runs in `mirage_vmaf --ladder` only; the player's VMAF panel keeps scoring a manifest's pairs one after another, until §4 decides scoring next to playback (P2-1). Each worker scores one pair, as a pair is scored today, so nothing within a pair changes (P2-2).
 - **Alternatives**: the pool in the player as well; frames of one pair spread across workers.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-042)
+- **Who**: owner, adopting the agent's recommendation (D-042)
 - **Date**: 2026-10-26
 
 ### D-044 The pool's default size, and libvmaf's threads
 
 - **Decision**: by default the pool scores the machine's physical cores minus one pairs at a time, at least one, the work order's default; each pair's libvmaf keeps its 4 threads, so that Phase 1's §5 parity holds as measured (P2-3). How the wall time changes with the pool's size is a measurement of Phase 5's benchmarks.
 - **Alternatives**: libvmaf on 1 thread per pair; a default that counts libvmaf's threads.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-042)
+- **Who**: owner, adopting the agent's recommendation (D-042)
 - **Date**: 2026-10-26
 
 ### D-045 The memory limit: the process's resident memory, no default limit yet
 
 - **Decision**: with a memory limit, a pair starts only while the process's resident memory, read from the system during the run, plus what a running pair uses stays under the limit; running pairs aren't stopped, and a pair that needs more than the limit on its own runs alone, with a warning. There is no default limit until the measurements of one pair's memory and of the ladder before the pool (the survey's M2 and M3) show what a pair uses (P2-4).
 - **Alternatives**: an estimate per pair from its frame sizes and queue depths; a default limit as a share of the machine's memory.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-042)
+- **Who**: owner, adopting the agent's recommendation (D-042)
 - **Date**: 2026-10-26
 
 ### D-046 Discontinuities: each discontinuity sequence paired on its own
 
 - **Decision**: after the survey's M5 shows what the analyzer gets at an `EXT-X-DISCONTINUITY`, the pairing pairs the k-th discontinuity sequence of the reference with the k-th of the distorted input, each measured from its own start, with a new libvmaf context for each, the sequences taken from the playlists' `EXT-X-DISCONTINUITY` tags where there are any, else from the timestamp jumps (P2-5). This changes D-028's option (a), which D-040 kept until discontinuities were measured. Rungs whose segments differ in duration need nothing of their own unless M5 shows timestamps that don't line up (P2-6).
 - **Alternatives**: D-028's rule as it is; `ffmpeg`'s correction of timestamp jumps.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-042)
+- **Who**: owner, adopting the agent's recommendation (D-042)
 - **Date**: 2026-10-26
 
 ### D-047 A cancel or a failed pair leaves a report of the complete pairs
 
 - **Decision**: `mirage_vmaf --ladder` stops on SIGINT or SIGTERM, or at a pair that fails; the pairs still running are stopped; it writes a report of the pairs that were complete, marked as cancelled or failed, with the pairs not scored listed, and exits with status 1 (P2-7). The report lists the pairs in the plan's order, whatever order they finish in, and records the pool's size, the memory limit and each pair's start and end times, so that it is the same report at every pool size apart from the times (P2-8).
 - **Alternatives**: no report unless every pair is complete, as P-006 and D-029 have it until now.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-042)
+- **Who**: owner, adopting the agent's recommendation (D-042)
 - **Date**: 2026-10-26
 
 ### D-048 The pool's options
 
 - **Decision**: `--jobs N` and `--memory-limit SIZE`, on the command line and in a config file (D-030) (P2-9).
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-042)
+- **Who**: owner, adopting the agent's recommendation (D-042)
 - **Date**: 2026-10-26
 
 ### D-049 Phase 2's acceptance on Apple's advanced HLS sample, from a local copy
 
 - **Decision**: §2's acceptance runs on Apple's advanced HLS sample: the ladder at the pool sizes 1, 2, 4 and the default, the first 300 frames of each pair, every per-frame score compared across them at full precision, and one run over every frame at the default size for the peak memory against the limit; D-011's ladders, once chosen, as a second acceptance (P2-10). The runs across pool sizes read a local copy of the sample's playlists and segments, kept outside the repository with their SHA-256s committed, and one run reads Apple's CDN as a check (P2-11).
 - **Alternatives**: waiting for D-011's ladders; every run from the CDN.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-042)
+- **Who**: owner, adopting the agent's recommendation (D-042)
 - **Date**: 2026-10-26
 
 ### D-050 Discontinuity sequences pair only where their jumps are at the same place
@@ -524,7 +526,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Owner's words**: "Pair only aligned jumps (Recommended)", the owner's answer to the agent's question of 2026-10-27.
 - **Alternatives**: D-046 as P-068 implements it; a jump forward taken as a gap, not a sequence (options 3 and 4); the sequences from the playlists' tags.
 - **Rationale**: RFC 8216 (§6.2.4) has matching content in variant streams carry matching timestamps and discontinuity sequence numbers, so a tag's jump is at the same place in every rung of a ladder that follows it. Jumps at different places come from frames missing in one input, as when segments are skipped, and D-046's pairing paired those inputs' later sequences 12.012 s apart in M5's gaps (P-070).
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Who**: owner, adopting the agent's recommendation
 - **Date**: 2026-10-27
 
 ### D-051 The memory limit counts each pair at what a pair uses plus 10%
@@ -533,7 +535,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Owner's words**: "10% margin (Recommended)".
 - **Alternatives**: D-045's rule with P-072's warm-up as it is; a pair counted at the most one pair has used in the run; an estimate from the inputs' frame sizes and the queues' depths (D-045's alternative).
 - **Rationale**: one pair gains about 3% after its first 30 frame pairs (P-071, `warm_up.txt`), and with the rule as it was the peak at 1 GiB was 5.4% over the limit (P-072).
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Who**: owner, adopting the agent's recommendation
 - **Date**: 2026-10-27
 
 ### D-052 No default memory limit
@@ -542,7 +544,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Owner's words**: "No default (Recommended)".
 - **Alternatives**: a default limit as a share of the machine's memory.
 - **Rationale**: by M2 one pair of the advanced sample with two 1080p60 inputs peaked at 292995072 bytes over 300 frame pairs, and at the default size 7 pairs at once peaked at 2009759744 bytes, on a machine with 38654705664 bytes (P-071).
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Who**: owner, adopting the agent's recommendation
 - **Date**: 2026-10-27
 
 ### D-053 The memory limit's margin is 25%, and the report gives what a pair was measured to use
@@ -551,7 +553,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Owner's words**: "25% margin (Recommended)", the owner's answer to the agent's question of 2026-10-27.
 - **Alternatives**: D-051's 10%; a count that grows with a pair's length; an estimate from the inputs' frame sizes, the queues' depths and their length.
 - **Rationale**: with 10%, D-049's run over every frame from Apple's CDN peaked 2.1% over 1 GiB; one pair over every frame peaked at 345407488 bytes, 21% above one pair's peak after 30 frame pairs of the local copy (P-073).
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Who**: owner, adopting the agent's recommendation
 - **Date**: 2026-10-27
 
 ### D-054 The audit's questions: the agent's recommendations adopted
@@ -560,7 +562,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Owner's words**, translated by the agent: "yea, I think they can all go by your recommendations", in answer to the agent's summary of the questions, each with its recommendation.
 - **Not covered, still open**: the reviews' asks that touch decided items, which the pending document lists for information without a recommendation; options are written for them only if the owner asks.
 - **Alternatives**: deciding each question separately.
-- **Who**: owner (Jiayu Lin)
+- **Who**: owner
 - **Date**: 2026-10-29
 
 ### D-055 A segment the hls demuxer can't read is tried again, and one it still goes on without fails the pair
@@ -568,7 +570,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Decision**: the analyzer gives FFmpeg's hls demuxer `seg_max_retry` 10, the player's value (`src/Demuxer.cpp`), so that a segment that can't be opened is tried again before the demuxer goes on to the next one; a segment it still goes on without fails the pair, as a read error does, so that no report is complete without it, and with it a ladder run fails (D-047) (options 2 and 3 of "A segment the hls demuxer skips" in `docs/PHASE2_DECISIONS_PENDING.md`). This changes D-036, which left the player's segment retries out. A gap at the same place in both inputs' timestamps, reported and scored in a new libvmaf context (option 4), is for later, for gaps that are in the source itself.
 - **Alternatives**: the segment skipped, as D-036 has it, so that only the pairing's counts can show it; the retries alone; the skip taken as a failure alone; the gap reported.
 - **Rationale**: with D-036's 5 s limit a segment whose request waits longer is skipped, and the read returns no error, so the pair ended complete, with exit 0. A segment lost in one input shows only as frames that don't pair, which warn above 1% (D-028), and since each input's times are measured from its own start (D-028), a first segment lost in one input offsets every pair; one lost in both at the same place leaves no failure. FFmpeg's side of the §5 check still skips such a segment.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-054)
+- **Who**: owner, adopting the agent's recommendation (D-054)
 - **Date**: 2026-10-29
 
 ### D-056 An rtmp input gets FFmpeg's rw_timeout alone
@@ -576,7 +578,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Decision**: an rtmp URL is opened with FFmpeg's `rw_timeout` alone, without `timeout`, which FFmpeg's own rtmp protocol takes as the time to wait for an incoming connection, and which makes it listen on the URL's host and port instead of connecting to them (`ffmpeg -h protocol=rtmp`): in `src/VMAFNet.h`, `src/FfOpen.cpp` and `src/Demuxer.cpp` alike, the player keeping the analyzer's rule. `--help`, P-066's statement of the limits and the tests follow, and a test on a local rtmp server checks it end to end (option 2 of "The options of an rtmp input"). This changes D-036's `timeout` for rtmp inputs.
 - **Alternatives**: `timeout` and `rw_timeout` for every network input, as D-036 words it; rtmp refused by `mirage_vmaf`, as a protocol it doesn't support.
 - **Rationale**: D-036's intent, that a read that waits longer fails, then holds for rtmp: with `timeout` an rtmp input listened instead of connecting, and its 5 s weren't a limit on its reads.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-054)
+- **Who**: owner, adopting the agent's recommendation (D-054)
 - **Date**: 2026-10-29
 
 ### D-057 The report gives each input's discontinuity sequences, and the frames D-050 counts keep D-046's reasons
@@ -586,7 +588,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - The frames D-050 counts keep D-046's reasons, as P-073 implements them: the other input's frame within a frame of the coarser input of the first input's jump is an unmatched reference or extra distorted frame, and where one input ends instead of jumping pairing doesn't stop, and the other input's frames are unmatched or extra; a test covers an input that ends (option 1 of (b)).
 - **Alternatives**: (a) the limitation stated in `--help` and the method notes only; the pairing checking the sequences' first timestamps now. (b) those frames counted as after a discontinuity, as D-028's rule counts them.
 - **Rationale**: each sequence after the first is measured from its own first frame (D-046), so an input that lacks the first frames after a jump that is at the same place in both inputs pairs offset by the frames it lacks, and the frames that don't pair warn only above 1% (D-028); the report shows the offset without changing a score.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-054)
+- **Who**: owner, adopting the agent's recommendation (D-054)
 - **Date**: 2026-10-29
 
 ### D-058 The report gives the memory limit's measure at each pair it let start, and the limit stays a rule for starting pairs
@@ -596,7 +598,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - `--memory-limit` stays a rule for starting pairs, as D-045 to D-053 have it: running pairs aren't stopped, and the peak can pass the limit (option 1 of (b)).
 - **Alternatives**: (a) the largest measure, as P-074 has it; the measure of the first pairs once they had warmed up. (b) a cap, a running pair that would take the process over it paused, or stopped and started again later; each pair in a process of its own, measured and limited on its own.
 - **Rationale**: D-053 has the report give what the rule measured a pair to use "so that a run shows how far its pairs went beyond it", which a measure kept at its largest can't show, and the largest can be read from each admission's; with D-053's margin the run over every frame stayed under the limit (P-075), and a cap would stop pairs that have done much of their work.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-054)
+- **Who**: owner, adopting the agent's recommendation (D-054)
 - **Date**: 2026-10-29
 
 ### D-059 A run with a memory limit whose memory can't be read is refused
@@ -604,7 +606,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Decision**: with a memory limit, a ladder run whose resident memory can't be read before its first pair fails then, and a reading that fails later holds the next pair back until one succeeds (option 3 of "A memory limit when the memory can't be read").
 - **Alternatives**: pairs started as the warm-up allows, and nothing said, as P-067 implements it; the same, with a warning on stderr and in the report.
 - **Rationale**: a run that was given a limit doesn't run without one.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-054)
+- **Who**: owner, adopting the agent's recommendation (D-054)
 - **Date**: 2026-10-29
 
 ### D-060 The decision log, the records and the documents after the audit
@@ -616,13 +618,13 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - The line of the agent's recommendation that `34e6faa` left out of the package of P-033 to P-065 is restored in `docs/PHASE1_DECISIONS_PENDING.md` on `vmaf/phase-1`, in a new commit, with the citations of "hard rule 4" for the differences list corrected there, so that Phase 1's PR carries them (option 1 of "The recommendation line of P-033 to P-065 in Phase 1's pending document").
   - From now on the files other than `docs/AI_CONTRIBUTIONS.md` say "agent" alone, in bylines and **Who** lines, and that file alone names the model; what is written stays (option 2 of (a) of "The model's name, and the survey's rendering of §2"). The survey's rendering of §2, the requirements in its own words with no passage of the work order quoted, is within D-013 (option 1 of (b)).
 - **Alternatives**: as the pending document lists them for each.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-054)
+- **Who**: owner, adopting the agent's recommendation (D-054)
 - **Date**: 2026-10-29
 
 ### D-061 The process choices P-067 to P-077 are confirmed
 
 - **Decision**: the agent's measurement and process choices P-067 to P-077 are confirmed as their entries state them, with their corrections; D-050, D-051 and D-053 change what P-068 and P-072 implement.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation (D-054)
+- **Who**: owner, adopting the agent's recommendation (D-054)
 - **Date**: 2026-10-29
 
 ### D-062 Phase 1's PR states D-055's and D-056's limits, and Phase 2's brings the fixes
@@ -631,7 +633,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Owner's words**: "No, PR states them (Recommended)", the owner's answer to the agent's question.
 - **Alternatives**: D-056 alone on `vmaf/phase-1`; both on `vmaf/phase-1`, each with its tests and a new unit test record.
 - **Rationale**: neither changes a committed measurement (`eval/run_all/2026-10-29-d055/`), rtmp inputs are outside the work order's scope, and a port would change Phase 1's code after its records were made.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Who**: owner, adopting the agent's recommendation
 - **Date**: 2026-10-30
 
 ### D-063 Every step is rerun on macOS 26.6.2 with the long runs
@@ -640,14 +642,14 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Owner's words**: "With the long runs (Recommended)".
 - **Alternatives**: the rerun now, on its own; none before the PRs, each record stating its macOS version.
 - **Rationale**: one rerun of every step checks the Phase 2 program and the new macOS together; on 26.6.2 the 300-frame steps that read Apple's CDN found everything as committed (P-078).
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Who**: owner, adopting the agent's recommendation
 - **Date**: 2026-10-30
 
 ### D-064 The process choice P-078 is confirmed
 
 - **Decision**: the agent's measurement and process choices P-078 are confirmed as the entry states them.
 - **Owner's words**: "Confirm (Recommended)".
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Who**: owner, adopting the agent's recommendation
 - **Date**: 2026-10-30
 
 ### D-065 The repository is public again before the submission
@@ -657,7 +659,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Implications**
   - D-008's question, as `docs/PHASE1_DECISIONS_PENDING.md` words it, is whether legal or the company's open-source process has to confirm GPL-3.0-or-later "before the repository is made public again". It stays open as whether they have to confirm it, and it is the owner's to check.
   - When the repository was made public again isn't in any committed record.
-- **Who**: owner (Jiayu Lin)
+- **Who**: owner
 - **Date**: 2026-10-30
 
 ### D-066 Phase 2's PR waits, and Phase 3 starts on a branch of Phase 2's
@@ -665,7 +667,8 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Decision**: Phase 2's PR isn't opened yet; the agent goes on with the work order's later phases, from Phase 3, with a team of agents it leads, until the feature is done. Phase 3's branch, `vmaf/phase-3`, is made from `vmaf/phase-2`, as D-042 made Phase 2's from Phase 1's, and its PR comes after Phase 2's (hard rule 5). Phase 2's PR is opened when the owner says.
 - **Owner's words**: "we dont have to open a PR right now, you can lead a team with several agents to do the VMAF until you are all done with the feature", after the agent's report that Phase 2's PR was drafted.
 - **Alternatives**: Phase 2's PR first.
-- **Who**: owner (Jiayu Lin)
+- **Overtaken** (2026-11-02): the owner opened Phase 2's PR, #4, from `vmaf/phase-2` at `75cf6e0`, and merged it into `main` that day, as `35dd397`; `main` was merged into `vmaf/phase-3` then (`59a8e20`). The rest of this decision stands.
+- **Who**: owner
 - **Date**: 2026-10-30
 
 ### D-067 The process choices P-066, P-079 and P-080 are confirmed, with the AI rows, and D-053's margin stays
@@ -674,7 +677,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Owner's words**, translated by the agent: "All as recommended (Recommended)", the owner's answer to the agent's question.
 - **Alternatives**: confirm them and revisit D-053's margin before Phase 2's PR, with a larger margin or a longer warm-up and the check over every frame run again; review the records first.
 - **Rationale**: D-058 keeps the limit a rule for starting pairs, not a cap on the process's memory; another margin would need another run over every frame, and the margin measured can be stated as it is.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Who**: owner, adopting the agent's recommendation
 - **Date**: 2026-10-30
 
 ### D-068 §3's sessions: the ladder's scores joined with a session's log
@@ -686,7 +689,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - Wait for Phase 4 and score in the player while it plays, recording the network and the switches live: the closest to playback, but it needs D-007's plan first, and the network's timing differs at each run.
 - **Rationale**: Mirage has no ABR (gap report, "Existing data sources for §3.1"), and §2's ladder scores give each variant's score at each frame of the reference; a session can be attributed again without scoring again.
 - **Limits**: a session's scores assume that the player decoded the frames the offline decode did; frames dropped at a switch show only as the decoder's events, not in the scores.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Who**: owner, adopting the agent's recommendation
 - **Date**: 2026-10-30
 
 ### D-069 §3.2's two attribution tests use synthetic content, and the evaluation's ladders public source clips
@@ -695,7 +698,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Owner's words**, translated by the agent: "Synthetic for the tests, public source clips for the evaluation (Recommended)".
 - **Alternatives**: synthetic content for the evaluation too, the simplest to reproduce, but synthetic pictures aren't natural video and VMAF's behavior on them doesn't stand for real content; D-011's clips for the tests too, the most realistic, but the tests would depend on a download and an encode and run slowly, and the media wouldn't be committed, only the scripts and SHA-256s.
 - **Rationale**: tests that make their own inputs are reproducible wherever the build is, with no license question.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Who**: owner, adopting the agent's recommendation
 - **Date**: 2026-10-30
 
 ### D-070 Phase 3 reads SCTE-35 from HLS playlist signaling
@@ -704,8 +707,133 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Owner's words**, translated by the agent: "HLS playlist signaling (Recommended)".
 - **Alternatives**: HLS and DASH's `EventStream` (`urn:scte:scte35:2013:xml`, `urn:scte:scte35:2014:xml+bin`), which `ManifestParser` can read, but mirage_vmaf doesn't score DASH ladders, so their events wouldn't reach a timeline with scores; both, and SCTE-35 within MPEG-TS segments (stream type 0x86), which needs a data stream read while scoring, and whether FFmpeg's hls demuxer gives that stream is unverified.
 - **Rationale**: mirage_vmaf scores HLS ladders (§2); this covers the streams it can score.
-- **Who**: owner (Jiayu Lin), adopting the agent's recommendation
+- **Who**: owner, adopting the agent's recommendation
 - **Date**: 2026-10-30
+
+### D-071 Phase 3's first round of questions: the agent's recommendations adopted
+
+- **Decision**: the owner adopts the agent's recommendation on each of the 27 questions of round 1 in `docs/PHASE3_DECISIONS_PENDING.md` as `0f926d8` has them (Q01 to Q08, Q17 to Q20, Q22 to Q35 and Q43): the answers that the work packages on the path to §3.2's two acceptance tests need before they start. D-072 to D-081 record each decision. Q01 and Q08 are marked D-007; the answers chosen change neither the scorer nor the render and decode paths, so neither needed a ruling or a plan under D-007. Round 2's nine questions are asked later.
+- **Owner's words**, translated by the agent: in each of the agent's eleven questions, the option marked as its recommendation: "(B) A separate timeline document" for Q01, "(a) A demux-only pass in the timeline build" for Q08, "(c) Reference frames and the playlist time" for Q02, "(c) The pairs' curves, a session's drops clipped to its spans" for Q22, and "The whole group as recommended" for Q03 to Q07, Q17 to Q20, Q23 to Q27, Q28 to Q30, Q31 and Q32, Q33 to Q35, and Q43's eight items; and "Ask later" for round 2.
+- **Not covered, still open**: the questions of rounds 2 and 3 (17); P-081 and the design's 28 proposed process choices, which are recorded from P-082 on as their packages start.
+- **Alternatives**: deciding each question separately.
+- **Who**: owner
+- **Date**: 2026-11-02
+
+### D-072 The timeline is a document of its own, versioned, naming its ladder report by two hashes
+
+- **Decision**
+  - The timeline's events and its attributions are written in a separate timeline document, one per build, for one ladder report and at most one session. Scores are read from the report, not copied, so the scoring run's output and the committed records stay as they are. That §7 puts both arrays in `mirage_vmaf`'s output is a difference to report (Q01 (B)).
+  - Its layout, as schema version 1, is that of the design's §8 with the event types of its §5.9: §7's names (`timeline`, `attributions`, `interval`, `drop_magnitude`, `overlapping_events`), extended with positions on the reference's frames, spans, ids and seconds; `overlapping_events` as groups in §3.1's order of sources, each event with its offsets in seconds and in frames; the detection's parameters and the report's provenance copied; the aligner's unpaired frames filed under `vmaf`, a difference to report (Q04 (a)).
+  - It carries an integer `schema_version`, from 1, and a JSON Schema file under `docs/schema/`; `tool_version` and `git_commit` come with Phase 5, and the eval tooling records the commit when it runs, as P-006 has it (Q05 (a)).
+  - It names its ladder report by the SHA-256 of the report's bytes and by the SHA-256 of a canonical digest of what attribution reads, which redaction leaves unchanged (Q06 (c)).
+- **Alternatives**: the two arrays in the ladder report, as §7 lists them, each new session then scoring again or rewriting the scored file; the session's curve copied into the document; the per-variant events recorded in the report by the analyzer while it scores, a D-007 matter; §7's literal shapes only; the layout declared provisional until Phase 5; `tool_version` and `git_commit` now, or no version at all; one of the two hashes.
+- **Rationale**: D-068 scores a ladder once for many sessions; the committed records and their checks stay valid; a new format costs nothing to version from its first day.
+- **Who**: owner, adopting the agent's recommendation (D-071)
+- **Date**: 2026-11-02
+
+### D-073 One time base: events on the reference's frames, offsets in its playlist time; a wall clock for observed events only
+
+- **Decision**
+  - Events are placed and compared on the reference's frames, as integers, and each keeps its media key, the report's discontinuity sequence and the PTS. Offsets are printed in seconds of the reference's playlist time, each frame at its segment's EXTINF sum plus its PTS offset within the segment, and where the reference has no segment map (a mezzanine, a refused map) in the frame index times the frame duration. Wherever the map exists both are computed at every scored reference frame and compared, and each frame's PTS is compared with the frame grid of its playlist discontinuity sequence; each run of frames beyond half a frame goes into the document's warnings (the design's §4.2). Offsets in seconds of that axis, not PTS differences, are a difference from §3.1 to report (Q02 (c)).
+  - Only observed events have a wall clock: a session fetch's requests, and later the player's log, as microseconds on one steady clock from a UTC time sampled at the session's start. Offline events (scores, playlist tags, the decoder's facts) have none, a difference to report (Q03 (b)).
+- **Alternatives**: raw reference PTS for everything; seconds of the report's sequences laid end to end; the frame index times the frame duration everywhere, the agent's close second, the better choice for playlists with whole-second EXTINF; the observation time with no common anchor; dates from `EXT-X-PROGRAM-DATE-TIME` for offline events too.
+- **Rationale**: raw PTS repeat where an ad restarts at the main content's origin (50 PTS values each name two reference frames of testgen's ad ladder, `eval/phase3-survey/design-evaluation/runs/09_axes.txt`); the playlist time stays right after a missing frame or a change of frame rate, where the frame index's seconds don't (`eval/phase3-survey/design/runs/seconds-check.txt`), and its limit at a sequence's first frame is stated and tested (`eval/phase3-survey/review-3/runs/seconds-check-sequence-start.txt`).
+- **Who**: owner, adopting the agent's recommendation (D-071)
+- **Date**: 2026-11-02
+
+### D-074 Each scored frame's segment, and the keyframes, come from a demux pass of the timeline build
+
+- **Decision**: the timeline build reads each scored media playlist again, demuxing without decoding; it places every packet in its segment by its byte position, checks each frame against the report's PTS, and takes the keyframes and the corrupt flags from the packets' flags. The scorer and the report don't change (Q08 (a)).
+- **Alternatives**: the analyzer recording them while it scores, which changes its reading of its inputs and the report, a D-007 and D-068 matter; PTS against EXTINF sums, FFmpeg's own rule, with no extra read.
+- **Rationale**: exact on every playlist probed, 200 of 200 frames on each of 15 playlists (`eval/phase3-survey/design-evaluation/runs/03_segmap.txt`, `04_join_check.txt`), where FFmpeg's rule placed 145 and 193 of 200 packets (`eval/phase3-survey/design-library/runs/map-by-pos-*.txt`); the PTS check makes a failure visible. Its time on real ladders: MEASUREMENT PENDING.
+- **Who**: owner, adopting the agent's recommendation (D-071)
+- **Date**: 2026-11-02
+
+### D-075 A rung is named by its master entry and URI, with both of its BANDWIDTH ranks
+
+- **Decision**: in every output a rung's identity is its master entry's index and its URI, and both its ascending and its descending BANDWIDTH rank are printed as labels (1 the lowest, 1 the highest) (Q07 (d)).
+- **Alternatives**: the entry and the URI only; one of the two ranks.
+- **Rationale**: the identity never changes, and printing both ranks imposes no reading of a numbered rung that the work order doesn't give.
+- **Who**: owner, adopting the agent's recommendation (D-071)
+- **Date**: 2026-11-02
+
+### D-076 Playlist and cue events: the cue-in ends a break, D-070's tags only, no inferred ad boundaries, DASH as an interface
+
+- **Decision**
+  - An ad break ends at its cue-in; without one, at the duration its tag gives (`EXT-X-CUE-OUT`'s value, `EXT-X-DATERANGE`'s `DURATION` or `END-DATE`), then `PLANNED-DURATION`, then the message's `break_duration`, then `segmentation_duration`. Every value is kept (Q17 (a)).
+  - Phase 3 reads D-070's list of tags only: `#EXT-X-SCTE35`, `#EXT-X-SPLICEPOINT-SCTE35` and Adobe's `#EXT-X-CUE` are kept as raw `tag` events, a difference to report (Q18 (a)).
+  - An `EXT-X-DISCONTINUITY` without cue tags is a `discontinuity` event, never an inferred ad boundary (Q19 (a)).
+  - DASH periods: a `period` event type is reserved and the design's cue interface (§5.5) declared, with no reader, a difference to report (Q20 (a)).
+- **Alternatives**: the tag's duration first, Google Video Stitcher's rule, or the message's `break_duration` first; the other signalings read as well; discontinuities taken as ad boundaries, always or as an option; an MPD's periods and EventStreams read.
+- **Rationale**: the cue-in is where the media changes back, and keeping every value shows where they disagree; D-070 decided the list; the evaluation mustn't claim SCTE-35 where none was signalled; with no DASH scoring, DASH events would reach no curve.
+- **Who**: owner, adopting the agent's recommendation (D-071)
+- **Date**: 2026-11-02
+
+### D-077 Drop detection: on the pairs' curves, against a trailing median, T = 6 by default, W and N required
+
+- **Decision**
+  - Detection runs on each scored pair's curve; a session's drops are its pairs' drops clipped to the spans that played each variant, under the design's three rules for them (§6.3) (Q22 (c)).
+  - The baseline is the median of the last W points that weren't low, used once W/2 such points exist; the first W/2 points of a curve therefore can't be low, which the document's detection record states (Q23 (a)).
+  - W and N count points of the curve; points without a score are skipped, nothing invented at them (Q24 (a)).
+  - The first pair of each libvmaf context (D-037) gets no special case (Q25 (a)).
+  - T is 6 by default, the work order's suggestion; W and N have no default until they are measured on real video, and must be given. `mirage_vmaf timeline` detects only when W and N are given; otherwise its document has `detection: null` and no attributions, and it says why on stderr (Q26 (a) 1, (b) 2). The acceptance tests pin their own parameters, T = 6, W = 50 and N = 12 (the design's P-R).
+  - An attribution gives `drop_magnitude`, the baseline minus the drop's minimum, and `mean_drop`, the baseline minus the drop's mean (Q27 (c)).
+- **Alternatives**: the pairs' curves only; the session's curve with a baseline of its own; the session's curve only; the mean of the same points, the median of the last W points low or not, or one median per curve; W and N in reference frames or in seconds; a libvmaf context's first frames left out of the curve or of the baseline; all three parameters required, or all three set from the synthetic sweep; detection always run, or an option to turn it off; one of the two magnitudes.
+- **Rationale**: the prototype's trailing median found both acceptance drops exactly, with no drop in either control, for every T from 3 to 40 and N from 1 to 24 of its grid, at W = 10, 25, 50 and 100 (`eval/phase3-survey/design-evaluation/runs/05_detection_sweep.txt`); against a session's own baseline, whether a switch is a drop changed between T = 5 and T = 5.5 on one plan (`eval/phase3-survey/review-adversarial/runs/switch-t-sweep.txt`); leaving a context's first frame out moves the ad's drop off its cue by one frame (`eval/phase3-survey/design/runs/detection-semantics-ad.txt`); nothing measured on real video sets W and N.
+- **Who**: owner, adopting the agent's recommendation (D-071)
+- **Date**: 2026-11-02
+
+### D-078 Attribution: the curve's own inputs, strict overlap with optional margins, no ranking
+
+- **Decision**
+  - An attribution lists the events of its curve's own inputs: for a pair, the distorted variant's and the reference's; for a session, those of the variant played in each span, the reference's and the session's own (Q28 (a)).
+  - An event meets an interval [a, b) of reference frames when it is a point f with a ≤ f < b, or a span [s, e) with s < b and e > a. Margins before and after, zero by default, can widen the interval (Q29 (c)).
+  - The events come in groups in §3.1's order of sources, by offset within a group, with no ranking (Q30 (a)).
+- **Alternatives**: every scored variant's events, or the distorted input's only; points exactly at the end listed and flagged, or closed intervals; a ranking by a heuristic, or a likely-cause field.
+- **Rationale**: another rung's copies of a tag stay out of a curve's answer, and the reference, whose timeline every curve is on, stays in; overlap is the claim, and a ranking would be a causal model that needs an evaluation of its own.
+- **Who**: owner, adopting the agent's recommendation (D-071)
+- **Date**: 2026-11-02
+
+### D-079 Two subcommands of `mirage_vmaf`, and a JSON reader written in the repository
+
+- **Decision**: `mirage_vmaf timeline` builds, detects and writes a document, reading the media once; `mirage_vmaf attribute` queries a document without reading media, printing text by default and JSON with `--format json`; their options are the design's §7's, each also a config-file setting (D-030); `mirage_vmaf`'s existing command lines keep their meaning (Q31 (a)). The JSON reader is written in the repository and builds a document tree, with no new dependency, as D-030 chose for the config file; it reads large arrays as a stream only if a measurement of a full report's load says it must (Q32 (a)).
+- **Alternatives**: one subcommand that builds and queries; a separate program; a third form of `mirage_vmaf`'s options; a streaming reader from the start; a header-only library through FetchContent.
+- **Rationale**: the build does its reading once, and queries are offline, cheap and deterministic; no dependency is added.
+- **Who**: owner, adopting the agent's recommendation (D-071)
+- **Date**: 2026-11-02
+
+### D-080 The acceptance tests' synthetic content
+
+- **Decision**: the tests encode D-069's ladders with libx264 when the build's FFmpeg has it and with FFmpeg's MPEG-2 encoder otherwise, recording which (Q33 (c)). Acceptance test 2's ad restarts its timestamps at the main content's origin, and two more ad ladders, one from 1 s and one with continuous timestamps, are made in the same test's process (Q34 (d)). The rest of the content is as testgen's prototype measured it: the fractal-noise source, the calm ad, continuity counters marked at the splice, no binary SCTE-35 in the ladders, the generator compiled with optimization in every build type, and top-rung mode (Q35 (a)).
+- **Alternatives**: libx264 only, the tests skipped without it, or MPEG-2 only; one arrangement of the ad's timestamps; each item of testgen's list decided on its own; the existing tests' ramp source and MPEG-2 helpers, whose ladder fails D-002's BANDWIDTH order.
+- **Rationale**: an acceptance test that skips shows nothing; both encoders gave clear drops on the intended frames where they were run (`eval/phase3-survey/design-evaluation/runs/10_attribute_final.txt`); with MPEG-2, the ad from 1 s and the continuous ad are MEASUREMENT PENDING, as are the three ad ladders' time in a Debug build.
+- **Who**: owner, adopting the agent's recommendation (D-071)
+- **Date**: 2026-11-02
+
+### D-081 The ladder timeline's eight defaults
+
+- **Decision** (Q43, option 1 of each item)
+  - (a) A live media playlist fails the build, which names it.
+  - (b) Ladder reports are read in `75cf6e0`'s layout and later only: older layouts and pair reports are refused, naming what is missing, and relative paths are taken from the current directory, as `mirage_vmaf` takes its inputs.
+  - (c) A variant whose frames don't all match the demux pass gets no segment map: its segment-bound events are left out, with a warning.
+  - (d) An unpaired frame sits at the next paired frame of its input, by index.
+  - (e) A playlist that several master entries name is ranked by the highest of their BANDWIDTHs.
+  - (f) A tag that several rungs' playlists carry is kept once per variant.
+  - (g) A drop runs from its first low point's reference frame to the frame of the curve's next point, half-open; an interval given in seconds starts and ends at the first reference frames at or after its two ends on the axis.
+  - (h) A corrupt packet sits at the flagged packet's frame, with the next segment boundary in its payload.
+- **Alternatives**: the other options of each item, as `docs/PHASE3_DECISIONS_PENDING.md` lists them under Q43.
+- **Rationale**: each default keeps what the data shows, places nothing it can't place exactly, and says in the document what it left out.
+- **Who**: owner, adopting the agent's recommendation (D-071)
+- **Date**: 2026-11-02
+
+### D-082 The owner's name comes off the repository's text and its new commits; the public history isn't rewritten
+
+- **Decision**: from 2026-11-02 the commits carry the GitHub user name as their author's name, with the GitHub noreply address as before, and the owner's name is taken out of the repository's text. It was only in this log's **Who** lines, which `0f926d8` changed on `vmaf/phase-3` (the header's note); the branches already pushed keep those lines until `vmaf/phase-3`'s changes reach them. The public history isn't rewritten: a one-line `.mailmap` maps the noreply address to the user name, so that `git log`, `git shortlog` and `git blame` show it for every commit (PR #3, from the branch `chore/mailmap`, open). The five commits of `vmaf/phase-2` after `475ace3` (`c673738`, `83e1e25`, `7d78a79`, `da0ffb8`, `75cf6e0`), whose author fields carry the owner's name, were pushed as they are on 2026-11-02; Phase 2's PR still waits (D-066).
+- **Owner's words**, given in another session of the agent and translated there: "Change it, of course it has to change", on the commits' author name; "ok", to the plan above; "Push it", to pushing `vmaf/phase-2`.
+- **Alternatives**: a rewrite of the public history, as D-012's did for the commits' e-mail addresses; the five commits renamed before their push.
+- **Rationale**: the five commits' ids are cited in committed records (`eval/ladder/acceptance-c673738/`, D-067's "as of `da0ffb8`"), which renaming them would break, and the `.mailmap` covers how every commit is shown.
+- **Who**: owner
+- **Date**: 2026-11-02
 
 ### D-083 The engineer-tools panels go in as built (D-007's plan for them)
 
@@ -734,6 +862,76 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Rationale**: one review and one merge; D-083 covers the only part that changes the player's render, decode and audio path.
 - **Who**: owner, adopting the agent's recommendation
 - **Date**: 2026-11-03
+
+### D-086 A variant refused under D-081 (c) keeps none of the demux pass's frame facts
+
+- **Decision**: a variant whose frames don't all match the demux pass, which D-081 (c) leaves without a segment map and its segment-bound events, also keeps none of the pass's keyframes, corrupt packets or PTS: its media holds only the reason it was refused, with D-081 (c)'s warning (Q45, a question the implementation of WP06 raised).
+- **Owner's words**, translated by the agent: "Leave them out too (Recommended)".
+- **Alternatives**: keep its keyframe and corrupt-packet events, placed by the pass's frame order.
+- **Rationale**: those positions are in a frame order that the report contradicts, and D-081 places nothing it can't place exactly; D-069's ladders are never refused.
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-04
+
+### D-087 Cue-outs don't nest
+
+- **Decision**: a cue_out that another cue_out follows before any cue_in has no cue_in: it ends at the duration it declares, under D-076's order, or makes no ad_break and gets a warning; the later cue_out pairs with the next cue_in. No ad_break spans another, as a vendor's early notice before the cue-out proper would otherwise make (Google Video Stitcher's `X-TYPE="EABN"`) (Q46, a question the implementation of WP04 raised).
+- **Owner's words**, translated by the agent: "They don't nest (Recommended)".
+- **Alternatives**: each cue_out paired with the first cue_in after it, so that two breaks end at the same cue_in, one spanning the other, as the design's §5.5 reads literally.
+- **Rationale**: a break that spans another would list the second's cues as the first's; a cue_out without its own cue_in keeps its declared duration.
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-04
+
+D-088 to D-091 and D-093 to D-098 are on branches not yet merged; whoever merges later puts the entries in number order.
+
+### D-092 The timeline document's open forms: the axis's per-frame values, a pair's number, missing values, and the rest as built
+
+- **Decision**: four choices WP08's review left to the owner (Q48 to Q51):
+  - (a) **The axis's per-frame values** (each reference frame's playlist-time ticks and media key, which WP08 adds to design §8's axis so that `attribute` places intervals and margins without the media) are written as stretches whose step is a rational, the frame duration in ticks, with a phase: the k-th frame of a stretch has the value first + floor((phase + k × num) / den). A frame that doesn't follow starts a new stretch, so the values stay exact whatever the input; where a frame isn't a whole number of ticks, as at 24000/1001 and 60000/1001 fps on MPEG-TS's 90 kHz clock, the document still grows with segments, not frames (Q48).
+  - (b) **A pair's number** in the document, in `variants[].pair`, in curve references and in `--curve pair:<k>`, is the report's own `pairs[].index`, the plan's; the code maps it to the pair's position among the report's complete pairs (Q49).
+  - (c) **A value a variant doesn't have is null**: as WP08 built it for the bandwidth, both ranks and the playlist of a variant without master entries or one that isn't a rung, and also for the segment map of a variant without a playlist (a mezzanine reference), where WP08 wrote `"ok"` (Q50).
+  - (d) **WP08's other forms stay as built** (Q51): `axis.runs`, every run of design §4.2's check, structured, with its warning flag, the warnings' texts staying in `axis.warnings`; a curve as `{"kind": "pair", "index": k}`; rationals as `"num/den"` strings; `overlap.scope` `"curve-inputs"`; the runs' tests `"clocks"`, `"playlist-grid"` and `"report-grid"`; the stretches' member names; `detection.curves` as the curves detection ran on, with `session_rules` null; all six groups of overlapping events, empty ones included; and a strict reader, which requires every key, refuses unknown keys and recomputes every value in seconds, so that any addition takes a new `schema_version`.
+- **Owner's words**, translated by the agent: (a) "Rational-step stretches (Recommended)"; (b) "The report's numbers (Recommended)"; (c) "All null (Recommended)"; (d) "All as built (Recommended)".
+- **Alternatives**: (a) one value per frame; only what the ladder report doesn't hold, the axis restored from the document and the report together, so that `attribute` would always need `--report`, which design §7 makes optional; WP08's stretches with a whole step. (b) The position among the complete pairs, as WP08 built it. (c) `"none"`, or `"ok"` as built, for a mezzanine's segment map. (d) Each item asked on its own.
+- **Rationale**: (a) Where a frame isn't a whole number of ticks the muxer's PTS step alternates, so WP08's whole-step stretches cover at most 4 frames at 24000/1001 and 2 at 60000/1001 (WP08's test of the axis's stretches where a frame isn't a whole number of ticks, `tests/test_timeline_doc.cpp`). The review measured such documents with a probe that isn't committed and found them larger than one value per frame would be; its figures are left out. A rational step keeps the document exact and self-contained. (b) The report's number is the one a reader of the report sees, and it doesn't shift when a pair fails. (c) The document writes only what its inputs show. (d) As the agent recommended.
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-05
+
+### D-099 The axis's playlist-time ticks get a whole multiplier; WP08b's and WP09a's other choices stay as built
+
+- **Decision**: three answers on choices that WP08b and WP09a's review left to the owner (Q52 to Q54):
+  - (a) A stretch's values follow first + s × floor((phase + k × num) / den), with s a whole multiplier, 1 unless the values are kept in a unit s times finer than the clock the frames follow. The playlist-time ticks, which build_axis() keeps in a multiple of the reference's time base (8 and 4 axis ticks per PTS tick at 24000/1001 and 60000/1001 fps on a 90 kHz clock, as WP08b's test of the stretches where a frame isn't a whole number of ticks asserts), then follow their segment's PTS, with s that multiple and num/den the frame duration in PTS ticks, so that they too grow with segments, as D-092 (a) intends. The stretches gain a member for s (Q52).
+  - (b) WP08b's other encoding choices stay as built (Q53): where several steps and phases hold the same frames, the step that covers the most frames, the frame duration on a tie, the smallest phase, and 0/1 for a one-frame stretch; whole steps for the keys of an axis without a frame duration (an axis without seconds); and a variant without a playlist whose segment map isn't Variant's default is written as given, for the reader to refuse, rather than written null.
+  - (c) WP09a's eight choices stay as built (Q54): `attribute --format json` writes a timeline document whose command is "attribute"; ranks are counted among all the master's video playlists, each URL at the highest BANDWIDTH of its video entries, equal BANDWIDTHs sharing a rank, RESOLUTION and CODECS from the entry with the highest BANDWIDTH, the first of equal ones; a segment with no paired frame after it ends one past its last paired frame, and one before a segment that isn't placed spans the gap to the next paired frame; the payload names of context_start, unpaired_frame, keyframe and corrupt_packet as built; attribute's margins are zero unless given, --auto takes its own W and N with T defaulting to 6, drops are numbered from 1 across the curves in turn, and without --curve every pair's curve is answered; arguments the document can't satisfy exit with status 2, and a lone --window or --min-points on timeline means no detection (exit status 0, a line on stderr); one warning per variant for undecoded SCTE-35 messages, per kind and input for frames after the last paired frame, and per segment not placed; options recorded under their config-file names with dashes, margins as "num/den", and --auto written `auto = on` in a config file.
+- **Owner's words**, translated by the agent: (a) "Add a whole multiplier (Recommended)"; (b) "All as built (Recommended)"; (c) "All as built (Recommended)".
+- **Alternatives**: (a) the playlist-time ticks written per segment as following the keys' PTS, the axis's own rule, with the formula as fallback; kept as WP08b built them, growing with frames at those rates; one value per frame for those ticks. (b), (c) each item asked on its own.
+- **Rationale**: (a) A PTS rounded by one tick moves those ticks by s, while the floor term of D-092 (a)'s formula moves by 0 or 1 a frame, so no rational step alone follows them; the multiplier keeps them exact and self-contained, and all three kinds of values grow with segments. (b), (c) As the agent recommended.
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-05
+
+### D-100 The timeline document's writer also tries a coarser clock and a sequence's own step; the tie and the reader's scales stay as built
+
+- **Decision**: three answers on choices WP08b's review left to the owner (Q55 to Q57):
+  - (a) Where PTS were rounded to a clock coarser than their time base (90 kHz PTS of a millisecond timestamp, as an FLV, RTMP or Matroska source remuxed into MPEG-TS without re-encoding gives), the writer also tries, for the keys and for the playlist-time ticks, a scale above 1 that divides every difference from a stretch's first value, with the frame duration in units of that many PTS ticks, so that such a reference too grows with segments (Q55).
+  - (b) Where a sequence's frame rate isn't the axis's (an ad at another frame rate after its discontinuity, which design §4.2 expects), the writer also tries, after the axis's frame duration, the rational step the stretch's own first values give (Q56).
+  - (c) Two choices stay as built (Q57): where the frame duration in the axis's ticks with scale 1 and the frame duration in PTS ticks with a scale above 1 hold the same frames (6006/1 with scale 1 or 3003/1 with scale 2 at 30000/1001 fps on a 90 kHz clock), the one tried first, with scale 1; and the reader takes any scale from 1 on both kinds of stretch, and scale 1 alone on frames without a PTS.
+  - Only the writer changes for (a) and (b): the reader already takes such steps and scales, so documents stay at schema version 1 and every value stays exact.
+- **Owner's words**, translated by the agent: (a) "The writer also tries a coarser clock (Recommended)"; (b) "Also try the sequence's own step (Recommended)"; (c) "All as built (Recommended)".
+- **Alternatives**: (a), (b) as built, the document growing with frames for such sources, the limit stated in the format document. (c) Each item asked on its own: for the tie, 3003/1 with scale 2, D-099 (a) read literally; for the reader, scale 1 alone on key stretches, which a later writer giving keys a scale would need a new schema_version for.
+- **Rationale**: (a), (b) WP08b's review found sources common in practice, PTS on a millisecond clock and ads at another frame rate, for which WP08b's writer starts a stretch every few frames; it measured both with probes that aren't committed, so their figures are left out. The reader already takes what makes them grow with segments, so no document becomes unreadable. (c) As the agent recommended.
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-06
+
+### D-101 A sequence at another frame rate on a coarser clock, and WP08c's other choices, stay as built
+
+- **Decision**: two answers on what WP08c's review left to the owner (Q58, Q59):
+  - (a) A sequence at another frame rate than the axis's whose PTS were rounded to a coarser clock, as an ad at 24000/1001, 30000/1001 or 60000/1001 fps on a millisecond clock, whose frame of 1001/24, 1001/30 or 1001/60 ms has a denominator above 8, follows none of D-100's steps over all its frames, so that its stretches grow with its frames: this stays as built, the limit stated in `docs/TIMELINE_FORMAT.md`, `src/TimelineDoc.h` and `src/TimelineDoc.cpp` (Q58).
+  - (b) WP08c's other choices stay as built (Q59): D-100 (b)'s steps tried for every window of 2 to 8 values, in units of the factor the stretch's first differences share where they share one; that factor taken from the first 8 differences and refined where D-100 (a)'s step stops at a value it doesn't divide; the frame durations first, then the whole step, then D-100's steps, which are taken only where they hold more frames; no step of D-100's that is a whole number, and whole steps alone on an axis without a frame duration; a step of D-100's that can hold a value off every step with the frames around it, and the shortest window on a tie among D-100 (b)'s steps; and D-092 (b) as built: a curve read back placed at its pair's rank among the variants' numbers, a report whose pairs aren't in the plan's order or whose `pairs[].index` is beyond an int refused by the timeline build, and a curve reference that names no pair written null for the reader to refuse.
+  - Nothing changes: documents stay at schema version 1, and every value comes back exactly.
+- **Owner's words**, translated by the agent: "Q58: option 1; Q59: option 1".
+- **Alternatives**: (a) D-100 (b) also trying longer windows, so that the steps of the common frame rates up to 60 fps on a millisecond or a 1/600 s clock, whose denominators go up to 100, are found, at up to that many steps per stretch. (b) Each item asked on its own.
+- **Rationale**: (a) As the agent recommended: the case needs a coarser clock and an ad at another frame rate at once, the stretches grow with the ad's frames only, and the limit is stated; longer windows would have the writer try many more steps for every stretch to cover it. WP08c's review measured the case with a probe that isn't committed, so its figures are left out. (b) As the agent recommended: none of them changes a value read back.
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-06
 
 ---
 
@@ -2018,7 +2216,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Correction** (2026-10-29): the limits for an rtmp URL don't hold as the Choice states them. FFmpeg 8.1.1's own rtmp protocol takes `timeout` as the time, in seconds, to wait for an incoming connection, and with it an rtmp input listened on its URL's host and port instead of connecting to them (`ffmpeg -h protocol=rtmp`). Since D-056 an rtmp URL gets `rw_timeout` alone, in `src/FfOpen.cpp` and `src/Demuxer.cpp` as well, and TCP's own limit on a connection attempt, 5 s, holds; `tests/test_rtmp_input.cpp` connects to a local rtmp server.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-26
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-30, D-067)
 
 ### P-067 How D-043 to D-048 are implemented: the pool, the memory limit and the end of a run
 
@@ -2233,7 +2431,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - No sleep or wake event during the run (`power_log.txt`). The load averages were 5.20, 3.60 and 2.91 before the first build, and between 29.48 and 38.61 in the eight samples during the two steps over every frame (`runner.log`, `load.log`); which processes made up the load isn't recorded. 5974.3 s of wall time, the four builds included, of which 2635.2 s for `acceptance-full` and 2695.5 s for `defaults-full` (`run_all.md`).
 - **Who**: agent
 - **Date**: 2026-10-30
-- **Status**: pending owner confirmation
+- **Status**: confirmed by the owner (2026-10-30, D-067)
 
 ### P-080 §2's acceptance checks rerun with the program of Phase 2's PR
 
@@ -2249,4 +2447,68 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - No sleep or wake event during the checks (`power_log.txt`). Their runner logged the load averages only at each check's start and end (`run.log`).
 - **Who**: agent
 - **Date**: 2026-10-30
+- **Status**: confirmed by the owner (2026-10-30, D-067)
+
+### P-081 Phase 3's survey and design: how they were made, and what of their records is committed
+
+- **Choice**
+  - Phase 3 starts with a survey (hard rule 1 of the work order). The agent ran it as two workflows of agents, from 2026-10-31 to 2026-11-01, on `vmaf/phase-3` at `75cf6e0`, which they read and didn't change: five surveys (§3.1's sources in today's code, SCTE-35 as HLS carries it, a prototype of D-069's synthetic ladders, the report against §7, the player's UI), each with its runs and probes; two designs written from different angles, a library first and worked back from the paper's evaluation, each with prototypes and runs; a design that merges them; an adversarial review of it and a revision, a second review and a second revision, a third review; drafts of the Phase 3 documents, and a check of the drafts and of the records. On 2026-11-02 the agent made revision 3 of the design against the third review's seven minor issues, by a script that asserts every text it replaces, and corrected the drafts for the check's issues.
+  - What is committed is in `eval/phase3-survey/`, whose `README.md` says what was left out and changed, and why: left out, the generated media, which the kept logs give the commands and the SHA-256 to make again; two executables and Python bytecode; copies of FFmpeg's source and of RFC 8216's text; the fetched third-party pages and the text extracted from them; and the third-party SCTE-35 messages, which owner question Q21 asks about. Changed in the copies, every line keeping its number: passages of the work order put in other words (D-013, D-060), found by a checker that prints where a file shares a run of six or more words with the work order's translation, kept outside the repository, never the words; message bytes replaced by `<vector N>` and their decoded values by what was checked about them; the quotations of third-party text of 25 words or more put in other words; two errors of the SCTE-35 survey marked as dated errata; the model's name removed from two records (D-060). The checks run over every committed file (`checks/`), and `SHA256SUMS` lists every other file.
+  - The design's 28 proposed process choices (`eval/phase3-survey/design.md` §13) are recorded here from P-082 on, each when the first package that uses it starts, pending the owner's confirmation; until then they are in `docs/PHASE3_DECISIONS_PENDING.md`. The design's WP15a has them recorded at once, and the design's §10 committed as the UI's written plan under D-007 (`docs/plans/timeline-ui.md`) before any answer: the plan is committed with round 3's questions, Q36 among them.
+- **Alternatives**: the survey directory committed whole, third-party documents and messages included; the documents committed without the records their numbers come from; the 28 process choices recorded now, before the owner has read the questions of the packages that use them.
+- **Rationale**: no number without a committed record; the repository is public (D-065), so no passage of the work order, nothing personal and no third-party text beyond short citations go in, and no third-party message until Q21 is answered; a process choice is recorded when it is used, as P-067 to P-080 were.
+- **Result** (`eval/phase3-survey/`, `7c0e8d2` and `44f3cff`)
+  - 1109 files and `SHA256SUMS`: of the survey directory's 1641 files, 565 left out and 33 changed; 33 files only in the copy, its README, its checks, the check of the documents' drafts and the pending document's script (`checks/excluded.txt`). The quote check finds 0 runs of six or more words shared with the work order's translation in any of them (`checks/quote_check.txt`), the privacy check 0 local paths, identities or e-mail addresses (`checks/privacy_check.txt`).
+  - The design, at revision 3: 44 owner questions in three rounds of 27, 9 and 8, 25 work packages, 28 proposed P-entries, 22 risks (`eval/phase3-survey/design/runs/render-check.txt`) and 14 differences from the work order (`eval/phase3-survey/design.md` §11). Revision 2 as `7c0e8d2` has it, with revision 3's script applied, renders byte-identical to revision 3 (`eval/phase3-survey/design/runs/revise3-reproduce.txt`).
+  - The check of the documents' drafts (`eval/phase3-survey/review-docs/verify.md`) found three statements false against the records they cite and six minor issues, no blocker; the documents committed are corrected for all of them (`docs/PHASE3_SURVEY.md`).
+- **Who**: agent
+- **Date**: 2026-11-02
+- **Status**: pending owner confirmation
+
+### P-082 How round 1's first packages are built: WP00a, WP01, WP02, WP03, WP04, WP06 and WP10, and the design's process choices they use
+
+- **Choice**
+  - Each package of `eval/phase3-survey/design.md` §14 was built by an agent of the agent's in a worktree of its own, on a branch from `vmaf/phase-3`, and merged by the agent onto `vmaf/phase-3` (the design's P-AH): WP00a first and alone, the files of round 1 and of D-068's and D-070's round-2 modules as empty compiling files with their CMake lines and the declarations the later packages share (`3520ee4`, the design's P-C and P-AG); then WP01, WP02, WP03, WP04, WP06 and WP10 at the same time, each against WP00a's declarations, adding to the shared headers it owns and changing nothing they already declared. Two more agents reviewed them, three packages each, reading only; each package then had the reviews' fixes folded into its one commit by an agent, and the agent cherry-picked the six onto `vmaf/phase-3` after `main`'s merge (`dc6f4aa`): `aac47ed` (WP01), `16e13f7` (WP02), `3922c95` (WP03), `20ff699` (WP04), `c56d537` (WP06), `2f81afe` (WP10). Two of the reviews' findings were the owner's to answer, Q45 and Q46 (D-086, D-087), and one is a question of round 2, Q47.
+  - The design's process choices these packages use, as built:
+    - P-A, exact arithmetic: positions are int64 frame indices, PTS int64 ticks; the axis reads each EXTINF, which `hls::MediaTimeline` gives as a double, to the nanosecond, on a tick base common to the time base, the frame duration and the EXTINF, and bounds every position by the frames its pair read (WP01). The ladder report's PTS are recovered from its seconds exactly below 2^49 ticks (WP03).
+    - P-B: the core includes libavutil at most; only `src/TimelineMedia.cpp` opens inputs.
+    - P-D and P-F, the demux pass (WP06): each scored playlist read with its URL, location and SHA-256, and demuxed with its own recorder, which feeds a `vmafsegments::SegmentWatch` so that a file is lost exactly when the analyzer would lose it. A segment's bytes are counted as `avio_tell()` at its close less where its reads began, not as P-F's text says (`AVIOContext::bytes_read`), which counts the bytes the context read ahead past a byte range's end; over HTTP that count is tested in no ctest test until `tests/HttpFileServer.h` (WP07's) answers a Range header. A playlist with `EXT-X-MAP` or `EXT-X-KEY` gets no segment map: the files its initialization section or key opens aren't segments.
+    - P-G: packets to segments by byte position, frames in PTS order within a segment, every scored frame's PTS checked against the report; a variant that fails is refused under D-081 (c) and D-086.
+    - P-I and P-J: the canonical order (start, end, source in §3.1's order, type, variant, id), ids written `<source>/<type>/<variant>/<n>`, and the overlap index, a running maximum of ends over the events sorted by start, which `Timeline::build_index()` builds and every change to the events must rebuild (WP01).
+    - P-Q and P-U: the generator ported from testgen and compiled at `-O2` in every build type (WP00a, WP10); a ladder made once per media directory, so once per test case under ctest; `MIRAGE_KEEP_MEDIA` keeps each test case's media under a directory named from the test case's name, its characters outside `[A-Za-z0-9._-]` written `_`, and refuses a directory that isn't empty. WP10's test file makes more ladders than the design's §9.5 counts: besides the design's case, which makes one ladder twice, four cases make one each (the degraded ladder, the ads from 1 s and with continuous timestamps, and the encoder the build doesn't default to).
+    - P-T: test cases tagged `[timeline]` and their module's name.
+    - P-Y and P-Z (WP03): a JSON reader that keeps objects in order, refuses duplicate keys, nests at most 128 deep, reads numbers with `std::from_chars` and skips a byte order mark; the scores digest's canonical text, compact JSON with a version marker, PTS as ticks, covering every field the reader keeps but the paths.
+    - P-AK: the quote check of every new file and commit message.
+- **Alternatives**: the packages one after another in one worktree, which the design's §14 avoids so that each one's files have one owner; the reviews' fixes as commits of their own, where each package keeps one commit; P-F's count of the bytes read; a test file with the design's ladder case only.
+- **Rationale**: the shared declarations let six packages build at once without touching each other's files, and the reviews read each package against the design and the decisions before it merged. The byte count follows what FFmpeg's demuxer reads, which a test of four byte ranges of one file showed differs from what the context read.
+- **Result** (`eval/test_runs/macos-2026-11-04-2f81afe.txt`, at `2f81afe`): `mirage_tests '~[audio]'` passed at the first run, 325575 assertions in 533 test cases; ctest passed 546 of 546; the five Python suites passed, 28, 136, 11, 16 and 14 tests. Before that record, a ctest run at the same commit failed one test of 546, the Demuxer's seamless switches on a local file (`tests/test_demuxer_switch.cpp:492`: an audio packet's PTS of 5.25 s against a bound of 4.85 s plus 0.5), with load averages of 23.28, 18.02 and 15.30 just after; that test has failed now and then before (D-039), and passed in five runs of its own and in the next ctest run (`eval/test_runs/macos-2026-11-04-2f81afe-demuxer.txt`).
+- **Who**: agent
+- **Date**: 2026-11-04
+- **Status**: pending owner confirmation
+
+P-083 is on a branch not yet merged; whoever merges later puts the entries in number order.
+
+### P-084 How round 1's last packages are built: WP08, WP09a and WP11a, then WP08b and WP08c after the owner's answers, and the design's process choices they use
+
+- **Choice**
+  - WP08, WP09a and WP11a were built in turn, as `eval/phase3-survey/design.md` §14 orders them, each by an agent in a worktree of its own on a branch stacked on the one before, reviewed by another agent that only read it, and fixed by a third; a workflow ran them, and handed each package the notes, fixes and owner's choices the packages before it left. The machine's sleep and lost network cut it off twice: WP09a's implementation was started again on 2026-11-05 by a new agent, which could keep or drop the one uncommitted header its first agent had left; after the second, WP09a's fix and WP08b's review were run again.
+  - The questions each review raised that were the owner's went to the owner as they came, Q48 to Q57, answered as D-092, D-099 and D-100. Two packages put the answers in. WP08b (D-092 (a) and (c), D-099 (a) and (b)) changed WP08's files only, so it was built at the same time as WP09a and WP11a, which don't touch them; a second agent revised it when D-099 came, before its review and fix. WP08c (D-092 (b), D-100 (a) and (b)) came after them all, since it reaches the build and the subcommands too; its fix also changed two helpers of WP11a's acceptance test, with the agent's leave, which compared a curve's place in the timeline with a pair's number, two numbers that agree only while no pair fails, so that they compare through `timeline::pair_number()`, the assertions unchanged. WP08c's review raised two more questions, Q58 and Q59, which are open: WP08c is as its fix left it, the limit Q58 asks about stated in `src/TimelineDoc.cpp`, `src/TimelineDoc.h` and `docs/TIMELINE_FORMAT.md`.
+  - From 2026-11-05 the session's permissions refused the agents' `git commit --amend`. The fixes of WP09a, WP11a, WP08b and WP08c therefore came as a second commit on each branch (`amend!`, `squash!` or plain), whose message is the one the package's commit should have, and the agent folded each pair into one commit when it cherry-picked it onto `vmaf/phase-3`: `git cherry-pick --no-commit` of both, committed with that message and the first commit's author and date. In order: `8494808` (WP08, whose fix amended its commit on 2026-11-04), `3c533cc` (D-092 and D-099, recorded before the commits that cite them), `e0fcf40` (WP09a), `c780ea2` (WP11a), `4df4560` (WP08b), `9699e94` (D-100), `74d7215` (WP08c).
+  - The design's process choices these packages use, as built:
+    - P-W: documents written through a temporary file renamed over the path, `timeline::write_document()` (WP08), which repeats `vmafreport::write_file`'s rule because the player, which compiles the core from round 3 on, doesn't compile `src/VMAFReport.cpp`; the subcommands' exit statuses 0, 1 and 2 (WP09a), 2 also for arguments the document can't satisfy, an `--interval` past the axis among them (D-099 (c)).
+    - P-AI: the subset JSON Schema validator in `tests/test_timeline_doc.cpp` (`type`, `enum`, `required`, `properties`, `additionalProperties` and `items`, `items: false` among them), which checks the writer's output against `docs/schema/mirage-timeline-1.schema.json` and that the schema file keeps to the subset.
+    - P-V: each subcommand's option table in `src/TimelineCli.cpp`, built as vmafcli's, with D-030's config file recorded by path and SHA-256, and every option's value in the document's options record under its config-file name (D-099 (c)).
+    - P-N, its part for round 1: `run_timeline()` and `run_attribute()` set FFmpeg's log level and initialize its network themselves, since they are dispatched before `tools/mirage_vmaf.cpp` does it; the session fetch is WP09b's.
+    - P-AD: the attribute subcommand's text layout, one block per drop and one line per event (WP09a).
+    - P-T: the CLI's tests and the acceptance tests run `mirage_vmaf` as a program through `posix_spawn` and `MIRAGE_VMAF_PATH`, with its output to files (WP09a, WP11a).
+    - P-Q and P-R: §3.2's two acceptance tests as one test case of four sections, so that ctest runs them in one process and makes each of their four ladders once; T = 6, W = 50 and N = 12 given on every command line, so that no default is relied on, and the curve given with `--curve` (WP11a).
+    - P-U: under `MIRAGE_KEEP_MEDIA`, the acceptance test case keeps, beside each ladder's directory, `<name>.json` (the ladder report), `<name>.timeline.json` and `<name>.<rung>.answer.json`; those names, which WP14's harness is to read, are WP11a's choice.
+    - P-AG: `timeline::number_of()` (WP08, `src/TimelineDoc.h`) is the one accessor for a payload number written either way, which WP11a's test uses; WP08c changed the comment of `Variant::pair` in `src/TimelineModel.h` with the agent's leave, the only change these packages made to a header another package owns.
+    - P-AK: the quote check of every new file and commit message.
+- **Alternatives**: the three packages at once against WP00a's declarations, which §14 orders otherwise, since each uses the one before; the owner's answers left for the end of round 1, which would have had WP08's encoding redone after WP09a and WP11a were built on it; the second commits kept as they are on `vmaf/phase-3`.
+- **Rationale**: building each package on the one before let its agent use what that one built and read its commit message, and asking each review's questions at once let the encoding settle before more was built on it. One commit per package keeps `vmaf/phase-3` as P-082's packages are, one commit each with its whole message.
+- **Result** (`eval/test_runs/macos-2026-11-06-74d7215.txt`, at `74d7215`): `mirage_tests '~[audio]'` passed at the first run, 501535 assertions in 584 test cases, §3.2's two acceptance tests among them, one test case of four sections; ctest passed 597 of 597; the five Python suites passed, 28, 136, 11, 16 and 14 tests.
+- **Overtaken** (2026-11-06, D-101): the owner answered Q58 and Q59, which the Choice calls open, as the agent recommended, keeping WP08c as built.
+- **Who**: agent
+- **Date**: 2026-11-06
 - **Status**: pending owner confirmation

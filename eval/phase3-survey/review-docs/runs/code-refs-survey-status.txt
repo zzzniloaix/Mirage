@@ -1,0 +1,324 @@
+command (cwd: <drafts>): python3 -I -B <drafts>/verify/tools/code_refs.py <repo> <records> --show PHASE3_SURVEY.md PHASE3_STATUS.md
+date_utc: 2026-11-01T10:42:18Z
+output (stdout and stderr):
+== repository citations with lines: 12
+ok CMakeLists.txt:233-246 (372 lines; cited at PHASE3_SURVEY.md:29)
+      233  add_executable(mirage_vmaf
+      234      tools/mirage_vmaf.cpp
+      235      src/VMAFAlign.cpp
+      236      src/VMAFAnalyzer.cpp
+      237      src/VMAFColor.cpp
+      238      src/VMAFLadder.cpp
+      239      src/VMAFPool.cpp
+      240      src/VMAFProcess.cpp
+      241      src/FileHash.cpp
+      242      src/HlsMaster.cpp
+      243      src/VMAFCli.cpp
+      244      src/VMAFReport.cpp
+      245      src/JsonText.cpp
+      246  )
+ok docs/VMAF_GAP_REPORT.md:230-231 (339 lines; cited at PHASE3_SURVEY.md:62)
+      230  - **Decoder**
+      231    - Has a dropped-frame counter; `KeyframeIndex` records keyframe positions.
+ok src/HlsAlign.h:33-75 (200 lines; cited at PHASE3_SURVEY.md:30)
+       33  struct Segment {
+       34      std::int64_t seq      = 0;      // media sequence number
+       35      double       start    = 0.0;    // playlist time: Σ EXTINF of the segments listed before it
+       36      double       duration = 0.0;    // EXTINF
+       37      std::string  uri;               // absolute
+       38      ByteRange    range;             // EXT-X-BYTERANGE
+       39      bool         discontinuity = false;   // EXT-X-DISCONTINUITY before it
+       40      std::int64_t disc_seq = 0;      // discontinuity sequence number of its period
+       41      double       pdt = kNaN;        // EXT-X-PROGRAM-DATE-TIME, Unix seconds (explicit or carried on)
+       42      bool         pdt_explicit = false;
+       43      bool         gap = false;       // EXT-X-GAP
+       44      int          map = -1;          // EXT-X-MAP in effect: index into MediaTimeline::maps
+       45      std::string  key;               // EXT-X-KEY METHOD in effect ("" = none listed)
+       46      int          line = 0;          // 1-based line of its URI in the playlist
+       47  };
+       48  
+       49  struct InitMap {
+       50      std::string uri;                // absolute
+       51      ByteRange   range;
+       52  };
+       53  
+       54  struct MediaTimeline {
+       55      bool          ok = false;       // a media playlist with at least one segment
+       56      int           version = 0;
+       57      double        target = 0.0;     // EXT-X-TARGETDURATION
+       58      std::int64_t  media_seq = 0;    // EXT-X-MEDIA-SEQUENCE
+       59      std::int64_t  disc_seq  = 0;    // EXT-X-DISCONTINUITY-SEQUENCE
+       60      std::string   type;             // EXT-X-PLAYLIST-TYPE: "VOD", "EVENT" or ""
+       61      bool          endlist = false;
+       62      bool          independent = false;
+       63      double        total = 0.0;      // Σ EXTINF
+       64      int           discontinuities = 0;   // EXT-X-DISCONTINUITY tags
+       65      std::vector<Segment> segments;
+       66      std::vector<InitMap> maps;
+       67      std::vector<std::string> problems;   // spec violations found while parsing
+       68  
+       69      bool live() const { return !endlist && type != "VOD"; }
+       70      bool has_pdt() const;
+       71      // Segment whose [start, start + duration) holds playlist time t; -1 = none.
+       72      int  segment_at(double t) const;
+       73      // Segment with media sequence number `seq`; -1 = none.
+       74      int  index_of(std::int64_t seq) const;
+       75  };
+ok src/NetInspectorAlign.cpp:637-662 (950 lines; cited at PHASE3_SURVEY.md:43)
+      637          // Interaction: wheel zooms at the mouse, drag pans, double-click fits.
+      638          ImGui::SetCursorScreenPos(ImVec2(track_x0, tp.y));
+      639          ImGui::InvisibleButton("##tl", ImVec2(track_w, tl_h));
+      640          const bool tl_hov = ImGui::IsItemHovered();
+      641          const ImGuiIO& io = ImGui::GetIO();
+      642          if (tl_hov && io.MouseWheel != 0.0f) {
+      643              const double at = T(io.MousePos.x);
+      644              const double f = io.MouseWheel > 0 ? 0.8 : 1.25;
+      645              double ns = std::clamp(span * f, 0.5, (hi - lo) * 1.5 + 1.0);
+      646              view_t0_ = at - (at - view_t0_) / span * ns;
+      647              view_t1_ = view_t0_ + ns;
+      648              view_fit_ = false;
+      649          }
+      650          if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left, 2.0f)) {
+      651              const double dt = -io.MouseDelta.x / track_w * span;
+      652              view_t0_ += dt;
+      653              view_t1_ += dt;
+      654              view_fit_ = false;
+      655          }
+      656          if (tl_hov && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+      657              view_t0_ = fit_lo;
+      658              view_t1_ = hi;
+      659              view_fit_ = true;
+      660          }
+      661          const bool clicked_tl = tl_hov && ImGui::IsMouseReleased(ImGuiMouseButton_Left)
+      662                               && std::fabs(io.MouseDragMaxDistanceSqr[0]) < 9.0f;
+ok src/VMAFAlign.h:114 (286 lines; cited at PHASE3_SURVEY.md:39)
+      114  inline constexpr AVRational kForwardJump = { 10, 1 };
+ok src/VMAFAnalyzer.cpp:872 (949 lines; cited at PHASE3_SURVEY.md:28)
+      872              analyze_pair(pairs[i], st, progress_, base, span, {});
+ok src/VMAFLadder.cpp:293-334 (570 lines; cited at PHASE3_SURVEY.md:30)
+      293  Fetched read_master(const std::string& url, std::stop_token cancel)
+      294  {
+      295      Fetched f;
+      296      f.location = url;
+      297      AVIOContext* ctx = nullptr;
+      298      // A network read waits at most 5 s, as the analyzer's (D-036), and a
+      299      // cancel ends one that waits.
+      300      AVDictionary* opts = nullptr;
+      301      vmafnet::set_io_limits(&opts, url);
+      302      MasterRead read{ .cancel = cancel, .start = std::chrono::steady_clock::now() };
+      303      const AVIOInterruptCB interrupt{ master_read_interrupted, &read };
+      304      const int r = avio_open2(&ctx, url.c_str(), AVIO_FLAG_READ, &interrupt, &opts);
+      305      av_dict_free(&opts);
+      306      if (r < 0) {
+      307          f.error = av_error_text(r);
+      308          return f;
+      309      }
+      310      // HTTP: the URL the playlist came from after redirects, which FFmpeg's
+      311      // hls demuxer resolves the playlist's URIs against.
+      312      uint8_t* loc = nullptr;
+      313      if (av_opt_get(ctx, "location", AV_OPT_SEARCH_CHILDREN, &loc) >= 0 && loc) {
+      314          if (*loc) f.location = reinterpret_cast<const char*>(loc);
+      315          av_free(loc);
+      316      }
+      317      uint8_t buf[4096];
+      318      int n = 0;
+      319      while ((n = avio_read(ctx, buf, sizeof buf)) > 0) {
+      320          f.text.append(reinterpret_cast<const char*>(buf), static_cast<std::size_t>(n));
+      321          const std::size_t head = std::min(f.text.size(), kHeader.size());
+      322          if (std::string_view(f.text).substr(0, head) != kHeader.substr(0, head)) {
+      323              f.error = "it doesn't start with #EXTM3U, so it isn't an HLS playlist";
+      324              break;
+      325          }
+      326      }
+      327      // A text cut short is a failed read, not a shorter playlist.
+      328      const int err = ctx->error < 0 ? ctx->error : (n < 0 && n != AVERROR_EOF ? n : 0);
+      329      if (f.error.empty() && err < 0) f.error = av_error_text(err);
+      330      avio_closep(&ctx);
+      331      if (!f.error.empty()) f.text.clear();
+      332      else f.sha256 = filehash::sha256_hex(f.text);
+      333      return f;
+      334  }
+ok src/VMAFLadder.h:15-22 (277 lines; cited at PHASE3_SURVEY.md:30)
+       15  // - Entries. The master's EXT-X-STREAM-INF tags, each with the URI line that
+       16  //   follows it, blank lines, comments and other tags between them allowed,
+       17  //   as FFmpeg's hls demuxer pairs them; each line without the white space
+       18  //   around it, as eval/streams/fetch_streams.py reads it. The first line is
+       19  //   #EXTM3U, as FFmpeg's hls demuxer requires. I-frame playlists
+       20  //   (EXT-X-I-FRAME-STREAM-INF) and renditions (EXT-X-MEDIA) are no entries.
+       21  //   Every entry needs a BANDWIDTH, RFC 8216's decimal-integer, since the top
+       22  //   rung is chosen by it.
+ok src/VMAFReport.cpp:193-201 (359 lines; cited at PHASE3_SURVEY.md:28, PHASE3_STATUS.md:9)
+      193      out += ind + "\"frames\": [";
+      194      for (std::size_t i = 0; i < r.per_frame.size(); ++i) {
+      195          out += (i == 0 ? "\n" : ",\n") + ind + "  ";
+      196          out += std::format("{{\"index\": {}, \"ref_index\": {}, \"dis_index\": {}, \"ref_pts\": {}, "
+      197                             "\"dis_pts\": {}, \"vmaf\": {}}}",
+      198                             i, index_at(r.ref_index, i), index_at(r.dis_index, i),
+      199                             pts_at(r.ref_pts, i), pts_at(r.dis_pts, i), number(r.per_frame[i]));
+      200      }
+      201      out += r.per_frame.empty() ? "]\n" : "\n" + ind + "]\n";
+ok src/VMAFSegments.h:59-147 (160 lines; cited at PHASE3_SURVEY.md:29)
+       59      void opened(const std::string& file, int err)
+       60      {
+       61          if (err >= 0) {
+       62              failed_.erase(file);
+       63              return;
+       64          }
+       65          if (err == AVERROR_EXIT) return;
+       66          Failures& f = failed_[file];
+       67          ++f.tries;
+       68          f.last = err;
+       69          if (f.tries > kSegMaxRetry) lose(never_opened(file, f));
+       70      }
+       71  
+       72      // The close of `file`, open, whose reads stopped on `err`, the error its
+       73      // AVIOContext keeps (0: none). A read a cancel ended loses nothing.
+       74      void closed(const std::string& file, int err)
+       75      {
+       76          if (err < 0 && err != AVERROR_EXIT)
+       77              lose(std::format("the hls demuxer went on without the rest of {} after a read "
+       78                               "error: {}",
+       79                               file, error_text(err)));
+       80      }
+       81  
+       82      // The input's end: a file none of whose opens succeeded was gone without,
+       83      // whatever the number of tries.
+       84      void ended()
+       85      {
+       86          for (const auto& [file, f] : failed_) lose(never_opened(file, f));
+       87      }
+       88  
+       89      // The first file the demuxer went on without, as an error; empty: none.
+       90      const std::string& lost() const { return lost_; }
+       91  
+       92      // Makes `ctx` tell this watch of each file it opens and closes. Call it
+       93      // once, on a context of avformat_alloc_context(), before
+       94      // avformat_open_input(); the watch takes the context's `opaque`, and must
+       95      // outlive the context.
+       96      void watch(AVFormatContext* ctx)
+       97      {
+       98          io_open_       = ctx->io_open;
+       99          io_close2_     = ctx->io_close2;
+      100          ctx->opaque    = this;
+      101          ctx->io_open   = &SegmentWatch::on_open;
+      102          ctx->io_close2 = &SegmentWatch::on_close2;
+      103      }
+      104  
+      105  private:
+      106      struct Failures {
+      107          int tries = 0;
+      108          int last  = 0;   // the last open's error
+      109      };
+      110  
+      111      static std::string never_opened(const std::string& file, const Failures& f)
+      112      {
+      113          return std::format("the hls demuxer went on without {}, which it couldn't open in {} "
+      114                             "{}: {}",
+      115                             file, f.tries, f.tries == 1 ? "try" : "tries", error_text(f.last));
+      116      }
+      117  
+      118      void lose(std::string why)
+      119      {
+      120          if (lost_.empty()) lost_ = std::move(why);
+      121      }
+      122  
+      123      static int on_open(AVFormatContext* s, AVIOContext** pb, const char* url, int flags,
+      124                         AVDictionary** options)
+      125      {
+      126          auto* w = static_cast<SegmentWatch*>(s->opaque);
+      127          // A byte range of a file (EXT-X-BYTERANGE) is a file of its own: the
+      128          // demuxer gives its start as an option, which the open consumes.
+      129          std::string file = url;
+      130          if (const AVDictionaryEntry* offset =
+      131                  options ? av_dict_get(*options, "offset", nullptr, 0) : nullptr)
+      132              file += std::format(" (from byte {})", offset->value);
+      133          const int r = w->io_open_(s, pb, url, flags, options);
+      134          w->opened(file, r);
+      135          if (r >= 0 && *pb) w->open_[*pb] = std::move(file);
+      136          return r;
+      137      }
+      138  
+      139      static int on_close2(AVFormatContext* s, AVIOContext* pb)
+      140      {
+      141          auto* w = static_cast<SegmentWatch*>(s->opaque);
+      142          if (const auto it = w->open_.find(pb); it != w->open_.end()) {
+      143              w->closed(it->second, pb->error);
+      144              w->open_.erase(it);
+      145          }
+      146          return w->io_close2_(s, pb);
+      147      }
+ok src/main.cpp:1541-1567 (3524 lines; cited at PHASE3_SURVEY.md:32)
+     1541      // Video track switch (T panel, --qa-switch). Playing: seamless — what is
+     1542      // queued from the old track still plays, the new one takes over after it.
+     1543      // Paused: the new track's frame at the paused position replaces the picture.
+     1544      auto switch_video = [&](int stream_idx, bool paused_now) {
+     1545          if (stream_idx < 0 || stream_idx == cur_video_stream) return;
+     1546          cur_video_stream = stream_idx;
+     1547          logger::info("switch-trace: request video -> stream {} at pts {:.3f}{} (t={:.3f})",
+     1548                       stream_idx, last_pts, paused_now ? " (paused)" : "", logger::uptime());
+     1549          // Seamless take-over point: a little past the frame on screen for a
+     1550          // local file; for a network source about one segment fetch ahead, so
+     1551          // the old track keeps playing while the new one downloads.
+     1552          const double keep = last_pts + (local_media ? 0.25 : net_switch_lead) * s_speed.load();
+     1553          demuxer.request_video_switch(stream_idx, last_pts, paused_now, keep);
+     1554          ms.prepare_video_stream(stream_idx);   // its keyframe list (HLS: the variant playlist)
+     1555          vsw = { true, stream_idx, ms.video_epoch.load(), 0, SClock::now(), video_label(stream_idx) };
+     1556          if (paused_now) {
+     1557              AVFrame* stale;
+     1558              while (frameq.try_pop(stale)) av_frame_free(&stale);
+     1559              // A paused switch is a full seek to the frame on screen: the
+     1560              // audio is read again from there too, as for a paused seek.
+     1561              if (has_audio) {
+     1562                  paused_audio_stale = false;
+     1563                  paused_seeked      = true;
+     1564              }
+     1565              paused_switch_frame = true;
+     1566          }
+     1567      };
+ok src/main.cpp:1751 (3524 lines; cited at PHASE3_SURVEY.md:33, PHASE3_SURVEY.md:62)
+     1751      int64_t             total_dropped = 0;       // late frames dropped (top-bar chip)
+== survey-copy citations (eval/phase3-survey/...)
+ok eval/phase3-survey/design (cited at PHASE3_SURVEY.md:8)
+ok eval/phase3-survey/design-evaluation/runs/03_segmap.txt (cited at PHASE3_SURVEY.md:37)
+ok eval/phase3-survey/design-evaluation/runs/05_detection_sweep.txt (cited at PHASE3_SURVEY.md:52, PHASE3_STATUS.md:17)
+ok eval/phase3-survey/design-evaluation/runs/06_session_fetch.txt (cited at PHASE3_SURVEY.md:38, PHASE3_STATUS.md:10)
+ok eval/phase3-survey/design-evaluation/runs/09_axes.txt (cited at PHASE3_SURVEY.md:39, PHASE3_STATUS.md:8)
+ok eval/phase3-survey/design-evaluation/runs/10_attribute_final.txt (cited at PHASE3_STATUS.md:18)
+ok eval/phase3-survey/design-evaluation/runs/11_doc_sizes.txt (cited at PHASE3_SURVEY.md:53)
+ok eval/phase3-survey/design-library/runs/axis-ad.txt (cited at PHASE3_SURVEY.md:50)
+ok eval/phase3-survey/design-library/runs/map-by-pos-*.txt (cited at PHASE3_SURVEY.md:37, PHASE3_SURVEY.md:37)
+ok eval/phase3-survey/design.md (cited at PHASE3_SURVEY.md:8, PHASE3_SURVEY.md:47, PHASE3_SURVEY.md:66, PHASE3_SURVEY.md:70)
+ok eval/phase3-survey/design/owner_questions.json (cited at PHASE3_SURVEY.md:70)
+ok eval/phase3-survey/design/revision-1.md (cited at PHASE3_SURVEY.md:58)
+ok eval/phase3-survey/design/runs/detection-semantics-ad.txt (cited at PHASE3_STATUS.md:17)
+ok eval/phase3-survey/design/runs/seconds-check.txt (cited at PHASE3_SURVEY.md:50, PHASE3_STATUS.md:8)
+ok eval/phase3-survey/design/work_packages.json (cited at PHASE3_SURVEY.md:80)
+ok eval/phase3-survey/experiments/hls-seek-probe/run-output.txt (cited at PHASE3_SURVEY.md:43, PHASE3_STATUS.md:22)
+ok eval/phase3-survey/review-2 (cited at PHASE3_SURVEY.md:58)
+ok eval/phase3-survey/review-3/review.md (cited at PHASE3_SURVEY.md:58)
+ok eval/phase3-survey/review-3/runs/seconds-check-sequence-start.txt (cited at PHASE3_SURVEY.md:58, PHASE3_STATUS.md:8)
+ok eval/phase3-survey/review-3/runs/testgen-library-only.txt (cited at PHASE3_SURVEY.md:41)
+ok eval/phase3-survey/review-3/runs/vector-status.txt (cited at PHASE3_SURVEY.md:40)
+ok eval/phase3-survey/review-adversarial (cited at PHASE3_SURVEY.md:58)
+ok eval/phase3-survey/review-adversarial/runs/ctest-registration.txt (cited at PHASE3_STATUS.md:31)
+ok eval/phase3-survey/review-adversarial/runs/switch-t-sweep.txt (cited at PHASE3_STATUS.md:17)
+ok eval/phase3-survey/schema.md (cited at PHASE3_SURVEY.md:42, PHASE3_SURVEY.md:42, PHASE3_STATUS.md:9, PHASE3_STATUS.md:16)
+ok eval/phase3-survey/scte35.md (cited at PHASE3_SURVEY.md:31, PHASE3_SURVEY.md:39, PHASE3_SURVEY.md:40, PHASE3_STATUS.md:11)
+ok eval/phase3-survey/scte35_evidence/runs (cited at PHASE3_STATUS.md:12)
+ok eval/phase3-survey/scte35_evidence/runs/check_vectors.txt (cited at PHASE3_SURVEY.md:40)
+ok eval/phase3-survey/sources.md (cited at PHASE3_SURVEY.md:28, PHASE3_SURVEY.md:29, PHASE3_SURVEY.md:30, PHASE3_SURVEY.md:32)
+ok eval/phase3-survey/testgen.md (cited at PHASE3_SURVEY.md:39, PHASE3_SURVEY.md:41, PHASE3_SURVEY.md:83, PHASE3_STATUS.md:11)
+ok eval/phase3-survey/testgen/logs (cited at PHASE3_STATUS.md:19, PHASE3_STATUS.md:20)
+ok eval/phase3-survey/ui.md (cited at PHASE3_SURVEY.md:43, PHASE3_SURVEY.md:56, PHASE3_STATUS.md:21, PHASE3_STATUS.md:22)
+== other repository paths cited without lines
+exists CMakeLists.txt
+exists docs/DECISIONS.md
+exists docs/PHASE1_DECISIONS_PENDING.md
+absent in <repo> docs/PHASE3_DECISIONS_PENDING.md
+absent in <repo> docs/PHASE3_STATUS.md
+absent in <repo> docs/PHASE3_SURVEY.md
+absent in <repo> docs/schema/mirage-timeline-1.schema.json
+absent in <repo> eval/phase3-survey
+absent in <repo> eval/timeline
+problems: 0
+exit=0

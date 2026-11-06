@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/unified-live-scte-35/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://docs.unified-streaming.com/documentation/live/scte-35.html'
+date_utc: 2026-11-01T03:41:48Z
+http_code=200
+url_effective=https://docs.unified-streaming.com/documentation/live/scte-35.html
+size_download=138966
+content_type=text/html
+curl_exit=0
+sha256=b6344fcc32c7b807168b1beb3097e4f2f2cf72d6e5db9a6da0059a94e828e4d8

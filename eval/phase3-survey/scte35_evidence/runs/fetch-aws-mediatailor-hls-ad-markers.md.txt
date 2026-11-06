@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/aws-mediatailor-hls-ad-markers.md/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://docs.aws.amazon.com/mediatailor/latest/ug/hls-ad-markers.md'
+date_utc: 2026-11-01T03:40:12Z
+http_code=200
+url_effective=https://docs.aws.amazon.com/mediatailor/latest/ug/hls-ad-markers.md
+size_download=3956
+content_type=text/markdown; charset=utf-8
+curl_exit=0
+sha256=f5fedf2ff77d80373e29c83a39f24d1cb06bb8622c845a470f08a2756352f751

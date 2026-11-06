@@ -1,0 +1,10 @@
+$ <scratch>/accept/wt/build/macos-release/mirage_vmaf --ladder master.m3u8 --out ../../reports/degraded-x264-ramp.json
+(in <out>/testgen/media/degraded-x264-ramp)
+--- stdout ---
+[INFO]  VMAFAnalyzer: 200 frames  mean=72.99  min=66.64  p5=71.75  [Analysis]
+mirage_vmaf: pair 2 of 2, v180/index.m3u8: 200 frame pairs scored
+[INFO]  VMAFAnalyzer: 200 frames  mean=77.65  min=28.97  p5=34.88  [Analysis]
+mirage_vmaf: pair 1 of 2, v270/index.m3u8: 200 frame pairs scored
+mirage_vmaf: 2 of 2 pairs of the ladder scored against v360/index.m3u8 (top-rung), 0 entries skipped, 11 at a time; the run is complete; report written to ../../reports/degraded-x264-ramp.json
+--- stderr ---
+--- exit status 0, wall time 0.452 s (time.monotonic) ---

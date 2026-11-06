@@ -1,0 +1,56 @@
+# cwd: <out>/testgen
+# command: 'python3' '-I' '<out>/design-library/tools/axis_probe.py' '--float' 'reports/ad-x264.json' 'reports/ad-x264-a.layout.json' 'media/ad-x264-a/v360/index.m3u8' 'v180/index.m3u8' '75:124'
+# started: 2026-11-01T04:30:09Z, ended: 2026-11-01T04:30:09Z (UTC)
+# stdout and stderr, in order:
+report: reports/ad-x264.json; pair: v180/index.m3u8; arithmetic: doubles; reference frames scored: 200; frame duration: 0.04 s
+reference sequences (first_index, first_pts, frames): [(0, 10, 75), (75, 10, 125)]
+distinct ref_pts: 150 ; distinct (sequence, ref_pts): 200
+ref_pts shared by two or more frames (first 3): [('10.0', [0, 75]), ('10.04', [1, 76]), ('10.08', [2, 77])]
+
+== axis pts ==
+rising at every frame: False; largest step 3.039999999999999 s (frames 124->125); smallest step -2.960000000000001 s (frames 74->75)
+interval: frames 75-124 -> [10.0, 12.0) s, 2.0 s long; the frame after it, 125, at 15.0
+  overlaps: segment 0 main_000.ts [10.0, 11.0), offset 0.0 s
+  overlaps: segment 1 main_001.ts [11.0, 12.0), offset 1.0 s
+  overlaps: segment 3 ad_000.ts [10.0, 11.0), offset 0.0 s
+  overlaps: #EXT-X-DISCONTINUITY before segment 3 at 10.0, offset 0.0 s
+  overlaps: #EXT-X-CUE-OUT:2.000 before segment 3 at 10.0, offset 0.0 s
+  overlaps: segment 4 ad_001.ts [11.0, 15.0), offset 1.0 s
+  overlaps: #EXT-X-CUE-OUT-CONT:1.000/2.000 before segment 4 at 11.0, offset 1.0 s
+  after: #EXT-X-DISCONTINUITY before segment 5 at 15.0, offset 5.0 s
+  after: #EXT-X-CUE-IN before segment 5 at 15.0, offset 5.0 s
+
+== axis seq_pts ==
+rising at every frame: True; largest step 3.0399999999999983 s (frames 124->125); smallest step 0.03999999999999915 s (frames 0->1)
+interval: frames 75-124 -> [3.000000000000001, 5.000000000000002) s, 2.000000000000001 s long; the frame after it, 125, at 8.0
+  overlaps: segment 3 ad_000.ts [3.000000000000001, 4.000000000000001), offset 0.0 s
+  overlaps: #EXT-X-DISCONTINUITY before segment 3 at 3.000000000000001, offset 0.0 s
+  overlaps: #EXT-X-CUE-OUT:2.000 before segment 3 at 3.000000000000001, offset 0.0 s
+  overlaps: segment 4 ad_001.ts [4.000000000000001, 8.0), offset 1.0 s
+  overlaps: #EXT-X-CUE-OUT-CONT:1.000/2.000 before segment 4 at 4.000000000000001, offset 1.0 s
+  after: #EXT-X-DISCONTINUITY before segment 5 at 8.0, offset 4.999999999999999 s
+  after: #EXT-X-CUE-IN before segment 5 at 8.0, offset 4.999999999999999 s
+
+== axis playlist ==
+rising at every frame: True; largest step 0.0400000000000027 s (frames 197->198); smallest step 0.03999999999999915 s (frames 0->1)
+interval: frames 75-124 -> [3.0, 5.000000000000001) s, 2.000000000000001 s long; the frame after it, 125, at 5.0
+  overlaps: segment 3 ad_000.ts [3.0, 4.0), offset 0.0 s
+  overlaps: #EXT-X-DISCONTINUITY before segment 3 at 3.0, offset 0.0 s
+  overlaps: #EXT-X-CUE-OUT:2.000 before segment 3 at 3.0, offset 0.0 s
+  overlaps: segment 4 ad_001.ts [4.0, 5.0), offset 1.0 s
+  overlaps: #EXT-X-CUE-OUT-CONT:1.000/2.000 before segment 4 at 4.0, offset 1.0 s
+  overlaps: segment 5 main_005.ts [5.0, 6.0), offset 2.0 s
+  overlaps: #EXT-X-DISCONTINUITY before segment 5 at 5.0, offset 2.0 s
+  overlaps: #EXT-X-CUE-IN before segment 5 at 5.0, offset 2.0 s
+
+== axis index ==
+rising at every frame: True; largest step 0.040000000000000036 s (frames 198->199); smallest step 0.03999999999999915 s (frames 115->116)
+interval: frames 75-124 -> [3.0, 5.0) s, 2.0 s long; the frame after it, 125, at 5.0
+  overlaps: segment 3 ad_000.ts [3.0, 4.0), offset 0.0 s
+  overlaps: #EXT-X-DISCONTINUITY before segment 3 at 3.0, offset 0.0 s
+  overlaps: #EXT-X-CUE-OUT:2.000 before segment 3 at 3.0, offset 0.0 s
+  overlaps: segment 4 ad_001.ts [4.0, 5.0), offset 1.0 s
+  overlaps: #EXT-X-CUE-OUT-CONT:1.000/2.000 before segment 4 at 4.0, offset 1.0 s
+  at the end: #EXT-X-DISCONTINUITY before segment 5 at 5.0, offset 2.0 s
+  at the end: #EXT-X-CUE-IN before segment 5 at 5.0, offset 2.0 s
+# exit status: 0

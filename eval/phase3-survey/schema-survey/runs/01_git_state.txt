@@ -1,0 +1,11 @@
+# One command of the schema survey, run in <repo> by tools/run.py, started 2026-11-01T03:32:10Z, ended 2026-11-01T03:32:10Z (UTC).
+# <repo>: the worktree of vmaf/phase-3 at 75cf6e0; <out>: the survey's output directory; <scratch>: the scratch directory.
+# The command, then its standard output and standard error as they came, then its exit status.
+
+$ git rev-parse HEAD && git branch --show-current && git status --porcelain | wc -l && git log --oneline c673738..HEAD -- src tools tests CMakeLists.txt | wc -l && git log -1 --format=%H -- src/VMAFReport.cpp src/VMAFReport.h src/JsonText.cpp tools/mirage_vmaf.cpp src/VMAFCli.cpp
+75cf6e09e2e122b138afa880f2ee9a8ff0e4ec89
+vmaf/phase-3
+       0
+       0
+e8e3a10c95a6373efd0eb745a70b35c13a0d34e5
+(exit status 0)

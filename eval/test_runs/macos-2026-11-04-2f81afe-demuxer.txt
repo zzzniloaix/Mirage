@@ -1,0 +1,79 @@
+# A failure of the Demuxer seamless-switch test, and its reruns, at 2f81afe on vmaf/phase-3 (docs/DECISIONS.md P-082), before the record macos-2026-11-04-2f81afe.txt was made. Each command ran in <repo>/build/macos-debug; the failing test's output is as ctest printed it, other tests' lines left out; the uptime line is the one taken right after the five reruns. Paths are written <repo> and <home>.
+
+$ ctest -j 6 --output-on-failure
+[... the other tests' lines ...]
+ 15/546 Test #147: Demuxer: seamless video and audio switches on a local file .................................................................................***Failed    0.93 sec
+Filters: "Demuxer: seamless video and audio switches on a local file"
+Randomness seeded to: 3807714836
+[INFO]  Demuxer: avformat_open_input 1 ms (4 streams, 0 programs) (t=0.000)
+[INFO]  Demuxer: avformat_find_stream_info 0 ms (t=0.000)
+[INFO]  Container: NUT
+[INFO]  Duration:  00:00:39
+[INFO]  Video:     rawvideo 32×18 @ 25.000 fps  pixel_fmt=rgb555le
+[INFO]  Audio:     pcm_s16le 8000 Hz  1 ch  fmt=s16
+[INFO]  Video stream switched to index 1 (seamless, resume at 3.000) (t=0.303)
+[INFO]  switch-trace: repositioned to 3.000 (t=0.304)
+[INFO]  switch-trace: first video packet pts=2.640 key (t=0.304)
+[INFO]  switch-trace: first video keyframe pts=2.640 (t=0.304)
+[INFO]  Audio stream switched to index 3 (seamless, from 4.850) (t=0.623)
+[INFO]  switch-trace: repositioned to 4.850 (t=0.623)
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+mirage_tests is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+Demuxer: seamless video and audio switches on a local file
+-------------------------------------------------------------------------------
+<repo>/tests/test_demuxer_switch.cpp:394
+...............................................................................
+
+<repo>/tests/test_demuxer_switch.cpp:492: FAILED:
+  CHECK( a[i].pts < apos + 0.5 )
+with expansion:
+  5.25 < 4.85000000000000053
+
+===============================================================================
+test cases:    1 |    0 passed | 1 failed
+assertions: 7760 | 7759 passed | 1 failed
+[...]
+99% tests passed, 1 tests failed out of 546
+Total Test time (real) =  29.78 sec
+The following tests FAILED:
+	147 - Demuxer: seamless video and audio switches on a local file (Failed)
+(exit status 8)
+
+$ ctest -R 'seamless video and audio switches on a local file' --output-on-failure
+100% tests passed, 0 tests failed out of 1
+Total Test time (real) =   0.94 sec
+(exit status 0)
+
+$ ctest -R 'seamless video and audio switches on a local file' --output-on-failure
+100% tests passed, 0 tests failed out of 1
+Total Test time (real) =   0.94 sec
+(exit status 0)
+
+$ ctest -R 'seamless video and audio switches on a local file' --output-on-failure
+100% tests passed, 0 tests failed out of 1
+Total Test time (real) =   0.94 sec
+(exit status 0)
+
+$ ctest -R 'seamless video and audio switches on a local file' --output-on-failure
+100% tests passed, 0 tests failed out of 1
+Total Test time (real) =   0.93 sec
+(exit status 0)
+
+$ ctest -R 'seamless video and audio switches on a local file' --output-on-failure
+100% tests passed, 0 tests failed out of 1
+Total Test time (real) =   0.93 sec
+(exit status 0)
+
+$ uptime
+13:41  up 6 days, 11 mins, 8 users, load averages: 23.28 18.02 15.30
+(exit status 0)
+
+$ ctest -j 6 --output-on-failure
+[... every test's line ...]
+100% tests passed, 0 tests failed out of 546
+Total Test time (real) =  28.54 sec
+(exit status 0)

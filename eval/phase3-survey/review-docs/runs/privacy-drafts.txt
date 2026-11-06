@@ -1,0 +1,11 @@
+command (cwd: <drafts>): python3 -I -B <drafts>/verify/tools/privacy_scan.py PHASE3_SURVEY.md PHASE3_DECISIONS_PENDING.md PHASE3_STATUS.md
+date_utc: 2026-11-01T10:19:59Z
+output (stdout and stderr):
+pattern: case-insensitive, SHA-256 of its text 943ca9161f562c6243e1887d71c169874aaa3c84828fc0a81fd15738730a047d
+PHASE3_SURVEY.md:58:885: hint ipv4
+PHASE3_DECISIONS_PENDING.md:76:447: hint ipv4
+PHASE3_DECISIONS_PENDING.md:81:489: hint ipv4
+checked: 3 files (0 of them .xz, read decompressed), 1269 lines
+task pattern matches: 0; e-mail addresses: 0
+hints (not the task's check): opt-homebrew 0, usr-local 0, volumes 0, home-dir 0, tilde-path 0, tmp-path 0, var-path 0, dot-local-host 0, mac-host 0, ipv4 3
+exit=0

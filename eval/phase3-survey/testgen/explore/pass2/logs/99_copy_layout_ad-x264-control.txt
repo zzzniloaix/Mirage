@@ -1,0 +1,5 @@
+$ cp media/ad-x264-control/layout.json reports/ad-x264-control.layout.json
+(in <out>/testgen)
+--- stdout ---
+--- stderr ---
+--- exit status 0, wall time 0.006 s (time.monotonic) ---

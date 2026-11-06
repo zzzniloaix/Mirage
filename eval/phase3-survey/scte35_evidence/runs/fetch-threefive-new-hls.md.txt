@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/threefive-new-hls.md/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://raw.githubusercontent.com/superkabuki/threefive_is_scte35/cfc84da937eda48da7fa81046ea9a52632ee8ec0/hls.md'
+date_utc: 2026-11-01T03:45:17Z
+http_code=200
+url_effective=https://raw.githubusercontent.com/superkabuki/threefive_is_scte35/cfc84da937eda48da7fa81046ea9a52632ee8ec0/hls.md
+size_download=4438
+content_type=text/plain; charset=utf-8
+curl_exit=0
+sha256=3174146cd3e66eae6880f85e43c82c9e5690d023e63c97eeffa05bf1e488a5a6

@@ -1,0 +1,45 @@
+command (cwd <out>/scte35_evidence): sh tools/derive_all.sh
+date_utc: 2026-11-01T04:18:35Z
+tool sha256: 6d1da7f8a2082658fb47d7c5001a4a0c960f0247704757470f41642e1102ce28  tools/build_vectors.py
+tool sha256: 43553cf5f9b59689d1e576b7c3e155390e518dafcb162443170f0e126ec5982c  tools/check_vectors.py
+tool sha256: 12ca135799c24d24a217a97c7173b233e459c4b74454b11af90cf011b7e9042e  tools/cue_positions.py
+tool sha256: ea5b756f6aebcef51a2bb5bbed43413a24ddaf34f5827273353d162b5888ecbd  tools/hls_tags.py
+tool sha256: 1198bc8093385554dc76dbf33b39eba1e268e04bd41029204eb515a9a2bad424  tools/html2text.py
+tool sha256: 2d0d1cf92518bfdaae87df6074f2f5cba87094ce6370a9f93692e68b442623ed  tools/pdftext.py
+tool sha256: bb4cef1ddae32dc390b419725a8dd855db5b29cf09393ac13075346bb7d0429b  tools/scte35_decode.py
+tool sha256: 68725f0ab733b49592947589b2c1487c2860e90d2139648bd01962a844586a33  tools/ts_pid_payload.py
+tool sha256: a6776bd3814f82dda3a9f23c742e8b44b19ff14219a75815705ed5b85f1d6b69  tools/ts_probe.py
+tool sha256: 31eaa39d0407aef0b730c3040c99c60547baa671bc42bdac69f17039fe79fe4a  tools/build_parser_probe.sh
+tool sha256: d5c54a09eac63794dc001f0aa52d4fe3cda311723f0d47ba1b1675e47848b04a  tools/cue_positions_all.sh
+tool sha256: 7cbb2161e7335376fcd6f6bd2f96281787bdb449b7e82494dc4a78ebb143f39d  tools/derive_all.sh
+tool sha256: d76a774d051045faf19a109b5d8f79bb79e384f26477b2e82b0137b9a108529f  tools/fetch.sh
+tool sha256: 05f5b16a93a29786124d69d7e5f6bbd233fd2661416449381e8e50e599f90c76  tools/pipeline.sh
+tool sha256: df159afaa73c1c23ecc8bf5ea69cf75e4d668b19f36e6658e8539d19173ebe5f  tools/repo_grep.sh
+tool sha256: bfbac2ffbe328635c262072da72d6fd3923bfcc5e70f44b8c0b2507a818fee8e  tools/run.sh
+tool sha256: f50c6568c519b76f507c5c20a8fc22a1856af0244678962334cf41a0cc61da74  tools/same_daterange.sh
+output (stdout and stderr):
+pages=123 characters=269147
+aws-medialive-sample-manifests-hls: characters=3374
+unified-live-scte-35: characters=47264
+unified-faq-dai: characters=22161
+unified-demo-scte35: characters=473
+unified-avod-scte35-mediatailor-page: characters=1223
+wowza-scte-35: characters=45579
+broadpeak-dai-scte35: characters=12780
+google-admanager-13049027: characters=12532
+gcloud-video-stitcher-ad-markers: characters=17452
+adobe-psdk-ios-live-linear: characters=970
+sha256 d242a61818ffc0d4ed7e8c408c302a7271421ce86c03959ac40da640c880c349  derived/adobe-psdk-ios-live-linear.txt
+sha256 a626faf7b728a61ab4e9fa91d7eb9bd211efd28edfb32ae680426cca65af1d70  derived/aws-medialive-sample-manifests-hls.txt
+sha256 922e6112ae03f2158246074f88f801d70975154f7b9dbfb4d17ddfc357bdcec2  derived/broadpeak-dai-scte35.txt
+sha256 18cceb7169386fb86d24702f9716c904087a8b6eb20f7947a2f8efd57ff14712  derived/gcloud-video-stitcher-ad-markers.txt
+sha256 0920c5518d8359eace4621e486601df53a456d55c570762b4e5b31cd56eeddc8  derived/google-admanager-13049027.txt
+sha256 eb7be10ccff1bbf735cce5a846abc3c80aacabcdd3468109c139744f4a790c66  derived/SCTE_35_2023r1.txt
+sha256 24532f202e31f62f744c2466b489aeef48156eef8296089d5f479f727f174c74  derived/unified-avod-scte35-mediatailor-page.txt
+sha256 e9c95bb31a4e903720b774529cba64a6066015240ca60ff9baa13c6f5f54f567  derived/unified-demo-scte35.txt
+sha256 fd4401e2d8e4f9afd25f8ce295fd9b1b1d275d9bdf671349fd246a6d0334b0e2  derived/unified-faq-dai.txt
+sha256 e41ce1531ef234a941c85efb70e880ab8d3e293cf153fa529a6419b4477369db  derived/unified-live-scte-35.txt
+sha256 01490aeb6b09b1c500ed9336eafdc6c2ce8de04d11a2f65bc02f677d369358d4  derived/wowza-scte-35.txt
+sha256 6e3ed024d84e4dbe826c6e021ca05d6dd6c9c0398107d4e16354c188b6d02c36  derived/playlists/google-video-stitcher-eabn-example.m3u8
+sha256 08b1c848da1ab03cba3824df39b2b8714d3fea52f60c5db3dde93e15d20d529a  derived/playlists/wowza-cue-example.m3u8
+exit=0

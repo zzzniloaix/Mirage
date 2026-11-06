@@ -1,0 +1,9 @@
+command: grep -n -E 'AV_CRC_32_IEEE' downloads/ffmpeg-n8.1.1-crc.c/body downloads/ffmpeg-n8.1.1-crc.h/body
+downloads/ffmpeg-n8.1.1-crc.h/body:52:    AV_CRC_32_IEEE,
+downloads/ffmpeg-n8.1.1-crc.h/body:53:    AV_CRC_32_IEEE_LE,  /*< reversed bitorder version of AV_CRC_32_IEEE */
+downloads/ffmpeg-n8.1.1-crc.c/body:193:    [AV_CRC_32_IEEE] = {
+downloads/ffmpeg-n8.1.1-crc.c/body:238:    [AV_CRC_32_IEEE_LE] = {
+downloads/ffmpeg-n8.1.1-crc.c/body:341:DECLARE_CRC_INIT_TABLE_ONCE(AV_CRC_32_IEEE,    0, 32, 0x04C11DB7)
+downloads/ffmpeg-n8.1.1-crc.c/body:342:DECLARE_CRC_INIT_TABLE_ONCE(AV_CRC_32_IEEE_LE, 1, 32, 0xEDB88320)
+downloads/ffmpeg-n8.1.1-crc.c/body:408:    case AV_CRC_32_IEEE:    CRC_INIT_TABLE_ONCE(AV_CRC_32_IEEE); break;
+downloads/ffmpeg-n8.1.1-crc.c/body:409:    case AV_CRC_32_IEEE_LE: CRC_INIT_TABLE_ONCE(AV_CRC_32_IEEE_LE); break;

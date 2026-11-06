@@ -1,0 +1,21 @@
+FFmpeg's sources at the tag n8.1.1, fetched to check the file:line citations of
+<out>/sources.md and then removed (upstream files carry their authors' email
+addresses). Each was fetched with
+  curl -sS -f -L https://raw.githubusercontent.com/FFmpeg/FFmpeg/n8.1.1/<upstream path>
+and saved as <upstream path> with '/' replaced by '_'. sources.md cites them as
+  https://github.com/FFmpeg/FFmpeg/blob/n8.1.1/<upstream path>#L<line>
+SHA-256, file and lines of each copy as fetched:
+909f5c2fe7caf26601c39cd96acbc6f58f49ec5a78914d2e5b524a3fc2571afc  libavcodec_avcodec.h  2995 lines
+eafcee430808383a2f6546fda9ee7ebf5569c022df7382924c526ef7ef9d845a  libavcodec_decode.c  2475 lines
+1e608cfd714a5aa374579d286bfe8751820fb8aefb548a72c5f8d969800d8b62  libavcodec_options_table.h  429 lines
+96b17565536b27251918cdec0776e5200b0cdf2e42d9276024d9f831bfc30cf6  libavcodec_packet.h  943 lines
+a92ad4e9ae2866fb5bb409a30dda8162e253f77e9250fd3057c09f60e3059cbe  libavformat_avformat.h  3118 lines
+4a8339be8173a66bd827b16efeaaf13ae6a6eb484396948456135566f621e034  libavformat_avio.c  868 lines
+9d598da0b856348dcf39f020538309a615cbfb4f5ea72bd0e11fbfe8ed9ecf92  libavformat_aviobuf.c  1484 lines
+4d400f0232a2f4f52dbf2c41afdbab05bc6eba6ac05ff37d23d72a6b5c817ad3  libavformat_demux.c  3214 lines
+921a624c99eb18cccd3ceb6c299591b20954ddeb02c3657f7b05e024a871d2b3  libavformat_hls.c  2860 lines
+6f3a4ca0de8d9c70aeac9cdff86c98cf19deacacc9922e61c824fa43c3454264  libavformat_http.c  2352 lines
+ec80e715e733469a24c363ac3091d28f879707ef94d84c1e0fc89a4bd00f7322  libavformat_network.c  582 lines
+31600fcf26c9bde7d66e8536cd68ade4cece781843bc3b71632acfe7d60a4a17  libavformat_options.c  560 lines
+91275238d0abfc4fef41f2f6a4f182e279886af78e2f525864329279206a3be9  libavutil_frame.h  1176 lines
+0b0c949a1124bbfc0af710b7c6c63b7f767d5bd38857e41dd75c6b9c5199cfa5  libavutil_log.c  527 lines

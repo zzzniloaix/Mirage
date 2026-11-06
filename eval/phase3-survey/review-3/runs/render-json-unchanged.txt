@@ -1,0 +1,5 @@
+# cwd: <out>/review-3
+# command: 'diff' '-r' '<out>/design' '<out>/review-3/design-copy'
+# started: 2026-11-01T08:45:08Z, ended: 2026-11-01T08:45:08Z (UTC)
+# stdout and stderr, in order:
+# exit status: 0

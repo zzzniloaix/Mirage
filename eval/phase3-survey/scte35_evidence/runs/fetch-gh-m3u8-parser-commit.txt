@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/gh-m3u8-parser-commit/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://api.github.com/repos/videojs/m3u8-parser/commits/main'
+date_utc: 2026-11-01T03:46:35Z
+http_code=200
+url_effective=https://api.github.com/repos/videojs/m3u8-parser/commits/main
+size_download=7640
+content_type=application/json; charset=utf-8
+curl_exit=0
+sha256=07850d0ad02f831f49018ae088130b06387e7b0a3998db5c8d0705692078493f

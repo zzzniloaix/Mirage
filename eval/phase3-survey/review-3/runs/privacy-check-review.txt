@@ -1,0 +1,29 @@
+# cwd: <out>
+# command: 'python3' '-I' '-B' 'review-2/tools/privacy_check.py' 'review-3/review.json' 'review-3/review.md' 'review-3/runs/changed-files-exist.txt' 'review-3/runs/code-lines.txt' 'review-3/runs/networklogger-link.txt' 'review-3/runs/package-check.txt' 'review-3/runs/privacy-check-design.txt' 'review-3/runs/question-lengths.txt' 'review-3/runs/quote-check-design.txt' 'review-3/runs/render-cmp.txt' 'review-3/runs/render-json-unchanged.txt' 'review-3/runs/render.txt' 'review-3/runs/repo-state-end.txt' 'review-3/runs/repo-state-start.txt' 'review-3/runs/seconds-check-compare.txt' 'review-3/runs/seconds-check-rerun.txt' 'review-3/runs/seconds-check-sequence-start.txt' 'review-3/runs/testgen-library-only.txt' 'review-3/runs/vector-status.txt' 'review-3/tools/quote_each.sh' 'review-3/tools/run.sh' 'review-3/tools/show_lines.py' 'review-3/tools/vector_status.py'
+# started: 2026-11-01T09:22:01Z, ended: 2026-11-01T09:22:01Z (UTC)
+# stdout and stderr, in order:
+review-3/review.json: local paths 0, e-mail addresses 0, identity words 0
+review-3/review.md: local paths 0, e-mail addresses 0, identity words 0
+review-3/runs/changed-files-exist.txt: local paths 0, e-mail addresses 0, identity words 0
+review-3/runs/code-lines.txt: local paths 0, e-mail addresses 0, identity words 0
+review-3/runs/networklogger-link.txt: local paths 0, e-mail addresses 0, identity words 0
+review-3/runs/package-check.txt: local paths 0, e-mail addresses 0, identity words 0
+review-3/runs/privacy-check-design.txt: local paths 0, e-mail addresses 0, identity words 0
+review-3/runs/question-lengths.txt: local paths 0, e-mail addresses 0, identity words 0
+review-3/runs/quote-check-design.txt: local paths 0, e-mail addresses 0, identity words 0
+review-3/runs/render-cmp.txt: local paths 0, e-mail addresses 0, identity words 0
+review-3/runs/render-json-unchanged.txt: local paths 0, e-mail addresses 0, identity words 0
+review-3/runs/render.txt: local paths 0, e-mail addresses 0, identity words 0
+review-3/runs/repo-state-end.txt: local paths 0, e-mail addresses 0, identity words 0
+review-3/runs/repo-state-start.txt: local paths 0, e-mail addresses 0, identity words 0
+review-3/runs/seconds-check-compare.txt: local paths 0, e-mail addresses 0, identity words 0
+review-3/runs/seconds-check-rerun.txt: local paths 0, e-mail addresses 0, identity words 0
+review-3/runs/seconds-check-sequence-start.txt: local paths 0, e-mail addresses 0, identity words 0
+review-3/runs/testgen-library-only.txt: local paths 0, e-mail addresses 0, identity words 0
+review-3/runs/vector-status.txt: local paths 0, e-mail addresses 0, identity words 0
+review-3/tools/quote_each.sh: local paths 0, e-mail addresses 0, identity words 0
+review-3/tools/run.sh: local paths 0, e-mail addresses 0, identity words 0
+review-3/tools/show_lines.py: local paths 0, e-mail addresses 0, identity words 0
+review-3/tools/vector_status.py: local paths 0, e-mail addresses 0, identity words 0
+23 files; 0 occurrences in all (5 identity words checked)
+# exit status: 0

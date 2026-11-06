@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/scte35-go-pkg_scte35_segmentation_upid.go/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://raw.githubusercontent.com/Comcast/scte35-go/06d0ba5099d939c89a276629701b42221d3ecf30/pkg/scte35/segmentation_upid.go'
+date_utc: 2026-11-01T03:30:47Z
+http_code=200
+url_effective=https://raw.githubusercontent.com/Comcast/scte35-go/06d0ba5099d939c89a276629701b42221d3ecf30/pkg/scte35/segmentation_upid.go
+size_download=9661
+content_type=text/plain; charset=utf-8
+curl_exit=0
+sha256=223ef21d19158ef1b825ab539c22019a9c433cdc94f8c22794d7e4426f074511

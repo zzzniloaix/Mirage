@@ -1,0 +1,23 @@
+command (cwd: <records>): for p in testgen/ffmpeg-n8.1.1 testgen/refs scte35_evidence/downloads scte35_evidence/derived scte35_evidence/vectors_src.json scte35_evidence/runs/decode-medialive-oatcls.txt scte35_evidence/runs/decode-scte35go-unused-subsegments.txt testgen/testgen testgen/testgen-O0 scte35_evidence/tools/__pycache__; do if [ -e $p ]; then echo "PRESENT $p"; else echo "absent $p"; fi; done; echo 'files named scte35_vectors.json:' $(find . -name scte35_vectors.json | wc -l); echo 'ts/mkv/mp4/m4s/aac/mov/pdf/html/png/jpg files:' $(find . -type f \( -iname '*.ts' -o -iname '*.mkv' -o -iname '*.mp4' -o -iname '*.m4s' -o -iname '*.aac' -o -iname '*.mov' -o -iname '*.pdf' -o -iname '*.html' -o -iname '*.htm' -o -iname '*.png' -o -iname '*.jpg' -o -iname '*.o' -o -iname '*.pyc' \) | wc -l); echo 'ffmpeg-n8.1.1-src:'; ls -A ffmpeg-n8.1.1-src; echo 'rfc:'; ls -A rfc; echo 'executables (mode +x, non-script):'; find . -type f -perm -u+x | while read f; do head -c 2 "$f" | grep -q '#!' || echo "$f"; done; echo 'Mach-O or ELF magic:'; find . -type f -exec sh -c 'h=$(head -c 4 "$1" | xxd -p); case $h in cffaedfe|feedfacf|cafebabe|7f454c46) echo "$1";; esac' _ {} \; ; echo done
+date_utc: 2026-11-01T10:20:26Z
+output (stdout and stderr):
+absent testgen/ffmpeg-n8.1.1
+absent testgen/refs
+absent scte35_evidence/downloads
+absent scte35_evidence/derived
+absent scte35_evidence/vectors_src.json
+absent scte35_evidence/runs/decode-medialive-oatcls.txt
+absent scte35_evidence/runs/decode-scte35go-unused-subsegments.txt
+absent testgen/testgen
+absent testgen/testgen-O0
+absent scte35_evidence/tools/__pycache__
+files named scte35_vectors.json: 0
+ts/mkv/mp4/m4s/aac/mov/pdf/html/png/jpg files: 0
+ffmpeg-n8.1.1-src:
+FETCHED.txt
+rfc:
+FETCHED.txt
+executables (mode +x, non-script):
+Mach-O or ELF magic:
+done
+exit=0

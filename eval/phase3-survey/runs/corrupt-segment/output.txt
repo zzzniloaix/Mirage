@@ -1,0 +1,1 @@
+copied 6 files; seg1.ts: 83 TS packets, 11 damaged

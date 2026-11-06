@@ -1,0 +1,83 @@
+$ python3 -I tables.py media/degraded-x264-a/layout.json reports/degraded-x264-mezzanine.json
+(in <out>/testgen)
+--- stdout ---
+# reports/degraded-x264-mezzanine.json: degraded ladder, codec libx264, source noise, reference mode mezzanine, reference ../mezzanine/degraded.mkv, status complete
+
+## Pair 0: v360/index.m3u8 (rung v360) against ../mezzanine/degraded.mkv
+
+- frames paired 200, failed 0, failure rate 0, discontinuities 0, after_discontinuity 0, unmatched_reference 0, extra_distorted 0
+- reference sequences [{"first_index": 0, "first_pts": 10, "frames": 200}]
+- distorted sequences [{"first_index": 0, "first_pts": 10, "frames": 200}]
+- libvmaf contexts [{"first_index": 0, "pairs": 200}]
+- pooled mean 99.977, min 95.421
+- pairs whose reference PTS isn't the layout's for their reference frame: 0
+
+| segment | file | period | reference frames | pairs | mean VMAF | min VMAF | quantizer | tags before it |
+|---|---|---|---|---|---|---|---|---|
+| 0 | seg_000.ts | main | 0-24 | 25 | 99.817 | 95.421 | 22 | - |
+| 1 | seg_001.ts | main | 25-49 | 25 | 100.000 | 100.000 | 22 | - |
+| 2 | seg_002.ts | main | 50-74 | 25 | 100.000 | 100.000 | 22 | - |
+| 3 | seg_003.ts | main | 75-99 | 25 | 100.000 | 100.000 | 22 | - |
+| 4 | seg_004.ts | main | 100-124 | 25 | 100.000 | 100.000 | 22 | - |
+| 5 | seg_005.ts | main | 125-149 | 25 | 100.000 | 100.000 | 22 | - |
+| 6 | seg_006.ts | main | 150-174 | 25 | 100.000 | 100.000 | 22 | - |
+| 7 | seg_007.ts | main | 175-199 | 25 | 100.000 | 100.000 | 22 | - |
+
+Scores more than 6 points below the pair's median (100.000): 0 frames
+
+Trailing-median prototype (threshold 6, window 50, more than 12 frames): 0 low frames, 0 drops
+
+## Pair 1: v270/index.m3u8 (rung v270) against ../mezzanine/degraded.mkv
+
+- frames paired 200, failed 0, failure rate 0, discontinuities 0, after_discontinuity 0, unmatched_reference 0, extra_distorted 0
+- reference sequences [{"first_index": 0, "first_pts": 10, "frames": 200}]
+- distorted sequences [{"first_index": 0, "first_pts": 10, "frames": 200}]
+- libvmaf contexts [{"first_index": 0, "pairs": 200}]
+- pooled mean 90.374, min 37.936
+- pairs whose reference PTS isn't the layout's for their reference frame: 0
+
+| segment | file | period | reference frames | pairs | mean VMAF | min VMAF | quantizer | tags before it |
+|---|---|---|---|---|---|---|---|---|
+| 0 | seg_000.ts | main | 0-24 | 25 | 97.621 | 91.202 | 22 | - |
+| 1 | seg_001.ts | main | 25-49 | 25 | 97.051 | 95.653 | 22 | - |
+| 2 | seg_002.ts | main | 50-74 | 25 | 98.118 | 96.355 | 22 | - |
+| 3 | seg_003.ts | main | 75-99 | 25 | 97.387 | 95.266 | 22 | - |
+| 4 | seg_004.ts | main | 100-124 | 25 | 40.917 | 37.936 | 46 | - |
+| 5 | seg_005.ts | main | 125-149 | 25 | 97.703 | 95.625 | 22 | - |
+| 6 | seg_006.ts | main | 150-174 | 25 | 97.124 | 93.953 | 22 | - |
+| 7 | seg_007.ts | main | 175-199 | 25 | 97.074 | 94.712 | 22 | - |
+
+Scores more than 6 points below the pair's median (97.284): 26 frames
+- pairs 0-0 (1 frames): first frame 0: segment 0 (seg_000.ts, main), its frame 0 of 25; last frame 0: segment 0 (seg_000.ts, main), its frame 0 of 25
+- pairs 100-124 (25 frames): first frame 100: segment 4 (seg_004.ts, main), its frame 0 of 25; last frame 124: segment 4 (seg_004.ts, main), its frame 24 of 25
+
+Trailing-median prototype (threshold 6, window 50, more than 12 frames): 25 low frames, 1 drops
+- pairs 100-124 (25 frames, drop): first frame 100: segment 4 (seg_004.ts, main), its frame 0 of 25; last frame 124: segment 4 (seg_004.ts, main), its frame 24 of 25; baseline at the first 97.728, lowest score 37.936
+
+## Pair 2: v180/index.m3u8 (rung v180) against ../mezzanine/degraded.mkv
+
+- frames paired 200, failed 0, failure rate 0, discontinuities 0, after_discontinuity 0, unmatched_reference 0, extra_distorted 0
+- reference sequences [{"first_index": 0, "first_pts": 10, "frames": 200}]
+- distorted sequences [{"first_index": 0, "first_pts": 10, "frames": 200}]
+- libvmaf contexts [{"first_index": 0, "pairs": 200}]
+- pooled mean 90.970, min 83.690
+- pairs whose reference PTS isn't the layout's for their reference frame: 0
+
+| segment | file | period | reference frames | pairs | mean VMAF | min VMAF | quantizer | tags before it |
+|---|---|---|---|---|---|---|---|---|
+| 0 | seg_000.ts | main | 0-24 | 25 | 91.197 | 83.690 | 22 | - |
+| 1 | seg_001.ts | main | 25-49 | 25 | 90.557 | 87.308 | 22 | - |
+| 2 | seg_002.ts | main | 50-74 | 25 | 91.551 | 90.009 | 22 | - |
+| 3 | seg_003.ts | main | 75-99 | 25 | 90.739 | 88.186 | 22 | - |
+| 4 | seg_004.ts | main | 100-124 | 25 | 90.755 | 88.492 | 22 | - |
+| 5 | seg_005.ts | main | 125-149 | 25 | 91.088 | 88.281 | 22 | - |
+| 6 | seg_006.ts | main | 150-174 | 25 | 91.335 | 88.568 | 22 | - |
+| 7 | seg_007.ts | main | 175-199 | 25 | 90.540 | 86.305 | 22 | - |
+
+Scores more than 6 points below the pair's median (91.205): 1 frames
+- pairs 0-0 (1 frames): first frame 0: segment 0 (seg_000.ts, main), its frame 0 of 25; last frame 0: segment 0 (seg_000.ts, main), its frame 0 of 25
+
+Trailing-median prototype (threshold 6, window 50, more than 12 frames): 0 low frames, 0 drops
+
+--- stderr ---
+--- exit status 0, wall time 0.054 s (time.monotonic) ---

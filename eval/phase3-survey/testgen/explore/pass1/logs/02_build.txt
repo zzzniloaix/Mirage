@@ -1,0 +1,8 @@
+$ sh build.sh
+(in <out>/testgen)
+--- stdout ---
+pkg-config --cflags --libs libavformat libavcodec libavutil libswscale: -I<homebrew>/Cellar/ffmpeg-full/8.1.1/include -L<homebrew>/Cellar/ffmpeg-full/8.1.1/lib -lavformat -lavcodec -lswscale -lavutil
+Apple clang version 21.0.0 (clang-2100.1.1.101)
+--- stderr ---
++ clang++ -std=c++20 -O2 -Wall -Wextra -o <out>/testgen/testgen <out>/testgen/src/testgen.cpp -I<homebrew>/Cellar/ffmpeg-full/8.1.1/include -L<homebrew>/Cellar/ffmpeg-full/8.1.1/lib -lavformat -lavcodec -lswscale -lavutil
+--- exit status 0, wall time 1.775 s (time.monotonic) ---

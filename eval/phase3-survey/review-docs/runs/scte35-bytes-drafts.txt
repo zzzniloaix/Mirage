@@ -1,0 +1,5 @@
+command (cwd: <drafts>): python3 -I -B <drafts>/verify/tools/scte35_bytes_scan.py PHASE3_SURVEY.md PHASE3_DECISIONS_PENDING.md PHASE3_STATUS.md
+date_utc: 2026-11-01T10:26:57Z
+output (stdout and stderr):
+checked: 3 files; hex runs: 0; base64 runs: 0; looser forms: 0; <vector id> placeholders: 0
+exit=0

@@ -1,0 +1,2 @@
+cwd: <out>/runs
+command: 'python3' '-I' '<out>/probe/map_frames_to_segments.py' 'logprobe-file/output.txt' 'fixture-data/dis/tagged.m3u8'

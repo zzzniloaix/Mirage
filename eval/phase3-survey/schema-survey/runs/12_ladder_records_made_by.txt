@@ -1,0 +1,28 @@
+# One command of the schema survey, run in <repo> by tools/run.py, started 2026-11-01T03:51:00Z, ended 2026-11-01T03:51:00Z (UTC).
+# <repo>: the worktree of vmaf/phase-3 at 75cf6e0; <out>: the survey's output directory; <scratch>: the scratch directory.
+# The command, then its standard output and standard error as they came, then its exit status.
+
+$ git ls-files "eval/ladder/*report.json.xz" | wc -l; for d in $(git ls-files "eval/ladder/*report.json.xz" | xargs -n1 dirname | xargs -n1 dirname | sort -u); do printf "%s: " "$d"; head -1 "$d/cmd.txt"; done; echo "## the records with a build.txt:"; git ls-files "eval/ladder/*build.txt"
+      23
+eval/ladder/acceptance-c673738/advanced-cdn-full: # The commands of this eval/ladder/pool_check.py run, one per pool size.
+eval/ladder/acceptance-c673738/advanced-local-300: # The commands of this eval/ladder/pool_check.py run, one per pool size.
+eval/ladder/acceptance-c673738/advanced-local-300-mem1g: # The commands of this eval/ladder/pool_check.py run, one per pool size.
+eval/ladder/advanced-cdn-full-af17121: # The commands of this eval/ladder/pool_check.py run, one per pool size.
+eval/ladder/advanced-cdn-full-b706ed3: # The commands of this eval/ladder/pool_check.py run, one per pool size.
+eval/ladder/advanced-local-300: # The commands of this eval/ladder/pool_check.py run, one per pool size.
+eval/ladder/advanced-local-300-mem1g-1cc1ab0: # The commands of this eval/ladder/pool_check.py run, one per pool size.
+eval/ladder/advanced-local-300-mem1g-a3d011b: # The commands of this eval/ladder/pool_check.py run, one per pool size.
+eval/ladder/advanced-local-300-mem1g-af17121: # The commands of this eval/ladder/pool_check.py run, one per pool size.
+eval/ladder/advanced-local-300-mem1g-b706ed3: # The commands of this eval/ladder/pool_check.py run, one per pool size.
+eval/ladder/advanced-local-300-mem1g-dfed5a3: # The commands of this eval/ladder/pool_check.py run, one per pool size.
+## the records with a build.txt:
+eval/ladder/acceptance-c673738/build.txt
+eval/ladder/advanced-cdn-full-af17121/build.txt
+eval/ladder/advanced-cdn-full-b706ed3/build.txt
+eval/ladder/advanced-local-300-mem1g-1cc1ab0/build.txt
+eval/ladder/advanced-local-300-mem1g-a3d011b/build.txt
+eval/ladder/advanced-local-300-mem1g-af17121/build.txt
+eval/ladder/advanced-local-300-mem1g-b706ed3/build.txt
+eval/ladder/advanced-local-300-mem1g-dfed5a3/build.txt
+eval/ladder/advanced-local-300/build.txt
+(exit status 0)

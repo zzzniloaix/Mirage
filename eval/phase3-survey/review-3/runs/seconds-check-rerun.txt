@@ -1,0 +1,93 @@
+# cwd: <out>/testgen
+# command: 'python3' '-I' '-B' '<out>/design/tools/seconds_check.py' 'reports/ad-x264.json' 'reports/ad-x264-a.layout.json' 'reports/ad-mpeg2.json' 'reports/ad-mpeg2-a.layout.json' 'reports/ad-x264-origin1.json' 'reports/ad-x264-origin1.layout.json' 'reports/degraded-x264.json' 'reports/degraded-x264-a.layout.json' 'reports/degraded-x264-mezzanine.json' '-' 'reports/ad-x264-mezzanine.json' '-' '--drop' '40' '180' '--retime' '75' '124' '25' '24' '30' '50' '60' '--extinf' '1' '1'
+# started: 2026-11-01T09:13:02Z, ended: 2026-11-01T09:13:02Z (UTC)
+# stdout and stderr, in order:
+== reports/ad-x264.json with reports/ad-x264-a.layout.json: 200 scored reference frames; frame rate 25, time base 1/90000; one frame 3600 ticks; report sequences (first_index, first_pts, frames): (0, 10, 75), (75, 10, 125); segments after an EXT-X-DISCONTINUITY start at reference frames 75, 125
+  revision 1's check (each step against one frame, with the segment map): 0 steps flagged (none)
+  revision 2 (1), (d) against (c) at every scored reference frame: 0 runs (none)
+  the second review's suggestion, (d) against (c) at each segment's first frame only: 0 flagged (none)
+  revision 2 (2), PTS against the frame grid of each playlist discontinuity sequence: 0 runs (none)
+  revision 2 without a segment map, (2) on the report's sequences: 1 run (frames 125-199 (75 frames), largest +3.000 s at frame 125)
+  largest difference of (d)'s seconds from (c)'s: 0.000 s
+== reports/ad-mpeg2.json with reports/ad-mpeg2-a.layout.json: 200 scored reference frames; frame rate 25, time base 1/90000; one frame 3600 ticks; report sequences (first_index, first_pts, frames): (0, 10, 75), (75, 10, 125); segments after an EXT-X-DISCONTINUITY start at reference frames 75, 125
+  revision 1's check (each step against one frame, with the segment map): 0 steps flagged (none)
+  revision 2 (1), (d) against (c) at every scored reference frame: 0 runs (none)
+  the second review's suggestion, (d) against (c) at each segment's first frame only: 0 flagged (none)
+  revision 2 (2), PTS against the frame grid of each playlist discontinuity sequence: 0 runs (none)
+  revision 2 without a segment map, (2) on the report's sequences: 1 run (frames 125-199 (75 frames), largest +3.000 s at frame 125)
+  largest difference of (d)'s seconds from (c)'s: 0.000 s
+== reports/ad-x264-origin1.json with reports/ad-x264-origin1.layout.json: 200 scored reference frames; frame rate 25, time base 1/90000; one frame 3600 ticks; report sequences (first_index, first_pts, frames): (0, 10, 75), (75, 1, 50), (125, 15, 75); segments after an EXT-X-DISCONTINUITY start at reference frames 75, 125
+  revision 1's check (each step against one frame, with the segment map): 0 steps flagged (none)
+  revision 2 (1), (d) against (c) at every scored reference frame: 0 runs (none)
+  the second review's suggestion, (d) against (c) at each segment's first frame only: 0 flagged (none)
+  revision 2 (2), PTS against the frame grid of each playlist discontinuity sequence: 0 runs (none)
+  revision 2 without a segment map, (2) on the report's sequences: 0 runs (none)
+  largest difference of (d)'s seconds from (c)'s: 0.000 s
+== reports/degraded-x264.json with reports/degraded-x264-a.layout.json: 200 scored reference frames; frame rate 25, time base 1/90000; one frame 3600 ticks; report sequences (first_index, first_pts, frames): (0, 10, 200); segments after an EXT-X-DISCONTINUITY start at reference frames none
+  revision 1's check (each step against one frame, with the segment map): 0 steps flagged (none)
+  revision 2 (1), (d) against (c) at every scored reference frame: 0 runs (none)
+  the second review's suggestion, (d) against (c) at each segment's first frame only: 0 flagged (none)
+  revision 2 (2), PTS against the frame grid of each playlist discontinuity sequence: 0 runs (none)
+  revision 2 without a segment map, (2) on the report's sequences: 0 runs (none)
+  largest difference of (d)'s seconds from (c)'s: 0.000 s
+== reports/degraded-x264-mezzanine.json with no segment map: 200 scored reference frames; frame rate 25, time base 1/1000; one frame 40 ticks; report sequences (first_index, first_pts, frames): (0, 10, 200); no segment map
+  revision 2 without a segment map, (2) on the report's sequences: 0 runs (none)
+== reports/ad-x264-mezzanine.json with no segment map: 75 scored reference frames; frame rate 25, time base 1/1000; one frame 40 ticks; report sequences (first_index, first_pts, frames): (0, 10, 200); no segment map
+  revision 2 without a segment map, (2) on the report's sequences: 0 runs (none)
+== reports/ad-x264.json, reference frame 40 removed (simulated): 199 scored reference frames; frame rate 25, time base 1/90000; one frame 3600 ticks; report sequences (first_index, first_pts, frames): (0, 10, 74), (74, 10, 125); segments after an EXT-X-DISCONTINUITY start at reference frames 74, 124
+  revision 1's check (each step against one frame, with the segment map): 1 step flagged (frame 40, step +0.080 s)
+  revision 2 (1), (d) against (c) at every scored reference frame: 1 run (frames 40-198 (159 frames), largest -0.040 s at frame 40)
+  the second review's suggestion, (d) against (c) at each segment's first frame only: 6 flagged (frame 49: -0.040 s; frame 74: -0.040 s; frame 99: -0.040 s; frame 124: -0.040 s; frame 149: -0.040 s; frame 174: -0.040 s)
+  revision 2 (2), PTS against the frame grid of each playlist discontinuity sequence: 1 run (frames 40-73 (34 frames), largest +0.040 s at frame 40)
+  revision 2 without a segment map, (2) on the report's sequences: 2 runs (frames 40-73 (34 frames), largest +0.040 s at frame 40; frames 124-198 (75 frames), largest +3.000 s at frame 124)
+  largest difference of (d)'s seconds from (c)'s: 0.040 s (first at reference frame 40)
+== reports/ad-x264.json, reference frame 180 removed (simulated): 199 scored reference frames; frame rate 25, time base 1/90000; one frame 3600 ticks; report sequences (first_index, first_pts, frames): (0, 10, 75), (75, 10, 124); segments after an EXT-X-DISCONTINUITY start at reference frames 75, 125
+  revision 1's check (each step against one frame, with the segment map): 1 step flagged (frame 180, step +0.080 s)
+  revision 2 (1), (d) against (c) at every scored reference frame: 1 run (frames 180-198 (19 frames), largest -0.040 s at frame 180)
+  the second review's suggestion, (d) against (c) at each segment's first frame only: 0 flagged (none)
+  revision 2 (2), PTS against the frame grid of each playlist discontinuity sequence: 1 run (frames 180-198 (19 frames), largest +0.040 s at frame 180)
+  revision 2 without a segment map, (2) on the report's sequences: 1 run (frames 125-198 (74 frames), largest +3.040 s at frame 180)
+  largest difference of (d)'s seconds from (c)'s: 0.040 s (first at reference frame 180)
+== reports/ad-x264.json, reference frames 75-124 at 25 fps (frame 75 keeps its PTS), the EXTINF of the segments within them following the media (simulated; the report's frame rate stays as it is): 200 scored reference frames; frame rate 25, time base 1/90000; one frame 3600 ticks; report sequences (first_index, first_pts, frames): (0, 10, 75), (75, 10, 125); segments after an EXT-X-DISCONTINUITY start at reference frames 75, 125
+  revision 1's check (each step against one frame, with the segment map): 0 steps flagged (none)
+  revision 2 (1), (d) against (c) at every scored reference frame: 0 runs (none)
+  the second review's suggestion, (d) against (c) at each segment's first frame only: 0 flagged (none)
+  revision 2 (2), PTS against the frame grid of each playlist discontinuity sequence: 0 runs (none)
+  revision 2 without a segment map, (2) on the report's sequences: 1 run (frames 125-199 (75 frames), largest +3.000 s at frame 125)
+  largest difference of (d)'s seconds from (c)'s: 0.000 s
+== reports/ad-x264.json, reference frames 75-124 at 24 fps (frame 75 keeps its PTS), the EXTINF of the segments within them following the media (simulated; the report's frame rate stays as it is): 200 scored reference frames; frame rate 25, time base 1/90000; one frame 3600 ticks; report sequences (first_index, first_pts, frames): (0, 10, 75), (75, 10, 125); segments after an EXT-X-DISCONTINUITY start at reference frames 75, 125
+  revision 1's check (each step against one frame, with the segment map): 0 steps flagged (none)
+  revision 2 (1), (d) against (c) at every scored reference frame: 1 run (frames 88-199 (112 frames), largest -0.083 s at frame 125)
+  the second review's suggestion, (d) against (c) at each segment's first frame only: 4 flagged (frame 100: -0.042 s; frame 125: -0.083 s; frame 150: -0.083 s; frame 175: -0.083 s)
+  revision 2 (2), PTS against the frame grid of each playlist discontinuity sequence: 1 run (frames 88-124 (37 frames), largest +0.082 s at frame 124)
+  revision 2 without a segment map, (2) on the report's sequences: 1 run (frames 88-199 (112 frames), largest +3.000 s at frame 125)
+  largest difference of (d)'s seconds from (c)'s: 0.083 s (first at reference frame 125)
+== reports/ad-x264.json, reference frames 75-124 at 30 fps (frame 75 keeps its PTS), the EXTINF of the segments within them following the media (simulated; the report's frame rate stays as it is): 200 scored reference frames; frame rate 25, time base 1/90000; one frame 3600 ticks; report sequences (first_index, first_pts, frames): (0, 10, 75), (75, 10, 125); segments after an EXT-X-DISCONTINUITY start at reference frames 75, 125
+  revision 1's check (each step against one frame, with the segment map): 0 steps flagged (none)
+  revision 2 (1), (d) against (c) at every scored reference frame: 1 run (frames 79-199 (121 frames), largest +0.333 s at frame 125)
+  the second review's suggestion, (d) against (c) at each segment's first frame only: 4 flagged (frame 100: +0.167 s; frame 125: +0.333 s; frame 150: +0.333 s; frame 175: +0.333 s)
+  revision 2 (2), PTS against the frame grid of each playlist discontinuity sequence: 1 run (frames 79-124 (46 frames), largest -0.327 s at frame 124)
+  revision 2 without a segment map, (2) on the report's sequences: 1 run (frames 79-199 (121 frames), largest +3.000 s at frame 125)
+  largest difference of (d)'s seconds from (c)'s: 0.333 s (first at reference frame 125)
+== reports/ad-x264.json, reference frames 75-124 at 50 fps (frame 75 keeps its PTS), the EXTINF of the segments within them following the media (simulated; the report's frame rate stays as it is): 200 scored reference frames; frame rate 25, time base 1/90000; one frame 3600 ticks; report sequences (first_index, first_pts, frames): (0, 10, 75), (75, 10, 125); segments after an EXT-X-DISCONTINUITY start at reference frames 75, 125
+  revision 1's check (each step against one frame, with the segment map): 0 steps flagged (none)
+  revision 2 (1), (d) against (c) at every scored reference frame: 1 run (frames 77-199 (123 frames), largest +1.000 s at frame 125)
+  the second review's suggestion, (d) against (c) at each segment's first frame only: 4 flagged (frame 100: +0.500 s; frame 125: +1.000 s; frame 150: +1.000 s; frame 175: +1.000 s)
+  revision 2 (2), PTS against the frame grid of each playlist discontinuity sequence: 1 run (frames 77-124 (48 frames), largest -0.980 s at frame 124)
+  revision 2 without a segment map, (2) on the report's sequences: 1 run (frames 77-199 (123 frames), largest +3.000 s at frame 125)
+  largest difference of (d)'s seconds from (c)'s: 1.000 s (first at reference frame 125)
+== reports/ad-x264.json, reference frames 75-124 at 60 fps (frame 75 keeps its PTS), the EXTINF of the segments within them following the media (simulated; the report's frame rate stays as it is): 200 scored reference frames; frame rate 25, time base 1/90000; one frame 3600 ticks; report sequences (first_index, first_pts, frames): (0, 10, 75), (75, 10, 125); segments after an EXT-X-DISCONTINUITY start at reference frames 75, 125
+  revision 1's check (each step against one frame, with the segment map): 49 steps flagged (frame 76, step +0.017 s; frame 77, step +0.017 s; frame 78, step +0.017 s; frame 79, step +0.017 s; frame 80, step +0.017 s; frame 81, step +0.017 s; frame 82, step +0.017 s; frame 83, step +0.017 s; frame 84, step +0.017 s; frame 85, step +0.017 s; frame 86, step +0.017 s; frame 87, step +0.017 s; frame 88, step +0.017 s; frame 89, step +0.017 s; frame 90, step +0.017 s; frame 91, step +0.017 s; frame 92, step +0.017 s; frame 93, step +0.017 s; frame 94, step +0.017 s; frame 95, step +0.017 s; frame 96, step +0.017 s; frame 97, step +0.017 s; frame 98, step +0.017 s; frame 99, step +0.017 s; frame 100, step +0.017 s; frame 101, step +0.017 s; frame 102, step +0.017 s; frame 103, step +0.017 s; frame 104, step +0.017 s; frame 105, step +0.017 s; frame 106, step +0.017 s; frame 107, step +0.017 s; frame 108, step +0.017 s; frame 109, step +0.017 s; frame 110, step +0.017 s; frame 111, step +0.017 s; frame 112, step +0.017 s; frame 113, step +0.017 s; frame 114, step +0.017 s; frame 115, step +0.017 s; frame 116, step +0.017 s; frame 117, step +0.017 s; frame 118, step +0.017 s; frame 119, step +0.017 s; frame 120, step +0.017 s; frame 121, step +0.017 s; frame 122, step +0.017 s; frame 123, step +0.017 s; frame 124, step +0.017 s)
+  revision 2 (1), (d) against (c) at every scored reference frame: 1 run (frames 76-199 (124 frames), largest +1.167 s at frame 125)
+  the second review's suggestion, (d) against (c) at each segment's first frame only: 4 flagged (frame 100: +0.583 s; frame 125: +1.167 s; frame 150: +1.167 s; frame 175: +1.167 s)
+  revision 2 (2), PTS against the frame grid of each playlist discontinuity sequence: 1 run (frames 76-124 (49 frames), largest -1.143 s at frame 124)
+  revision 2 without a segment map, (2) on the report's sequences: 1 run (frames 76-199 (124 frames), largest +3.000 s at frame 125)
+  largest difference of (d)'s seconds from (c)'s: 1.167 s (first at reference frame 125)
+== reports/ad-x264.json, the EXTINF of segment 1 lengthened by 1 frame duration (simulated; the frames unchanged): 200 scored reference frames; frame rate 25, time base 1/90000; one frame 3600 ticks; report sequences (first_index, first_pts, frames): (0, 10, 75), (75, 10, 125); segments after an EXT-X-DISCONTINUITY start at reference frames 75, 125
+  revision 1's check (each step against one frame, with the segment map): 0 steps flagged (none)
+  revision 2 (1), (d) against (c) at every scored reference frame: 1 run (frames 50-199 (150 frames), largest -0.040 s at frame 50)
+  the second review's suggestion, (d) against (c) at each segment's first frame only: 6 flagged (frame 50: -0.040 s; frame 75: -0.040 s; frame 100: -0.040 s; frame 125: -0.040 s; frame 150: -0.040 s; frame 175: -0.040 s)
+  revision 2 (2), PTS against the frame grid of each playlist discontinuity sequence: 0 runs (none)
+  revision 2 without a segment map, (2) on the report's sequences: 1 run (frames 125-199 (75 frames), largest +3.000 s at frame 125)
+  largest difference of (d)'s seconds from (c)'s: 0.040 s (first at reference frame 50)
+# exit status: 0

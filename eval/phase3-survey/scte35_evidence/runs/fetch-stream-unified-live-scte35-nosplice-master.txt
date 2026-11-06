@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/stream-unified-live-scte35-nosplice-master/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://demo.unified-streaming.com/k8s/live/stable/scte35-no-splicing.isml/.m3u8'
+date_utc: 2026-11-01T04:03:38Z
+http_code=200
+url_effective=https://demo.unified-streaming.com/k8s/live/stable/scte35-no-splicing.isml/.m3u8
+size_download=771
+content_type=application/vnd.apple.mpegurl
+curl_exit=0
+sha256=4a7808f029ccf92af68a4284babfc1d2c9916f63803a854020402e06d8fa64ef
