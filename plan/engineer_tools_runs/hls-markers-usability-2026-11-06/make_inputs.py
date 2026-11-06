@@ -1,5 +1,5 @@
 # usage: python3 -I make_inputs.py <out dir> <demo package dir>
-# The inputs of run.sh beside the package tests/hlsmarkers_demo.sh makes. Every
+# The inputs of run.sh and run2.sh beside the package tests/hlsmarkers_demo.sh makes. Every
 # name, date and ID is made up; EXT-X-CUE-MARKER stands for any packager's own
 # cue tag.
 #   names/  playlists only (no media: the marker check reads no segment): one
@@ -7,6 +7,10 @@
 #           audio renditions whose NAMEs share their first 28 characters.
 #           "...-stereo-german" marks break-1 one segment early; "...-surround-
 #           english" marks break-1 but not break-2.
+#   tails/  the same, but its four audio NAMEs differ only in their first token and
+#           share the rest, a bit rate at the tail included ("aa_main_tone-x_2ch_enc
+#           256K", ...). "bb..." marks break-1 one segment early; "cc..." marks
+#           break-1 but not break-2. Added for run2.sh.
 #   enc/    the demo package, each media playlist SAMPLE-AES encrypted by a
 #           made-up skd:// key: the player cannot open it.
 #   mpd/    an MPD (no media): this FFmpeg has no DASH demuxer to open it.
@@ -38,22 +42,31 @@ def write(path, text):
     with open(path, "w") as f:
         f.write(text)
 
-names = os.path.join(out, "names")
-write(os.path.join(names, "v0", "index.m3u8"), playlist({2: interstitial(1, 12), 3: interstitial(2, 18)}))
-audio = [  # NAME, LANGUAGE, directory, the tags before each segment
+def package(dirname, audio):
+    """Playlists only: v0 with the two interstitials, and audio renditions (NAME, LANGUAGE, folder, tags)."""
+    root = os.path.join(out, dirname)
+    write(os.path.join(root, "v0", "index.m3u8"), playlist({2: interstitial(1, 12), 3: interstitial(2, 18)}))
+    master = "#EXTM3U\n#EXT-X-VERSION:7\n#EXT-X-INDEPENDENT-SEGMENTS\n"
+    for name, lang, d, tags in audio:
+        write(os.path.join(root, d, "index.m3u8"), playlist(tags))
+        master += ('#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="aud",NAME="%s",LANGUAGE="%s",AUTOSELECT=YES,CHANNELS="%s",'
+                   'URI="%s/index.m3u8"\n' % (name, lang, "6" if "surround" in name else "2", d))
+    master += ('#EXT-X-STREAM-INF:BANDWIDTH=2000000,CODECS="avc1.64001f,mp4a.40.2",RESOLUTION=1280x720,'
+               'FRAME-RATE=25,AUDIO="aud"\nv0/index.m3u8\n')
+    write(os.path.join(root, "master.m3u8"), master)
+
+package("names", [  # NAME, LANGUAGE, folder, the tags before each segment
     ("commentary-and-description-stereo-english", "en", "a_en", {2: cue(1), 3: cue(2)}),
     ("commentary-and-description-stereo-french", "fr", "a_fr", {2: cue(1), 3: cue(2)}),
     ("commentary-and-description-stereo-german", "de", "a_de", {1: cue(1), 3: cue(2)}),
     ("commentary-and-description-surround-english", "en", "a_en51", {2: cue(1)}),
-]
-master = "#EXTM3U\n#EXT-X-VERSION:7\n#EXT-X-INDEPENDENT-SEGMENTS\n"
-for name, lang, d, tags in audio:
-    write(os.path.join(names, d, "index.m3u8"), playlist(tags))
-    master += ('#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="aud",NAME="%s",LANGUAGE="%s",AUTOSELECT=YES,CHANNELS="%s",'
-               'URI="%s/index.m3u8"\n' % (name, lang, "6" if "surround" in name else "2", d))
-master += ('#EXT-X-STREAM-INF:BANDWIDTH=2000000,CODECS="avc1.64001f,mp4a.40.2",RESOLUTION=1280x720,'
-           'FRAME-RATE=25,AUDIO="aud"\nv0/index.m3u8\n')
-write(os.path.join(names, "master.m3u8"), master)
+])
+package("tails", [
+    ("aa_main_tone-x_2ch_enc 256K", "aa", "a_aa", {2: cue(1), 3: cue(2)}),
+    ("bb_main_tone-x_2ch_enc 256K", "bb", "a_bb", {1: cue(1), 3: cue(2)}),
+    ("cc_main_tone-x_2ch_enc 256K", "cc", "a_cc", {2: cue(1)}),
+    ("dd_main_tone-x_2ch_enc 256K", "dd", "a_dd", {2: cue(1), 3: cue(2)}),
+])
 
 enc = os.path.join(out, "enc")
 shutil.rmtree(enc, ignore_errors=True)
