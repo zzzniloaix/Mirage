@@ -143,29 +143,38 @@ TEST_CASE("distinct_labels: a group's shared ends dropped, in whole tokens", "[u
 TEST_CASE("row_labels: the tokens not all of a group's labels have, at a column's width", "[ui]")
 {
     using V = std::vector<std::string>;
-    // The shape that defeats both ends: one group, three codec families each with its own layout and
-    // bit-rate tail, the language at the head, tokens every label has in between. Made-up values.
+    // The shape that defeats both ends, made up: one group; per language two bit rates of one codec and one
+    // of another, each codec with its own layout; a role token most labels have, another in two; tokens every
+    // label has in between.
     const V langs = { "aa", "bb-CC", "dd", "ee-419", "ff", "gg-HH", "ii", "jj-KK", "ll", "mm" };
-    const V fams = { "%s_MAIN_CODA_PKG_L51_ENC_SCHM CODA_1_PKG_ENC_SCHM_256K",
-                     "%s_MAIN_CODB_PKG_STEREO_ENC_SCHM CODB_PKG_ENC_SCHM_128K",
-                     "%s_MAIN_CODC_PKG_L71_ENC_SCHM CODC_1_PKG_ENC_SCHM_1000K" };
     V labels = { "v0 720p" };
-    for (const auto& l : langs)
-        for (const auto& f : fams) {
-            const auto at = f.find("%s");
-            labels.push_back("audio aud/" + f.substr(0, at) + l + f.substr(at + 2));
-        }
-    labels.push_back("subtitles subs/aa_forced");
-    labels.push_back("subtitles subs/bb-CC_forced");
-    REQUIRE(labels.size() == 33);
+    const auto name = [](const std::string& l, const char* role, const char* codec, const char* layout,
+                         const char* rate) {
+        return std::string("audio aud/") + l + "_" + role + "_" + codec + "_PKG_" + layout + "_ENC_SCHM " + codec
+             + "_1_PKG_ENC_SCHM_" + rate;
+    };
+    for (const auto& l : langs) {
+        labels.push_back(name(l, "MAIN", "CODA", "L2", "128K"));
+        labels.push_back(name(l, "MAIN", "CODA", "L2", "64K"));
+        labels.push_back(name(l, "MAIN", "CODB", "5.1", "256K"));
+    }
+    labels.push_back(name("aa", "DESC", "CODA", "L2", "128K"));
+    labels.push_back(name("bb-CC", "DESC", "CODA", "L2", "128K"));
+    labels.push_back("subtitles subs/aa_FULL_TXT");
+    labels.push_back("subtitles subs/aa_SIGNS_TXT");
+    labels.push_back("subtitles subs/bb-CC_FULL_TXT");
+    REQUIRE(labels.size() == 36);
     const V rows = row_labels(labels);
     CHECK(rows[0] == "v0 720p");
-    CHECK(rows[1] == "aa CODA L51 1 256K");      // MAIN, PKG, ENC, SCHM dropped; CODA once
-    CHECK(rows[2] == "aa CODB STEREO 128K");
-    CHECK(rows[3] == "aa CODC L71 1 1000K");
-    CHECK(rows[4] == "bb-CC CODA L51 1 256K");   // "bb-CC" keeps its '-'
-    CHECK(rows[31] == "aa");                     // "forced" is in both subtitles labels
-    CHECK(rows[32] == "bb-CC");
+    // PKG, ENC, SCHM and "1" every label has; MAIN 30 of 32; L2 comes with CODA, 5.1 and 256K with CODB.
+    CHECK(rows[1] == "aa CODA 128K");
+    CHECK(rows[2] == "aa CODA 64K");
+    CHECK(rows[3] == "aa CODB");
+    CHECK(rows[4] == "bb-CC CODA 128K");       // a language tag stays whole
+    CHECK(rows[31] == "aa DESC CODA 128K");    // the role most labels lack stays
+    CHECK(rows[33] == "aa FULL");
+    CHECK(rows[34] == "aa SIGNS");
+    CHECK(rows[35] == "bb-CC FULL");
     // Cut in the middle to 16 characters, about the column's default width: still one of a kind each.
     const auto chars = [](const std::string& t) {
         float n = 0.0f;
@@ -173,14 +182,16 @@ TEST_CASE("row_labels: the tokens not all of a group's labels have, at a column'
         return n;
     };
     std::set<std::string> shown;
-    for (std::size_t i = 1; i <= 30; ++i) shown.insert(ellipsize_middle(rows[i], 16.0f, chars));
-    CHECK(shown.size() == 30);
+    for (std::size_t i = 1; i <= 32; ++i) shown.insert(ellipsize_middle(rows[i], 16.0f, chars));
+    CHECK(shown.size() == 32);
 
-    // The record's packages: a shared head, and a shared tail.
+    // A layout stays whole: '.' does not split a token.
+    CHECK(row_labels({ "audio a/x_5.1", "audio a/x_2.0", "audio a/y_5.1" }) == V{ "x 5.1", "x 2.0", "y 5.1" });
+    // The record's packages: NAMEs joined by '-' that share their head, and NAMEs that share all but a token.
     CHECK(row_labels({ "audio aud/commentary-and-description-stereo-english",
                        "audio aud/commentary-and-description-stereo-french",
                        "audio aud/commentary-and-description-surround-english" })
-          == V{ "stereo-english", "stereo-french", "surround-english" });
+          == V{ "…stereo-english", "…stereo-french", "…surround-english" });
     CHECK(row_labels({ "audio aud/aa_main_tone-x_2ch_enc 256K", "audio aud/bb_main_tone-x_2ch_enc 256K" })
           == V{ "aa", "bb" });
     // A row left empty: the group falls back to distinct_labels, without the head.

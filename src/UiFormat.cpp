@@ -151,19 +151,9 @@ std::vector<std::string> distinct_labels(const std::vector<std::string>& labels)
 
 std::vector<std::string> row_labels(const std::vector<std::string>& labels)
 {
-    const auto sep = [](char c) { return c == ' ' || c == '/' || c == '_' || c == '-' || c == '.'; };
-    struct Tok { std::size_t b, e; };   // a token's bytes [b, e)
-    const auto tokens = [&](std::string_view s) {
-        std::vector<Tok> t;
-        for (std::size_t i = 0; i < s.size();) {
-            while (i < s.size() && sep(s[i])) ++i;
-            const std::size_t b = i;
-            while (i < s.size() && !sep(s[i])) ++i;
-            if (i > b) t.push_back({ b, i });
-        }
-        return t;
-    };
-    const std::vector<std::string> ends = distinct_labels(labels);   // the fallback, with the head
+    // Coarse tokens: a language tag ("cmn-TW") or a layout ("5.1") stays whole.
+    const auto sep = [](char c) { return c == ' ' || c == '/' || c == '_'; };
+    struct Tok { std::size_t b, e; bool first; };   // a token's bytes [b, e), its first time in the name
     std::vector<std::string> out(labels.size());
     std::map<std::string, std::vector<std::size_t>> groups;          // head up to the first '/' → labels
     for (std::size_t i = 0; i < labels.size(); ++i) {
@@ -171,49 +161,90 @@ std::vector<std::string> row_labels(const std::vector<std::string>& labels)
         if (slash == std::string::npos) out[i] = labels[i];
         else groups[labels[i].substr(0, slash + 1)].push_back(i);
     }
+    const std::vector<std::string> ends = distinct_labels(labels);   // the fallback, with the head
     for (const auto& [head, idx] : groups) {
+        const std::size_t n = idx.size();
         const auto fallback = [&] {
             for (const std::size_t i : idx) out[i] = ends[i].substr(head.size());
         };
-        if (idx.size() < 2) {
+        if (n < 2) {
             fallback();
             continue;
         }
-        std::vector<std::string_view> names;   // what follows the head
-        std::vector<std::vector<Tok>> toks;
-        std::map<std::string_view, std::size_t> having;   // token → how many names have it
-        for (const std::size_t i : idx) {
-            names.push_back(std::string_view(labels[i]).substr(head.size()));
-            toks.push_back(tokens(names.back()));
-            std::set<std::string_view> mine;
-            for (const Tok& t : toks.back()) mine.insert(names.back().substr(t.b, t.e - t.b));
-            for (const auto w : mine) ++having[w];
-        }
-        std::vector<std::string> rows(idx.size());
-        std::set<std::string> seen;
-        bool ok = true;
-        for (std::size_t k = 0; k < idx.size() && ok; ++k) {
-            const std::string_view n = names[k];
-            std::set<std::string_view> used;
-            std::size_t prev = std::string::npos;   // the last token kept
-            for (std::size_t j = 0; j < toks[k].size(); ++j) {
-                const std::string_view w = n.substr(toks[k][j].b, toks[k][j].e - toks[k][j].b);
-                if (having[w] == idx.size() || !used.insert(w).second) continue;   // every name has it, or kept once
-                if (prev != std::string::npos)
-                    rows[k] += prev + 1 == j ? std::string(n.substr(toks[k][prev].e, toks[k][j].b - toks[k][prev].e))
-                                             : std::string(" ");
-                rows[k] += w;
-                prev = j;
+        std::vector<std::string_view> names(n);                 // what follows the head
+        std::vector<std::vector<Tok>> toks(n);
+        std::map<std::string_view, std::vector<bool>> who;      // token → the names that have it
+        for (std::size_t k = 0; k < n; ++k) {
+            names[k] = std::string_view(labels[idx[k]]).substr(head.size());
+            std::set<std::string_view> seen;
+            for (std::size_t i = 0; i < names[k].size();) {
+                while (i < names[k].size() && sep(names[k][i])) ++i;
+                const std::size_t b = i;
+                while (i < names[k].size() && !sep(names[k][i])) ++i;
+                if (i == b) continue;
+                const std::string_view w = names[k].substr(b, i - b);
+                const bool first = seen.insert(w).second;
+                toks[k].push_back({ b, i, first });
+                if (first) {
+                    auto& v = who[w];
+                    v.resize(n);
+                    v[k] = true;
+                }
             }
-            ok = !rows[k].empty() && seen.insert(rows[k]).second;
         }
-        if (!ok) {
+        std::set<std::string_view> dropped;
+        const auto row = [&](std::size_t k) {   // the name's tokens not dropped, each once, joined by spaces
+            std::string r;
+            for (const Tok& t : toks[k]) {
+                const std::string_view w = names[k].substr(t.b, t.e - t.b);
+                if (!t.first || dropped.contains(w)) continue;
+                if (!r.empty()) r += ' ';
+                r += w;
+            }
+            return r;
+        };
+        const auto apart = [&] {   // every row non-empty and unlike the others
+            std::set<std::string> rows;
+            for (std::size_t k = 0; k < n; ++k) {
+                const std::string r = row(k);
+                if (r.empty() || !rows.insert(r).second) return false;
+            }
+            return true;
+        };
+        const auto having = [](const std::vector<bool>& v) {
+            return static_cast<std::size_t>(std::count(v.begin(), v.end(), true));
+        };
+        // Tokens every name has.
+        for (const auto& [w, v] : who)
+            if (having(v) == n) dropped.insert(w);
+        if (!apart()) {
             fallback();
             continue;
         }
-        for (std::size_t k = 0; k < idx.size(); ++k) out[idx[k]] = rows[k];
+        // Tokens at least 80% of the names have, the most common first, each only if the rows stay apart.
+        std::vector<std::pair<std::size_t, std::string_view>> most;
+        for (const auto& [w, v] : who)
+            if (having(v) < n && having(v) * 5 >= n * 4) most.push_back({ having(v), w });
+        std::stable_sort(most.begin(), most.end(), [](const auto& a, const auto& b) { return a.first > b.first; });
+        for (const auto& m : most) {
+            dropped.insert(m.second);
+            if (!apart()) dropped.erase(m.second);
+        }
+        // Tokens that come in exactly the same names as one before them: the first of them stays.
+        std::map<std::vector<bool>, std::string_view> first_of;
+        for (std::size_t k = 0; k < n; ++k)
+            for (const Tok& t : toks[k]) {
+                const std::string_view w = names[k].substr(t.b, t.e - t.b);
+                if (!t.first || dropped.contains(w)) continue;
+                const auto [it, fresh] = first_of.emplace(who[w], w);
+                if (!fresh && it->second != w) dropped.insert(w);
+            }
+        // Then the ends that every row still shares, as distinct_labels drops them.
+        std::vector<std::string> rows;
+        for (std::size_t k = 0; k < n; ++k) rows.push_back(head + row(k));
+        rows = distinct_labels(rows);
+        for (std::size_t k = 0; k < n; ++k) out[idx[k]] = rows[k].substr(head.size());
     }
     return out;
 }
-
 } // namespace ui
