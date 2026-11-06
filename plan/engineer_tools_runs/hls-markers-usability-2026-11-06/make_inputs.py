@@ -1,5 +1,5 @@
 # usage: python3 -I make_inputs.py <out dir> <demo package dir>
-# The inputs of run.sh and run2.sh beside the package tests/hlsmarkers_demo.sh makes. Every
+# The inputs of run.sh, run2.sh and run3.sh beside the package tests/hlsmarkers_demo.sh makes. Every
 # name, date and ID is made up; EXT-X-CUE-MARKER stands for any packager's own
 # cue tag.
 #   names/  playlists only (no media: the marker check reads no segment): one
@@ -11,6 +11,11 @@
 #           share the rest, a bit rate at the tail included ("aa_main_tone-x_2ch_enc
 #           256K", ...). "bb..." marks break-1 one segment early; "cc..." marks
 #           break-1 but not break-2. Added for run2.sh.
+#   mixed/  the same, with thirty audio renditions in one group: ten languages at the
+#           head of each NAME, three codec families each with its own layout and
+#           bit-rate tail, and tokens every NAME has ("aa_MAIN_CODA_PKG_L51_ENC_SCHM
+#           CODA_1_PKG_ENC_SCHM_256K", ...). "dd ... CODB" marks break-1 one segment
+#           early; "gg-HH ... CODC" marks break-1 but not break-2. Added for run3.sh.
 #   enc/    the demo package, each media playlist SAMPLE-AES encrypted by a
 #           made-up skd:// key: the player cannot open it.
 #   mpd/    an MPD (no media): this FFmpeg has no DASH demuxer to open it.
@@ -67,6 +72,20 @@ package("tails", [
     ("cc_main_tone-x_2ch_enc 256K", "cc", "a_cc", {2: cue(1)}),
     ("dd_main_tone-x_2ch_enc 256K", "dd", "a_dd", {2: cue(1), 3: cue(2)}),
 ])
+
+fams = [("CODA", "%s_MAIN_CODA_PKG_L51_ENC_SCHM CODA_1_PKG_ENC_SCHM_256K"),
+        ("CODB", "%s_MAIN_CODB_PKG_STEREO_ENC_SCHM CODB_PKG_ENC_SCHM_128K"),
+        ("CODC", "%s_MAIN_CODC_PKG_L71_ENC_SCHM CODC_1_PKG_ENC_SCHM_1000K")]
+mixed = []
+for lang in ["aa", "bb-CC", "dd", "ee-419", "ff", "gg-HH", "ii", "jj-KK", "ll", "mm"]:
+    for fam, name in fams:
+        tags = {2: cue(1), 3: cue(2)}
+        if (lang, fam) == ("dd", "CODB"):
+            tags = {1: cue(1), 3: cue(2)}
+        if (lang, fam) == ("gg-HH", "CODC"):
+            tags = {2: cue(1)}
+        mixed.append((name % lang, lang, "a_%s_%s" % (lang, fam.lower()), tags))
+package("mixed", mixed)
 
 enc = os.path.join(out, "enc")
 shutil.rmtree(enc, ignore_errors=True)
