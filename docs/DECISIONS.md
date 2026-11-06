@@ -908,6 +908,19 @@ D-088 to D-091 and D-093 to D-098 are on branches not yet merged; whoever merges
 - **Who**: owner, adopting the agent's recommendation
 - **Date**: 2026-11-05
 
+### D-100 The timeline document's writer also tries a coarser clock and a sequence's own step; the tie and the reader's scales stay as built
+
+- **Decision**: three answers on choices WP08b's review left to the owner (Q55 to Q57):
+  - (a) Where PTS were rounded to a clock coarser than their time base (90 kHz PTS of a millisecond timestamp, as an FLV, RTMP or Matroska source remuxed into MPEG-TS without re-encoding gives), the writer also tries, for the keys and for the playlist-time ticks, a scale above 1 that divides every difference from a stretch's first value, with the frame duration in units of that many PTS ticks, so that such a reference too grows with segments (Q55).
+  - (b) Where a sequence's frame rate isn't the axis's (an ad at another frame rate after its discontinuity, which design §4.2 expects), the writer also tries, after the axis's frame duration, the rational step the stretch's own first values give (Q56).
+  - (c) Two choices stay as built (Q57): where the frame duration in the axis's ticks with scale 1 and the frame duration in PTS ticks with a scale above 1 hold the same frames (6006/1 with scale 1 or 3003/1 with scale 2 at 30000/1001 fps on a 90 kHz clock), the one tried first, with scale 1; and the reader takes any scale from 1 on both kinds of stretch, and scale 1 alone on frames without a PTS.
+  - Only the writer changes for (a) and (b): the reader already takes such steps and scales, so documents stay at schema version 1 and every value stays exact.
+- **Owner's words**, translated by the agent: (a) "The writer also tries a coarser clock (Recommended)"; (b) "Also try the sequence's own step (Recommended)"; (c) "All as built (Recommended)".
+- **Alternatives**: (a), (b) as built, the document growing with frames for such sources, the limit stated in the format document. (c) Each item asked on its own: for the tie, 3003/1 with scale 2, D-099 (a) read literally; for the reader, scale 1 alone on key stretches, which a later writer giving keys a scale would need a new schema_version for.
+- **Rationale**: (a), (b) WP08b's review found sources common in practice, PTS on a millisecond clock and ads at another frame rate, for which WP08b's writer starts a stretch every few frames; it measured both with probes that aren't committed, so their figures are left out. The reader already takes what makes them grow with segments, so no document becomes unreadable. (c) As the agent recommended.
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-06
+
 ---
 
 ## Measurement / process choices (proposed by the agent, confirmed by the owner)

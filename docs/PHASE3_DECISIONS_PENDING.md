@@ -1232,6 +1232,45 @@ Questions that round 1's packages met and the design doesn't settle, each of who
 
 **Answered** on 2026-11-05: 1, as the agent recommends (`docs/DECISIONS.md` D-099 (c)).
 
+#### Q55. PTS rounded to a clock coarser than their time base
+
+*Round 1.* Raised by WP08b's review.
+
+**Question.** 90 kHz PTS of a millisecond timestamp, as an FLV, RTMP or Matroska source remuxed into MPEG-TS without re-encoding gives, follow no step WP08b's writer tries, so the keys and the playlist-time ticks start a stretch every few frames (the review's probe, not committed). How is such a reference written?
+
+- **1. The writer also tries a coarser clock**: a scale above 1 that divides every difference from a stretch's first value. Only the writer changes; schema version 1, every value exact.
+- **2. As built**, the limit stated in the format document.
+
+**Agent's recommendation.** 1.
+
+**Answered** on 2026-11-06: 1, as the agent recommends (`docs/DECISIONS.md` D-100 (a)).
+
+#### Q56. A sequence at another frame rate than the axis's
+
+*Round 1.* Raised by WP08b's review.
+
+**Question.** An ad at another frame rate after its discontinuity, which design §4.2 expects, follows neither the axis's frame duration nor a whole step where its frame isn't a whole number of PTS ticks, so it starts a stretch every few frames (the review's probe, not committed). How is it written?
+
+- **1. The writer also tries the step the stretch's own first values give**, after the axis's frame duration. Only the writer changes; schema version 1, every value exact.
+- **2. As built**, the limit stated in the format document.
+
+**Agent's recommendation.** 1.
+
+**Answered** on 2026-11-06: 1, as the agent recommends (`docs/DECISIONS.md` D-100 (b)).
+
+#### Q57. Two frame durations that hold the same frames, and the scales the reader takes
+
+*Round 1.* Raised by WP08b's review.
+
+**Question.** Two choices that change a document's bytes, or what is refused, but no value read back: where the frame duration in the axis's ticks with scale 1 and the frame duration in PTS ticks with a scale hold the same frames, the one tried first (scale 1); and the reader taking any scale from 1 on both kinds of stretch, scale 1 alone on frames without a PTS. Are they kept?
+
+- **1. Both as built.**
+- **2. Each asked on its own.**
+
+**Agent's recommendation.** 1.
+
+**Answered** on 2026-11-06: 1, as the agent recommends (`docs/DECISIONS.md` D-100 (c)).
+
 ## Differences from the work order, to report
 
 The design lists 14 differences between what Phase 3 would build and what the work order's §3 asks (`eval/phase3-survey/design.md` §11). None of them is removed by editing a document, as the work order's constraints require: each is reported here and in the description of Phase 3's PR (WP15c, in the wording WP15b settles), and both pass the quote check before they are committed or posted (P-AK). Each names the question that settles it; "Q42" marks those that no option of Phase 3 removes, which Q42 asks the owner how to handle.
