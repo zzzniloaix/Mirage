@@ -15,6 +15,9 @@ struct TrackPanelInputs {
     int cur_video = -1, cur_audio = -1, cur_subtitle = -1;   // -1 subtitle = off
     // Stream whose switch is still loading (-1 = none).
     int pending_video = -1, pending_audio = -1, pending_subtitle = -1;
+    // Stream no decoder could be opened for (MediaSession::video_open_failed
+    // / audio_open_failed, -1 = none): its row says so.
+    int failed_video = -1, failed_audio = -1;
     double t = 0.0;              // seconds, drives the spinner
     float  win_w = 0.0f, win_h = 0.0f;   // logical display size
     float  right_inset = 0.0f;   // logical px taken by the network sidebar

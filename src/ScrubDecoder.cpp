@@ -7,6 +7,7 @@
 #include <chrono>
 #include <cmath>
 #include <optional>
+#include <string_view>
 #include <thread>
 
 extern "C" {
@@ -489,13 +490,13 @@ void ScrubDecoder::decode_loop(std::stop_token st, std::string url, std::string 
         // Back to the keyframe at or before seek_pts (HLS: the start of its
         // segment). The hls demuxer's own start (its first packet's dts) can
         // lie just after start_time: a second try inside the first segment.
+        auto seek_at = [&](double secs) {
+            const int64_t ts = static_cast<int64_t>(secs / av_q2d(src_tb));
+            return avformat_seek_file(src.fmt, src.idx, INT64_MIN, ts, ts, 0);
+        };
         auto seek_back = [&] {
-            auto at = [&](double secs) {
-                const int64_t ts = static_cast<int64_t>(secs / av_q2d(src_tb));
-                return avformat_seek_file(src.fmt, src.idx, INT64_MIN, ts, ts, 0);
-            };
-            int r = at(seek_pts);
-            if (r < 0 && seek_pts < media_start + 1.0) r = at(media_start + 1.0);
+            int r = seek_at(seek_pts);
+            if (r < 0 && seek_pts < media_start + 1.0) r = seek_at(media_start + 1.0);
             if (r < 0 && !seek_warned) {
                 seek_warned = true;
                 char errbuf[AV_ERROR_MAX_STRING_SIZE];
@@ -504,6 +505,61 @@ void ScrubDecoder::decode_loop(std::stop_token st, std::string url, std::string 
                              seek_pts, errbuf);
             }
             return r;
+        };
+
+        // Where that seek lands, as playback's does (Demuxer::read_loop, D-088):
+        // an MPEG-TS has no index, and FFmpeg lands on a packet at or before
+        // seek_pts, keyframe or not, so decoding from there starts at the next
+        // keyframe — after the target, or none before the end. So after the
+        // seek (not HLS: its seeks land on segment starts) nothing is decoded
+        // until a keyframe at or before seek_pts is read. A packet past it, or
+        // the end, without one: the request seeks again from further back, 1,
+        // 2, 4 … s, and from the media's start reads on without waiting
+        // (D-093). Every packet still goes to the keyframe index (report()).
+        const bool hls = src.fmt->iformat && src.fmt->iformat->name
+                      && std::string_view(src.fmt->iformat->name) == "hls";
+        struct Wait {
+            bool   on   = false;
+            double back = 0.0;   // how far before seek_pts the try now sought (0: the first)
+        } wait;
+        auto begin_wait = [&] { wait = { !hls, 0.0 }; };
+        auto next_try = [&] {
+            wait.back = wait.back > 0.0 ? 2.0 * wait.back : 1.0;
+            const double at   = seek_pts - wait.back;
+            const bool   last = at <= media_start + 0.001;   // (1 ms: the start itself, rounded)
+            // From the start: a second before it, for a first keyframe whose
+            // dts lies before start_time; start_time itself if that is refused.
+            int r = seek_at(last ? media_start - 1.0 : at);
+            if (r < 0 && last) r = seek_at(media_start);
+            if (r < 0) {
+                char errbuf[AV_ERROR_MAX_STRING_SIZE];
+                av_strerror(r, errbuf, sizeof(errbuf));
+                logger::warn("ScrubDecoder: seek to {:.3f} for a keyframe before {:.3f} failed: {} — "
+                             "decoding on from where it was", last ? media_start : at, seek_pts, errbuf);
+                wait.on = false;
+                return;
+            }
+            if (last) wait.on = false;
+            start_run(true);
+        };
+        // A packet read while the keyframe is awaited: true when it is that
+        // keyframe (it and what follows are decoded), false when it is not to
+        // be decoded — and when it shows seek_pts passed, the next try begins.
+        auto landing_key = [&](const AVPacket* p, const Read& r) {
+            if (!r.ok) {   // nothing to tell by: decoded as it comes
+                wait.on = false;
+                return true;
+            }
+            // Half a frame of tolerance, as playback's.
+            const double tol = p->duration > 0 ? 0.5 * p->duration * av_q2d(src_tb) : 0.001;
+            if (r.key && r.pts <= seek_pts + tol) {
+                wait.on = false;
+                return true;
+            }
+            // Packets come in decode order: once this one's dts is past
+            // seek_pts, no keyframe after it is at or before it.
+            if (r.dts > seek_pts + tol) next_try();
+            return false;
         };
 
         // Seek to the nearest keyframe at or before the target: a container
@@ -525,6 +581,7 @@ void ScrubDecoder::decode_loop(std::stop_token st, std::string url, std::string 
         avcodec_flush_buffers(src.codec);
         start_run(landed && !from_key);
         ++(from_key ? n_from_key_ : n_from_seek_);
+        if (landed && !from_key) begin_wait();
 
         // Posts `f` as the answer, replacing any frame not yet consumed.
         auto post = [&](const AVFrame* f) {
@@ -556,6 +613,10 @@ void ScrubDecoder::decode_loop(std::stop_token st, std::string url, std::string 
 
             if (!at_end) {
                 const int ret = av_read_frame(src.fmt, pkt);
+                if (ret == AVERROR_EOF && wait.on) {   // the end before the keyframe: further back
+                    next_try();
+                    continue;
+                }
                 if (ret == AVERROR_EOF) {
                     at_end = true;
                     avcodec_send_packet(src.codec, nullptr);
@@ -565,9 +626,11 @@ void ScrubDecoder::decode_loop(std::stop_token st, std::string url, std::string 
                     av_packet_unref(pkt);
                     continue;
                 } else {
-                    (void)report(pkt, src_tb);
-                    avcodec_send_packet(src.codec, pkt);
+                    const Read rd   = report(pkt, src_tb);
+                    const bool feed = !wait.on || landing_key(pkt, rd);
+                    if (feed) avcodec_send_packet(src.codec, pkt);
                     av_packet_unref(pkt);
+                    if (!feed) continue;
                 }
             }
 
@@ -586,6 +649,7 @@ void ScrubDecoder::decode_loop(std::stop_token st, std::string url, std::string 
                         avcodec_flush_buffers(src.codec);
                         start_run(ok);
                         ++n_missed_;
+                        if (ok) begin_wait();
                         restart = true;
                         break;
                     }

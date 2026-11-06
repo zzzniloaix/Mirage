@@ -1,0 +1,32 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  Opening <scratch>/gui3/clips/h264.mp4 (t=0.611)
+[INFO]  Demuxer: avformat_open_input 11 ms (1 streams, 0 programs) (t=0.626)
+[INFO]  Demuxer: avformat_find_stream_info 6 ms (t=0.633)
+[WARN]  No audio stream found
+[INFO]  Container: QuickTime / MOV
+[INFO]  Duration:  00:00:04
+[INFO]  Video:     h264 1280×720 @ 30.000 fps  pixel_fmt=yuv420p
+[INFO]  Selected HW-capable decoder: h264 (default was h264)
+[INFO]  Decoder opened: h264 (1280×720)  [HW: VideoToolbox requested]
+[INFO]  Opened <scratch>/gui3/clips/h264.mp4 in 61 ms (t=0.673)
+[INFO]  VideoRenderer: 1280×720 SDR (yuv420p → RGB24 sRGB)  matrix=BT.709  limited-range
+[INFO]  Subtitles: 0 choice(s); initial off (none available)
+[INFO]  ThumbnailStrip: open 2 ms, probe 5 ms (t=0.685)
+[INFO]  ThumbnailStrip: 4 keyframes found, decoding 4 thumbnails (stride 0.01 s, 160 px tall)
+[INFO]  ScrubDecoder: ready (open 2 ms, probe 10 ms) (t=0.691)
+[INFO]  ThumbnailStrip: coarse pass done (1 thumbnails)
+[INFO]  ThumbnailStrip: decode complete (4 thumbnails)
+[INFO]  loading-indicator: "Loading" (t=0.932)
+[INFO]  Decoder: VideoToolbox HW decode active (zero-copy IOSurface path)
+[INFO]  first-frame: pts=0.000 1280x720 VideoToolbox, 363 ms after open (t=1.041)
+[INFO]  VideoRenderer: HW zero-copy path ready: '420v' bound as R8 / RG8, 8-bit samples (BT.709 matrix, limited-range)
+[INFO]  loading-indicator: hidden (t=1.044)
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=2.541)
+[INFO]  --speed-seq: scrub to position 3.200 (pts 3.200)
+[INFO]  --speed-seq: t=3.00 event 6 3.2
+[INFO]  scrub-trace: frame pts=3.200 1280x720 stream 0 for 3.200 (33 ms after the request) (t=4.075)
+[INFO]  --speed-seq: t=5.00 event 10 0
+[INFO]  ui-snapshot: wrote <scratch>/gui3b/scrub_mp4.png (2560×1440) — scrub preview pts=3.200 1280x720 for 3.200
+[INFO]  MediaSession: closing <scratch>/gui3/clips/h264.mp4
+[INFO]  MediaSession: threads stopped (6 ms)
+[INFO]  ScrubDecoder: stopped (0 requests decoded from a keyframe read, 1 from a seek)

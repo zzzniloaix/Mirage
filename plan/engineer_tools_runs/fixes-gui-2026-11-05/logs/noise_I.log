@@ -1,0 +1,160 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  Opening <scratch>/gui3/clips/h264_noise.mp4 (t=7.805)
+[INFO]  Demuxer: avformat_open_input 1 ms (1 streams, 0 programs) (t=7.806)
+[INFO]  Demuxer: avformat_find_stream_info 3 ms (t=7.809)
+[WARN]  No audio stream found
+[INFO]  Container: QuickTime / MOV
+[INFO]  Duration:  00:00:04
+[INFO]  Video:     h264 1280×720 @ 30.000 fps  pixel_fmt=yuv420p
+[INFO]  Selected HW-capable decoder: h264 (default was h264)
+[INFO]  Decoder opened: h264 (1280×720)  [HW: VideoToolbox requested]
+[INFO]  Opened <scratch>/gui3/clips/h264_noise.mp4 in 22 ms (t=7.827)
+[INFO]  VideoRenderer: 1280×720 SDR (yuv420p → RGB24 sRGB)  matrix=BT.709  limited-range
+[h264 @ 0xb18148700] Invalid NAL unit size (1744840461 > 9997).
+[h264 @ 0xb18148700] missing picture in access unit with size 10001
+[INFO]  Subtitles: 0 choice(s); initial off (none available)
+[INFO]  ThumbnailStrip: open 0 ms, probe 3 ms (t=7.832)
+[INFO]  ScrubDecoder: ready (open 0 ms, probe 3 ms) (t=7.832)
+[INFO]  ThumbnailStrip: 4 keyframes found, decoding 4 thumbnails (stride 0.01 s, 160 px tall)
+[INFO]  ThumbnailStrip: coarse pass done (1 thumbnails)
+[INFO]  ThumbnailStrip: decode complete (4 thumbnails)
+[INFO]  Decoder: VideoToolbox HW decode active (zero-copy IOSurface path)
+[INFO]  first-frame: pts=0.000 1280x720 VideoToolbox, 123 ms after open (t=7.952)
+[INFO]  VideoRenderer: HW zero-copy path ready: '420v' bound as R8 / RG8, 8-bit samples (BT.709 matrix, limited-range)
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[WARN]  Decoder h264: 1 decode error (last: Unknown error occurred), up to 1 in a row under VideoToolbox; --no-hw decodes in software
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] Invalid NAL unit size (1744840461 > 9997).
+[h264 @ 0xb18148380] Error splitting the input into NAL units.
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] No frame decoded?
+[h264 @ 0xb18148380] No frame decoded?
+[h264 @ 0xb18148700] illegal reordering_of_pic_nums_idc 32
+[h264 @ 0xb18148380] Invalid NAL unit size (-616602638 > 150).
+[h264 @ 0xb18148380] Error splitting the input into NAL units.
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[WARN]  Decoder h264: 32 decode errors (last: Unknown error occurred), up to 25 in a row under VideoToolbox; --no-hw decodes in software
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=8.988)
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] No frame decoded?
+[h264 @ 0xb18148380] No frame decoded?
+[h264 @ 0xb18148380] co located POCs unavailable
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] co located POCs unavailable
+[h264 @ 0xb18148380] mmco: unref short failure
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] co located POCs unavailable
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+[h264 @ 0xb18148380] hardware accelerator failed to decode picture
+[h264 @ 0xb18148380] No frame decoded?
+[h264 @ 0xb18148380] No frame decoded?
+[h264 @ 0xb18148380] illegal modification_of_pic_nums_idc 32
+[h264 @ 0xb18148380] no frame!
+[INFO]  ui-snapshot: wrote <scratch>/gui3/noise_I.png (2560×1440, frame 60, hover=none, thumb_pts=none, sub="")

@@ -1,0 +1,62 @@
+$ git rev-parse HEAD
+d36045dfc7e2d77a8a9a9e5433863fefd72a4171
+[exit status 0]
+
+$ sh -c /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -version | head -1
+ffmpeg version 8.1.1 Copyright (c) 2000-2026 the FFmpeg developers
+[exit status 0]
+
+$ /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -nostdin -v error -y -f lavfi -i testsrc2=size=1280x720:rate=25 -t 3 -pix_fmt yuv420p10le -c:v libx265 -x265-params log-level=error:colorprim=bt709:transfer=bt709:colormatrix=bt709:repeat-headers=1 <scratch>/seekrec.QOhA/part_sdr.ts
+[exit status 0]
+
+$ /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -nostdin -v error -y -f lavfi -i testsrc2=size=1280x720:rate=25 -ss 3 -t 3 -pix_fmt yuv420p10le -c:v libx265 -x265-params log-level=error:colorprim=bt2020:transfer=smpte2084:colormatrix=bt2020nc:master-display=G(13250,34500)B(7500,3000)R(34000,16000)WP(15635,16450)L(10000000,50):max-cll=1000,400:repeat-headers=1 <scratch>/seekrec.QOhA/part_pq.ts
+[exit status 0]
+
+$ /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -nostdin -v error -y -f concat -safe 0 -i <scratch>/seekrec.QOhA/tagswitch.txt -c copy <scratch>/seekrec.QOhA/tagswitch.ts
+[exit status 0]
+
+$ sh -c /opt/homebrew/opt/ffmpeg-full/bin/ffprobe -v error -select_streams v -show_entries packet=pts_time,flags -of csv=p=0 <scratch>/seekrec.QOhA/tagswitch.ts | wc -l
+     150
+[exit status 0]
+
+$ sh -c /opt/homebrew/opt/ffmpeg-full/bin/ffprobe -v error -select_streams v -show_entries packet=pts_time,flags -of csv=p=0 <scratch>/seekrec.QOhA/tagswitch.ts | grep K
+1.480000,K__,
+4.480000,K__,
+[exit status 0]
+
+$ sh -c /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -nostdin -v error -ss 1.0 -i <scratch>/seekrec.QOhA/tagswitch.ts -map 0:v -f framemd5 - 2>/dev/null | grep -c -v '^#'
+75
+[exit status 0]
+
+$ sh -c /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -nostdin -v error -ss 1.0 -i <scratch>/seekrec.QOhA/tagswitch.ts -map 0:v -f null - 2>&1 | head -2
+[hevc @ 0x804c75180] Could not find ref with POC 22
+[hevc @ 0x804c75180] Error constructing the frame RPS.
+[exit status 0]
+
+$ sh -c /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -nostdin -v error -ss 2.9 -i <scratch>/seekrec.QOhA/tagswitch.ts -map 0:v -f framemd5 - 2>/dev/null | grep -c -v '^#'
+75
+[exit status 0]
+
+$ sh -c /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -nostdin -v error -ss 2.9 -i <scratch>/seekrec.QOhA/tagswitch.ts -map 0:v -f null - 2>&1 | head -2
+[hevc @ 0xab4c39180] Could not find ref with POC 69
+[hevc @ 0xab4c39180] Error constructing the frame RPS.
+[exit status 0]
+
+$ sh -c /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -nostdin -v error -ss 3.2 -i <scratch>/seekrec.QOhA/tagswitch.ts -map 0:v -f framemd5 - 2>/dev/null | grep -c -v '^#'
+0
+[exit status 1]
+
+$ sh -c /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -nostdin -v error -ss 3.2 -i <scratch>/seekrec.QOhA/tagswitch.ts -map 0:v -f null - 2>&1 | head -2
+[hevc @ 0xaa9071180] Could not find ref with POC 2
+[hevc @ 0xaa9071180] Error constructing the frame RPS.
+[exit status 0]
+
+$ sh -c /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -nostdin -v error -ss 5.2 -i <scratch>/seekrec.QOhA/tagswitch.ts -map 0:v -f framemd5 - 2>/dev/null | grep -c -v '^#'
+0
+[exit status 1]
+
+$ sh -c /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -nostdin -v error -ss 5.2 -i <scratch>/seekrec.QOhA/tagswitch.ts -map 0:v -f null - 2>&1 | head -2
+[hevc @ 0x8bb061180] Could not find ref with POC 50
+[hevc @ 0x8bb061180] Error constructing the frame RPS.
+[exit status 0]
+
