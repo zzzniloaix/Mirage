@@ -826,7 +826,8 @@ TEST_CASE("playlist_events: EXT-X-DATERANGE's attributes, its SCTE35-* messages,
     CHECK(text(a[7].second) == "YES");
 
     // Malformed ones: the value as written, the reason, no attributes, and no
-    // message handed on, even for an SCTE35-* that may be there.
+    // message handed on: the two SCTE35-* here aren't well-formed
+    // hexadecimal-sequences themselves (D-106 (e)).
     const std::vector<std::string> errors = {
         "attribute SCTE35-OUT0xFC30 has no '='",
         "START-DATE isn't a quoted-string (RFC 8216 §4.3.2.7)",
@@ -846,6 +847,71 @@ TEST_CASE("playlist_events: EXT-X-DATERANGE's attributes, its SCTE35-* messages,
         CHECK(object(at(e.payload, "attributes")).empty());
         CHECK(text(at(e.payload, "error")) == errors[i]);
     }
+}
+
+TEST_CASE("playlist_events: a malformed EXT-X-DATERANGE hands on each SCTE35-* that is a well-formed "
+          "hexadecimal-sequence (D-106 (e))", "[timeline][playlist_events]")
+{
+    const std::vector<std::string> ranges = {
+        // 0: Wowza's unquoted START-DATE, a type error; its SCTE35-OUT is
+        // well-formed.
+        "ID=\"0001\",START-DATE=2026-03-01T12:00:30Z,PLANNED-DURATION=60.000,SCTE35-OUT=0xFC3011",
+        // 1: a list that doesn't parse after a well-formed SCTE35-OUT, with a
+        // well-formed SCTE35-IN after the bad value and blanks around its ','.
+        "ID=\"0002\",SCTE35-OUT=0xfc3012,X-COM-EXAMPLE-NOTE=a b , SCTE35-IN=0xFC3013",
+        // 2: two of one name, each well-formed, and a quoted SCTE35-OUT, which
+        // isn't a hexadecimal-sequence.
+        "ID=\"0003\",SCTE35-CMD=0xFC3014,SCTE35-CMD=0xFC3015,SCTE35-OUT=\"0xFC3016\"",
+        // 3: a quote that never closes holds the rest: nothing can be told apart.
+        "ID=\"0004,SCTE35-OUT=0xFC3017",
+        // 4: an SCTE35-OUT that isn't hex, and an SCTE35-IN without '='.
+        "ID=\"0005\",START-DATE=x,SCTE35-OUT=0xFC30G1,SCTE35-IN0xFC3018",
+    };
+    std::vector<std::string> body;
+    for (const std::string& r : ranges) body.push_back("#EXT-X-DATERANGE:" + r + "\n");
+    const PlaylistEvents p = timeline::parse_playlist_events(
+        vod(body, "#EXT-X-PROGRAM-DATE-TIME:2026-03-01T12:00:00Z\n"), kBase, 2);
+    REQUIRE(p.error.empty());
+
+    std::vector<std::pair<std::string, std::string>> handed;
+    for (const CueInput& c : p.messages) {
+        handed.emplace_back(c.form, bytes_text(c));
+        CHECK(anchor(c).variant == 2);
+    }
+    CHECK(handed == std::vector<std::pair<std::string, std::string>>{
+                        { "DATERANGE SCTE35-OUT", "0xFC3011" },
+                        { "DATERANGE SCTE35-OUT", "0xfc3012" },
+                        { "DATERANGE SCTE35-IN", "0xFC3013" },
+                        { "DATERANGE SCTE35-CMD", "0xFC3014" },
+                        { "DATERANGE SCTE35-CMD", "0xFC3015" },
+                    });
+    REQUIRE(p.messages.size() == 5);
+    CHECK(anchor(p.messages[0]).segment == 0);
+    CHECK(anchor(p.messages[1]).segment == 1);
+    CHECK(anchor(p.messages[2]).segment == 1);
+    CHECK(anchor(p.messages[3]).segment == 2);
+    CHECK(anchor(p.messages[4]).segment == 2);
+
+    // Each is still a daterange event kept raw, with its reason, which the
+    // decoder's warning names (src/Scte35Events.h), at its messages' line.
+    const auto dr = of_type(p.events, "daterange");
+    REQUIRE(dr.size() == ranges.size());
+    const std::vector<std::string> errors = {
+        "START-DATE isn't a quoted-string (RFC 8216 §4.3.2.7)",
+        "the unquoted value of X-COM-EXAMPLE-NOTE has a '\"' or a blank in it",
+        "attribute SCTE35-CMD is given twice",
+        "the quoted value of ID has no closing '\"'",
+        "attribute SCTE35-IN0xFC3018 has no '='",
+    };
+    for (std::size_t i = 0; i < ranges.size(); ++i) {
+        INFO(ranges[i]);
+        CHECK(text(at(dr[i]->payload, "raw")) == ranges[i]);
+        CHECK(object(at(dr[i]->payload, "attributes")).empty());
+        CHECK(text(at(dr[i]->payload, "error")) == errors[i]);
+    }
+    CHECK(line_of(*dr[0]) == anchor(p.messages[0]).line);
+    CHECK(line_of(*dr[1]) == anchor(p.messages[2]).line);
+    CHECK(line_of(*dr[2]) == anchor(p.messages[4]).line);
 }
 
 TEST_CASE("playlist_events: parse_attributes", "[timeline][playlist_events]")

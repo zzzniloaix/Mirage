@@ -47,11 +47,12 @@
 //   the decoder (src/Scte35.h, src/Scte35Events.h; design §5.5): the value
 //   of an #EXT-OATCLS-SCTE35 (base64), each of an EXT-X-DATERANGE's
 //   SCTE35-CMD, SCTE35-OUT and SCTE35-IN (hex), and the SCTE35= attribute of
-//   a plain cue tag. A malformed EXT-X-DATERANGE hands on nothing: it is a
-//   `daterange` event kept raw. Which attribute errors make one malformed,
-//   and so whether the SCTE35-* messages of a DATERANGE with another
-//   malformed attribute reach the decoder, is pending the owner's answer to
-//   Q47: add_daterange() in src/PlaylistEvents.cpp says what they are today.
+//   a plain cue tag. A malformed EXT-X-DATERANGE is a `daterange` event kept
+//   raw, with the reason, and hands on each of its SCTE35-* attributes that
+//   is itself a well-formed hexadecimal-sequence, whatever else in it is
+//   malformed: the owner's answer to Q47 (D-106 (e)), whose warning the
+//   decoder writes (src/Scte35Events.h). add_daterange() in
+//   src/PlaylistEvents.cpp says which attribute errors make one malformed.
 // - Ad breaks (pair_breaks()): every cue, from the plain tags and from
 //   decoded messages, so that the pairing has one owner (design §5.5).
 //   Within each variant, in play order, a cue_out starts a break and the
@@ -185,10 +186,10 @@ struct Attribute {
 // or followed by more than a ',', an unquoted value with a quote or a
 // blank in it, a name given twice (RFC 8216 §4.2), or a ',' at the end.
 // An empty list has no attributes. Two departures from RFC 8216 §4.2's
-// grammar are accepted, pending the owner's answer to Q47: blanks (spaces
-// and tabs) around a ',' and at either end of the list, where the RFC allows
-// no whitespace; and lowercase letters and '_' in a name, which the RFC
-// makes of [A..Z], [0..9] and '-' only.
+// grammar are accepted, which the owner's answer to Q47 (D-106 (e)) leaves
+// as they are: blanks (spaces and tabs) around a ',' and at either end of
+// the list, where the RFC allows no whitespace; and lowercase letters and
+// '_' in a name, which the RFC makes of [A..Z], [0..9] and '-' only.
 std::vector<Attribute> parse_attributes(std::string_view list, std::string& err);
 
 // A media playlist read for the timeline: its segments, its tags, the events
@@ -226,7 +227,8 @@ struct PlaylistEvents {
 //                      quoted-string without its quotes, anything else as
 //                      written; and only when it doesn't parse, or an
 //                      attribute isn't of the type RFC 8216 §4.3.2.7 gives
-//                      it, error, with attributes empty
+//                      it, error, with attributes empty, its well-formed
+//                      SCTE35-* handed on all the same (D-106 (e))
 //   tag                line; name; value: as written
 //   cue_out            line; form "CUE-OUT"; raw: the line as written;
 //                      duration: its value's leading number, or its DURATION

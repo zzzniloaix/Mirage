@@ -351,7 +351,8 @@ bool is_scte35_attribute(std::string_view name)
 // Why `a` isn't of the type RFC 8216 §4.3.2.7 gives an EXT-X-DATERANGE
 // attribute of its name; empty when it is, or when the RFC gives the name
 // no type. These are the type errors that make a DATERANGE malformed,
-// pending the owner's answer to Q47 (add_daterange()): ID, CLASS,
+// which the owner's answer to Q47 (D-106 (e)) leaves as they are
+// (add_daterange()): ID, CLASS,
 // START-DATE or END-DATE not a quoted-string (the dates in START-DATE and
 // END-DATE aren't read); DURATION or PLANNED-DURATION not a
 // decimal-floating-point; SCTE35-CMD, SCTE35-OUT or SCTE35-IN not a
@@ -381,31 +382,71 @@ std::string daterange_type_error(const Attribute& a)
     return {};
 }
 
+// The pieces of an attribute list that parse_attributes() refuses, for the
+// SCTE35-* attributes a malformed DATERANGE still hands on (D-106 (e)): the
+// list split at each ',' outside a quoted-string, each piece without the
+// blanks around it, its name up to its first '=' and its value after it,
+// quoted when it starts and ends with '"'; a piece without '=' is a name
+// with an empty value. A quote that never closes holds the rest of the
+// list, where no attribute can be told from another.
+std::vector<Attribute> split_attributes(std::string_view list)
+{
+    std::vector<Attribute> out;
+    const auto piece = [&out](std::string_view s) {
+        while (!s.empty() && is_blank(s.front())) s.remove_prefix(1);
+        while (!s.empty() && is_blank(s.back())) s.remove_suffix(1);
+        Attribute a;
+        const std::size_t eq = s.find('=');
+        a.name.assign(s.substr(0, eq));
+        if (eq != npos) {
+            std::string_view v = s.substr(eq + 1);
+            if (v.size() >= 2 && v.front() == '"' && v.back() == '"') {
+                a.quoted = true;
+                v        = v.substr(1, v.size() - 2);
+            }
+            a.value.assign(v);
+        }
+        out.push_back(std::move(a));
+    };
+    bool        quoted = false;
+    std::size_t from   = 0;
+    for (std::size_t i = 0; i < list.size(); ++i) {
+        if (list[i] == '"') quoted = !quoted;
+        else if (list[i] == ',' && !quoted) {
+            piece(list.substr(from, i - from));
+            from = i + 1;
+        }
+    }
+    piece(list.substr(from));
+    return out;
+}
+
 // EXT-X-DATERANGE: its SCTE35-* messages handed on, or a daterange event
 // with every attribute; a malformed one is kept raw, with the reason, and
-// hands nothing on (design §5.4, §5.5).
+// hands on its SCTE35-* attributes that are well-formed hexadecimal-sequences
+// (design §5.4, §5.5; D-106 (e)).
 void add_daterange(PlaylistEvents& p, const PlaylistTag& tag)
 {
     const std::string value = tag.value.value_or("");
     std::string err;
     const std::vector<Attribute> attrs = parse_attributes(value, err);
+    const bool parsed = err.empty();
     for (const Attribute& a : attrs) {
         if (!err.empty()) break;
         err = daterange_type_error(a);
     }
-    // Here a DATERANGE is malformed, pending the owner's answer to Q47: when
-    // parse_attributes() refuses its attribute list, or one of its attributes
-    // isn't of its type (daterange_type_error()). A malformed one hands on no
-    // message, so that the well-formed SCTE35-* attributes of a DATERANGE
-    // with another malformed attribute don't reach the decoder. Not refused
-    // today: a DATERANGE without ID or without START-DATE, although RFC 8216
-    // §4.3.2.7 requires both, an empty one included; one that breaks that
-    // section's rules between attributes or between tags (an END-DATE before
-    // its START-DATE, or other than START-DATE plus DURATION where both are
-    // given; END-ON-NEXT without CLASS, or with DURATION or END-DATE; two
-    // tags of one ID giving an attribute different values; a playlist
-    // without EXT-X-PROGRAM-DATE-TIME); and the departures from RFC 8216
-    // §4.2's grammar that parse_attributes() accepts.
+    // Here a DATERANGE is malformed when parse_attributes() refuses its
+    // attribute list, or one of its attributes isn't of its type
+    // (daterange_type_error()), which the owner's answer to Q47 (D-106 (e))
+    // leaves as it is. Not refused: a DATERANGE without ID or without
+    // START-DATE, although RFC 8216 §4.3.2.7 requires both, an empty one
+    // included; one that breaks that section's rules between attributes or
+    // between tags (an END-DATE before its START-DATE, or other than
+    // START-DATE plus DURATION where both are given; END-ON-NEXT without
+    // CLASS, or with DURATION or END-DATE; two tags of one ID giving an
+    // attribute different values; a playlist without
+    // EXT-X-PROGRAM-DATE-TIME); and the departures from RFC 8216 §4.2's
+    // grammar that parse_attributes() accepts.
     if (err.empty()
         && std::any_of(attrs.begin(), attrs.end(),
                        [](const Attribute& a) { return is_scte35_attribute(a.name); })) {
@@ -413,6 +454,14 @@ void add_daterange(PlaylistEvents& p, const PlaylistTag& tag)
             if (is_scte35_attribute(a.name)) add_message(p, tag, "DATERANGE " + a.name, a.value);
         return;
     }
+    // A malformed one hands on each SCTE35-* attribute that is itself a
+    // well-formed hexadecimal-sequence, whatever else is malformed (D-106
+    // (e)): of the attributes parse_attributes() read, or of the pieces of a
+    // list it refused. The decoder warns of each (src/Scte35Events.h).
+    if (!err.empty())
+        for (const Attribute& a : parsed ? attrs : split_attributes(value))
+            if (is_scte35_attribute(a.name) && !a.quoted && is_hex(a.value))
+                add_message(p, tag, "DATERANGE " + a.name, a.value);
     Event e = tag_event(p, tag, Source::Playlist, kTypeDaterange);
     e.payload.emplace_back("raw", text_value(value));
     Value::Object o;
@@ -580,9 +629,9 @@ std::vector<Attribute> parse_attributes(std::string_view list, std::string& err)
     };
     // Blanks (spaces and tabs) are passed over before the first name, before
     // and after each ',' and after the last value: a departure from RFC 8216
-    // §4.2, whose attribute-list has no whitespace, pending the owner's
-    // answer to Q47. Between a name and its '=', and between the '=' and the
-    // value, a blank is refused, as the RFC has it.
+    // §4.2, whose attribute-list has no whitespace, which the owner's answer
+    // to Q47 (D-106 (e)) leaves as it is. Between a name and its '=', and
+    // between the '=' and the value, a blank is refused, as the RFC has it.
     skip_blanks();
     if (i == list.size()) return out;
     for (;;) {
@@ -593,10 +642,10 @@ std::vector<Attribute> parse_attributes(std::string_view list, std::string& err)
         const std::string_view name = list.substr(name_at, i - name_at);
         if (name.empty()) return fail(std::format("attribute {} has no name", out.size() + 1));
         // Lowercase letters and '_' are taken in a name, where RFC 8216 §4.2
-        // allows [A..Z], [0..9] and '-' only: a departure pending the owner's
-        // answer to Q47. The cue tags' attribute names, which no specification
-        // defines, are written with lowercase letters (ElapsedTime=, Duration=;
-        // scte35.md §2.2).
+        // allows [A..Z], [0..9] and '-' only: a departure that the owner's
+        // answer to Q47 (D-106 (e)) leaves as it is. The cue tags' attribute
+        // names, which no specification defines, are written with lowercase
+        // letters (ElapsedTime=, Duration=; scte35.md §2.2).
         if (!std::all_of(name.begin(), name.end(), [](char c) {
                 return std::isalnum(static_cast<unsigned char>(c)) || c == '-' || c == '_';
             }))
@@ -617,7 +666,7 @@ std::vector<Attribute> parse_attributes(std::string_view list, std::string& err)
             const std::size_t value_at = i;
             while (i < list.size() && list[i] != ',') ++i;
             std::string_view v = list.substr(value_at, i - value_at);
-            // Blanks before a ',' or the end (Q47, above).
+            // Blanks before a ',' or the end (D-106 (e), above).
             while (!v.empty() && is_blank(v.back())) v.remove_suffix(1);
             if (v.empty()) return fail(std::format("attribute {} has no value", name));
             if (v.find_first_of("\" \t") != npos)
