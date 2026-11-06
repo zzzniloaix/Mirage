@@ -2307,7 +2307,7 @@ P-081 to P-085 are on branches not yet merged; whoever merges later puts the ent
 
 ### P-086 How `plan/hls_markers_usability.md` is implemented (D-095, D-102), and its records
 
-- **Choice**: under D-095 the agent planned the fixes the owner asked for on 2026-11-06 (`plan/hls_markers_usability.md`, `71d263a`). It audited the plan against the code (five line references and one source corrected), then made the fixes in `2eab999`, and section 3's fixes 2 and 3 in `2d08592` and `9ca5b66`. Section 4 is D-102. Where the plan was silent, or where the agent went beyond it:
+- **Choice**: under D-095 the agent planned the fixes the owner asked for on 2026-11-06 (`plan/hls_markers_usability.md`, `71d263a`). It audited the plan against the code (five line references and one source corrected), then made the fixes in `2eab999`, and section 3's fixes 2, 3 and 4 in `2d08592`, `9ca5b66` and `99b9f2f`. Section 4 is D-102. Where the plan was silent, or where the agent went beyond it:
   - Section 1, the check with nothing playing:
     - The launcher docks the inspector as playback does, and centres its card in the space left. Esc closes the inspector there, and a width the user drags is saved.
     - `--ui-snapshot` on the launcher waits for `NetInspector::qa_idle()`, then for `<frame>` frames, and for 300 s at most (the agent's value). A probe never started counts as idle. The first version also waited for a result version that a hidden tab never syncs, so a failed open's capture hung; that was fixed before the commit.
@@ -2322,6 +2322,11 @@ P-081 to P-085 are on branches not yet merged; whoever merges later puts the ent
     - Fix 2's rows are its fallback.
     - The groups are taken over every rendition of the check, not one card.
     - A scripted `marker_open=` logs the opened card's rows as shown. That is how the record counts them at the real width.
+    - Fix 4 (`99b9f2f`), after the agent checked fix 3 on the owner's five packages, which are kept outside the repository. Every row there was unique, but:
+      - '.' had split a layout such as "5.1";
+      - a role token in 83% to 97% of the labels had stayed, pushing the codec into the cut.
+    - Fix 4 splits at ' ', '/' and '_' only. It drops a token at least 80% of the labels have when the rows stay apart (80% is the agent's value), and keeps the first of the tokens that come in exactly the same labels. The rest are joined by spaces, and then the ends the rows share are dropped.
+    - On those packages, every card's rows are unique as shown, 71 to 174 a card. 8 rows of the 563 are cut in the middle, where 45 of one package's 102 were with fix 3.
   - Section 4: the JSON gets `"missing_severity"` beside `"missing"`. A key is added and none is changed. The page reads a report without it as warnings.
   - Section 5: `--help` only; the text output stays as it was.
 - **Alternatives**: those of the plan's sections; for section 3, the plan's first rule.
@@ -2340,6 +2345,7 @@ P-081 to P-085 are on branches not yet merged; whoever merges later puts the ent
   - The unit tests at `efed1c7` (`plan/engineer_tools_runs/tests/macos-2026-11-06-efed1c7.txt`): every case passes in both builds. That is 446 test cases in each, plus the 13 `[audio]` cases in each.
   - Fix 2: `record2.txt` in the same folder, at `7b647a1`, whose code is `2d08592`'s. Its unit tests are `macos-2026-11-06-7b647a1.txt`.
   - Fix 3: `record3.txt`, at `a218aad`, whose code is `9ca5b66`'s. It covers the mixed package, thirty made-up renditions of the owner's shape. Each card's 31 rows, as shown at the inspector's automatic width, are all unique. Its unit tests are `macos-2026-11-06-a218aad.txt`: every case passes in both builds, 448 test cases in the debug build and 448 in the headless one, plus the 13 `[audio]` cases in each.
+  - Fix 4: `record4.txt`, at `47b6a46`, whose code is `99b9f2f`'s. It covers the mixed2 package (two bit rates of one codec and one of another per language, a role in two of 32) and the mixed package. Each card's rows, as shown, are all unique. Its unit tests are `macos-2026-11-06-47b6a46.txt`: every case passes in both builds, 448 test cases in the debug build and 448 in the headless one, plus the 13 `[audio]` cases in each.
 - **Who**: agent, under D-095
 - **Date**: 2026-11-06
 - **Status**: pending owner confirmation

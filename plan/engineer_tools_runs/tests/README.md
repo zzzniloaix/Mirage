@@ -16,12 +16,13 @@ temporary files), `<scratch>` and `<main tree>`.
 | `macos-2026-11-06-efed1c7.txt` | `efed1c740e09687f2d4bd6c79e5ebe7277dd738d` (`feat/hls-markers-usability`, from `feat/hls-markers`; its code is `2eab999`'s, and it adds the scripts of the checks of `plan/hls_markers_usability.md`) | `mirage_tests '~[audio]'`, debug build: all tests passed, 128201 assertions in 446 test cases; headless build: all tests passed, 128205 assertions in 446 test cases; `mirage_tests '[audio]'`, both builds: all tests passed, 69 assertions in 13 test cases; macOS 26.6.2 (25G83); load averages 5.64, 8.80 and 7.35 at the start |
 | `macos-2026-11-06-7b647a1.txt` | `7b647a180d630bacadada24191080a37f349ec26` (`feat/hls-markers-usability`; its code is `2d08592`'s, section 3's fix 2, and it adds the scripts of fix 2's checks) | `mirage_tests '~[audio]'`, debug build: all tests passed, 128214 assertions in 447 test cases; headless build: all tests passed, 128213 assertions in 447 test cases; `mirage_tests '[audio]'`, both builds: all tests passed, 69 assertions in 13 test cases; macOS 26.6.2 (25G83); load averages 3.53, 5.15 and 5.98 at the start |
 | `macos-2026-11-06-a218aad.txt` | `a218aadd0787e679b8787ae2568b93d2197df073` (`feat/hls-markers-usability`; its code is `9ca5b66`'s, section 3's fix 3, and it adds the scripts of fix 3's checks) | `mirage_tests '~[audio]'`, debug build: all tests passed, 128226 assertions in 448 test cases; headless build: all tests passed, 128231 assertions in 448 test cases; `mirage_tests '[audio]'`, both builds: all tests passed, 69 assertions in 13 test cases; macOS 26.6.2 (25G83); load averages 4.08, 5.55 and 6.76 at the start |
+| `macos-2026-11-06-47b6a46.txt` | `47b6a4666ed3365c7281a90adf16d82cff858f02` (`feat/hls-markers-usability`; its code is `99b9f2f`'s, section 3's fix 4, and it adds the scripts of fix 4's checks) | `mirage_tests '~[audio]'`, debug build: all tests passed, 128226 assertions in 448 test cases; headless build: all tests passed, 128223 assertions in 448 test cases; `mirage_tests '[audio]'`, both builds: all tests passed, 69 assertions in 13 test cases; macOS 26.6.2 (25G83); load averages 7.61, 8.10 and 10.59 at the start |
 
 - Both builds were already made in the worktree, so `cmake --build` had no
   work to do. The record gives the compiler, CMake and the pkg-config
   versions of FFmpeg's libraries, libvmaf and GLFW.
 - The tests tagged `[audio]` are left out, as in `docs/BUILD.md` step 4.
-  The exceptions are the three records of 2026-11-06, which run them as well.
+  The exceptions are the four records of 2026-11-06, which run them as well.
 - In `macos-2026-11-06-efed1c7.txt` and `macos-2026-11-06-a218aad.txt`,
   FFmpeg's request for a sample, logged
   by a test, names its mailing list's address. Each shows it as
@@ -34,4 +35,4 @@ temporary files), `<scratch>` and `<main tree>`.
   file for file, to the main working tree's FetchContent checkout, and the
   commit of each checkout. On 2026-11-04 the copies moved out of `/tmp`.
   `deps-2026-11-06.txt` runs the same commands on them, for the builds of
-  the three records of 2026-11-06.
+  the four records of 2026-11-06.

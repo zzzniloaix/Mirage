@@ -11,8 +11,8 @@ covers sections 1 to 3 and 5, which change no render or decode path (D-007).
 Section 4 is the owner's choice (D-102). Line numbers are those of commit
 `ee046dc`.
 
-**Implemented** in `2eab999`, and section 3's fixes 2 and 3 in `2d08592` and
-`9ca5b66`. The owner decided section 4 as the agent
+**Implemented** in `2eab999`, and section 3's fixes 2, 3 and 4 in `2d08592`,
+`9ca5b66` and `99b9f2f`. The owner decided section 4 as the agent
 recommended, option (A) (D-102). P-086 lists the choices beyond this plan.
 The record is `plan/engineer_tools_runs/hls-markers-usability-2026-11-06/`.
 

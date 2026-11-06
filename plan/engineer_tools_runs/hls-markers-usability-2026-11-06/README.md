@@ -78,3 +78,26 @@ did.
 | the mixed package, `marker_open=0` and `1` | Each card logs its 31 rows as it shows them at the inspector's automatic width, and no two are alike (`sort | uniq -d` counts 0). One language's rows read "aa CODA L51 1 256K", "aa CODB STEREO 128K" and "aa CODC L71 1 1000K". The widest is cut in the middle ("ee-419 COD…STEREO 128K"), and a bar in the kind's colour starts each row (`snapshots/record3/mixed_b1.png`, `mixed_b2.png`). The two errors are `break-1` one segment early in "dd … CODB" and `break-2` missing in "gg-HH … CODC". The tab's JSON report is the command line's byte for byte. |
 | the tails and names packages, `break-2` | The rows read "aa", "bb", "cc", "dd", then "stereo-english", "stereo-french", "stereo-german" and "surround-english" (`logs/record3/tails_b2.log`, `names_b2.log`). |
 | `tests/hlsmarkers_gui.sh` | PASS |
+
+## Record 4: section 3, fix 4
+
+`record4.txt` is the output of `run4.sh`, in the same form. It ran at
+commit `47b6a46`, whose code is `99b9f2f`'s, with the debug build and the
+screen unlocked. Its captures are in `snapshots/record4/`, its logs in
+`logs/record4/` and its reports in `reports/record4/`. `make_inputs.py`
+also makes the mixed2 package, and the earlier packages come out as they
+did.
+
+| Run | Result |
+|---|---|
+| the mixed2 package (per language two bit rates of one codec and one of another with its own layout; two renditions with another role), `marker_open=0` and `1` | Each card's 33 rows, as shown, are all unique, and none is cut. They read "aa CODA 128K", "aa CODA 64K" and "aa CODB": the second codec's layout and bit rate come in exactly its labels, so they go. The other role reads "aa DESC CODA 128K" (`snapshots/record4/mixed2_b1.png`, `mixed2_b2.png`). The tab's JSON report is the command line's byte for byte. |
+| the mixed package of record 3, `break-1` | 31 rows, all unique, none cut: "aa CODA 1", "aa CODB", "aa CODC 1". The "1" is in two families' labels, not in the third's. |
+| the tails and names packages, `break-2` | "aa", "bb", "cc", "dd"; then "…stereo-english", "…stereo-french", "…stereo-german", "…surround-english", where "…" marks the head the names share, dropped. |
+| `tests/hlsmarkers_gui.sh` | PASS |
+
+The owner's five packages, kept outside the repository, were checked the
+same way, from a scratch folder, with a debug build of `99b9f2f`'s code
+made before its commit:
+- Every card's rows are unique as shown, 71 to 174 a card.
+- 8 rows of the 563 are cut in the middle.
+- With fix 3, one of them had 45 of its 102 rows cut.
