@@ -1,0 +1,35 @@
+{
+  "source": "tails/master.m3u8",
+  "summary": {"variants": 1, "playlists": 5, "errors": 0, "warnings": 0},
+  "independent_segments": true,
+  "variants": [
+    {"index": 0, "line": 8, "uri": "tails/v0/index.m3u8",
+     "declared": {"bandwidth": 2000000, "average_bandwidth": null, "codecs": ["avc1.64001f", "mp4a.40.2"], "resolution": "1280x720", "frame_rate": 25, "video_range": null, "audio": "aud"},
+     "measured": null}
+  ],
+  "findings": [
+  ],
+  "playlists": [
+    {"uri": "tails/v0/index.m3u8", "error": null, "target_duration": 6, "segments": 5, "sized": 0, "bytes": 0, "duration": 30, "key": null, "reads": []},
+    {"uri": "tails/a_aa/index.m3u8", "error": null, "target_duration": 6, "segments": 5, "sized": 0, "bytes": 0, "duration": 30, "key": null, "reads": []},
+    {"uri": "tails/a_bb/index.m3u8", "error": null, "target_duration": 6, "segments": 5, "sized": 0, "bytes": 0, "duration": 30, "key": null, "reads": []},
+    {"uri": "tails/a_cc/index.m3u8", "error": null, "target_duration": 6, "segments": 5, "sized": 0, "bytes": 0, "duration": 30, "key": null, "reads": []},
+    {"uri": "tails/a_dd/index.m3u8", "error": null, "target_duration": 6, "segments": 5, "sized": 0, "bytes": 0, "duration": 30, "key": null, "reads": []}
+  ],
+  "markers": {"reference": 0, "slack": 0.05, "renditions": ["v0 720p", "audio aud/aa_main_tone-x_2ch_enc 256K", "audio aud/bb_main_tone-x_2ch_enc 256K", "audio aud/cc_main_tone-x_2ch_enc 256K", "audio aud/dd_main_tone-x_2ch_enc 256K"],
+    "events": [
+      {"id": "break-1", "class": "com.apple.hls.interstitial", "time": 12, "time_from": "EXT-X-DATERANGE START-DATE in v0 720p", "splice": true, "places": [
+        {"rendition": 0, "tag": "EXT-X-DATERANGE", "line": 10, "at": 12, "expected": 12, "nearest_boundary": 12, "nearest_sequence": 2, "before_sequence": null, "off": 0, "severity": "ok"},
+        {"rendition": 1, "tag": "EXT-X-CUE-MARKER", "line": 10, "at": 12, "expected": 12, "nearest_boundary": 12, "nearest_sequence": 2, "before_sequence": 2, "off": 0, "severity": "ok"},
+        {"rendition": 2, "tag": "EXT-X-CUE-MARKER", "line": 8, "at": 6, "expected": 12, "nearest_boundary": 12, "nearest_sequence": 2, "before_sequence": 1, "off": -6, "severity": "error"},
+        {"rendition": 3, "tag": "EXT-X-CUE-MARKER", "line": 10, "at": 12, "expected": 12, "nearest_boundary": 12, "nearest_sequence": 2, "before_sequence": 2, "off": 0, "severity": "ok"},
+        {"rendition": 4, "tag": "EXT-X-CUE-MARKER", "line": 10, "at": 12, "expected": 12, "nearest_boundary": 12, "nearest_sequence": 2, "before_sequence": 2, "off": 0, "severity": "ok"}], "missing": [], "missing_severity": []},
+      {"id": "break-2", "class": "com.apple.hls.interstitial", "time": 18, "time_from": "EXT-X-DATERANGE START-DATE in v0 720p", "splice": true, "places": [
+        {"rendition": 0, "tag": "EXT-X-DATERANGE", "line": 13, "at": 18, "expected": 18, "nearest_boundary": 18, "nearest_sequence": 3, "before_sequence": null, "off": 0, "severity": "ok"},
+        {"rendition": 1, "tag": "EXT-X-CUE-MARKER", "line": 13, "at": 18, "expected": 18, "nearest_boundary": 18, "nearest_sequence": 3, "before_sequence": 3, "off": 0, "severity": "ok"},
+        {"rendition": 2, "tag": "EXT-X-CUE-MARKER", "line": 13, "at": 18, "expected": 18, "nearest_boundary": 18, "nearest_sequence": 3, "before_sequence": 3, "off": 0, "severity": "ok"},
+        {"rendition": 4, "tag": "EXT-X-CUE-MARKER", "line": 13, "at": 18, "expected": 18, "nearest_boundary": 18, "nearest_sequence": 3, "before_sequence": 3, "off": 0, "severity": "ok"}], "missing": [3], "missing_severity": ["error"]}],
+    "findings": [
+      {"severity": "error", "title": "break-1: #EXT-X-CUE-MARKER in audio aud/bb_main_tone-x_2ch_enc 256K is one segment early", "detail": "Line 8: it comes before segment #1 at 6.000 s (0:06.000), −6.000 s from the event at 12.000 s (0:12.000) (EXT-X-DATERANGE START-DATE in v0 720p). The boundary nearest the event is 12.000 s (0:12.000) (segment #2), +0 ms from it. A player splices audio aud/bb_main_tone-x_2ch_enc 256K 6.000 s away from the renditions that mark it there.", "renditions": [2]},
+      {"severity": "error", "title": "break-2: no #EXT-X-CUE-MARKER in audio aud/cc_main_tone-x_2ch_enc 256K", "detail": "audio aud/cc_main_tone-x_2ch_enc 256K marks other events with #EXT-X-CUE-MARKER, but not this one at 18.000 s (0:18.000) (EXT-X-DATERANGE START-DATE in v0 720p): a player has no break to splice there in it.", "renditions": [3]}], "errors": 2, "warnings": 0}
+}

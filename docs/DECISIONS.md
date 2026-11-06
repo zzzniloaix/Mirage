@@ -2307,7 +2307,7 @@ P-081 to P-085 are on branches not yet merged; whoever merges later puts the ent
 
 ### P-086 How `plan/hls_markers_usability.md` is implemented (D-095, D-102), and its records
 
-- **Choice**: under D-095 the agent planned the fixes the owner asked for on 2026-11-06 (`plan/hls_markers_usability.md`, `71d263a`). It audited the plan against the code (five line references and one source corrected), then made the fixes in `2eab999`. Section 4 is D-102. Where the plan was silent, or where the agent went beyond it:
+- **Choice**: under D-095 the agent planned the fixes the owner asked for on 2026-11-06 (`plan/hls_markers_usability.md`, `71d263a`). It audited the plan against the code (five line references and one source corrected), then made the fixes in `2eab999`, and section 3's fixes 2 and 3 in `2d08592` and `9ca5b66`. Section 4 is D-102. Where the plan was silent, or where the agent went beyond it:
   - Section 1, the check with nothing playing:
     - The launcher docks the inspector as playback does, and centres its card in the space left. Esc closes the inspector there, and a width the user drags is saved.
     - `--ui-snapshot` on the launcher waits for `NetInspector::qa_idle()`, then for `<frame>` frames, and for 300 s at most (the agent's value). A probe never started counts as idle. The first version also waited for a result version that a hidden tab never syncs, so a failed open's capture hung; that was fixed before the commit.
@@ -2317,6 +2317,11 @@ P-081 to P-085 are on branches not yet merged; whoever merges later puts the ent
     - `run_session` still applies `--ui-net` to every session. A spec applied on the launcher is applied again when a file then plays.
   - Section 2: the 2026-11-05 record's `marker_open=1` opened the demo's `break-1`, the event after `chapter-1`. It is `marker_open=0` now.
   - Section 3: the plan's first rule, a column up to 45% of the card, pushed the offsets and the gauge out of view at the inspector's automatic width (scratch runs, not committed). The column takes the room the other columns leave instead, 130 px at least, as before.
+  - Section 3, fixes 2 and 3: on the owner's packages the cut in the middle left every row alike, and so did fix 2 (`2d08592`), which drops what a group's labels share at either end. Those NAMEs carry the language at the head and three codec families' own tails.
+    - Fix 3 (`9ca5b66`) keeps only the tokens that not every label of the group has, wherever they are. A bar in the kind's colour replaces the group's head.
+    - Fix 2's rows are its fallback.
+    - The groups are taken over every rendition of the check, not one card.
+    - A scripted `marker_open=` logs the opened card's rows as shown. That is how the record counts them at the real width.
   - Section 4: the JSON gets `"missing_severity"` beside `"missing"`. A key is added and none is changed. The page reads a report without it as warnings.
   - Section 5: `--help` only; the text output stays as it was.
 - **Alternatives**: those of the plan's sections; for section 3, the plan's first rule.
@@ -2333,6 +2338,8 @@ P-081 to P-085 are on branches not yet merged; whoever merges later puts the ent
     - the names package's two errors;
     - the session's way in, as before.
   - The unit tests at `efed1c7` (`plan/engineer_tools_runs/tests/macos-2026-11-06-efed1c7.txt`): every case passes in both builds. That is 446 test cases in each, plus the 13 `[audio]` cases in each.
+  - Fix 2: `record2.txt` in the same folder, at `7b647a1`, whose code is `2d08592`'s. Its unit tests are `macos-2026-11-06-7b647a1.txt`.
+  - Fix 3: `record3.txt`, at `a218aad`, whose code is `9ca5b66`'s. It covers the mixed package, thirty made-up renditions of the owner's shape. Each card's 31 rows, as shown at the inspector's automatic width, are all unique. Its unit tests are `macos-2026-11-06-a218aad.txt`: every case passes in both builds, 448 test cases in the debug build and 448 in the headless one, plus the 13 `[audio]` cases in each.
 - **Who**: agent, under D-095
 - **Date**: 2026-11-06
 - **Status**: pending owner confirmation

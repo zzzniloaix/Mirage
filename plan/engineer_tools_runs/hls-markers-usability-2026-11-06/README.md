@@ -44,3 +44,37 @@ errors to find. The folders:
 - On the launcher, the Manifest and Alignment tabs say what they would say
   for a file that is not a stream. Their texts were left as they were.
 - The load averages are in the record.
+
+## Record 2: section 3, fix 2
+
+`record2.txt` is the output of `run2.sh`, in the same form. It ran at
+commit `7b647a1`, whose code is `2d08592`'s, with the debug build and the
+screen unlocked (the ioreg line's exit status 1). Its captures are in
+`snapshots/record2/`, its logs in `logs/record2/` and its reports in
+`reports/record2/`. `make_inputs.py` also makes the tails package. The
+packages of `run.sh` come out as they did.
+
+| Run | Result |
+|---|---|
+| the tails package (audio NAMEs that differ in their first token only), `marker_open=0` and `1` | The rows read "audio aud/aa…", "audio aud/bb…", "audio aud/cc…", "audio aud/dd…" (`snapshots/record2/tails_b1.png`, `tails_b2.png`). The tab's JSON report is the command line's byte for byte. |
+| the names package (NAMEs that share their head), `break-2` | The rows read "audio aud/…stereo-english", "…stereo-french", "…stereo-german", "…surround-english" (`snapshots/record2/names_b2.png`). The tab's JSON report is the command line's byte for byte. |
+| `tests/hlsmarkers_gui.sh` | PASS |
+
+Fix 2 did not tell apart the renditions of the owner's packages: one group
+there mixes three codec families with their own tails, so its labels share
+no end. Fix 3 replaced it.
+
+## Record 3: section 3, fix 3
+
+`record3.txt` is the output of `run3.sh`, in the same form. It ran at
+commit `a218aad`, whose code is `9ca5b66`'s, with the debug build and the
+screen unlocked. Its captures are in `snapshots/record3/`, its logs in
+`logs/record3/` and its reports in `reports/record3/`. `make_inputs.py`
+also makes the mixed package, and the earlier packages come out as they
+did.
+
+| Run | Result |
+|---|---|
+| the mixed package, `marker_open=0` and `1` | Each card logs its 31 rows as it shows them at the inspector's automatic width, and no two are alike (`sort | uniq -d` counts 0). One language's rows read "aa CODA L51 1 256K", "aa CODB STEREO 128K" and "aa CODC L71 1 1000K". The widest is cut in the middle ("ee-419 COD…STEREO 128K"), and a bar in the kind's colour starts each row (`snapshots/record3/mixed_b1.png`, `mixed_b2.png`). The two errors are `break-1` one segment early in "dd … CODB" and `break-2` missing in "gg-HH … CODC". The tab's JSON report is the command line's byte for byte. |
+| the tails and names packages, `break-2` | The rows read "aa", "bb", "cc", "dd", then "stereo-english", "stereo-french", "stereo-german" and "surround-english" (`logs/record3/tails_b2.log`, `names_b2.log`). |
+| `tests/hlsmarkers_gui.sh` | PASS |

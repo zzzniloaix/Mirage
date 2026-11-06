@@ -1,0 +1,8 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  ConformProbe: tails/master.m3u8 — 5 playlists, 0 segments read, 0 sized, 0.0 MB in 0.0 s: 0 errors, 0 warnings
+[INFO]  conformance: card break-2 row: v0 720p
+[INFO]  conformance: card break-2 row: aa
+[INFO]  conformance: card break-2 row: bb
+[INFO]  conformance: card break-2 row: dd
+[INFO]  conformance: card break-2 row: cc
+[INFO]  ui-snapshot: wrote <scratch>/hlsfix-rec3/tails_b2.png (launcher)
