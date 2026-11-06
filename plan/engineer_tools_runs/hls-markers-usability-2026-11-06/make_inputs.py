@@ -1,5 +1,5 @@
 # usage: python3 -I make_inputs.py <out dir> <demo package dir>
-# The inputs of run.sh, run2.sh and run3.sh beside the package tests/hlsmarkers_demo.sh makes. Every
+# The inputs of run.sh to run4.sh beside the package tests/hlsmarkers_demo.sh makes. Every
 # name, date and ID is made up; EXT-X-CUE-MARKER stands for any packager's own
 # cue tag.
 #   names/  playlists only (no media: the marker check reads no segment): one
@@ -16,6 +16,11 @@
 #           bit-rate tail, and tokens every NAME has ("aa_MAIN_CODA_PKG_L51_ENC_SCHM
 #           CODA_1_PKG_ENC_SCHM_256K", ...). "dd ... CODB" marks break-1 one segment
 #           early; "gg-HH ... CODC" marks break-1 but not break-2. Added for run3.sh.
+#   mixed2/ thirty-two in one group: per language two bit rates of one codec and one of
+#           another with its own layout ("aa_MAIN_CODA_PKG_L2_ENC_SCHM CODA_1_PKG_ENC_SCHM
+#           _128K", ...), and two with another role (DESC) for MAIN. "dd ... 64K" marks
+#           break-1 one segment early; "gg-HH ... CODB" marks break-1 but not break-2.
+#           Added for run4.sh.
 #   enc/    the demo package, each media playlist SAMPLE-AES encrypted by a
 #           made-up skd:// key: the player cannot open it.
 #   mpd/    an MPD (no media): this FFmpeg has no DASH demuxer to open it.
@@ -86,6 +91,22 @@ for lang in ["aa", "bb-CC", "dd", "ee-419", "ff", "gg-HH", "ii", "jj-KK", "ll", 
             tags = {2: cue(1)}
         mixed.append((name % lang, lang, "a_%s_%s" % (lang, fam.lower()), tags))
 package("mixed", mixed)
+
+mixed2 = []
+for lang in ["aa", "bb-CC", "dd", "ee-419", "ff", "gg-HH", "ii", "jj-KK", "ll", "mm"]:
+    for role, codec, layout, rate in (("MAIN", "CODA", "L2", "128K"), ("MAIN", "CODA", "L2", "64K"),
+                                      ("MAIN", "CODB", "5.1", "256K")):
+        tags = {2: cue(1), 3: cue(2)}
+        if (lang, rate) == ("dd", "64K"):
+            tags = {1: cue(1), 3: cue(2)}
+        if (lang, codec) == ("gg-HH", "CODB"):
+            tags = {2: cue(1)}
+        mixed2.append(("%s_%s_%s_PKG_%s_ENC_SCHM %s_1_PKG_ENC_SCHM_%s" % (lang, role, codec, layout, codec, rate), lang,
+                       "a_%s_%s_%s" % (lang, codec.lower(), rate.lower()), tags))
+for lang in ["aa", "bb-CC"]:
+    mixed2.append(("%s_DESC_CODA_PKG_L2_ENC_SCHM CODA_1_PKG_ENC_SCHM_128K" % lang, lang, "a_%s_desc" % lang,
+                   {2: cue(1), 3: cue(2)}))
+package("mixed2", mixed2)
 
 enc = os.path.join(out, "enc")
 shutil.rmtree(enc, ignore_errors=True)
