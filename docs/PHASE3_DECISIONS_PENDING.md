@@ -6,7 +6,7 @@ What is open for the owner on `vmaf/phase-3`, §3 of the VMAF work order (the un
 
 44 questions, Q01 to Q44, in three rounds: 27 in round 1, the answers the work packages on the path to §3.2's two acceptance tests need before they start; 9 in round 2, those of sessions, the session fetch, the decoded SCTE-35 messages and the composite example; 8 in round 3, those of the UI, the conditional and later packages, and the differences to report. A question's round is the earliest round of the packages it blocks, and a round's packages start once all of its questions are answered (`eval/phase3-survey/design.md` §12, §14). Q26, Q39, Q43 and Q44 are answered item by item, an item's options numbered: "Q43 (c) 2". The questions marked D-007 (Q01, Q08, Q09, Q10, Q13, Q36, Q37 and Q41) have an answer that is, or includes, an approval or a ruling under D-007. "Blocks" names the work packages that wait for the answer; the packages are listed at the end. After the questions come the differences from the work order to report, and the agent's proposed process choices, to be recorded from P-082 on.
 
-The questions are the design's (`eval/phase3-survey/design/owner_questions.json`), rendered by `eval/phase3-survey/tools/render_pending.py` with the design's paths written as the repository has them and nothing else changed. They are as the design's revision 3 left them, after the third review's seven minor issues (`eval/phase3-survey/review-3/review.md`; `eval/phase3-survey/design/revision-3.md`). The owner's answers are marked here as each round's come in. Round 1's 27 questions were answered on 2026-11-02, every one as the agent recommends (D-071 to D-081); each is marked below. Rounds 2 and 3 are open. Building round 1's first packages raised three more questions, Q45 to Q47, after round 3 below: the owner answered Q45 and Q46 on 2026-11-04 as the agent recommends (D-086, D-087), and Q47 joins round 2. Building WP08, WP08b and WP09a raised Q48 to Q57, which the owner answered on 2026-11-05 and 2026-11-06, each as the agent recommends (D-092, D-099, D-100), and WP08c two more, Q58 and Q59, which the owner answered on 2026-11-06 as the agent recommends (D-101).
+The questions are the design's (`eval/phase3-survey/design/owner_questions.json`), rendered by `eval/phase3-survey/tools/render_pending.py` with the design's paths written as the repository has them and nothing else changed. They are as the design's revision 3 left them, after the third review's seven minor issues (`eval/phase3-survey/review-3/review.md`; `eval/phase3-survey/design/revision-3.md`). The owner's answers are marked here as each round's come in. Round 1's 27 questions were answered on 2026-11-02, every one as the agent recommends (D-071 to D-081); each is marked below. Round 2's 9 were answered on 2026-11-06, every one as the agent recommends, with Q47 (D-103 to D-107); each is marked below. Round 3 is open. Building round 1's first packages raised three more questions, Q45 to Q47, after round 3 below: the owner answered Q45 and Q46 on 2026-11-04 as the agent recommends (D-086, D-087), and Q47 joins round 2. Building WP08, WP08b and WP09a raised Q48 to Q57, which the owner answered on 2026-11-05 and 2026-11-06, each as the agent recommends (D-092, D-099, D-100), and WP08c two more, Q58 and Q59, which the owner answered on 2026-11-06 as the agent recommends (D-101).
 
 ### Round 1: the path to §3.2's two acceptance tests (27 questions)
 
@@ -715,6 +715,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 
 **Agent's recommendation.** (a).
 
+**Answered** on 2026-11-06: as the agent recommends (`docs/DECISIONS.md` D-104 (a); D-103).
+
 **Why.** It uses the component §3.1 names, gives every field §3.1 lists, and a test can make one segment slow with a delayed local server. (e) gives ladders without sessions network events, but paced by scoring they don't show how long a player would wait.
 
 **Blocks.** WP00b, WP07, WP09b, WP11b, WP14, WP16.
@@ -735,6 +737,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 - **(d) The player's `--qa-switch` syntax.** Already known (`src/main.cpp:553-556`), but its times are wall seconds after the first frame, and `v<height>` is ambiguous when two playlists share a height.
 
 **Agent's recommendation.** (a).
+
+**Answered** on 2026-11-06: as the agent recommends (`docs/DECISIONS.md` D-105 (a); D-103).
 
 **Why.** Segment ranges are exact for HLS and give the fetch list directly; JSON reuses the reader Phase 3 needs anyway.
 
@@ -757,6 +761,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 
 **Agent's recommendation.** (a).
 
+**Answered** on 2026-11-06: as the agent recommends (`docs/DECISIONS.md` D-105 (b); D-103).
+
 **Why.** It claims nothing that wasn't measured and needs no change to §2.
 
 **Blocks.** WP00b, WP07, WP09b, WP16.
@@ -777,6 +783,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 - **(d) A configurable precedence.** Every anchor recorded and one declared order (`eval/phase3-survey/scte35.md` suggests splice time, START-DATE, position), with a warning when they disagree; one more option to defend and test.
 
 **Agent's recommendation.** (a).
+
+**Answered** on 2026-11-06: as the agent recommends (`docs/DECISIONS.md` D-106 (a); D-103).
 
 **Why.** Position is where stitched media changes segment and every form has it, while the frame-accurate time stays visible as its own event.
 
@@ -799,6 +807,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 
 **Agent's recommendation.** (a).
 
+**Answered** on 2026-11-06: as the agent recommends (`docs/DECISIONS.md` D-106 (b); D-103).
+
 **Why.** It covers the break hierarchy the standard defines and keeps every other message on the timeline, so a program or chapter boundary can still be attributed.
 
 **Blocks.** WP05, WP09c.
@@ -818,6 +828,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 - **(c) Kept silently.** No signal of the doubt.
 
 **Agent's recommendation.** (a).
+
+**Answered** on 2026-11-06: as the agent recommends (`docs/DECISIONS.md` D-106 (c); D-103).
 
 **Why.** Vendors and the RFCs publish such messages, and an event the attribution omits can't explain a drop.
 
@@ -840,6 +852,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 
 **Agent's recommendation.** (a), until the owner settles the licences, as with D-008.
 
+**Answered** on 2026-11-06: as the agent recommends (`docs/DECISIONS.md` D-107; D-103).
+
 **Why.** It needs no licence judgement, and the layout is still checked during development against the 61 published messages that decode with a valid CRC and no disagreement with their sources (`eval/phase3-survey/scte35.md` §5).
 
 **Blocks.** WP05.
@@ -859,6 +873,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 - **(c) A headless wrapper named after the work order.** The session fetch calls a NetworkDebugger wrapper around NetworkLogger: two names for one component.
 
 **Agent's recommendation.** (a).
+
+**Answered** on 2026-11-06: as the agent recommends (`docs/DECISIONS.md` D-104 (b); D-103).
 
 **Why.** The component exists and is tested under its name, and the work order's rule is to report a difference, not to hide it.
 
@@ -906,6 +922,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
   - *Agent's recommendation:* 1. *Why:* A VOD playlist (Q43 (a)) doesn't change during a session, so one fetch per variant shows its request without repeating it.
 
 **Agent's recommendation.** (a) 1; (b) 1; (c) 1; (d) 1; (e) 1; (f) 1; (g) 1.
+
+**Answered** on 2026-11-06: as the agent recommends (`docs/DECISIONS.md` D-104 (a) for (c), (d), (f) and (g), D-105 for (a) and (b), D-106 (d) for (e); D-103).
 
 **Why.** Each recommended default records what was planned or observed without inferring more, one signal stays one event, and the fetch is as quick as its server allows.
 
@@ -1133,6 +1151,8 @@ Questions that round 1's packages met and the design doesn't settle, each of who
 - **3. As it is now.** Malformed tags hand on nothing; `ID` and `START-DATE` aren't required.
 
 **Agent's recommendation.** 2: the messages are what D-070 asks Phase 3 to read, and a vendor's malformed date says nothing about its message; the warning keeps the doubt visible.
+
+**Answered** on 2026-11-06: 2, as the agent recommends (`docs/DECISIONS.md` D-106 (e); D-103).
 
 **Blocks.** WP05.
 

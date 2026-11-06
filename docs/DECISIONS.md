@@ -933,6 +933,63 @@ D-088 to D-091 and D-093 to D-098 are on branches not yet merged; whoever merges
 - **Who**: owner, adopting the agent's recommendation
 - **Date**: 2026-11-06
 
+D-102 is on a branch not yet merged; whoever merges later puts the entries in number order.
+
+### D-103 Phase 3's second round of questions: the agent's recommendations adopted
+
+- **Decision**: the owner adopts the agent's recommendation on each of round 2's questions in `docs/PHASE3_DECISIONS_PENDING.md`: its nine, Q10 to Q12, Q14 to Q16, Q21, Q41 and Q44 with each of Q44's seven items, and Q47, which building round 1 added to the round. D-104 to D-107 record each decision. Q10 and Q41 are marked D-007: Q10 (a) includes the owner's approval to compile NetworkLogger into `mirage_vmaf` unchanged, installed for the session fetch only, which changes neither the scorer nor the render and decode paths; Q41 (a) changes no code.
+- **Owner's words**, translated by the agent: "Do them all as recommended", after the agent had listed the ten questions with their options and its recommendations.
+- **Not covered, still open**: round 3's 8 questions; the 14 differences from the work order to report; the confirmation of P-081, P-082 and P-084, and the design's process choices, recorded as their packages start.
+- **Alternatives**: deciding each question separately.
+- **Who**: owner
+- **Date**: 2026-11-06
+
+### D-104 A scripted session's per-segment HTTP timing: its files fetched after scoring, timed by NetworkLogger
+
+- **Decision**:
+  - (a) The timeline build fetches a scripted session's files after scoring, in play order: the master; each played variant's media playlist once, the first time a span plays it (Q44 (g)); and each span's segments. It fetches one file at a time, each request starting once the file before it has been read, unpaced (Q44 (f)), and tries each file once, a failure being recorded as a failed request (Q44 (c)). NetworkLogger, compiled into `mirage_vmaf` unchanged and installed for the fetch only, times each file: its status, request sent, first byte, end and bytes (Q10 (a)). A fetch that is redirected is one event per fetched file, its times from the first request's start to the last one's end, its status the last one's, the chain in its payload (Q44 (d)).
+  - (b) The component keeps the code's name, NetworkLogger, and the difference from the work order's name is reported, as `eval/phase3-survey/design.md` §11, item 1 has it (Q41 (a)).
+- **Owner's words**: D-103's.
+- **Alternatives**: (a) the same fetch timed by avio alone; the times declared in the plan; no timing for scripted sessions; the fetch plus a recorder of what the scoring reads saw, paced by scoring (Q10). Retries as the scorer's demuxer makes them, or an option for them; one event per request of a redirect chain; a fetch paced to the plan's media time, or one with a buffer like a player's; a playlist fetched at the start of every span that plays it (Q44 (c), (d), (f), (g)). (b) The component renamed throughout, or a wrapper named after the work order (Q41).
+- **Rationale**: as the agent recommended: the fetch uses the component the work order names and gives every field it lists, and a test can make one segment slow with a delayed local server; it records what one sequential client got, as quick as its server allows, its events marked as the fetch's; a player waits for a whole redirect chain; a VOD playlist doesn't change during a session; the component exists and is tested under its name, and the work order's rule is to report a difference.
+- **Who**: owner, adopting the agent's recommendation (D-103)
+- **Date**: 2026-11-06
+
+### D-105 The session plan: versioned JSON of segment ranges, its spans on the reference's frames, the reference's spans unscored
+
+- **Decision**:
+  - (a) A scripted session's plan is a file of its own, recorded by path and SHA-256: versioned JSON that lists its spans in play order as `{entry, first_seq, last_seq}`, a master entry with the first and last media sequence numbers it plays (Q11 (a)). Each span starts where the one before it ended on the reference's frames, and a plan whose spans leave a gap or overlap is refused, naming the frames (Q44 (a)).
+  - (b) In top-rung mode, where a session's plan plays the top rung, which is the reference and has no score, the session's curve has no points and no detection, and the document marks the span `scored: false` (Q12 (a)).
+  - (c) A session's requests sit on the media axis: a segment request on its segment's media span, a playlist request at the first frame of the first span that plays its variant, and the master's at the session's first frame (Q44 (b)).
+- **Owner's words**: D-103's.
+- **Alternatives**: (a) versioned JSON with spans in seconds on the axis; text lines; the player's `--qa-switch` syntax (Q11). Gaps and overlaps allowed and shown (Q44 (a)). (b) The top rung taken as 100; sessions in mezzanine mode only; the top rung scored against itself once (Q12). (c) Playlist and master requests without a media position (Q44 (b)).
+- **Rationale**: as the agent recommended: segment ranges are exact for HLS and give the fetch list directly, and JSON reuses the reader Phase 3 has; in a scripted plan a gap or an overlap is a mistake; an unscored span claims nothing that wasn't measured and needs no change to §2; a request off the axis could never be listed.
+- **Who**: owner, adopting the agent's recommendation (D-103)
+- **Date**: 2026-11-06
+
+### D-106 Decoded SCTE-35 messages: placed by their tag's position, the break types counted, a bad CRC kept and marked
+
+- **Decision**:
+  - (a) A cue that carries an SCTE-35 message is placed by its tag's position, at the segment the tag precedes; a splice time its message gives becomes a `splice_point` event of its own, placed on the carrying variant's own frames; every anchor is recorded, with a warning where one falls outside the tag's segment (Q14 (a)).
+  - (b) A splice_insert is a cue-out or a cue-in by its out_of_network_indicator, and a time_signal is one with the segmentation types of breaks, advertisements, placement opportunities and ad blocks, 0x22 to 0x23, 0x30 to 0x37 and 0x44 to 0x47 of SCTE 35 2023r1's Table 23; every other message is a `message` event and a cancellation a `cancel` event, and `--cue-types` sets the types (Q15 (a)).
+  - (c) A message whose CRC_32 fails is kept, marked `crc_valid: false`, with a warning; `--bad-crc drop` drops such messages (Q16 (a)).
+  - (d) A message in the same segment as an `EXT-X-CUE-OUT` is that cue's message: the two make one `cue_out` event, the decoded message in its payload (Q44 (e)).
+  - (e) Of an `EXT-X-DATERANGE` that is malformed, each `SCTE35-*` attribute that is itself a well-formed hexadecimal sequence is handed on to the decoder, with a warning (Q47, option 2).
+- **Owner's words**: D-103's.
+- **Alternatives**: (a) the splice time where the message has one; START-DATE through PROGRAM-DATE-TIME for a DATERANGE; a configurable precedence (Q14). (b) splice_insert only; MediaPackage v1's default set; every Start/End pair of Table 23 (Q15). (c) Such messages dropped, or kept silently (Q16). (d) Each its own cue (Q44 (e)). (e) Strict, a malformed DATERANGE handing on no message and one without `ID` or `START-DATE` malformed too; or as WP04 built it (Q47).
+- **Rationale**: as the agent recommended: position is where stitched media changes segment and every form of cue has one, while a frame-accurate time stays visible as its own event; the types cover the break hierarchy the standard defines, and every other message stays on the timeline, so that a program or chapter boundary can still be attributed; vendors and the RFCs publish messages whose CRC fails, and an event the attribution leaves out can't explain a drop; a message and an `EXT-X-CUE-OUT` in one segment are one signal written twice, where two cue-outs would claim two breaks; the messages are what D-070 asks Phase 3 to read, and a vendor's malformed date says nothing about its message.
+- **Who**: owner, adopting the agent's recommendation (D-103)
+- **Date**: 2026-11-06
+
+### D-107 SCTE-35 test vectors: only the sections the tests build, until the owner settles the licences
+
+- **Decision**: Phase 3's tests commit only SCTE-35 sections that they build from field values, with their CRC; the decoder is checked against the published messages during development, outside the repository (Q21 (a)). This holds until the owner settles the published messages' licences, as D-008's question waits for the owner.
+- **Owner's words**: D-103's.
+- **Alternatives**: also scte35-go's own test cases, under Apache-2.0 and without its copies of SCTE's samples, and futzu/threefive's examples, under MIT; also the standard's samples and the RFCs' examples; also vendors' documentation examples (Q21).
+- **Rationale**: as the agent recommended: it needs no licence judgement, and the decoder is still checked during development against the published messages that decode with a valid CRC.
+- **Who**: owner, adopting the agent's recommendation (D-103)
+- **Date**: 2026-11-06
+
 ---
 
 ## Measurement / process choices (proposed by the agent, confirmed by the owner)
