@@ -17,7 +17,10 @@
 //    (a CUE or SCTE35-OUT / -IN attribute) should start on a segment
 //    boundary of each rendition that carries it;
 //  * a rendition that carries a marker tag should carry every ID the
-//    others mark within its timeline.
+//    others mark within its timeline. One missing is graded as a misplaced
+//    one of its kind (D-102): a tag missing is an error, as one a segment
+//    off; an EXT-X-DATERANGE missing is a warning, as a START-DATE off a
+//    boundary.
 // Pure functions, no FFmpeg — unit-tested in tests/test_hls_markers.cpp.
 
 #include "HlsAlign.h"
@@ -55,6 +58,7 @@ struct MarkerEvent {
     std::string              time_from;     // "EXT-X-DATERANGE START-DATE in v0", …
     std::vector<MarkerPlace> places;
     std::vector<int>         missing;       // renditions carrying the tag elsewhere but not this ID
+    std::vector<Severity>    missing_sev;   // each one's grade, by the tag it carries (D-102)
     bool                     splice = false;   // a point players splice at: an interstitial or
                                                // SCTE-35 DATERANGE, or a tag asked for (other
                                                // dates — chapters, programmes — are listed only)
@@ -73,6 +77,11 @@ struct MarkerReport {
 inline constexpr double kMarkerSlack = 0.050;
 
 MarkerReport analyze_markers(const std::vector<MarkerIn>& in);
+
+// The index in r.events of the n-th splice point (0-based), counting only
+// the events with `splice` set, those the player shows a card for; −1 when
+// there is no such event.
+int splice_event(const MarkerReport& r, int n);
 
 // The report as a JSON object: {"reference": …, "events": [...], "findings": [...]}.
 std::string markers_json(const std::vector<MarkerIn>& in, const MarkerReport& r);

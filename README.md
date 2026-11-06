@@ -47,6 +47,8 @@ The player is built for macOS only (`docs/DECISIONS.md` D-031). `mirage_vmaf`, t
 
 Or drag-and-drop a file onto the launch screen.
 
+The launch screen opens the `N` inspector too: press `N`, or click "Check a stream without playing it". Its Conformance tab checks an HLS master or a DASH MPD by URL or path with nothing playing, a DRM stream included. When a playlist fails to open, the error offers "Check it", which checks that playlist there. In a scripted run, `--ui-net "…,hls=<master>"` with no media argument checks it from the launch screen, and `--ui-snapshot` captures it once the check is done.
+
 ---
 
 ## Tests
@@ -82,7 +84,7 @@ Drag the seek bar at the bottom of the window. A thumbnail strip appears showing
 | `G` | A/V drift graph — 10-second rolling history, ±100 ms range |
 | `T` | Track switcher — click to change audio or video track |
 | `W` | Waveform strip — full-width peak display |
-| `N` | Network log + manifest tag inspector + timeline tick strip; Alignment (renditions line up) and Conformance (each EXT-X-STREAM-INF against its media; in its DASH MPD mode, each Representation of an MPD given by URL) tabs |
+| `N` | Network log + manifest tag inspector + timeline tick strip; Alignment (renditions line up) and Conformance (each EXT-X-STREAM-INF against its media, and the break markers of every rendition; in its DASH MPD mode, each Representation of an MPD given by URL) tabs. On the launch screen too, with nothing playing |
 | `V` | VMAF panel — per-variant scores + per-frame graph |
 | `P` | Frame inspector — the frame on screen: type, timestamps, colour tags vs the renderer's, HDR10 / HDR10+ / Dolby Vision metadata, side data, encoder settings |
 | `S` / `⇧S` | Scopes — luma waveform, R′G′B′ parade, vectorscope, histogram from the frame's code values; `⇧S` picks the next |

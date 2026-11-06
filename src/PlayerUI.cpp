@@ -1251,19 +1251,20 @@ bool PlayerUI::draw_loading_screen(const std::string& what, const std::string& d
     return cancel;
 }
 
-std::string PlayerUI::draw_launcher(const std::vector<std::string>& recents,
-                                    const std::string& error_msg)
+PlayerUI::LauncherOut PlayerUI::draw_launcher(const std::vector<std::string>& recents,
+                                              const std::string& error_msg, bool offer_check,
+                                              float right_inset)
 {
-    std::string result;
+    LauncherOut result;
 
     ImGuiIO& io = ImGui::GetIO();
     const float win_w = io.DisplaySize.x;
     const float win_h = io.DisplaySize.y;
 
-    // ── Centered card ─────────────────────────────────────────────────────────
+    // ── Centered card (in the space the network inspector leaves) ─────────────
     constexpr float kCardW = 560.0f;
     constexpr float kCardH = 440.0f;
-    const float cx = std::round((win_w - kCardW) * 0.5f);
+    const float cx = std::round(std::max(16.0f, (win_w - right_inset - kCardW) * 0.5f));
     const float cy = std::round((win_h - kCardH) * 0.5f);
 
     ImGui::SetNextWindowPos(ImVec2(cx, cy), ImGuiCond_Always);
@@ -1301,11 +1302,26 @@ std::string PlayerUI::draw_launcher(const std::vector<std::string>& recents,
 
         ImGui::Dummy(ImVec2(0, 14.0f));
 
-        // ── Open Media header ─────────────────────────────────────────────────
+        // ── Open Media header, and on its right the check of a stream unplayed ──
         ImGui::PushFont(ui_fonts().ui_small);
         ImGui::PushStyleColor(ImGuiCol_Text, th::vec4(th::kTextDim));
         ImGui::TextUnformatted("OPEN MEDIA");
         ImGui::PopStyleColor();
+        {
+            const char* link = "Check a stream without playing it (N)";
+            const float lw = ImGui::CalcTextSize(link).x;
+            ImGui::SameLine(kCardW - 32.0f - lw);   // flush with the drop zone's right edge
+            const ImVec2 lp = ImGui::GetCursorScreenPos();
+            if (ImGui::InvisibleButton("##check_stream", ImVec2(lw, ImGui::GetTextLineHeight())))
+                result.check_stream = true;
+            const bool hov = ImGui::IsItemHovered();
+            dl->AddText(lp, hov ? th::kText : th::alpha(th::kAccent, 0.9f), link);
+            if (hov) {
+                ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+                ui::tooltip("The network inspector's Conformance tab: an HLS master or a DASH MPD by its URL or\n"
+                            "path, checked without playing it (a DRM stream too)");
+            }
+        }
         ImGui::PopFont();
 
         // ── Drop zone ─────────────────────────────────────────────────────────
@@ -1327,17 +1343,36 @@ std::string PlayerUI::draw_launcher(const std::vector<std::string>& recents,
         ImGui::Spacing();
 
         // ── Error banner (only shown after a failed open) ─────────────────────
+        // A playlist that failed (an HLS master the player cannot play, a DRM
+        // one, or any MPD) gets "Check it": the inspector's Conformance tab.
         if (!error_msg.empty()) {
             const ImVec2 etl = ImGui::GetCursorScreenPos();
             const float  ew  = kZoneW;
             const float  eh  = ImGui::GetTextLineHeight() + 14.0f;
             dl->AddRectFilled(etl, ImVec2(etl.x + ew, etl.y + eh), th::alpha(th::kError, 0.14f), 8.0f);
             dl->AddRect(etl, ImVec2(etl.x + ew, etl.y + eh), th::alpha(th::kError, 0.6f), 8.0f, 0, 1.0f);
-            dl->AddText(ImVec2(etl.x + 12.0f, etl.y + 7.0f), th::kText, error_msg.c_str());
+            float text_w = ew - 24.0f;
+            if (offer_check) {
+                const char* label = "Check it";
+                const float bw = ImGui::CalcTextSize(label).x + 20.0f;
+                ImGui::SetCursorScreenPos(ImVec2(etl.x + ew - bw - 5.0f, etl.y + 4.0f));
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.0f, 0.0f));   // the label centred in the short button
+                const bool clicked = ImGui::Button(label, ImVec2(bw, eh - 8.0f));
+                ImGui::PopStyleVar();
+                if (clicked) result.check_failed = true;
+                if (ImGui::IsItemHovered())
+                    ui::tooltip("Check this playlist in the network inspector's Conformance tab, without playing it");
+                text_w -= bw + 8.0f;
+                ImGui::SetCursorScreenPos(etl);
+            }
+            const std::string shown = ellipsize(error_msg, ImGui::GetFont(), ImGui::GetFontSize(), text_w);
+            dl->AddText(ImVec2(etl.x + 12.0f, etl.y + 7.0f), th::kText, shown.c_str());
+            if (shown != error_msg && ImGui::IsMouseHoveringRect(etl, ImVec2(etl.x + 12.0f + text_w, etl.y + eh)))
+                ui::tooltip(error_msg.c_str());
             ImGui::Dummy(ImVec2(ew, eh + 6.0f));
         }
 
-        result = build_open_rows(recents, kZoneW, 0.0f, false);
+        result.open = build_open_rows(recents, kZoneW, 0.0f, false);
     }
     ImGui::End();
     ImGui::PopStyleVar(4);

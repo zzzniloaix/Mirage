@@ -3,6 +3,7 @@
 // Pure formatting / layout helpers for the player UI. No ImGui or GL here so
 // they can be unit-tested in mirage_tests.
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -29,5 +30,11 @@ std::vector<float> decimate_ticks(const std::vector<double>& kf, double dur,
 // Index of the last element <= t in the ascending `pts`, or -1 when there is
 // none or when t - pts[idx] > max_gap.
 int index_at_or_before(const std::vector<double>& pts, double t, double max_gap);
+
+// `s` cut in the middle to fit max_w as `width` measures it: its head, "…"
+// and its tail, as many whole UTF-8 characters of each as fit (the tail gets
+// the odd one). `s` itself when it fits; "…" when no character does.
+std::string ellipsize_middle(const std::string& s, float max_w,
+                             const std::function<float(const std::string&)>& width);
 
 } // namespace ui

@@ -140,8 +140,9 @@ renditions you cannot tell which row is which without widening the panel.
   at its tail: a language, the channels, a role.
 
 **Fix.**
-- The column takes the width of the card's widest label, between 130 px
-  and 45% of the card.
+- The column takes the width of the card's widest label, in the room the
+  other columns leave, and 130 px at least, as now. The offsets and the
+  gauge stay in view.
 - A label still wider is cut in the middle, keeping its head and its tail.
   That is `ui::ellipsize_middle` in `src/UiFormat.h`: pure, UTF-8-safe, with
   the measure passed in, and unit-tested.

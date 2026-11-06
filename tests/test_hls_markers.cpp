@@ -140,19 +140,70 @@ TEST_CASE("analyze_markers — on boundaries, missing markers, other dates", "[h
                   "", interstitial("break-1", "2024-03-01T12:00:12Z"), interstitial("break-2", "2024-03-01T12:00:18Z"),
                   "" }, "v");
     const std::string audio = dated_vod(kAudio, { "", "", "#EXT-X-CUE-MARKER:ID=\"break-1\"", "", "", "" }, "a");
-    const MarkerReport r = analyze_markers(renditions(video, audio));
+    const std::vector<MarkerIn> in = renditions(video, audio);
+    const MarkerReport r = analyze_markers(in);
     REQUIRE(r.events.size() == 3);
-    CHECK(r.errors == 0);
-    // break-2 is not marked in audio, which marks break-1: a warning. The
-    // chapter is not a splice point: not needed in audio, and off a boundary is fine.
-    CHECK(r.warnings == 1);
+    // break-2 is not marked in audio, which marks break-1 with its tag: an
+    // error, as a tag a segment off is (D-102). The chapter is not a splice
+    // point: not needed in audio, and off a boundary is fine.
+    CHECK(r.errors == 1);
+    CHECK(r.warnings == 0);
     REQUIRE(!r.findings.empty());
+    CHECK(r.findings[0].sev == Severity::Error);
     CHECK(r.findings[0].title == "break-2: no #EXT-X-CUE-MARKER in audio aac/en");
-    for (const auto& ev : r.events)
+    for (const auto& ev : r.events) {
         if (ev.id == "chapter-1") {
             CHECK(ev.missing.empty());
             CHECK_FALSE(ev.splice);
         }
+        if (ev.id == "break-2") {
+            CHECK(ev.missing == std::vector<int>{ 1 });
+            CHECK(ev.missing_sev == std::vector<Severity>{ Severity::Error });
+        }
+    }
+    CHECK(markers_json(in, r).find("\"missing\": [1], \"missing_severity\": [\"error\"]") != std::string::npos);
+}
+
+TEST_CASE("analyze_markers — a missing EXT-X-DATERANGE is a warning, as one off a boundary", "[hls_markers]")
+{
+    // Two video renditions; the second dates break-1 but not break-2.
+    const std::string both = dated_vod(
+        kVideo, { "", "", interstitial("break-1", "2024-03-01T12:00:12Z"), interstitial("break-2", "2024-03-01T12:00:18Z"),
+                  "" }, "v");
+    const std::string first = dated_vod(kVideo, { "", "", interstitial("break-1", "2024-03-01T12:00:12Z"), "", "" }, "w");
+    const std::vector<std::string> tags = { "EXT-X-CUE-MARKER" };
+    const std::vector<MarkerIn> in = {
+        { "v0 1080p", Track::Video, parse_media_timeline(both, "https://example.com/v.m3u8", tags) },
+        { "v1 720p", Track::Video, parse_media_timeline(first, "https://example.com/w.m3u8", tags) } };
+    const MarkerReport r = analyze_markers(in);
+    CHECK(r.errors == 0);
+    CHECK(r.warnings == 1);
+    REQUIRE(!r.findings.empty());
+    CHECK(r.findings[0].title == "break-2: no #EXT-X-DATERANGE in v1 720p");
+    for (const auto& ev : r.events)
+        if (ev.id == "break-2") {
+            CHECK(ev.missing == std::vector<int>{ 1 });
+            CHECK(ev.missing_sev == std::vector<Severity>{ Severity::Warning });
+        }
+}
+
+TEST_CASE("splice_event — the n-th card, 0-based, without the other dates", "[hls_markers]")
+{
+    // A chapter first, then two interstitials: the player shows a card for each interstitial only.
+    const std::string video = dated_vod(
+        kVideo, { "#EXT-X-DATERANGE:ID=\"chapter-1\",START-DATE=\"2024-03-01T12:00:00.3Z\",DURATION=24",
+                  "", interstitial("break-1", "2024-03-01T12:00:12Z"), interstitial("break-2", "2024-03-01T12:00:18Z"),
+                  "" }, "v");
+    const std::string audio = dated_vod(kAudio, { "", "", "#EXT-X-CUE-MARKER:ID=\"break-1\"", "", "", "" }, "a");
+    const MarkerReport r = analyze_markers(renditions(video, audio));
+    REQUIRE(r.events.size() == 3);
+    REQUIRE(r.events[0].id == "chapter-1");
+    CHECK(splice_event(r, 0) == 1);
+    CHECK(r.events[1].id == "break-1");
+    CHECK(splice_event(r, 1) == 2);
+    CHECK(splice_event(r, 2) == -1);
+    CHECK(splice_event(r, -1) == -1);
+    CHECK(splice_event(MarkerReport{}, 0) == -1);
 }
 
 TEST_CASE("analyze_markers — no date: the reference's tag sets the time", "[hls_markers]")

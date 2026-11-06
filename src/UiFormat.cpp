@@ -83,4 +83,27 @@ int index_at_or_before(const std::vector<double>& pts, double t, double max_gap)
     return static_cast<int>(it - pts.begin());
 }
 
+std::string ellipsize_middle(const std::string& s, float max_w,
+                             const std::function<float(const std::string&)>& width)
+{
+    if (s.empty() || width(s) <= max_w) return s;
+    std::vector<std::size_t> starts;   // each character's first byte
+    for (std::size_t i = 0; i < s.size(); ++i)
+        if ((static_cast<unsigned char>(s[i]) & 0xC0) != 0x80) starts.push_back(i);
+    const std::size_t n = starts.size();
+    if (n == 0) return "…";
+    auto cut = [&](std::size_t keep) {   // keep / 2 characters of the head, the rest of the tail
+        const std::size_t head = keep / 2, tail = keep - head;
+        return s.substr(0, starts[head]) + "…" + (tail > 0 ? s.substr(starts[n - tail]) : std::string());
+    };
+    // Each character kept adds to the width, so the most that fit is found by halving.
+    std::size_t lo = 0, hi = n - 1;   // cut(lo) is taken even when it does not fit
+    while (lo < hi) {
+        const std::size_t mid = (lo + hi + 1) / 2;
+        if (width(cut(mid)) <= max_w) lo = mid;
+        else hi = mid - 1;
+    }
+    return cut(lo);
+}
+
 } // namespace ui

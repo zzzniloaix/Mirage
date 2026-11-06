@@ -82,6 +82,30 @@ TEST_CASE("index_at_or_before: before, exact, between, gap, empty", "[ui]")
     CHECK(index_at_or_before({}, 1.0, 10.0) == -1);
 }
 
+// ── ellipsize_middle ──────────────────────────────────────────────────────────
+
+TEST_CASE("ellipsize_middle: head and tail kept, whole UTF-8 characters", "[ui]")
+{
+    // One unit a character, "…" included: a monospace font of width 1.
+    const auto chars = [](const std::string& t) {
+        float n = 0.0f;
+        for (const char c : t) n += (static_cast<unsigned char>(c) & 0xC0) != 0x80 ? 1.0f : 0.0f;
+        return n;
+    };
+    CHECK(ellipsize_middle("abc", 3.0f, chars) == "abc");                 // fits
+    CHECK(ellipsize_middle("", 0.0f, chars).empty());
+    CHECK(ellipsize_middle("abcdefghij", 5.0f, chars) == "ab…ij");
+    CHECK(ellipsize_middle("abcdefghij", 4.0f, chars) == "a…ij");    // the tail gets the odd one
+    CHECK(ellipsize_middle("abcdefghij", 9.0f, chars) == "abcd…ghij");
+    CHECK(ellipsize_middle("abcdefghij", 0.5f, chars) == "…");       // nothing fits
+    // Two-byte characters are kept or cut whole.
+    CHECK(ellipsize_middle("αβγδεζηθ", 5.0f, chars)
+          == "αβ…ηθ");
+    // Rendition labels that share their head keep the part that tells them apart.
+    CHECK(ellipsize_middle("audio main/commentary-stereo-en", 14.0f, chars) == "audio …ereo-en");
+    CHECK(ellipsize_middle("audio main/commentary-stereo-fr", 14.0f, chars) == "audio …ereo-fr");
+}
+
 // ── SubChoice::label ──────────────────────────────────────────────────────────
 
 TEST_CASE("SubChoice::label formats embedded and sidecar choices", "[ui]")

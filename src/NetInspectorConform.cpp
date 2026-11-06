@@ -20,6 +20,7 @@
 #include "Logger.h"
 #include "ManifestParser.h"
 #include "NetInspectorUi.h"
+#include "UiFormat.h"
 
 #include <cctype>
 #include <cmath>
@@ -324,6 +325,29 @@ void NetInspector::start_dash()
     conform_sel_ = conform_open_ = -1;
 }
 
+void NetInspector::check_url(const std::string& url, bool dash)
+{
+    std::snprintf(dash ? dash_url_ : hls_url_, dash ? sizeof(dash_url_) : sizeof(hls_url_), "%s", url.c_str());
+    tab_ = Tab::Conformance;
+    conform_dash_ = dash;
+    (dash ? qa_dash_ : qa_hls_) = true;   // started by the next conform_tick
+}
+
+void NetInspector::open_conformance()
+{
+    tab_ = Tab::Conformance;
+    focus_url_ = true;
+}
+
+bool NetInspector::qa_idle() const
+{
+    // A probe never started has no result to take in (its version is not
+    // synced until the tab is first drawn).
+    const bool conform_in = conform_.state() == ConformProbe::State::Idle || conform_.version() == conform_ver_;
+    const bool dash_in = dash_.state() == DashProbe::State::Idle || dash_.version() == dash_ver_;
+    return !qa_hls_ && !qa_dash_ && !conform_.running() && !dash_.running() && conform_in && dash_in;
+}
+
 void NetInspector::conform_tick(const Inputs& in)
 {
     if (qa_dash_) {
@@ -359,7 +383,7 @@ void NetInspector::conform_tick(const Inputs& in)
         qa_conform_out_.clear();
     }
     if (qa_marker_open_ >= 0 && conform_.state() == ConformProbe::State::Done) {
-        marker_ev_open_ = qa_marker_open_;
+        marker_ev_open_ = hls::splice_event(conform_res_.markers, qa_marker_open_);
         qa_marker_open_ = -1;
     }
     if (!qa_conform_html_.empty() && conform_.state() == ConformProbe::State::Done) {
@@ -460,6 +484,10 @@ void NetInspector::draw_conformance(const Inputs& in, Out& out, float w, float h
             ImGui::SetCursorScreenPos(ImVec2(p0.x + kPad, row2));
             ImGui::SetNextItemWidth(w - 2.0f * kPad);
             ImGui::BeginDisabled(busy);
+            if (focus_url_) {
+                ImGui::SetKeyboardFocusHere();
+                focus_url_ = false;
+            }
             if (ImGui::InputTextWithHint("##dash_url", "MPD URL or path (Enter checks it)", dash_url_, sizeof(dash_url_),
                                          ImGuiInputTextFlags_EnterReturnsTrue))
                 start_dash();
@@ -472,6 +500,10 @@ void NetInspector::draw_conformance(const Inputs& in, Out& out, float w, float h
             ImGui::BeginDisabled(busy);
             ImGui::SetCursorScreenPos(ImVec2(p0.x + kPad, row2));
             ImGui::SetNextItemWidth(url_w);
+            if (focus_url_) {
+                ImGui::SetKeyboardFocusHere();
+                focus_url_ = false;
+            }
             if (ImGui::InputTextWithHint("##hls_url", "Master URL or path · empty: the one playing (Enter checks it)",
                                          hls_url_, sizeof(hls_url_), ImGuiInputTextFlags_EnterReturnsTrue))
                 start_conform(in);
@@ -747,7 +779,7 @@ void NetInspector::draw_markers(const Inputs& in, Out& out, float cw, bool seeka
             sev = worse(sev, p.sev);
             off += p.sev == hls::Severity::Error || p.sev == hls::Severity::Warning;
         }
-        if (!ev.missing.empty()) sev = worse(sev, hls::Severity::Warning);
+        for (const hls::Severity s : ev.missing_sev) sev = worse(sev, s);   // each missing marker's grade (D-102)
         const bool open = marker_ev_open_ == e;
         const ImVec2 cp = ImGui::GetCursorScreenPos();
         const float card_h = 26.0f;
@@ -795,25 +827,45 @@ void NetInspector::draw_markers(const Inputs& in, Out& out, float cw, bool seeka
         std::stable_sort(places.begin(), places.end(), [](const auto* a, const auto* b) {
             return rank(a->sev) > rank(b->sev);
         });
+        // The Rendition column as wide as its widest label, in the room the other columns leave
+        // (130 px at least, as it was), so the offsets stay in view. A label still wider is cut in
+        // the middle: a group's renditions share the head of their NAME and differ at its tail (a
+        // language, the channels). The whole label shows on hover.
+        constexpr float kMarkerW = 132.0f, kAtW = 66.0f, kBoundaryW = 92.0f, kOffW = 64.0f, kGaugeW = 110.0f;
+        constexpr float kCellPadX = 6.0f;
+        const float room = cw - (kMarkerW + kAtW + kBoundaryW + kOffW + kGaugeW)
+                         - 6.0f * 2.0f * kCellPadX;   // and the six columns' cell padding
+        float rend_w = 130.0f;
+        for (const auto* p : places) rend_w = std::max(rend_w, ImGui::CalcTextSize(label(p->rendition).c_str()).x);
+        for (const int m : ev.missing) rend_w = std::max(rend_w, ImGui::CalcTextSize(label(m).c_str()).x);
+        rend_w = std::min(rend_w, std::max(130.0f, std::floor(room)));
+        const auto rendition_cell = [&](int r) {
+            const std::string full = label(r);
+            const std::string shown = ui::ellipsize_middle(full, rend_w, [](const std::string& t) {
+                return ImGui::CalcTextSize(t.c_str()).x;
+            });
+            ImGui::TextUnformatted(shown.c_str());
+            if (shown != full && ImGui::IsItemHovered()) ui::tooltip(full.c_str());
+        };
         constexpr ImGuiTableFlags kTbl = ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit
             | ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_ScrollX;
         const int rows = static_cast<int>(places.size() + ev.missing.size());
-        ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(6.0f, 2.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(kCellPadX, 2.0f));
         ImGui::PushStyleColor(ImGuiCol_TableRowBgAlt, th::vec4(th::rgba(255, 255, 255, 0.025f)));
         ImGui::PushID(e + 1400);
         if (ImGui::BeginTable("##places", 6, kTbl, ImVec2(cw, std::min(static_cast<float>(rows) * 20.0f + 24.0f, 260.0f)))) {
             ImGui::TableSetupScrollFreeze(1, 1);
-            ImGui::TableSetupColumn("Rendition", ImGuiTableColumnFlags_WidthFixed, 130.0f);
-            ImGui::TableSetupColumn("Marker", ImGuiTableColumnFlags_WidthFixed, 132.0f);
-            ImGui::TableSetupColumn("At", ImGuiTableColumnFlags_WidthFixed, 66.0f);
-            ImGui::TableSetupColumn("Boundary", ImGuiTableColumnFlags_WidthFixed, 92.0f);
-            ImGui::TableSetupColumn("Off", ImGuiTableColumnFlags_WidthFixed, 64.0f);
-            ImGui::TableSetupColumn("\u2212 boundary +", ImGuiTableColumnFlags_WidthFixed, 110.0f);
+            ImGui::TableSetupColumn("Rendition", ImGuiTableColumnFlags_WidthFixed, rend_w);
+            ImGui::TableSetupColumn("Marker", ImGuiTableColumnFlags_WidthFixed, kMarkerW);
+            ImGui::TableSetupColumn("At", ImGuiTableColumnFlags_WidthFixed, kAtW);
+            ImGui::TableSetupColumn("Boundary", ImGuiTableColumnFlags_WidthFixed, kBoundaryW);
+            ImGui::TableSetupColumn("Off", ImGuiTableColumnFlags_WidthFixed, kOffW);
+            ImGui::TableSetupColumn("\u2212 boundary +", ImGuiTableColumnFlags_WidthFixed, kGaugeW);
             ImGui::TableHeadersRow();
             for (const auto* p : places) {
                 ImGui::TableNextRow(ImGuiTableRowFlags_None, 19.0f);
                 ImGui::TableSetColumnIndex(0);
-                ImGui::TextUnformatted(label(p->rendition).c_str());
+                rendition_cell(p->rendition);
                 ImGui::TableSetColumnIndex(1);
                 ImGui::TextUnformatted(p->tag.c_str());
                 if (ImGui::IsItemHovered()) ui::tooltip(std::format("#{} · playlist line {}", p->tag, p->line).c_str());
@@ -828,12 +880,13 @@ void NetInspector::draw_markers(const Inputs& in, Out& out, float cw, bool seeka
                 ImGui::Dummy(ImVec2(104.0f, 15.0f));
                 offset_gauge(ImGui::GetWindowDrawList(), gp, 104.0f, 15.0f, p->off, scale, hls::kMarkerSlack, p->sev);
             }
-            for (const int m : ev.missing) {
+            for (std::size_t k = 0; k < ev.missing.size(); ++k) {
+                const hls::Severity ms = k < ev.missing_sev.size() ? ev.missing_sev[k] : hls::Severity::Warning;
                 ImGui::TableNextRow(ImGuiTableRowFlags_None, 19.0f);
                 ImGui::TableSetColumnIndex(0);
-                ImGui::TextUnformatted(label(m).c_str());
+                rendition_cell(ev.missing[k]);
                 ImGui::TableSetColumnIndex(1);
-                ImGui::PushStyleColor(ImGuiCol_Text, th::vec4(sev_color(hls::Severity::Warning)));
+                ImGui::PushStyleColor(ImGuiCol_Text, th::vec4(sev_color(ms)));
                 ImGui::TextUnformatted("missing");
                 ImGui::PopStyleColor();
                 if (ImGui::IsItemHovered()) ui::tooltip("Carries the tag at other breaks, not at this one");
