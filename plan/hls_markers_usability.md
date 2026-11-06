@@ -188,6 +188,48 @@ does not tell their renditions apart either.
 - Dropping what one card's labels share. A rendition would then read
   differently from card to card.
 
+**Found on the owner's packages, after `2d08592`.** Fix 2 changed nothing
+there.
+- One group mixes three codec families, each with its own layout and bit
+  rate, so the labels share no tail; only "audio aud/" is shared.
+- What is left is about 60 characters. The cut in the middle keeps "audio
+  aud/", one letter and the bit rate, the part that differs least.
+- The tails package had one tail for all, so fix 2 looked right there.
+
+**Fix 3.**
+- A row keeps only the tokens that not every label of its group has,
+  wherever they are, each once and in order. The tokens every label has
+  are dropped, at the ends and in the middle alike.
+- Tokens next to each other keep the separator between them ("bb-CC");
+  each run dropped becomes one space.
+- A row drops the group's head ("audio aud/") as well. A bar in the kind's
+  colour before it tells video, audio and subtitles apart, as the Network
+  tab's rows do.
+- If this leaves a row empty, or two rows alike, the group falls back to
+  fix 2, without the head.
+- A variant's label stays whole. A label alone in its group drops only its
+  head.
+- The cut in the middle applies to what is left, and the full label shows
+  on hover.
+- `ui::row_labels` in `src/UiFormat.h` does it, pure and unit-tested; fix
+  2's `ui::distinct_labels` is its fallback.
+- The test uses 30 labels of the owner's shape, with made-up values:
+  - ten languages at the head;
+  - three codec families, each with its own layout and bit-rate tail;
+  - tokens that every label has.
+
+  Cut to 16 characters, about the column's default width, every row is
+  unique.
+- In a scripted run, opening a card with `marker_open=` logs each row as
+  the card shows it. A package of that shape checks it at the real width.
+
+**Alternatives to fix 3.**
+- Whole leading tokens, cutting the tail. "audio aud/" and a shared token
+  fill the column, so two renditions of one language read alike.
+- A LANGUAGE and CHANNELS column from EXT-X-MEDIA. The codec family is not
+  in EXT-X-MEDIA, one group here holds three, and one more column pushes
+  the offsets further out.
+
 ## 4. A missing marker is a warning, a misplaced one an error (owner's choice)
 
 **What happens.** Take a rendition that marks the other breaks with a tag
