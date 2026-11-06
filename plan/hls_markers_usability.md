@@ -224,6 +224,34 @@ there.
 - In a scripted run, opening a card with `marker_open=` logs each row as
   the card shows it. A package of that shape checks it at the real width.
 
+**Checked on the owner's packages, after `9ca5b66`.** Five packages, 55 to
+110 audio renditions in one group each, kept outside the repository. Every
+card's rows are unique as shown, 71 to 174 rows a card. Two things still
+read badly:
+- '.' splits a layout such as "5.1". Its "1" is a token every label has
+  ("…_1_…" in the representation ID), so the row shows "5".
+- In four of the packages, the role token is in 83% to 97% of the labels,
+  not in all of them, so it stays. The rows are then cut in the middle, and
+  the codec goes with it.
+
+**Fix 4.**
+- Tokens split at ' ', '/' and '_' only, so a language tag ("cmn-TW",
+  "es-419") and a layout ("5.1") stay whole.
+- A token that at least 80% of a group's labels have is dropped too, the
+  most common first, each only if every row stays unique and non-empty
+  without it.
+- Of the tokens that always come together (in exactly the same labels: a
+  codec and its only layout), a row keeps the first.
+- The tokens kept are joined by spaces. Fix 3 kept the separator between
+  adjacent tokens so that "bb-CC" stayed whole. With '-' and '.' inside a
+  token that is no longer needed, and a row that mixes '_' and spaces reads
+  worse.
+- Then the ends that every row still shares are dropped, as fix 2 does,
+  with fix 2's separators. That is what a group of NAMEs joined by '-'
+  needs, such as the record's names package.
+- The fallback, the head and the bar are as in fix 3. 80% is the agent's
+  value.
+
 **Alternatives to fix 3.**
 - Whole leading tokens, cutting the tail. "audio aud/" and a shared token
   fill the column, so two renditions of one language read alike.
