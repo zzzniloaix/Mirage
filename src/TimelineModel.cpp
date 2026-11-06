@@ -115,12 +115,41 @@ std::vector<std::size_t> Timeline::overlapping(std::int64_t a, std::int64_t b) c
 
 Curve curve_points(const Timeline& timeline, CurveRef curve)
 {
-    // A session's curve, the played variants' scores over its spans (design
-    // §4.4), is WP07's to derive: until then it has no points.
-    if (curve.kind == CurveRef::Kind::Pair && curve.index >= 0 &&
-        static_cast<std::size_t>(curve.index) < timeline.curves.size())
-        return timeline.curves[static_cast<std::size_t>(curve.index)];
-    return {};
+    if (curve.index < 0) return {};
+    const auto index = static_cast<std::size_t>(curve.index);
+    if (curve.kind == CurveRef::Kind::Pair)
+        return index < timeline.curves.size() ? timeline.curves[index] : Curve{};
+    if (curve.kind != CurveRef::Kind::Session || index >= timeline.sessions.size()) return {};
+
+    // A session's curve (design §4.4; D-068): at each reference frame of a
+    // span, the score of the variant the span plays there, which is the
+    // point of the pair whose distorted variant it is. So over each span
+    // that is scored, in play order, that pair's points in the span's
+    // frames [ref_index, ref_end), the pair's own grid kept: a pair on a
+    // coarser grid than the reference leaves its gaps, nothing being
+    // invented there (D-077). None over a span that isn't scored, the
+    // reference's in top-rung mode (D-105 (b)), nor over one whose variant
+    // no pair's curve scores. A libvmaf context of the pair that starts in a
+    // span's frames starts there on the session's curve too; a switch starts
+    // none, since the scores after it come from the pair's own contexts. The
+    // curve names no variant (-1): it is several variants' in turn.
+    Curve out;
+    for (const Span& span : timeline.sessions[index].spans) {
+        if (!span.scored) continue;
+        const auto pair = std::find_if(timeline.curves.begin(), timeline.curves.end(),
+                                       [&span](const Curve& c) { return c.variant == span.variant; });
+        if (pair == timeline.curves.end()) continue;
+        const std::size_t points = std::min(pair->ref_index.size(), pair->vmaf.size());
+        const auto first = pair->ref_index.begin();
+        const auto last  = first + static_cast<std::ptrdiff_t>(points);
+        const auto lo    = std::lower_bound(first, last, span.ref_index);
+        const auto hi    = std::lower_bound(lo, last, span.ref_end);
+        out.ref_index.insert(out.ref_index.end(), lo, hi);
+        out.vmaf.insert(out.vmaf.end(), pair->vmaf.begin() + (lo - first), pair->vmaf.begin() + (hi - first));
+        for (const std::int64_t f : pair->context_first)
+            if (f >= span.ref_index && f < span.ref_end) out.context_first.push_back(f);
+    }
+    return out;
 }
 
 } // namespace timeline

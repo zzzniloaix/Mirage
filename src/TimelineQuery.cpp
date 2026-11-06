@@ -24,6 +24,40 @@ bool in_pair_scope(const Timeline& t, int variant, const Event& e)
     return v < t.variants.size() && t.variants[v].pair == -1;
 }
 
+// Whether `e` is one of session `s`'s curve's inputs' events (D-078,
+// Q28 (a)), `searched` being the interval its query looks in, margins
+// included: the session's own events (its spans, switches and requests),
+// which carry its index in Event::session; the reference's, those of the
+// variant of no pair, wherever they are, as for a pair's curve; and those
+// of the variant each span plays, in that span: an event of a distorted
+// variant that meets the part of `searched` a span playing its variant
+// covers, [max(a, s), min(b, e)) for `searched` [a, b) and the span [s, e),
+// for each span that meets `searched` by D-078's rule. So another rung's
+// copy of a tag is left out, and so is a played variant's event in the part
+// of the interval that another variant was played over; an empty
+// `searched`, [a, a), lists the events of the variant whose span straddles
+// a that straddle a too, as meets() has it. An event of another session,
+// or of no variant, is in no scope here.
+bool in_session_scope(const Timeline& t, int s, Interval searched, const Event& e)
+{
+    if (e.session >= 0) return e.session == s;
+    if (e.variant < 0) return false;
+    const auto v = static_cast<std::size_t>(e.variant);
+    if (v >= t.variants.size()) return false;
+    if (t.variants[v].pair == -1) return true;
+    for (const Span& span : t.sessions[static_cast<std::size_t>(s)].spans) {
+        if (span.variant != e.variant) continue;
+        Event frames;
+        frames.ref_index = span.ref_index;
+        frames.ref_end   = span.ref_end;
+        if (!meets(frames, searched)) continue;
+        const Interval part{ .ref_index = std::max(searched.ref_index, span.ref_index),
+                             .ref_end   = std::min(searched.ref_end, span.ref_end) };
+        if (meets(e, part)) return true;
+    }
+    return false;
+}
+
 } // namespace
 
 Interval widen(const Axis& axis, Interval interval, const QueryOptions& options)
@@ -51,13 +85,17 @@ Attribution attribute(const Timeline& timeline, CurveRef curve, Interval interva
     a.curve    = curve;
     a.interval = interval;
     a.searched = interval;
-    // A session's curve and its scope, the played variant's events in each
-    // span, the reference's and the session's own (D-078), are WP07's: until
-    // then nothing is found for it.
-    if (curve.kind != CurveRef::Kind::Pair || curve.index < 0 ||
-        static_cast<std::size_t>(curve.index) >= timeline.curves.size())
-        return a;
-    const Curve& c = timeline.curves[static_cast<std::size_t>(curve.index)];
+    // A pair's curve, stored, or a session's, derived from its pairs'
+    // (curve_points()), whose scope is the played variant's events in each
+    // span, the reference's and the session's own (D-078; in_session_scope()).
+    const bool pair = curve.kind == CurveRef::Kind::Pair && curve.index >= 0 &&
+                      static_cast<std::size_t>(curve.index) < timeline.curves.size();
+    const bool session = curve.kind == CurveRef::Kind::Session && curve.index >= 0 &&
+                         static_cast<std::size_t>(curve.index) < timeline.sessions.size();
+    if (!pair && !session) return a;
+    Curve derived;
+    if (session) derived = curve_points(timeline, curve);
+    const Curve& c = pair ? timeline.curves[static_cast<std::size_t>(curve.index)] : derived;
     a.searched = widen(timeline.axis, interval, options);
 
     // The curve's points in the interval, a point without a score skipped
@@ -79,7 +117,10 @@ Attribution attribute(const Timeline& timeline, CurveRef curve, Interval interva
     for (std::size_t i : timeline.overlapping(a.searched.ref_index, a.searched.ref_end)) {
         const Event& e = timeline.events[i];
         const auto source = static_cast<std::size_t>(e.source);
-        if (source >= kSourceCount || !in_pair_scope(timeline, c.variant, e)) continue;
+        if (source >= kSourceCount) continue;
+        if (pair ? !in_pair_scope(timeline, c.variant, e)
+                 : !in_session_scope(timeline, curve.index, a.searched, e))
+            continue;
         Found f;
         f.event         = i;
         f.offset_frames = e.ref_index - interval.ref_index;
