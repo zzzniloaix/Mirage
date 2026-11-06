@@ -6,7 +6,7 @@ What is open for the owner on `vmaf/phase-3`, §3 of the VMAF work order (the un
 
 44 questions, Q01 to Q44, in three rounds: 27 in round 1, the answers the work packages on the path to §3.2's two acceptance tests need before they start; 9 in round 2, those of sessions, the session fetch, the decoded SCTE-35 messages and the composite example; 8 in round 3, those of the UI, the conditional and later packages, and the differences to report. A question's round is the earliest round of the packages it blocks, and a round's packages start once all of its questions are answered (`eval/phase3-survey/design.md` §12, §14). Q26, Q39, Q43 and Q44 are answered item by item, an item's options numbered: "Q43 (c) 2". The questions marked D-007 (Q01, Q08, Q09, Q10, Q13, Q36, Q37 and Q41) have an answer that is, or includes, an approval or a ruling under D-007. "Blocks" names the work packages that wait for the answer; the packages are listed at the end. After the questions come the differences from the work order to report, and the agent's proposed process choices, to be recorded from P-082 on.
 
-The questions are the design's (`eval/phase3-survey/design/owner_questions.json`), rendered by `eval/phase3-survey/tools/render_pending.py` with the design's paths written as the repository has them and nothing else changed. They are as the design's revision 3 left them, after the third review's seven minor issues (`eval/phase3-survey/review-3/review.md`; `eval/phase3-survey/design/revision-3.md`). The owner's answers are marked here as each round's come in. Round 1's 27 questions were answered on 2026-11-02, every one as the agent recommends (D-071 to D-081); each is marked below. Rounds 2 and 3 are open. Building round 1's first packages raised three more questions, Q45 to Q47, after round 3 below: the owner answered Q45 and Q46 on 2026-11-04 as the agent recommends (D-086, D-087), and Q47 joins round 2.
+The questions are the design's (`eval/phase3-survey/design/owner_questions.json`), rendered by `eval/phase3-survey/tools/render_pending.py` with the design's paths written as the repository has them and nothing else changed. They are as the design's revision 3 left them, after the third review's seven minor issues (`eval/phase3-survey/review-3/review.md`; `eval/phase3-survey/design/revision-3.md`). The owner's answers are marked here as each round's come in. Round 1's 27 questions were answered on 2026-11-02, every one as the agent recommends (D-071 to D-081); each is marked below. Rounds 2 and 3 are open. Building round 1's first packages raised three more questions, Q45 to Q47, after round 3 below: the owner answered Q45 and Q46 on 2026-11-04 as the agent recommends (D-086, D-087), and Q47 joins round 2. Building WP08, WP08b and WP09a raised Q48 to Q57, which the owner answered on 2026-11-05 and 2026-11-06, each as the agent recommends (D-092, D-099, D-100), and WP08c two more, Q58 and Q59, which are open.
 
 ### Round 1: the path to §3.2's two acceptance tests (27 questions)
 
@@ -1270,6 +1270,37 @@ Questions that round 1's packages met and the design doesn't settle, each of who
 **Agent's recommendation.** 1.
 
 **Answered** on 2026-11-06: 1, as the agent recommends (`docs/DECISIONS.md` D-100 (c)).
+
+#### Q58. A sequence at another frame rate whose PTS were rounded to a coarser clock
+
+*Round 1.* Raised by WP08c's review.
+
+**Question.** An ad at 24000/1001, 30000/1001 or 60000/1001 fps whose PTS are on a millisecond clock, a frame of 1001/24, 1001/30 or 1001/60 ms, follows none of the steps D-100's writer tries over all its frames: D-100 (a)'s step is the axis's frame duration, and D-100 (b)'s steps, from windows of 2 to 8 of the stretch's first values, are exact only for a step whose denominator is at most 8. So the ad's keys and playlist-time ticks start a stretch every one or two dozen of its frames; the content's stretches, and those of an ad on the 90 kHz clock, are not affected (the review's probe, not committed). Every value still comes back exactly. How is it written?
+
+- **1. As built**, the limit stated in the format document, as WP08c states it.
+- **2. D-100 (b) also tries longer windows**, so that the steps of the common frame rates up to 60 fps on a millisecond or a 1/600 s clock, whose denominators go up to 100, are found, at up to that many steps per stretch. Only the writer changes; schema version 1, every value exact.
+
+**Agent's recommendation.** 1: the case needs a coarser clock and an ad at another frame rate at once, the stretches grow with the ad's frames only, and the limit is stated; 2 has the writer try many more steps for every stretch to cover it.
+
+#### Q59. WP08c's other choices
+
+*Round 1.* Raised by WP08c and its review.
+
+**Question.** Choices that change a document's bytes, or what is refused, but no value read back:
+
+- (a) D-100 (b)'s steps are tried for every window of 2 to 8 values, and, where the stretch's first differences share a factor, in units of it with that factor as the scale (an ad at 60000/1001 fps needs the scale 2 on the playlist-time ticks of 30000/1001 fps content), a combination neither part of D-100 states;
+- (b) the factor is taken from a stretch's first 8 differences and, where D-100 (a)'s step stops at a value whose difference from the first it doesn't divide, refined to the factor the two share (the review's fix: from the first 8 alone, PTS on a 1/600 s clock at 24000/1001, 30000/1001 and 60000/1001 fps grew with their frames);
+- (c) the order: the frame durations, the whole step, then D-100's steps, which are taken only where they hold more frames, so that a stretch that WP08b's steps hold keeps WP08b's form (the review's fix);
+- (d) a step of D-100's that is a whole number isn't tried, and an axis without a frame duration keeps whole steps alone (D-099 (b));
+- (e) at a value off every step, one of D-100's steps can hold it with the frames around it in a step no frame rate has (11263/3 over 4 frames in two tests of `tests/test_timeline_doc.cpp`), and among D-100 (b)'s steps the shortest window wins a tie;
+- (f) D-092 (b) as built: a curve read back is placed at its pair's rank among the variants' numbers, where `attach_curves()` puts the report's curve of that pair; `build()` and `attach_curves()` refuse pairs out of the plan's order, and `build()` a `pairs[].index` beyond an int, neither of which the ladder report reader gives; a curve reference that names no pair is written null, which the reader refuses.
+
+Are they kept?
+
+- **1. All as built.**
+- **2. Each asked on its own.**
+
+**Agent's recommendation.** 1.
 
 ## Differences from the work order, to report
 
