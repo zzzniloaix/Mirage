@@ -1964,6 +1964,7 @@ D-102 is on a branch not yet merged; whoever merges later puts the entries in nu
   - With P-006 and D-029 a failed pair leaves no report, so the pairs after it would only take time.
   - `mirage_vmaf` stays free of the player's parser, pugixml and network logger, which D-031's headless build leaves out.
 - **Limits**: HLS master playlists only, no DASH; `EXT-X-MEDIA` video renditions and I-frame playlists aren't scored; one pair at a time, the reference decoded again for each.
+- **Overtaken** in part (2026-11-06, D-103, D-104 (a)): since WP00b (`dbaa5f4`), `mirage_vmaf` compiles the player's network logger, `src/NetworkLogger.cpp`, unchanged and installed for the session fetch alone; it needs FFmpeg alone, and the headless build compiles it too. The Where item's reason and the Rationale's last one now hold for the player's parser and pugixml only. The ladder scoring still reads master playlists itself; the rest of this choice stands.
 - **Who**: agent (Claude)
 - **Date**: 2026-10-23
 - **Status**: confirmed by the owner (2026-10-26, D-041)
