@@ -50,13 +50,16 @@ struct Event {
     std::string  id;                          // deterministic within its document (design §4.7)
     Source       source = Source::Vmaf;
     std::string  type;                        // design §5.9's vocabulary: "segment", "cue_out", ...
-    // Index into Timeline::variants; -1: none. It sets which curves'
-    // attributions list the event (src/TimelineQuery.h): a pair's own
-    // events, its vmaf ones (context_start, unpaired_frame) among them, carry
-    // the index of the pair's distorted variant; the reference's events
-    // carry the reference variant's, the one whose pair is -1; an event of
-    // variant -1 is in no pair's curve's scope (a session's own events come
-    // later, with WP07).
+    // Index into Timeline::variants; -1: none. With Event::session, it sets
+    // which curves' attributions list the event (src/TimelineQuery.h): a
+    // pair's own events, its vmaf ones (context_start, unpaired_frame) among
+    // them, carry the index of the pair's distorted variant; the reference's
+    // events carry the reference variant's, the one whose pair is -1; an
+    // event of variant -1 is in no pair's curve's scope. A session's own
+    // events carry its index in Event::session and are in its curve's scope
+    // whatever their variant: a span or a request carries the variant it is
+    // of, a variant_switch the variant played from it, and the master's
+    // request -1.
     int          variant = -1;
     int          session = -1;                // index of its session (D-068); -1: none
     std::optional<std::int64_t> segment;      // segment-bound events: the media sequence number

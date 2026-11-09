@@ -114,9 +114,10 @@ private:
             // byte range's end, and what a short forward seek read instead of
             // seeking. Over HTTP the demuxer asks the server for the range and
             // doesn't seek, so the reads start at the context's position 0
-            // (from = 0): that branch is untested in ctest until
-            // tests/HttpFileServer.h, which WP07 owns, honours a Range header,
-            // since it answers every request with the whole file.
+            // (from = 0): that branch is untested in ctest. Since WP07,
+            // tests/HttpFileServer.h answers a Range header with 206 for the
+            // paths whose rule asks it to (HttpFileRule::ranges), and no test
+            // of this file uses that rule yet.
             const std::int64_t from = f.offset && !over_http(f.url) ? *f.offset : 0;
             f.bytes      = avio_tell(pb) - from;
             f.bytes_read = pb->bytes_read;

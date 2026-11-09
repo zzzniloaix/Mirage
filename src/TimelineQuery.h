@@ -1,23 +1,28 @@
 #pragma once
 
-// The events an interval of a curve meets, by source (DECISIONS.md D-078): written by WP01.
+// The events an interval of a curve meets, by source (DECISIONS.md D-078): written by WP01,
+// a session's curve by WP07.
 //
 // attribute() answers eval/phase3-survey/design.md §6.1's query for a pair's
-// curve: the events of the curve's own inputs, the pair's distorted variant
-// and the reference (Q28 (a)), each rung's copy of a tag kept (D-081 (f)),
-// that meet a half-open interval of reference frames by D-078's rule, an
-// empty interval included, widened by margins given in seconds, none by
-// default (Q29 (c)); in groups in section 3.1's order of sources, by offset
-// within a group, with no ranking (Q30 (a)); each with its offsets in
-// reference frames, exact, and in seconds on the axis (D-073). A session's
-// curve and its scope come in round 2 (WP07).
+// curve or a session's: the events of the curve's own inputs (Q28 (a)),
+// each rung's copy of a tag kept (D-081 (f)), that meet a half-open
+// interval of reference frames by D-078's rule, an empty interval included,
+// widened by margins given in seconds, none by default (Q29 (c)); in groups
+// in section 3.1's order of sources, by offset within a group, with no
+// ranking (Q30 (a)); each with its offsets in reference frames, exact, and
+// in seconds on the axis (D-073).
 //
-// The scope rests on Event::variant (src/TimelineModel.h): a pair's own
-// events, its vmaf ones (context_start, unpaired_frame) among them, carry
-// the index of its distorted variant, and the reference's events the
-// reference variant's, the one whose pair is -1. An event of variant -1 is
-// in no pair's curve's scope, and neither is an event of a session, whatever
-// its variant (a session's own events come later, with WP07).
+// The scope rests on Event::variant and Event::session (src/TimelineModel.h).
+// A pair's curve's inputs are its distorted variant and the reference: a
+// pair's own events, its vmaf ones (context_start, unpaired_frame) among
+// them, carry the index of its distorted variant, and the reference's
+// events the reference variant's, the one whose pair is -1. A session's
+// curve's inputs are the session's own events (its spans, switches and
+// requests), the reference's, and a played variant's events in the part of
+// the interval that a span playing it covers, so no other rung's copy of a
+// tag (in_session_scope(), src/TimelineQuery.cpp). An event of a session is
+// in that session's curve's scope alone, whatever its variant, and any other
+// event of variant -1 in no curve's scope.
 
 #include "TimelineModel.h"
 
