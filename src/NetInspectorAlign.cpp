@@ -4,7 +4,10 @@
 // "Probe" fetches what is missing (first segment, the playhead's, both
 // sides of each discontinuity) as inspector requests. The checks are
 // hls::analyze_alignment (HlsAlign.h); this draws its findings, a timeline
-// with one row per rendition, and a table of their numbers.
+// with one row per rendition, and a table of their numbers. On the timeline,
+// the break markers of the same playlists (HlsMarkers.h, with the
+// Conformance tab's marker tags): a line per splice point, a flag where
+// each rendition marks it.
 
 #include "NetInspector.h"
 
@@ -90,6 +93,15 @@ void NetInspector::update_alignment(const Inputs& in)
 {
     const double now = ImGui::GetTime();
     const std::uint64_t log_seq = in.log ? in.log->change_seq() : 0;
+    const std::vector<std::string> tags = marker_tag_list();
+    std::string tags_key;
+    for (const auto& t : tags) tags_key += t + " ";
+    // Other tags: the timelines are parsed again for them.
+    if (tags_key != align_.marker_tags) {
+        tl_cache_.clear();
+        align_.log_seq = ~0ull;
+        align_.built_at = -1.0;
+    }
     const bool same_inputs = align_.log_seq == log_seq && align_.scope == scope_ && align_.cat_key == cat_key_
                           && align_.cat_learned == cat_.learned;
     if (same_inputs) return;
@@ -99,6 +111,7 @@ void NetInspector::update_alignment(const Inputs& in)
 
     AlignModel m;
     m.log_seq = log_seq;
+    m.marker_tags = tags_key;
     m.scope = scope_;
     m.cat_key = cat_key_;
     m.cat_learned = cat_.learned;
@@ -214,7 +227,7 @@ void NetInspector::update_alignment(const Inputs& in)
                 if (sync_log_ && sync_log_->copy_body(ar.playlist_req, text)) {
                     const Row* pr = find_row(ar.playlist_req);
                     c = tl_cache_.emplace(ar.playlist_req, std::make_shared<const hls::MediaTimeline>(
-                                              hls::parse_media_timeline(text, pr ? pr->r.url : nr.url))).first;
+                                              hls::parse_media_timeline(text, pr ? pr->r.url : nr.url, tags))).first;
                 }
             }
             if (c != tl_cache_.end()) {
@@ -283,6 +296,12 @@ void NetInspector::update_alignment(const Inputs& in)
     }
 
     m.rep = hls::analyze_alignment(m.in);
+    if (std::any_of(m.in.begin(), m.in.end(), [](const hls::RenditionIn& r) { return !r.tl.markers.empty(); })) {
+        std::vector<hls::MarkerIn> mi;
+        mi.reserve(m.in.size());
+        for (const auto& r : m.in) mi.push_back({ r.label, r.kind, r.tl });
+        m.markers = hls::analyze_markers(mi);
+    }
     // Keep the selection on the same rendition if it is still listed.
     if (sel_cat >= 0) {
         sel_rend_ = -1;
@@ -723,6 +742,47 @@ void NetInspector::draw_alignment(const Inputs& in, Out& out, float w, float h)
                 }
             }
         }
+        // Break markers: the splice point's line, from the marker reference's
+        // time; each rendition's marker a flag on its row, joined to the line
+        // when it is off; a ring where a rendition carrying the tag lacks it.
+        std::string marker_tip;
+        if (align_.markers.any()) {
+            const auto& mk = align_.markers;
+            auto shift_of = [&](int k) {
+                return k >= 0 && k < static_cast<int>(rep.rows.size()) ? rep.rows[static_cast<std::size_t>(k)].shift : 0.0;
+            };
+            for (const auto& ev : mk.events) {
+                if (!ev.splice || std::isnan(ev.time)) continue;
+                const double te = ev.time + shift_of(mk.reference);
+                if (te < view_t0_ - span * 0.05 || te > view_t1_ + span * 0.05) continue;
+                const float xe = X(te);
+                for (float y = tp.y + kAxisH - 2.0f; y < tp.y + tl_h - 2.0f; y += 6.0f)
+                    cdl->AddLine(ImVec2(xe, y), ImVec2(xe, std::min(y + 3.0f, tp.y + tl_h - 2.0f)), C(th::kAccent), 1.0f);
+                cdl->AddText(fs, 10.0f, ImVec2(xe + 3.0f, tp.y + kAxisH - 11.0f), C(th::kAccent), ev.id.c_str());
+                for (const auto& p : ev.places) {
+                    if (p.rendition < 0 || p.rendition >= n || std::isnan(p.at)) continue;
+                    const float y0 = tp.y + kAxisH + p.rendition * kRowH;
+                    const float y1 = y0 + kRowH - 5.0f;
+                    const float xp = X(p.at + shift_of(p.rendition));
+                    const bool bad = p.sev == hls::Severity::Error || p.sev == hls::Severity::Warning;
+                    const ImU32 col = bad ? sev_color(p.sev) : th::kAccent;
+                    if (bad && std::fabs(xp - xe) > 2.0f)
+                        cdl->AddLine(ImVec2(xp, (y0 + y1) * 0.5f), ImVec2(xe, (y0 + y1) * 0.5f), C(th::alpha(col, 0.7f)), 1.5f);
+                    cdl->AddLine(ImVec2(xp, y0), ImVec2(xp, y1), C(col), 2.0f);
+                    cdl->AddTriangleFilled(ImVec2(xp, y0), ImVec2(xp + 6.0f, y0 + 3.5f), ImVec2(xp, y0 + 7.0f), C(col));
+                    if (tl_hov && std::fabs(io.MousePos.x - xp) <= 4.0f && io.MousePos.y >= y0 && io.MousePos.y < y0 + kRowH)
+                        marker_tip = std::format("{} · #{} at {:.3f} s\n{:+.0f} ms from the boundary nearest the break ({})",
+                                                 ev.id, p.tag, p.at, p.off * 1000.0, hls::severity_name(p.sev));
+                }
+                for (const int k : ev.missing) {
+                    if (k < 0 || k >= n) continue;
+                    const float yc = tp.y + kAxisH + k * kRowH + (kRowH - 5.0f) * 0.5f;
+                    cdl->AddCircle(ImVec2(xe, yc), 4.5f, C(sev_color(hls::Severity::Warning)), 12, 1.5f);
+                    if (tl_hov && std::fabs(io.MousePos.x - xe) <= 5.0f && std::fabs(io.MousePos.y - yc) <= 8.0f)
+                        marker_tip = std::format("{}: no marker in this rendition, which carries the tag elsewhere", ev.id);
+                }
+            }
+        }
         // Playhead.
         const double tnow = playlist_time_now(in);
         if (!std::isnan(tnow) && tnow >= view_t0_ && tnow <= view_t1_) {
@@ -733,7 +793,9 @@ void NetInspector::draw_alignment(const Inputs& in, Out& out, float w, float h)
         }
         cdl->PopClipRect();
 
-        if (hover_k >= 0) {
+        if (!marker_tip.empty()) {
+            ui::tooltip(marker_tip.c_str());
+        } else if (hover_k >= 0) {
             const auto& ri = align_.in[static_cast<std::size_t>(hover_k)];
             const int si = ri.tl.index_of(hover_seq);
             if (si >= 0) {
@@ -759,9 +821,14 @@ void NetInspector::draw_alignment(const Inputs& in, Out& out, float w, float h)
         }
         ImGui::SetCursorScreenPos(ImVec2(tp.x, tp.y + tl_h + 2.0f));
         ImGui::PushTextWrapPos(0.0f);
-        ImGui::TextDisabled("Wheel zooms, drag pans, double-click fits. Bars: segments the player requested (faint: "
+        ImGui::TextDisabled("%s%s",
+                            "Wheel zooms, drag pans, double-click fits. Bars: segments the player requested (faint: "
                             "probed). Diamonds: start timestamps read — green aligned with the reference, amber or red "
-                            "off. Amber lines: discontinuities.");
+                            "off. Amber lines: discontinuities.",
+                            align_.markers.any()
+                                ? " Blue dashed lines: splice points; a flag where each rendition marks one, joined to "
+                                  "the line when it is off (amber, red), a ring where it is missing."
+                                : "");
         ImGui::PopTextWrapPos();
     }
 

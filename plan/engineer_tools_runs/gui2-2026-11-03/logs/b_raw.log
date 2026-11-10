@@ -1,0 +1,20 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  Opening <scratch>/gui2/clips/raw.264 (t=0.275)
+[INFO]  Demuxer: avformat_open_input 1 ms (1 streams, 0 programs) (t=0.276)
+[INFO]  Demuxer: avformat_find_stream_info 4 ms (t=0.280)
+[WARN]  No audio stream found
+[INFO]  Container: raw H.264 video
+[INFO]  Video:     h264 1280×720 @ 25.000 fps  pixel_fmt=yuv420p
+[INFO]  Selected HW-capable decoder: h264 (default was h264)
+[INFO]  Decoder opened: h264 (1280×720)  [HW: VideoToolbox requested]
+[INFO]  Opened <scratch>/gui2/clips/raw.264 in 35 ms (t=0.310)
+[INFO]  VideoRenderer: 1280×720 SDR (yuv420p → RGB24 sRGB)  matrix=BT.709  limited-range
+[INFO]  Subtitles: 0 choice(s); initial off (none available)
+[INFO]  ScrubDecoder: ready (open 0 ms, probe 4 ms) (t=0.316)
+[INFO]  ThumbnailStrip: open 0 ms, probe 4 ms (t=0.316)
+[WARN]  ThumbnailStrip: no keyframe index for stream 0 and unknown duration
+[INFO]  FrameScan: stream 0 (h264) — 250 frames, 3.6 MB in 0.01 s
+[INFO]  Decoder: VideoToolbox HW decode active (zero-copy IOSurface path)
+[INFO]  first-frame: pts=0.040 1280x720 VideoToolbox, 142 ms after open (t=0.454)
+[INFO]  VideoRenderer: HW zero-copy path ready (8-bit, BT.709 matrix, limited-range)
+[INFO]  ui-snapshot: wrote <scratch>/gui2/b_raw.png (3200×2000, frame 150, hover=none, thumb_pts=none, sub="")

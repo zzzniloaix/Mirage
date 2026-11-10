@@ -1,0 +1,50 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  Opening <scratch>/gui3/clips/av_lead.ts (t=0.615)
+[INFO]  Demuxer: avformat_open_input 10 ms (2 streams, 1 programs) (t=0.627)
+[INFO]  Demuxer: avformat_find_stream_info 7 ms (t=0.633)
+[INFO]  Container: MPEG-TS (MPEG-2 Transport Stream)
+[INFO]  Duration:  00:00:06
+[INFO]  Video:     h264 1280×720 @ 25.000 fps  pixel_fmt=yuv420p
+[INFO]  Audio:     aac 48000 Hz  1 ch  fmt=fltp
+[INFO]  Selected HW-capable decoder: h264 (default was h264)
+[INFO]  Decoder opened: h264 (1280×720)  [HW: VideoToolbox requested]
+[INFO]  AudioPlayer: 48000 Hz stereo float32  device latency 30.0 ms (480 frames × 3 periods)
+[INFO]  Decoder opened: aac (0×0)
+[INFO]  AudioDecoder: 48000 Hz 1ch → 48000 Hz stereo f32
+[INFO]  Opened <scratch>/gui3/clips/av_lead.ts in 317 ms (t=0.933)
+[INFO]  VideoRenderer: 1280×720 SDR (yuv420p → RGB24 sRGB)  matrix=BT.709  limited-range
+[INFO]  Subtitles: 0 choice(s); initial off (none available)
+[INFO]  --ui-sub-at: position 5.960 (pts 7.901)
+[INFO]  AudioDecoder: resampler 48000 Hz mono fltp → 48000 Hz stereo flt, FFmpeg's default downmix levels
+[mpegts @ 0x7ec2b2800] start time for stream 1 is not set in estimate_timings_from_pts
+[mpegts @ 0x7ec2b2800] stream 1 : no TS found at start of file, duration not set
+[mpegts @ 0x7ec2b2800] Could not find codec parameters for stream 1 (Audio: aac ([15][0][0][0] / 0x000F), 0 channels, fltp): unspecified sample rate
+Consider increasing the value for the 'analyzeduration' (0) and 'probesize' (5000000) options
+[INFO]  ScrubDecoder: ready (open 3 ms, probe 29 ms) (t=0.971)
+[mpegts @ 0x7ec2b2580] start time for stream 1 is not set in estimate_timings_from_pts
+[mpegts @ 0x7ec2b2580] stream 1 : no TS found at start of file, duration not set
+[mpegts @ 0x7ec2b2580] Could not find codec parameters for stream 1 (Audio: aac ([15][0][0][0] / 0x000F), 0 channels, fltp): unspecified sample rate
+Consider increasing the value for the 'analyzeduration' (0) and 'probesize' (5000000) options
+[INFO]  ThumbnailStrip: open 5 ms, probe 29 ms (t=0.973)
+[INFO]  ThumbnailStrip: 6 keyframes found, decoding 6 thumbnails (stride 0.02 s, 160 px tall)
+[INFO]  ThumbnailStrip: coarse pass done (1 thumbnails)
+[INFO]  Demuxer: no keyframe at or before 7.441 after where the seek landed — reading again from 6.441 (t=1.024)
+[INFO]  Demuxer: no keyframe at or before 7.441 after where the seek landed — reading again from 5.441 (t=1.030)
+[INFO]  Demuxer: no keyframe at or before 7.441 after where the seek landed — reading again from 3.441 (t=1.037)
+[INFO]  Demuxer: no keyframe at or before 7.441 after where the seek landed — reading again from the start (t=1.041)
+[INFO]  loading-indicator: "Loading" (t=1.195)
+[h264 @ 0x7ec2d1f80] co located POCs unavailable
+[h264 @ 0x7ec2d1f80] co located POCs unavailable
+[h264 @ 0x7ec2d1f80] co located POCs unavailable
+[h264 @ 0x7ec2d2300] co located POCs unavailable
+[INFO]  Decoder: VideoToolbox HW decode active (zero-copy IOSurface path)
+[h264 @ 0x7ec2d1f80] co located POCs unavailable
+[INFO]  ThumbnailStrip: decode complete (1 thumbnails)
+[INFO]  loading-indicator: "Buffering" (t=1.612)
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=1.615)
+[INFO]  first-frame: pts=7.901 1280x720 VideoToolbox, 801 ms after open, paused (t=1.740)
+[INFO]  switch-trace: first frame after seek pts=7.901 — took 799 ms
+[INFO]  VideoRenderer: HW zero-copy path ready: '420v' bound as R8 / RG8, 8-bit samples (BT.709 matrix, limited-range)
+[INFO]  loading-indicator: hidden (t=1.773)
+[INFO]  playback paused (t=1.778)
+[INFO]  ui-snapshot: wrote <scratch>/gui3/end_bar_av.png (2560×1440, frame 30, hover=none, thumb_pts=none, sub="")

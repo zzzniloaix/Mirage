@@ -197,8 +197,13 @@ if(NOT MIRAGE_HEADLESS)
         src/HlsMaster.cpp
         src/HlsVariants.cpp
         src/HlsAlign.cpp
+        src/HlsMarkers.cpp
+        src/HlsReportHtml.cpp
         src/HlsConform.cpp
         src/HlsConformProbe.cpp
+        src/DashMpd.cpp
+        src/DashConform.cpp
+        src/DashConformProbe.cpp
         src/JsonText.cpp
         src/DemuxRetry.cpp
         src/PipelineState.cpp
@@ -299,6 +304,8 @@ add_executable(mirage_hlscheck
     src/HlsConform.cpp
     src/HlsConformProbe.cpp
     src/HlsAlign.cpp
+    src/HlsMarkers.cpp
+    src/HlsReportHtml.cpp
     src/NetworkLogger.cpp
     src/JsonText.cpp
 )
@@ -322,6 +329,7 @@ add_executable(mirage_dashcheck
     src/HlsConform.cpp
     src/HlsConformProbe.cpp
     src/HlsAlign.cpp
+    src/HlsMarkers.cpp
     src/NetworkLogger.cpp
     src/JsonText.cpp
 )
@@ -349,17 +357,20 @@ add_executable(mirage_tests
     tests/test_manifest_parser.cpp
     tests/test_subtitle_decoder.cpp
     tests/test_yuv_matrix.cpp
+    tests/test_colour_interpretation.cpp
     tests/test_frame_info.cpp
     tests/test_scopes.cpp
     tests/test_sync.cpp
     tests/test_audio_player.cpp
     tests/test_audio_decoder.cpp
+    tests/test_decoder.cpp
     tests/test_queue.cpp
     tests/test_ui_format.cpp
     tests/test_thumb_plan.cpp
     tests/test_subtitle_select.cpp
     tests/test_demux_retry.cpp
     tests/test_demuxer_switch.cpp
+    tests/test_demuxer_seek.cpp
     tests/test_track_groups.cpp
     tests/test_pipeline_state.cpp
     tests/test_hls_variants.cpp
@@ -367,6 +378,8 @@ add_executable(mirage_tests
     tests/test_keyframe_index.cpp
     tests/test_scrub_follow.cpp
     tests/test_hls_align.cpp
+    tests/test_hls_markers.cpp
+    tests/test_hls_report_html.cpp
     tests/test_hls_conform.cpp
     tests/test_dash_conform.cpp
     tests/test_frame_scan.cpp
@@ -424,6 +437,8 @@ add_executable(mirage_tests
     src/HlsMaster.cpp
     src/HlsVariants.cpp
     src/HlsAlign.cpp
+    src/HlsMarkers.cpp
+    src/HlsReportHtml.cpp
     src/HlsConform.cpp
     src/HlsConformProbe.cpp
     src/DashMpd.cpp
@@ -480,6 +495,9 @@ target_compile_definitions(mirage_tests PRIVATE
     MIRAGE_LIBVMAF_MODEL_DIR="${MIRAGE_LIBVMAF_MODEL_DIR}"
     # The built mirage_vmaf, which tests/test_vmaf_ladder.cpp runs as a program.
     MIRAGE_VMAF_PATH="$<TARGET_FILE:mirage_vmaf>"
+    # The headless configuration leaves out the tests that need the player's
+    # hardware (VideoToolbox decoding, tests/test_decoder.cpp).
+    $<$<BOOL:${MIRAGE_HEADLESS}>:MIRAGE_HEADLESS>
 )
 add_dependencies(mirage_tests mirage_vmaf)
 

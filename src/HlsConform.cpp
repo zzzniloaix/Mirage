@@ -1063,6 +1063,12 @@ ConformReport analyze_conformance(const MasterDecl& m, const std::vector<Playlis
             if (!pr->key.empty())
                 add(Severity::Info, idx, std::format("{}: segments encrypted ({})", name, pr->key),
                     "Their contents are not read: only sizes, bit rates and the playlist count.");
+            if (!pr->encrypted.empty())
+                add(Severity::Info, idx, std::format("{}: segments encrypted ({}), read without the key", name,
+                                                     pr->encrypted),
+                    "Sample data only is encrypted: timestamps, durations, keyframe flags, the first picture's NAL "
+                    "header and the decoder configuration are read; nothing is decoded, so the size and the "
+                    "transfer characteristics come from the container.");
         }
         row.read = pr ? static_cast<int>(pr->reads.size()) : 0;
 
@@ -1390,13 +1396,17 @@ ConformReport analyze_conformance(const MasterDecl& m, const std::vector<Playlis
             c.declared = v.video_range.empty() ? "absent (SDR)" : v.video_range;
             std::set<int> transfers;
             std::set<std::string> dv_pq;   // Dolby Vision with no compatible base layer: PQ
+            bool unsignalled = false;   // encrypted, and the container gives no transfer
             for (const SegmentRead* s : vreads) {
                 const VideoSeen& vs = *s->video;
                 if (vs.dv_profile >= 0 && vs.dv_compat == 0) dv_pq.insert(std::format("{}.{}", vs.dv_profile, vs.dv_level));
+                else if (s->encrypted && vs.transfer == 2) unsignalled = true;
                 else transfers.insert(vs.transfer);
             }
             if (transfers.empty() && dv_pq.empty()) {
-                c.note = "No video was read.";
+                c.note = unsignalled ? "The segments are encrypted and their container (colr) gives no transfer "
+                                       "characteristics: not checked without decoding."
+                                     : "No video was read.";
             } else {
                 c.checked = true;
                 const bool pq = !dv_pq.empty() || transfers.contains(16), hlg = transfers.contains(18);
@@ -1676,12 +1686,16 @@ std::string conformance_json(const MasterDecl& m, const std::vector<PlaylistRead
                          i ? "," : "", quote(p.uri), p.error.empty() ? "null" : quote(p.error),
                          num_or_null(p.tl.target, p.tl.ok), p.tl.segments.size(), sized, bytes,
                          num_or_null(p.tl.total, p.tl.ok), p.key.empty() ? "null" : quote(p.key));
+        // Only when there are some: the reports of clear streams stay as they were.
+        if (!p.encrypted.empty())
+            o.insert(o.size() - std::string_view(", \"reads\": [").size(), ", \"encrypted\": " + quote(p.encrypted));
         for (std::size_t k = 0; k < p.reads.size(); ++k) {
             const SegmentRead& s = p.reads[k];
             o += std::format("{}\n      {{\"index\": {}, \"sequence\": {}, \"bytes\": {}, \"extinf\": {}", k ? "," : "",
                              s.index, seq_of(p, s.index), s.bytes, num_or_null(extinf_of(p, s.index),
                                                                                 std::isfinite(extinf_of(p, s.index))));
             if (!s.error.empty()) o += std::format(", \"error\": {}", quote(s.error));
+            if (s.encrypted) o += ", \"encrypted\": true";
             if (s.video) {
                 const VideoSeen& v = *s.video;
                 o += std::format(", \"first_picture\": {}, \"first_keyframe_flag\": {}, \"frames\": {}, \"keyframes\": {}, "

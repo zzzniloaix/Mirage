@@ -1,0 +1,25 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  Opening <scratch>/gui2/clips/av1_4k_pq.mp4 (t=0.245)
+[INFO]  Demuxer: avformat_open_input 1 ms (1 streams, 0 programs) (t=0.246)
+[INFO]  Demuxer: avformat_find_stream_info 1 ms (t=0.247)
+[WARN]  No audio stream found
+[INFO]  Container: QuickTime / MOV
+[INFO]  Duration:  00:00:02
+[INFO]  Video:     av1 3840×2160 @ 24.000 fps  pixel_fmt=yuv420p10le
+[INFO]  Selected HW-capable decoder: av1 (default was libdav1d)
+[INFO]  Decoder opened: av1 (3840×2160)  [HW: VideoToolbox requested]
+[INFO]  Opened <scratch>/gui2/clips/av1_4k_pq.mp4 in 30 ms (t=0.275)
+[INFO]  VideoRenderer: 3840×2160 HDR (yuv420p10le → RGB48 → GLSL tonemap)  trc=smpte2084  matrix=BT.2020  limited-range
+[INFO]  ThumbnailStrip: open 1 ms, probe 0 ms (t=0.280)
+[INFO]  ThumbnailStrip: 1 keyframes in index for stream 0 — seek-sampling 3 points (stride 0.67 s)
+[INFO]  Subtitles: 0 choice(s); initial off (none available)
+[INFO]  ScrubDecoder: ready (open 1 ms, probe 0 ms) (t=0.280)
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=0.282)
+[INFO]  ThumbnailStrip: coarse pass done (1 thumbnails)
+[INFO]  ThumbnailStrip: decode complete (1 thumbnails)
+[INFO]  Decoder: VideoToolbox HW decode active (zero-copy IOSurface path)
+[INFO]  first-frame: pts=1.000 3840x2160 VideoToolbox, 229 ms after open, paused (t=0.508)
+[INFO]  switch-trace: first frame after seek pts=1.000 — took 228 ms
+[INFO]  VideoRenderer: HW zero-copy path ready (10-bit, BT.2020 matrix, limited-range)
+[INFO]  playback paused (t=0.550)
+[INFO]  ui-snapshot: wrote <scratch>/gui2/sx_av1.png (3200×2000, frame 60, hover=none, thumb_pts=none, sub="")

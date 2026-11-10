@@ -237,6 +237,9 @@ struct SegmentRead {                     // one media segment read in full
     double       media_duration = kNaN;  // video: max(pts + duration) − min(pts), seconds
     double       audio_duration = kNaN;  // the same for the audio stream
     double       frame_rate = 0.0;       // (frames − 1) / (max pts − min pts); 0 = unknown
+    bool         encrypted = false;      // read without its key (SAMPLE-AES, CENC): the container,
+                                         // timestamps, keyframe flags and clear NAL headers only —
+                                         // nothing decoded, size and transfer from the container
 };
 
 struct PlaylistRead {                    // one media playlist: a variant's or an audio rendition's
@@ -246,8 +249,10 @@ struct PlaylistRead {                    // one media playlist: a variant's or a
     bool          target_tag = false;    // it has an EXT-X-TARGETDURATION (tl.target 0 is also none)
     std::vector<std::int64_t> sizes;     // per segment of tl; -1 = unknown
     std::vector<SegmentRead>  reads;     // the segments read
-    std::string   key;                   // EXT-X-KEY METHOD of the segments read ("" = none):
-                                         // encrypted contents are not read, sizes still count
+    std::string   key;                   // EXT-X-KEY METHOD of segments not read ("" = none):
+                                         // AES-128 needs its key; sizes still count
+    std::string   encrypted;             // EXT-X-KEY METHOD of segments read without their key
+                                         // (SAMPLE-AES, SAMPLE-AES-CTR): see SegmentRead::encrypted
 };
 
 // ── The verdict ──────────────────────────────────────────────────────────────

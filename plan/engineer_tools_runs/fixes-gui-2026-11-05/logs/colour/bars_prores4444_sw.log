@@ -1,0 +1,19 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  Opening plan/engineer_tools_runs/investigate-2026-11-03/render/clips/bars_prores4444.mov (t=0.678)
+[INFO]  Demuxer: avformat_open_input 2 ms (1 streams, 0 programs) (t=0.681)
+[INFO]  Demuxer: avformat_find_stream_info 5 ms (t=0.686)
+[WARN]  No audio stream found
+[INFO]  Container: QuickTime / MOV
+[INFO]  Duration:  00:00:01
+[INFO]  Video:     prores 448×128 @ 25.000 fps  pixel_fmt=yuv444p12le
+[INFO]  Decoder opened: prores (448×128)  [SW: 13 threads]
+[INFO]  Opened plan/engineer_tools_runs/investigate-2026-11-03/render/clips/bars_prores4444.mov in 59 ms (t=0.737)
+[INFO]  VideoRenderer: 448×128 SDR (yuv444p12le → RGB24 sRGB)  matrix=BT.709  limited-range
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=0.743)
+[INFO]  Subtitles: 0 choice(s); initial off (none available)
+[INFO]  ThumbnailStrip: open 2 ms, probe 0 ms (t=0.745)
+[INFO]  ScrubDecoder: ready (open 3 ms, probe 0 ms) (t=0.746)
+[INFO]  ThumbnailStrip: 25 keyframes found, decoding 25 thumbnails (stride 0.00 s, 160 px tall)
+[INFO]  first-frame: pts=0.000 448x128 software, 13 ms after open (t=0.755)
+[INFO]  ThumbnailStrip: decode complete (24 thumbnails)
+[INFO]  --snapshot: wrote <scratch>/gui3b/colour/bars_prores4444_sw.png (2560×731, frame 10)
