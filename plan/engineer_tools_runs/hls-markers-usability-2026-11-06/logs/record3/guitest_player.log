@@ -1,0 +1,8 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  ConformProbe: pkg/master.m3u8 — 4 playlists, 0 segments read, 0 sized, 0.0 MB in 0.0 s: 0 errors, 0 warnings
+[INFO]  conform_out: wrote tab.json
+[INFO]  conformance: card break-1 row: English
+[INFO]  conformance: card break-1 row: v2 1080p
+[INFO]  conformance: card break-1 row: v0 360p
+[INFO]  conformance: card break-1 row: v1 360p
+[INFO]  ui-snapshot: wrote launcher.png (launcher)

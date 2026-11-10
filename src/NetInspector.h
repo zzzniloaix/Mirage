@@ -72,17 +72,32 @@ public:
     // "detail=response|timing", "mode=segments" (Response: parsed playlist),
     // "filter=<text>", "chip=video|audio|...", "width=<px>",
     // "scope=all" (Alignment: every rendition), "probe=1" (probe once ready),
-    // "finding=<n>" (expand the n-th finding), "tab=conformance",
+    // "finding=<n>" (expand the n-th finding, 0-based), "tab=conformance",
     // "conform=1" (run the conformance check once the manifest is known),
     // "conform_segments=<n>" (0 = every segment), "conform_out=<path>" (write
     // its JSON report there when it is done), "conform_html=<path>" (and its
     // HTML report), "marker_tags=<A+B>" (tags for the marker check, '+'
-    // between), "markers_only=1", "marker_open=<n>" (expand the n-th event),
-    // "dash=<MPD URL or path>" (the tab's DASH
-    // mode, checking that MPD at once) or "hls=<master URL or path>" (the
-    // HLS check of that master, whatever is playing); dash= and hls= last, as
-    // the URL may hold commas.
+    // between), "markers_only=1", "marker_open=<n>" (expand the n-th splice
+    // point's card, 0-based as finding=), "dash=<MPD URL or path>" (the tab's
+    // DASH mode, checking that MPD at once) or "hls=<master URL or path>" (the
+    // HLS check of that master, whatever is playing, or with nothing playing);
+    // dash= and hls= last, as the URL may hold commas. With no media given,
+    // the player applies the spec on its launcher (conform=1 then has no
+    // master to check: use hls=).
     void qa_apply(const std::string& spec);
+
+    // The Conformance tab on `url`, an HLS master (or an MPD when `dash`),
+    // checked at once: what hls= and dash= do, and the launcher's "Check it"
+    // after an open that failed.
+    void check_url(const std::string& url, bool dash);
+
+    // The Conformance tab with its URL field focused: the launcher's link.
+    void open_conformance();
+
+    // QA: nothing left to wait for before a capture. No check pending or
+    // running, and the last result taken in. conform=1 is not waited for: it
+    // needs a playing master.
+    bool qa_idle() const;
 
     // QA: the alignment report as text (findings, then one line per rendition).
     std::string alignment_text() const;
@@ -222,7 +237,8 @@ private:
     // be played (DRM) can still be checked. Kept across media sessions.
     char                 hls_url_[2048] = {};
     bool                 conform_from_url_ = false;   // the result is hls_url_'s
-    bool                 qa_hls_ = false;             // "hls=<url>": check it once
+    bool                 qa_hls_ = false;             // "hls=<url>", check_url(): check it once
+    bool                 focus_url_ = false;          // open_conformance(): focus the URL field once
     // The marker check (HlsMarkers.h): tags beside EXT-X-DATERANGE, typed
     // as names with blanks or commas between; markers only = playlists only.
     char                 marker_tags_[512] = {};
@@ -231,6 +247,7 @@ private:
     int                  marker_ev_open_ = -1;    // splice point expanded
     int                  marker_open_ = -1;       // marker finding expanded
     int                  qa_marker_open_ = -1;    // "marker_open=<n>", once the result is in
+    bool                 qa_log_rows_ = false;    // that card's rows go to the log as shown, once
     std::string          export_note_;            // where Export HTML wrote, or why it could not
     std::vector<std::string> marker_tag_list() const;
     std::string          report_json() const;     // conformance + markers, as --json writes
@@ -245,7 +262,7 @@ private:
     DashProbe            dash_;
     DashProbe::Result    dash_res_;
     std::uint64_t        dash_ver_ = ~0ull;
-    bool                 qa_dash_ = false;        // "dash=<url>": check it once
+    bool                 qa_dash_ = false;        // "dash=<url>", check_url(): check it once
 
     // UI state
     Tab           tab_          = Tab::Network;

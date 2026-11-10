@@ -1,0 +1,47 @@
+[INFO]  ConformProbe: demo/master.m3u8 — 4 playlists, 10 segments read, 17 sized, 2.7 MB in 0.1 s: 5 errors, 5 warnings
+demo/master.m3u8
+3 variants, 4 media playlists: 27 of 27 segments sized, 10 read, in 0.1 s
+
+  #  BANDWIDTH   peak        AVG    CODECS RES    FPS    RANGE  START  DUR    playlist
+  0  600 kb/s    1.03 Mb/s   warn   ERROR  ok     warn   ok     ok     ok     v1/index.m3u8
+  1  2.00 Mb/s   1.03 Mb/s   -      ok     ok     ok     ok     ERROR  note   v2/index.m3u8
+  2  4.00 Mb/s   2.39 Mb/s   -      ERROR  warn   ok     ERROR  ok     warn   v3/index.m3u8
+
+5 errors, 5 warnings, 4 notes
+ERROR v1/index.m3u8: BANDWIDTH 600 kb/s is 41.9% below the measured peak 1.03 Mb/s  [variants 0]
+      BANDWIDTH 600 kb/s (600000 b/s) is 41.9% below the peak segment bit rate 1.03 Mb/s (887 kb/s the variant's playlist + 145 kb/s its largest audio rendition), segment #1, 2.000 s (1032061 b/s). RFC 8216 §4.3.4.2: BANDWIDTH MUST be the largest sum of peak segment bit rates of any playable combination of renditions; a player that fits BANDWIDTH to its link can stall on this variant.
+ERROR v1/index.m3u8: CODECS names another profile than the stream's  [variants 0]
+      CODECS says H.264 Main, level 3.0 (avc1.4d401e); the stream is H.264 High, level 3.0 (avc1.64001e). Devices choose variants by the profile they can decode.
+ERROR v2/index.m3u8: segment #7 starts with a P/B picture  [variants 1]
+      A player that starts or switches there cannot show anything until the next random access point. One has no random access point at all: #7. EXT-X-INDEPENDENT-SEGMENTS says every segment decodes without the ones before it (RFC 8216 §4.3.5.1).
+ERROR v3/index.m3u8: CODECS level 3 below the stream's 3.1  [variants 2]
+      CODECS says HEVC Main 10, Main tier, level 3 (hvc1.2.4.L90.B0); the stream is HEVC Main 10, Main tier, level 3.1 (hvc1.2.4.L93.90): a device limited to level 3 can choose a variant it cannot decode.
+ERROR v3/index.m3u8: VIDEO-RANGE absent (SDR), the video is PQ  [variants 2]
+      No VIDEO-RANGE, which means SDR, but the video is PQ: 16 (PQ (SMPTE ST 2084)). draft-pantos-hls-rfc8216bis-22: VIDEO-RANGE MUST be PQ for transfer 16 and HLG for 18 (also mixed with SDR), SDR for 1, 6, 13, 14, 15; absent means SDR.
+warn  v1/index.m3u8: AVERAGE-BANDWIDTH -49% off the measured average  [variants 0]
+      AVERAGE-BANDWIDTH 500 kb/s is -49.2% off the average segment bit rate 983 kb/s (840 kb/s + 144 kb/s audio).
+warn  v1/index.m3u8: FRAME-RATE 30.000, the video is 25.000 fps  [variants 0]
+      FRAME-RATE 30.000; the segments read run at up to 25.000 fps. FRAME-RATE is the maximum frame rate, rounded to three decimal places (RFC 8216 §4.3.4.2).
+warn  audio "English" (a1/index.m3u8): CHANNELS "6", it decodes to 2 channels  [variants 0–2]
+      RFC 8216 §4.3.4.1: the first CHANNELS parameter is the largest number of independent, simultaneous channels in any segment of the rendition.
+warn  v3/index.m3u8: RESOLUTION 1920×1080, the video is 1280×720  [variants 2]
+      RESOLUTION 1920×1080 but the video decodes at 1280×720.
+warn  v3/index.m3u8: segment #0's pictures span -0.160 s off its EXTINF  [variants 2]
+      #0 1.840 s against 2.000 s. EXTINF is a segment's duration (RFC 8216 §4.3.2.1): players lay out the timeline, and seek, by it.
+note  v2/index.m3u8: BANDWIDTH 1.94 × the measured peak  [variants 1]
+      BANDWIDTH 2.00 Mb/s is 1.94 × the peak segment bit rate 1.03 Mb/s (888 kb/s the variant's playlist + 145 kb/s its largest audio rendition), segment #2, 1.520 s: players wait for a faster link than the variant needs.
+note  v2/index.m3u8: segment #4's pictures span -0.080 s off its EXTINF  [variants 1]
+      #4 1.520 s against 1.600 s. The segments have leading pictures (an open GOP, or cuts inside GOPs): the next segment's first pictures show in this one's time, so the spans differ from EXTINF by them.
+note  v3/index.m3u8: BANDWIDTH 1.67 × the measured peak  [variants 2]
+      BANDWIDTH 4.00 Mb/s is 1.67 × the peak segment bit rate 2.39 Mb/s (2.25 Mb/s the variant's playlist + 145 kb/s its largest audio rendition), segment #1, 2.000 s: players wait for a faster link than the variant needs.
+note  v3/index.m3u8: segments start with CRA pictures  [variants 2]
+      #3, 5: clean random access points. The RASL pictures that follow one reference the segment before, and are dropped when playback starts or switches there.
+
+markers: 1 splice points over 4 playlists, reference v0 360p
+  break-1                   6.000 s  marked in 4, missing in 0, 2 off  [com.apple.hls.interstitial]
+  and 1 other EXT-X-DATERANGE (no interstitial CLASS or SCTE-35: not splice points, not checked; in up to 3 playlists; listed in --json)
+1 error, 1 warning, 0 notes
+ERROR break-1: #EXT-X-CUE-MARKER in audio aac/English is one segment early
+      Line 11: it comes before segment #2 at 4.011 s (0:04.011), −1.989 s from the event at 6.000 s (0:06.000) (EXT-X-DATERANGE START-DATE in v0 360p). The boundary nearest the event is 6.016 s (0:06.016) (segment #3), +16 ms from it. A player splices audio aac/English 2.005 s away from the renditions that mark it there.
+warn  break-1: START-DATE is +300 ms off a segment boundary in v2 1080p
+      Line 11: START-DATE falls at 6.300 s (0:06.300); the nearest boundary is 6.000 s (0:06.000) (segment #3). A player splicing the interstitial there cuts inside a segment, or moves the cut to a boundary 300 ms away.

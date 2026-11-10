@@ -310,8 +310,12 @@ MarkerReport analyze_markers(const std::vector<MarkerIn>& in)
             if (tag.empty()) continue;   // it marks nothing at all
             const double t = std::isnan(ev.time) ? kNaN : from_ref(r, ev.time);
             if (std::isnan(t) || t < -kMarkerSlack || t > mi.tl.total + kMarkerSlack) continue;
+            // As bad as a misplaced marker of its kind (D-102): a player that splits the rendition at its
+            // own tag has no break there at all.
+            const Severity sev = tag == kDateRange ? Severity::Warning : Severity::Error;
             ev.missing.push_back(r);
-            add(Severity::Warning, { r }, ev.time, std::format("{}: no #{} in {}", ev.id, tag, mi.label),
+            ev.missing_sev.push_back(sev);
+            add(sev, { r }, ev.time, std::format("{}: no #{} in {}", ev.id, tag, mi.label),
                 std::format("{} marks other events with #{}, but not this one at {} ({}): a player has no break "
                             "to splice there in it.", mi.label, tag, at_text(t), ev.time_from));
         }
@@ -348,6 +352,13 @@ MarkerReport analyze_markers(const std::vector<MarkerIn>& in)
     return rep;
 }
 
+int splice_event(const MarkerReport& r, int n)
+{
+    for (int e = 0; e < static_cast<int>(r.events.size()); ++e)
+        if (r.events[static_cast<std::size_t>(e)].splice && n-- == 0) return e;
+    return -1;
+}
+
 std::string markers_json(const std::vector<MarkerIn>& in, const MarkerReport& r)
 {
     using json::number;
@@ -376,9 +387,10 @@ std::string markers_json(const std::vector<MarkerIn>& in, const MarkerReport& r)
                              number(p.nearest), seq(p.nearest_index), p.before >= 0 ? seq(p.before) : "null",
                              number(p.off), quote(severity_name(p.sev)));
         }
-        std::string miss;
+        std::string miss, miss_sev;
         for (const int m : ev.missing) miss += (miss.empty() ? "" : ", ") + std::to_string(m);
-        o += std::format("], \"missing\": [{}]}}", miss);
+        for (const Severity s : ev.missing_sev) miss_sev += (miss_sev.empty() ? "" : ", ") + quote(severity_name(s));
+        o += std::format("], \"missing\": [{}], \"missing_severity\": [{}]}}", miss, miss_sev);
     }
     o += "],\n    \"findings\": [";
     for (std::size_t i = 0; i < r.findings.size(); ++i) {
