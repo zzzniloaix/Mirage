@@ -20,6 +20,7 @@
 #include "Logger.h"
 #include "ManifestParser.h"
 #include "NetInspectorUi.h"
+#include "UiFormat.h"
 
 #include <cctype>
 #include <cmath>
@@ -846,7 +847,7 @@ void NetInspector::draw_markers(const Inputs& in, Out& out, float cw, bool seeka
         if (seekable && std::isfinite(ev.time)) {
             ImGui::PushID(e + 1600);
             if (ImGui::SmallButton("Play from 3 s before the break"))
-                out.seek_to = std::max(0.0, ev.time - 3.0);   // a position, as the Manifest tab's tags
+                out.seek_to = ui::pts_at(std::max(0.0, ev.time - 3.0), in.start);   // a position, as the Manifest tab's tags, made a PTS (D-089)
             ImGui::PopID();
             if (ImGui::IsItemHovered()) ui::tooltip("Seek there: hear whether the audio cuts with the picture");
         }
