@@ -11,13 +11,19 @@ extern "C" {
 // of pixel formats the codec can output. Return VIDEOTOOLBOX if offered
 // (means the codec has a VT hwaccel and our hw_device_ctx is compatible);
 // otherwise fall back to the default SW format so decode still works.
-static AVPixelFormat get_hw_format_cb(AVCodecContext* ctx,
-                                      const AVPixelFormat* pix_fmts)
+// Called again without VIDEOTOOLBOX in the list when the hwaccel fails to
+// start: the decoder then knows its errors are no longer VideoToolbox's.
+AVPixelFormat Decoder::get_hw_format(AVCodecContext* ctx,
+                                     const AVPixelFormat* pix_fmts)
 {
+    auto* self = static_cast<Decoder*>(ctx->opaque);
     for (const AVPixelFormat* p = pix_fmts; *p != AV_PIX_FMT_NONE; ++p) {
-        if (*p == AV_PIX_FMT_VIDEOTOOLBOX)
+        if (*p == AV_PIX_FMT_VIDEOTOOLBOX) {
+            if (self) self->hw_chosen_ = true;
             return *p;
+        }
     }
+    if (self) self->hw_chosen_ = false;
     return avcodec_default_get_format(ctx, pix_fmts);
 }
 
@@ -56,10 +62,15 @@ Decoder::~Decoder()
 
 void Decoder::close()
 {
+    log_errors(true);   // what the rate limit held back
     if (ctx_)            avcodec_free_context(&ctx_);
     if (hw_device_ctx_)  av_buffer_unref(&hw_device_ctx_);
     hw_requested_ = false;
     hw_active_    = false;
+    hw_chosen_    = false;
+    draining_     = false;
+    open_         = false;
+    hw_run_.store(0, std::memory_order_relaxed);   // a new context has failed nothing yet
 }
 
 bool Decoder::open(AVCodecParameters* par, bool try_hw)
@@ -84,7 +95,8 @@ bool Decoder::open(AVCodecParameters* par, bool try_hw)
         codec  = avcodec_find_decoder(par->codec_id);
     }
     if (!codec) {
-        logger::error("No decoder found for codec id {}", static_cast<int>(par->codec_id));
+        logger::error("No decoder found for {} (codec id {})",
+                      avcodec_get_name(par->codec_id), static_cast<int>(par->codec_id));
         return false;
     }
 
@@ -94,11 +106,14 @@ bool Decoder::open(AVCodecParameters* par, bool try_hw)
         return false;
     }
 
+    // A context that failed to open is freed: FFmpeg's calls on it are not
+    // all safe (avcodec_flush_buffers on one crashes).
     int ret = avcodec_parameters_to_context(ctx_, par);
     if (ret < 0) {
         char errbuf[256];
         av_strerror(ret, errbuf, sizeof(errbuf));
         logger::error("avcodec_parameters_to_context failed: {}", errbuf);
+        close();
         return false;
     }
 
@@ -114,7 +129,8 @@ bool Decoder::open(AVCodecParameters* par, bool try_hw)
             hw_requested_ = false;
         } else {
             ctx_->hw_device_ctx = av_buffer_ref(hw_device_ctx_);
-            ctx_->get_format    = get_hw_format_cb;
+            ctx_->get_format    = get_hw_format;
+            ctx_->opaque        = this;
         }
     }
 
@@ -134,8 +150,11 @@ bool Decoder::open(AVCodecParameters* par, bool try_hw)
         char errbuf[256];
         av_strerror(ret, errbuf, sizeof(errbuf));
         logger::error("avcodec_open2 failed: {}", errbuf);
+        close();
         return false;
     }
+    name_ = codec->name;
+    open_ = true;
 
     logger::info("Decoder opened: {} ({}×{}){}",
         codec->name, ctx_->width, ctx_->height,
@@ -148,19 +167,39 @@ bool Decoder::open(AVCodecParameters* par, bool try_hw)
     return true;
 }
 
-void Decoder::push(AVPacket* pkt)
+int Decoder::push(AVPacket* pkt)
 {
-    avcodec_send_packet(ctx_, pkt);
+    if (!ctx_) return AVERROR(EINVAL);
+    if (!pkt) draining_ = true;
+    const int ret = avcodec_send_packet(ctx_, pkt);
+    // Not decode errors: EAGAIN (frames to receive first), and EOF once the
+    // decoder was drained (it takes nothing more until flush()).
+    if (ret < 0 && ret != AVERROR(EAGAIN) && !(ret == AVERROR_EOF && draining_))
+        note_error(ret);
+    return ret;
 }
 
 bool Decoder::pull(AVFrame* frame)
 {
+    if (!ctx_) return false;
     // Zero-copy path: receive directly into caller's frame. When HW is active,
     // frame->format = AV_PIX_FMT_VIDEOTOOLBOX and frame->data[3] holds a
     // CVPixelBufferRef; VideoRenderer binds its IOSurface as a GL texture.
     // When HW isn't in use (SW decode, or codec fell back to SW), the frame
     // is a normal system-memory AVFrame (yuv420p / nv12 / etc.).
-    if (avcodec_receive_frame(ctx_, frame) != 0) return false;
+    for (int failed = 0;;) {
+        const int ret = avcodec_receive_frame(ctx_, frame);
+        if (ret == 0) break;
+        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) return false;
+        // A packet that failed: the next frame may be there all the same.
+        note_error(ret);
+        if (++failed >= kMaxErrorsPerPull) return false;
+    }
+    hw_run_.store(0, std::memory_order_relaxed);
+    if (frame->decode_error_flags || (frame->flags & AV_FRAME_FLAG_CORRUPT)) {
+        corrupt_.fetch_add(1, std::memory_order_relaxed);
+        log_errors(false);
+    }
 
     if (!hw_active_ && frame->format == AV_PIX_FMT_VIDEOTOOLBOX) {
         hw_active_ = true;
@@ -171,7 +210,46 @@ bool Decoder::pull(AVFrame* frame)
 
 void Decoder::flush()
 {
+    if (!ctx_) return;
     avcodec_flush_buffers(ctx_);
+    draining_ = false;
+}
+
+void Decoder::note_error(int err)
+{
+    errors_.fetch_add(1, std::memory_order_relaxed);
+    last_error_.store(err, std::memory_order_relaxed);
+    if (hw_chosen_) {
+        const std::int64_t run = hw_run_.load(std::memory_order_relaxed) + 1;
+        hw_run_.store(run, std::memory_order_relaxed);
+        if (run > hw_run_max_.load(std::memory_order_relaxed))
+            hw_run_max_.store(run, std::memory_order_relaxed);
+    }
+    log_errors(false);
+}
+
+void Decoder::log_errors(bool now)
+{
+    const Errors e = errors();
+    if (e.errors == logged_errors_ && e.corrupt == logged_corrupt_) return;   // nothing new
+    const auto t = std::chrono::steady_clock::now();
+    if (!now && last_log_ != std::chrono::steady_clock::time_point{} && t - last_log_ < kErrorLogInterval)
+        return;
+    last_log_       = t;
+    logged_errors_  = e.errors;
+    logged_corrupt_ = e.corrupt;
+    logger::warn("Decoder {}: {}", name_.empty() ? "?" : name_, describe_decode_errors(e));
+}
+
+Decoder::Errors Decoder::errors() const
+{
+    Errors e;
+    e.errors     = errors_.load(std::memory_order_relaxed);
+    e.last       = last_error_.load(std::memory_order_relaxed);
+    e.corrupt    = corrupt_.load(std::memory_order_relaxed);
+    e.hw_run     = hw_run_.load(std::memory_order_relaxed);
+    e.hw_run_max = hw_run_max_.load(std::memory_order_relaxed);
+    return e;
 }
 
 void Decoder::skip_unreferenced(bool on)
@@ -218,4 +296,30 @@ AVRational Decoder::sample_aspect_ratio() const
 const char* Decoder::hw_type_name() const
 {
     return hw_active_ ? "VideoToolbox" : "Software";
+}
+
+std::string av_error_text(int err)
+{
+    char buf[AV_ERROR_MAX_STRING_SIZE] = {};
+    av_strerror(err, buf, sizeof(buf));
+    return buf;
+}
+
+std::string describe_decode_errors(const Decoder::Errors& e)
+{
+    std::string out;
+    auto add = [&out](const std::string& part) {
+        if (!out.empty()) out += ", ";
+        out += part;
+    };
+    if (e.errors > 0)
+        add(std::format("{} decode error{} (last: {})", e.errors, e.errors == 1 ? "" : "s",
+                        av_error_text(e.last)));
+    if (e.hw_run_max > 0)
+        add(std::format("up to {} in a row under VideoToolbox", e.hw_run_max));
+    if (e.corrupt > 0)
+        add(std::format("{} corrupt frame{}", e.corrupt, e.corrupt == 1 ? "" : "s"));
+    if (e.hw_run_max > 0)
+        out += "; --no-hw decodes in software";
+    return out;
 }

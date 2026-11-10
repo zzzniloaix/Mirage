@@ -1,5 +1,6 @@
 #include "PipelineState.h"
 
+#include <algorithm>
 #include <format>
 
 const char* to_string(DemuxState s)
@@ -33,12 +34,13 @@ std::string describe_pipeline(const PipelineSnapshot& s)
 {
     std::string out = std::format(
         "t={:.1f}s paused={} scrubbing={} focused={} | demux={} pkts v={} a={} s={} ended={}{} | "
-        "videoq={}/{} audioq={}/{} subq={} frameq={}/{} | video={} in={} out={} hw={}",
+        "videoq={}/{} audioq={}/{} subq={} frameq={}/{} | video={} in={} out={} hw={} errors={}{}",
         s.since_start_s, s.paused ? 1 : 0, s.scrubbing ? 1 : 0, s.focused ? 1 : 0,
         to_string(s.demux), s.video_pkts, s.audio_pkts, s.sub_pkts, s.demux_ended ? 1 : 0,
         s.demux_error.empty() ? std::string() : std::format(" error=\"{}\"", s.demux_error),
         s.videoq, s.videoq_cap, s.audioq, s.audioq_cap, s.subq, s.frameq, s.frameq_cap,
-        to_string(s.video), s.video_in, s.video_out, s.hw ? 1 : 0);
+        to_string(s.video), s.video_in, s.video_out, s.hw ? 1 : 0, s.video_errors,
+        s.video_last_error.empty() ? std::string() : std::format(" last_error=\"{}\"", s.video_last_error));
     if (s.has_audio)
         out += std::format(" | audio={} in={} device={} callbacks={} buffered={:.2f}s clock={:.3f}",
                            to_string(s.audio), s.audio_in, s.audio_device ? 1 : 0, s.audio_callbacks,
@@ -92,14 +94,28 @@ std::string diagnose_no_frame(const PipelineSnapshot& s)
         why = std::format("the decoder produced {} frame(s) but none is queued "
                           "(dropped by a seek / track switch, or before a switch's take-over point)", s.video_out);
     } else if (s.video_in > 0) {
+        // The packets the decoder failed on (errors arrive late with frame
+        // threads: a count, not which packets).
+        const std::string rejected = s.video_errors <= 0 ? std::string()
+            : std::format("it rejected {} of them (last error: {}){}",
+                          std::min(s.video_errors, s.video_in), s.video_last_error,
+                          s.video_hw_errors ? " — --no-hw decodes in software" : "");
         if (s.video == DecodeState::Decoding) {
-            why = std::format("the video decoder is in the codec with {} packet(s) in and no frame out{}",
-                              s.video_in, s.hw ? " (VideoToolbox)" : "");
+            why = std::format("the video decoder is in the codec with {} packet(s) in and no frame out{}{}",
+                              s.video_in, s.hw ? " (VideoToolbox)" : "",
+                              rejected.empty() ? std::string() : "; " + rejected);
         } else {
             const std::string b = demux_blocker(s);
-            why = std::format("the video decoder has {} packet(s) and no frame yet; it waits for more input{}",
-                              s.video_in, b.empty() ? std::string(" (the demuxer is reading — slow input?)")
-                                                    : ": " + b);
+            const std::string waits = std::format("it waits for more input{}",
+                                                  b.empty() ? std::string(" (the demuxer is reading — slow input?)")
+                                                            : ": " + b);
+            if (rejected.empty())
+                why = std::format("the video decoder has {} packet(s) and no frame yet; {}", s.video_in, waits);
+            else if (s.video_errors >= s.video_in)
+                why = std::format("the video decoder has {} packet(s) and no frame yet: {}", s.video_in, rejected);
+            else
+                why = std::format("the video decoder has {} packet(s) and no frame yet: {}; {}",
+                                  s.video_in, rejected, waits);
         }
     } else if (s.video_pkts > 0) {
         why = s.video == DecodeState::Starting

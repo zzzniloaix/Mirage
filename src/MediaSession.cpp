@@ -3,6 +3,7 @@
 #include "HlsMaster.h"
 #include "HlsVariants.h"
 #include "Logger.h"
+#include "UiFormat.h"
 
 #include <algorithm>
 #include <chrono>
@@ -27,6 +28,7 @@ static void video_decode_loop(Decoder& decoder,
                                std::atomic<double>& decode_time_ms,
                                std::atomic<int>& video_epoch,
                                std::atomic<std::uint64_t>& seek_applied,
+                               std::atomic<int>& open_failed,
                                StageStats&       stats,
                                std::stop_token   st)
 {
@@ -172,7 +174,17 @@ static void video_decode_loop(Decoder& decoder,
             av_frame_free(&last_skipped);
             // If this sentinel followed a video stream switch, reopen the decoder.
             if (reopen) {
-                (void)decoder.open(demuxer.video_codecpar(), try_hw);
+                // On failure the decoder takes the new stream's packets and
+                // gives no frame (Decoder::open): the picture stays as it is.
+                if (decoder.open(demuxer.video_codecpar(), try_hw)) {
+                    open_failed.store(-1);
+                } else {
+                    open_failed.store(demuxer.video_stream_index());
+                    logger::error("switch: no video decoder could be opened for stream {} ({}) — "
+                                  "nothing from it can be shown",
+                                  demuxer.video_stream_index(),
+                                  avcodec_get_name(demuxer.video_codecpar()->codec_id));
+                }
                 skipping_unref = false;   // a new codec context
                 tb     = demuxer.video_time_base();
                 stream = demuxer.video_stream_index();
@@ -249,6 +261,7 @@ static void audio_decode_loop(AudioDecoder&     audio_decoder,
                                Queue<AVPacket*>& audioq,
                                std::atomic<int>& audio_stream,
                                const std::atomic<std::uint64_t>& drop_until_seek,
+                               std::atomic<int>& open_failed,
                                StageStats&       stats,
                                std::stop_token   st)
 {
@@ -272,9 +285,24 @@ static void audio_decode_loop(AudioDecoder&     audio_decoder,
             }
             // If this sentinel followed an audio stream switch, reopen the decoder.
             if (reopen) {
-                (void)audio_decoder.reopen(demuxer.audio_codecpar(), audio_player,
-                                           demuxer.audio_time_base());
-                reopened_stream = demuxer.audio_stream_index();
+                // On failure the decoder takes the new stream's packets and
+                // plays their time as silence (AudioDecoder::decode): the
+                // track stays silent, the audio clock goes on.
+                if (audio_decoder.reopen(demuxer.audio_codecpar(), audio_player,
+                                         demuxer.audio_time_base())) {
+                    open_failed.store(-1);
+                    reopened_stream = demuxer.audio_stream_index();
+                } else {
+                    // Nor is it the stream decoded now: the render thread
+                    // ends the switch as failed, not as done.
+                    open_failed.store(demuxer.audio_stream_index());
+                    reopened_stream = -1;
+                    audio_stream.store(-1);
+                    logger::error("switch: no audio decoder could be opened for stream {} ({}) — "
+                                  "the track stays silent",
+                                  demuxer.audio_stream_index(),
+                                  avcodec_get_name(demuxer.audio_codecpar()->codec_id));
+                }
                 logger::info("switch-trace: audio decoder reopened (t={:.3f})", logger::uptime());
             }
             // Where the audio after this sentinel starts, to the sample.
@@ -754,9 +782,18 @@ void MediaSession::build_info()
     }
 
     // Sidecar cue times are file-relative; the player clock is stream PTS.
+    // The UI shows positions, PTS from the video stream's start (else the
+    // container's; 0 for live), up to the media's end.
     {
-        const AVStream* vs = demuxer.fmt_ctx()->streams[demuxer.video_stream_index()];
+        const AVFormatContext* fc = demuxer.fmt_ctx();
+        const AVStream* vs = fc->streams[demuxer.video_stream_index()];
         if (vs->start_time != AV_NOPTS_VALUE) video_start_s = vs->start_time * av_q2d(vs->time_base);
+        constexpr double kNone = std::numeric_limits<double>::quiet_NaN();
+        const double container_start = fc->start_time != AV_NOPTS_VALUE
+                                     ? static_cast<double>(fc->start_time) / AV_TIME_BASE : kNone;
+        timeline_start_s = ui::timeline_start(vs->start_time != AV_NOPTS_VALUE ? video_start_s : kNone,
+                                              container_start, duration);
+        timeline_dur_s   = ui::timeline_duration(container_start, duration, timeline_start_s);
     }
 
     // Estimate one-frame duration from the video stream's average frame rate.
@@ -780,14 +817,14 @@ void MediaSession::start_threads()
 
     video_thread_ = std::jthread([this](std::stop_token st) {
         video_decode_loop(video_decoder, demuxer, videoq, frameq, try_hw_, decode_time_ms, video_epoch,
-                          video_seek_applied, video_stats, st);
+                          video_seek_applied, video_open_failed, video_stats, st);
         frameq.shutdown();
     });
 
     audio_thread_ = std::jthread([this](std::stop_token st) {
         if (has_audio)
             audio_decode_loop(audio_decoder, audio_player, demuxer, audioq, decoded_audio_stream,
-                              audio_drop_until_seek, audio_stats, st);
+                              audio_drop_until_seek, audio_open_failed, audio_stats, st);
     });
 
     // Subtitle decode thread idles until a track is selected (subq receives
@@ -902,6 +939,10 @@ PipelineSnapshot MediaSession::pipeline_snapshot() const
     s.video_in  = video_stats.packets.load(std::memory_order_relaxed);
     s.video_out = video_stats.frames.load(std::memory_order_relaxed);
     s.hw        = video_decoder.is_hw_active();
+    const Decoder::Errors ve = video_decoder.errors();
+    s.video_errors    = ve.errors;
+    s.video_hw_errors = ve.hw_run_max > 0;
+    if (ve.errors > 0) s.video_last_error = av_error_text(ve.last);
 
     s.has_audio = has_audio;
     if (has_audio) {

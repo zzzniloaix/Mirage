@@ -1,13 +1,88 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "UiFormat.h"
 #include "SubtitleSelect.h"
 
+#include <limits>
 #include <set>
 #include <string>
 #include <vector>
 
 using namespace ui;
+using Catch::Matchers::WithinAbs;
+
+// ── Positions ─────────────────────────────────────────────────────────────────
+
+// A stream whose video starts at 1.48 s: 150 frames at 25 fps, 6 s, the
+// last frame at 7.44 s.
+static constexpr double kStart = 1.48, kDur = 6.0, kFps = 25.0;
+
+TEST_CASE("timeline_start: the video's start, else the container's, else 0; 0 for live", "[ui]")
+{
+    const double none = std::numeric_limits<double>::quiet_NaN();
+    CHECK(timeline_start(1.48, 1.4, 6.0) == 1.48);    // the video stream's
+    CHECK(timeline_start(none, 1.4, 6.0) == 1.4);     // the container's
+    CHECK(timeline_start(none, none, 6.0) == 0.0);
+    CHECK(timeline_start(-0.04, 0.0, 6.0) == -0.04);  // a negative start is kept
+    CHECK(timeline_start(1.48, 1.4, -1.0) == 0.0);    // live: the stream's own clock
+    CHECK(timeline_start(1.48, 1.4, 0.0) == 0.0);     // unknown duration
+}
+
+TEST_CASE("timeline_duration: from the start to the media's end, not the container's duration", "[ui]")
+{
+    const double none = std::numeric_limits<double>::quiet_NaN();
+    // FFmpeg's MPEG-TS of AAC and H.264: the audio from 1.458667 s, the video
+    // from 1.48 s, the container's duration 6.021333 s from the audio's start.
+    CHECK_THAT(timeline_duration(1.458667, 6.021333, 1.48), WithinAbs(6.0, 1e-9));
+    CHECK(timeline_duration(1.48, 6.0, 1.48) == 6.0);       // the video first: the container's duration
+    CHECK(timeline_duration(none, 6.0, 1.48) == 6.0);       // no container start: as it is
+    CHECK(timeline_duration(1.4, -1.0, 0.0) == -1.0);       // live
+    CHECK(timeline_duration(1.4, 0.0, 1.48) == 0.0);        // unknown duration
+    CHECK(timeline_duration(0.0, 6.0, 7.0) == 6.0);         // no end after the start: as it is
+}
+
+TEST_CASE("position / pts_at: from the start and back, never a negative PTS", "[ui]")
+{
+    CHECK_THAT(position(7.44, kStart), WithinAbs(5.96, 1e-9));
+    CHECK_THAT(pts_at(5.96, kStart),   WithinAbs(7.44, 1e-9));
+    CHECK(position(kStart, kStart) == 0.0);
+    CHECK(pts_at(0.0, kStart) == kStart);
+    CHECK(pts_at(0.0, 0.0) == 0.0);
+    // A target below 0 means "none": a position before a negative start
+    // gives PTS 0 instead, as does NaN.
+    CHECK(pts_at(0.0, -0.04) == 0.0);
+    CHECK(pts_at(std::numeric_limits<double>::quiet_NaN(), kStart) == 0.0);
+}
+
+TEST_CASE("frame_number: counted from the start, as the frame inspector does", "[ui]")
+{
+    CHECK(frame_number(1.48, 1.48, 25.0) == 0);     // the first frame
+    CHECK(frame_number(7.44, 1.48, 25.0) == 149);   // the last of 150
+    CHECK(frame_number(1.52, 1.48, 25.0) == 1);
+    CHECK(frame_number(41.408, 0.0, 30.0) == 1242);
+    CHECK(frame_number(0.5, 1.48, 25.0) == 0);      // before the start: 0
+    CHECK(frame_number(std::numeric_limits<double>::quiet_NaN(), 1.48, 25.0) == 0);
+}
+
+TEST_CASE("bar mapping: fraction 0 is the start, 1 the start plus the duration", "[ui]")
+{
+    CHECK(pts_at_fraction(0.0, kStart, kDur) == kStart);
+    CHECK_THAT(pts_at_fraction(1.0, kStart, kDur), WithinAbs(kStart + kDur, 1e-9));
+    CHECK_THAT(pts_at_fraction(0.5, kStart, kDur), WithinAbs(4.48, 1e-9));
+    CHECK(pts_at_fraction(-0.2, kStart, kDur) == kStart);   // clamped to the bar
+    CHECK_THAT(pts_at_fraction(1.3, kStart, kDur), WithinAbs(kStart + kDur, 1e-9));
+
+    CHECK(bar_fraction(kStart, kStart, kDur) == 0.0);
+    CHECK_THAT(bar_fraction(kStart + kDur, kStart, kDur), WithinAbs(1.0, 1e-9));
+    CHECK_THAT(bar_fraction(4.48, kStart, kDur), WithinAbs(0.5, 1e-9));
+    CHECK(bar_fraction(0.5, kStart, kDur) == 0.0);            // before the start
+    CHECK(bar_fraction(9.0, kStart, kDur) == 1.0);            // past the end
+    CHECK(bar_fraction(4.48, kStart, 0.0) == 0.0);            // no duration
+    // Round trip.
+    for (double f : { 0.0, 0.25, 0.6, 1.0 })
+        CHECK_THAT(bar_fraction(pts_at_fraction(f, kStart, kDur), kStart, kDur), WithinAbs(f, 1e-9));
+}
 
 // ── format_clock / format_timecode ────────────────────────────────────────────
 
@@ -22,29 +97,55 @@ TEST_CASE("format_clock: minutes and hours forms", "[ui]")
 
 TEST_CASE("format_timecode: mode 0 under and over one hour", "[ui]")
 {
-    CHECK(format_timecode(12.345, 2467.0, 0, 24.0) == "00:12.345 / 41:07.000");
-    CHECK(format_timecode(12.345, 3600.0, 0, 24.0) == "0:00:12.345 / 1:00:00.000");
-    CHECK(format_timecode(-1.0,   60.0,   0, 24.0) == "00:00.000 / 01:00.000");
+    CHECK(format_timecode(12.345, 0.0, 2467.0, 0, 24.0) == "00:12.345 / 41:07.000");
+    CHECK(format_timecode(12.345, 0.0, 3600.0, 0, 24.0) == "0:00:12.345 / 1:00:00.000");
+    CHECK(format_timecode(-1.0,   0.0, 60.0,   0, 24.0) == "00:00.000 / 01:00.000");
 }
 
 TEST_CASE("format_timecode: mode 1 frames, falls back without fps", "[ui]")
 {
-    CHECK(format_timecode(41.408, 100.0, 1, 30.0) == "f 1242 / 3000");
-    CHECK(format_timecode(1.0,    10.0,  1, 0.0)  == "00:01.000 / 00:10.000");
+    CHECK(format_timecode(41.408, 0.0, 100.0, 1, 30.0) == "f 1242 / 3000");
+    CHECK(format_timecode(1.0,    0.0, 10.0,  1, 0.0)  == "00:01.000 / 00:10.000");
 }
 
 TEST_CASE("format_timecode: mode 2 remaining", "[ui]")
 {
-    CHECK(format_timecode(10.0, 70.0, 2, 30.0) == "-01:00.000 / 01:10.000");
-    CHECK(format_timecode(90.0, 70.0, 2, 30.0) == "-00:00.000 / 01:10.000");
+    CHECK(format_timecode(10.0, 0.0, 70.0, 2, 30.0) == "-01:00.000 / 01:10.000");
+    CHECK(format_timecode(90.0, 0.0, 70.0, 2, 30.0) == "-00:00.000 / 01:10.000");
+}
+
+TEST_CASE("format_timecode: every mode from the start, mode 3 the absolute PTS", "[ui]")
+{
+    // The first frame and the last.
+    CHECK(format_timecode(1.48, kStart, kDur, 0, kFps) == "00:00.000 / 00:06.000");
+    CHECK(format_timecode(7.44, kStart, kDur, 0, kFps) == "00:05.960 / 00:06.000");
+    CHECK(format_timecode(1.48, kStart, kDur, 1, kFps) == "f 0 / 150");
+    CHECK(format_timecode(7.44, kStart, kDur, 1, kFps) == "f 149 / 150");
+    CHECK(format_timecode(1.48, kStart, kDur, 2, kFps) == "-00:06.000 / 00:06.000");
+    CHECK(format_timecode(7.44, kStart, kDur, 2, kFps) == "-00:00.040 / 00:06.000");
+    CHECK(format_timecode(1.48, kStart, kDur, 3, kFps) == "PTS 1.480");
+    CHECK(format_timecode(7.44, kStart, kDur, 3, kFps) == "PTS 7.440");
+    // A seek target before the first frame reads 0 but its own PTS.
+    CHECK(format_timecode(0.5, kStart, kDur, 0, kFps) == "00:00.000 / 00:06.000");
+    CHECK(format_timecode(0.5, kStart, kDur, 1, kFps) == "f 0 / 150");
+    CHECK(format_timecode(0.5, kStart, kDur, 3, kFps) == "PTS 0.500");
+}
+
+TEST_CASE("format_timecode: mode 3 in seconds, negative and large PTS", "[ui]")
+{
+    CHECK(format_timecode(-0.021,    -0.021, 10.0,   3, 24.0) == "PTS -0.021");
+    CHECK(format_timecode(-0.0004,   -0.021, 10.0,   3, 24.0) == "PTS 0.000");
+    CHECK(format_timecode(37052.876, 37000.0, 3600.0, 3, 25.0) == "PTS 37052.876");
+    CHECK(format_timecode(37052.876, 37000.0, 3600.0, 0, 25.0) == "0:00:52.876 / 1:00:00.000");
 }
 
 TEST_CASE("format_timecode: live or unknown duration", "[ui]")
 {
-    CHECK(format_timecode(12.345, -1.0, 0, 30.0) == "LIVE 00:12.345");
-    CHECK(format_timecode(12.345,  0.0, 2, 30.0) == "LIVE 00:12.345");
+    CHECK(format_timecode(12.345, 0.0, -1.0, 0, 30.0) == "LIVE 00:12.345");
+    CHECK(format_timecode(12.345, 0.0,  0.0, 2, 30.0) == "LIVE 00:12.345");
+    CHECK(format_timecode(12.345, 0.0, -1.0, 3, 30.0) == "LIVE 00:12.345");   // every mode
     // Seconds since 1970 (live CMAF timestamps): the stream's UTC clock.
-    CHECK(format_timecode(1792183923.84, -1.0, 0, 25.0) == "LIVE 20:52:03.840 UTC");
+    CHECK(format_timecode(1792183923.84, 0.0, -1.0, 0, 25.0) == "LIVE 20:52:03.840 UTC");
 }
 
 // ── decimate_ticks ────────────────────────────────────────────────────────────
@@ -53,7 +154,7 @@ TEST_CASE("decimate_ticks: min spacing honoured, endpoints kept", "[ui]")
 {
     std::vector<double> kf;
     for (int i = 0; i <= 600; ++i) kf.push_back(i);   // 1 s GOP, 10 min
-    const auto ticks = decimate_ticks(kf, 600.0, 1000.0f, 3.0f);
+    const auto ticks = decimate_ticks(kf, 0.0, 600.0, 1000.0f, 3.0f);
     REQUIRE(ticks.size() >= 2);
     CHECK(ticks.front() == 0.0f);
     CHECK(ticks.back()  == 1000.0f);
@@ -64,11 +165,26 @@ TEST_CASE("decimate_ticks: min spacing honoured, endpoints kept", "[ui]")
 
 TEST_CASE("decimate_ticks: sparse input untouched, empty input", "[ui]")
 {
-    CHECK(decimate_ticks({}, 10.0, 100.0f, 3.0f).empty());
-    CHECK(decimate_ticks({ 1.0 }, 0.0, 100.0f, 3.0f).empty());
-    const auto t = decimate_ticks({ 0.0, 5.0, 10.0 }, 10.0, 100.0f, 3.0f);
+    CHECK(decimate_ticks({}, 0.0, 10.0, 100.0f, 3.0f).empty());
+    CHECK(decimate_ticks({ 1.0 }, 0.0, 0.0, 100.0f, 3.0f).empty());
+    const auto t = decimate_ticks({ 0.0, 5.0, 10.0 }, 0.0, 10.0, 100.0f, 3.0f);
     REQUIRE(t.size() == 3);
     CHECK(t[1] == 50.0f);
+}
+
+TEST_CASE("decimate_ticks: keyframe PTS placed from the bar's start", "[ui]")
+{
+    // Keyframes every 3 s of a stream starting at 10 s, 6 s long.
+    const auto t = decimate_ticks({ 10.0, 13.0, 16.0 }, 10.0, 6.0, 600.0f, 3.0f);
+    REQUIRE(t.size() == 3);
+    CHECK(t[0] == 0.0f);
+    CHECK(t[1] == 300.0f);
+    CHECK(t[2] == 600.0f);
+    // Before and past the bar: clamped to its ends.
+    const auto c = decimate_ticks({ 8.0, 19.0 }, 10.0, 6.0, 600.0f, 3.0f);
+    REQUIRE(c.size() == 2);
+    CHECK(c[0] == 0.0f);
+    CHECK(c[1] == 600.0f);
 }
 
 // ── index_at_or_before ────────────────────────────────────────────────────────

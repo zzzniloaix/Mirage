@@ -1,0 +1,282 @@
+$ git rev-parse HEAD
+6f5ec802fea739f4620e9b26fad8083424153dd3
+[exit status 0]
+
+$ git status --porcelain
+[exit status 0]
+
+$ sw_vers
+ProductName:		macOS
+ProductVersion:		26.6.2
+BuildVersion:		25G83
+[exit status 0]
+
+$ sh -c ioreg -n Root -d1 -a | plutil -extract IOConsoleUsers xml1 -o - - | grep -A1 CGSSessionScreenIsLocked
+[exit status 1]
+
+$ cmake --build --preset macos-debug
+ninja: no work to do.
+[exit status 0]
+
+$ sh -c cd '<scratch>/gui3/clips' && shasum -a 256 av_src.mp4 av_ac4.mov av_evc.mov r_only_av.mp4 nosei.ts
+6cd2d7e3553802db4a09070f739b690c7f6de08bc62f9b51934388cb31b61a1d  av_src.mp4
+d21bb9a7589cd8c05b04055721331043c3dee0ce3e63ac967d77d846e67b3055  av_ac4.mov
+c699ab6c0d1174c2f8ce5c475318252b4b53094301e885a73231a1d9e3f9e780  av_evc.mov
+a490cd567d0cc9e5d460eb60aeaf6c184d3b49eaa2239c864e4abe895605ef66  r_only_av.mp4
+982ca2ecc7f675523ed29e68ca890003d6e63d459c5ac9417b4992c25321b6ac  nosei.ts
+[exit status 0]
+
+$ uptime
+ 8:34  up 6 days, 19:04, 4 users, load averages: 4.05 5.32 7.64
+[exit status 0]
+
+$ HOME=<scratch>/gui3c/home build/macos-debug/mirage --qa-no-focus --av-report <scratch>/gui3c/control.json 5 <scratch>/gui3/clips/av_src.mp4 > control.log
+[exit status 0]
+
+$ cat <scratch>/gui3c/control.json
+{
+  "file": "av_src.mp4",
+  "initial_speed": 1,
+  "speed_seq": [],
+  "started": true,
+  "wall_s": 5.026,
+  "hw_decode": true,
+  "video_decode_errors": 0,
+  "video_decode_last_error": "",
+  "video_corrupt_frames": 0,
+  "video_hw_error_run_max": 0,
+  "has_audio": true,
+  "audio_output_latency_s": 0.0300,
+  "audio_underruns": 0,
+  "audio_silent_frames": 0,
+  "audio_dropped_frames": 0,
+  "audio_decode_errors": 0,
+  "overall": {"speed":1,"t_start":0.000,"wall_s":5.026,"video_media_s":5.067,"audio_media_s":4.950,"video_rate":1.0082,"audio_rate":0.9850,"frames_presented":153,"frames_dropped_late":0,"av_diff_media_s":{"mean":0.002692,"p95_abs":0.023333,"max_abs":0.040000,"n":134},"av_diff_wall_ms":{"mean":2.692009,"p95_abs":23.333333,"max_abs":40.000000,"n":134},"av_diff_wall_ms_settled":{"n":0},"underruns_settled":-1,"silent_frames_settled":-1,"video_rate_settled":0.0000,"audio_rate_settled":0.0000},
+  "segments": [
+    {"speed":1,"t_start":0.000,"wall_s":5.026,"video_media_s":5.067,"audio_media_s":4.950,"video_rate":1.0082,"audio_rate":0.9850,"frames_presented":153,"frames_dropped_late":0,"av_diff_media_s":{"mean":-0.001302,"p95_abs":0.033333,"max_abs":0.120000,"n":153},"av_diff_wall_ms":{"mean":-1.302015,"p95_abs":33.333333,"max_abs":120.000000,"n":153},"av_diff_wall_ms_settled":{"mean":3.450980,"p95_abs":23.333333,"max_abs":40.000000,"n":119},"underruns_settled":0,"silent_frames_settled":0,"video_rate_settled":0.9807,"audio_rate_settled":0.9824}
+  ]
+}
+[exit status 0]
+
+$ uptime
+ 8:34  up 6 days, 19:04, 4 users, load averages: 5.49 5.60 7.73
+[exit status 0]
+
+$ HOME=<scratch>/gui3c/home build/macos-debug/mirage --qa-no-focus --qa-switch a#2@2 --speed-seq panel:T@2.5,snap@3 --ui-snapshot <scratch>/gui3c/ac4_tracks.png 0 --av-report <scratch>/gui3c/ac4.json 6 <scratch>/gui3/clips/av_ac4.mov > ac4_tracks.log
+[exit status 0]
+
+$ cat <scratch>/gui3c/ac4.json
+{
+  "file": "av_ac4.mov",
+  "initial_speed": 1,
+  "speed_seq": [{"panel":84,"at_s":2.5},{"snap":0,"at_s":3}],
+  "started": true,
+  "wall_s": 6.019,
+  "hw_decode": true,
+  "video_decode_errors": 0,
+  "video_decode_last_error": "",
+  "video_corrupt_frames": 0,
+  "video_hw_error_run_max": 0,
+  "has_audio": true,
+  "audio_output_latency_s": 0.0300,
+  "audio_underruns": 0,
+  "audio_silent_frames": 0,
+  "audio_dropped_frames": 0,
+  "audio_decode_errors": 0,
+  "overall": {"speed":1,"t_start":0.000,"wall_s":6.019,"video_media_s":6.133,"audio_media_s":6.010,"video_rate":1.0191,"audio_rate":0.9986,"frames_presented":160,"frames_dropped_late":25,"av_diff_media_s":{"mean":-0.045099,"p95_abs":0.229979,"max_abs":0.956646,"n":141},"av_diff_wall_ms":{"mean":-45.099439,"p95_abs":229.979167,"max_abs":956.645833,"n":141},"av_diff_wall_ms_settled":{"n":0},"underruns_settled":-1,"silent_frames_settled":-1,"video_rate_settled":0.0000,"audio_rate_settled":0.0000},
+  "segments": [
+    {"speed":1,"t_start":0.000,"wall_s":6.019,"video_media_s":6.133,"audio_media_s":6.010,"video_rate":1.0191,"audio_rate":0.9986,"frames_presented":160,"frames_dropped_late":25,"av_diff_media_s":{"mean":-0.042994,"p95_abs":0.229979,"max_abs":0.956646,"n":160},"av_diff_wall_ms":{"mean":-42.993620,"p95_abs":229.979167,"max_abs":956.645833,"n":160},"av_diff_wall_ms_settled":{"mean":-50.072090,"p95_abs":419.979167,"max_abs":956.645833,"n":126},"underruns_settled":0,"silent_frames_settled":0,"video_rate_settled":1.0001,"audio_rate_settled":1.0001}
+  ]
+}
+[exit status 0]
+
+$ grep -E switch|No decoder|no decoder|ui-snapshot|av-report|loading-indicator <scratch>/gui3c/ac4_tracks.log
+[INFO]  --qa-switch: t=2.02 a#2
+[INFO]  switch-trace: request audio -> stream 2 at 2.130 (t=2.560)
+[INFO]  Audio stream switched to index 2 (seamless, from 2.837) (t=2.560)
+[INFO]  switch-trace: repositioned to 2.837 (t=2.560)
+[ERROR] No decoder found for ac4 (codec id 86119)
+[ERROR] switch: no audio decoder could be opened for stream 2 (ac4) — the track stays silent
+[INFO]  switch-trace: audio decoder reopened (t=2.731)
+[WARN]  switch: no decoder for ac4 (stream 2): the switch to fra · ac4 2ch ended, the track stays silent
+[INFO]  ui-snapshot: wrote <scratch>/gui3c/ac4_tracks.png (2560×1440) — pts=3.133 1280x720
+[INFO]  --av-report: wrote <scratch>/gui3c/ac4.json (6.0 s, 160 frames)
+[exit status 0]
+
+$ uptime
+ 8:34  up 6 days, 19:04, 4 users, load averages: 5.50 5.59 7.70
+[exit status 0]
+
+$ HOME=<scratch>/gui3c/home build/macos-debug/mirage --qa-no-focus --qa-switch a#2@2 --av-report <scratch>/gui3c/ac4_report.json 8 <scratch>/gui3/clips/av_ac4.mov > ac4_report.log
+[exit status 0]
+
+$ cat <scratch>/gui3c/ac4_report.json
+{
+  "file": "av_ac4.mov",
+  "initial_speed": 1,
+  "speed_seq": [],
+  "started": true,
+  "wall_s": 8.002,
+  "hw_decode": true,
+  "video_decode_errors": 0,
+  "video_decode_last_error": "",
+  "video_corrupt_frames": 0,
+  "video_hw_error_run_max": 0,
+  "has_audio": true,
+  "audio_output_latency_s": 0.0300,
+  "audio_underruns": 0,
+  "audio_silent_frames": 0,
+  "audio_dropped_frames": 0,
+  "audio_decode_errors": 0,
+  "overall": {"speed":1,"t_start":0.000,"wall_s":8.002,"video_media_s":8.133,"audio_media_s":8.000,"video_rate":1.0164,"audio_rate":0.9997,"frames_presented":245,"frames_dropped_late":0,"av_diff_media_s":{"mean":0.000021,"p95_abs":0.003354,"max_abs":0.003354,"n":226},"av_diff_wall_ms":{"mean":0.020741,"p95_abs":3.354167,"max_abs":3.354167,"n":226},"av_diff_wall_ms_settled":{"n":0},"underruns_settled":-1,"silent_frames_settled":-1,"video_rate_settled":0.0000,"audio_rate_settled":0.0000},
+  "segments": [
+    {"speed":1,"t_start":0.000,"wall_s":8.002,"video_media_s":8.133,"audio_media_s":8.000,"video_rate":1.0164,"audio_rate":0.9997,"frames_presented":245,"frames_dropped_late":0,"av_diff_media_s":{"mean":-0.001450,"p95_abs":0.003354,"max_abs":0.130000,"n":245},"av_diff_wall_ms":{"mean":-1.450000,"p95_abs":3.354167,"max_abs":130.000000,"n":245},"av_diff_wall_ms_settled":{"mean":0.022018,"p95_abs":3.354167,"max_abs":3.354167,"n":211},"underruns_settled":0,"silent_frames_settled":0,"video_rate_settled":1.0000,"audio_rate_settled":1.0000}
+  ]
+}
+[exit status 0]
+
+$ uptime
+ 8:34  up 6 days, 19:04, 4 users, load averages: 5.54 5.60 7.69
+[exit status 0]
+
+$ HOME=<scratch>/gui3c/home build/macos-debug/mirage --qa-no-focus --qa-switch v#2@2 --speed-seq panel:T@2.5,snap@3 --ui-snapshot <scratch>/gui3c/evc_tracks.png 0 --av-report <scratch>/gui3c/evc.json 6 <scratch>/gui3/clips/av_evc.mov > evc_tracks.log
+[exit status 0]
+
+$ cat <scratch>/gui3c/evc.json
+{
+  "file": "av_evc.mov",
+  "initial_speed": 1,
+  "speed_seq": [{"panel":84,"at_s":2.5},{"snap":0,"at_s":3}],
+  "started": true,
+  "wall_s": 6.003,
+  "hw_decode": false,
+  "video_decode_errors": 0,
+  "video_decode_last_error": "",
+  "video_corrupt_frames": 0,
+  "video_hw_error_run_max": 0,
+  "has_audio": true,
+  "audio_output_latency_s": 0.0300,
+  "audio_underruns": 0,
+  "audio_silent_frames": 0,
+  "audio_dropped_frames": 0,
+  "audio_decode_errors": 0,
+  "overall": {"speed":1,"t_start":0.000,"wall_s":2.366,"video_media_s":2.500,"audio_media_s":2.370,"video_rate":1.0564,"audio_rate":1.0015,"frames_presented":75,"frames_dropped_late":0,"av_diff_media_s":{"mean":0.000589,"p95_abs":0.003354,"max_abs":0.030021,"n":57},"av_diff_wall_ms":{"mean":0.588816,"p95_abs":3.354167,"max_abs":30.020833,"n":57},"av_diff_wall_ms_settled":{"n":0},"underruns_settled":-1,"silent_frames_settled":-1,"video_rate_settled":0.0000,"audio_rate_settled":0.0000},
+  "segments": [
+    {"speed":1,"t_start":0.000,"wall_s":2.366,"video_media_s":2.500,"audio_media_s":2.370,"video_rate":1.0564,"audio_rate":1.0015,"frames_presented":75,"frames_dropped_late":0,"av_diff_media_s":{"mean":-0.002752,"p95_abs":0.030021,"max_abs":0.100000,"n":75},"av_diff_wall_ms":{"mean":-2.751667,"p95_abs":30.020833,"max_abs":100.000000,"n":75},"av_diff_wall_ms_settled":{"mean":0.798115,"p95_abs":3.354167,"max_abs":30.020833,"n":42},"underruns_settled":0,"silent_frames_settled":0,"video_rate_settled":1.0246,"audio_rate_settled":1.0027}
+  ]
+}
+[exit status 0]
+
+$ grep -E switch|No decoder|no decoder|ui-snapshot|av-report|loading-indicator <scratch>/gui3c/evc_tracks.log
+[INFO]  --qa-switch: t=2.00 v#2
+[INFO]  switch-trace: request video -> stream 2 at pts 2.067 (t=2.512)
+[INFO]  Video stream switched to index 2 (seamless, resume at 2.317) (t=2.512)
+[INFO]  switch-trace: repositioned to 2.317 (t=2.512)
+[ERROR] No decoder found for evc (codec id 266)
+[ERROR] switch: no video decoder could be opened for stream 2 (evc) — nothing from it can be shown
+[INFO]  switch-trace: video decoder reopened, new frames from 2.317 (t=2.616)
+[WARN]  switch: no decoder for evc (stream 2): the switch to 640×360 · 30 fps ended, the track stays blank
+[INFO]  ui-snapshot: wrote <scratch>/gui3c/evc_tracks.png (2560×1440) — pts=2.500 1280x720
+[INFO]  --av-report: wrote <scratch>/gui3c/evc.json (6.0 s, 75 frames)
+[exit status 0]
+
+$ uptime
+ 8:34  up 6 days, 19:04, 4 users, load averages: 5.15 5.51 7.64
+[exit status 0]
+
+$ HOME=<scratch>/gui3c/home build/macos-debug/mirage --qa-no-focus --qa-switch v#2@2 --speed-seq seek:1@4 --av-report <scratch>/gui3c/evc_seek.json 8 <scratch>/gui3/clips/av_evc.mov > evc_seek.log
+[exit status 0]
+
+$ cat <scratch>/gui3c/evc_seek.json
+{
+  "file": "av_evc.mov",
+  "initial_speed": 1,
+  "speed_seq": [{"seek":1,"at_s":4}],
+  "started": true,
+  "wall_s": 8.004,
+  "hw_decode": false,
+  "video_decode_errors": 0,
+  "video_decode_last_error": "",
+  "video_corrupt_frames": 0,
+  "video_hw_error_run_max": 0,
+  "has_audio": true,
+  "audio_output_latency_s": 0.0300,
+  "audio_underruns": 0,
+  "audio_silent_frames": 0,
+  "audio_dropped_frames": 576,
+  "audio_decode_errors": 0,
+  "overall": {"speed":1,"t_start":0.000,"wall_s":2.386,"video_media_s":2.500,"audio_media_s":2.390,"video_rate":1.0480,"audio_rate":1.0018,"frames_presented":76,"frames_dropped_late":0,"av_diff_media_s":{"mean":-0.000522,"p95_abs":0.006646,"max_abs":0.006667,"n":57},"av_diff_wall_ms":{"mean":-0.521930,"p95_abs":6.645833,"max_abs":6.666667,"n":57},"av_diff_wall_ms_settled":{"n":0},"underruns_settled":-1,"silent_frames_settled":-1,"video_rate_settled":0.0000,"audio_rate_settled":0.0000},
+  "segments": [
+    {"speed":1,"t_start":0.000,"wall_s":2.386,"video_media_s":2.500,"audio_media_s":2.390,"video_rate":1.0480,"audio_rate":1.0018,"frames_presented":76,"frames_dropped_late":0,"av_diff_media_s":{"mean":-0.005522,"p95_abs":0.020000,"max_abs":0.110000,"n":76},"av_diff_wall_ms":{"mean":-5.522204,"p95_abs":20.000000,"max_abs":110.000000,"n":76},"av_diff_wall_ms_settled":{"mean":0.004464,"p95_abs":3.333333,"max_abs":3.354167,"n":42},"underruns_settled":0,"silent_frames_settled":0,"video_rate_settled":1.0004,"audio_rate_settled":1.0029}
+  ]
+}
+[exit status 0]
+
+$ grep -E switch|seek|loading-indicator|no data <scratch>/gui3c/evc_seek.log
+[INFO]  --qa-switch: t=2.02 v#2
+[INFO]  switch-trace: request video -> stream 2 at pts 2.100 (t=2.541)
+[INFO]  Video stream switched to index 2 (seamless, resume at 2.350) (t=2.541)
+[INFO]  switch-trace: repositioned to 2.350 (t=2.543)
+[ERROR] switch: no video decoder could be opened for stream 2 (evc) — nothing from it can be shown
+[INFO]  switch-trace: video decoder reopened, new frames from 2.350 (t=2.646)
+[WARN]  switch: no decoder for evc (stream 2): the switch to 640×360 · 30 fps ended, the track stays blank
+[INFO]  --speed-seq: seek to position 1.000 (pts 1.000)
+[INFO]  Demuxer: no keyframe at or before 1.000 after where the seek landed — reading again from the start (t=4.552)
+[INFO]  --av-report: wrote <scratch>/gui3c/evc_seek.json (8.0 s, 76 frames)
+[INFO]  ScrubDecoder: stopped (0 requests decoded from a keyframe read, 0 from a seek)
+[exit status 0]
+
+$ uptime
+ 8:34  up 6 days, 19:04, 4 users, load averages: 6.88 5.86 7.73
+[exit status 0]
+
+$ HOME=<scratch>/gui3c/home build/macos-debug/mirage --qa-no-focus --ui-overlays W --ui-snapshot <scratch>/gui3c/r_only_W.png 120 <scratch>/gui3/clips/r_only_av.mp4 > r_only_W.log
+[exit status 0]
+
+$ uptime
+ 8:35  up 6 days, 19:04, 4 users, load averages: 6.57 5.81 7.71
+[exit status 0]
+
+$ HOME=<scratch>/gui3c/home build/macos-debug/mirage --qa-no-focus --window 1280x720 --ui-sub-at 50 --ui-snapshot <scratch>/gui3c/seek_nosei_hw.png 30 <scratch>/gui3/clips/nosei.ts > seek_nosei_hw.log
+[exit status 0]
+
+$ grep -E ui-sub-at|Demuxer: no keyframe|first frame after seek|ui-snapshot <scratch>/gui3c/seek_nosei_hw.log
+[INFO]  --ui-sub-at: position 50.000 (pts 51.480)
+[INFO]  Demuxer: no keyframe at or before 51.480 after where the seek landed — reading again from 50.480 (t=0.351)
+[INFO]  Demuxer: no keyframe at or before 51.480 after where the seek landed — reading again from 49.480 (t=0.351)
+[INFO]  Demuxer: no keyframe at or before 51.480 after where the seek landed — reading again from 47.480 (t=0.352)
+[INFO]  Demuxer: no keyframe at or before 51.480 after where the seek landed — reading again from 43.480 (t=0.353)
+[INFO]  Demuxer: no keyframe at or before 51.480 after where the seek landed — reading again from 35.480 (t=0.354)
+[INFO]  Demuxer: no keyframe at or before 51.480 after where the seek landed — reading again from 19.480 (t=0.356)
+[INFO]  Demuxer: no keyframe at or before 51.480 after where the seek landed — reading again from the start (t=0.359)
+[INFO]  switch-trace: first frame after seek pts=51.480 — took 1233 ms
+[INFO]  ui-snapshot: wrote <scratch>/gui3c/seek_nosei_hw.png (2560×1440, frame 30, hover=none, thumb_pts=none, sub="")
+[exit status 0]
+
+$ uptime
+ 8:35  up 6 days, 19:04, 4 users, load averages: 6.21 5.75 7.67
+[exit status 0]
+
+$ HOME=<scratch>/gui3c/home build/macos-debug/mirage --qa-no-focus --window 1280x720 --no-hw --ui-sub-at 50 --ui-snapshot <scratch>/gui3c/seek_nosei_sw.png 30 <scratch>/gui3/clips/nosei.ts > seek_nosei_sw.log
+[exit status 0]
+
+$ grep -E ui-sub-at|Demuxer: no keyframe|first frame after seek|ui-snapshot <scratch>/gui3c/seek_nosei_sw.log
+[INFO]  --ui-sub-at: position 50.000 (pts 51.480)
+[INFO]  Demuxer: no keyframe at or before 51.480 after where the seek landed — reading again from 50.480 (t=0.407)
+[INFO]  Demuxer: no keyframe at or before 51.480 after where the seek landed — reading again from 49.480 (t=0.407)
+[INFO]  Demuxer: no keyframe at or before 51.480 after where the seek landed — reading again from 47.480 (t=0.408)
+[INFO]  Demuxer: no keyframe at or before 51.480 after where the seek landed — reading again from 43.480 (t=0.409)
+[INFO]  Demuxer: no keyframe at or before 51.480 after where the seek landed — reading again from 35.480 (t=0.409)
+[INFO]  Demuxer: no keyframe at or before 51.480 after where the seek landed — reading again from 19.480 (t=0.411)
+[INFO]  Demuxer: no keyframe at or before 51.480 after where the seek landed — reading again from the start (t=0.413)
+[INFO]  switch-trace: first frame after seek pts=51.480 — took 135 ms
+[INFO]  ui-snapshot: wrote <scratch>/gui3c/seek_nosei_sw.png (2560×1440, frame 30, hover=none, thumb_pts=none, sub="")
+[exit status 0]
+
+$ git status --porcelain
+[exit status 0]
+
+$ uptime
+ 8:35  up 6 days, 19:04, 4 users, load averages: 6.21 5.75 7.67
+[exit status 0]
+

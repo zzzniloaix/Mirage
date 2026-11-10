@@ -75,6 +75,9 @@ the player. Code: `src/FrameInfo.*` (pure, unit-tested),
     after the switch the card flags transfer, matrix and primaries as
     differing from the interpretation the renderer opened with, which is what
     the renderer keeps using (`frame_inspector_tag_switch.png` and its log).
+    That run predates D-090. The renderer now follows the frames' own tags,
+    so by the code the card flags nothing after the switch. This run has not
+    been made again.
 
 **Not checked.** Dolby Vision, HDR10+, captions and timecodes from real
 streams (HDR10+ only in a unit test; the others only as code paths);
@@ -82,11 +85,10 @@ interlaced content.
 
 **To finish.**
 
-- Act on a tag change, not just report it (re-init the renderer on the new
-  interpretation). That changes the render path: D-007 asks for an approved
-  plan first.
-- Number frames from the stream start everywhere: the timecode's frame mode
-  and the frame-step toasts still use absolute PTS × fps.
+- Act on a tag change, not just report it. Done under D-090
+  (`plan/engineer_tools_player_fixes.md`, section 3.2).
+- Number frames from the stream start everywhere. Done under D-089 (the
+  same plan, section 2).
 
 ## S / X — Scopes and pixel probe
 
@@ -553,7 +555,20 @@ opening `B` scans it at once over the share.
   watchdog reports it.
   The GUI record has both runs (`logs/seek_hw.log`, `logs/seek_sw.log`),
   and FFmpeg's command line decoding the file without errors
-  (`record2.txt`). Not investigated further.
+  (`record2.txt`). Investigated since, in section 1 of
+  `plan/engineer_tools_player_fixes.md`, and fixed under D-088. Note that
+  `--ui-sub-at 5.2` above was a PTS: since D-089 the flag takes a position.
+  A stream that flags no keyframe before the target is decoded from its
+  start (D-093).
+- **On an MPEG-TS, the scrub preview and the step back land after the
+  keyframe before their target.** Both go through `ScrubDecoder`, whose
+  seek is FFmpeg's own, as the demuxer's was before D-088. Scrubbed to PTS
+  2.68 in the tag-switch MPEG-TS, the preview is the next keyframe's frame
+  (4.48), and in its last GOP there is none. A step back from 3.08 lands on
+  4.48. In an MP4 the preview is the target's frame
+  (`plan/engineer_tools_runs/fixes-gui-2026-11-05/`). D-088 did not cover
+  it. Fixed under D-095 (plan section 5.1): the preview and the step back
+  now land on the target's frame (`plan/engineer_tools_runs/fixes2-2026-11-05/`).
 - **FFmpeg's hls muxer writes EXTINF 2.000 for fMP4 segments of 46 and 53
   frames at 25 fps** (x265, open GOP, the demo package's `v3`; `demo.json.xz`
   lists each segment's frame count). The conformance check reports it. The
@@ -565,6 +580,8 @@ opening `B` scans it at once over the share.
 - On the same MPEG-TS, whose start time is 1.48 s (`ffprobe` in the GUI
   record's `record.txt`), the control bar shows the absolute PTS against a
   duration counted from 0: `00:07.040 / 00:06.000` (`tagswitch_end.png`).
+  Fixed under D-089, in section 2 of the same plan. Since D-094 the
+  duration runs from the video's first frame to the media's end.
 - **FFmpeg's dash muxer writes `maxSegmentDuration` from `-seg_duration`,
   not from the segments it cuts**: PT2.0S over segments of up to 2.960 s (a
   GOP of 37 frames at 25 fps), 2.120 s (x265) and 2.005 s (AAC) in the DASH

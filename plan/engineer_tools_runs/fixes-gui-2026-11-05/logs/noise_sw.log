@@ -1,0 +1,53 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  Opening <scratch>/gui3/clips/h264_noise.mp4 (t=0.652)
+[INFO]  Demuxer: avformat_open_input 2 ms (1 streams, 0 programs) (t=0.666)
+[INFO]  Demuxer: avformat_find_stream_info 61 ms (t=0.728)
+[WARN]  No audio stream found
+[INFO]  Container: QuickTime / MOV
+[INFO]  Duration:  00:00:04
+[INFO]  Video:     h264 1280×720 @ 30.000 fps  pixel_fmt=yuv420p
+[INFO]  Decoder opened: h264 (1280×720)  [SW: 13 threads]
+[INFO]  Opened <scratch>/gui3/clips/h264_noise.mp4 in 89 ms (t=0.741)
+[INFO]  VideoRenderer: 1280×720 SDR (yuv420p → RGB24 sRGB)  matrix=BT.709  limited-range
+[INFO]  Subtitles: 0 choice(s); initial off (none available)
+[h264 @ 0xc421a8700] Invalid NAL unit size (1744840461 > 9997).
+[h264 @ 0xc421a8700] missing picture in access unit with size 10001
+[INFO]  ScrubDecoder: ready (open 2 ms, probe 5 ms) (t=0.753)
+[INFO]  ThumbnailStrip: open 2 ms, probe 6 ms (t=0.754)
+[INFO]  ThumbnailStrip: 4 keyframes found, decoding 4 thumbnails (stride 0.01 s, 160 px tall)
+[h264 @ 0xc421aa300] concealing 3530 DC, 3530 AC, 3530 MV errors in B frame
+[INFO]  ThumbnailStrip: coarse pass done (1 thumbnails)
+[INFO]  first-frame: pts=0.000 1280x720 software, 34 ms after open (t=0.780)
+[h264 @ 0xc421a9880] concealing 3492 DC, 3492 AC, 3492 MV errors in P frame
+[WARN]  Decoder h264: 1 corrupt frame
+[INFO]  ThumbnailStrip: decode complete (4 thumbnails)
+[h264 @ 0xc421a8e00] Invalid NAL unit size (1744840461 > 9997).
+[h264 @ 0xc421a8e00] Error splitting the input into NAL units.
+[h264 @ 0xc421a8700] illegal reordering_of_pic_nums_idc 32
+[h264 @ 0xc421ab100] Invalid NAL unit size (-616602638 > 150).
+[h264 @ 0xc421ab100] Error splitting the input into NAL units.
+[h264 @ 0xc421aa680] concealing 3383 DC, 3383 AC, 3383 MV errors in P frame
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=1.847)
+[h264 @ 0xc421a9c00] concealing 1703 DC, 1703 AC, 1703 MV errors in B frame
+[WARN]  Decoder h264: 2 decode errors (last: Invalid data found when processing input), 3 corrupt frames
+[h264 @ 0xc421a9180] co located POCs unavailable
+[h264 @ 0xc421a9180] top block unavailable for requested intra mode
+[h264 @ 0xc421a9180] error while decoding MB 23 0, bytestream 18137
+[h264 @ 0xc421a9180] concealing 3600 DC, 3600 AC, 3600 MV errors in B frame
+[h264 @ 0xc421a9500] co located POCs unavailable
+[h264 @ 0xc421a9880] mmco: unref short failure
+[h264 @ 0xc421a9880] co located POCs unavailable
+[h264 @ 0xc421ab480] top block unavailable for requested intra mode
+[h264 @ 0xc421ab480] error while decoding MB 33 0, bytestream 9235
+[h264 @ 0xc421ab480] concealing 3600 DC, 3600 AC, 3600 MV errors in B frame
+[h264 @ 0xc421aaa00] concealing 3207 DC, 3207 AC, 3207 MV errors in P frame
+[h264 @ 0xc421a9f80] illegal modification_of_pic_nums_idc 32
+[h264 @ 0xc421a9f80] no frame!
+[WARN]  Decoder h264: 2 decode errors (last: Invalid data found when processing input), 7 corrupt frames
+[h264 @ 0xc421a9500] top block unavailable for requested intra mode
+[h264 @ 0xc421a9500] error while decoding MB 25 0, bytestream 15182
+[h264 @ 0xc421a9500] concealing 3600 DC, 3600 AC, 3600 MV errors in P frame
+[INFO]  --av-report: wrote <scratch>/gui3/noise_sw.json (3.0 s, 84 frames)
+[INFO]  MediaSession: closing <scratch>/gui3/clips/h264_noise.mp4
+[INFO]  MediaSession: threads stopped (1 ms)
+[INFO]  ScrubDecoder: stopped (0 requests decoded from a keyframe read, 0 from a seek)

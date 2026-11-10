@@ -1263,12 +1263,15 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
     Queue<AVFrame*>& frameq           = ms.frameq;
     const bool       has_audio        = ms.has_audio;
     const bool       local_media      = ms.local_media;
-    const double     duration         = ms.duration;
+    // What the UI shows and the seek bar spans: from timeline_start_s to the
+    // media's end (D-094), not the container's duration (ms.duration).
+    const double     duration         = ms.timeline_dur_s;
     const AVRational video_tb         = ms.video_tb;
     const int        coded_w = ms.coded_w, coded_h = ms.coded_h;
     const int        vid_w   = ms.vid_w,   vid_h   = ms.vid_h;
     const double     frame_dt         = ms.frame_dt;
     const double     video_start_s    = ms.video_start_s;
+    const double     timeline_start_s = ms.timeline_start_s;   // positions shown count from here
     auto&            inspector_lines  = ms.inspector_lines;
     const std::size_t decode_line_idx = ms.decode_line_idx;
 
@@ -1913,8 +1916,13 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         app.net_inspector.qa_apply(cli.ui_net);
     }
     // --ui-sub-at: seek there, play until the target is reached, then pause.
+    // The target is a position, as the seek bar shows it (UiFormat.h).
     bool ui_sub_at_landed = ui_sub_at < 0.0;
-    if (ui_sub_at >= 0.0) s_seek_delta.store(ui_sub_at > 0.0 ? ui_sub_at : 1e-6);
+    const double ui_sub_at_pts = ui_sub_at >= 0.0 ? ui::pts_at(ui_sub_at, timeline_start_s) : -1.0;
+    if (ui_sub_at >= 0.0) {
+        s_seek_to.store(ui_sub_at_pts);
+        logger::info("--ui-sub-at: position {:.3f} (pts {:.3f})", ui_sub_at, ui_sub_at_pts);
+    }
     int ui_frames = 0, ui_total_frames = 0;
 
     // Previous overlay flags → "HUD on" / "Inspector off" toasts.
@@ -2145,7 +2153,8 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             seek_target = std::max(0.0, last_pts + delta);
             if (!ui_snap_mode)
                 player_ui.toast(std::format("{}{:g}s \u00B7 {}", delta < 0.0 ? "\u2212" : "+",
-                                            std::round(std::abs(delta)), toast_clock(seek_target)));
+                                            std::round(std::abs(delta)),
+                                            toast_clock(ui::position(seek_target, timeline_start_s))));
         }
 
         if (scrubbing && scrub_moved && last_scrub_frac >= 0.0 && duration > 0.0) {
@@ -2160,7 +2169,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
 
         // On scrub release: always seek to the exact drop position.
         if (scrub_ended && last_scrub_frac >= 0.0 && duration > 0.0) {
-            seek_target    = last_scrub_frac * duration;
+            seek_target    = ui::pts_at_fraction(last_scrub_frac, timeline_start_s, duration);
             last_scrub_frac = -1.0;
         }
 
@@ -2239,7 +2248,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                     seek_at        = kf->seek_s;
                     seek_key_after = kf->at_or_after;
                     kf_seek        = true;
-                    player_ui.toast("KF \u25C6 " + toast_clock(kf->pts));
+                    player_ui.toast("KF \u25C6 " + toast_clock(ui::position(kf->pts, timeline_start_s)));
                     if (qa_started)
                         logger::info("keyframe step {}: {:.3f} -> {:.3f} on stream {} ({}{}; seek {} {:.3f})",
                                      step > 0 ? "+" : "-", from, kf->pts, shown_stream,
@@ -2319,7 +2328,12 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                     case SpeedStep::Speed: s_speed.store(ev.speed);                    break;
                     case SpeedStep::Pause: s_paused.store(true);                       break;
                     case SpeedStep::Play:  s_paused.store(false);                      break;
-                    case SpeedStep::Seek:  s_seek_to.store(ev.speed);                  break;
+                    case SpeedStep::Seek: {   // to a position, as the seek bar shows it
+                        const double to = ui::pts_at(ev.speed, timeline_start_s);
+                        s_seek_to.store(to);
+                        logger::info("--speed-seq: seek to position {:.3f} (pts {:.3f})", ev.speed, to);
+                        break;
+                    }
                     case SpeedStep::KfNext: s_paused.store(true); s_step_frames.fetch_add(1);  break;
                     case SpeedStep::KfPrev: s_paused.store(true); s_step_frames.fetch_add(-1); break;
                     case SpeedStep::Back:   s_paused.store(true); s_back_steps.fetch_add(1);   break;
@@ -2327,15 +2341,18 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                     case SpeedStep::Scrub:
                         // As a seek-bar drag does (see the ImGui integration
                         // below): the scrub decoder gets the position, the
-                        // pipeline is bypassed until the release.
+                        // pipeline is bypassed until the release. <secs> is
+                        // a position, as the seek bar shows it.
                         if (duration > 0.0) {
                             if (!qa_scrubbing) pre_scrub_pts = last_pts;
+                            const double pos = std::min(ev.speed, duration);
                             qa_scrubbing    = true;
-                            qa_scrub_target = std::min(ev.speed, duration);
+                            qa_scrub_target = ui::pts_at(pos, timeline_start_s);
                             qa_scrub_since  = now;
-                            last_scrub_frac = qa_scrub_target / duration;
+                            last_scrub_frac = pos / duration;
                             scrub_request(qa_scrub_target);
                             last_pts = qa_scrub_target;
+                            logger::info("--speed-seq: scrub to position {:.3f} (pts {:.3f})", pos, qa_scrub_target);
                         }
                         break;
                     case SpeedStep::Release: qa_scrubbing = false; break;
@@ -2476,7 +2493,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 master_clock.set_video(pts);
 
                 // --ui-sub-at: pause once playback reaches the requested time.
-                if (!ui_sub_at_landed && pts >= ui_sub_at - 0.5 * frame_dt) {
+                if (!ui_sub_at_landed && pts >= ui_sub_at_pts - 0.5 * frame_dt) {
                     ui_sub_at_landed = true;
                     s_paused.store(true);
                 }
@@ -2635,7 +2652,8 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             has_frame = true;
             last_pts  = pts;
             ++frame_count;
-            player_ui.toast(std::format("Frame {} \u00B7 {}", std::llround(pts * stream_fps), toast_clock(pts)));
+            player_ui.toast(std::format("Frame {} \u00B7 {}", ui::frame_number(pts, timeline_start_s, stream_fps),
+                                        toast_clock(ui::position(pts, timeline_start_s))));
         };
         while (s_single_steps.load() > 0 && paused && !scrubbing && !kf_wait.active) {
             if (live_back > 0) {   // back up through the frames kept (live), then on from the decoder
@@ -2661,7 +2679,8 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             last_pts       = pts;
             ++frame_count;
             s_single_steps.fetch_sub(1);
-            player_ui.toast(std::format("Frame {} \u00B7 {}", std::llround(pts * stream_fps), toast_clock(pts)));
+            player_ui.toast(std::format("Frame {} \u00B7 {}", ui::frame_number(pts, timeline_start_s, stream_fps),
+                                        toast_clock(ui::position(pts, timeline_start_s))));
         }
 
         // ── Frame-accurate backward step (Shift+,) ────────────────────────
@@ -2711,7 +2730,8 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 ++frame_count;
                 pending_back_step = false;
                 s_back_steps.fetch_sub(1);
-                player_ui.toast(std::format("Frame {} \u00B7 {}", std::llround(pts * stream_fps), toast_clock(pts)));
+                player_ui.toast(std::format("Frame {} \u00B7 {}", ui::frame_number(pts, timeline_start_s, stream_fps),
+                                            toast_clock(ui::position(pts, timeline_start_s))));
             }
         }
 
@@ -2787,6 +2807,28 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 }
             }
 
+            // A switch to a stream no decoder could be opened for
+            // (MediaSession::video_open_failed / audio_open_failed) gets
+            // nothing more: it ends at once, and says why.
+            for (PendingSwitch* p : { &vsw, &asw }) {
+                const bool video  = p == &vsw;
+                const int  failed = video ? ms.video_open_failed.load() : ms.audio_open_failed.load();
+                if (!p->active || failed < 0 || p->target != failed) continue;
+                p->active = false;
+                std::string codec = "?";
+                if (video) { for (const auto& t : demuxer.video_tracks()) if (t.stream_idx == failed) codec = t.codec_name; }
+                else       { for (const auto& t : demuxer.audio_tracks()) if (t.stream_idx == failed) codec = t.codec_name; }
+                const char* stays = video ? "blank" : "silent";
+                player_ui.toast(std::format("Switch to {}: no decoder for {} — the track stays {}", p->what, codec, stays));
+                logger::warn("switch: no decoder for {} (stream {}): the switch to {} ended, the track stays {}",
+                             codec, failed, p->what, stays);
+            }
+            // That video stream stays blank: no frame will come, so a seek
+            // does not wait for one, nor does the stall check below say
+            // "Buffering".
+            const bool video_blank = cur_video_stream >= 0 && cur_video_stream == ms.video_open_failed.load();
+            if (seek_wait && video_blank) seek_wait = false;
+
             // Give up waiting visibly after a while; playback keeps trying.
             static constexpr auto kSwitchTimeout = std::chrono::seconds(20);
             for (PendingSwitch* p : { &vsw, &asw, &ssw }) {
@@ -2804,7 +2846,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             static constexpr double kShowAfter = 0.25;
             // (Not right after a seek / switch woke the demuxer at the end:
             // the last frame was presented long ago, but nothing is late.)
-            const bool stalled = !paused && !scrubbing && has_frame && !demuxer.ended()
+            const bool stalled = !paused && !scrubbing && has_frame && !demuxer.ended() && !video_blank
                 && secs(demux_resumed_at) >= kShowAfter
                 && frameq.size() == 0
                 && secs(last_present) > std::max(0.5, 2.5 * last_frame_dur / std::max(cur_speed, 0.25));
@@ -2944,10 +2986,15 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         // ── Stream inspector (I key) ──────────────────────────────────────
         if (s_show_inspector.load()) {
             // Refresh the Decode line so it flips to "VideoToolbox" once the
-            // first HW frame lands (hw_active_ turns on inside Decoder::pull).
+            // first HW frame lands (hw_active_ turns on inside Decoder::pull),
+            // with the decode errors so far.
             if (decode_line_idx < inspector_lines.size()) {
+                const std::string errs = describe_decode_errors(video_decoder.errors());
                 inspector_lines[decode_line_idx].text =
-                    std::format("  Decode   {}", video_decoder.hw_type_name());
+                    std::format("  Decode   {}{}{}",
+                                video_decoder.is_open() ? video_decoder.hw_type_name()
+                                                        : "no decoder open (see the log)",
+                                errs.empty() ? "" : ": ", errs);
             }
             debug_hud.draw_inspector(inspector_lines, fb_av_w, fb_h, global_ps);
         }
@@ -2997,7 +3044,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             for (const auto& k : ms.keyframes.list(shown_stream)) (k.predicted ? kf_seg_ui : kf_pts_ui).push_back(k.pts);
         }
 
-        // bar_pts: position shown in the seek bar and used for the thumbnail strip.
+        // bar_pts: PTS shown in the seek bar (as a position) and used for the thumbnail strip.
         //   During scrubbing   → cursor position (real-time feedback).
         //   Post-seek settling → last_seek_pos, held until decoded PTS catches up.
         //     (avformat_seek_file snaps to the keyframe *before* the target, so the
@@ -3011,7 +3058,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         //   keeps the highlight in sync with what the user actually sees.
         double bar_pts;
         if (scrubbing && last_scrub_frac >= 0.0)
-            bar_pts = last_scrub_frac * duration;
+            bar_pts = ui::pts_at_fraction(last_scrub_frac, timeline_start_s, duration);
         else if (last_pts >= last_seek_pos)
             bar_pts = last_pts;       // normal playback: decoded PTS has passed the seek target
         else
@@ -3071,11 +3118,12 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
 
                 if (tick_seek >= 0.0) {
                     // Consume the click; the seek is made next iteration, as
-                    // a seek-bar click's is.
+                    // a seek-bar click's is. The strip gives a position, as
+                    // its tag times are.
                     s_click_x.store(-1.0);
                     s_click_y.store(-1.0);
                     s_seek_delta.store(0.0);
-                    s_seek_to.store(tick_seek);
+                    s_seek_to.store(ui::pts_at(tick_seek, timeline_start_s));
                 }
                 bottom_off += static_cast<float>(DebugHUD::kTimelinePx) * ps;
 
@@ -3093,7 +3141,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
 
             // ── Keyframe filmstrip (K key; while dragging / just after a seek) ─
             if (show_filmstrip)
-                thumb_strip.draw(thumb_pts, duration, fb_av_w, fb_h, bottom_off + 4.0f * ps);
+                thumb_strip.draw(thumb_pts, timeline_start_s, duration, fb_av_w, fb_h, bottom_off + 4.0f * ps);
         }
 
         // ── Subtitles ─────────────────────────────────────────────────────────
@@ -3148,7 +3196,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 });
 
             float vmaf_pos_frac = (duration > 0.0)
-                ? static_cast<float>(last_pts / duration) : 0.0f;
+                ? static_cast<float>(ui::position(last_pts, timeline_start_s) / duration) : 0.0f;
 
             debug_hud.draw_vmaf_panel(vmaf_entries,
                                       vmaf_analyzer.running(), vmaf_analyzer.progress(),
@@ -3158,6 +3206,10 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         }
 
         // ── Top-bar info chips (refreshed ~1 Hz) ─────────────────────────────
+        // A video track no decoder could be opened for shows nothing: its
+        // chips say what the track declares, not what the old track left on
+        // screen (plan/engineer_tools_player_fixes.md, 5.4).
+        const bool video_blank_now = cur_video_stream >= 0 && cur_video_stream == ms.video_open_failed.load();
         if (now - last_info_upd >= std::chrono::seconds(1)) {
             last_info_upd = now;
             const AVCodecParameters* vpar = demuxer.video_codecpar();
@@ -3167,10 +3219,19 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             if (const char* prof = avcodec_profile_name(vpar->codec_id, vpar->profile))
                 codec += std::string(" ") + prof;
             ui_info.codec  = codec;
-            ui_info.res    = std::format("{}×{}", shown_w, shown_h);
-            ui_info.fps    = stream_fps > 0.0 ? fps_text(stream_fps) : "";
-            ui_info.hdr    = renderer.hdr_mode() == 0 || renderer.hdr_mode() == 1;
-            ui_info.range  = renderer.hdr_mode() == 0 ? "HDR10" : renderer.hdr_mode() == 1 ? "HLG" : "SDR";
+            if (video_blank_now) {
+                const AVRational afr = demuxer.fmt_ctx()->streams[demuxer.video_stream_index()]->avg_frame_rate;
+                ui_info.res   = std::format("{}×{}", vpar->width, vpar->height);
+                ui_info.fps   = afr.num > 0 && afr.den > 0 ? fps_text(av_q2d(afr)) : "";
+                ui_info.hdr   = vpar->color_trc == AVCOL_TRC_SMPTE2084 || vpar->color_trc == AVCOL_TRC_ARIB_STD_B67;
+                ui_info.range = vpar->color_trc == AVCOL_TRC_SMPTE2084   ? "HDR10"
+                              : vpar->color_trc == AVCOL_TRC_ARIB_STD_B67 ? "HLG" : "SDR";
+            } else {
+                ui_info.res   = std::format("{}×{}", shown_w, shown_h);
+                ui_info.fps   = stream_fps > 0.0 ? fps_text(stream_fps) : "";
+                ui_info.hdr   = renderer.hdr_mode() == 0 || renderer.hdr_mode() == 1;
+                ui_info.range = renderer.hdr_mode() == 0 ? "HDR10" : renderer.hdr_mode() == 1 ? "HLG" : "SDR";
+            }
 
             // HLS exposes each variant as an AVProgram (in master-playlist
             // order); the one carrying both routed streams is playing — or,
@@ -3181,7 +3242,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         }
         // Cheap and state-dependent (HW becomes active after the first decoded
         // frame): keep these current every frame.
-        ui_info.decode  = video_decoder.is_hw_active() ? "HW VT" : "SW";
+        ui_info.decode  = video_blank_now ? "no decoder" : video_decoder.is_hw_active() ? "HW VT" : "SW";
         ui_info.dropped = static_cast<int>(total_dropped);
 
         // Overlay toggles (keys or UI) → OSD toast.
@@ -3198,6 +3259,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         {
             PlayerUIInputs in;
             in.duration         = duration;
+            in.start            = timeline_start_s;
             in.cur_pts          = bar_pts;
             in.buffered_end_pts = demuxer.read_ahead_pts();
             in.fps              = stream_fps;
@@ -3259,6 +3321,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 ni.playing_variant = playing_variant;
                 ni.cur_pts         = last_pts;
                 ni.duration        = duration;
+                ni.start           = timeline_start_s;
                 const ImVec2 disp  = ImGui::GetIO().DisplaySize;
                 const auto net_out = app.net_inspector.draw(ni, disp.x, disp.y);
                 if (net_out.close) s_show_network.store(false);
@@ -3285,6 +3348,8 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 ti.pending_video    = vsw.active ? vsw.target : -1;
                 ti.pending_audio    = asw.active ? asw.target : -1;
                 ti.pending_subtitle = ssw.active ? ssw.target : -1;
+                ti.failed_video     = ms.video_open_failed.load();
+                ti.failed_audio     = ms.audio_open_failed.load();
                 ti.t                = glfwGetTime();
                 const ImVec2 disp   = ImGui::GetIO().DisplaySize;
                 ti.win_w            = disp.x;
@@ -3467,7 +3532,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                     });
 
                 float vmaf_pos_frac = (duration > 0.0)
-                    ? static_cast<float>(last_pts / duration) : 0.0f;
+                    ? static_cast<float>(ui::position(last_pts, timeline_start_s) / duration) : 0.0f;
 
                 bool vmaf_open = true;
                 bool export_json = player_ui.draw_vmaf_results(
@@ -3572,7 +3637,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                     if (scrubbing)
                         logger::info("ui-snapshot: wrote {} ({}×{}) — scrub preview pts={:.3f} {}x{} for {:.3f}",
                                      path, fb_w, fb_h, scrub_display_pts, scrub_shown_w, scrub_shown_h,
-                                     last_scrub_frac * duration);
+                                     ui::pts_at_fraction(last_scrub_frac, timeline_start_s, duration));
                     else
                         logger::info("ui-snapshot: wrote {} ({}×{}) — pts={:.3f} {}x{}{}", path, fb_w, fb_h,
                                      last_pts, shown_w, shown_h, paused ? " (paused)" : "");
@@ -3584,8 +3649,9 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             if (ui_snap_mode && qa_snaps_total == 0 && (has_frame || snap_busy) && ui_sub_at_landed
                 && (qa_open_done || snap_busy) && busy_ok) {
                 ++ui_frames;
+                // The PTS under --ui-hover, as the hover card looks it up.
                 const double hover_t = (ui_hover_frac >= 0.0f && duration > 0.0)
-                    ? ui_hover_frac * duration : -1.0;
+                    ? ui::pts_at_fraction(ui_hover_frac, timeline_start_s, duration) : -1.0;
                 std::optional<ThumbnailStrip::ThumbRef> hover_thumb;
                 if (hover_t >= 0.0)
                     hover_thumb = thumb_strip.nearest_at_or_before(hover_t, thumb_strip.preview_max_gap());
@@ -3652,8 +3718,9 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 if (last_scrub_frac < 0.0 ||
                     std::abs(f - static_cast<float>(last_scrub_frac)) >= static_cast<float>(kScrubMinDelta)) {
                     last_scrub_frac = static_cast<double>(f);
-                    scrub_request(f * static_cast<float>(duration));
-                    last_pts = f * duration;
+                    const double target = ui::pts_at_fraction(f, timeline_start_s, duration);
+                    scrub_request(target);
+                    last_pts = target;
                 }
             }
             // Carry drag state forward one frame so the scrubbing flag (read at
@@ -3777,20 +3844,29 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                                        kKind[st.kind], st.speed, st.at_sec);
                 std::string fname = std::filesystem::path(open_path).filename().string();
                 std::erase_if(fname, [](char c) { return c == '"' || c == '\\'; });  // keep JSON valid
+                // Decode errors since the media opened (not since qa_t0: a
+                // decoder that never gives a frame fails before it).
+                const Decoder::Errors ve = video_decoder.errors();
+                std::string last_err = ve.errors > 0 ? av_error_text(ve.last) : std::string();
+                std::erase_if(last_err, [](char c) { return c == '"' || c == '\\'; });
                 std::ofstream f(av_report_path);
                 f << std::format(
                     "{{\n  \"file\": \"{}\",\n  \"initial_speed\": {},\n  \"speed_seq\": [{}],\n"
                     "  \"started\": {},\n  \"wall_s\": {:.3f},\n  \"hw_decode\": {},\n"
+                    "  \"video_decode_errors\": {},\n  \"video_decode_last_error\": \"{}\",\n"
+                    "  \"video_corrupt_frames\": {},\n  \"video_hw_error_run_max\": {},\n"
                     "  \"has_audio\": {},\n  \"audio_output_latency_s\": {:.4f},\n"
                     "  \"audio_underruns\": {},\n  \"audio_silent_frames\": {},\n"
-                    "  \"audio_dropped_frames\": {},\n"
+                    "  \"audio_dropped_frames\": {},\n  \"audio_decode_errors\": {},\n"
                     "  \"overall\": {},\n  \"segments\": [\n    {}\n  ]\n}}\n",
                     fname, cli_speed, req,
-                    qa_started, t, video_decoder.is_hw_active(), has_audio,
+                    qa_started, t, video_decoder.is_hw_active(),
+                    ve.errors, last_err, ve.corrupt, ve.hw_run_max, has_audio,
                     has_audio ? audio_player.output_latency_seconds() : 0.0,
                     has_audio ? audio_player.underrun_count() - qa_underruns0     : 0,
                     has_audio ? audio_player.silent_frames()  - qa_silent0        : 0,
                     has_audio ? audio_player.dropped_frames() - qa_dropped_audio0 : 0,
+                    has_audio ? audio_decoder.decode_errors().errors : 0,
                     av_segment_json(av_total), segs);
                 logger::info("--av-report: wrote {} ({:.1f} s, {} frames)",
                              av_report_path, t, av_total.presented);

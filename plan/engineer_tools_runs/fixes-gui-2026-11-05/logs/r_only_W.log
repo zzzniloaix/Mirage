@@ -1,0 +1,28 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  Opening <scratch>/gui3/clips/r_only_av.mp4 (t=1.004)
+[INFO]  Demuxer: avformat_open_input 4 ms (2 streams, 0 programs) (t=1.009)
+[INFO]  Demuxer: avformat_find_stream_info 6 ms (t=1.015)
+[INFO]  Container: QuickTime / MOV
+[INFO]  Duration:  00:00:06
+[INFO]  Video:     h264 1280×720 @ 25.000 fps  pixel_fmt=yuv420p
+[INFO]  Audio:     aac 48000 Hz  2 ch  fmt=fltp
+[INFO]  Selected HW-capable decoder: h264 (default was h264)
+[INFO]  Decoder opened: h264 (1280×720)  [HW: VideoToolbox requested]
+[INFO]  AudioPlayer: 48000 Hz stereo float32  device latency 30.0 ms (480 frames × 3 periods)
+[INFO]  Decoder opened: aac (0×0)
+[INFO]  AudioDecoder: 48000 Hz 2ch → 48000 Hz stereo f32
+[INFO]  Opened <scratch>/gui3/clips/r_only_av.mp4 in 261 ms (t=1.266)
+[INFO]  VideoRenderer: 1280×720 SDR (yuv420p → RGB24 sRGB)  matrix=BT.709  limited-range
+[INFO]  AudioDecoder: resampler 48000 Hz stereo fltp → 48000 Hz stereo flt, FFmpeg's default downmix levels
+[INFO]  Subtitles: 0 choice(s); initial off (none available)
+[INFO]  ThumbnailStrip: open 1 ms, probe 9 ms (t=1.281)
+[INFO]  ThumbnailStrip: 1 keyframes in index for stream 0 — seek-sampling 7 points (stride 0.86 s)
+[INFO]  ScrubDecoder: ready (open 1 ms, probe 9 ms) (t=1.281)
+[INFO]  ThumbnailStrip: coarse pass done (1 thumbnails)
+[INFO]  ThumbnailStrip: decode complete (1 thumbnails)
+[INFO]  loading-indicator: "Loading" (t=1.533)
+[INFO]  Decoder: VideoToolbox HW decode active (zero-copy IOSurface path)
+[INFO]  first-frame: pts=0.000 1280x720 VideoToolbox, 424 ms after open (t=1.695)
+[INFO]  VideoRenderer: HW zero-copy path ready: '420v' bound as R8 / RG8, 8-bit samples (BT.709 matrix, limited-range)
+[INFO]  loading-indicator: hidden (t=1.698)
+[INFO]  ui-snapshot: wrote <scratch>/gui3/r_only_W.png (2560×1440, frame 120, hover=none, thumb_pts=none, sub="")

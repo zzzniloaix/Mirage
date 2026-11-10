@@ -173,9 +173,9 @@ void AudioPlayer::push(const float* samples, int frame_count, double pts, double
     if (done == 0 || flush_gen_ != gen) return;   // nothing new / flushed: no stale peaks
     frame_count = done;
 
-    // ── Waveform downsampling (left channel peak, every kWaveStride samples) ──
+    // ── Waveform downsampling (peak of both channels, every kWaveStride frames) ──
     for (int i = 0; i < frame_count; ++i) {
-        float s = std::abs(samples[i * kChannels]);
+        float s = std::max(std::abs(samples[i * kChannels]), std::abs(samples[i * kChannels + 1]));
         if (s > wave_peak_) wave_peak_ = s;
         if (++wave_accum_ >= kWaveStride) {
             wave_buf_[wave_head_] = wave_peak_;

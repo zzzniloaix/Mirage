@@ -28,6 +28,7 @@ constexpr float kSmallFs = 12.0f;
 struct Row {
     std::string title, detail;
     bool selected = false, pending = false;
+    bool failed = false;            // no decoder for it: detail in the error colour
     std::string tip;                // hover tooltip (empty = none)
 };
 
@@ -61,11 +62,24 @@ bool track_row(const char* id, const Row& r, float w, double t)
     const std::string detail = r.pending ? (r.detail.empty() ? "Loading…" : r.detail + " · Loading…")
                                          : r.detail;
     dl->AddText(f.ui_small, kSmallFs, ImVec2(tx, p.y + 26.0f),
-                C(r.pending ? th::kWarn : th::kTextDim), detail.c_str());
+                C(r.failed ? th::kError : r.pending ? th::kWarn : th::kTextDim), detail.c_str());
     dl->PopClipRect();
 
     if (hovered && !r.tip.empty()) ui::tooltip(r.tip.c_str());
     return clicked;
+}
+
+// A row whose stream no decoder could be opened for: "No decoder for
+// <codec>", or "No decoder" when that is wider than a row of width `w`.
+void mark_failed(Row& r, const std::string& codec, float w)
+{
+    r.failed  = true;
+    r.pending = false;   // nothing more will come
+    const std::string full = "No decoder for " + codec;
+    const float avail = w - kMarkW - 12.0f;
+    r.detail = !codec.empty()
+            && ui_fonts().ui_small->CalcTextSizeA(kSmallFs, FLT_MAX, 0.0f, full.c_str()).x <= avail
+        ? full : std::string("No decoder");
 }
 
 void column_header(const char* label, int count)
@@ -166,6 +180,12 @@ TrackPanelOut draw_track_panel(const TrackPanelInputs& in)
                             r.tip = std::format("{} identical streams (one per audio group):", g.members.size());
                             for (int m : g.members) r.tip += std::format(" #{}", m);
                         }
+                        if (in.failed_video >= 0 &&
+                            std::find(g.members.begin(), g.members.end(), in.failed_video) != g.members.end()) {
+                            std::string codec;
+                            for (const auto& t : vt) if (t.stream_idx == in.failed_video) codec = t.codec_name;
+                            mark_failed(r, codec, w);
+                        }
                         const std::string id = std::format("##v{}", g.stream_idx);
                         if (track_row(id.c_str(), r, w, in.t) && !r.selected) out.video = g.stream_idx;
                     }
@@ -179,6 +199,7 @@ TrackPanelOut draw_track_panel(const TrackPanelInputs& in)
                         Row r{ audio_track_title(a), audio_track_detail(a) };
                         r.selected = a.stream_idx == in.cur_audio;
                         r.pending  = a.stream_idx == in.pending_audio;
+                        if (a.stream_idx == in.failed_audio) mark_failed(r, a.codec_name, w);
                         const std::string id = std::format("##a{}", a.stream_idx);
                         if (track_row(id.c_str(), r, w, in.t) && !r.selected) out.audio = a.stream_idx;
                     }

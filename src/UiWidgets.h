@@ -37,8 +37,11 @@ ImVec2 chip_size(const char* text, ImFont* font, float font_size);
 
 // ── Seek bar ─────────────────────────────────────────────────────────────────
 
+// The bar spans PTS [start, start + dur] (UiFormat.h: positions); cur,
+// buffered_end and the keyframes are absolute PTS, as is SeekBarOut::seek_to.
 struct SeekBarIn {
     double dur          = 0.0;
+    double start        = 0.0;
     double cur          = 0.0;
     double buffered_end = -1.0;   // < 0: unknown
     const std::vector<double>* kf_pts = nullptr;

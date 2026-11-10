@@ -1,0 +1,22 @@
+{
+  "file": "h264_noise.mp4",
+  "initial_speed": 1,
+  "speed_seq": [],
+  "started": true,
+  "wall_s": 3.020,
+  "hw_decode": true,
+  "video_decode_errors": 78,
+  "video_decode_last_error": "Unknown error occurred",
+  "video_corrupt_frames": 0,
+  "video_hw_error_run_max": 25,
+  "has_audio": false,
+  "audio_output_latency_s": 0.0000,
+  "audio_underruns": 0,
+  "audio_silent_frames": 0,
+  "audio_dropped_frames": 0,
+  "audio_decode_errors": 0,
+  "overall": {"speed":1,"t_start":0.000,"wall_s":3.020,"video_media_s":3.300,"audio_media_s":0.000,"video_rate":1.0927,"audio_rate":0.0000,"frames_presented":33,"frames_dropped_late":0,"av_diff_media_s":{"n":0},"av_diff_wall_ms":{"n":0},"av_diff_wall_ms_settled":{"n":0},"underruns_settled":-1,"silent_frames_settled":-1,"video_rate_settled":0.0000,"audio_rate_settled":0.0000},
+  "segments": [
+    {"speed":1,"t_start":0.000,"wall_s":3.020,"video_media_s":3.300,"audio_media_s":0.000,"video_rate":1.0927,"audio_rate":0.0000,"frames_presented":33,"frames_dropped_late":0,"av_diff_media_s":{"n":0},"av_diff_wall_ms":{"n":0},"av_diff_wall_ms_settled":{"n":0},"underruns_settled":-1,"silent_frames_settled":-1,"video_rate_settled":0.0000,"audio_rate_settled":0.0000}
+  ]
+}
