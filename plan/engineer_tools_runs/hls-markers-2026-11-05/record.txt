@@ -1,0 +1,129 @@
+$ uptime
+ 9:16  up 6 days, 19:46, 5 users, load averages: 3.04 5.09 7.98
+[exit status 0]
+
+$ sw_vers
+ProductName:		macOS
+ProductVersion:		26.6.2
+BuildVersion:		25G83
+[exit status 0]
+
+$ git rev-parse HEAD
+77601c99f5dbef82c1f5c0769781d5a4f008a9ef
+[exit status 0]
+
+$ git status --porcelain
+?? plan/engineer_tools_runs/hls-markers-2026-11-05/
+[exit status 0]
+
+$ cc --version | head -2
+Apple clang version 21.0.0 (clang-2100.1.1.101)
+Target: arm64-apple-darwin25.6.0
+[exit status 0]
+
+$ cmake --version | head -1
+cmake version 4.3.0
+[exit status 0]
+
+$ pkg-config --modversion libavformat libavcodec libavutil libswresample libswscale glfw3
+62.12.101
+62.28.101
+60.26.101
+6.3.101
+9.5.101
+3.4.0
+[exit status 0]
+
+$ ffmpeg -hide_banner -version | head -1
+ffmpeg version 8.1.1 Copyright (c) 2000-2026 the FFmpeg developers
+[exit status 0]
+
+$ cmake --build build/macos-debug
+ninja: no work to do.
+[exit status 0]
+
+$ cmake --build build/macos-headless
+ninja: no work to do.
+[exit status 0]
+
+$ build/macos-debug/mirage_tests '~[audio]' 2>&1 | tail -3
+===============================================================================
+All tests passed (128173 assertions in 443 test cases)
+
+[exit status 0]
+
+$ build/macos-headless/mirage_tests '~[audio]' 2>&1 | tail -3
+===============================================================================
+All tests passed (128180 assertions in 443 test cases)
+
+[exit status 0]
+
+$ build/macos-debug/mirage_tests '[markers],[html]' 2>&1 | tail -3
+===============================================================================
+All tests passed (15 assertions in 4 test cases)
+
+[exit status 0]
+
+$ sh tests/hlsmarkers_demo.sh build/macos-headless/mirage_hlscheck <scratch>/demo > <scratch>/demo.out 2>&1; echo $?; cat <scratch>/demo/markers.txt
+0
+[INFO]  ConformProbe: master.m3u8 — 4 playlists, 0 segments read, 0 sized, 0.0 MB in 0.0 s: 0 errors, 0 warnings
+
+markers: 1 splice points over 4 playlists, reference v0 360p
+  break-1                   6.000 s  marked in 4, missing in 0, 2 off  [com.apple.hls.interstitial]
+  and 1 other EXT-X-DATERANGE (no interstitial CLASS or SCTE-35: not splice points, not checked; in up to 3 playlists; listed in --json)
+1 error, 1 warning, 0 notes
+ERROR break-1: #EXT-X-CUE-MARKER in audio aac/English is one segment early
+      Line 11: it comes before segment #2 at 4.011 s (0:04.011), −1.989 s from the event at 6.000 s (0:06.000) (EXT-X-DATERANGE START-DATE in v0 360p). The boundary nearest the event is 6.016 s (0:06.016) (segment #3), +16 ms from it. A player splices audio aac/English 2.005 s away from the renditions that mark it there.
+warn  break-1: START-DATE is +300 ms off a segment boundary in v2 1080p
+      Line 11: START-DATE falls at 6.300 s (0:06.300); the nearest boundary is 6.000 s (0:06.000) (segment #3). A player splicing the interstitial there cuts inside a segment, or moves the cut to a boundary 300 ms away.
+[exit status 0]
+
+$ build/macos-headless/mirage_hlscheck --marker-tag EXT-X-CUE-MARKER --json <scratch>/cli_playing.json --html <scratch>/cli_playing.html <scratch>/demo/master.m3u8 2>/dev/null | tail -14
+      #4 1.520 s against 1.600 s. The segments have leading pictures (an open GOP, or cuts inside GOPs): the next segment's first pictures show in this one's time, so the spans differ from EXTINF by them.
+note  v3/index.m3u8: BANDWIDTH 1.67 × the measured peak  [variants 2]
+      BANDWIDTH 4.00 Mb/s is 1.67 × the peak segment bit rate 2.39 Mb/s (2.25 Mb/s the variant's playlist + 145 kb/s its largest audio rendition), segment #1, 2.000 s: players wait for a faster link than the variant needs.
+note  v3/index.m3u8: segments start with CRA pictures  [variants 2]
+      #3, 5: clean random access points. The RASL pictures that follow one reference the segment before, and are dropped when playback starts or switches there.
+
+markers: 1 splice points over 4 playlists, reference v0 360p
+  break-1                   6.000 s  marked in 4, missing in 0, 2 off  [com.apple.hls.interstitial]
+  and 1 other EXT-X-DATERANGE (no interstitial CLASS or SCTE-35: not splice points, not checked; in up to 3 playlists; listed in --json)
+1 error, 1 warning, 0 notes
+ERROR break-1: #EXT-X-CUE-MARKER in audio aac/English is one segment early
+      Line 11: it comes before segment #2 at 4.011 s (0:04.011), −1.989 s from the event at 6.000 s (0:06.000) (EXT-X-DATERANGE START-DATE in v0 360p). The boundary nearest the event is 6.016 s (0:06.016) (segment #3), +16 ms from it. A player splices audio aac/English 2.005 s away from the renditions that mark it there.
+warn  break-1: START-DATE is +300 ms off a segment boundary in v2 1080p
+      Line 11: START-DATE falls at 6.300 s (0:06.300); the nearest boundary is 6.000 s (0:06.000) (segment #3). A player splicing the interstitial there cuts inside a segment, or moves the cut to a boundary 300 ms away.
+[exit status 0]
+
+$ build/macos-headless/mirage_hlscheck --markers-only --marker-tag EXT-X-CUE-MARKER --json <scratch>/cli_url.json <scratch>/demo/master.m3u8 > /dev/null; echo $?
+1
+[exit status 0]
+
+$ uptime
+ 9:18  up 6 days, 19:47, 5 users, load averages: 5.61 5.29 7.73
+[exit status 0]
+
+$ HOME=<scratch>/home build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-net tab=conformance,conform=1,width=760,marker_tags=EXT-X-CUE-MARKER,marker_open=1,conform_out=<scratch>/tab_playing.json,conform_html=<scratch>/tab_playing.html --ui-snapshot <scratch>/tab_playing.png 300 <scratch>/demo/master.m3u8 > <scratch>/tab_playing.log 2>&1; echo $?
+0
+[exit status 0]
+
+$ cmp <scratch>/cli_playing.json <scratch>/tab_playing.json && echo same
+same
+[exit status 0]
+
+$ HOME=<scratch>/home build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-net tab=conformance,width=760,markers_only=1,marker_tags=EXT-X-CUE-MARKER,marker_open=1,conform_out=<scratch>/tab_url.json,hls=<scratch>/demo/master.m3u8 --ui-snapshot <scratch>/tab_url.png 240 <scratch>/demo/v1/s0.ts > <scratch>/tab_url.log 2>&1; echo $?
+0
+[exit status 0]
+
+$ cmp <scratch>/cli_url.json <scratch>/tab_url.json && echo same
+same
+[exit status 0]
+
+$ HOME=<scratch>/home build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-net tab=alignment,scope=all,probe=1,width=760,marker_tags=EXT-X-CUE-MARKER --ui-snapshot <scratch>/align.png 300 <scratch>/demo/master.m3u8 > <scratch>/align.log 2>&1; echo $?
+0
+[exit status 0]
+
+$ git status --porcelain
+?? plan/engineer_tools_runs/hls-markers-2026-11-05/
+[exit status 0]
+

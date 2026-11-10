@@ -1,0 +1,27 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  Opening <scratch>/demo/v1/s0.ts (t=0.236)
+[INFO]  Demuxer: avformat_open_input 4 ms (1 streams, 1 programs) (t=0.242)
+[INFO]  Demuxer: avformat_find_stream_info 3 ms (t=0.247)
+[WARN]  No audio stream found
+[INFO]  Container: MPEG-TS (MPEG-2 Transport Stream)
+[INFO]  Duration:  00:00:02
+[INFO]  Video:     h264 640×360 @ 25.000 fps  pixel_fmt=yuv420p
+[INFO]  Selected HW-capable decoder: h264 (default was h264)
+[INFO]  Decoder opened: h264 (640×360)  [HW: VideoToolbox requested]
+[INFO]  Opened <scratch>/demo/v1/s0.ts in 25 ms (t=0.264)
+[INFO]  VideoRenderer: 640×360 SDR (yuv420p → RGB24 sRGB)  matrix=BT.601  limited-range
+[INFO]  Subtitles: 0 choice(s); initial off (none available)
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=0.267)
+[INFO]  ThumbnailStrip: open 1 ms, probe 2 ms (t=0.269)
+[INFO]  ScrubDecoder: ready (open 1 ms, probe 2 ms) (t=0.269)
+[INFO]  ConformProbe: <scratch>/demo/master.m3u8 — 4 playlists, 0 segments read, 0 sized, 0.0 MB in 0.0 s: 0 errors, 0 warnings
+[INFO]  ThumbnailStrip: 5 keyframes found, decoding 5 thumbnails (stride 0.01 s, 160 px tall)
+[INFO]  ThumbnailStrip: coarse pass done (1 thumbnails)
+[INFO]  conform_out: wrote <scratch>/tab_url.json
+[h264 @ 0x78e226680] co located POCs unavailable
+[h264 @ 0x78e226680] co located POCs unavailable
+[INFO]  ThumbnailStrip: decode complete (1 thumbnails)
+[INFO]  Decoder: VideoToolbox HW decode active (zero-copy IOSurface path)
+[INFO]  first-frame: pts=1.480 640x360 VideoToolbox, 141 ms after open (t=0.407)
+[INFO]  VideoRenderer: HW zero-copy path ready (8-bit, BT.601 matrix, limited-range)
+[INFO]  ui-snapshot: wrote <scratch>/tab_url.png (3200×2000, frame 240, hover=none, thumb_pts=none, sub="")

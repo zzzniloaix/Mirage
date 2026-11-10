@@ -84,6 +84,21 @@ The branches `feat/engineer-tools-poc-on-main` (the panels P, S, X, B and L), `f
   - `3b4e646`: "Without this change the test fails: nothing was buffered and the clock stayed at 0." The lead agent's run of the test before the change is not committed.
 - **Pending owner confirmation**: the owner's review of these commits and of this section.
 
+## HLS break markers and encrypted segments
+
+The branch `feat/hls-markers` (PR #7), on `feat/engineer-tools-followups`. Every commit of it carries a `Co-Authored-By: Claude Opus 5.5` trailer.
+
+- **What the owner asked**: on 2026-11-04, why the HLS check could not check an encrypted stream when its playlists are readable; then that the agent ask the agent session that had tried to check a stream's ad-break markers with the player why it failed, and "start doing it now". On 2026-11-05, a better-looking report, then how to show the check in the player, the order of the agent's three steps, and a PR. The owner also set that every value in the tests be made up.
+- **What the AI did**: all of the code, tests, documents and run records of the branch (D-096 to D-098).
+  - The lead agent asked that other session what had failed (the hls demuxer taking the first `EXT-X-KEY` URI as an AES key) and what it had checked by hand, and compared the marker check's output with that session's own script on playlists it supplied, outside the repository; none of their content is in it.
+  - It wrote the code on a branch over the player fixes, then cherry-picked its two commits onto PR #6's branch (D-098), where the seek needed a playlist position instead of `ui::pts_at`.
+  - The run record is `plan/engineer_tools_runs/hls-markers-2026-11-05/`.
+- **What the owner decided**: D-096 to D-098, each adopting the agent's recommendation. `kMarkerSlack` (50 ms) is still the agent's value.
+- **Statements in commit messages that no committed record backs**, none of them amended:
+  - `906bf5e` (its message written for `a47df08`, on the branch over the player fixes): "The demo package's JSON report is byte-identical; its text gains one line" and "Headless 471 and debug 472 cases pass". Scratch runs on that other branch, not committed; on this branch `plan/engineer_tools_runs/hls-markers-2026-11-05/` has the tests' run.
+  - `8810ec4`: "the JSON written is unchanged" by the report refactor. A scratch run, not committed; the record compares the command line with the tab, not with the code before the refactor.
+- **Pending owner confirmation**: the owner's review of these commits and of this section.
+
 ## VMAF code
 
 - **`src/VMAFAnalyzer.cpp` / `src/VMAFAnalyzer.h`** (the scoring core)
