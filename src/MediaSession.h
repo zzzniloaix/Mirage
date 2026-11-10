@@ -113,6 +113,8 @@ public:
     int        vid_w = 0, vid_h = 0;  // display size after SAR + rotation
     double     frame_dt = 1.0 / 60.0; // one frame, from avg_frame_rate
     double     video_start_s = 0.0;   // video stream start_time (sidecar cue offset)
+    double     timeline_start_s = 0.0;   // where the positions the UI shows count from (UiFormat.h)
+    double     timeline_dur_s   = -1.0;  // the duration the UI shows, from there to the end (timeline_duration)
     // HLS: playback opened a deduplicated copy of the master — the hls
     // demuxer's program p is EXT-X-STREAM-INF hls_kept[p] of `manifest`.
     // Empty: the master as served (program p = variant p).
@@ -137,8 +139,15 @@ public:
     // The seek (Demuxer::request_seek serial) whose flush sentinel the video
     // decode thread took last: what it decodes from then on is from there.
     std::atomic<std::uint64_t> video_seek_applied{ 0 };
-    // Audio stream the audio decoder is currently set up for (audio thread).
+    // Audio stream the audio decoder is currently set up for (audio thread),
+    // -1 = none (no decoder could be opened for the stream switched to).
     std::atomic<int>    decoded_audio_stream{ -1 };
+    // The stream whose decoder failed to open at the last track switch,
+    // -1 = none: set by the decode threads when a reopen fails, cleared when
+    // one succeeds. The render thread ends that switch at once and the
+    // Tracks panel says why.
+    std::atomic<int>    video_open_failed{ -1 };
+    std::atomic<int>    audio_open_failed{ -1 };
     // Render thread, right after Demuxer::request_seek: its serial. Until the
     // audio thread reaches that seek's flush sentinel, the audio it pops is
     // from before the seek and is dropped undecoded — so it never fills the

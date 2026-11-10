@@ -739,6 +739,90 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: owner, adopting the agent's recommendation
 - **Date**: 2026-11-03
 
+### D-088 A backward seek waits for a video keyframe at or before its target (D-007's plan for it)
+
+- **Decision**: the D-007 plan in `plan/engineer_tools_player_fixes.md`, section 1, as written. After a backward seek on an input with video, the demuxer queues nothing until it has read a video keyframe at or before the frame to show. It seeks to the keyframe `KeyframeIndex` knows for certain; otherwise it seeks again from further back, 1, 2, 4, 8 … s, down to the media's start. Seeks in MP4 and Matroska, which land on keyframes from the container's index, read as before.
+- **Owner's words**, translated by the agent: "Check where it lands, and go back if it doesn't work (Recommended)".
+- **Alternatives**: index every keyframe at open by reading the whole input once (exact, but a full read before the first seek, and not for network inputs); no fix, so the player does what FFmpeg's command line does.
+- **Rationale**: on an MPEG-TS, a backward seek lands on a packet at or before its target that need not be a keyframe, and a seek after the last keyframe but one showed no frame (`plan/engineer_tools_runs/seek-2026-11-03/`). The check costs packets read again where the landing is wrong, and nothing where it is right.
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-03
+
+### D-089 The UI shows positions from the video's start, with a PTS mode
+
+- **Decision**: the plan's section 2. The UI shows positions: PTS minus the video stream's start time (else the container's, else 0; 0 for live). A fourth timecode mode shows the absolute PTS. The QA flags `--ui-sub-at`, `--speed-seq seek:` and `scrub:` take positions. The demuxer, the decoders, the clocks, the logs, the HUD's and the frame inspector's PTS rows, `B` and the Alignment tab keep the PTS.
+- **Owner's words**, translated by the agent: "Count from the video's start, and add a PTS mode (Recommended)". The option said that the QA flags would take positions too.
+- **Alternatives**: positions from the container's start, which `ffmpeg -ss` and VMAF count from; absolute PTS everywhere, with the bar spanning the start to the start plus the duration.
+- **Rationale**: the first frame reads 0 and is frame 0, as the frame inspector numbers it, and the PTS is one click away.
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-03
+
+### D-090 The renderer: constants at the container's depth, the frames' own tags, buffers bound at their depth (D-007's plan for them)
+
+- **Decision**: the plan's section 3, with 3.1 (b), 3.2 (a) and 3.3.
+  - The HW path's YUV→RGB constants come from the container's code values. The software path's SDR output gets `SWS_FULL_CHR_H_INT`, so that the two paths agree.
+  - `upload()` follows each frame's own colour tags and reconfigures the renderer when the interpretation changes.
+  - VideoToolbox's buffers are bound by their planes' bytes per element. A buffer the HW path cannot bind is copied to the CPU and converted by sws.
+- **Owner's words**, translated by the agent: "Fix all of it as recommended (Recommended)".
+- **Alternatives**:
+  - 3.1: (a) the HW constants alone; (c) software frames converted on the GPU.
+  - 3.2: (b) both programs built at open; (c) tag changes reported only; (d) a primaries uniform.
+  - 3.3: a table of fourccs, or a packed shader for 'y416'.
+- **Rationale**: 10-bit white fell short of white, and 8-bit greys were tinted. After a tag switch, PQ frames were drawn with the SDR program. 'x422', 'x444', 'sv44' and 'y416' were garbled or not drawn (`plan/engineer_tools_runs/investigate-2026-11-03/render/results.txt`, [C1] to [C10]).
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-03
+
+### D-091 Decode errors shown, a failed reopen handled, the stream's downmix levels, the W strip over both channels (D-007's plan for them)
+
+- **Decision**: the plan's section 4, as recommended.
+  - 4.1, option (1): `Decoder` counts decode errors. They show in the I panel's Decode line, in `--av-report` and in the startup watchdog, with `--no-hw` named next to VideoToolbox's errors. There is no fallback to software.
+  - 4.2: `push`, `pull` and `flush` do nothing without a codec context, and a track switch whose decoder cannot be opened says so.
+  - 4.3, (C) with (A): the stereo downmix follows the downmix levels a stream carries. The LFE is left out unless the stream gives its level, and the output is not normalised.
+  - 4.4: the W strip takes the peak of both channels, and its comment says 1.0 s.
+- **Owner's words**, translated by the agent: "All as recommended (Recommended)".
+- **Alternatives**:
+  - 4.1 (2) to (4): a fallback to software after N failures in a row, with or without decoding the current GOP again, or until the next keyframe.
+  - 4.3: (B) the LFE at a fixed level; (D) a control for it; `rematrix_maxval` 1 or a limiter for the normalisation.
+  - 4.4: two buffers, or peaks taken in the audio callback.
+- **Rationale**: for an engineer's player, seeing a failure matters more than hiding it. FFmpeg's own downmix and its AC-3 decoder leave the LFE out (`plan/engineer_tools_runs/investigate-2026-11-03/audio/results.txt`, 2b).
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-03
+
+### D-093 A seek finds no keyframe before its target: D-088's tries go on to the media's start, with no cap
+
+- **Decision**: D-088 stays as written. When no flagged keyframe lies at or before a seek's target, the tries go back to the media's start, and everything up to the target is decoded. The owner first chose a cap at 16 s and then withdrew it.
+- **Owner's words**, translated by the agent: on 2026-11-04, "Back off 16 s at most (Recommended)". On 2026-11-05, told that the agent's description of the cap was wrong: "Withdraw the cap, back to D-088 (Recommended)".
+- **Alternatives**:
+  - the cap at 16 s, after which the try's position is read again without waiting (the first choice);
+  - a cap at 16 s or the longest keyframe interval seen, whichever is longer;
+  - the cap with the decoder's `output_corrupt` flag, so that the frames FFmpeg marks as possibly corrupt are shown.
+- **Rationale**:
+  - A code review of the merged branch found the case. In an H.264 MPEG-TS whose I-frames are neither IDR nor marked by a recovery point SEI, FFmpeg flags only the first frame as a keyframe, so a seek in it decodes from the start, and the cost grows with the target's position.
+  - The agent first said that with the cap, the target's frame would show whenever an I-frame lay within the 16 s. A unit test then showed otherwise.
+  - With three references, x264's default, FFmpeg 8.1.1's H.264 decoder makes no frame from such an I-frame. With one it starts there. With `output_corrupt` it makes frames, but flags nearly all of them as corrupt, and D-091's counts (the I panel's Decode line, `--av-report`) would count each one (`plan/engineer_tools_runs/review-2026-11-05/`).
+  - With three references only an IDR starts it, here the first frame, so only reading from the start lands on the target (`tests/test_demuxer_seek.cpp`).
+- **Who**: owner, adopting the agent's recommendation (both times)
+- **Date**: 2026-11-04 (the cap), 2026-11-05 (withdrawn)
+
+### D-094 The seek bar spans from the video's first frame to the media's end
+
+- **Decision**: the duration the UI shows, and the seek bar's span, run from where positions count from (D-089: the video stream's start) to the media's end, which is the container's start plus its duration. Everywhere else the container's duration stays as it is.
+- **Owner's words**, translated by the agent: "From the video's first frame to the end (Recommended)".
+- **Alternatives**: the container's duration, as ffprobe gives it, as before.
+- **Rationale**: avformat counts the container's duration from its earliest stream, often the audio, while the bar starts at the video's first frame. So when the audio starts first, the bar ran past the media's end: the playhead could not reach it, and the remaining time did not reach 0. On FFmpeg's MPEG-TS of AAC and H.264, the audio starts at 1.458667 s, the video at 1.48 s, and the container lasts 6.021333 s (`plan/engineer_tools_runs/review-2026-11-05/`). The same code review found it.
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-04
+
+
+### D-095 Bugs found on the way are fixed without asking: the agent plans, audits and fixes them
+
+- **Decision**: a small bug the agent finds on the way, in a check or a review, is fixed without asking the owner first. The agent writes the plan D-007 asks for, audits the plan itself, then fixes, tests and records the bug, and reports what it did. By the agent's reading, three things stay the owner's: design choices, outward actions (a push, a PR), and anything hard to undo.
+- **Owner's words**, translated by the agent: "If you have bugs, just fix them. Make a plan yourself, audit the plan yourself, fix it yourself. Small things like this you don't need to ask me about."
+- **Alternatives**: the owner approving each fix of the render or decode path first, as D-007 had it.
+- **Rationale**: the agent had asked whether to plan fixes for two findings of the scripted checks, the scrub preview's landing on an MPEG-TS and a one-code colour offset, and the owner answered this way.
+- **Who**: owner
+- **Date**: 2026-11-05
+
 ---
 
 ## Measurement / process choices (proposed by the agent, confirmed by the owner)
@@ -2253,4 +2337,81 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
   - No sleep or wake event during the checks (`power_log.txt`). Their runner logged the load averages only at each check's start and end (`run.log`).
 - **Who**: agent
 - **Date**: 2026-10-30
+- **Status**: pending owner confirmation
+
+### P-083 How D-088 to D-091, D-093 and D-094 are implemented, and the records after them
+
+- **Choice**: four agents, one per section of `plan/engineer_tools_player_fixes.md`, each on a branch of its own from `feat/player-fixes-plan`, merged into `feat/player-fixes`. Where the plan was silent, or where they went beyond it:
+  - D-088 (`a7db00c`):
+    - HLS is left out of the check. Near a segment's start, a target can fall inside the B-frame delay, before the segment's first keyframe, and the check would then fetch the segment before it.
+    - Step 1's seek is checked too. On an MPEG-TS with B-frames, a seek to a keyframe's PTS lands after that keyframe, because its DTS is earlier.
+    - The last try seeks to a second before the media's start. A seek to the start itself lands after the first keyframe, for the same reason.
+    - A network read error gives the wait up. A track switch's repositioning drops it and is otherwise left as it was.
+  - D-089 (`0fb839f`):
+    - The PTS mode shows seconds to the millisecond ("PTS 1.480"), with no duration after it.
+    - The thumbnails' decode thread works out its input's start itself, because it starts before the session has worked out its own.
+    - `--ui-sub-at` asks for an absolute seek.
+    - Left as they were: the seek bar's own `seek_to` on release, still dropped in `main.cpp` (now a PTS), and the GLFW scrub block that is never reached.
+  - D-090 (`c28bcfe`, `0068b00`, `2eb443e`; `39ad661`, the lead agent's):
+    - The pure parts live in GL-free headers (`src/YuvMatrix.h`, `src/ColourInterpretation.h`), where they are unit-tested.
+    - sws is rebuilt on every change of interpretation. A change of the primaries alone, or of the transfer within one path, counts as a change of uniforms.
+    - The samples' depth comes from `AVHWFramesContext::sw_format`. A buffer without an IOSurface is copied to the CPU, as a refused one is.
+    - A matrix that no tag gives is kept across frame sizes, and derived again only when the HDR state flips. This is `2eb443e`, made at the lead agent's review: `c28bcfe` derived the matrix from each frame's size.
+    - The frame inspector's texts no longer say that the renderer reads the tags at open (`0068b00`).
+    - The log prints a pixel format's unprintable bytes as '.' (`39ad661`, after a code review of the merged branch).
+  - D-091 (`7211671`, `defba3f`, `07dce07`, `651193e`, `e9ac2c9`, `05165ea`; `cfd6ae0` and `3b4e646`, the lead agent's):
+    - A stream that prefers an Lt/Rt or Pro Logic II downmix gets those levels and swr's matrix encoding, as `aresample` does.
+    - After an error, a pull asks the codec again up to 64 times (`Decoder::kMaxErrorsPerPull`).
+    - The counts carry over a reopen. Those of `--av-report` count from when the media opened.
+    - `Decoder::open` frees the codec context on every failure, and `AudioDecoder::reopen` no longer leaks its frames.
+    - An audio track with no decoder plays its packets' time as silence (`e9ac2c9`), so the audio clock keeps going.
+    - On a video track with no decoder, a seek does not wait for a frame, and the stall check does not say "Buffering" (`cfd6ae0`).
+    - A frame no resampler can be made for (swr refuses its layout, say) plays its time as silence too (`3b4e646`, after a code review of the merged branch). Until then it was dropped, and the audio clock stopped.
+    - The VideoToolbox test is compiled out of the headless build: `mirage_tests` gets `MIRAGE_HEADLESS` when the option is on.
+  - D-093 (`66751ed`, the lead agent's): the code as D-088 left it.
+    - A test in `tests/test_demuxer_seek.cpp` covers a seek into an MPEG-TS whose keyframes after the first are not flagged. It checks seven reads, the video queued from the first frame, the target's frame, and no frame at all from the packets 16 s back. `write_clip()` takes a bitstream filter for it.
+    - The landing's comment says why such a seek reads from the start.
+    - The cap first chosen was written and tested, but not committed. Its test failed on the claim the decision rested on: from 16 s back, the decoder made no frame.
+  - D-094 (`63cde27`, the lead agent's):
+    - `ui::timeline_duration()` (`src/UiFormat.h`, unit-tested) gives the span. `MediaSession::timeline_dur_s` keeps it, and `main.cpp` passes it wherever the container's duration was taken: the control bar, the seek bar, the thumbnails' places on it, the timeline strip, the VMAF marker and the QA flags' scrub.
+    - `MediaSession::duration` stays the container's, and so does the thumbnails' sampling.
+- **Alternatives**: HLS checked like the other inputs; a matrix derived from each frame's size (`c28bcfe`), which switches an untagged ladder between BT.601 and BT.709 from one variant to the next; the Lo/Ro levels whatever downmix the stream prefers; a track with no decoder, or a frame no resampler takes, left without audio, which stops the audio clock.
+- **Rationale**: each follows the plan where it says something, and keeps the code's present behaviour where it says nothing.
+- **Open**:
+  - When a stream gives an LFE level, it is passed to swr as `aresample` passes it (×0.707107 per side, `investigate-2026-11-03/audio/results.txt`, 2a). This is untested, since no FFmpeg encoder writes such a level.
+  - 64 is the agent's value.
+  - By the code, a seek's flush leaves samples in the resampler, as before, so resampled input plays a few samples from before the seek.
+  - By the code, a `reconfigure()` that fails (a shader that does not link, no memory for the staging frame) is not tried again. The renderer stays as far as it got, and frames can go undrawn until the interpretation changes again. Nothing falls back at `init()` either, where such a failure fails the session's start.
+  - From the scripted runs: on an MPEG-TS, the scrub preview and the step back, which `ScrubDecoder` serves with its own seek, landed after the keyframe before their target, as the demuxer did before D-088. Fixed since, under D-095 (plan section 5.1, P-085).
+  - From the scripted runs: with VideoToolbox, `bars_at.py` reads bar 2 of the 8-bit 4:2:2 and 4:4:4 clips one code higher than without it. Explained since: that bar is a dither of 127 and 128, which the two paths filter in a different order. It is no bug (plan section 5.2).
+- **Records**:
+  - The unit tests at `cfd6ae0` (`plan/engineer_tools_runs/tests/macos-2026-11-04-cfd6ae0.txt`): every case passes in both builds. That is 464 test cases in the debug build and 463 in the headless one, which leaves out the VideoToolbox case, plus the 21 `[audio]` cases in each.
+  - The checks behind D-093 and D-094 (`plan/engineer_tools_runs/review-2026-11-05/`).
+  - The unit tests at `ed98a2b`, whose code is `66751ed`'s (`plan/engineer_tools_runs/tests/macos-2026-11-05-ed98a2b.txt`): every case passes in both builds. That is 466 test cases in the debug build and 465 in the headless one, plus the 22 `[audio]` cases in each.
+  - The scripted runs of each section's Check (`plan/engineer_tools_runs/fixes-gui-2026-11-05/`): sections 1 to 3 and 4.1 at `3d2b8cc` with the screen locked, then 4.2, 4.4 and the timed seek of section 1 at `6f5ec80` with it unlocked (`record3.txt`). Every section's Check is made.
+- **Who**: agent
+- **Date**: 2026-11-04 (for D-093 and D-094, 2026-11-05)
+- **Status**: pending owner confirmation
+
+### P-085 How plan section 5 is implemented (D-095), and its records
+
+- **Choice**: under D-095 the lead agent planned section 5 of `plan/engineer_tools_player_fixes.md` (`377475a`) and audited the plan with the audit-docs skill: four cycles, 16 issues fixed. Then it made the fixes:
+  - 5.1 (`9b8f04a`): after its seek, `ScrubDecoder`'s request waits for a keyframe at or before `seek_pts`, as `Demuxer::read_loop` does (D-088).
+    - Packets are read but not decoded until then. A packet whose dts passes `seek_pts`, or the end of the media, starts the next try, 1, 2, 4 … s further back.
+    - From the media's start (a second before it, or start_time when that is refused) it reads on without waiting (D-093). A failed seek gives up the wait.
+    - HLS is left out (its input format, "hls"). The KeyframeIndex way in takes the same check when it misses, and every packet still goes to the index.
+  - 5.2: no code. Bar 2 of the 8-bit 4:2:2 and 4:4:4 clips is a dither of 127 and 128. The HW path filters it before converting, and the software path after.
+  - 5.3 (`7d3ee19`, `380b5fd`): the text buffer grows to 1024 bytes a character. Measuring and drawing take the same text from `easy_font_ascii()`, with each UTF-8 character as one ASCII stand-in.
+  - 5.4 (`ec2e8e6`): on a blank video track, the size, frame-rate and range chips come from the track's codec parameters, stream frame rate and transfer, and the decode chip says "no decoder".
+- **Alternatives**:
+  - 5.1: a cap on the tries, as D-093 first had it and withdrew.
+  - 5.2: filtering in the shader, the agent's scratch fix. It changed nothing, because the samples themselves differ.
+  - 5.3: a larger fixed buffer, or non-ASCII dropped.
+- **Rationale**: 5.1 brings D-088 and D-093 to the other component that seeks. 5.3 and 5.4 show what is there.
+- **Open**: the thumbnails' decoder (`ThumbnailStrip`) seeks in the MPEG-TS too. Its decoder fills the logs with errors there ("Could not find ref with POC"), and where it lands was not checked.
+- **Records**:
+  - `plan/engineer_tools_runs/fixes2-2026-11-05/`: 5.1 to 5.4 at `380b5fd`.
+  - The unit tests at `57c3a10` (`plan/engineer_tools_runs/tests/macos-2026-11-05-57c3a10.txt`): every case passes in both builds. That is 467 test cases in the debug build and 466 in the headless one, plus the 22 `[audio]` cases in each.
+- **Who**: agent, under D-095
+- **Date**: 2026-11-05
 - **Status**: pending owner confirmation

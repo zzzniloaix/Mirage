@@ -100,7 +100,7 @@ SeekBarOut seek_bar(const char* id, ImVec2 pos, float width,
         out.drag_frac  = mouse_frac;
     } else if (st.active && !active) {
         if (!st.cancelled && in.dur > 0.0)
-            out.seek_to = static_cast<double>(st.drag_frac) * in.dur;   // release: one seek
+            out.seek_to = pts_at_fraction(st.drag_frac, in.start, in.dur);   // release: one seek
         st.cancelled = false;
     }
     st.active = active;
@@ -133,7 +133,7 @@ SeekBarOut seek_bar(const char* id, ImVec2 pos, float width,
     }
 
     auto frac_x = [&](double t) {
-        return x0 + static_cast<float>(std::clamp(t / in.dur, 0.0, 1.0)) * width;
+        return x0 + static_cast<float>(bar_fraction(t, in.start, in.dur)) * width;
     };
     const float play_x = dragging ? x0 + st.drag_frac * width : frac_x(in.cur);
 
@@ -150,11 +150,11 @@ SeekBarOut seek_bar(const char* id, ImVec2 pos, float width,
         dl->AddRectFilled(ImVec2(x0, y0), ImVec2(std::max(play_x, x0 + h), y1), C(th::kAccent), r);
     // 4. keyframe ticks (hover / drag only); segment starts not read yet fainter
     if (expanded && in.kf_seg_pts && !in.kf_seg_pts->empty() && in.kf_seg_pts->size() < 20000) {
-        for (float tx : decimate_ticks(*in.kf_seg_pts, in.dur, width, 3.0f))
+        for (float tx : decimate_ticks(*in.kf_seg_pts, in.start, in.dur, width, 3.0f))
             dl->AddRectFilled(ImVec2(x0 + tx, y0), ImVec2(x0 + tx + 1.0f, y1), C(th::kTickFaint));
     }
     if (expanded && in.kf_pts && !in.kf_pts->empty() && in.kf_pts->size() < 20000) {
-        for (float tx : decimate_ticks(*in.kf_pts, in.dur, width, 3.0f))
+        for (float tx : decimate_ticks(*in.kf_pts, in.start, in.dur, width, 3.0f))
             dl->AddRectFilled(ImVec2(x0 + tx, y0), ImVec2(x0 + tx + 1.0f, y1), C(th::kTick));
     }
     // 5. hover ghost

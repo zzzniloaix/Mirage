@@ -1,0 +1,23 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  Opening plan/engineer_tools_runs/investigate-2026-11-03/render/clips/bars8_hevc.mp4 (t=0.552)
+[INFO]  Demuxer: avformat_open_input 1 ms (1 streams, 0 programs) (t=0.554)
+[INFO]  Demuxer: avformat_find_stream_info 1 ms (t=0.555)
+[WARN]  No audio stream found
+[INFO]  Container: QuickTime / MOV
+[INFO]  Duration:  00:00:01
+[INFO]  Video:     hevc 448×128 @ 25.000 fps  pixel_fmt=yuv420p
+[INFO]  Selected HW-capable decoder: hevc (default was hevc)
+[INFO]  Decoder opened: hevc (448×128)  [HW: VideoToolbox requested]
+[INFO]  Opened plan/engineer_tools_runs/investigate-2026-11-03/render/clips/bars8_hevc.mp4 in 53 ms (t=0.606)
+[INFO]  VideoRenderer: 448×128 SDR (yuv420p → RGB24 sRGB)  matrix=BT.709  limited-range
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=0.610)
+[INFO]  ThumbnailStrip: open 1 ms, probe 0 ms (t=0.611)
+[INFO]  ThumbnailStrip: 1 keyframes in index for stream 0 — seek-sampling 2 points (stride 0.50 s)
+[INFO]  ScrubDecoder: ready (open 1 ms, probe 0 ms) (t=0.611)
+[INFO]  Subtitles: 0 choice(s); initial off (none available)
+[INFO]  ThumbnailStrip: coarse pass done (1 thumbnails)
+[INFO]  ThumbnailStrip: decode complete (1 thumbnails)
+[INFO]  Decoder: VideoToolbox HW decode active (zero-copy IOSurface path)
+[INFO]  first-frame: pts=0.000 448x128 VideoToolbox, 243 ms after open (t=0.853)
+[INFO]  VideoRenderer: HW zero-copy path ready: '420v' bound as R8 / RG8, 8-bit samples (BT.709 matrix, limited-range)
+[INFO]  --snapshot: wrote <scratch>/gui3/colour/bars8_hevc_hw.png (2560×731, frame 10)

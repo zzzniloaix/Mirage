@@ -1,0 +1,47 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  Opening <scratch>/gui3/clips/nosei.ts (t=0.230)
+[INFO]  Demuxer: avformat_open_input 3 ms (2 streams, 1 programs) (t=0.234)
+[INFO]  Demuxer: avformat_find_stream_info 4 ms (t=0.238)
+[INFO]  Container: MPEG-TS (MPEG-2 Transport Stream)
+[INFO]  Duration:  00:01:00
+[INFO]  Video:     h264 1280×720 @ 25.000 fps  pixel_fmt=yuv420p
+[INFO]  Audio:     aac 48000 Hz  1 ch  fmt=fltp
+[INFO]  Selected HW-capable decoder: h264 (default was h264)
+[INFO]  Decoder opened: h264 (1280×720)  [HW: VideoToolbox requested]
+[INFO]  AudioPlayer: 48000 Hz stereo float32  device latency 30.0 ms (480 frames × 3 periods)
+[INFO]  Decoder opened: aac (0×0)
+[INFO]  AudioDecoder: 48000 Hz 1ch → 48000 Hz stereo f32
+[INFO]  Opened <scratch>/gui3/clips/nosei.ts in 104 ms (t=0.335)
+[INFO]  VideoRenderer: 1280×720 SDR (yuv420p → RGB24 sRGB)  matrix=BT.709  limited-range
+[INFO]  Subtitles: 0 choice(s); initial off (none available)
+[INFO]  --ui-sub-at: position 50.000 (pts 51.480)
+[INFO]  AudioDecoder: resampler 48000 Hz mono fltp → 48000 Hz stereo flt, FFmpeg's default downmix levels
+[mpegts @ 0xbf9969680] start time for stream 1 is not set in estimate_timings_from_pts
+[mpegts @ 0xbf9969900] start time for stream 1 is not set in estimate_timings_from_pts
+[mpegts @ 0xbf9969900] stream 1 : no TS found at start of file, duration not set
+[mpegts @ 0xbf9969680] stream 1 : no TS found at start of file, duration not set
+[mpegts @ 0xbf9969900] Could not find codec parameters for stream 1 (Audio: aac ([15][0][0][0] / 0x000F), 0 channels): unspecified sample format
+Consider increasing the value for the 'analyzeduration' (0) and 'probesize' (5000000) options
+[mpegts @ 0xbf9969680] Could not find codec parameters for stream 1 (Audio: aac ([15][0][0][0] / 0x000F), 0 channels): unspecified sample format
+Consider increasing the value for the 'analyzeduration' (0) and 'probesize' (5000000) options
+[INFO]  ThumbnailStrip: open 1 ms, probe 4 ms (t=0.341)
+[INFO]  ScrubDecoder: ready (open 1 ms, probe 4 ms) (t=0.341)
+[INFO]  ThumbnailStrip: 5 keyframes found, decoding 2 thumbnails (stride 0.15 s, 160 px tall)
+[INFO]  ThumbnailStrip: coarse pass done (1 thumbnails)
+[h264 @ 0xbf83e8000] co located POCs unavailable
+[INFO]  ThumbnailStrip: decode complete (1 thumbnails)
+[INFO]  Demuxer: no keyframe at or before 51.480 after where the seek landed — reading again from 50.480 (t=0.351)
+[INFO]  Demuxer: no keyframe at or before 51.480 after where the seek landed — reading again from 49.480 (t=0.351)
+[INFO]  Demuxer: no keyframe at or before 51.480 after where the seek landed — reading again from 47.480 (t=0.352)
+[INFO]  Demuxer: no keyframe at or before 51.480 after where the seek landed — reading again from 43.480 (t=0.353)
+[INFO]  Demuxer: no keyframe at or before 51.480 after where the seek landed — reading again from 35.480 (t=0.354)
+[INFO]  Demuxer: no keyframe at or before 51.480 after where the seek landed — reading again from 19.480 (t=0.356)
+[INFO]  Demuxer: no keyframe at or before 51.480 after where the seek landed — reading again from the start (t=0.359)
+[INFO]  Decoder: VideoToolbox HW decode active (zero-copy IOSurface path)
+[INFO]  loading-indicator: "Loading" (t=0.597)
+[INFO]  first-frame: pts=51.480 1280x720 VideoToolbox, 1233 ms after open, paused (t=1.570)
+[INFO]  switch-trace: first frame after seek pts=51.480 — took 1233 ms
+[INFO]  VideoRenderer: HW zero-copy path ready: '420v' bound as R8 / RG8, 8-bit samples (BT.709 matrix, limited-range)
+[INFO]  loading-indicator: hidden (t=1.600)
+[INFO]  playback paused (t=1.606)
+[INFO]  ui-snapshot: wrote <scratch>/gui3c/seek_nosei_hw.png (2560×1440, frame 30, hover=none, thumb_pts=none, sub="")

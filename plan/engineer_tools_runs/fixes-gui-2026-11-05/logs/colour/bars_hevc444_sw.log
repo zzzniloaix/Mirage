@@ -1,0 +1,20 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  Opening plan/engineer_tools_runs/investigate-2026-11-03/render/clips/bars_hevc444.mp4 (t=0.263)
+[INFO]  Demuxer: avformat_open_input 1 ms (1 streams, 0 programs) (t=0.264)
+[INFO]  Demuxer: avformat_find_stream_info 0 ms (t=0.265)
+[WARN]  No audio stream found
+[INFO]  Container: QuickTime / MOV
+[INFO]  Duration:  00:00:01
+[INFO]  Video:     hevc 448×128 @ 25.000 fps  pixel_fmt=yuv444p10le
+[INFO]  Decoder opened: hevc (448×128)  [SW: 13 threads]
+[INFO]  Opened plan/engineer_tools_runs/investigate-2026-11-03/render/clips/bars_hevc444.mp4 in 33 ms (t=0.296)
+[INFO]  VideoRenderer: 448×128 SDR (yuv444p10le → RGB24 sRGB)  matrix=BT.601  limited-range
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=0.300)
+[INFO]  Subtitles: 0 choice(s); initial off (none available)
+[INFO]  ThumbnailStrip: open 1 ms, probe 0 ms (t=0.300)
+[INFO]  ScrubDecoder: ready (open 0 ms, probe 0 ms) (t=0.300)
+[INFO]  ThumbnailStrip: 1 keyframes in index for stream 0 — seek-sampling 2 points (stride 0.50 s)
+[INFO]  ThumbnailStrip: coarse pass done (1 thumbnails)
+[INFO]  ThumbnailStrip: decode complete (1 thumbnails)
+[INFO]  first-frame: pts=0.000 448x128 software, 11 ms after open (t=0.311)
+[INFO]  --snapshot: wrote <scratch>/gui3b/colour/bars_hevc444_sw.png (2560×731, frame 10)

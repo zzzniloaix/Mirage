@@ -1,0 +1,22 @@
+{
+  "file": "h264_noise.mp4",
+  "initial_speed": 1,
+  "speed_seq": [],
+  "started": true,
+  "wall_s": 3.001,
+  "hw_decode": false,
+  "video_decode_errors": 2,
+  "video_decode_last_error": "Invalid data found when processing input",
+  "video_corrupt_frames": 7,
+  "video_hw_error_run_max": 0,
+  "has_audio": false,
+  "audio_output_latency_s": 0.0000,
+  "audio_underruns": 0,
+  "audio_silent_frames": 0,
+  "audio_dropped_frames": 0,
+  "audio_decode_errors": 0,
+  "overall": {"speed":1,"t_start":0.000,"wall_s":3.001,"video_media_s":2.833,"audio_media_s":0.000,"video_rate":0.9443,"audio_rate":0.0000,"frames_presented":84,"frames_dropped_late":0,"av_diff_media_s":{"n":0},"av_diff_wall_ms":{"n":0},"av_diff_wall_ms_settled":{"n":0},"underruns_settled":-1,"silent_frames_settled":-1,"video_rate_settled":0.0000,"audio_rate_settled":0.0000},
+  "segments": [
+    {"speed":1,"t_start":0.000,"wall_s":3.001,"video_media_s":2.833,"audio_media_s":0.000,"video_rate":0.9443,"audio_rate":0.0000,"frames_presented":84,"frames_dropped_late":0,"av_diff_media_s":{"n":0},"av_diff_wall_ms":{"n":0},"av_diff_wall_ms_settled":{"n":0},"underruns_settled":-1,"silent_frames_settled":-1,"video_rate_settled":0.0000,"audio_rate_settled":0.0000}
+  ]
+}

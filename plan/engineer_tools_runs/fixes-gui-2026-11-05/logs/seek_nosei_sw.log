@@ -1,0 +1,44 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  Opening <scratch>/gui3/clips/nosei.ts (t=0.646)
+[INFO]  Demuxer: avformat_open_input 7 ms (2 streams, 1 programs) (t=0.653)
+[INFO]  Demuxer: avformat_find_stream_info 7 ms (t=0.660)
+[INFO]  Container: MPEG-TS (MPEG-2 Transport Stream)
+[INFO]  Duration:  00:01:00
+[INFO]  Video:     h264 1280×720 @ 25.000 fps  pixel_fmt=yuv420p
+[INFO]  Audio:     aac 48000 Hz  1 ch  fmt=fltp
+[INFO]  Decoder opened: h264 (1280×720)  [SW: 13 threads]
+[INFO]  AudioPlayer: 48000 Hz stereo float32  device latency 30.0 ms (480 frames × 3 periods)
+[INFO]  Decoder opened: aac (0×0)
+[INFO]  AudioDecoder: 48000 Hz 1ch → 48000 Hz stereo f32
+[INFO]  Opened <scratch>/gui3/clips/nosei.ts in 238 ms (t=0.884)
+[INFO]  VideoRenderer: 1280×720 SDR (yuv420p → RGB24 sRGB)  matrix=BT.709  limited-range
+[INFO]  Subtitles: 0 choice(s); initial off (none available)
+[INFO]  --ui-sub-at: position 50.000 (pts 51.480)
+[INFO]  AudioDecoder: resampler 48000 Hz mono fltp → 48000 Hz stereo flt, FFmpeg's default downmix levels
+[mpegts @ 0xc9d510a00] start time for stream 1 is not set in estimate_timings_from_pts
+[mpegts @ 0xc9d510c80] start time for stream 1 is not set in estimate_timings_from_pts
+[mpegts @ 0xc9d510a00] stream 1 : no TS found at start of file, duration not set
+[mpegts @ 0xc9d510c80] stream 1 : no TS found at start of file, duration not set
+[mpegts @ 0xc9d510c80] Could not find codec parameters for stream 1 (Audio: aac ([15][0][0][0] / 0x000F), 0 channels): unspecified sample format
+Consider increasing the value for the 'analyzeduration' (0) and 'probesize' (5000000) options
+[mpegts @ 0xc9d510a00] Could not find codec parameters for stream 1 (Audio: aac ([15][0][0][0] / 0x000F), 0 channels): unspecified sample format
+Consider increasing the value for the 'analyzeduration' (0) and 'probesize' (5000000) options
+[INFO]  ThumbnailStrip: open 2 ms, probe 6 ms (t=0.897)
+[INFO]  ScrubDecoder: ready (open 2 ms, probe 6 ms) (t=0.898)
+[INFO]  ThumbnailStrip: 5 keyframes found, decoding 2 thumbnails (stride 0.15 s, 160 px tall)
+[INFO]  ThumbnailStrip: coarse pass done (1 thumbnails)
+[h264 @ 0xc9c603800] co located POCs unavailable
+[INFO]  ThumbnailStrip: decode complete (1 thumbnails)
+[INFO]  Demuxer: no keyframe at or before 51.480 after where the seek landed — reading again from 50.480 (t=0.953)
+[INFO]  Demuxer: no keyframe at or before 51.480 after where the seek landed — reading again from 49.480 (t=0.954)
+[INFO]  Demuxer: no keyframe at or before 51.480 after where the seek landed — reading again from 47.480 (t=0.955)
+[INFO]  Demuxer: no keyframe at or before 51.480 after where the seek landed — reading again from 43.480 (t=0.957)
+[INFO]  Demuxer: no keyframe at or before 51.480 after where the seek landed — reading again from 35.480 (t=0.958)
+[INFO]  Demuxer: no keyframe at or before 51.480 after where the seek landed — reading again from 19.480 (t=0.962)
+[INFO]  Demuxer: no keyframe at or before 51.480 after where the seek landed — reading again from the start (t=0.967)
+[INFO]  loading-indicator: "Loading" (t=1.144)
+[INFO]  first-frame: pts=51.480 1280x720 software, 312 ms after open, paused (t=1.202)
+[INFO]  switch-trace: first frame after seek pts=51.480 — took 311 ms
+[INFO]  loading-indicator: hidden (t=1.221)
+[INFO]  playback paused (t=1.227)
+[INFO]  ui-snapshot: wrote <scratch>/gui3/seek_nosei_sw.png (2560×1440, frame 30, hover=none, thumb_pts=none, sub="")

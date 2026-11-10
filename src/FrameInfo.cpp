@@ -187,8 +187,7 @@ Row tag_row(const char* label, const char* frame_name, const char* used_name, bo
         return { label, std::format("unspecified (rendered as {})", used_name), Level::Dim };
     if (differs)
         return { label, std::format("{} (rendered as {})", frame_name, used_name), Level::Warn,
-                 "The renderer took its interpretation from the stream when it opened; "
-                 "this frame's own tag differs" };
+                 "The renderer's interpretation differs from this frame's own tag" };
     return { label, frame_name };
 }
 
@@ -354,12 +353,12 @@ Report describe(const AVFrame* f, const Context& ctx, const Memory* mem)
         const bool spec = f->color_primaries != AVCOL_PRI_UNSPECIFIED;
         const bool differs = spec && ctx.primaries != AVCOL_PRI_UNSPECIFIED && f->color_primaries != ctx.primaries;
         fmt.rows.push_back(spec ? Row{ "Primaries",
-                                       differs ? std::format("{} (opened as {})",
+                                       differs ? std::format("{} (renderer: {})",
                                                              av_color_primaries_name(f->color_primaries),
                                                              av_color_primaries_name(ctx.primaries))
                                                : std::string(av_color_primaries_name(f->color_primaries)),
                                        differs ? Level::Warn : Level::Normal,
-                                       differs ? "The stream's primaries when it opened differ from this frame's"
+                                       differs ? "The renderer's primaries differ from this frame's"
                                                : std::string() }
                                 : Row{ "Primaries", "unspecified", Level::Dim });
         if (spec && f->color_primaries == AVCOL_PRI_BT2020 && !hdr_trc(ctx.trc))

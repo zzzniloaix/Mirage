@@ -73,18 +73,20 @@ Or drag-and-drop a file onto the launch screen.
 
 Drag the seek bar at the bottom of the window. A thumbnail strip appears showing keyframes. The highlighted thumbnail tracks the frame actually decoded at the current position. Audio is muted during drag and resumes 300 ms after release.
 
+The time next to the bar counts from the video's first frame on every input, MPEG-TS and HLS included: the first frame reads 00:00.000 and is frame 0. The duration after it, like the bar, runs from there to the media's end, so it can be a little shorter than ffprobe's when the audio starts first. Click it to cycle through time / frames / remaining / PTS; PTS is the frame's absolute PTS in seconds, as ffprobe and the logs give it. The HUD, the frame inspector's PTS row, `B` and the Alignment tab show absolute PTS.
+
 ### Debug overlays
 
 | Key | Panel |
 |---|---|
 | `D` | Debug HUD — PTS, frame count, A/V diff (ms), decode time |
-| `I` | Stream inspector — codec, resolution, fps, pixel format, color space, audio format |
+| `I` | Stream inspector — codec, resolution, fps, pixel format, color space as the stream declares it at open, audio format, the video decoder and its decode errors |
 | `G` | A/V drift graph — 10-second rolling history, ±100 ms range |
 | `T` | Track switcher — click to change audio or video track |
-| `W` | Waveform strip — full-width peak display |
+| `W` | Waveform strip — full-width peak display of both channels, the last second of output |
 | `N` | Network log + manifest tag inspector + timeline tick strip; Alignment (renditions line up) and Conformance (each EXT-X-STREAM-INF against its media; in its DASH MPD mode, each Representation of an MPD given by URL) tabs |
 | `V` | VMAF panel — per-variant scores + per-frame graph |
-| `P` | Frame inspector — the frame on screen: type, timestamps, colour tags vs the renderer's, HDR10 / HDR10+ / Dolby Vision metadata, side data, encoder settings |
+| `P` | Frame inspector — the frame on screen: type, timestamps, colour tags and the interpretation the renderer follows, HDR10 / HDR10+ / Dolby Vision metadata, side data, encoder settings |
 | `S` / `⇧S` | Scopes — luma waveform, R′G′B′ parade, vectorscope, histogram from the frame's code values; `⇧S` picks the next |
 | `X` | Pixel probe — Y′CbCr codes, R′G′B′ and PQ/HLG nits under the mouse |
 | `B` | Frame sizes / GOP — a bar per frame coloured I/P/B, keyframes, rolling bitrate, whole-stream overview; click to seek |

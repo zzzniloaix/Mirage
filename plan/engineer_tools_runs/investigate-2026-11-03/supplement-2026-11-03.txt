@@ -1,0 +1,22 @@
+$ sh -c /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -hide_banner -codecs | grep -E ' (ac4|mpegh3daudio) '
+ ..A.L. ac4                  AC-4
+[exit status 0]
+
+$ sh -c /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -hide_banner -decoders | grep -c -E ' (ac4|mpegh3daudio)'
+0
+[exit status 1]
+
+$ sh -c MANWIDTH=100 man <man1>/ffmpeg-resampler.1 2>/dev/null | col -b | grep -n -i -A4 -E '^ +(clev|center_mix_level|lfe_mix_level)'
+45:       clev, center_mix_level
+46-	   Set the center mix level. It is a value expressed in deciBel, and must be in the interval
+47-	   [-32,32].
+48-
+49-       slev, surround_mix_level
+--
+53:       lfe_mix_level
+54-	   Set LFE mix into non LFE level. It is used when there is a LFE input but no LFE output.
+55-	   It is a value expressed in deciBel, and must be in the interval [-32,32].
+56-
+57-       rmvol, rematrix_volume
+[exit status 0]
+

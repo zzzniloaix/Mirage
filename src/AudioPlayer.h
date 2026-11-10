@@ -66,8 +66,10 @@ public:
     double output_latency_seconds() const;
 
     // Copy the last n downsampled peak values [0,1] into out[0..n-1], chronological order.
-    // Each peak represents the max absolute amplitude over kWaveStride samples.
-    // Thread-safe.
+    // Each peak represents the max absolute amplitude, over both channels, of
+    // kWaveStride frames — as pushed: after the downmix and the speed change,
+    // before the volume, ahead of what is heard by what the ring and the
+    // device hold. Thread-safe.
     void copy_waveform(float* out, int n);
 
     // Volume control [0, 1]. Applied as a gain multiplier in fill_buffer().
@@ -100,8 +102,10 @@ public:
         return static_cast<double>(count_ / kChannels) / sample_rate_;
     }
 
-    static constexpr int kWaveCap    = 1200;  // ≈3.6 s at 48 kHz / kWaveStride
-    static constexpr int kWaveStride = 40;    // samples per peak entry
+    // 1,200 entries of 40 frames: 1.0 s of output at 48 kHz, which at speed
+    // s is s seconds of media.
+    static constexpr int kWaveCap    = 1200;
+    static constexpr int kWaveStride = 40;    // frames per peak entry
     static constexpr int kChannels   = 2;     // interleaved float stereo
 
     // Frames push() will buffer before blocking (see kMaxBufferedSec).
