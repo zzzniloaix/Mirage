@@ -882,6 +882,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Owner's words**, translated by the agent: "They don't nest (Recommended)".
 - **Alternatives**: each cue_out paired with the first cue_in after it, so that two breaks end at the same cue_in, one spanning the other, as the design's §5.5 reads literally.
 - **Rationale**: a break that spans another would list the second's cues as the first's; a cue_out without its own cue_in keeps its declared duration.
+- **Overtaken** in part (2026-11-10, D-109 (e)): in SCTE 35's hierarchy of advertising segments, a Break that declares a duration makes an ad_break around those of the levels below it, so that one ad_break spans another there; the rest of this decision stands.
 - **Who**: owner, adopting the agent's recommendation
 - **Date**: 2026-11-04
 
@@ -1117,6 +1118,33 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Rationale**: as the agent recommended: it needs no licence judgement, and the decoder is still checked during development against the published messages that decode with a valid CRC.
 - **Who**: owner, adopting the agent's recommendation (D-103)
 - **Date**: 2026-11-06
+
+### D-108 A session's fetch of local files refused, no switch where the entry doesn't change, the session's other choices as built
+
+- **Decision**: three answers on what WP00b, WP07 and WP07's review left to the owner (Q60 to Q62):
+  - (a) A session's fetch whose files aren't http or https URLs, with no `--fetch-base`, is refused: `timeline` exits with status 2, the message naming `--fetch-base` and `--fetch off` (Q60, option 2).
+  - (b) Where two consecutive spans of a plan name the same entry, no variant_switch is placed at their boundary; two entries that name one playlist still switch, the master's entry being what changes (Q61, option 2).
+  - (c) The session's other choices stay as built (Q62): a session whose files weren't fetched has no UTC anchor, its document writing `sessions[].wallclock_anchor_utc` null; the anchor's text is RFC 3339 UTC to the microsecond, with the zone `Z`; a plan span through a segment the timeline doesn't have refuses the whole plan, naming the span and the segment; the plan file's layout, every member required and any other refused; round 2's payloads, until WP09b's schema fixes them; and `--fetch-base` taking each URL's path after the master's directory, a URL outside it refusing the whole fetch.
+- **Owner's words**, translated by the agent: "Do them all", in answer to the agent's three open items: the pull request of the marker card's fix, PR #11, and Q60 to Q67, which it had asked on 2026-11-09 with their options and its recommendations and listed again with its recommendations on 2026-11-10. The agent took the answer as adopting each recommendation, said so in its reply, and asked the owner to say at once if it was not meant so.
+- **Alternatives**: (a) as built, the format document saying that a local file's duration is its open's; the session skipped, with a warning; the fetch timing a local file's read itself (Q60). (b) As built; such plans refused (Q61). (c) Each item asked on its own.
+- **Rationale**: as the agent recommended: (a) the network events then come from network requests alone, NetworkLogger's row of a local file ending at its open, and an argument the fetch can't honour is refused, as D-099 (c) refuses arguments the document can't satisfy; a fetch that timed local reads itself would put rows NetworkLogger didn't time beside those it did. (b) An event that changes nothing can't explain a drop, and a plan may well split one entry's segments into spans.
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-10
+
+### D-109 Decoded messages: one cue_out per signal, a tag's OUT and IN one break, a CONT's repeat no splice point, durations in ticks, WP05's other choices as built
+
+- **Decision**: five answers on what WP05 and its review left to the owner (Q63 to Q67):
+  - (a) The cue-out messages of one variant and one segment that share their section's bytes, their splice_event_id or their segmentation_event_id make one cue_out, and one splice_point per splice time; the others' records go into its payload (Q63, option 2).
+  - (b) An SCTE35-IN in the `EXT-X-DATERANGE` of its SCTE35-OUT makes no cue_in of its own: its record goes into the cue_out, and the break ends at the tag's DURATION or END-DATE, by D-076 (Q64, option 2).
+  - (c) A message that an `EXT-X-CUE-OUT-CONT` carries makes no splice_point and no anchor warning; it is still decoded into that tag's payload (Q65, option 2).
+  - (d) Beside each break_duration and segmentation_duration of a payload, a member `<name>_ticks` gives its 90 kHz ticks as a whole number, which `pair_breaks()` reads before the seconds; the seconds stay as they are (Q66, option 2).
+  - (e) WP05's other choices stay as built (Q67): the levels of SCTE 35's hierarchy of advertising segments count alike, so that a Break that declares a duration makes an ad_break around those of the levels below it, and one that declares none makes no ad_break, with a warning; of several segmentation descriptors of a cue's role, the first that gives a duration declares it; base64 only with its padding, and a value that starts with 0x or 0X read as hex; a section whose table_id isn't 0xFC or whose protocol_version isn't 0 left undecoded, and a message that doesn't decode a warning only; a time_signal with an End and a Start type a cue_in, then a cue_out, at one frame, and a cue_in that joins an `EXT-X-CUE-OUT` taking that cue's line where its own is later or null; only cue-out messages merged into a plain cue of their segment; a splice time before its sequence's first frame outside the sequence, and a media PTS with no segment searched only where the playlist has one sequence; none of a malformed `EXT-X-DATERANGE`'s other attributes read beside its well-formed SCTE35-* ones, and an SCTE35-IN's in point taken from its own tag alone; whether each type of SCTE 35's Table 23 starts or ends a break taken from the type's name; and the payloads' layout and member names (`src/Scte35Events.h`).
+  - The first of (e)'s choices is an exception to D-087, which says that no ad_break spans another: a Break that declares a duration spans the ad_breaks of the levels below it (D-087's dated line).
+- **Owner's words**: D-108's.
+- **Alternatives**: (a) as built, each cue-out message a cue_out of its own; one cue_out per segment, whatever its messages (Q63). (b) As built, the tag's cue_out and cue_in at one frame making an ad_break of no frames; its cue_in placed at its END-DATE, or START-DATE plus DURATION, through the playlist's `EXT-X-PROGRAM-DATE-TIME` (Q64). (c) As built; one splice_point per variant, splice time and event id, whatever carries it (Q65). (d) As built, the limit stated in the format document; `pair_breaks()` reading the seconds back as the nearest whole number of 90 kHz ticks (Q66). (e) Each item asked on its own; for its first, time_signal cues paired by segmentation_event_id within their level, or cues from the outermost level present alone (Q67).
+- **Rationale**: as the agent recommended: (a) it is D-106 (d)'s reason, one signal written twice, where two cue-outs would claim two breaks; one cue_out per segment would also merge two signals that only share a segment. (b) The tag declares its break's duration, which D-076 then uses; placing the cue_in by its date is what D-106 (a) chose not to do. (c) A CONT's message repeats its break's, whose splice time the break's own message already places, and a repeat's splice time lies before its tag's segment by its nature, so the warning tells nothing. (d) Every value stays exact, and D-076's order holds for every duration; reading the seconds back would guess the clock from a number. (e) The alternatives for the first item would pair otherwise than D-087's rule does, or need a rule for which level is outermost where breaks differ.
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-10
 
 ---
 

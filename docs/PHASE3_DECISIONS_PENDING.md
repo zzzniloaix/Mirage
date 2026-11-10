@@ -6,7 +6,7 @@ What is open for the owner on `vmaf/phase-3`, §3 of the VMAF work order (the un
 
 44 questions, Q01 to Q44, in three rounds: 27 in round 1, the answers the work packages on the path to §3.2's two acceptance tests need before they start; 9 in round 2, those of sessions, the session fetch, the decoded SCTE-35 messages and the composite example; 8 in round 3, those of the UI, the conditional and later packages, and the differences to report. A question's round is the earliest round of the packages it blocks, and a round's packages start once all of its questions are answered (`eval/phase3-survey/design.md` §12, §14). Q26, Q39, Q43 and Q44 are answered item by item, an item's options numbered: "Q43 (c) 2". The questions marked D-007 (Q01, Q08, Q09, Q10, Q13, Q36, Q37 and Q41) have an answer that is, or includes, an approval or a ruling under D-007. "Blocks" names the work packages that wait for the answer; the packages are listed at the end. After the questions come the differences from the work order to report, and the agent's proposed process choices, to be recorded from P-082 on.
 
-The questions are the design's (`eval/phase3-survey/design/owner_questions.json`), rendered by `eval/phase3-survey/tools/render_pending.py` with the design's paths written as the repository has them and nothing else changed. They are as the design's revision 3 left them, after the third review's seven minor issues (`eval/phase3-survey/review-3/review.md`; `eval/phase3-survey/design/revision-3.md`). The owner's answers are marked here as each round's come in. Round 1's 27 questions were answered on 2026-11-02, every one as the agent recommends (D-071 to D-081); each is marked below. Round 2's 9 were answered on 2026-11-06, every one as the agent recommends, with Q47 (D-103 to D-107); each is marked below. Round 3 is open. Building round 1's first packages raised three more questions, Q45 to Q47, after round 3 below: the owner answered Q45 and Q46 on 2026-11-04 as the agent recommends (D-086, D-087), and Q47 joins round 2. Building WP08, WP08b and WP09a raised Q48 to Q57, which the owner answered on 2026-11-05 and 2026-11-06, each as the agent recommends (D-092, D-099, D-100), and WP08c two more, Q58 and Q59, which the owner answered on 2026-11-06 as the agent recommends (D-101). Building round 2's first packages, WP00b, WP05 and WP07, raised eight more, Q60 to Q67, which are open: WP09b waits for Q60 to Q62, and WP09c for Q63 to Q67, which a follow-up of WP05's puts in, as WP08b and WP08c put in the answers on WP08.
+The questions are the design's (`eval/phase3-survey/design/owner_questions.json`), rendered by `eval/phase3-survey/tools/render_pending.py` with the design's paths written as the repository has them and nothing else changed. They are as the design's revision 3 left them, after the third review's seven minor issues (`eval/phase3-survey/review-3/review.md`; `eval/phase3-survey/design/revision-3.md`). The owner's answers are marked here as each round's come in. Round 1's 27 questions were answered on 2026-11-02, every one as the agent recommends (D-071 to D-081); each is marked below. Round 2's 9 were answered on 2026-11-06, every one as the agent recommends, with Q47 (D-103 to D-107); each is marked below. Round 3 is open. Building round 1's first packages raised three more questions, Q45 to Q47, after round 3 below: the owner answered Q45 and Q46 on 2026-11-04 as the agent recommends (D-086, D-087), and Q47 joins round 2. Building WP08, WP08b and WP09a raised Q48 to Q57, which the owner answered on 2026-11-05 and 2026-11-06, each as the agent recommends (D-092, D-099, D-100), and WP08c two more, Q58 and Q59, which the owner answered on 2026-11-06 as the agent recommends (D-101). Building round 2's first packages, WP00b, WP05 and WP07, raised eight more, Q60 to Q67, answered on 2026-11-10, each as the agent recommends (D-108, D-109): WP09b puts in the answers to Q60 to Q62, and WP05b, a follow-up of WP05's, those to Q63 to Q67, as WP08b and WP08c put in the answers on WP08.
 
 ### Round 1: the path to §3.2's two acceptance tests (27 questions)
 
@@ -1339,6 +1339,8 @@ Are they kept?
 
 **Agent's recommendation.** 2: the network events then come from network requests alone, and an argument the fetch can't honour is refused, as D-099 (c) refuses arguments the document can't satisfy; under 4, rows that NetworkLogger didn't time would sit beside those it did.
 
+**Answered** on 2026-11-10: 2, as the agent recommends (`docs/DECISIONS.md` D-108 (a)).
+
 #### Q61. A switch between two spans of one entry
 
 *Round 2.* Raised by WP07's review.
@@ -1350,6 +1352,8 @@ Are they kept?
 - **3. Such plans refused.**
 
 **Agent's recommendation.** 2: an event that changes nothing can't explain a drop, and a plan may well split one entry's segments into spans.
+
+**Answered** on 2026-11-10: 2, as the agent recommends (`docs/DECISIONS.md` D-108 (b)).
 
 #### Q62. The session's other choices
 
@@ -1371,6 +1375,8 @@ Are they kept?
 
 **Agent's recommendation.** 1.
 
+**Answered** on 2026-11-10: 1, as the agent recommends (`docs/DECISIONS.md` D-108 (c)).
+
 #### Q63. Several messages of one signal in one segment, with no `EXT-X-CUE-OUT`
 
 *Round 2.* Raised by WP05's review.
@@ -1382,6 +1388,8 @@ Are they kept?
 - **3. One cue_out per segment**, whatever its messages.
 
 **Agent's recommendation.** 2: it is D-106 (d)'s reason, one signal written twice, where two cue-outs would claim two breaks; 3 would also merge two signals that only share a segment.
+
+**Answered** on 2026-11-10: 2, as the agent recommends (`docs/DECISIONS.md` D-109 (a)).
 
 #### Q64. An `EXT-X-DATERANGE` with both SCTE35-OUT and SCTE35-IN
 
@@ -1395,6 +1403,8 @@ Are they kept?
 
 **Agent's recommendation.** 2: the tag declares its break's duration, which D-076 then uses; 3 places an event by its date, which D-106 (a) chose not to do.
 
+**Answered** on 2026-11-10: 2, as the agent recommends (`docs/DECISIONS.md` D-109 (b)).
+
 #### Q65. A message repeated in each `EXT-X-CUE-OUT-CONT`
 
 *Round 2.* Raised by WP05's review.
@@ -1407,6 +1417,8 @@ Are they kept?
 
 **Agent's recommendation.** 2: a CONT's message repeats its break's, whose splice time the break's own message already places, and a repeat's splice time lies before its tag's segment by its nature, so the warning tells nothing.
 
+**Answered** on 2026-11-10: 2, as the agent recommends (`docs/DECISIONS.md` D-109 (c)).
+
 #### Q66. Message durations that no decimal holds
 
 *Round 2.* Raised by WP05's review.
@@ -1418,6 +1430,8 @@ Are they kept?
 - **3. No new member**: `pair_breaks()` reads the seconds back as the nearest whole number of 90 kHz ticks.
 
 **Agent's recommendation.** 2: every value stays exact and D-076's order holds for every duration; 3 would guess the clock from a number.
+
+**Answered** on 2026-11-10: 2, as the agent recommends (`docs/DECISIONS.md` D-109 (d)).
 
 #### Q67. WP05's other choices
 
@@ -1441,6 +1455,8 @@ Are they kept?
 - **2. Each asked on its own.**
 
 **Agent's recommendation.** 1. Of these, (a) is the closest: the alternatives, time_signal cues paired by segmentation_event_id within their level, or cues from the outermost level present alone, the inner levels' messages becoming `message` events, would pair otherwise than D-087's rule does, or need a rule for which level is outermost where breaks differ.
+
+**Answered** on 2026-11-10: 1, as the agent recommends (`docs/DECISIONS.md` D-109 (e)); its (a) is recorded there as an exception to D-087.
 
 ## Differences from the work order, to report
 
