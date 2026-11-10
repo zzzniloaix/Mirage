@@ -1,0 +1,28 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  Opening <scratch>/gui/snapshots/x264_sdr.mp4 (t=0.266)
+[INFO]  Demuxer: avformat_open_input 2 ms (2 streams, 0 programs) (t=0.269)
+[INFO]  Demuxer: avformat_find_stream_info 5 ms (t=0.274)
+[INFO]  Container: QuickTime / MOV
+[INFO]  Duration:  00:00:08
+[INFO]  Video:     h264 1280×720 @ 25.000 fps  pixel_fmt=yuv420p
+[INFO]  Audio:     aac 48000 Hz  2 ch  fmt=fltp
+[INFO]  Selected HW-capable decoder: h264 (default was h264)
+[INFO]  Decoder opened: h264 (1280×720)  [HW: VideoToolbox requested]
+[INFO]  AudioPlayer: 48000 Hz stereo float32  device latency 30.0 ms (480 frames × 3 periods)
+[INFO]  Decoder opened: aac (0×0)
+[INFO]  AudioDecoder: 48000 Hz 2ch → 48000 Hz stereo f32
+[INFO]  Opened <scratch>/gui/snapshots/x264_sdr.mp4 in 128 ms (t=0.394)
+[INFO]  VideoRenderer: 1280×720 SDR (yuv420p → RGB24 sRGB)  matrix=BT.709  limited-range
+[INFO]  Subtitles: 0 choice(s); initial off (none available)
+[INFO]  ThumbnailStrip: open 1 ms, probe 6 ms (t=0.404)
+[INFO]  ScrubDecoder: ready (open 0 ms, probe 5 ms) (t=0.404)
+[INFO]  ThumbnailStrip: 4 keyframes found, decoding 4 thumbnails (stride 0.02 s, 160 px tall)
+[INFO]  ThumbnailStrip: coarse pass done (1 thumbnails)
+[INFO]  ThumbnailStrip: decode complete (4 thumbnails)
+[INFO]  DashProbe: <scratch>/tabrec/dashdemo/manifest.mpd — 5 Representations, 13 segments read, 19 sized, 3.0 MB in 0.0 s: 9 errors, 4 warnings
+[INFO]  conform_out: wrote <scratch>/tabrec/tab_demo.json
+[INFO]  Decoder: VideoToolbox HW decode active (zero-copy IOSurface path)
+[INFO]  first-frame: pts=0.000 1280x720 VideoToolbox, 156 ms after open (t=0.554)
+[INFO]  VideoRenderer: HW zero-copy path ready (8-bit, BT.709 matrix, limited-range)
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=5.436)
+[INFO]  ui-snapshot: wrote <scratch>/tabrec/tab_demo.png (3200×2000, frame 150, hover=none, thumb_pts=none, sub="")

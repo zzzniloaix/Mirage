@@ -98,7 +98,11 @@ Each of these would need a plan of its own:
 ## 2. The conformance checks: thresholds and error classes
 
 **Decided** (2026-11-03): the values and the error classes stay as they are
-(D-084). The last three questions of this section are still open.
+(D-084). The last three questions of this section were decided after the
+merge, each as recommended (D-084's **Decided** line): no note for a
+@bandwidth between the two rates, but a "safe" column next to "needs"; the
+tab keeps sizing every segment by default; a URL field in the Conformance
+tab checks an MPD.
 
 The values are the code's now. The owner keeps or changes each one; a change
 is one line. The recommendation is to keep them for the merge.

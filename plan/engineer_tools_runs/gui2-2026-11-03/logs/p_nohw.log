@@ -1,0 +1,24 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  Opening <scratch>/gui2/clips/x264_sdr.mp4 (t=0.289)
+[INFO]  Demuxer: avformat_open_input 1 ms (2 streams, 0 programs) (t=0.290)
+[INFO]  Demuxer: avformat_find_stream_info 5 ms (t=0.295)
+[INFO]  Container: QuickTime / MOV
+[INFO]  Duration:  00:00:08
+[INFO]  Video:     h264 1280×720 @ 25.000 fps  pixel_fmt=yuv420p
+[INFO]  Audio:     aac 48000 Hz  2 ch  fmt=fltp
+[INFO]  Decoder opened: h264 (1280×720)  [SW: 13 threads]
+[INFO]  AudioPlayer: 48000 Hz stereo float32  device latency 30.0 ms (480 frames × 3 periods)
+[INFO]  Decoder opened: aac (0×0)
+[INFO]  AudioDecoder: 48000 Hz 2ch → 48000 Hz stereo f32
+[INFO]  Opened <scratch>/gui2/clips/x264_sdr.mp4 in 115 ms (t=0.404)
+[INFO]  VideoRenderer: 1280×720 SDR (yuv420p → RGB24 sRGB)  matrix=BT.709  limited-range
+[INFO]  Subtitles: 0 choice(s); initial off (none available)
+[INFO]  ScrubDecoder: ready (open 0 ms, probe 6 ms) (t=0.415)
+[INFO]  ThumbnailStrip: open 1 ms, probe 6 ms (t=0.415)
+[INFO]  ThumbnailStrip: 4 keyframes found, decoding 4 thumbnails (stride 0.02 s, 160 px tall)
+[INFO]  ThumbnailStrip: coarse pass done (1 thumbnails)
+[INFO]  first-frame: pts=2.000 1280x720 software, 15 ms after open, paused (t=0.423)
+[INFO]  switch-trace: first frame after seek pts=2.000 — took 13 ms
+[INFO]  ThumbnailStrip: decode complete (4 thumbnails)
+[INFO]  playback paused (t=0.462)
+[INFO]  ui-snapshot: wrote <scratch>/gui2/p_nohw.png (3200×2000, frame 60, hover=none, thumb_pts=none, sub="")

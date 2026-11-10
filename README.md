@@ -23,7 +23,9 @@ The player is built for macOS only (`docs/DECISIONS.md` D-031). `mirage_vmaf`, t
 # HLS stream
 ./build/macos-debug/mirage https://example.com/stream.m3u8
 
-# DASH stream
+# DASH stream: only with an FFmpeg built with its DASH demuxer, which
+# Homebrew's ffmpeg-full has not; the N inspector's Conformance tab checks
+# an MPD by URL without playing it
 ./build/macos-debug/mirage https://example.com/manifest.mpd
 
 # VMAF analysis (auto-start, writes .vmaf.json on completion)
@@ -38,7 +40,8 @@ The player is built for macOS only (`docs/DECISIONS.md` D-031). `mirage_vmaf`, t
 
 # The same for an MPEG-DASH MPD (@bandwidth with @minBufferTime, @codecs,
 # @width/@height, @frameRate, colour, audio, @startWithSAP, the timeline,
-# @segmentAlignment; exit status 1 on errors)
+# @segmentAlignment; exit status 1 on errors). For @bandwidth it gives two
+# rates: below "needs" playout runs dry, at "safe" or above it never does
 ./build/macos-debug/mirage_dashcheck --json report.json https://example.com/manifest.mpd
 ```
 
@@ -79,7 +82,7 @@ Drag the seek bar at the bottom of the window. A thumbnail strip appears showing
 | `G` | A/V drift graph — 10-second rolling history, ±100 ms range |
 | `T` | Track switcher — click to change audio or video track |
 | `W` | Waveform strip — full-width peak display |
-| `N` | Network log + manifest tag inspector + timeline tick strip; Alignment (renditions line up) and Conformance (each EXT-X-STREAM-INF against its media) tabs |
+| `N` | Network log + manifest tag inspector + timeline tick strip; Alignment (renditions line up) and Conformance (each EXT-X-STREAM-INF against its media; in its DASH MPD mode, each Representation of an MPD given by URL) tabs |
 | `V` | VMAF panel — per-variant scores + per-frame graph |
 | `P` | Frame inspector — the frame on screen: type, timestamps, colour tags vs the renderer's, HDR10 / HDR10+ / Dolby Vision metadata, side data, encoder settings |
 | `S` / `⇧S` | Scopes — luma waveform, R′G′B′ parade, vectorscope, histogram from the frame's code values; `⇧S` picks the next |
