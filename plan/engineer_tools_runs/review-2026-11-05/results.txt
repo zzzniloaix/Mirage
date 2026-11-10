@@ -1,0 +1,81 @@
+$ git rev-parse HEAD
+41ddcac8f9e89f05b410e507cd4b55e40c90f72f
+[exit status 0]
+
+$ sw_vers
+ProductName:		macOS
+ProductVersion:		26.6.2
+BuildVersion:		25G83
+[exit status 0]
+
+$ sh -c '/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg' -hide_banner -version | head -1
+ffmpeg version 8.1.1 Copyright (c) 2000-2026 the FFmpeg developers
+[exit status 0]
+
+$ /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -nostdin -v error -y -f lavfi -i testsrc2=size=320x180:rate=25 -t 30 -c:v libx264 -preset medium -pix_fmt yuv420p -x264-params keyint=50:min-keyint=50:open-gop=1:scenecut=0:ref=1 -bsf:v filter_units=remove_types=6 -f mpegts <scratch>/review-check/rec/nosei_ref1.ts
+[exit status 0]
+
+$ sh -c '/opt/homebrew/opt/ffmpeg-full/bin/ffprobe' -v error -select_streams v -show_entries packet=flags -of csv=p=0 '<scratch>/review-check/rec/nosei_ref1.ts' | grep -c K
+1
+[exit status 0]
+
+$ sh -c '/opt/homebrew/opt/ffmpeg-full/bin/ffprobe' -v error -select_streams v -show_entries frame=pict_type -of csv=p=0 '<scratch>/review-check/rec/nosei_ref1.ts' | grep -c I
+15
+[exit status 0]
+
+$ /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -nostdin -v error -y -f lavfi -i testsrc2=size=320x180:rate=25 -t 30 -c:v libx264 -preset medium -pix_fmt yuv420p -x264-params keyint=50:min-keyint=50:open-gop=1:scenecut=0:ref=3 -bsf:v filter_units=remove_types=6 -f mpegts <scratch>/review-check/rec/nosei_ref3.ts
+[exit status 0]
+
+$ sh -c '/opt/homebrew/opt/ffmpeg-full/bin/ffprobe' -v error -select_streams v -show_entries packet=flags -of csv=p=0 '<scratch>/review-check/rec/nosei_ref3.ts' | grep -c K
+1
+[exit status 0]
+
+$ sh -c '/opt/homebrew/opt/ffmpeg-full/bin/ffprobe' -v error -select_streams v -show_entries frame=pict_type -of csv=p=0 '<scratch>/review-check/rec/nosei_ref3.ts' | grep -c I
+15
+[exit status 0]
+
+$ sh -c cc -O1 -o '<scratch>/review-check/rec/corrupt_count' plan/engineer_tools_runs/review-2026-11-05/corrupt_count.c $(PKG_CONFIG_PATH=/opt/homebrew/opt/ffmpeg-full/lib/pkgconfig pkg-config --cflags --libs libavformat libavcodec libavutil)
+[exit status 0]
+
+$ <scratch>/review-check/rec/corrupt_count <scratch>/review-check/rec/nosei_ref1.ts 9.2 0
+flags=0: 548 frames from 9.480, 0 flagged corrupt, 0 with decode_error_flags, first unflagged at 9.480
+[exit status 0]
+
+$ <scratch>/review-check/rec/corrupt_count <scratch>/review-check/rec/nosei_ref1.ts 9.2 corrupt
+flags=corrupt: 555 frames from 9.240, 7 flagged corrupt, 0 with decode_error_flags, first unflagged at 9.480
+[exit status 0]
+
+$ <scratch>/review-check/rec/corrupt_count <scratch>/review-check/rec/nosei_ref1.ts 9.2 showall
+flags=showall: 555 frames from 9.240, 7 flagged corrupt, 0 with decode_error_flags, first unflagged at 9.480
+[exit status 0]
+
+$ <scratch>/review-check/rec/corrupt_count <scratch>/review-check/rec/nosei_ref3.ts 9.2 0
+flags=0: 0 frames from -1.000, 0 flagged corrupt, 0 with decode_error_flags, first unflagged at -1.000
+[exit status 0]
+
+$ <scratch>/review-check/rec/corrupt_count <scratch>/review-check/rec/nosei_ref3.ts 9.2 corrupt
+flags=corrupt: 555 frames from 9.240, 553 flagged corrupt, 0 with decode_error_flags, first unflagged at 31.400
+[exit status 0]
+
+$ <scratch>/review-check/rec/corrupt_count <scratch>/review-check/rec/nosei_ref3.ts 9.2 showall
+flags=showall: 555 frames from 9.240, 553 flagged corrupt, 0 with decode_error_flags, first unflagged at 31.400
+[exit status 0]
+
+$ /opt/homebrew/opt/ffmpeg-full/bin/ffmpeg -nostdin -v error -y -f lavfi -i testsrc2=size=320x180:rate=25 -f lavfi -i sine=frequency=1000:sample_rate=48000 -t 6 -c:v libx264 -preset veryfast -pix_fmt yuv420p -c:a aac -f mpegts <scratch>/review-check/rec/av.ts
+[exit status 0]
+
+$ /opt/homebrew/opt/ffmpeg-full/bin/ffprobe -v error -show_entries format=start_time,duration:stream=index,codec_type,start_time,duration -of compact <scratch>/review-check/rec/av.ts
+program|stream|index=0|codec_type=video|start_time=1.480000|duration=6.000000
+stream|index=1|codec_type=audio|start_time=1.458667|duration=5.760000
+
+stream|index=0|codec_type=video|start_time=1.480000|duration=6.000000
+stream|index=1|codec_type=audio|start_time=1.458667|duration=5.760000
+format|start_time=1.458667|duration=6.021333
+[exit status 0]
+
+$ sh -c cd '<scratch>/review-check/rec' && shasum -a 256 nosei_ref1.ts nosei_ref3.ts av.ts
+9f8eba463bf0bbb5a54c88c57fdcf6860376591f143d3814e8769beb5e478e86  nosei_ref1.ts
+deecafb831c8a0c056f30112c1013a3bac3b292cab0100e0dc54cd8c26ff0698  nosei_ref3.ts
+f5fbcfbcd653df13437460acea759318240c320e8498cc71a8002cef324d7570  av.ts
+[exit status 0]
+

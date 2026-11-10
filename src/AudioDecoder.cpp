@@ -15,7 +15,7 @@ extern "C" {
 AudioDecoder::~AudioDecoder()
 {
     free_filter_graph();
-    if (swr_)       swr_free(&swr_);
+    free_resampler();
     if (frame_)     av_frame_free(&frame_);
     if (swr_frame_) av_frame_free(&swr_frame_);
     av_channel_layout_uninit(&out_layout_);
@@ -23,41 +23,140 @@ AudioDecoder::~AudioDecoder()
 
 bool AudioDecoder::open(AVCodecParameters* par, AudioPlayer& player, AVRational time_base)
 {
+    // Set without a decoder too: push_silence() works from them.
+    out_rate_  = player.sample_rate();
+    time_base_ = time_base;
+    if (!frame_)     frame_     = av_frame_alloc();
+    if (!swr_frame_) swr_frame_ = av_frame_alloc();
+
     if (!decoder_.open(par))
         return false;
 
-    out_rate_ = player.sample_rate();
     av_channel_layout_default(&out_layout_, 2);  // stereo
 
-    AVChannelLayout stereo = AV_CHANNEL_LAYOUT_STEREO;
+    // The resampler comes with the first decoded frame (update_resampler):
+    // the codec parameters can differ from what the decoder puts out.
+    logger::info("AudioDecoder: {} Hz {}ch → {} Hz stereo f32",
+        par->sample_rate, par->ch_layout.nb_channels, out_rate_);
+    return true;
+}
 
+// ── Resampler ─────────────────────────────────────────────────────────────────
+
+AudioDecoder::MixLevels AudioDecoder::stream_mix_levels(const AVDownmixInfo& di)
+{
+    // AVDownmixInfo's levels are linear factors, and so are swr's options,
+    // although ffmpeg-resampler(1) gives them in dB.
+    MixLevels lv;
+    lv.from_stream = true;
+    switch (di.preferred_downmix_type) {
+        case AV_DOWNMIX_TYPE_LTRT:
+            lv.matrix   = AV_MATRIX_ENCODING_DOLBY;
+            lv.center   = di.center_mix_level_ltrt;
+            lv.surround = di.surround_mix_level_ltrt;
+            break;
+        case AV_DOWNMIX_TYPE_DPLII:
+            lv.matrix   = AV_MATRIX_ENCODING_DPLII;
+            lv.center   = di.center_mix_level_ltrt;
+            lv.surround = di.surround_mix_level_ltrt;
+            break;
+        default:
+            lv.center   = di.center_mix_level;
+            lv.surround = di.surround_mix_level;
+            break;
+    }
+    lv.lfe = di.lfe_mix_level > 0.0 ? di.lfe_mix_level : 0.0;
+    return lv;
+}
+
+void AudioDecoder::free_resampler()
+{
+    if (swr_) swr_free(&swr_);
+    av_channel_layout_uninit(&swr_layout_);
+    swr_built_ = false;
+}
+
+void AudioDecoder::drain_resampler(AudioPlayer& player)
+{
+    // What swr holds: its filter's delay when it changes the rate (nothing
+    // when it does not). Played before the new resampler's first samples,
+    // except before start_at_ (dropped there) or with nothing pushed since a
+    // flush (audio from before it).
+    const int n = swr_get_out_samples(swr_, 0);
+    if (n <= 0) return;
+    av_frame_unref(swr_frame_);
+    swr_frame_->format      = AV_SAMPLE_FMT_FLT;
+    swr_frame_->sample_rate = out_rate_;
+    av_channel_layout_default(&swr_frame_->ch_layout, 2);
+    swr_frame_->nb_samples  = n;
+    if (av_frame_get_buffer(swr_frame_, 0) < 0) return;
+    const int got = swr_convert(swr_, swr_frame_->data, n, nullptr, 0);
+    if (got > 0 && start_at_ < 0.0 && pts_inited_) {
+        swr_frame_->nb_samples = got;
+        swr_frame_->pts        = AV_NOPTS_VALUE;   // right after the audio pushed last
+        push_to_filter(swr_frame_, player);
+    }
+    av_frame_unref(swr_frame_);
+}
+
+bool AudioDecoder::update_resampler(const AVFrame* f, AudioPlayer& player)
+{
+    MixLevels lv;
+    if (const AVFrameSideData* sd = av_frame_get_side_data(f, AV_FRAME_DATA_DOWNMIX_INFO);
+        sd && sd->size >= sizeof(AVDownmixInfo))
+        lv = stream_mix_levels(*reinterpret_cast<const AVDownmixInfo*>(sd->data));
+    if (swr_built_ && f->format == swr_format_ && f->sample_rate == swr_rate_ && lv == swr_levels_
+        && av_channel_layout_compare(&f->ch_layout, &swr_layout_) == 0)
+        return swr_ != nullptr;
+
+    // A new input or new levels: a new resampler, after the old one's tail.
+    if (swr_) drain_resampler(player);
+    free_resampler();
+    swr_built_  = true;
+    swr_format_ = f->format;
+    swr_rate_   = f->sample_rate;
+    swr_levels_ = lv;
+    char layout[128] = "?";
+    if (av_channel_layout_copy(&swr_layout_, &f->ch_layout) < 0) {
+        logger::error("AudioDecoder: av_channel_layout_copy failed");
+        return false;
+    }
+    av_channel_layout_describe(&f->ch_layout, layout, sizeof(layout));
+    const char* fmt = av_get_sample_fmt_name(static_cast<AVSampleFormat>(f->format));
+
+    AVChannelLayout stereo = AV_CHANNEL_LAYOUT_STEREO;
     int ret = swr_alloc_set_opts2(
         &swr_,
         &stereo,                    // output: stereo
         AV_SAMPLE_FMT_FLT,          // output: float32
         out_rate_,                  // output: sample rate
-        &par->ch_layout,            // input layout from codec
-        static_cast<AVSampleFormat>(par->format),
-        par->sample_rate,
+        &f->ch_layout,              // input: as decoded
+        static_cast<AVSampleFormat>(f->format),
+        f->sample_rate,
         0, nullptr
     );
-    if (ret < 0 || !swr_) {
-        logger::error("AudioDecoder: swr_alloc_set_opts2 failed");
-        return false;
+    if (ret >= 0 && lv.from_stream) {
+        ret = av_opt_set_double(swr_, "center_mix_level", lv.center, 0);
+        if (ret >= 0) ret = av_opt_set_double(swr_, "surround_mix_level", lv.surround, 0);
+        if (ret >= 0 && lv.lfe > 0.0) ret = av_opt_set_double(swr_, "lfe_mix_level", lv.lfe, 0);
+        if (ret >= 0) ret = av_opt_set_int(swr_, "matrix_encoding", lv.matrix, 0);
     }
-
-    ret = swr_init(swr_);
+    if (ret >= 0) ret = swr_init(swr_);
     if (ret < 0) {
-        logger::error("AudioDecoder: swr_init failed");
+        // Until the input changes again: decode() plays its frames' time as
+        // silence.
+        logger::error("AudioDecoder: no resampler for {} Hz {} {}: {} — silence in its place",
+                      f->sample_rate, layout, fmt ? fmt : "?", av_error_text(ret));
+        swr_free(&swr_);
         return false;
     }
-
-    time_base_ = time_base;
-    frame_     = av_frame_alloc();
-    swr_frame_ = av_frame_alloc();
-
-    logger::info("AudioDecoder: {} Hz {}ch → {} Hz stereo f32",
-        par->sample_rate, par->ch_layout.nb_channels, out_rate_);
+    logger::info("AudioDecoder: resampler {} Hz {} {} → {} Hz stereo flt, {}",
+                 f->sample_rate, layout, fmt ? fmt : "?", out_rate_,
+                 !lv.from_stream ? std::string("FFmpeg's default downmix levels")
+                 : std::format("the stream's downmix levels: centre {:.6f}, surround {:.6f}, LFE {:.6f}{}",
+                               lv.center, lv.surround, lv.lfe,
+                               lv.matrix == AV_MATRIX_ENCODING_DOLBY ? " (Lt/Rt)"
+                               : lv.matrix == AV_MATRIX_ENCODING_DPLII ? " (Pro Logic II)" : ""));
     return true;
 }
 
@@ -201,6 +300,7 @@ void AudioDecoder::flush()
     decoder_.flush();
     out_media_pts_ = 0.0;
     pts_inited_    = false;
+    silent_        = false;
 
     // Drain and discard any frames in the filter graph by sending a null frame.
     if (filter_graph_ && filt_src_) {
@@ -221,10 +321,11 @@ bool AudioDecoder::reopen(AVCodecParameters* par, AudioPlayer& player, AVRationa
 {
     if (tap_) tap_->on_flush();
     free_filter_graph();
-    if (swr_) { swr_free(&swr_); swr_ = nullptr; }
+    free_resampler();   // the old track's (what it still holds goes with it)
     decoder_.close();
     out_media_pts_ = 0.0;
     pts_inited_    = false;
+    silent_        = false;
     speed_         = 1.0;   // no graph now; next decode() rebuilds for requested_speed_
     tempo_         = 1.0;
     return open(par, player, time_base);
@@ -275,14 +376,68 @@ void AudioDecoder::pull_filter_output(AudioPlayer& player)
     av_frame_free(&out);
 }
 
+void AudioDecoder::push_silence(const AVPacket* pkt, AudioPlayer& player)
+{
+    if (!pkt || pkt->pts == AV_NOPTS_VALUE) return;
+    const double start = pkt->pts * av_q2d(time_base_);
+    push_silence(start, start + (pkt->duration > 0 ? pkt->duration * av_q2d(time_base_) : 0.0), player);
+}
+
+void AudioDecoder::push_silence(const AVFrame* f, AudioPlayer& player)
+{
+    if (!f || f->pts == AV_NOPTS_VALUE) return;
+    const double start = f->pts * av_q2d(time_base_);
+    const double len   = f->sample_rate > 0 ? static_cast<double>(f->nb_samples) / f->sample_rate
+                       : f->duration > 0    ? f->duration * av_q2d(time_base_) : 0.0;
+    push_silence(start, start + len, player);
+}
+
+void AudioDecoder::push_silence(double start, double end, AudioPlayer& player)
+{
+    if (!swr_frame_) return;
+    double from = silent_ ? silent_until_ : start;
+    if (start_at_ >= 0.0) from = std::max(from, start_at_);
+    silent_until_ = silent_ ? std::max(silent_until_, end) : end;
+    silent_       = true;
+    const long long n = std::llround((end - from) * out_rate_);
+    if (n <= 0) return;
+    start_at_ = -1.0;   // reached
+
+    av_frame_unref(swr_frame_);
+    swr_frame_->format      = AV_SAMPLE_FMT_FLT;
+    swr_frame_->sample_rate = out_rate_;
+    av_channel_layout_default(&swr_frame_->ch_layout, 2);
+    swr_frame_->nb_samples  = static_cast<int>(n);
+    if (av_frame_get_buffer(swr_frame_, 0) < 0) return;
+    std::memset(swr_frame_->data[0], 0, static_cast<std::size_t>(n) * 2 * sizeof(float));
+    swr_frame_->pts = static_cast<int64_t>(from * out_rate_);
+    if (!pts_inited_) {
+        out_media_pts_ = from;
+        pts_inited_    = true;
+    }
+    push_to_filter(swr_frame_, player);
+    av_frame_unref(swr_frame_);
+}
+
 void AudioDecoder::decode(AVPacket* pkt, AudioPlayer& player)
 {
     apply_pending_speed(player);
+    if (!decoder_.is_open()) {
+        push_silence(pkt, player);
+        return;
+    }
     decoder_.push(pkt);
 
     while (decoder_.pull(frame_)) {
         if (tap_) tap_->on_frame(frame_, time_base_);
-        // Resample to float stereo
+        // Resample to float stereo, with a resampler made for this frame.
+        // None can be made: the frame's time as silence, so the audio clock
+        // goes on.
+        if (!update_resampler(frame_, player)) {
+            push_silence(frame_, player);
+            av_frame_unref(frame_);
+            continue;
+        }
         int out_samples = swr_get_out_samples(swr_, frame_->nb_samples);
         if (out_samples <= 0) {
             av_frame_unref(frame_);
@@ -342,6 +497,7 @@ void AudioDecoder::decode(AVPacket* pkt, AudioPlayer& player)
             }
 
             push_to_filter(swr_frame_, player);
+            silent_ = false;   // a later silence starts at its own frame
         }
 
         av_frame_unref(frame_);

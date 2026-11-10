@@ -9,6 +9,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
+#include <limits>
 #include <string_view>
 
 extern "C" {
@@ -208,7 +209,7 @@ std::vector<double> ThumbnailStrip::keyframes_copy() const
     return kf_pts_;
 }
 
-void ThumbnailStrip::draw(double scrub_pos, double duration, int fb_w, int fb_h,
+void ThumbnailStrip::draw(double scrub_pos, double start, double duration, int fb_w, int fb_h,
                            float bottom_off)
 {
     if (thumbs_.empty() || duration <= 0.0 || fb_w <= 0 || fb_h <= 0) return;
@@ -253,7 +254,7 @@ void ThumbnailStrip::draw(double scrub_pos, double duration, int fb_w, int fb_h,
             if (pass == 0 && highlight) continue;  // highlighted drawn in pass 1
             if (pass == 1 && !highlight) continue;
 
-            float cx_px = static_cast<float>(thumbs_[i].pts / duration)
+            float cx_px = static_cast<float>(ui::position(thumbs_[i].pts, start) / duration)
                           * static_cast<float>(fb_w);
             draw_thumb(thumbs_[i], cx_px, highlight, fb_w, fb_h, bottom_off);
         }
@@ -431,11 +432,17 @@ void ThumbnailStrip::decode_loop(std::stop_token st, std::string url,
             avformat_close_input(&fmt_ctx);
             return;
         }
-        // Times are on the seek bar's scale (raw stream PTS over [0, duration],
-        // what request_seek() and the hover lookup use), but not before the
-        // first frame (HLS from TS/fMP4 often starts at ~10 s).
+        // Times are positions on the seek bar (UiFormat.h), taken to PTS from
+        // this input's start as the bar takes them from the playing one's
+        // (HLS from TS/fMP4 often starts at ~10 s), never before the first
+        // frame.
+        constexpr double kNone = std::numeric_limits<double>::quiet_NaN();
+        const double t0 = ui::timeline_start(
+            stream->start_time != AV_NOPTS_VALUE ? stream->start_time * av_q2d(stream->time_base) : kNone,
+            fmt_ctx->start_time != AV_NOPTS_VALUE ? static_cast<double>(fmt_ctx->start_time) / AV_TIME_BASE : kNone,
+            duration_);
         for (double t : times)
-            targets.push_back(std::max(start_ts, static_cast<int64_t>(std::llround(t / tb))));
+            targets.push_back(std::max(start_ts, static_cast<int64_t>(std::llround(ui::pts_at(t, t0) / tb))));
         sample_stride_s_.store(duration_ / static_cast<double>(times.size()));
         logger::info("ThumbnailStrip: {} keyframes in index for stream {} — seek-sampling {} points (stride {:.2f} s)",
                      keyframe_ts.size(), src_idx, times.size(), sample_stride_s_.load());

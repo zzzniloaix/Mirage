@@ -1,0 +1,22 @@
+{
+  "file": "av_evc.mov",
+  "initial_speed": 1,
+  "speed_seq": [{"seek":1,"at_s":4}],
+  "started": true,
+  "wall_s": 8.004,
+  "hw_decode": false,
+  "video_decode_errors": 0,
+  "video_decode_last_error": "",
+  "video_corrupt_frames": 0,
+  "video_hw_error_run_max": 0,
+  "has_audio": true,
+  "audio_output_latency_s": 0.0300,
+  "audio_underruns": 0,
+  "audio_silent_frames": 0,
+  "audio_dropped_frames": 576,
+  "audio_decode_errors": 0,
+  "overall": {"speed":1,"t_start":0.000,"wall_s":2.386,"video_media_s":2.500,"audio_media_s":2.390,"video_rate":1.0480,"audio_rate":1.0018,"frames_presented":76,"frames_dropped_late":0,"av_diff_media_s":{"mean":-0.000522,"p95_abs":0.006646,"max_abs":0.006667,"n":57},"av_diff_wall_ms":{"mean":-0.521930,"p95_abs":6.645833,"max_abs":6.666667,"n":57},"av_diff_wall_ms_settled":{"n":0},"underruns_settled":-1,"silent_frames_settled":-1,"video_rate_settled":0.0000,"audio_rate_settled":0.0000},
+  "segments": [
+    {"speed":1,"t_start":0.000,"wall_s":2.386,"video_media_s":2.500,"audio_media_s":2.390,"video_rate":1.0480,"audio_rate":1.0018,"frames_presented":76,"frames_dropped_late":0,"av_diff_media_s":{"mean":-0.005522,"p95_abs":0.020000,"max_abs":0.110000,"n":76},"av_diff_wall_ms":{"mean":-5.522204,"p95_abs":20.000000,"max_abs":110.000000,"n":76},"av_diff_wall_ms_settled":{"mean":0.004464,"p95_abs":3.333333,"max_abs":3.354167,"n":42},"underruns_settled":0,"silent_frames_settled":0,"video_rate_settled":1.0004,"audio_rate_settled":1.0029}
+  ]
+}

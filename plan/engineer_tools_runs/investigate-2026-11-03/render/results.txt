@@ -1,0 +1,1979 @@
+
+### [C0] environment
++ date
+Tue Nov  3 15:20:22 PST 2026
++ sysctl -n machdep.cpu.brand_string
+Apple M3 Pro
++ sw_vers
+ProductName:		macOS
+ProductVersion:		26.6.2
+BuildVersion:		25G83
++ "<FF>/bin/ffmpeg" -hide_banner -version | head -1
+ffmpeg version 8.1.1 Copyright (c) 2000-2026 the FFmpeg developers
++ clang --version | head -1
+Apple clang version 21.0.0 (clang-2100.1.1.101)
++ python3 --version
+Python 3.14.7
++ cmake --version | head -1
+cmake version 4.3.0
++ git -C <WT> rev-parse HEAD
+7f3b684f6cd0aef7204f2a638cc02b4e60fada15
++ git -C <WT> rev-parse a60e4bc
+a60e4bcc9a953bda05353a9fbf0e3cdd86bd19c8
+src/: no change between a60e4bc and HEAD
+tests/: no change between a60e4bc and HEAD
+
+### [C0] the report's file:line references, as they read at a60e4bc
+src/YuvMatrix.h:18: // The 8-bit vs 10-bit sample renormalization (P010's ~0.999 factor from
+src/YuvMatrix.h:19: // MSB-alignment) is not applied — <0.1% error, invisible.
+src/YuvMatrix.h:52:     float y_scale, uv_scale, y_off;
+src/YuvMatrix.h:53:     if (range == AVCOL_RANGE_JPEG) {
+src/YuvMatrix.h:54:         y_scale  = 1.0f;
+src/YuvMatrix.h:55:         uv_scale = 1.0f;
+src/YuvMatrix.h:56:         y_off    = 0.0f;
+src/YuvMatrix.h:57:     } else {
+src/YuvMatrix.h:58:         // Limited range 8-bit: Y [16,235] → 219 steps, UV [16,240] → 224 steps.
+src/YuvMatrix.h:59:         y_scale  = 255.0f / 219.0f;
+src/YuvMatrix.h:60:         uv_scale = 255.0f / 224.0f;
+src/YuvMatrix.h:61:         y_off    = 16.0f  / 255.0f;
+src/YuvMatrix.h:62:     }
+src/YuvMatrix.h:78:     out.offset[0] = y_off;
+src/YuvMatrix.h:79:     out.offset[1] = 0.5f;
+src/YuvMatrix.h:80:     out.offset[2] = 0.5f;
+src/VideoRenderer.cpp:100:     vec3 ep  = pow(max(e, vec3(0.0)), vec3(1.0 / m2));
+src/VideoRenderer.cpp:123: const mat3 kBt2020ToBt709 = mat3(
+src/VideoRenderer.cpp:124:      1.6605, -0.1246, -0.0182,
+src/VideoRenderer.cpp:125:     -0.5876,  1.1329, -0.1006,
+src/VideoRenderer.cpp:126:     -0.0728, -0.0083,  1.1187
+src/VideoRenderer.cpp:127: );
+src/VideoRenderer.cpp:217: const mat3 kBt2020ToBt709 = mat3(
+src/VideoRenderer.cpp:218:      1.6605, -0.1246, -0.0182,
+src/VideoRenderer.cpp:219:     -0.5876,  1.1329, -0.1006,
+src/VideoRenderer.cpp:220:     -0.0728, -0.0083,  1.1187
+src/VideoRenderer.cpp:221: );
+src/VideoRenderer.cpp:301:     trc_       = trc;
+src/VideoRenderer.cpp:302:     primaries_ = primaries;
+src/VideoRenderer.cpp:303: 
+src/VideoRenderer.cpp:304:     hdr_mode_ = detect_hdr_mode(trc);
+src/VideoRenderer.cpp:305:     hdr_      = (hdr_mode_ >= 0);
+src/VideoRenderer.cpp:306: 
+src/VideoRenderer.cpp:307:     // For HDR, default colorspace to BT.2020 NCL when stream doesn't tag it.
+src/VideoRenderer.cpp:308:     // For SDR, fall back to resolution-based heuristic (HD → BT.709, SD → BT.601).
+src/VideoRenderer.cpp:309:     if (colorspace == AVCOL_SPC_UNSPECIFIED) {
+src/VideoRenderer.cpp:310:         colorspace = hdr_
+src/VideoRenderer.cpp:311:             ? AVCOL_SPC_BT2020_NCL
+src/VideoRenderer.cpp:312:             : ((width >= 1280 || height >= 720) ? AVCOL_SPC_BT709 : AVCOL_SPC_BT470BG);
+src/VideoRenderer.cpp:313:     }
+src/VideoRenderer.cpp:314: 
+src/VideoRenderer.cpp:315:     cs_    = colorspace;
+src/VideoRenderer.cpp:316:     range_ = color_range;
+src/VideoRenderer.cpp:317: 
+src/VideoRenderer.cpp:318:     if (!build_sws(src_fmt)) return false;
+src/VideoRenderer.cpp:319: 
+src/VideoRenderer.cpp:320:     const AVPixelFormat dst_fmt = hdr_ ? AV_PIX_FMT_RGB48LE : AV_PIX_FMT_RGB24;
+src/VideoRenderer.cpp:321: 
+src/VideoRenderer.cpp:322:     // Staging frame, align=1 → tightly packed (no GL_UNPACK_ROW_LENGTH needed).
+src/VideoRenderer.cpp:323:     converted_         = av_frame_alloc();
+src/VideoRenderer.cpp:324:     converted_->format = dst_fmt;
+src/VideoRenderer.cpp:325:     converted_->width  = width;
+src/VideoRenderer.cpp:326:     converted_->height = height;
+src/VideoRenderer.cpp:327:     if (av_frame_get_buffer(converted_, 1) < 0) {
+src/VideoRenderer.cpp:328:         logger::error("VideoRenderer: av_frame_get_buffer failed");
+src/VideoRenderer.cpp:329:         return false;
+src/VideoRenderer.cpp:330:     }
+src/VideoRenderer.cpp:331: 
+src/VideoRenderer.cpp:332:     if (!compile_shaders(hdr_)) return false;
+src/VideoRenderer.cpp:333: 
+src/VideoRenderer.cpp:334:     glGenVertexArrays(1, &vao_);
+src/VideoRenderer.cpp:335: 
+src/VideoRenderer.cpp:336:     // Texture format depends on path:
+src/VideoRenderer.cpp:337:     //   SDR → GL_RGB8  + GL_UNSIGNED_BYTE
+src/VideoRenderer.cpp:338:     //   HDR → GL_RGB16 + GL_UNSIGNED_SHORT
+src/VideoRenderer.cpp:339:     glGenTextures(1, &tex_);
+src/VideoRenderer.cpp:340:     glBindTexture(GL_TEXTURE_2D, tex_);
+src/VideoRenderer.cpp:341:     if (hdr_) {
+src/VideoRenderer.cpp:342:         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16, width, height, 0,
+src/VideoRenderer.cpp:343:                      GL_RGB, GL_UNSIGNED_SHORT, nullptr);
+src/VideoRenderer.cpp:344:     } else {
+src/VideoRenderer.cpp:345:         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0,
+src/VideoRenderer.cpp:346:                      GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+src/VideoRenderer.cpp:347:     }
+src/VideoRenderer.cpp:348:     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+src/VideoRenderer.cpp:349:     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+src/VideoRenderer.cpp:350:     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+src/VideoRenderer.cpp:351:     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+src/VideoRenderer.cpp:352:     glBindTexture(GL_TEXTURE_2D, 0);
+src/VideoRenderer.cpp:353: 
+src/VideoRenderer.cpp:354:     glUseProgram(program_);
+src/VideoRenderer.cpp:355:     glUniform1i(glGetUniformLocation(program_, "tex_rgb"), 0);
+src/VideoRenderer.cpp:356:     if (hdr_)
+src/VideoRenderer.cpp:357:         glUniform1i(glGetUniformLocation(program_, "u_hdr_mode"), hdr_mode_);
+src/VideoRenderer.cpp:379: bool VideoRenderer::init_hw_lazy(bool ten_bit)
+src/VideoRenderer.cpp:380: {
+src/VideoRenderer.cpp:381:     if (hw_shader_built_) return true;
+src/VideoRenderer.cpp:382: 
+src/VideoRenderer.cpp:383: #ifdef __APPLE__
+src/VideoRenderer.cpp:384:     // Compile HW shader program (separate from the SW program_).
+src/VideoRenderer.cpp:385:     GLuint vert = compile_shader(GL_VERTEX_SHADER,   kVertSrc);
+src/VideoRenderer.cpp:386:     GLuint frag = compile_shader(GL_FRAGMENT_SHADER, hdr_ ? kFragHdrHw : kFragSdrHw);
+src/VideoRenderer.cpp:387:     if (!vert || !frag) return false;
+src/VideoRenderer.cpp:388: 
+src/VideoRenderer.cpp:389:     hw_program_ = glCreateProgram();
+src/VideoRenderer.cpp:390:     glAttachShader(hw_program_, vert);
+src/VideoRenderer.cpp:391:     glAttachShader(hw_program_, frag);
+src/VideoRenderer.cpp:392:     glLinkProgram(hw_program_);
+src/VideoRenderer.cpp:393:     GLint ok = 0;
+src/VideoRenderer.cpp:394:     glGetProgramiv(hw_program_, GL_LINK_STATUS, &ok);
+src/VideoRenderer.cpp:395:     if (!ok) {
+src/VideoRenderer.cpp:396:         char log[512];
+src/VideoRenderer.cpp:397:         glGetProgramInfoLog(hw_program_, sizeof(log), nullptr, log);
+src/VideoRenderer.cpp:398:         logger::error("HW shader link failed: {}", log);
+src/VideoRenderer.cpp:399:         glDeleteShader(vert); glDeleteShader(frag);
+src/VideoRenderer.cpp:400:         return false;
+src/VideoRenderer.cpp:401:     }
+src/VideoRenderer.cpp:402:     glDeleteShader(vert); glDeleteShader(frag);
+src/VideoRenderer.cpp:403: 
+src/VideoRenderer.cpp:404:     // Static uniforms: sampler bindings, YUV→RGB matrix + offset, HDR mode.
+src/VideoRenderer.cpp:405:     glUseProgram(hw_program_);
+src/VideoRenderer.cpp:406:     glUniform1i(glGetUniformLocation(hw_program_, "tex_y"),  0);
+src/VideoRenderer.cpp:407:     glUniform1i(glGetUniformLocation(hw_program_, "tex_uv"), 1);
+src/VideoRenderer.cpp:408: 
+src/VideoRenderer.cpp:409:     YuvMat m = make_yuv_matrix(cs_, range_);
+src/VideoRenderer.cpp:410:     glUniformMatrix3fv(glGetUniformLocation(hw_program_, "u_yuv2rgb"), 1, GL_FALSE, m.m);
+src/VideoRenderer.cpp:411:     glUniform3fv(glGetUniformLocation(hw_program_, "u_yuv_offset"), 1, m.offset);
+src/VideoRenderer.cpp:412:     if (hdr_)
+src/VideoRenderer.cpp:413:         glUniform1i(glGetUniformLocation(hw_program_, "u_hdr_mode"), hdr_mode_);
+src/VideoRenderer.cpp:414: 
+src/VideoRenderer.cpp:415:     // Allocate rectangle texture handles. Storage is bound per-frame by
+src/VideoRenderer.cpp:416:     // CGLTexImageIOSurface2D, so no glTexImage2D up front.
+src/VideoRenderer.cpp:417:     glGenTextures(1, &y_tex_);
+src/VideoRenderer.cpp:418:     glBindTexture(GL_TEXTURE_RECTANGLE, y_tex_);
+src/VideoRenderer.cpp:419:     glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+src/VideoRenderer.cpp:420:     glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+src/VideoRenderer.cpp:421:     glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_S,     GL_CLAMP_TO_EDGE);
+src/VideoRenderer.cpp:422:     glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_T,     GL_CLAMP_TO_EDGE);
+src/VideoRenderer.cpp:423: 
+src/VideoRenderer.cpp:424:     glGenTextures(1, &uv_tex_);
+src/VideoRenderer.cpp:425:     glBindTexture(GL_TEXTURE_RECTANGLE, uv_tex_);
+src/VideoRenderer.cpp:426:     glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+src/VideoRenderer.cpp:427:     glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+src/VideoRenderer.cpp:428:     glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_S,     GL_CLAMP_TO_EDGE);
+src/VideoRenderer.cpp:429:     glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_T,     GL_CLAMP_TO_EDGE);
+src/VideoRenderer.cpp:430: 
+src/VideoRenderer.cpp:431:     glBindTexture(GL_TEXTURE_RECTANGLE, 0);
+src/VideoRenderer.cpp:432: 
+src/VideoRenderer.cpp:433:     hw_shader_built_ = true;
+src/VideoRenderer.cpp:434:     logger::info("VideoRenderer: HW zero-copy path ready ({}-bit, {} matrix, {}-range)",
+src/VideoRenderer.cpp:435:         ten_bit ? 10 : 8,
+src/VideoRenderer.cpp:436:         cs_ == AVCOL_SPC_BT709        ? "BT.709"  :
+src/VideoRenderer.cpp:437:         cs_ == AVCOL_SPC_BT2020_NCL ||
+src/VideoRenderer.cpp:438:         cs_ == AVCOL_SPC_BT2020_CL    ? "BT.2020" : "BT.601",
+src/VideoRenderer.cpp:439:         range_ == AVCOL_RANGE_JPEG ? "full" : "limited");
+src/VideoRenderer.cpp:440:     return true;
+src/VideoRenderer.cpp:441: #else
+src/VideoRenderer.cpp:442:     (void)ten_bit;
+src/VideoRenderer.cpp:443:     return false;
+src/VideoRenderer.cpp:444: #endif
+src/VideoRenderer.cpp:445: }
+src/VideoRenderer.cpp:466:     // Two supported VT bi-planar YUV layouts:
+src/VideoRenderer.cpp:467:     //   '420v' / '420f' = NV12       (8-bit, video/full range)
+src/VideoRenderer.cpp:468:     //   'x420' / 'xf20' = P010 P016  (10-bit, video/full range)
+src/VideoRenderer.cpp:469:     const bool ten_bit =
+src/VideoRenderer.cpp:470:         (pf == kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange) ||
+src/VideoRenderer.cpp:471:         (pf == kCVPixelFormatType_420YpCbCr10BiPlanarFullRange);
+src/VideoRenderer.cpp:497:     const GLenum y_internal  = ten_bit ? GL_R16  : GL_R8;
+src/VideoRenderer.cpp:498:     const GLenum uv_internal = ten_bit ? GL_RG16 : GL_RG8;
+src/VideoRenderer.cpp:499:     const GLenum sample_type = ten_bit ? GL_UNSIGNED_SHORT : GL_UNSIGNED_BYTE;
+src/VideoRenderer.cpp:542:     const AVPixelFormat dst_fmt = hdr_ ? AV_PIX_FMT_RGB48LE : AV_PIX_FMT_RGB24;
+src/VideoRenderer.cpp:543: 
+src/VideoRenderer.cpp:544:     sws_ = sws_getContext(src_w_, src_h_, src_fmt,
+src/VideoRenderer.cpp:545:                           src_w_, src_h_, dst_fmt,
+src/VideoRenderer.cpp:546:                           SWS_BILINEAR, nullptr, nullptr, nullptr);
+src/VideoRenderer.cpp:547:     if (!sws_) {
+src/VideoRenderer.cpp:548:         logger::error("VideoRenderer: sws_getContext failed for src_fmt={}",
+src/VideoRenderer.cpp:549:             pix_fmt_name(src_fmt));
+src/VideoRenderer.cpp:550:         return false;
+src/VideoRenderer.cpp:551:     }
+src/VideoRenderer.cpp:552: 
+src/VideoRenderer.cpp:553:     const bool src_full = (range_ == AVCOL_RANGE_JPEG);
+src/VideoRenderer.cpp:554:     int ret = sws_setColorspaceDetails(
+src/VideoRenderer.cpp:555:         sws_,
+src/VideoRenderer.cpp:556:         sws_getCoefficients(av_cs_to_sws(cs_)), src_full ? 1 : 0,
+src/VideoRenderer.cpp:557:         sws_getCoefficients(hdr_ ? SWS_CS_BT2020 : SWS_CS_ITU709), 1,
+src/VideoRenderer.cpp:558:         0, 1 << 16, 1 << 16);
+src/VideoRenderer.cpp:566: void VideoRenderer::upload(AVFrame* frame)
+src/VideoRenderer.cpp:567: {
+src/VideoRenderer.cpp:568:     // Zero-copy HW path: VT frame carries a CVPixelBuffer in data[3].
+src/VideoRenderer.cpp:569:     // ScrubDecoder still returns SW frames (yuv420p/yuv420p10le), so the same
+src/VideoRenderer.cpp:570:     // renderer must flip cleanly between the two paths.
+src/VideoRenderer.cpp:571:     if (frame->format == AV_PIX_FMT_VIDEOTOOLBOX && upload_hw(frame)) {
+src/VideoRenderer.cpp:572:         return;
+src/VideoRenderer.cpp:573:     }
+src/VideoRenderer.cpp:574:     if (frame->format == AV_PIX_FMT_VIDEOTOOLBOX) {
+src/VideoRenderer.cpp:575:         // IOSurface bind failed — fall through to SW (won't happen in practice
+src/VideoRenderer.cpp:576:         // unless the CoreVideo/CGL path is broken, but keeps the pipeline alive).
+src/VideoRenderer.cpp:577:         logger::warn("VideoRenderer: HW upload failed, falling back to SW for this frame");
+src/VideoRenderer.cpp:578:     }
+src/VideoRenderer.cpp:579: 
+src/VideoRenderer.cpp:580:     // SW path — release any stale HW ref so draw() dispatches to the SW program
+src/VideoRenderer.cpp:581:     // and the previous frame's CVPixelBuffer isn't held longer than necessary.
+src/VideoRenderer.cpp:582:     if (hw_frame_ref_) av_frame_free(&hw_frame_ref_);
+src/VideoRenderer.cpp:583: 
+src/VideoRenderer.cpp:584:     // Frame size changed (a video track switch to another resolution, or a
+src/VideoRenderer.cpp:585:     // scrub frame from a different variant): resize the staging frame and
+src/VideoRenderer.cpp:586:     // texture, and rebuild sws_ for the new geometry.
+src/VideoRenderer.cpp:587:     auto frame_fmt = static_cast<AVPixelFormat>(frame->format);
+src/VideoRenderer.cpp:588:     if (frame->width > 0 && frame->height > 0 && (frame->width != src_w_ || frame->height != src_h_)) {
+src/VideoRenderer.cpp:589:         logger::info("VideoRenderer: frame size changed {}×{} → {}×{}", src_w_, src_h_, frame->width, frame->height);
+src/VideoRenderer.cpp:590:         src_w_ = frame->width;
+src/VideoRenderer.cpp:591:         src_h_ = frame->height;
+src/VideoRenderer.cpp:592:         av_frame_free(&converted_);
+src/VideoRenderer.cpp:593:         converted_         = av_frame_alloc();
+src/VideoRenderer.cpp:594:         converted_->format = hdr_ ? AV_PIX_FMT_RGB48LE : AV_PIX_FMT_RGB24;
+src/VideoRenderer.cpp:595:         converted_->width  = src_w_;
+src/VideoRenderer.cpp:596:         converted_->height = src_h_;
+src/VideoRenderer.cpp:597:         if (av_frame_get_buffer(converted_, 1) < 0) {
+src/VideoRenderer.cpp:598:             logger::error("VideoRenderer: av_frame_get_buffer failed");
+src/VideoRenderer.cpp:599:             av_frame_free(&converted_);
+src/VideoRenderer.cpp:600:             return;
+src/VideoRenderer.cpp:601:         }
+src/VideoRenderer.cpp:602:         glBindTexture(GL_TEXTURE_2D, tex_);
+src/VideoRenderer.cpp:603:         if (hdr_) glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16, src_w_, src_h_, 0, GL_RGB, GL_UNSIGNED_SHORT, nullptr);
+src/VideoRenderer.cpp:604:         else      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8,  src_w_, src_h_, 0, GL_RGB, GL_UNSIGNED_BYTE,  nullptr);
+src/VideoRenderer.cpp:605:         sws_src_fmt_ = AV_PIX_FMT_NONE;   // force the rebuild below
+src/VideoRenderer.cpp:606:     }
+src/VideoRenderer.cpp:607:     if (!converted_) return;
+src/VideoRenderer.cpp:608:     if (frame_fmt != sws_src_fmt_ && frame_fmt != AV_PIX_FMT_NONE) {
+src/VideoRenderer.cpp:609:         logger::info("VideoRenderer: source pixel format changed {} → {}, rebuilding sws",
+src/VideoRenderer.cpp:610:             pix_fmt_name(sws_src_fmt_), pix_fmt_name(frame_fmt));
+src/VideoRenderer.cpp:611:         if (!build_sws(frame_fmt)) return;
+src/VideoRenderer.cpp:612:     }
+src/VideoRenderer.cpp:613:     if (!sws_) return;   // no usable source format yet
+src/VideoRenderer.cpp:614: 
+src/VideoRenderer.cpp:615:     sws_scale(sws_,
+src/VideoRenderer.cpp:616:               frame->data, frame->linesize, 0, src_h_,
+src/VideoRenderer.cpp:617:               converted_->data, converted_->linesize);
+src/VideoRenderer.cpp:618: 
+src/VideoRenderer.cpp:619:     glActiveTexture(GL_TEXTURE0);
+src/VideoRenderer.cpp:620:     glBindTexture(GL_TEXTURE_2D, tex_);
+src/VideoRenderer.cpp:621:     if (hdr_) {
+src/VideoRenderer.cpp:622:         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, src_w_, src_h_,
+src/VideoRenderer.cpp:623:                         GL_RGB, GL_UNSIGNED_SHORT, converted_->data[0]);
+src/VideoRenderer.cpp:624:     } else {
+src/VideoRenderer.cpp:625:         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, src_w_, src_h_,
+src/VideoRenderer.cpp:626:                         GL_RGB, GL_UNSIGNED_BYTE, converted_->data[0]);
+src/VideoRenderer.cpp:627:     }
+src/VideoRenderer.cpp:628: }
+src/VideoRenderer.h:53:     // The colour interpretation frames are converted with: the stream's tags
+src/VideoRenderer.h:54:     // at init(), an unspecified matrix replaced by init()'s default, any range
+src/VideoRenderer.h:55:     // but full treated as limited. Primaries are reported, not used.
+src/MediaSession.cpp:175:                 (void)decoder.open(demuxer.video_codecpar(), try_hw);
+src/MediaSession.cpp:526:     if (!renderer.init(video_decoder.width(), video_decoder.height(),
+src/MediaSession.cpp:527:                        video_decoder.pixel_format(),
+src/MediaSession.cpp:528:                        video_decoder.colorspace(),
+src/MediaSession.cpp:529:                        video_decoder.color_range(),
+src/MediaSession.cpp:530:                        video_decoder.color_transfer(),
+src/MediaSession.cpp:531:                        video_decoder.color_primaries())) {
+src/MediaSession.cpp:694:         {
+src/MediaSession.cpp:695:             const char* cs = av_color_space_name(video_decoder.colorspace());
+src/MediaSession.cpp:696:             const char* cr = av_color_range_name(video_decoder.color_range());
+src/MediaSession.cpp:697:             inspector_lines.push_back({ std::format("  Color    {} / {}",
+src/MediaSession.cpp:698:                 cs ? cs : "?", cr ? cr : "?") });
+src/MediaSession.cpp:699:             const char* trc_name = av_color_transfer_name(video_decoder.color_transfer());
+src/MediaSession.cpp:700:             const char* dynrange =
+src/MediaSession.cpp:701:                 renderer.hdr_mode() == 0 ? "HDR (PQ → tonemap)"  :
+src/MediaSession.cpp:702:                 renderer.hdr_mode() == 1 ? "HDR (HLG → tonemap)" : "SDR";
+src/MediaSession.cpp:703:             inspector_lines.push_back({ std::format("  Transfer {}", trc_name ? trc_name : "?") });
+src/MediaSession.cpp:704:             inspector_lines.push_back({ std::format("  Dynamic  {}", dynrange) });
+src/main.cpp:541:     // QA snapshot hook: `--snapshot <out.ppm> <frame_number>` captures the video
+src/main.cpp:1664:     auto upload_frame = [&](AVFrame* f) {
+src/main.cpp:1665:         av_frame_unref(shown_frame.get());
+src/main.cpp:1666:         if (av_frame_ref(shown_frame.get(), f) < 0) av_frame_unref(shown_frame.get());
+src/main.cpp:1667:         ++shown_serial;
+src/main.cpp:1668:         frameinfo::remember(f, frame_memory);
+src/main.cpp:1669:         renderer.upload(f);
+src/main.cpp:1670:     };
+src/main.cpp:2835:                 int ok = stbi_write_png(snapshot_path.c_str(), vw, vh, 3, px.data(), vw * 3);
+src/main.cpp:3105:             ui_info.hdr    = renderer.hdr_mode() == 0 || renderer.hdr_mode() == 1;
+src/main.cpp:3106:             ui_info.range  = renderer.hdr_mode() == 0 ? "HDR10" : renderer.hdr_mode() == 1 ? "HLG" : "SDR";
+src/main.cpp:3278:                     const auto interp = renderer.interpretation();
+src/main.cpp:3279:                     frameinfo::Context fc;
+src/main.cpp:3280:                     fc.start_pts = video_start_s;
+src/main.cpp:3281:                     fc.fps       = stream_fps;
+src/main.cpp:3282:                     fc.cs        = interp.cs;
+src/main.cpp:3283:                     fc.range     = interp.range;
+src/main.cpp:3284:                     fc.trc       = interp.trc;
+src/main.cpp:3285:                     fc.primaries = interp.primaries;
+src/main.cpp:3307:                 const auto interp = renderer.interpretation();
+src/main.cpp:3308:                 if (scopes::Result r; scope_worker.take(r)) {
+src/main.cpp:3309:                     scope_result  = std::move(r);
+src/main.cpp:3310:                     scope_has     = true;
+src/main.cpp:3311:                     scope_pending = false;
+src/main.cpp:3312:                 }
+src/main.cpp:3313:                 // One measure at a time, of the frame on screen: a new frame
+src/main.cpp:3314:                 // or another scope asks for the next one.
+src/main.cpp:3315:                 if (has_frame && !scope_pending
+src/main.cpp:3316:                     && (scope_frame != shown_serial || !scope_has || scope_result.mode != scope_mode)) {
+src/main.cpp:3317:                     scope_worker.submit(shown_frame.get(), { scope_mode, interp.cs, interp.range }, ++scope_job,
+src/main.cpp:3318:                                         frame_pts_sec(shown_frame.get()));
+src/main.cpp:3319:                     scope_frame   = shown_serial;
+src/main.cpp:3320:                     scope_pending = true;
+src/main.cpp:3321:                 }
+src/main.cpp:3322:                 ScopesInputs si;
+src/main.cpp:3323:                 si.result    = scope_has ? &scope_result : nullptr;
+src/main.cpp:3324:                 si.mode      = scope_mode;
+src/main.cpp:3325:                 si.measuring = scope_pending;
+src/main.cpp:3326:                 si.cs        = interp.cs;
+src/main.cpp:3374:                 const auto interp = renderer.interpretation();
+src/main.cpp:3375:                 ProbeInputs pi;
+src/main.cpp:3376:                 pi.view       = &probe_view;
+src/main.cpp:3377:                 pi.video_rect = ImVec4(static_cast<float>(vx) / global_ps,
+src/main.cpp:3378:                                        static_cast<float>(fb_h - vy - vh) / global_ps,
+src/main.cpp:3379:                                        static_cast<float>(vw) / global_ps, static_cast<float>(vh) / global_ps);
+src/main.cpp:3380:                 pi.at         = cli.ui_probe;
+src/main.cpp:3381:                 pi.cs         = interp.cs;
+src/main.cpp:3382:                 pi.range      = interp.range;
+src/main.cpp:3383:                 pi.trc        = interp.trc;
+src/FrameInfo.cpp:328:     fmt.rows.push_back({ "Pixels", pixel_text(f) });
+src/FrameInfo.cpp:329:     {
+src/FrameInfo.cpp:330:         const AVColorRange used = ctx.range == AVCOL_RANGE_JPEG ? AVCOL_RANGE_JPEG : AVCOL_RANGE_MPEG;
+src/FrameInfo.cpp:331:         const bool spec = f->color_range != AVCOL_RANGE_UNSPECIFIED;
+src/FrameInfo.cpp:332:         fmt.rows.push_back(tag_row("Range", av_color_range_name(f->color_range), av_color_range_name(used),
+src/FrameInfo.cpp:333:                                    spec, spec && f->color_range != used));
+src/FrameInfo.cpp:334:     }
+src/FrameInfo.cpp:335:     {
+src/FrameInfo.cpp:336:         const bool spec = f->colorspace != AVCOL_SPC_UNSPECIFIED;
+src/FrameInfo.cpp:337:         fmt.rows.push_back(tag_row("Matrix", av_color_space_name(f->colorspace),
+src/FrameInfo.cpp:338:                                    name_or(av_color_space_name(ctx.cs), "?"),
+src/FrameInfo.cpp:339:                                    spec, spec && !same_matrix(f->colorspace, ctx.cs)));
+src/FrameInfo.cpp:340:     }
+src/FrameInfo.cpp:341:     {
+src/FrameInfo.cpp:342:         const bool spec = f->color_trc != AVCOL_TRC_UNSPECIFIED;
+src/FrameInfo.cpp:343:         const bool used_hdr = hdr_trc(ctx.trc), frame_hdr = hdr_trc(f->color_trc);
+src/FrameInfo.cpp:344:         const char* used = ctx.trc != AVCOL_TRC_UNSPECIFIED ? av_color_transfer_name(ctx.trc) : "SDR";
+src/FrameInfo.cpp:345:         Row r = tag_row("Transfer", av_color_transfer_name(f->color_trc), used, spec,
+src/FrameInfo.cpp:346:                         spec && (used_hdr != frame_hdr || (frame_hdr && f->color_trc != ctx.trc)));
+src/FrameInfo.cpp:347:         fmt.rows.push_back(r);
+src/FrameInfo.cpp:348:         if (r.level == Level::Warn)
+src/FrameInfo.cpp:349:             rep.findings.push_back({ "Transfer", std::format("frame is {}, rendered as {}",
+src/FrameInfo.cpp:350:                                                              av_color_transfer_name(f->color_trc), used),
+src/FrameInfo.cpp:351:                                      Level::Warn, r.tip });
+src/FrameInfo.cpp:352:     }
+src/FrameInfo.cpp:353:     {
+src/FrameInfo.cpp:354:         const bool spec = f->color_primaries != AVCOL_PRI_UNSPECIFIED;
+src/FrameInfo.cpp:355:         const bool differs = spec && ctx.primaries != AVCOL_PRI_UNSPECIFIED && f->color_primaries != ctx.primaries;
+src/FrameInfo.cpp:356:         fmt.rows.push_back(spec ? Row{ "Primaries",
+src/FrameInfo.cpp:357:                                        differs ? std::format("{} (opened as {})",
+src/FrameInfo.cpp:358:                                                              av_color_primaries_name(f->color_primaries),
+src/FrameInfo.cpp:359:                                                              av_color_primaries_name(ctx.primaries))
+src/FrameInfo.cpp:360:                                                : std::string(av_color_primaries_name(f->color_primaries)),
+src/FrameInfo.cpp:361:                                        differs ? Level::Warn : Level::Normal,
+src/FrameInfo.cpp:362:                                        differs ? "The stream's primaries when it opened differ from this frame's"
+src/FrameInfo.cpp:363:                                                : std::string() }
+src/FrameInfo.cpp:364:                                 : Row{ "Primaries", "unspecified", Level::Dim });
+src/FrameInfo.cpp:365:         if (spec && f->color_primaries == AVCOL_PRI_BT2020 && !hdr_trc(ctx.trc))
+src/FrameInfo.cpp:366:             rep.findings.push_back({ "Gamut", "BT.2020 primaries on the SDR path: shown without gamut conversion",
+src/Scopes.cpp:102:     // Normalised Y′ / chroma from codes, as the range says.
+src/Scopes.cpp:103:     const double y_off = limited ? 16.0 * s : 0.0, y_scale = limited ? 219.0 * s : std::ldexp(1.0, d) - 1.0;
+src/Scopes.cpp:104:     const double c_off = limited ? 128.0 * s : std::ldexp(1.0, d - 1), c_scale = limited ? 224.0 * s : std::ldexp(1.0, d) - 1.0;
+src/PixelView.cpp:28:     if (f->hw_frames_ctx) {
+src/PixelView.cpp:29:         v->format = AV_PIX_FMT_NONE;   // the pool's sw_format (NV12 / P010 for VideoToolbox)
+src/PixelView.cpp:30:         ret = av_hwframe_map(v, f, AV_HWFRAME_MAP_READ);
+src/PixelView.cpp:31:     } else {
+src/PixelView.cpp:102: PixelValues pixel_values(int y, int cb, int cr, int depth, AVColorSpace cs, AVColorRange range,
+src/PixelView.cpp:103:                          AVColorTransferCharacteristic trc)
+src/PixelView.cpp:104: {
+src/PixelView.cpp:105:     PixelValues v;
+src/PixelView.cpp:106:     const double s   = std::ldexp(1.0, depth - 8);   // 2^(depth−8)
+src/PixelView.cpp:107:     const double max = std::ldexp(1.0, depth) - 1.0;
+src/PixelView.cpp:108:     if (range == AVCOL_RANGE_JPEG) {
+src/PixelView.cpp:109:         v.y  = y / max;
+src/PixelView.cpp:110:         v.cb = (cb - std::ldexp(1.0, depth - 1)) / max;
+src/PixelView.cpp:111:         v.cr = (cr - std::ldexp(1.0, depth - 1)) / max;
+src/PixelView.cpp:112:     } else {
+src/PixelView.cpp:113:         v.y  = (y - 16.0 * s) / (219.0 * s);
+src/PixelView.cpp:114:         v.cb = (cb - 128.0 * s) / (224.0 * s);
+src/PixelView.cpp:115:         v.cr = (cr - 128.0 * s) / (224.0 * s);
+src/PixelView.cpp:116:         v.below_black = y < 16.0 * s;
+src/PixelView.cpp:117:         v.above_white = y > 235.0 * s;
+src/PixelView.cpp:118:         v.chroma_out  = cb < 16.0 * s || cb > 240.0 * s || cr < 16.0 * s || cr > 240.0 * s;
+src/PixelView.cpp:119:     }
+src/PixelView.cpp:120:     double kr, kb;
+src/PixelView.cpp:121:     luma_coefficients(cs, kr, kb);
+src/PixelView.cpp:122:     const double kg = 1.0 - kr - kb;
+src/PixelView.cpp:123:     v.r = v.y + 2.0 * (1.0 - kr) * v.cr;
+src/PixelView.cpp:124:     v.b = v.y + 2.0 * (1.0 - kb) * v.cb;
+src/PixelView.cpp:125:     v.g = (v.y - kr * v.r - kb * v.b) / kg;
+src/ThumbnailStrip.cpp:560:         sws = sws_getCachedContext(sws, frame->width, frame->height,
+src/ThumbnailStrip.cpp:561:                                    static_cast<AVPixelFormat>(frame->format),
+src/ThumbnailStrip.cpp:562:                                    out_w, out_h, AV_PIX_FMT_RGB24,
+src/ThumbnailStrip.cpp:563:                                    SWS_BILINEAR, nullptr, nullptr, nullptr);
+src/Decoder.cpp:14: static AVPixelFormat get_hw_format_cb(AVCodecContext* ctx,
+src/Decoder.cpp:15:                                       const AVPixelFormat* pix_fmts)
+src/Decoder.cpp:16: {
+src/Decoder.cpp:17:     for (const AVPixelFormat* p = pix_fmts; *p != AV_PIX_FMT_NONE; ++p) {
+src/Decoder.cpp:18:         if (*p == AV_PIX_FMT_VIDEOTOOLBOX)
+src/Decoder.cpp:19:             return *p;
+src/Decoder.cpp:20:     }
+src/Decoder.cpp:21:     return avcodec_default_get_format(ctx, pix_fmts);
+src/Decoder.cpp:22: }
+tests/test_yuv_matrix.cpp:52:     // Offset: subtracts 16/255 (Y black) and 128/255 ≈ 0.5 (Cb/Cr neutral)
+tests/test_yuv_matrix.cpp:53:     REQUIRE_THAT(m.offset[0], WithinAbs(16.0f / 255.0f, 1e-5f));
+tests/test_yuv_matrix.cpp:54:     REQUIRE_THAT(m.offset[1], WithinAbs(0.5f, 1e-5f));
+tests/test_yuv_matrix.cpp:55:     REQUIRE_THAT(m.offset[2], WithinAbs(0.5f, 1e-5f));
+tests/test_yuv_matrix.cpp:141:     // Y=16, Cb=Cr=128 → RGB(0,0,0). 128/255 ≠ 0.5 exactly, so a ~0.4% chroma
+tests/test_yuv_matrix.cpp:142:     // leak into R/G/B is expected — matches real 8-bit YCbCr quantization.
+tests/test_yuv_matrix.cpp:143:     auto blk = apply(m, 16.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f);
+tests/test_yuv_matrix.cpp:144:     REQUIRE_THAT(blk[0], WithinAbs(0.0f, 5e-3f));
+tests/test_yuv_matrix.cpp:145:     REQUIRE_THAT(blk[1], WithinAbs(0.0f, 5e-3f));
+tests/test_yuv_matrix.cpp:146:     REQUIRE_THAT(blk[2], WithinAbs(0.0f, 5e-3f));
+tests/snapshot_diff.cpp:7: // Usage:  snapshot_diff  <a.png>  <b.png>  [max_pixels_above_threshold]
+tests/snapshot_diff.cpp:8: //         threshold = 20 (channel abs-diff); default budget = 5000 pixels.
+tests/snapshot_diff.cpp:27:     const int max_bad_pixels = (argc > 3) ? std::atoi(argv[3]) : 5000;
+tests/snapshot_diff.cpp:28:     constexpr int kThreshold = 20;   // channel abs-diff considered visible
+tests/engineer_tools_snapshots.sh:38: ffmpeg -v error -y -f lavfi -i testsrc2=size=1280x720:rate=25 -t 3 -pix_fmt yuv420p10le -c:v libx265 \
+tests/engineer_tools_snapshots.sh:39:     -x265-params "log-level=error:colorprim=bt709:transfer=bt709:colormatrix=bt709:repeat-headers=1" part_sdr.ts
+tests/engineer_tools_snapshots.sh:40: ffmpeg -v error -y -f lavfi -i testsrc2=size=1280x720:rate=25 -ss 3 -t 3 -pix_fmt yuv420p10le -c:v libx265 \
+tests/engineer_tools_snapshots.sh:41:     -x265-params "log-level=error:colorprim=bt2020:transfer=smpte2084:colormatrix=bt2020nc:master-display=G(13250,34500)B(7500,3000)R(34000,16000)WP(15635,16450)L(10000000,50):max-cll=1000,400:repeat-headers=1" part_pq.ts
+tests/engineer_tools_snapshots.sh:42: printf "file 'part_sdr.ts'\nfile 'part_pq.ts'\n" > tagswitch.txt
+tests/engineer_tools_snapshots.sh:43: ffmpeg -v error -y -f concat -safe 0 -i tagswitch.txt -c copy tagswitch.ts
+(plan/engineer_tools_status.md differs at HEAD)
+plan/engineer_tools_status.md:73:   - an MPEG-TS whose HEVC stream switches from BT.709 SDR to PQ 3 s in:
+plan/engineer_tools_status.md:74:     after the switch the card flags transfer, matrix and primaries as
+plan/engineer_tools_status.md:75:     differing from the interpretation the renderer opened with, which is what
+plan/engineer_tools_status.md:76:     the renderer keeps using (`frame_inspector_tag_switch.png` and its log).
+plan/engineer_tools_status.md:77: 
+plan/engineer_tools_status.md:78: **Not checked.** Dolby Vision, HDR10+, captions and timecodes from real
+plan/engineer_tools_status.md:79: streams (HDR10+ only in a unit test; the others only as code paths);
+plan/engineer_tools_status.md:80: interlaced content.
+plan/engineer_tools_status.md:81: 
+plan/engineer_tools_status.md:82: **To finish.**
+plan/engineer_tools_status.md:83: 
+plan/engineer_tools_status.md:84: - Act on a tag change, not just report it (re-init the renderer on the new
+-- the upload_frame calls (src/main.cpp at a60e4bc):
+2363:                upload_frame(scrub_frame);
+2482:                upload_frame(frame);
+2500:                upload_frame(frame);
+2523:                upload_frame(frame);
+2544:                        upload_frame(frame);
+2567:            upload_frame(f);
+2590:            upload_frame(frame);
+2638:                upload_frame(frame);
+-- the owner's log (plan/engineer_tools_runs/gui-2026-11-03/snapshots/frame_inspector_tag_switch.log at a60e4bc), lines 1, 12, 465:
+1: [INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+12: [INFO]  VideoRenderer: 1280×720 SDR (yuv420p10le → RGB24 sRGB)  matrix=BT.709  limited-range
+465: [INFO]  VideoRenderer: HW zero-copy path ready (10-bit, BT.709 matrix, limited-range)
+-- CoreVideo's pixel formats (<SDK> CVPixelBuffer.h):
+70:  kCVPixelFormatType_4444AYpCbCr16  = 'y416',     /* Component Y'CbCrA 16-bit 4:4:4:4, ordered A Y' Cb Cr, full range alpha, video range Y'CbCr, 16-bit little-endian samples. */
+79:  kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange = '420v', /* Bi-Planar Component Y'CbCr 8-bit 4:2:0, video-range (luma=[16,235] chroma=[16,240]).  baseAddr points to a big-endian CVPlanarPixelBufferInfo_YCbCrBiPlanar struct */
+81:  kCVPixelFormatType_422YpCbCr8BiPlanarVideoRange = '422v', /* Bi-Planar Component Y'CbCr 8-bit 4:2:2, video-range (luma=[16,235] chroma=[16,240]).  baseAddr points to a big-endian CVPlanarPixelBufferInfo_YCbCrBiPlanar struct */
+83:  kCVPixelFormatType_444YpCbCr8BiPlanarVideoRange = '444v', /* Bi-Planar Component Y'CbCr 8-bit 4:4:4, video-range (luma=[16,235] chroma=[16,240]).  baseAddr points to a big-endian CVPlanarPixelBufferInfo_YCbCrBiPlanar struct */
+111:  kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange = 'x420', /* 2 plane YCbCr10 4:2:0, each 10 bits in the MSBs of 16bits, video-range (luma=[64,940] chroma=[64,960]) */
+112:  kCVPixelFormatType_422YpCbCr10BiPlanarVideoRange = 'x422', /* 2 plane YCbCr10 4:2:2, each 10 bits in the MSBs of 16bits, video-range (luma=[64,940] chroma=[64,960]) */
+113:  kCVPixelFormatType_444YpCbCr10BiPlanarVideoRange = 'x444', /* 2 plane YCbCr10 4:4:4, each 10 bits in the MSBs of 16bits, video-range (luma=[64,940] chroma=[64,960]) */
+114:  kCVPixelFormatType_420YpCbCr10BiPlanarFullRange  = 'xf20', /* 2 plane YCbCr10 4:2:0, each 10 bits in the MSBs of 16bits, full-range (Y range 0-1023) */
+121:  kCVPixelFormatType_422YpCbCr16BiPlanarVideoRange       = 'sv22', /* 2 plane YCbCr16 4:2:2, video-range (luma=[4096,60160] chroma=[4096,61440]) */
+122:  kCVPixelFormatType_444YpCbCr16BiPlanarVideoRange       = 'sv44', /* 2 plane YCbCr16 4:4:4, video-range (luma=[4096,60160] chroma=[4096,61440]) */
+
+### [B] build: every probe from its source (sources from <R>; YuvMatrix.h and VideoRenderer.cpp exported from a60e4bc into <OUT>/work/rev-src, test_yuv_matrix.cpp into <OUT>/work/rev-tests)
++ shasum -a 256 gl_hw.cpp vt_probe.c sws_check.c analytic.cpp gl_compile_time.cpp gl_y416.cpp sws_dst.c sws_inputs.c make_bars.py read_bars.py proposal/YuvMatrix.h proposal/gl_hw_prop.cpp proposal/test_proposal.cpp <OUT>/work/rev-src/YuvMatrix.h <OUT>/work/rev-src/VideoRenderer.cpp <OUT>/work/rev-tests/test_yuv_matrix.cpp
+69e03ece752b99ba72f170f00e05b0fd7a8c4e99951282b313ed00d29f3d2451  gl_hw.cpp
+406368ed3e82b1e3f6775abd7c57f75f57d5023e47b151f26503f2c2f3e33645  vt_probe.c
+aadf45f88b25fb03f085d5c1f1d4631cc56c2261fd0c72fba0158ff5a523a792  sws_check.c
+b342c34096ce659e9024feef54b3a8876b91968c4a41f49dba21d4b1a3aa70c3  analytic.cpp
+5c99185c83af51a2416e5e1c70338534a0bafbe8aa2d45c66629baec7d62239a  gl_compile_time.cpp
+c5b353bc6ead4bfd578aa48c85b76b78b140139931f112f7c6809cc466415c3d  gl_y416.cpp
+37ba98ac19ad127d921eca8f588e79e5e7d591a53ee85fbc294de988b4d05408  sws_dst.c
+1e8a5f172bab0a32b88b6f463844fe0c5fb7773bc55cc5101da4d3b4bf86aefc  sws_inputs.c
+90c1a86ef85d8306dfc7e923068225b6f7c715ca19b5711370fef0444bb309a3  make_bars.py
+641f6af28c1d05e6708a81c92bd512b2c5b38b4c4d07b66c41e609042475d573  read_bars.py
+7e9c880d5ce4fdc2624358f1f783265cecf96542953e86d26dcfc5f058006a28  proposal/YuvMatrix.h
+8f5c2bde53a1b8cfc9a54627c56ba7a41917e4a5f88118887264e38c9cbc2fa9  proposal/gl_hw_prop.cpp
+b1da3dbaf39cd1c375a231af64e49e2f74405eeea64bfa9422cd7f1beee0c132  proposal/test_proposal.cpp
+d43d91dac15f0095555c5bdf0096e3d1035c596b0d99e8bca3f5638187905186  <OUT>/work/rev-src/YuvMatrix.h
+1d74b6b66fe93d3888bc9c321c477b32db1cad149079c2935d89c30b65d2d141  <OUT>/work/rev-src/VideoRenderer.cpp
+d0f69bb429b86e8c02673a4e91d74a314b483e7d017b6f6eae4cc7036e2410e9  <OUT>/work/rev-tests/test_yuv_matrix.cpp
++ clang++ -std=c++20 -O1 -I<OUT>/work/rev-src -I<FF>/include gl_hw.cpp -L<FF>/lib -lavformat -lavcodec -lavutil -framework OpenGL -framework CoreVideo -framework IOSurface -framework CoreFoundation -o <OUT>/bin/gl_hw
++ clang -O1 -I<FF>/include vt_probe.c -L<FF>/lib -lavformat -lavcodec -lavutil -framework CoreVideo -framework IOSurface -framework CoreFoundation -o <OUT>/bin/vt_probe
++ clang -O1 -I<FF>/include sws_check.c -L<FF>/lib -lswscale -lavutil -o <OUT>/bin/sws_check
++ clang++ -std=c++20 -O1 -I<OUT>/work/rev-src -I<FF>/include analytic.cpp -o <OUT>/bin/analytic
++ clang++ -std=c++20 -O1 gl_compile_time.cpp -framework OpenGL -o <OUT>/bin/gl_compile_time
++ clang++ -std=c++20 -O1 -I<FF>/include gl_y416.cpp -L<FF>/lib -lavformat -lavcodec -lavutil -framework OpenGL -framework CoreVideo -framework IOSurface -framework CoreFoundation -o <OUT>/bin/gl_y416
++ clang -O1 -I<FF>/include sws_dst.c -L<FF>/lib -lswscale -lavutil -o <OUT>/bin/sws_dst
++ clang -I<FF>/include sws_inputs.c -L<FF>/lib -lswscale -lavutil -o <OUT>/bin/sws_inputs
++ clang++ -std=c++20 -O1 -I<R>/proposal -I<FF>/include proposal/gl_hw_prop.cpp -L<FF>/lib -lavformat -lavcodec -lavutil -framework OpenGL -framework CoreVideo -framework IOSurface -framework CoreFoundation -o <OUT>/bin/gl_hw_prop
++ cmake -S <CATCH2> -B <OUT>/catch2 -DCMAKE_BUILD_TYPE=Release -DCATCH_INSTALL_DOCS=OFF -DCATCH_INSTALL_EXTRAS=OFF -DBUILD_TESTING=OFF  > <OUT>/work/catch2-configure.log 2>&1
+Catch2 source:   VERSION 3.7.1 
+-- Generating done (0.0s)
+-- Build files have been written to: <OUT>/catch2
++ cmake --build <OUT>/catch2 --target Catch2WithMain --parallel  > <OUT>/work/catch2-build.log 2>&1
+[100%] Built target Catch2WithMain
++ clang++ -std=c++20 -O0 -I<R>/proposal -I<CATCH2>/src -I<OUT>/catch2/generated-includes -I<FF>/include proposal/test_proposal.cpp <OUT>/work/rev-tests/test_yuv_matrix.cpp <OUT>/catch2/src/libCatch2Main.a <OUT>/catch2/src/libCatch2.a -o <OUT>/bin/test_proposal
++ clang++ -std=c++20 -E -I<R>/proposal -I<CATCH2>/src -I<OUT>/catch2/generated-includes -I<FF>/include <OUT>/work/rev-tests/test_yuv_matrix.cpp -o <OUT>/work/test_yuv_matrix.i
+the repo's test_yuv_matrix.cpp is compiled against: # 1 "<R>/proposal/YuvMatrix.h" 1
++ otool -L "<OUT>/bin/vt_probe" | grep libav
+	<FF>/lib/libavformat.62.dylib (compatibility version 62.0.0, current version 62.12.101)
+	<FF>/lib/libavcodec.62.dylib (compatibility version 62.0.0, current version 62.28.101)
+	<FF>/lib/libavutil.60.dylib (compatibility version 60.0.0, current version 60.26.101)
+
+### [RAW] the raw frames, regenerated with make_bars.py
++ python3 -I <R>/make_bars.py bars420.yuv 420
+bars420.yuv: 25 frames 448x128 yuv420p10le (10)
++ python3 -I <R>/make_bars.py bars422.yuv 422
+bars422.yuv: 25 frames 448x128 yuv422p10le (10)
++ python3 -I <R>/make_bars.py bars444.yuv 444
+bars444.yuv: 25 frames 448x128 yuv444p10le (10)
++ python3 -I <R>/make_bars.py bars420_75.yuv 420 75
+bars420_75.yuv: 75 frames 448x128 yuv420p10le (10)
++ python3 -I <R>/make_bars.py bars8_420.yuv 420 25 8
+bars8_420.yuv: 25 frames 448x128 yuv420p (8)
++ python3 -I <R>/make_bars.py bars420_8.yuv 420 1 10to8
+bars420_8.yuv: 1 frames 448x128 yuv420p (10to8)
++ shasum -a 256 bars420.yuv bars422.yuv bars444.yuv bars420_75.yuv bars8_420.yuv bars420_8.yuv
+2c27179d8a775464e371a3c685349cf6d7247c845f6289e4e45d613064d3ce31  bars420.yuv
+3c2456a52aac1624afa4770f875c3f87461ecedb8fd828246c4271c89f29bfdb  bars422.yuv
+ea3b690a6227edbfaa1d768472d530ee67536ed9ef8ba36f385c63f074a6253f  bars444.yuv
+e9fba7c340b87876bc8cc831db62ea16e360b3f28452ca3d1efc3e19863e096f  bars420_75.yuv
+b4cb612125bb6f06b18a19bf7ad4ad5b67eefa8cfba95d4d268c8c110565c6b7  bars8_420.yuv
+0ff8635d4869f7aca4301139da3f05a11e21a29dd78f7c2b29d7e0f9ad2c4789  bars420_8.yuv
+bars420.yuv: byte-identical to <R>/clips/bars420.yuv, the file the clips were encoded from
+bars422.yuv: byte-identical to <R>/clips/bars422.yuv, the file the clips were encoded from
+bars444.yuv: byte-identical to <R>/clips/bars444.yuv, the file the clips were encoded from
+bars420_75.yuv: byte-identical to <R>/clips/bars420_75.yuv, the file the clips were encoded from
+bars8_420.yuv: byte-identical to <R>/clips/bars8_420.yuv, the file the clips were encoded from
+bars420_8.yuv: byte-identical to <R>/clips/bars420_8.yuv, the file the clips were encoded from
+(bars8_420.yuv and bars420_8.yuv were first written by inline Python; make_bars.py's 8 and 10to8 modes reproduce them.)
+
+### [CLIPS] the encoded clips used (<R>/clips), and the commands that made them
++ shasum -a 256 bars_pq.mp4 bars_sdr10.mp4 bars8_hevc.mp4 bars_prores422hq.mov bars_prores4444.mov bars_prores4444a.mov bars_hevc422.mp4 bars_hevc444.mp4 bars_h264_422.mp4 bars_hevc444_8.mp4 bsw_sdr.ts bsw_pq.ts bars_switch.ts bars_switch_rev.ts
+d75573d4a01d26a2558c48b79bae893eca22018569b9e9b6d288c01909945cdf  bars_pq.mp4
+f7f6e9fdcbc409d7d2b0e58bf41f19aa65577a19a5220fb6bf78e4069a01e6bd  bars_sdr10.mp4
+2b4381a3f0e5ae323552a09ad566cb71136010b1cc44bb8ee0984a1306c9f90f  bars8_hevc.mp4
+85e5beec6fe2e58a1714fc17cbf64cc89f5de2a20262c825a6e2bdcb94d1a6fc  bars_prores422hq.mov
+9d7bc487003cfa32f6ff3118c3d632b523f5e4676e4e16a76169dd35527ff9b6  bars_prores4444.mov
+45f8d943839c68884754b621482e93ee35d7c66553dc6ca7d8aff376159990ff  bars_prores4444a.mov
+d95786c4296dd2f4197a99f1141225c25938ecd82f27c02585041ef10710bc88  bars_hevc422.mp4
+3e0756d44c7bbd2f37ee53f0775e3d376c2b5a985bb6f356170dfc4a711e0654  bars_hevc444.mp4
+80e1f0b34bcdf35899a1477769be4bfb62a1b020e430fdcbc815e52ecee2cc93  bars_h264_422.mp4
+6bb15deb0124d3abd1e96441abfc16081c2b59e740a8ec3854eb501b2009d77c  bars_hevc444_8.mp4
+2fa31e967e2d165f7d65b9c295765db4d9743c5d08b5c606540f85bf4f70e572  bsw_sdr.ts
+35cf2badc4150d408b7d65de14134f1e4a91c9bce644167b5866d6585940f65f  bsw_pq.ts
+0ad25ced01116e773e873c32677a5a4dbd02ea7800d68188abef68d813daabb8  bars_switch.ts
+01433d592f55857afd6665004f23d8d47c468f38ac0c2f9085942518704f6bc5  bars_switch_rev.ts
+Made in the raw frames' directory with <FF>/bin/ffmpeg (printed, not re-run):
+  ffmpeg -v error -y -f rawvideo -pix_fmt yuv420p10le -s 448x128 -r 25 -i bars420.yuv -c:v libx265 -x265-params "log-level=error:lossless=1:colorprim=bt2020:transfer=smpte2084:colormatrix=bt2020nc:range=limited" -tag:v hvc1 bars_pq.mp4
+  ffmpeg -v error -y -f rawvideo -pix_fmt yuv420p10le -s 448x128 -r 25 -i bars420.yuv -c:v libx265 -x265-params "log-level=error:lossless=1:colorprim=bt709:transfer=bt709:colormatrix=bt709:range=limited" -tag:v hvc1 bars_sdr10.mp4
+  ffmpeg -v error -y -f rawvideo -pix_fmt yuv420p -s 448x128 -r 25 -i bars8_420.yuv -c:v libx265 -x265-params "log-level=error:lossless=1:colorprim=bt709:transfer=bt709:colormatrix=bt709:range=limited" -tag:v hvc1 bars8_hevc.mp4
+  ffmpeg -v error -y -f rawvideo -pix_fmt yuv422p10le -s 448x128 -r 25 -i bars422.yuv -c:v prores_ks -profile:v hq -color_primaries bt709 -color_trc bt709 -colorspace bt709 -color_range tv bars_prores422hq.mov
+  ffmpeg -v error -y -f rawvideo -pix_fmt yuv444p10le -s 448x128 -r 25 -i bars444.yuv -c:v prores_ks -profile:v 4444 -pix_fmt yuv444p10le -color_primaries bt709 -color_trc bt709 -colorspace bt709 -color_range tv bars_prores4444.mov
+  ffmpeg -v error -y -f rawvideo -pix_fmt yuv444p10le -s 448x128 -r 25 -i bars444.yuv -c:v prores_ks -profile:v 4444 -pix_fmt yuva444p10le -color_primaries bt709 -color_trc bt709 -colorspace bt709 -color_range tv bars_prores4444a.mov
+  ffmpeg -v error -y -f rawvideo -pix_fmt yuv422p10le -s 448x128 -r 25 -i bars422.yuv -c:v libx265 -x265-params "log-level=error:lossless=1" -tag:v hvc1 bars_hevc422.mp4
+  ffmpeg -v error -y -f rawvideo -pix_fmt yuv444p10le -s 448x128 -r 25 -i bars444.yuv -c:v libx265 -x265-params "log-level=error:lossless=1" -tag:v hvc1 bars_hevc444.mp4
+  ffmpeg -v error -y -f rawvideo -pix_fmt yuv422p10le -s 448x128 -r 25 -i bars422.yuv -pix_fmt yuv422p -c:v libx264 -qp 0 bars_h264_422.mp4
+  ffmpeg -v error -y -f rawvideo -pix_fmt yuv444p10le -s 448x128 -r 25 -i bars444.yuv -pix_fmt yuv444p -c:v libx265 -x265-params "log-level=error:lossless=1" -tag:v hvc1 bars_hevc444_8.mp4
+  ffmpeg -v error -y -f rawvideo -pix_fmt yuv420p10le -s 448x128 -r 25 -i bars420_75.yuv -c:v libx265 -x265-params "log-level=error:lossless=1:keyint=25:colorprim=bt709:transfer=bt709:colormatrix=bt709:range=limited:repeat-headers=1" bsw_sdr.ts
+  ffmpeg -v error -y -f rawvideo -pix_fmt yuv420p10le -s 448x128 -r 25 -i bars420_75.yuv -c:v libx265 -x265-params "log-level=error:lossless=1:keyint=25:colorprim=bt2020:transfer=smpte2084:colormatrix=bt2020nc:range=limited:repeat-headers=1" bsw_pq.ts
+  printf "file 'bsw_sdr.ts'\nfile 'bsw_pq.ts'\n" > bsw.txt && ffmpeg -v error -y -f concat -safe 0 -i bsw.txt -c copy bars_switch.ts
+  printf "file 'bsw_pq.ts'\nfile 'bsw_sdr.ts'\n" > bsw_rev.txt && ffmpeg -v error -y -f concat -safe 0 -i bsw_rev.txt -c copy bars_switch_rev.ts
+-- software decodes: the lossless clips give back the raw frames; the others' codes at the bar centres
++ <FF>/bin/ffmpeg -v error -y -i bars_pq.mp4 -frames:v 1 -f rawvideo -pix_fmt yuv420p10le <OUT>/work/dec_pq_sw.yuv
++ head -c 172032 "<OUT>/raw/bars420.yuv" | cmp "<OUT>/work/dec_pq_sw.yuv" - && say "bars_pq.mp4 frame 0 == bars420.yuv frame 0"
+bars_pq.mp4 frame 0 == bars420.yuv frame 0
++ <FF>/bin/ffmpeg -v error -y -i bars_sdr10.mp4 -frames:v 1 -f rawvideo -pix_fmt yuv420p10le <OUT>/work/dec_sdr10_sw.yuv
++ head -c 172032 "<OUT>/raw/bars420.yuv" | cmp "<OUT>/work/dec_sdr10_sw.yuv" - && say "bars_sdr10.mp4 frame 0 == bars420.yuv frame 0"
+bars_sdr10.mp4 frame 0 == bars420.yuv frame 0
++ <FF>/bin/ffmpeg -v error -y -i bars8_hevc.mp4 -frames:v 1 -f rawvideo -pix_fmt yuv420p <OUT>/work/dec_8hevc_sw.yuv
++ head -c 86016 "<OUT>/raw/bars8_420.yuv" | cmp "<OUT>/work/dec_8hevc_sw.yuv" - && say "bars8_hevc.mp4 frame 0 == bars8_420.yuv frame 0"
+bars8_hevc.mp4 frame 0 == bars8_420.yuv frame 0
++ <FF>/bin/ffmpeg -v error -y -i bars_hevc422.mp4 -frames:v 1 -f rawvideo -pix_fmt yuv422p10le <OUT>/work/dec_hevc422_sw.yuv
++ head -c 229376 "<OUT>/raw/bars422.yuv" | cmp "<OUT>/work/dec_hevc422_sw.yuv" - && say "bars_hevc422.mp4 frame 0 == bars422.yuv frame 0"
+bars_hevc422.mp4 frame 0 == bars422.yuv frame 0
++ <FF>/bin/ffmpeg -v error -y -i bars_hevc444.mp4 -frames:v 1 -f rawvideo -pix_fmt yuv444p10le <OUT>/work/dec_hevc444_sw.yuv
++ head -c 344064 "<OUT>/raw/bars444.yuv" | cmp "<OUT>/work/dec_hevc444_sw.yuv" - && say "bars_hevc444.mp4 frame 0 == bars444.yuv frame 0"
+bars_hevc444.mp4 frame 0 == bars444.yuv frame 0
++ <FF>/bin/ffmpeg -v error -y -i bsw_sdr.ts -f rawvideo -pix_fmt yuv420p10le <OUT>/work/dec_bsw_sdr.yuv
++ cmp "<OUT>/work/dec_bsw_sdr.yuv" "<OUT>/raw/bars420_75.yuv" && say "bsw_sdr.ts: all 75 frames == bars420_75.yuv"
+bsw_sdr.ts: all 75 frames == bars420_75.yuv
++ <FF>/bin/ffmpeg -v error -y -i bsw_pq.ts -f rawvideo -pix_fmt yuv420p10le <OUT>/work/dec_bsw_pq.yuv
++ cmp "<OUT>/work/dec_bsw_pq.yuv" "<OUT>/raw/bars420_75.yuv" && say "bsw_pq.ts: all 75 frames == bars420_75.yuv"
+bsw_pq.ts: all 75 frames == bars420_75.yuv
++ <FF>/bin/ffmpeg -v error -y -i bars_prores422hq.mov -frames:v 1 -f rawvideo -pix_fmt yuv422p10le <OUT>/work/dec_p422_sw.yuv
++ python3 -I <R>/read_bars.py <OUT>/work/dec_p422_sw.yuv 422
+Y  [64, 300, 509, 723, 940, 943, 494]
+Cb [512, 512, 512, 512, 512, 512, 318]
+Cr [512, 512, 512, 512, 512, 512, 689]
++ <FF>/bin/ffmpeg -v error -y -i bars_prores4444.mov -frames:v 1 -f rawvideo -pix_fmt yuv444p12le <OUT>/work/dec_p4444_sw.yuv
+(12-bit codes:)
++ python3 -I <R>/read_bars.py <OUT>/work/dec_p4444_sw.yuv 444
+Y  [256, 1200, 2036, 2892, 3760, 3772, 1976]
+Cb [2048, 2048, 2048, 2048, 2048, 2048, 1272]
+Cr [2048, 2048, 2048, 2048, 2048, 2048, 2756]
++ <FF>/bin/ffmpeg -v error -y -i bars_h264_422.mp4 -frames:v 1 -f rawvideo -pix_fmt yuv422p <OUT>/work/dec_h264_422.yuv
++ python3 -I <R>/read_bars.py <OUT>/work/dec_h264_422.yuv 422 0 8
+Y  [16, 75, 127, 181, 235, 255, 127]
+Cb [128, 128, 128, 128, 128, 128, 75]
+Cr [128, 128, 128, 128, 128, 128, 175]
++ <FF>/bin/ffmpeg -v error -y -i bars_hevc444_8.mp4 -frames:v 1 -f rawvideo -pix_fmt yuv444p <OUT>/work/dec_hevc444_8.yuv
++ python3 -I <R>/read_bars.py <OUT>/work/dec_hevc444_8.yuv 444 0 8
+Y  [16, 75, 127, 181, 235, 255, 127]
+Cb [128, 128, 128, 128, 128, 128, 75]
+Cr [128, 128, 128, 128, 128, 128, 175]
+
+### [C1] what VideoToolbox returns (vt_probe), and each stream as ffprobe reads it
+-- bars_pq.mp4
++ <FF>/bin/ffprobe -v error -select_streams v:0 -show_entries stream=codec_name\,codec_tag_string\,profile\,pix_fmt\,color_range\,color_space\,color_transfer\,color_primaries\,bits_per_raw_sample -of default=nw=1 bars_pq.mp4
+codec_name=hevc
+profile=Main 10
+codec_tag_string=hvc1
+pix_fmt=yuv420p10le
+color_range=tv
+color_space=bt2020nc
+color_transfer=smpte2084
+color_primaries=bt2020
+bits_per_raw_sample=N/A
++ <OUT>/bin/vt_probe bars_pq.mp4 1
+bars_pq.mp4: codec hevc, HW-capable decoder: hevc, stream pix_fmt=yuv420p10le
+frame 0 pts=0.000 format=videotoolbox_vld  tags: range=tv matrix=bt2020nc trc=smpte2084 primaries=bt2020 | ctx: matrix=bt2020nc trc=smpte2084
+  CVPixelBuffer 'x420' (0x78343230)  hw_frames sw_format=p010le  IOSurface=yes  planes=2
+    plane 0: 448x128  bytesPerRow=896  IOSurface bytesPerElement=2 elementWidth=1
+    plane 1: 224x64  bytesPerRow=896  IOSurface bytesPerElement=4 elementWidth=1
+    Y  words: 0x1000(>>6=64, low6=0) 0x4b00(>>6=300, low6=0) 0x7f40(>>6=509, low6=0) 0xb4c0(>>6=723, low6=0) 0xeb00(>>6=940, low6=0) 0xfec0(>>6=1019, low6=0) 0x7f40(>>6=509, low6=0)
+    CbCr words: (0x8000,0x8000) (0x8000,0x8000) (0x8000,0x8000) (0x8000,0x8000) (0x8000,0x8000) (0x8000,0x8000) (0x4b00,0xaf00)
+decoded 1 frames
+-- bars_sdr10.mp4
++ <FF>/bin/ffprobe -v error -select_streams v:0 -show_entries stream=codec_name\,codec_tag_string\,profile\,pix_fmt\,color_range\,color_space\,color_transfer\,color_primaries\,bits_per_raw_sample -of default=nw=1 bars_sdr10.mp4
+codec_name=hevc
+profile=Main 10
+codec_tag_string=hvc1
+pix_fmt=yuv420p10le
+color_range=tv
+color_space=bt709
+color_transfer=bt709
+color_primaries=bt709
+bits_per_raw_sample=N/A
++ <OUT>/bin/vt_probe bars_sdr10.mp4 1
+bars_sdr10.mp4: codec hevc, HW-capable decoder: hevc, stream pix_fmt=yuv420p10le
+frame 0 pts=0.000 format=videotoolbox_vld  tags: range=tv matrix=bt709 trc=bt709 primaries=bt709 | ctx: matrix=bt709 trc=bt709
+  CVPixelBuffer 'x420' (0x78343230)  hw_frames sw_format=p010le  IOSurface=yes  planes=2
+    plane 0: 448x128  bytesPerRow=896  IOSurface bytesPerElement=2 elementWidth=1
+    plane 1: 224x64  bytesPerRow=896  IOSurface bytesPerElement=4 elementWidth=1
+    Y  words: 0x1000(>>6=64, low6=0) 0x4b00(>>6=300, low6=0) 0x7f40(>>6=509, low6=0) 0xb4c0(>>6=723, low6=0) 0xeb00(>>6=940, low6=0) 0xfec0(>>6=1019, low6=0) 0x7f40(>>6=509, low6=0)
+    CbCr words: (0x8000,0x8000) (0x8000,0x8000) (0x8000,0x8000) (0x8000,0x8000) (0x8000,0x8000) (0x8000,0x8000) (0x4b00,0xaf00)
+decoded 1 frames
+-- bars8_hevc.mp4
++ <FF>/bin/ffprobe -v error -select_streams v:0 -show_entries stream=codec_name\,codec_tag_string\,profile\,pix_fmt\,color_range\,color_space\,color_transfer\,color_primaries\,bits_per_raw_sample -of default=nw=1 bars8_hevc.mp4
+codec_name=hevc
+profile=Main
+codec_tag_string=hvc1
+pix_fmt=yuv420p
+color_range=tv
+color_space=bt709
+color_transfer=bt709
+color_primaries=bt709
+bits_per_raw_sample=N/A
++ <OUT>/bin/vt_probe bars8_hevc.mp4 1
+bars8_hevc.mp4: codec hevc, HW-capable decoder: hevc, stream pix_fmt=yuv420p
+frame 0 pts=0.000 format=videotoolbox_vld  tags: range=tv matrix=bt709 trc=bt709 primaries=bt709 | ctx: matrix=bt709 trc=bt709
+  CVPixelBuffer '420v' (0x34323076)  hw_frames sw_format=nv12  IOSurface=yes  planes=2
+    plane 0: 448x128  bytesPerRow=448  IOSurface bytesPerElement=1 elementWidth=1
+    plane 1: 224x64  bytesPerRow=448  IOSurface bytesPerElement=2 elementWidth=1
+    Y bytes: 16 75 126 180 235 254 126
+    CbCr bytes: (128,128) (128,128) (128,128) (128,128) (128,128) (128,128) (75,175)
+decoded 1 frames
+-- bars_prores422hq.mov
++ <FF>/bin/ffprobe -v error -select_streams v:0 -show_entries stream=codec_name\,codec_tag_string\,profile\,pix_fmt\,color_range\,color_space\,color_transfer\,color_primaries\,bits_per_raw_sample -of default=nw=1 bars_prores422hq.mov
+codec_name=prores
+profile=HQ
+codec_tag_string=apch
+pix_fmt=yuv422p10le
+color_range=tv
+color_space=bt709
+color_transfer=unknown
+color_primaries=unknown
+bits_per_raw_sample=10
++ <OUT>/bin/vt_probe bars_prores422hq.mov 1
+bars_prores422hq.mov: codec prores, HW-capable decoder: prores, stream pix_fmt=yuv422p10le
+frame 0 pts=0.000 format=videotoolbox_vld  tags: range=tv matrix=bt709 trc=unknown primaries=unknown | ctx: matrix=bt709 trc=unknown
+  CVPixelBuffer 'x422' (0x78343232)  hw_frames sw_format=p210le  IOSurface=yes  planes=2
+    plane 0: 448x128  bytesPerRow=896  IOSurface bytesPerElement=2 elementWidth=1
+    plane 1: 224x128  bytesPerRow=896  IOSurface bytesPerElement=4 elementWidth=1
+    Y  words: 0x1000(>>6=64, low6=0) 0x4b00(>>6=300, low6=0) 0x7f40(>>6=509, low6=0) 0xb4c0(>>6=723, low6=0) 0xeb00(>>6=940, low6=0) 0xebc0(>>6=943, low6=0) 0x7b80(>>6=494, low6=0)
+    CbCr words: (0x8000,0x8000) (0x8000,0x8000) (0x8000,0x8000) (0x8000,0x8000) (0x8000,0x8000) (0x8000,0x8000) (0x4f80,0xac40)
+decoded 1 frames
+-- bars_prores4444.mov
++ <FF>/bin/ffprobe -v error -select_streams v:0 -show_entries stream=codec_name\,codec_tag_string\,profile\,pix_fmt\,color_range\,color_space\,color_transfer\,color_primaries\,bits_per_raw_sample -of default=nw=1 bars_prores4444.mov
+codec_name=prores
+profile=4444
+codec_tag_string=ap4h
+pix_fmt=yuv444p12le
+color_range=tv
+color_space=bt709
+color_transfer=unknown
+color_primaries=unknown
+bits_per_raw_sample=12
++ <OUT>/bin/vt_probe bars_prores4444.mov 1
+bars_prores4444.mov: codec prores, HW-capable decoder: prores, stream pix_fmt=yuv444p12le
+frame 0 pts=0.000 format=videotoolbox_vld  tags: range=tv matrix=bt709 trc=unknown primaries=unknown | ctx: matrix=bt709 trc=unknown
+  CVPixelBuffer 'sv44' (0x73763434)  hw_frames sw_format=p416le  IOSurface=yes  planes=2
+    plane 0: 448x128  bytesPerRow=896  IOSurface bytesPerElement=2 elementWidth=1
+    plane 1: 448x128  bytesPerRow=1792  IOSurface bytesPerElement=4 elementWidth=1
+    Y  words: 0x1000(>>6=64, low6=0) 0x4b00(>>6=300, low6=0) 0x7f40(>>6=509, low6=0) 0xb4c0(>>6=723, low6=0) 0xeb00(>>6=940, low6=0) 0xebc0(>>6=943, low6=0) 0x7b80(>>6=494, low6=0)
+    CbCr words: (0x8000,0x8000) (0x8000,0x8000) (0x8000,0x8000) (0x8000,0x8000) (0x8000,0x8000) (0x8000,0x8000) (0x4f80,0xac40)
+decoded 1 frames
+-- bars_prores4444a.mov
++ <FF>/bin/ffprobe -v error -select_streams v:0 -show_entries stream=codec_name\,codec_tag_string\,profile\,pix_fmt\,color_range\,color_space\,color_transfer\,color_primaries\,bits_per_raw_sample -of default=nw=1 bars_prores4444a.mov
+codec_name=prores
+profile=4444
+codec_tag_string=ap4h
+pix_fmt=yuva444p12le
+color_range=tv
+color_space=bt709
+color_transfer=unknown
+color_primaries=unknown
+bits_per_raw_sample=12
++ <OUT>/bin/vt_probe bars_prores4444a.mov 1
+bars_prores4444a.mov: codec prores, HW-capable decoder: prores, stream pix_fmt=yuva444p12le
+frame 0 pts=0.000 format=videotoolbox_vld  tags: range=tv matrix=bt709 trc=unknown primaries=unknown | ctx: matrix=bt709 trc=unknown
+  CVPixelBuffer 'y416' (0x79343136)  hw_frames sw_format=ayuv64le  IOSurface=yes  planes=0
+    (packed) 448x128 bytesPerRow=3584  IOSurface bytesPerElement=8
+decoded 1 frames
+-- bars_hevc422.mp4
++ <FF>/bin/ffprobe -v error -select_streams v:0 -show_entries stream=codec_name\,codec_tag_string\,profile\,pix_fmt\,color_range\,color_space\,color_transfer\,color_primaries\,bits_per_raw_sample -of default=nw=1 bars_hevc422.mp4
+codec_name=hevc
+profile=Rext
+codec_tag_string=hvc1
+pix_fmt=yuv422p10le
+color_range=tv
+color_space=unknown
+color_transfer=unknown
+color_primaries=unknown
+bits_per_raw_sample=N/A
++ <OUT>/bin/vt_probe bars_hevc422.mp4 1
+bars_hevc422.mp4: codec hevc, HW-capable decoder: hevc, stream pix_fmt=yuv422p10le
+frame 0 pts=0.000 format=videotoolbox_vld  tags: range=tv matrix=unknown trc=unknown primaries=unknown | ctx: matrix=unknown trc=unknown
+  CVPixelBuffer 'x422' (0x78343232)  hw_frames sw_format=p210le  IOSurface=yes  planes=2
+    plane 0: 448x128  bytesPerRow=896  IOSurface bytesPerElement=2 elementWidth=1
+    plane 1: 224x128  bytesPerRow=896  IOSurface bytesPerElement=4 elementWidth=1
+    Y  words: 0x1000(>>6=64, low6=0) 0x4b00(>>6=300, low6=0) 0x7f40(>>6=509, low6=0) 0xb4c0(>>6=723, low6=0) 0xeb00(>>6=940, low6=0) 0xfec0(>>6=1019, low6=0) 0x7f40(>>6=509, low6=0)
+    CbCr words: (0x8000,0x8000) (0x8000,0x8000) (0x8000,0x8000) (0x8000,0x8000) (0x8000,0x8000) (0x8000,0x8000) (0x4b00,0xaf00)
+decoded 1 frames
+-- bars_hevc444.mp4
++ <FF>/bin/ffprobe -v error -select_streams v:0 -show_entries stream=codec_name\,codec_tag_string\,profile\,pix_fmt\,color_range\,color_space\,color_transfer\,color_primaries\,bits_per_raw_sample -of default=nw=1 bars_hevc444.mp4
+codec_name=hevc
+profile=Rext
+codec_tag_string=hvc1
+pix_fmt=yuv444p10le
+color_range=tv
+color_space=unknown
+color_transfer=unknown
+color_primaries=unknown
+bits_per_raw_sample=N/A
++ <OUT>/bin/vt_probe bars_hevc444.mp4 1
+bars_hevc444.mp4: codec hevc, HW-capable decoder: hevc, stream pix_fmt=yuv444p10le
+frame 0 pts=0.000 format=videotoolbox_vld  tags: range=tv matrix=unknown trc=unknown primaries=unknown | ctx: matrix=unknown trc=unknown
+  CVPixelBuffer 'x444' (0x78343434)  hw_frames sw_format=p410le  IOSurface=yes  planes=2
+    plane 0: 448x128  bytesPerRow=896  IOSurface bytesPerElement=2 elementWidth=1
+    plane 1: 448x128  bytesPerRow=1792  IOSurface bytesPerElement=4 elementWidth=1
+    Y  words: 0x1000(>>6=64, low6=0) 0x4b00(>>6=300, low6=0) 0x7f40(>>6=509, low6=0) 0xb4c0(>>6=723, low6=0) 0xeb00(>>6=940, low6=0) 0xfec0(>>6=1019, low6=0) 0x7f40(>>6=509, low6=0)
+    CbCr words: (0x8000,0x8000) (0x8000,0x8000) (0x8000,0x8000) (0x8000,0x8000) (0x8000,0x8000) (0x8000,0x8000) (0x4b00,0xaf00)
+decoded 1 frames
+-- bars_h264_422.mp4
++ <FF>/bin/ffprobe -v error -select_streams v:0 -show_entries stream=codec_name\,codec_tag_string\,profile\,pix_fmt\,color_range\,color_space\,color_transfer\,color_primaries\,bits_per_raw_sample -of default=nw=1 bars_h264_422.mp4
+codec_name=h264
+profile=High 4:4:4 Predictive
+codec_tag_string=avc1
+pix_fmt=yuv422p
+color_range=unknown
+color_space=unknown
+color_transfer=unknown
+color_primaries=unknown
+bits_per_raw_sample=8
++ <OUT>/bin/vt_probe bars_h264_422.mp4 1
+bars_h264_422.mp4: codec h264, HW-capable decoder: h264, stream pix_fmt=yuv422p
+frame 0 pts=0.000 format=videotoolbox_vld  tags: range=unknown matrix=unknown trc=unknown primaries=unknown | ctx: matrix=unknown trc=unknown
+  CVPixelBuffer '422v' (0x34323276)  hw_frames sw_format=nv16  IOSurface=yes  planes=2
+    plane 0: 448x128  bytesPerRow=448  IOSurface bytesPerElement=1 elementWidth=1
+    plane 1: 224x128  bytesPerRow=448  IOSurface bytesPerElement=2 elementWidth=1
+    Y bytes: 16 75 127 181 235 255 127
+    CbCr bytes: (128,128) (128,128) (128,128) (128,128) (128,128) (128,128) (75,175)
+decoded 1 frames
+-- bars_hevc444_8.mp4
++ <FF>/bin/ffprobe -v error -select_streams v:0 -show_entries stream=codec_name\,codec_tag_string\,profile\,pix_fmt\,color_range\,color_space\,color_transfer\,color_primaries\,bits_per_raw_sample -of default=nw=1 bars_hevc444_8.mp4
+codec_name=hevc
+profile=Rext
+codec_tag_string=hvc1
+pix_fmt=yuv444p
+color_range=tv
+color_space=unknown
+color_transfer=unknown
+color_primaries=unknown
+bits_per_raw_sample=N/A
++ <OUT>/bin/vt_probe bars_hevc444_8.mp4 1
+bars_hevc444_8.mp4: codec hevc, HW-capable decoder: hevc, stream pix_fmt=yuv444p
+frame 0 pts=0.000 format=videotoolbox_vld  tags: range=tv matrix=unknown trc=unknown primaries=unknown | ctx: matrix=unknown trc=unknown
+  CVPixelBuffer '444v' (0x34343476)  hw_frames sw_format=nv24  IOSurface=yes  planes=2
+    plane 0: 448x128  bytesPerRow=448  IOSurface bytesPerElement=1 elementWidth=1
+    plane 1: 448x128  bytesPerRow=896  IOSurface bytesPerElement=2 elementWidth=1
+    Y bytes: 16 75 127 181 235 255 127
+    CbCr bytes: (128,128) (128,128) (128,128) (128,128) (128,128) (128,128) (75,175)
+decoded 1 frames
+-- the CPU transfer a refused buffer would need (TRANSFER=1)
++ env TRANSFER=1 <OUT>/bin/vt_probe bars_prores4444a.mov 1
+bars_prores4444a.mov: codec prores, HW-capable decoder: prores, stream pix_fmt=yuva444p12le
+frame 0 pts=0.000 format=videotoolbox_vld  tags: range=tv matrix=bt709 trc=unknown primaries=unknown | ctx: matrix=bt709 trc=unknown
+  CVPixelBuffer 'y416' (0x79343136)  hw_frames sw_format=ayuv64le  IOSurface=yes  planes=0
+    (packed) 448x128 bytesPerRow=3584  IOSurface bytesPerElement=8
+  av_hwframe_transfer_data -> 0, format ayuv64le
+    Y codes (descriptor comp0 plane 0 step 8 offset 2 shift 0 depth 16): 4096 19200 32576 46272 60160 60352 31616
+decoded 1 frames
++ env TRANSFER=1 <OUT>/bin/vt_probe bars_prores422hq.mov 1
+bars_prores422hq.mov: codec prores, HW-capable decoder: prores, stream pix_fmt=yuv422p10le
+frame 0 pts=0.000 format=videotoolbox_vld  tags: range=tv matrix=bt709 trc=unknown primaries=unknown | ctx: matrix=bt709 trc=unknown
+  CVPixelBuffer 'x422' (0x78343232)  hw_frames sw_format=p210le  IOSurface=yes  planes=2
+    plane 0: 448x128  bytesPerRow=896  IOSurface bytesPerElement=2 elementWidth=1
+    plane 1: 224x128  bytesPerRow=896  IOSurface bytesPerElement=4 elementWidth=1
+    Y  words: 0x1000(>>6=64, low6=0) 0x4b00(>>6=300, low6=0) 0x7f40(>>6=509, low6=0) 0xb4c0(>>6=723, low6=0) 0xeb00(>>6=940, low6=0) 0xebc0(>>6=943, low6=0) 0x7b80(>>6=494, low6=0)
+    CbCr words: (0x8000,0x8000) (0x8000,0x8000) (0x8000,0x8000) (0x8000,0x8000) (0x8000,0x8000) (0x8000,0x8000) (0x4f80,0xac40)
+  av_hwframe_transfer_data -> 0, format p210le
+    Y codes (descriptor comp0 plane 0 step 2 offset 0 shift 6 depth 10): 64 300 509 723 940 943 494
+decoded 1 frames
+
+### [C2] the HW replica (gl_hw), upload_hw as written
++ <OUT>/bin/gl_hw <OUT>/work/rev-src/VideoRenderer.cpp bars_sdr10.mp4 sdr 709
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame 'x420': upload_hw's ten_bit=1, planes 448x128 + 224x64
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 6.8 ms
+kFragSdrHw current matrix, RGBA32F target:
+  bar 0: 0.000000 0.000000 0.000000  (x255: 0.000 0.000 0.000)
+  bar 1: 0.268088 0.268068 0.268090  (x255: 68.362 68.357 68.363)
+  bar 2: 0.505744 0.505724 0.505746  (x255: 128.965 128.960 128.965)
+  bar 3: 0.749085 0.749066 0.749088  (x255: 191.017 191.012 191.017)
+  bar 4: 0.995838 0.995819 0.995841  (x255: 253.939 253.934 253.939)
+  bar 5: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 6: 0.834885 0.452034 0.068406  (x255: 212.896 115.269 17.444)
+kFragSdrHw current matrix, RGBA8 target:
+  bar 0: 0 0 0
+  bar 1: 68 68 68
+  bar 2: 129 129 129
+  bar 3: 191 191 191
+  bar 4: 254 254 254
+  bar 5: 255 255 255
+  bar 6: 213 115 17
++ <OUT>/bin/gl_hw <OUT>/work/rev-src/VideoRenderer.cpp bars_pq.mp4 hdr 2020
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame 'x420': upload_hw's ten_bit=1, planes 448x128 + 224x64
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 7.5 ms
+kFragHdrHw current matrix, RGBA32F target:
+  bar 0: 0.000000 0.000000 0.000000  (x255: 0.000 0.000 0.000)
+  bar 1: 0.032751 0.032733 0.032741  (x255: 8.351 8.347 8.349)
+  bar 2: 0.212339 0.212288 0.212308  (x255: 54.146 54.133 54.139)
+  bar 3: 0.582512 0.582429 0.582458  (x255: 148.541 148.519 148.527)
+  bar 4: 0.984236 0.984160 0.984146  (x255: 250.980 250.961 250.957)
+  bar 5: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 6: 0.879397 0.000000 0.000000  (x255: 224.246 0.000 0.000)
+kFragHdrHw current matrix, RGBA8 target:
+  bar 0: 0 0 0
+  bar 1: 8 8 8
+  bar 2: 54 54 54
+  bar 3: 149 149 149
+  bar 4: 251 251 251
+  bar 5: 255 255 255
+  bar 6: 224 0 0
++ <OUT>/bin/gl_hw <OUT>/work/rev-src/VideoRenderer.cpp bars8_hevc.mp4 sdr 709
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame '420v': upload_hw's ten_bit=0, planes 448x128 + 224x64
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 9.4 ms
+kFragSdrHw current matrix, RGBA32F target:
+  bar 0: 0.003515 0.000000 0.004142  (x255: 0.896 0.000 1.056)
+  bar 1: 0.272922 0.267943 0.273548  (x255: 69.595 68.326 69.755)
+  bar 2: 0.505798 0.500820 0.506425  (x255: 128.979 127.709 129.138)
+  bar 3: 0.752374 0.747395 0.753000  (x255: 191.855 190.586 192.015)
+  bar 4: 1.000000 0.998537 1.000000  (x255: 255.000 254.627 255.000)
+  bar 5: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 6: 0.836225 0.446920 0.067377  (x255: 213.237 113.965 17.181)
+kFragSdrHw current matrix, RGBA8 target:
+  bar 0: 1 0 1
+  bar 1: 70 68 70
+  bar 2: 129 128 129
+  bar 3: 192 191 192
+  bar 4: 255 255 255
+  bar 5: 255 255 255
+  bar 6: 213 114 17
++ <OUT>/bin/gl_hw <OUT>/work/rev-src/VideoRenderer.cpp bars_pq.mp4 sdr 709
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame 'x420': upload_hw's ten_bit=1, planes 448x128 + 224x64
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 5.4 ms
+kFragSdrHw current matrix, RGBA32F target:
+  bar 0: 0.000000 0.000000 0.000000  (x255: 0.000 0.000 0.000)
+  bar 1: 0.268088 0.268068 0.268090  (x255: 68.362 68.357 68.363)
+  bar 2: 0.505744 0.505724 0.505746  (x255: 128.965 128.960 128.965)
+  bar 3: 0.749085 0.749066 0.749088  (x255: 191.017 191.012 191.017)
+  bar 4: 0.995838 0.995819 0.995841  (x255: 253.939 253.934 253.939)
+  bar 5: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 6: 0.834885 0.452034 0.068406  (x255: 212.896 115.269 17.444)
+kFragSdrHw current matrix, RGBA8 target:
+  bar 0: 0 0 0
+  bar 1: 68 68 68
+  bar 2: 129 129 129
+  bar 3: 191 191 191
+  bar 4: 254 254 254
+  bar 5: 255 255 255
+  bar 6: 213 115 17
++ <OUT>/bin/gl_hw <OUT>/work/rev-src/VideoRenderer.cpp bars_sdr10.mp4 hdr 2020
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame 'x420': upload_hw's ten_bit=1, planes 448x128 + 224x64
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 8.5 ms
+kFragHdrHw current matrix, RGBA32F target:
+  bar 0: 0.000000 0.000000 0.000000  (x255: 0.000 0.000 0.000)
+  bar 1: 0.032751 0.032733 0.032741  (x255: 8.351 8.347 8.349)
+  bar 2: 0.212339 0.212288 0.212308  (x255: 54.146 54.133 54.139)
+  bar 3: 0.582512 0.582429 0.582458  (x255: 148.541 148.519 148.527)
+  bar 4: 0.984236 0.984160 0.984146  (x255: 250.980 250.961 250.957)
+  bar 5: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 6: 0.879397 0.000000 0.000000  (x255: 224.246 0.000 0.000)
+kFragHdrHw current matrix, RGBA8 target:
+  bar 0: 0 0 0
+  bar 1: 8 8 8
+  bar 2: 54 54 54
+  bar 3: 149 149 149
+  bar 4: 251 251 251
+  bar 5: 255 255 255
+  bar 6: 224 0 0
++ <OUT>/bin/gl_hw <OUT>/work/rev-src/VideoRenderer.cpp bars_prores422hq.mov sdr 709
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame 'x422': upload_hw's ten_bit=0, planes 448x128 + 224x128
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 5.5 ms
+kFragSdrHw current matrix, RGBA32F target:
+  bar 0: 0.000000 0.032520 0.000000  (x255: 0.000 8.293 0.000)
+  bar 1: 0.000000 0.032520 0.000000  (x255: 0.000 8.293 0.000)
+  bar 2: 0.000000 0.032520 0.000000  (x255: 0.000 8.293 0.000)
+  bar 3: 0.000000 0.032520 0.000000  (x255: 0.000 8.293 0.000)
+  bar 4: 0.222693 0.324757 0.000000  (x255: 56.787 82.813 0.000)
+  bar 5: 0.222693 0.324757 0.000000  (x255: 56.787 82.813 0.000)
+  bar 6: 0.807168 0.909232 0.000000  (x255: 205.828 231.854 0.000)
+kFragSdrHw current matrix, RGBA8 target:
+  bar 0: 0 8 0
+  bar 1: 0 8 0
+  bar 2: 0 8 0
+  bar 3: 0 8 0
+  bar 4: 57 83 0
+  bar 5: 57 83 0
+  bar 6: 206 232 0
++ <OUT>/bin/gl_hw <OUT>/work/rev-src/VideoRenderer.cpp bars_prores4444.mov sdr 709
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame 'sv44': upload_hw's ten_bit=0, planes 448x128 + 448x128
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 5.4 ms
+kFragSdrHw current matrix, RGBA32F target:
+  bar 0: 0.000000 0.032520 0.000000  (x255: 0.000 8.293 0.000)
+  bar 1: 0.000000 0.032520 0.000000  (x255: 0.000 8.293 0.000)
+  bar 2: 0.000000 0.032520 0.000000  (x255: 0.000 8.293 0.000)
+  bar 3: 0.000000 0.032520 0.000000  (x255: 0.000 8.293 0.000)
+  bar 4: 0.222693 0.324757 0.000000  (x255: 56.787 82.813 0.000)
+  bar 5: 0.222693 0.324757 0.000000  (x255: 56.787 82.813 0.000)
+  bar 6: 0.807168 0.909232 0.000000  (x255: 205.828 231.854 0.000)
+kFragSdrHw current matrix, RGBA8 target:
+  bar 0: 0 8 0
+  bar 1: 0 8 0
+  bar 2: 0 8 0
+  bar 3: 0 8 0
+  bar 4: 57 83 0
+  bar 5: 57 83 0
+  bar 6: 206 232 0
++ <OUT>/bin/gl_hw <OUT>/work/rev-src/VideoRenderer.cpp bars_prores4444a.mov sdr 709
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame 'y416': upload_hw's ten_bit=0, planes 448x128 + 0x0
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 10008 (invalid numerical value)
+=> upload_hw returns false; upload() falls back to the SW path with an AV_PIX_FMT_VIDEOTOOLBOX frame
++ <OUT>/bin/gl_hw <OUT>/work/rev-src/VideoRenderer.cpp bars_hevc422.mp4 sdr 709
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame 'x422': upload_hw's ten_bit=0, planes 448x128 + 224x128
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 5.6 ms
+kFragSdrHw current matrix, RGBA32F target:
+  bar 0: 0.000000 0.032520 0.000000  (x255: 0.000 8.293 0.000)
+  bar 1: 0.000000 0.032520 0.000000  (x255: 0.000 8.293 0.000)
+  bar 2: 0.000000 0.032520 0.000000  (x255: 0.000 8.293 0.000)
+  bar 3: 0.000000 0.032520 0.000000  (x255: 0.000 8.293 0.000)
+  bar 4: 0.222693 0.324757 0.000000  (x255: 56.787 82.813 0.000)
+  bar 5: 0.222693 0.324757 0.000000  (x255: 56.787 82.813 0.000)
+  bar 6: 0.807168 0.909232 0.000000  (x255: 205.828 231.854 0.000)
+kFragSdrHw current matrix, RGBA8 target:
+  bar 0: 0 8 0
+  bar 1: 0 8 0
+  bar 2: 0 8 0
+  bar 3: 0 8 0
+  bar 4: 57 83 0
+  bar 5: 57 83 0
+  bar 6: 206 232 0
++ <OUT>/bin/gl_hw <OUT>/work/rev-src/VideoRenderer.cpp bars_hevc444.mp4 sdr 709
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame 'x444': upload_hw's ten_bit=0, planes 448x128 + 448x128
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 5.8 ms
+kFragSdrHw current matrix, RGBA32F target:
+  bar 0: 0.000000 0.032520 0.000000  (x255: 0.000 8.293 0.000)
+  bar 1: 0.000000 0.032520 0.000000  (x255: 0.000 8.293 0.000)
+  bar 2: 0.000000 0.032520 0.000000  (x255: 0.000 8.293 0.000)
+  bar 3: 0.000000 0.032520 0.000000  (x255: 0.000 8.293 0.000)
+  bar 4: 0.222693 0.324757 0.000000  (x255: 56.787 82.813 0.000)
+  bar 5: 0.222693 0.324757 0.000000  (x255: 56.787 82.813 0.000)
+  bar 6: 0.807168 0.909232 0.000000  (x255: 205.828 231.854 0.000)
+kFragSdrHw current matrix, RGBA8 target:
+  bar 0: 0 8 0
+  bar 1: 0 8 0
+  bar 2: 0 8 0
+  bar 3: 0 8 0
+  bar 4: 57 83 0
+  bar 5: 57 83 0
+  bar 6: 206 232 0
++ <OUT>/bin/gl_hw <OUT>/work/rev-src/VideoRenderer.cpp bars_h264_422.mp4 sdr 709
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame '422v': upload_hw's ten_bit=0, planes 448x128 + 224x128
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 7.9 ms
+kFragSdrHw current matrix, RGBA32F target:
+  bar 0: 0.003515 0.000000 0.004142  (x255: 0.896 0.000 1.056)
+  bar 1: 0.272922 0.267943 0.273548  (x255: 69.595 68.326 69.755)
+  bar 2: 0.514931 0.509952 0.515558  (x255: 131.307 130.038 131.467)
+  bar 3: 0.756940 0.751962 0.757567  (x255: 193.020 191.750 193.180)
+  bar 4: 1.000000 0.998537 1.000000  (x255: 255.000 254.627 255.000)
+  bar 5: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 6: 0.845358 0.456052 0.076509  (x255: 215.566 116.293 19.510)
+kFragSdrHw current matrix, RGBA8 target:
+  bar 0: 1 0 1
+  bar 1: 70 68 70
+  bar 2: 131 130 131
+  bar 3: 193 192 193
+  bar 4: 255 255 255
+  bar 5: 255 255 255
+  bar 6: 216 116 20
++ <OUT>/bin/gl_hw <OUT>/work/rev-src/VideoRenderer.cpp bars_hevc444_8.mp4 sdr 709
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame '444v': upload_hw's ten_bit=0, planes 448x128 + 448x128
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 6.0 ms
+kFragSdrHw current matrix, RGBA32F target:
+  bar 0: 0.003515 0.000000 0.004142  (x255: 0.896 0.000 1.056)
+  bar 1: 0.272922 0.267943 0.273548  (x255: 69.595 68.326 69.755)
+  bar 2: 0.514931 0.509952 0.515558  (x255: 131.307 130.038 131.467)
+  bar 3: 0.756940 0.751962 0.757567  (x255: 193.020 191.750 193.180)
+  bar 4: 1.000000 0.998537 1.000000  (x255: 255.000 254.627 255.000)
+  bar 5: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 6: 0.845358 0.456052 0.076509  (x255: 215.566 116.293 19.510)
+kFragSdrHw current matrix, RGBA8 target:
+  bar 0: 1 0 1
+  bar 1: 70 68 70
+  bar 2: 131 130 131
+  bar 3: 193 192 193
+  bar 4: 255 255 255
+  bar 5: 255 255 255
+  bar 6: 216 116 20
+
+### [C2] raw texels (RAWSAMPLE=1): what the GPU reads from the P010 planes
++ env RAWSAMPLE=1 <OUT>/bin/gl_hw <OUT>/work/rev-src/VideoRenderer.cpp bars_pq.mp4 sdr 709
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame 'x420': upload_hw's ten_bit=1, planes 448x128 + 224x64
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 5.7 ms
+kFragSdrHw current matrix, RGBA32F target:
+  bar 0: 0.062501 0.500008 0.500008  (x255: 15.938 127.502 127.502)
+  bar 1: 0.292973 0.500008 0.500008  (x255: 74.708 127.502 127.502)
+  bar 2: 0.497078 0.500008 0.500008  (x255: 126.755 127.502 127.502)
+  bar 3: 0.706065 0.500008 0.500008  (x255: 180.047 127.502 127.502)
+  bar 4: 0.917983 0.500008 0.500008  (x255: 234.086 127.502 127.502)
+  bar 5: 0.995132 0.500008 0.500008  (x255: 253.759 127.502 127.502)
+  bar 6: 0.497078 0.292973 0.683604  (x255: 126.755 74.708 174.319)
+kFragSdrHw current matrix, RGBA8 target:
+  bar 0: 16 128 128
+  bar 1: 75 128 128
+  bar 2: 127 128 128
+  bar 3: 180 128 128
+  bar 4: 234 128 128
+  bar 5: 254 128 128
+  bar 6: 127 75 174
+
+### [C2] bound as 16-bit (force16)
++ <OUT>/bin/gl_hw <OUT>/work/rev-src/VideoRenderer.cpp bars_prores422hq.mov sdr 709 force16
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame 'x422': upload_hw's ten_bit=0 (forced 16-bit binding), planes 448x128 + 224x128
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 5.9 ms
+kFragSdrHw current matrix, RGBA32F target:
+  bar 0: 0.000000 0.000000 0.000000  (x255: 0.000 0.000 0.000)
+  bar 1: 0.268088 0.268068 0.268090  (x255: 68.362 68.357 68.363)
+  bar 2: 0.505744 0.505724 0.505746  (x255: 128.965 128.960 128.965)
+  bar 3: 0.749085 0.749066 0.749088  (x255: 191.017 191.012 191.017)
+  bar 4: 0.995838 0.995819 0.995841  (x255: 253.939 253.934 253.939)
+  bar 5: 0.999250 0.999230 0.999252  (x255: 254.809 254.804 254.809)
+  bar 6: 0.798570 0.436953 0.088482  (x255: 203.635 111.423 22.563)
+kFragSdrHw current matrix, RGBA8 target:
+  bar 0: 0 0 0
+  bar 1: 68 68 68
+  bar 2: 129 129 129
+  bar 3: 191 191 191
+  bar 4: 254 254 254
+  bar 5: 255 255 255
+  bar 6: 204 111 23
++ <OUT>/bin/gl_hw <OUT>/work/rev-src/VideoRenderer.cpp bars_prores4444.mov sdr 709 force16
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame 'sv44': upload_hw's ten_bit=0 (forced 16-bit binding), planes 448x128 + 448x128
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 5.8 ms
+kFragSdrHw current matrix, RGBA32F target:
+  bar 0: 0.000000 0.000000 0.000000  (x255: 0.000 0.000 0.000)
+  bar 1: 0.268088 0.268068 0.268090  (x255: 68.362 68.357 68.363)
+  bar 2: 0.505744 0.505724 0.505746  (x255: 128.965 128.960 128.965)
+  bar 3: 0.749085 0.749066 0.749088  (x255: 191.017 191.012 191.017)
+  bar 4: 0.995838 0.995819 0.995841  (x255: 253.939 253.934 253.939)
+  bar 5: 0.999250 0.999230 0.999252  (x255: 254.809 254.804 254.809)
+  bar 6: 0.798570 0.436953 0.088482  (x255: 203.635 111.423 22.563)
+kFragSdrHw current matrix, RGBA8 target:
+  bar 0: 0 0 0
+  bar 1: 68 68 68
+  bar 2: 129 129 129
+  bar 3: 191 191 191
+  bar 4: 254 254 254
+  bar 5: 255 255 255
+  bar 6: 204 111 23
++ <OUT>/bin/gl_hw <OUT>/work/rev-src/VideoRenderer.cpp bars_hevc422.mp4 sdr 709 force16
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame 'x422': upload_hw's ten_bit=0 (forced 16-bit binding), planes 448x128 + 224x128
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 5.7 ms
+kFragSdrHw current matrix, RGBA32F target:
+  bar 0: 0.000000 0.000000 0.000000  (x255: 0.000 0.000 0.000)
+  bar 1: 0.268088 0.268068 0.268090  (x255: 68.362 68.357 68.363)
+  bar 2: 0.505744 0.505724 0.505746  (x255: 128.965 128.960 128.965)
+  bar 3: 0.749085 0.749066 0.749088  (x255: 191.017 191.012 191.017)
+  bar 4: 0.995838 0.995819 0.995841  (x255: 253.939 253.934 253.939)
+  bar 5: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 6: 0.834885 0.452034 0.068406  (x255: 212.896 115.269 17.444)
+kFragSdrHw current matrix, RGBA8 target:
+  bar 0: 0 0 0
+  bar 1: 68 68 68
+  bar 2: 129 129 129
+  bar 3: 191 191 191
+  bar 4: 254 254 254
+  bar 5: 255 255 255
+  bar 6: 213 115 17
++ <OUT>/bin/gl_hw <OUT>/work/rev-src/VideoRenderer.cpp bars_hevc444.mp4 sdr 709 force16
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame 'x444': upload_hw's ten_bit=0 (forced 16-bit binding), planes 448x128 + 448x128
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 6.0 ms
+kFragSdrHw current matrix, RGBA32F target:
+  bar 0: 0.000000 0.000000 0.000000  (x255: 0.000 0.000 0.000)
+  bar 1: 0.268088 0.268068 0.268090  (x255: 68.362 68.357 68.363)
+  bar 2: 0.505744 0.505724 0.505746  (x255: 128.965 128.960 128.965)
+  bar 3: 0.749085 0.749066 0.749088  (x255: 191.017 191.012 191.017)
+  bar 4: 0.995838 0.995819 0.995841  (x255: 253.939 253.934 253.939)
+  bar 5: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 6: 0.834885 0.452034 0.068406  (x255: 212.896 115.269 17.444)
+kFragSdrHw current matrix, RGBA8 target:
+  bar 0: 0 0 0
+  bar 1: 68 68 68
+  bar 2: 129 129 129
+  bar 3: 191 191 191
+  bar 4: 254 254 254
+  bar 5: 255 255 255
+  bar 6: 213 115 17
+
+### [C2] with the 16-bit-container constants (fixed: gl_hw's fixed16)
++ <OUT>/bin/gl_hw <OUT>/work/rev-src/VideoRenderer.cpp bars_sdr10.mp4 sdr 709 fixed
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame 'x420': upload_hw's ten_bit=1, planes 448x128 + 224x64
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 5.7 ms
+kFragSdrHw fixed matrix, RGBA32F target:
+  bar 0: 0.000000 0.000000 0.000000  (x255: 0.000 0.000 0.000)
+  bar 1: 0.269406 0.269406 0.269406  (x255: 68.699 68.699 68.699)
+  bar 2: 0.507991 0.507991 0.507991  (x255: 129.538 129.538 129.538)
+  bar 3: 0.752283 0.752283 0.752283  (x255: 191.832 191.832 191.832)
+  bar 4: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 5: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 6: 0.838418 0.454091 0.068943  (x255: 213.797 115.793 17.580)
+kFragSdrHw fixed matrix, RGBA8 target:
+  bar 0: 0 0 0
+  bar 1: 69 69 69
+  bar 2: 130 130 130
+  bar 3: 192 192 192
+  bar 4: 255 255 255
+  bar 5: 255 255 255
+  bar 6: 214 116 18
++ <OUT>/bin/gl_hw <OUT>/work/rev-src/VideoRenderer.cpp bars_pq.mp4 hdr 2020 fixed
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame 'x420': upload_hw's ten_bit=1, planes 448x128 + 224x64
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 6.5 ms
+kFragHdrHw fixed matrix, RGBA32F target:
+  bar 0: 0.000000 0.000000 0.000000  (x255: 0.000 0.000 0.000)
+  bar 1: 0.033334 0.033331 0.033327  (x255: 8.500 8.499 8.498)
+  bar 2: 0.214788 0.214777 0.214766  (x255: 54.771 54.768 54.765)
+  bar 3: 0.588518 0.588491 0.588464  (x255: 150.072 150.065 150.058)
+  bar 4: 0.988489 0.988445 0.988402  (x255: 252.065 252.054 252.042)
+  bar 5: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 6: 0.887357 0.000000 0.000000  (x255: 226.276 0.000 0.000)
+kFragHdrHw fixed matrix, RGBA8 target:
+  bar 0: 0 0 0
+  bar 1: 9 8 8
+  bar 2: 55 55 55
+  bar 3: 150 150 150
+  bar 4: 252 252 252
+  bar 5: 255 255 255
+  bar 6: 226 0 0
++ <OUT>/bin/gl_hw <OUT>/work/rev-src/VideoRenderer.cpp bars_sdr10.mp4 hdr 2020 fixed
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame 'x420': upload_hw's ten_bit=1, planes 448x128 + 224x64
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 6.5 ms
+kFragHdrHw fixed matrix, RGBA32F target:
+  bar 0: 0.000000 0.000000 0.000000  (x255: 0.000 0.000 0.000)
+  bar 1: 0.033334 0.033331 0.033327  (x255: 8.500 8.499 8.498)
+  bar 2: 0.214788 0.214777 0.214766  (x255: 54.771 54.768 54.765)
+  bar 3: 0.588518 0.588491 0.588464  (x255: 150.072 150.065 150.058)
+  bar 4: 0.988489 0.988445 0.988402  (x255: 252.065 252.054 252.042)
+  bar 5: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 6: 0.887357 0.000000 0.000000  (x255: 226.276 0.000 0.000)
+kFragHdrHw fixed matrix, RGBA8 target:
+  bar 0: 0 0 0
+  bar 1: 9 8 8
+  bar 2: 55 55 55
+  bar 3: 150 150 150
+  bar 4: 252 252 252
+  bar 5: 255 255 255
+  bar 6: 226 0 0
++ <OUT>/bin/gl_hw <OUT>/work/rev-src/VideoRenderer.cpp bars_prores422hq.mov sdr 709 force16 fixed
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame 'x422': upload_hw's ten_bit=0 (forced 16-bit binding), planes 448x128 + 224x128
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 5.7 ms
+kFragSdrHw fixed matrix, RGBA32F target:
+  bar 0: 0.000000 0.000000 0.000000  (x255: 0.000 0.000 0.000)
+  bar 1: 0.269406 0.269406 0.269406  (x255: 68.699 68.699 68.699)
+  bar 2: 0.507991 0.507991 0.507991  (x255: 129.538 129.538 129.538)
+  bar 3: 0.752283 0.752283 0.752283  (x255: 191.832 191.832 191.832)
+  bar 4: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 5: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 6: 0.801961 0.438951 0.089097  (x255: 204.500 111.933 22.720)
+kFragSdrHw fixed matrix, RGBA8 target:
+  bar 0: 0 0 0
+  bar 1: 69 69 69
+  bar 2: 130 130 130
+  bar 3: 192 192 192
+  bar 4: 255 255 255
+  bar 5: 255 255 255
+  bar 6: 205 112 23
++ <OUT>/bin/gl_hw <OUT>/work/rev-src/VideoRenderer.cpp bars_prores4444.mov sdr 709 force16 fixed
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame 'sv44': upload_hw's ten_bit=0 (forced 16-bit binding), planes 448x128 + 448x128
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 6.2 ms
+kFragSdrHw fixed matrix, RGBA32F target:
+  bar 0: 0.000000 0.000000 0.000000  (x255: 0.000 0.000 0.000)
+  bar 1: 0.269406 0.269406 0.269406  (x255: 68.699 68.699 68.699)
+  bar 2: 0.507991 0.507991 0.507991  (x255: 129.538 129.538 129.538)
+  bar 3: 0.752283 0.752283 0.752283  (x255: 191.832 191.832 191.832)
+  bar 4: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 5: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 6: 0.801961 0.438951 0.089097  (x255: 204.500 111.933 22.720)
+kFragSdrHw fixed matrix, RGBA8 target:
+  bar 0: 0 0 0
+  bar 1: 69 69 69
+  bar 2: 130 130 130
+  bar 3: 192 192 192
+  bar 4: 255 255 255
+  bar 5: 255 255 255
+  bar 6: 205 112 23
++ <OUT>/bin/gl_hw <OUT>/work/rev-src/VideoRenderer.cpp bars_hevc422.mp4 sdr 709 force16 fixed
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame 'x422': upload_hw's ten_bit=0 (forced 16-bit binding), planes 448x128 + 224x128
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 6.0 ms
+kFragSdrHw fixed matrix, RGBA32F target:
+  bar 0: 0.000000 0.000000 0.000000  (x255: 0.000 0.000 0.000)
+  bar 1: 0.269406 0.269406 0.269406  (x255: 68.699 68.699 68.699)
+  bar 2: 0.507991 0.507991 0.507991  (x255: 129.538 129.538 129.538)
+  bar 3: 0.752283 0.752283 0.752283  (x255: 191.832 191.832 191.832)
+  bar 4: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 5: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 6: 0.838418 0.454091 0.068943  (x255: 213.797 115.793 17.580)
+kFragSdrHw fixed matrix, RGBA8 target:
+  bar 0: 0 0 0
+  bar 1: 69 69 69
+  bar 2: 130 130 130
+  bar 3: 192 192 192
+  bar 4: 255 255 255
+  bar 5: 255 255 255
+  bar 6: 214 116 18
++ <OUT>/bin/gl_hw <OUT>/work/rev-src/VideoRenderer.cpp bars_hevc444.mp4 sdr 709 force16 fixed
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame 'x444': upload_hw's ten_bit=0 (forced 16-bit binding), planes 448x128 + 448x128
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 5.9 ms
+kFragSdrHw fixed matrix, RGBA32F target:
+  bar 0: 0.000000 0.000000 0.000000  (x255: 0.000 0.000 0.000)
+  bar 1: 0.269406 0.269406 0.269406  (x255: 68.699 68.699 68.699)
+  bar 2: 0.507991 0.507991 0.507991  (x255: 129.538 129.538 129.538)
+  bar 3: 0.752283 0.752283 0.752283  (x255: 191.832 191.832 191.832)
+  bar 4: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 5: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 6: 0.838418 0.454091 0.068943  (x255: 213.797 115.793 17.580)
+kFragSdrHw fixed matrix, RGBA8 target:
+  bar 0: 0 0 0
+  bar 1: 69 69 69
+  bar 2: 130 130 130
+  bar 3: 192 192 192
+  bar 4: 255 255 255
+  bar 5: 255 255 255
+  bar 6: 214 116 18
+
+### [C3] the shader's float math on make_yuv_matrix (analytic)
++ <OUT>/bin/analytic
+current matrix: y_scale=1.1643835 y_off=0.0627451 c_off=0.5000000 uv_scale(Cr->R)=1.6786741
+fixed   matrix: y_scale=1.1689320 y_off=0.0625010 c_off=0.5000076 uv_scale(Cr->R)=1.6852316
+
+P010 limited, BT.2020, neutral chroma (Cb=Cr=512)
+code | exact E'  | HW now E' (R)     err      | HW fixed E'  | PQ nits: exact     HW now   (ratio)   fixed
+  64 | 0.000000 | -0.000271 (G -0.000291 B -0.000268) -0.000271 | 0.000000 |      0.000      0.000 (nan)      0.000
+  65 | 0.001142 | 0.000866 (G 0.000846 B 0.000869) -0.000276 | 0.001142 |      0.000      0.000 (0.6253)      0.000
+ 100 | 0.041096 | 0.040665 (G 0.040645 B 0.040668) -0.000431 | 0.041096 |      0.039      0.038 (0.9771)      0.039
+ 300 | 0.269406 | 0.268087 (G 0.268067 B 0.268090) -0.001320 | 0.269406 |      6.732      6.613 (0.9824)      6.732
+ 509 | 0.507991 | 0.505743 (G 0.505724 B 0.505746) -0.002248 | 0.507991 |     99.913     97.697 (0.9778)     99.913
+ 520 | 0.520548 | 0.518251 (G 0.518232 B 0.518255) -0.002297 | 0.520548 |    113.171    110.629 (0.9775)    113.171
+ 723 | 0.752283 | 0.749084 (G 0.749065 B 0.749088) -0.003199 | 0.752283 |   1004.195    975.168 (0.9711)   1004.195
+ 769 | 0.804795 | 0.801392 (G 0.801372 B 0.801395) -0.003403 | 0.804795 |   1625.048   1575.142 (0.9693)   1625.048
+ 940 | 1.000000 | 0.995837 (G 0.995818 B 0.995841) -0.004163 | 1.000000 |  10000.000   9610.228 (0.9610)  10000.000
+1019 | 1.090183 | 1.085669 (G 1.085650 B 1.085673) -0.004513 | 1.090183 |  24077.189  23019.934 (0.9561)  24077.189
+1023 | 1.094749 | 1.090218 (G 1.090198 B 1.090221) -0.004531 | 1.094749 |  25198.172  24084.537 (0.9558)  25198.172
+
+Displayed 8-bit sRGB through kFragHdrHw's chain (PQ/1000, Hable, sRGB), grey:
+code | exact      | HW now     | HW fixed
+  64 |   0.000    |   0.000    |   0.000
+  65 |   0.000    |   0.000    |   0.000
+ 100 |   0.049    |   0.048    |   0.049
+ 300 |   8.500    |   8.350    |   8.500
+ 509 |  54.771    |  54.143    |  54.771
+ 520 |  58.359    |  57.693    |  58.359
+ 723 | 150.072    | 148.537    | 150.072
+ 769 | 175.492    | 173.848    | 175.492
+ 940 | 252.065    | 250.977    | 252.065
+1019 | 255.000    | 255.000    | 255.000
+1023 | 255.000    | 255.000    | 255.000
+
+SDR HW path (kFragSdrHw clamps, 8-bit framebuffer), P010 limited BT.709 grey:
+  code   64: now R=-0.000271 G=-0.000290 B=-0.000268 (x255 = -0.07)   fixed R=0.000000 (x255 = 0.00)
+  code  940: now R=0.995838 G=0.995819 B=0.995841 (x255 = 253.94)   fixed R=1.000000 (x255 = 255.00)
+
+P010 full range ('xf20'), current matrix (no limited scaling): code 1023 -> 0.999039, code 0 -> 0.000000
+
+8-bit NV12 ('420v') limited BT.709 with the current offsets, grey Y codes, Cb=Cr=128:
+  Y= 16: exact 0.000000 (x255 0.00) | now R 0.003515 G -0.001463 B 0.004142 (x255: 0.90 -0.37 1.06)
+  Y=126: exact 0.502283 (x255 128.08) | now R 0.505798 G 0.500820 B 0.506425 (x255: 128.98 127.71 129.14)
+  Y=235: exact 1.000000 (x255 255.00) | now R 1.003515 G 0.998537 B 1.004142 (x255: 255.90 254.63 256.06)
+-- the SW path's E' (sws_check, RGB48LE / 65535, bars 1-4 = codes 300 509 723 940) through the same chain
++ <OUT>/bin/sws_check <OUT>/raw/bars420.yuv yuv420p10le hdr 2020
+flags=0x2 yuv420p10le -> rgb48le (matrix 2020, limited range in):
+  bar 0:     0     0     0  (/65535: 0.000000 0.000000 0.000000)
+  bar 1: 17588 17588 17588  (/65535: 0.268376 0.268376 0.268376)
+  bar 2: 33163 33163 33163  (/65535: 0.506035 0.506035 0.506035)
+  bar 3: 49111 49111 49111  (/65535: 0.749386 0.749386 0.749386)
+  bar 4: 65283 65283 65283  (/65535: 0.996155 0.996155 0.996155)
+  bar 5: 65535 65535 65535  (/65535: 1.000000 1.000000 1.000000)
+  bar 6: 53361 27880  4104  (/65535: 0.814237 0.425422 0.062623)
++ <OUT>/bin/analytic 0.268376 0.506035 0.749386 0.996155
+E'=0.268376: PQ 6.639 nits, displayed (x255) 8.383
+E'=0.506035: PQ 97.983 nits, displayed (x255) 54.224
+E'=0.749386: PQ 977.859 nits, displayed (x255) 148.681
+E'=0.996155: PQ 9639.452 nits, displayed (x255) 251.061
+-- the constants, as fractions (the matrix values printed above):
+16/255 = 0.0627451  255/219 = 1.1643836  128/255 = 0.5019608 | 4096/65535 = 0.0625010  65535/56064 = 1.1689319  32768/65535 = 0.5000076  65535/57344 = 1.1428397 | 65535/65280 = 1.0039062  65472/65535 = 0.999039
+-- exact E' = (code - 64) / 876 for 300 509 723 940:
++ <OUT>/bin/analytic 0.269406 0.507991 0.752283 1.000000
+E'=0.269406: PQ 6.732 nits, displayed (x255) 8.500
+E'=0.507991: PQ 99.913 nits, displayed (x255) 54.771
+E'=0.752283: PQ 1004.195 nits, displayed (x255) 150.072
+E'=1.000000: PQ 10000.000 nits, displayed (x255) 252.065
+-- computed from the files above: on-screen PQ gaps (8-bit codes) at bars 1-4
+bar 1: HW now 8.351 | SW 8.383 | HW fixed 8.500 -> |now-SW| 0.03  |fixed-SW| 0.12  |fixed-now| 0.15
+bar 2: HW now 54.146 | SW 54.224 | HW fixed 54.771 -> |now-SW| 0.08  |fixed-SW| 0.55  |fixed-now| 0.62
+bar 3: HW now 148.541 | SW 148.681 | HW fixed 150.072 -> |now-SW| 0.14  |fixed-SW| 1.39  |fixed-now| 1.53
+bar 4: HW now 250.980 | SW 251.061 | HW fixed 252.065 -> |now-SW| 0.08  |fixed-SW| 1.00  |fixed-now| 1.09
+max |HW now - SW| 0.14, max |HW fixed - SW| 1.39, max |HW fixed - HW now| 1.53
+
+### [C4] the SW path (sws_check: build_sws's settings; SWSF overrides the flags)
++ <OUT>/bin/sws_check --vt
+[swscaler @ 0x7a9400000] videotoolbox_vld is not supported as input pixel format
+sws_isSupportedInput(AV_PIX_FMT_VIDEOTOOLBOX) = 0
+sws_getContext(VIDEOTOOLBOX -> RGB24) = 0x0
++ env SWSF=0x2 <OUT>/bin/sws_check <OUT>/raw/bars420.yuv yuv420p10le sdr 709
+flags=0x2 yuv420p10le -> rgb24 (matrix 709, limited range in):
+  bar 0:   0   0   0
+  bar 1:  67  67  67
+  bar 2: 127 127 127
+  bar 3: 190 190 190
+  bar 4: 253 253 253
+  bar 5: 255 255 255
+  bar 6: 211 113  16
++ env SWSF=0x2002 <OUT>/bin/sws_check <OUT>/raw/bars420.yuv yuv420p10le sdr 709
+flags=0x2002 yuv420p10le -> rgb24 (matrix 709, limited range in):
+  bar 0:   0   0   0
+  bar 1:  69  69  69
+  bar 2: 130 130 130
+  bar 3: 192 192 192
+  bar 4: 255 255 255
+  bar 5: 255 255 255
+  bar 6: 214 116  18
++ env SWSF=0x2 <OUT>/bin/sws_check <OUT>/raw/bars420.yuv yuv420p10le hdr 2020
+flags=0x2 yuv420p10le -> rgb48le (matrix 2020, limited range in):
+  bar 0:     0     0     0  (/65535: 0.000000 0.000000 0.000000)
+  bar 1: 17588 17588 17588  (/65535: 0.268376 0.268376 0.268376)
+  bar 2: 33163 33163 33163  (/65535: 0.506035 0.506035 0.506035)
+  bar 3: 49111 49111 49111  (/65535: 0.749386 0.749386 0.749386)
+  bar 4: 65283 65283 65283  (/65535: 0.996155 0.996155 0.996155)
+  bar 5: 65535 65535 65535  (/65535: 1.000000 1.000000 1.000000)
+  bar 6: 53361 27880  4104  (/65535: 0.814237 0.425422 0.062623)
++ env SWSF=0x40002 <OUT>/bin/sws_check <OUT>/raw/bars420.yuv yuv420p10le hdr 2020
+flags=0x40002 yuv420p10le -> rgb48le (matrix 2020, limited range in):
+  bar 0:     0     0     0  (/65535: 0.000000 0.000000 0.000000)
+  bar 1: 17588 17588 17588  (/65535: 0.268376 0.268376 0.268376)
+  bar 2: 33163 33163 33163  (/65535: 0.506035 0.506035 0.506035)
+  bar 3: 49111 49111 49111  (/65535: 0.749386 0.749386 0.749386)
+  bar 4: 65283 65283 65283  (/65535: 0.996155 0.996155 0.996155)
+  bar 5: 65535 65535 65535  (/65535: 1.000000 1.000000 1.000000)
+  bar 6: 53361 27880  4104  (/65535: 0.814237 0.425422 0.062623)
++ env SWSF=0x42002 <OUT>/bin/sws_check <OUT>/raw/bars420.yuv yuv420p10le hdr 2020
+flags=0x42002 yuv420p10le -> rgb48le (matrix 2020, limited range in):
+  bar 0:     0     0     0  (/65535: 0.000000 0.000000 0.000000)
+  bar 1: 17588 17588 17588  (/65535: 0.268376 0.268376 0.268376)
+  bar 2: 33163 33163 33163  (/65535: 0.506035 0.506035 0.506035)
+  bar 3: 49111 49111 49111  (/65535: 0.749386 0.749386 0.749386)
+  bar 4: 65283 65283 65283  (/65535: 0.996155 0.996155 0.996155)
+  bar 5: 65535 65535 65535  (/65535: 1.000000 1.000000 1.000000)
+  bar 6: 53361  3320 22680  (/65535: 0.814237 0.050660 0.346075)
++ env SWSF=0x2002 <OUT>/bin/sws_check <OUT>/raw/bars420.yuv yuv420p10le hdr 2020
+flags=0x2002 yuv420p10le -> rgb48le (matrix 2020, limited range in):
+  bar 0:     0     0     0  (/65535: 0.000000 0.000000 0.000000)
+  bar 1: 17588 17588 17588  (/65535: 0.268376 0.268376 0.268376)
+  bar 2: 33163 33163 33163  (/65535: 0.506035 0.506035 0.506035)
+  bar 3: 49111 49111 49111  (/65535: 0.749386 0.749386 0.749386)
+  bar 4: 65283 65283 65283  (/65535: 0.996155 0.996155 0.996155)
+  bar 5: 65535 65535 65535  (/65535: 1.000000 1.000000 1.000000)
+  bar 6: 53361  3320 22680  (/65535: 0.814237 0.050660 0.346075)
++ env SWSF=0x2 <OUT>/bin/sws_check <OUT>/raw/bars420_8.yuv yuv420p sdr 709
+flags=0x2 yuv420p -> rgb24 (matrix 709, limited range in):
+  bar 0:   0   0   0
+  bar 1:  69  69  69
+  bar 2: 129 129 129
+  bar 3: 191 191 191
+  bar 4: 255 255 255
+  bar 5: 255 255 255
+  bar 6: 213 115  17
++ env SWSF=0x2002 <OUT>/bin/sws_check <OUT>/raw/bars420_8.yuv yuv420p sdr 709
+flags=0x2002 yuv420p -> rgb24 (matrix 709, limited range in):
+  bar 0:   0   0   0
+  bar 1:  69  69  69
+  bar 2: 129 129 129
+  bar 3: 191 191 191
+  bar 4: 255 255 255
+  bar 5: 255 255 255
+  bar 6: 213 115  17
++ <OUT>/bin/sws_check <OUT>/raw/bars8_420.yuv yuv420p sdr 709
+flags=0x2 yuv420p -> rgb24 (matrix 709, limited range in):
+  bar 0:   0   0   0
+  bar 1:  69  69  69
+  bar 2: 128 128 128
+  bar 3: 191 191 191
+  bar 4: 255 255 255
+  bar 5: 255 255 255
+  bar 6: 212 114  16
++ <OUT>/bin/sws_check <OUT>/work/dec_p422_sw.yuv yuv422p10le sdr 709
+flags=0x2 yuv422p10le -> rgb24 (matrix 709, limited range in):
+  bar 0:   0   0   0
+  bar 1:  67  67  67
+  bar 2: 127 127 127
+  bar 3: 190 190 190
+  bar 4: 253 253 253
+  bar 5: 254 254 254
+  bar 6: 202 111  23
+
+### [C4] --time (context build and one conversion; timings vary run to run)
++ <OUT>/bin/sws_check --time 1920 1080 yuv420p10le hdr
+1920x1080 yuv420p10le -> rgb48le: getContext+setColorspaceDetails 0.22 ms, first sws_scale 6.29 ms, setColorspaceDetails again 0.011 ms
+1920x1080 yuv420p10le -> rgb48le: getContext+setColorspaceDetails 0.10 ms, first sws_scale 5.31 ms, setColorspaceDetails again 0.008 ms
+1920x1080 yuv420p10le -> rgb48le: getContext+setColorspaceDetails 0.09 ms, first sws_scale 4.82 ms, setColorspaceDetails again 0.008 ms
+1920x1080 yuv420p10le -> rgb48le: getContext+setColorspaceDetails 0.08 ms, first sws_scale 4.96 ms, setColorspaceDetails again 0.008 ms
+1920x1080 yuv420p10le -> rgb48le: getContext+setColorspaceDetails 0.08 ms, first sws_scale 4.87 ms, setColorspaceDetails again 0.008 ms
++ <OUT>/bin/sws_check --time 3840 2160 yuv420p10le hdr
+3840x2160 yuv420p10le -> rgb48le: getContext+setColorspaceDetails 0.32 ms, first sws_scale 24.22 ms, setColorspaceDetails again 0.009 ms
+3840x2160 yuv420p10le -> rgb48le: getContext+setColorspaceDetails 0.16 ms, first sws_scale 19.54 ms, setColorspaceDetails again 0.008 ms
+3840x2160 yuv420p10le -> rgb48le: getContext+setColorspaceDetails 0.14 ms, first sws_scale 18.42 ms, setColorspaceDetails again 0.008 ms
+3840x2160 yuv420p10le -> rgb48le: getContext+setColorspaceDetails 0.15 ms, first sws_scale 18.72 ms, setColorspaceDetails again 0.009 ms
+3840x2160 yuv420p10le -> rgb48le: getContext+setColorspaceDetails 0.17 ms, first sws_scale 18.83 ms, setColorspaceDetails again 0.008 ms
++ env SWSF=0x2 <OUT>/bin/sws_check --time 1920 1080 yuv420p10le sdr
+1920x1080 yuv420p10le -> rgb24: getContext+setColorspaceDetails 0.19 ms, first sws_scale 3.81 ms, setColorspaceDetails again 0.001 ms
+1920x1080 yuv420p10le -> rgb24: getContext+setColorspaceDetails 0.10 ms, first sws_scale 3.16 ms, setColorspaceDetails again 0.000 ms
+1920x1080 yuv420p10le -> rgb24: getContext+setColorspaceDetails 0.08 ms, first sws_scale 3.09 ms, setColorspaceDetails again 0.000 ms
+1920x1080 yuv420p10le -> rgb24: getContext+setColorspaceDetails 0.08 ms, first sws_scale 3.14 ms, setColorspaceDetails again 0.000 ms
+1920x1080 yuv420p10le -> rgb24: getContext+setColorspaceDetails 0.07 ms, first sws_scale 3.08 ms, setColorspaceDetails again 0.000 ms
++ env SWSF=0x2 <OUT>/bin/sws_check --time 1920 1080 yuv420p sdr
+1920x1080 yuv420p -> rgb24: getContext+setColorspaceDetails 0.07 ms, first sws_scale 0.84 ms, setColorspaceDetails again 0.000 ms
+1920x1080 yuv420p -> rgb24: getContext+setColorspaceDetails 0.02 ms, first sws_scale 0.32 ms, setColorspaceDetails again 0.000 ms
+1920x1080 yuv420p -> rgb24: getContext+setColorspaceDetails 0.01 ms, first sws_scale 0.33 ms, setColorspaceDetails again 0.000 ms
+1920x1080 yuv420p -> rgb24: getContext+setColorspaceDetails 0.01 ms, first sws_scale 0.33 ms, setColorspaceDetails again 0.000 ms
+1920x1080 yuv420p -> rgb24: getContext+setColorspaceDetails 0.01 ms, first sws_scale 0.33 ms, setColorspaceDetails again 0.000 ms
++ env SWSF=0x2002 <OUT>/bin/sws_check --time 1920 1080 yuv420p10le sdr
+1920x1080 yuv420p10le -> rgb24: getContext+setColorspaceDetails 0.22 ms, first sws_scale 6.96 ms, setColorspaceDetails again 0.000 ms
+1920x1080 yuv420p10le -> rgb24: getContext+setColorspaceDetails 0.12 ms, first sws_scale 6.70 ms, setColorspaceDetails again 0.001 ms
+1920x1080 yuv420p10le -> rgb24: getContext+setColorspaceDetails 0.15 ms, first sws_scale 7.33 ms, setColorspaceDetails again 0.001 ms
+1920x1080 yuv420p10le -> rgb24: getContext+setColorspaceDetails 0.13 ms, first sws_scale 6.37 ms, setColorspaceDetails again 0.000 ms
+1920x1080 yuv420p10le -> rgb24: getContext+setColorspaceDetails 0.11 ms, first sws_scale 6.34 ms, setColorspaceDetails again 0.000 ms
++ env SWSF=0x2002 <OUT>/bin/sws_check --time 1920 1080 yuv420p sdr
+1920x1080 yuv420p -> rgb24: getContext+setColorspaceDetails 0.07 ms, first sws_scale 0.78 ms, setColorspaceDetails again 0.000 ms
+1920x1080 yuv420p -> rgb24: getContext+setColorspaceDetails 0.02 ms, first sws_scale 0.32 ms, setColorspaceDetails again 0.000 ms
+1920x1080 yuv420p -> rgb24: getContext+setColorspaceDetails 0.01 ms, first sws_scale 0.33 ms, setColorspaceDetails again 0.000 ms
+1920x1080 yuv420p -> rgb24: getContext+setColorspaceDetails 0.01 ms, first sws_scale 0.32 ms, setColorspaceDetails again 0.000 ms
+1920x1080 yuv420p -> rgb24: getContext+setColorspaceDetails 0.01 ms, first sws_scale 0.33 ms, setColorspaceDetails again 0.000 ms
+
+### [C5] the same conversion through the ffmpeg CLI's scale filter (rgb48le; bar 4 = Y 940, bar 6 = the colour bar)
++ <FF>/bin/ffmpeg -v error -y -f rawvideo -pix_fmt yuv420p10le -s 448x128 -i <OUT>/raw/bars420.yuv -frames:v 1 -vf scale=flags=bilinear:in_range=tv:out_range=pc:in_color_matrix=bt2020\,format=rgb48le -f rawvideo <OUT>/work/cli_bilinear.rgb
++ python3 -I -c import\ struct\,\ sys\;\ d\ =\ open\(sys.argv\[1\]\,\ \"rb\"\).read\(\)\;\ W\,\ y\ =\ 448\,\ 64\;\ print\(sys.argv\[2\]\,\ \[struct.unpack_from\(\"\<3H\"\,\ d\,\ 2\ \*\ 3\ \*\ \(y\ \*\ W\ +\ 64\ \*\ b\ +\ 32\)\)\ for\ b\ in\ \(4\,\ 6\)\]\) <OUT>/work/cli_bilinear.rgb bilinear
+bilinear [(65283, 65283, 65283), (53361, 27880, 4104)]
++ <FF>/bin/ffmpeg -v error -y -f rawvideo -pix_fmt yuv420p10le -s 448x128 -i <OUT>/raw/bars420.yuv -frames:v 1 -vf scale=flags=bilinear+full_chroma_int:in_range=tv:out_range=pc:in_color_matrix=bt2020\,format=rgb48le -f rawvideo <OUT>/work/cli_bilinear+full_chroma_int.rgb
++ python3 -I -c import\ struct\,\ sys\;\ d\ =\ open\(sys.argv\[1\]\,\ \"rb\"\).read\(\)\;\ W\,\ y\ =\ 448\,\ 64\;\ print\(sys.argv\[2\]\,\ \[struct.unpack_from\(\"\<3H\"\,\ d\,\ 2\ \*\ 3\ \*\ \(y\ \*\ W\ +\ 64\ \*\ b\ +\ 32\)\)\ for\ b\ in\ \(4\,\ 6\)\]\) <OUT>/work/cli_bilinear+full_chroma_int.rgb bilinear+full_chroma_int
+bilinear+full_chroma_int [(65283, 65283, 65283), (53361, 3320, 22680)]
+
+### [C6] the cost of (re)building each program (gl_compile_time)
++ <OUT>/bin/gl_compile_time <OUT>/work/rev-src/VideoRenderer.cpp 3
+round 0 kFragSdr   compile+link+first draw 7.44 ms
+round 0 kFragHdr   compile+link+first draw 2.49 ms
+round 0 kFragSdrHw compile+link+first draw 1.74 ms
+round 0 kFragHdrHw compile+link+first draw 2.54 ms
+round 1 kFragSdr   compile+link+first draw 1.02 ms
+round 1 kFragHdr   compile+link+first draw 2.51 ms
+round 1 kFragSdrHw compile+link+first draw 1.51 ms
+round 1 kFragHdrHw compile+link+first draw 2.40 ms
+round 2 kFragSdr   compile+link+first draw 1.01 ms
+round 2 kFragHdr   compile+link+first draw 2.06 ms
+round 2 kFragSdrHw compile+link+first draw 1.39 ms
+round 2 kFragHdrHw compile+link+first draw 2.19 ms
+uniform update + draw on an existing program: 0.313 ms
+
+### [C7] the tag switch: tagswitch.ts regenerated with the recipe of tests/engineer_tools_snapshots.sh:38-43
++ <FF>/bin/ffmpeg -v error -y -f lavfi -i testsrc2=size=1280x720:rate=25 -t 3 -pix_fmt yuv420p10le -c:v libx265 -x265-params log-level=error:colorprim=bt709:transfer=bt709:colormatrix=bt709:repeat-headers=1 part_sdr.ts
++ <FF>/bin/ffmpeg -v error -y -f lavfi -i testsrc2=size=1280x720:rate=25 -ss 3 -t 3 -pix_fmt yuv420p10le -c:v libx265 -x265-params log-level=error:colorprim=bt2020:transfer=smpte2084:colormatrix=bt2020nc:master-display=G\(13250\,34500\)B\(7500\,3000\)R\(34000\,16000\)WP\(15635\,16450\)L\(10000000\,50\):max-cll=1000\,400:repeat-headers=1 part_pq.ts
++ printf "file 'part_sdr.ts'\nfile 'part_pq.ts'\n" > tagswitch.txt
++ <FF>/bin/ffmpeg -v error -y -f concat -safe 0 -i tagswitch.txt -c copy tagswitch.ts
+-- <OUT>/work/tagswitch/tagswitch.ts
++ <FF>/bin/ffprobe -v error -select_streams v:0 -show_entries stream=pix_fmt\,color_range\,color_space\,color_transfer\,color_primaries:format=start_time\,duration -of default=nw=1 <OUT>/work/tagswitch/tagswitch.ts
+pix_fmt=yuv420p10le
+color_range=tv
+color_space=bt709
+color_transfer=bt709
+color_primaries=bt709
+pix_fmt=yuv420p10le
+color_range=tv
+color_space=bt709
+color_transfer=bt709
+color_primaries=bt709
+start_time=1.480000
+duration=6.000000
++ "<FF>/bin/ffprobe" -v error -select_streams v:0 -show_entries frame=pts_time,color_range,color_space,color_primaries,color_transfer -of compact=p=0 "<OUT>/work/tagswitch/tagswitch.ts" | awk -F"|" '{t = $2 "|" $3 "|" $4 "|" $5} t != p {print "frame " NR " (" $1 "): " t; p = t} END {print NR " frames"}'
+frame 1 (pts_time=1.480000): color_range=tv|color_space=bt709|color_primaries=bt709|color_transfer=bt709
+frame 76 (pts_time=4.480000): color_range=tv|color_space=bt2020nc|color_primaries=bt2020|color_transfer=smpte2084
+150 frames
++ "<OUT>/bin/vt_probe" "<OUT>/work/tagswitch/tagswitch.ts" 1000 1 | grep "^frame" | sed -E "s/^frame [0-9]+ pts=[0-9.]+ //" | uniq -c
+  73 format=videotoolbox_vld  tags: range=tv matrix=bt709 trc=bt709 primaries=bt709 | ctx: matrix=bt709 trc=bt709
+   2 format=videotoolbox_vld  tags: range=tv matrix=bt709 trc=bt709 primaries=bt709 | ctx: matrix=bt2020nc trc=smpte2084
+  75 format=videotoolbox_vld  tags: range=tv matrix=bt2020nc trc=smpte2084 primaries=bt2020 | ctx: matrix=bt2020nc trc=smpte2084
++ "<OUT>/bin/vt_probe" "<OUT>/work/tagswitch/tagswitch.ts" 1000 1 | grep CVPixelBuffer | sort | uniq -c
+ 150   CVPixelBuffer 'x420' (0x78343230)  hw_frames sw_format=p010le  IOSurface=yes  planes=2
+-- <R>/clips/bars_switch.ts
++ <FF>/bin/ffprobe -v error -select_streams v:0 -show_entries stream=pix_fmt\,color_range\,color_space\,color_transfer\,color_primaries:format=start_time\,duration -of default=nw=1 <R>/clips/bars_switch.ts
+pix_fmt=yuv420p10le
+color_range=tv
+color_space=bt709
+color_transfer=bt709
+color_primaries=bt709
+pix_fmt=yuv420p10le
+color_range=tv
+color_space=bt709
+color_transfer=bt709
+color_primaries=bt709
+start_time=1.480000
+duration=6.000000
++ "<FF>/bin/ffprobe" -v error -select_streams v:0 -show_entries frame=pts_time,color_range,color_space,color_primaries,color_transfer -of compact=p=0 "<R>/clips/bars_switch.ts" | awk -F"|" '{t = $2 "|" $3 "|" $4 "|" $5} t != p {print "frame " NR " (" $1 "): " t; p = t} END {print NR " frames"}'
+frame 1 (pts_time=1.480000): color_range=tv|color_space=bt709|color_primaries=bt709|color_transfer=bt709
+frame 76 (pts_time=4.480000): color_range=tv|color_space=bt2020nc|color_primaries=bt2020|color_transfer=smpte2084
+150 frames
++ "<OUT>/bin/vt_probe" "<R>/clips/bars_switch.ts" 1000 1 | grep "^frame" | sed -E "s/^frame [0-9]+ pts=[0-9.]+ //" | uniq -c
+  73 format=videotoolbox_vld  tags: range=tv matrix=bt709 trc=bt709 primaries=bt709 | ctx: matrix=bt709 trc=bt709
+   2 format=videotoolbox_vld  tags: range=tv matrix=bt709 trc=bt709 primaries=bt709 | ctx: matrix=bt2020nc trc=smpte2084
+  75 format=videotoolbox_vld  tags: range=tv matrix=bt2020nc trc=smpte2084 primaries=bt2020 | ctx: matrix=bt2020nc trc=smpte2084
++ "<OUT>/bin/vt_probe" "<R>/clips/bars_switch.ts" 1000 1 | grep CVPixelBuffer | sort | uniq -c
+ 150   CVPixelBuffer 'x420' (0x78343230)  hw_frames sw_format=p010le  IOSurface=yes  planes=2
+-- <R>/clips/bars_switch_rev.ts
++ <FF>/bin/ffprobe -v error -select_streams v:0 -show_entries stream=pix_fmt\,color_range\,color_space\,color_transfer\,color_primaries:format=start_time\,duration -of default=nw=1 <R>/clips/bars_switch_rev.ts
+pix_fmt=yuv420p10le
+color_range=tv
+color_space=bt2020nc
+color_transfer=smpte2084
+color_primaries=bt2020
+pix_fmt=yuv420p10le
+color_range=tv
+color_space=bt2020nc
+color_transfer=smpte2084
+color_primaries=bt2020
+start_time=1.480000
+duration=6.000000
++ "<FF>/bin/ffprobe" -v error -select_streams v:0 -show_entries frame=pts_time,color_range,color_space,color_primaries,color_transfer -of compact=p=0 "<R>/clips/bars_switch_rev.ts" | awk -F"|" '{t = $2 "|" $3 "|" $4 "|" $5} t != p {print "frame " NR " (" $1 "): " t; p = t} END {print NR " frames"}'
+frame 1 (pts_time=1.480000): color_range=tv|color_space=bt2020nc|color_primaries=bt2020|color_transfer=smpte2084
+frame 76 (pts_time=4.480000): color_range=tv|color_space=bt709|color_primaries=bt709|color_transfer=bt709
+150 frames
++ "<OUT>/bin/vt_probe" "<R>/clips/bars_switch_rev.ts" 1000 1 | grep "^frame" | sed -E "s/^frame [0-9]+ pts=[0-9.]+ //" | uniq -c
+  73 format=videotoolbox_vld  tags: range=tv matrix=bt2020nc trc=smpte2084 primaries=bt2020 | ctx: matrix=bt2020nc trc=smpte2084
+   2 format=videotoolbox_vld  tags: range=tv matrix=bt2020nc trc=smpte2084 primaries=bt2020 | ctx: matrix=bt709 trc=bt709
+  75 format=videotoolbox_vld  tags: range=tv matrix=bt709 trc=bt709 primaries=bt709 | ctx: matrix=bt709 trc=bt709
++ "<OUT>/bin/vt_probe" "<R>/clips/bars_switch_rev.ts" 1000 1 | grep CVPixelBuffer | sort | uniq -c
+ 150   CVPixelBuffer 'x420' (0x78343230)  hw_frames sw_format=p010le  IOSurface=yes  planes=2
++ <OUT>/bin/vt_probe <OUT>/work/tagswitch/tagswitch.ts 8 20
+<OUT>/work/tagswitch/tagswitch.ts: codec hevc, HW-capable decoder: hevc, stream pix_fmt=yuv420p10le
+frame 0 pts=1.480 format=videotoolbox_vld  tags: range=tv matrix=bt709 trc=bt709 primaries=bt709 | ctx: matrix=bt709 trc=bt709
+  CVPixelBuffer 'x420' (0x78343230)  hw_frames sw_format=p010le  IOSurface=yes  planes=2
+    plane 0: 1280x720  bytesPerRow=2560  IOSurface bytesPerElement=2 elementWidth=1
+    plane 1: 640x360  bytesPerRow=2560  IOSurface bytesPerElement=4 elementWidth=1
+    Y  words: 0x5100(>>6=324, low6=0) 0x5100(>>6=324, low6=0) 0x5100(>>6=324, low6=0) 0x9100(>>6=580, low6=0) 0x9100(>>6=580, low6=0) 0x9100(>>6=580, low6=0) 0x9100(>>6=580, low6=0)
+    CbCr words: (0x5a00,0xef80) (0x5a40,0xefc0) (0x5a40,0xefc0) (0x35c0,0x21c0) (0x3600,0x2200) (0x3600,0x2200) (0x35c0,0x2240)
+frame 20 pts=2.280 format=videotoolbox_vld  tags: range=tv matrix=bt709 trc=bt709 primaries=bt709 | ctx: matrix=bt709 trc=bt709
+  CVPixelBuffer 'x420' (0x78343230)  hw_frames sw_format=p010le  IOSurface=yes  planes=2
+    plane 0: 1280x720  bytesPerRow=2560  IOSurface bytesPerElement=2 elementWidth=1
+    plane 1: 640x360  bytesPerRow=2560  IOSurface bytesPerElement=4 elementWidth=1
+    Y  words: 0x5100(>>6=324, low6=0) 0x5100(>>6=324, low6=0) 0x5100(>>6=324, low6=0) 0xb080(>>6=706, low6=0) 0x9040(>>6=577, low6=0) 0x9100(>>6=580, low6=0) 0x9100(>>6=580, low6=0)
+    CbCr words: (0x5a00,0xf000) (0x5a40,0xf040) (0x5a40,0xf040) (0x2c80,0x5a40) (0x3480,0x2180) (0x3600,0x2200) (0x35c0,0x2240)
+frame 40 pts=3.080 format=videotoolbox_vld  tags: range=tv matrix=bt709 trc=bt709 primaries=bt709 | ctx: matrix=bt709 trc=bt709
+  CVPixelBuffer 'x420' (0x78343230)  hw_frames sw_format=p010le  IOSurface=yes  planes=2
+    plane 0: 1280x720  bytesPerRow=2560  IOSurface bytesPerElement=2 elementWidth=1
+    plane 1: 640x360  bytesPerRow=2560  IOSurface bytesPerElement=4 elementWidth=1
+    Y  words: 0x5100(>>6=324, low6=0) 0x5100(>>6=324, low6=0) 0x5100(>>6=324, low6=0) 0x9100(>>6=580, low6=0) 0x9100(>>6=580, low6=0) 0x9100(>>6=580, low6=0) 0x9100(>>6=580, low6=0)
+    CbCr words: (0x5a00,0xf000) (0x5a40,0xf040) (0x5a40,0xf000) (0x35c0,0x21c0) (0x3600,0x2200) (0x3600,0x2200) (0x35c0,0x2240)
+frame 60 pts=3.880 format=videotoolbox_vld  tags: range=tv matrix=bt709 trc=bt709 primaries=bt709 | ctx: matrix=bt709 trc=bt709
+  CVPixelBuffer 'x420' (0x78343230)  hw_frames sw_format=p010le  IOSurface=yes  planes=2
+    plane 0: 1280x720  bytesPerRow=2560  IOSurface bytesPerElement=2 elementWidth=1
+    plane 1: 640x360  bytesPerRow=2560  IOSurface bytesPerElement=4 elementWidth=1
+    Y  words: 0x5100(>>6=324, low6=0) 0x5100(>>6=324, low6=0) 0x5100(>>6=324, low6=0) 0x9100(>>6=580, low6=0) 0x9100(>>6=580, low6=0) 0x9100(>>6=580, low6=0) 0x9100(>>6=580, low6=0)
+    CbCr words: (0x5a00,0xf000) (0x5a40,0xf040) (0x5a40,0xf000) (0x35c0,0x21c0) (0x3600,0x2200) (0x3600,0x2200) (0x35c0,0x2240)
+frame 80 pts=4.680 format=videotoolbox_vld  tags: range=tv matrix=bt2020nc trc=smpte2084 primaries=bt2020 | ctx: matrix=bt2020nc trc=smpte2084
+  CVPixelBuffer 'x420' (0x78343230)  hw_frames sw_format=p010le  IOSurface=yes  planes=2
+    plane 0: 1280x720  bytesPerRow=2560  IOSurface bytesPerElement=2 elementWidth=1
+    plane 1: 640x360  bytesPerRow=2560  IOSurface bytesPerElement=4 elementWidth=1
+    Y  words: 0x5100(>>6=324, low6=0) 0x5100(>>6=324, low6=0) 0x5100(>>6=324, low6=0) 0x9100(>>6=580, low6=0) 0x9100(>>6=580, low6=0) 0x9100(>>6=580, low6=0) 0x9100(>>6=580, low6=0)
+    CbCr words: (0x5a00,0xf000) (0x5a00,0xf000) (0x5a00,0xf000) (0x3640,0x2240) (0x3640,0x2240) (0x3640,0x2240) (0x3600,0x2240)
+frame 100 pts=5.480 format=videotoolbox_vld  tags: range=tv matrix=bt2020nc trc=smpte2084 primaries=bt2020 | ctx: matrix=bt2020nc trc=smpte2084
+  CVPixelBuffer 'x420' (0x78343230)  hw_frames sw_format=p010le  IOSurface=yes  planes=2
+    plane 0: 1280x720  bytesPerRow=2560  IOSurface bytesPerElement=2 elementWidth=1
+    plane 1: 640x360  bytesPerRow=2560  IOSurface bytesPerElement=4 elementWidth=1
+    Y  words: 0x5100(>>6=324, low6=0) 0x5100(>>6=324, low6=0) 0x5100(>>6=324, low6=0) 0x9100(>>6=580, low6=0) 0x9100(>>6=580, low6=0) 0x9100(>>6=580, low6=0) 0x9100(>>6=580, low6=0)
+    CbCr words: (0x5a00,0xefc0) (0x5a00,0xefc0) (0x5a00,0xefc0) (0x3640,0x2240) (0x3640,0x2240) (0x3640,0x2240) (0x3600,0x2240)
+frame 120 pts=6.280 format=videotoolbox_vld  tags: range=tv matrix=bt2020nc trc=smpte2084 primaries=bt2020 | ctx: matrix=bt2020nc trc=smpte2084
+  CVPixelBuffer 'x420' (0x78343230)  hw_frames sw_format=p010le  IOSurface=yes  planes=2
+    plane 0: 1280x720  bytesPerRow=2560  IOSurface bytesPerElement=2 elementWidth=1
+    plane 1: 640x360  bytesPerRow=2560  IOSurface bytesPerElement=4 elementWidth=1
+    Y  words: 0x5100(>>6=324, low6=0) 0x5100(>>6=324, low6=0) 0x5100(>>6=324, low6=0) 0x7780(>>6=478, low6=0) 0x9100(>>6=580, low6=0) 0x9100(>>6=580, low6=0) 0x9100(>>6=580, low6=0)
+    CbCr words: (0x5a40,0xf000) (0x5a00,0xefc0) (0x5a00,0xefc0) (0xc280,0x3800) (0x3600,0x2200) (0x3600,0x2240) (0x3680,0x2200)
+frame 140 pts=7.080 format=videotoolbox_vld  tags: range=tv matrix=bt2020nc trc=smpte2084 primaries=bt2020 | ctx: matrix=bt2020nc trc=smpte2084
+  CVPixelBuffer 'x420' (0x78343230)  hw_frames sw_format=p010le  IOSurface=yes  planes=2
+    plane 0: 1280x720  bytesPerRow=2560  IOSurface bytesPerElement=2 elementWidth=1
+    plane 1: 640x360  bytesPerRow=2560  IOSurface bytesPerElement=4 elementWidth=1
+    Y  words: 0x5100(>>6=324, low6=0) 0x5100(>>6=324, low6=0) 0x5100(>>6=324, low6=0) 0x9100(>>6=580, low6=0) 0x9100(>>6=580, low6=0) 0x9100(>>6=580, low6=0) 0x9100(>>6=580, low6=0)
+    CbCr words: (0x5a00,0xf000) (0x5a00,0xf000) (0x5a00,0xefc0) (0x3640,0x2240) (0x35c0,0x2200) (0x3600,0x2200) (0x3680,0x2200)
+decoded 141 frames
+
+### [C8] 'y416' bound as one RGBA16 texture (gl_y416); sws's inputs (sws_inputs)
++ <OUT>/bin/gl_y416 bars_prores4444a.mov
+y416 448x128 as RGBA16: 0 (no error)
+  bar 0: r=65535 g=4096 b=32768 a=32768 (x65535)
+  bar 1: r=65535 g=19200 b=32768 a=32768 (x65535)
+  bar 2: r=65535 g=32576 b=32768 a=32768 (x65535)
+  bar 3: r=65535 g=46272 b=32768 a=32768 (x65535)
+  bar 4: r=65535 g=60160 b=32768 a=32768 (x65535)
+  bar 5: r=65535 g=60352 b=32768 a=32768 (x65535)
+  bar 6: r=65535 g=31616 b=20352 a=44096 (x65535)
++ <OUT>/bin/sws_inputs
+nv12       sws input: 1
+p010le     sws input: 1
+nv16       sws input: 1
+p210le     sws input: 1
+p216le     sws input: 1
+nv24       sws input: 1
+p410le     sws input: 1
+p416le     sws input: 1
+ayuv64le   sws input: 1
+uyvy422    sws input: 1
+bgra       sws input: 1
+
+### [C9] the scratch proposal: its unit tests with the repo's (test_proposal), and the HW replica with its matrix (gl_hw_prop)
++ <OUT>/bin/test_proposal --list-tests
+All available test cases:
+  P010 limited: 64 / 940 / 512 map to black, white, neutral
+      [p010][yuv]
+  P010 limited: a 10-bit code maps to (code - 64) / 876
+      [p010][yuv]
+  P416 ('sv44') limited: 4096 / 60160 are black / white
+      [p416][yuv]
+  P010 full range: 0 / 1023 are black / white
+      [p010][yuv]
+  8-bit limited: Cb = Cr = 128 is neutral, exactly
+      [anchors][yuv]
+  P010 limited round trip: saturated BT.2020 red
+      [p010][roundtrip][yuv]
+  BT.709 limited-range 8-bit: matrix matches ITU-R tabulated values
+      [bt709][yuv]
+  BT.601 limited-range 8-bit: matrix matches ITU-R tabulated values
+      [bt601][yuv]
+  BT.2020 full-range: no limited-range scaling applied
+      [bt2020][yuv]
+  BT.709 limited-range round-trip: saturated red survives encode→decode
+      [bt709][roundtrip][yuv]
+  BT.709 limited-range round-trip: saturated blue survives encode→decode
+      [bt709][roundtrip][yuv]
+  Limited-range black and white anchors map exactly
+      [anchors][yuv]
+12 test cases
+
++ <OUT>/bin/test_proposal
+Randomness seeded to: 965567426
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+test_proposal is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+BT.709 limited-range 8-bit: matrix matches ITU-R tabulated values
+-------------------------------------------------------------------------------
+<OUT>/work/rev-tests/test_yuv_matrix.cpp:33
+...............................................................................
+
+<OUT>/work/rev-tests/test_yuv_matrix.cpp:54: FAILED:
+  REQUIRE_THAT( m.offset[1], WithinAbs(0.5f, 1e-5f) )
+with expansion:
+  0.501960814f is within 0.00000999999974738 of 0.5
+
+===============================================================================
+test cases: 12 | 11 passed | 1 failed
+assertions: 66 | 65 passed | 1 failed
+
+(exit 42)
+-- gl_hw_prop: gl_hw built against proposal/YuvMatrix.h; 'fixed' = make_yuv_matrix(cs, MPEG, 16 or 8, 10 or 8)
++ <OUT>/bin/gl_hw_prop <OUT>/work/rev-src/VideoRenderer.cpp bars_sdr10.mp4 sdr 709 fixed
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame 'x420': upload_hw's ten_bit=1, planes 448x128 + 224x64
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 6.9 ms
+kFragSdrHw fixed matrix, RGBA32F target:
+  bar 0: 0.000000 0.000000 0.000000  (x255: 0.000 0.000 0.000)
+  bar 1: 0.269406 0.269406 0.269406  (x255: 68.699 68.699 68.699)
+  bar 2: 0.507991 0.507991 0.507991  (x255: 129.538 129.538 129.538)
+  bar 3: 0.752283 0.752283 0.752283  (x255: 191.832 191.832 191.832)
+  bar 4: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 5: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 6: 0.838418 0.454091 0.068943  (x255: 213.797 115.793 17.580)
+kFragSdrHw fixed matrix, RGBA8 target:
+  bar 0: 0 0 0
+  bar 1: 69 69 69
+  bar 2: 130 130 130
+  bar 3: 192 192 192
+  bar 4: 255 255 255
+  bar 5: 255 255 255
+  bar 6: 214 116 18
++ <OUT>/bin/gl_hw_prop <OUT>/work/rev-src/VideoRenderer.cpp bars_pq.mp4 hdr 2020 fixed
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame 'x420': upload_hw's ten_bit=1, planes 448x128 + 224x64
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 6.2 ms
+kFragHdrHw fixed matrix, RGBA32F target:
+  bar 0: 0.000000 0.000000 0.000000  (x255: 0.000 0.000 0.000)
+  bar 1: 0.033334 0.033331 0.033327  (x255: 8.500 8.499 8.498)
+  bar 2: 0.214788 0.214777 0.214766  (x255: 54.771 54.768 54.765)
+  bar 3: 0.588518 0.588491 0.588464  (x255: 150.072 150.065 150.058)
+  bar 4: 0.988489 0.988445 0.988402  (x255: 252.065 252.054 252.042)
+  bar 5: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 6: 0.887357 0.000000 0.000000  (x255: 226.276 0.000 0.000)
+kFragHdrHw fixed matrix, RGBA8 target:
+  bar 0: 0 0 0
+  bar 1: 9 8 8
+  bar 2: 55 55 55
+  bar 3: 150 150 150
+  bar 4: 252 252 252
+  bar 5: 255 255 255
+  bar 6: 226 0 0
++ <OUT>/bin/gl_hw_prop <OUT>/work/rev-src/VideoRenderer.cpp bars8_hevc.mp4 sdr 709 fixed
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame '420v': upload_hw's ten_bit=0, planes 448x128 + 224x64
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 5.8 ms
+kFragSdrHw fixed matrix, RGBA32F target:
+  bar 0: 0.000000 0.000000 0.000000  (x255: 0.000 0.000 0.000)
+  bar 1: 0.269406 0.269406 0.269406  (x255: 68.699 68.699 68.699)
+  bar 2: 0.502283 0.502283 0.502283  (x255: 128.082 128.082 128.082)
+  bar 3: 0.748858 0.748858 0.748858  (x255: 190.959 190.959 190.959)
+  bar 4: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 5: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 6: 0.832710 0.448383 0.063235  (x255: 212.341 114.338 16.125)
+kFragSdrHw fixed matrix, RGBA8 target:
+  bar 0: 0 0 0
+  bar 1: 69 69 69
+  bar 2: 128 128 128
+  bar 3: 191 191 191
+  bar 4: 255 255 255
+  bar 5: 255 255 255
+  bar 6: 212 114 16
++ <OUT>/bin/gl_hw_prop <OUT>/work/rev-src/VideoRenderer.cpp bars_h264_422.mp4 sdr 709 fixed
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame '422v': upload_hw's ten_bit=0, planes 448x128 + 224x128
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 5.8 ms
+kFragSdrHw fixed matrix, RGBA32F target:
+  bar 0: 0.000000 0.000000 0.000000  (x255: 0.000 0.000 0.000)
+  bar 1: 0.269406 0.269406 0.269406  (x255: 68.699 68.699 68.699)
+  bar 2: 0.511416 0.511416 0.511416  (x255: 130.411 130.411 130.411)
+  bar 3: 0.753425 0.753425 0.753425  (x255: 192.123 192.123 192.123)
+  bar 4: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 5: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 6: 0.841842 0.457515 0.072367  (x255: 214.670 116.666 18.454)
+kFragSdrHw fixed matrix, RGBA8 target:
+  bar 0: 0 0 0
+  bar 1: 69 69 69
+  bar 2: 130 130 130
+  bar 3: 192 192 192
+  bar 4: 255 255 255
+  bar 5: 255 255 255
+  bar 6: 215 117 18
++ <OUT>/bin/gl_hw_prop <OUT>/work/rev-src/VideoRenderer.cpp bars_hevc444_8.mp4 sdr 709 fixed
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame '444v': upload_hw's ten_bit=0, planes 448x128 + 448x128
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 5.5 ms
+kFragSdrHw fixed matrix, RGBA32F target:
+  bar 0: 0.000000 0.000000 0.000000  (x255: 0.000 0.000 0.000)
+  bar 1: 0.269406 0.269406 0.269406  (x255: 68.699 68.699 68.699)
+  bar 2: 0.511416 0.511416 0.511416  (x255: 130.411 130.411 130.411)
+  bar 3: 0.753425 0.753425 0.753425  (x255: 192.123 192.123 192.123)
+  bar 4: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 5: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 6: 0.841842 0.457515 0.072367  (x255: 214.670 116.666 18.454)
+kFragSdrHw fixed matrix, RGBA8 target:
+  bar 0: 0 0 0
+  bar 1: 69 69 69
+  bar 2: 130 130 130
+  bar 3: 192 192 192
+  bar 4: 255 255 255
+  bar 5: 255 255 255
+  bar 6: 215 117 18
++ <OUT>/bin/gl_hw_prop <OUT>/work/rev-src/VideoRenderer.cpp bars_prores422hq.mov sdr 709 force16 fixed
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame 'x422': upload_hw's ten_bit=0 (forced 16-bit binding), planes 448x128 + 224x128
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 5.5 ms
+kFragSdrHw fixed matrix, RGBA32F target:
+  bar 0: 0.000000 0.000000 0.000000  (x255: 0.000 0.000 0.000)
+  bar 1: 0.269406 0.269406 0.269406  (x255: 68.699 68.699 68.699)
+  bar 2: 0.507991 0.507991 0.507991  (x255: 129.538 129.538 129.538)
+  bar 3: 0.752283 0.752283 0.752283  (x255: 191.832 191.832 191.832)
+  bar 4: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 5: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 6: 0.801961 0.438951 0.089097  (x255: 204.500 111.933 22.720)
+kFragSdrHw fixed matrix, RGBA8 target:
+  bar 0: 0 0 0
+  bar 1: 69 69 69
+  bar 2: 130 130 130
+  bar 3: 192 192 192
+  bar 4: 255 255 255
+  bar 5: 255 255 255
+  bar 6: 205 112 23
++ <OUT>/bin/gl_hw_prop <OUT>/work/rev-src/VideoRenderer.cpp bars_prores4444.mov sdr 709 force16 fixed
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame 'sv44': upload_hw's ten_bit=0 (forced 16-bit binding), planes 448x128 + 448x128
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 5.5 ms
+kFragSdrHw fixed matrix, RGBA32F target:
+  bar 0: 0.000000 0.000000 0.000000  (x255: 0.000 0.000 0.000)
+  bar 1: 0.269406 0.269406 0.269406  (x255: 68.699 68.699 68.699)
+  bar 2: 0.507991 0.507991 0.507991  (x255: 129.538 129.538 129.538)
+  bar 3: 0.752283 0.752283 0.752283  (x255: 191.832 191.832 191.832)
+  bar 4: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 5: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 6: 0.801961 0.438951 0.089097  (x255: 204.500 111.933 22.720)
+kFragSdrHw fixed matrix, RGBA8 target:
+  bar 0: 0 0 0
+  bar 1: 69 69 69
+  bar 2: 130 130 130
+  bar 3: 192 192 192
+  bar 4: 255 255 255
+  bar 5: 255 255 255
+  bar 6: 205 112 23
++ <OUT>/bin/gl_hw_prop <OUT>/work/rev-src/VideoRenderer.cpp bars_hevc422.mp4 sdr 709 force16 fixed
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame 'x422': upload_hw's ten_bit=0 (forced 16-bit binding), planes 448x128 + 224x128
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 5.5 ms
+kFragSdrHw fixed matrix, RGBA32F target:
+  bar 0: 0.000000 0.000000 0.000000  (x255: 0.000 0.000 0.000)
+  bar 1: 0.269406 0.269406 0.269406  (x255: 68.699 68.699 68.699)
+  bar 2: 0.507991 0.507991 0.507991  (x255: 129.538 129.538 129.538)
+  bar 3: 0.752283 0.752283 0.752283  (x255: 191.832 191.832 191.832)
+  bar 4: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 5: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 6: 0.838418 0.454091 0.068943  (x255: 213.797 115.793 17.580)
+kFragSdrHw fixed matrix, RGBA8 target:
+  bar 0: 0 0 0
+  bar 1: 69 69 69
+  bar 2: 130 130 130
+  bar 3: 192 192 192
+  bar 4: 255 255 255
+  bar 5: 255 255 255
+  bar 6: 214 116 18
++ <OUT>/bin/gl_hw_prop <OUT>/work/rev-src/VideoRenderer.cpp bars_hevc444.mp4 sdr 709 force16 fixed
+GL 4.1 Metal - 90.5 | Apple M3 Pro
+frame 'x444': upload_hw's ten_bit=0 (forced 16-bit binding), planes 448x128 + 448x128
+CGLTexImageIOSurface2D: Y -> 0 (no error), CbCr -> 0 (no error)
+compile + link + first draw: 5.4 ms
+kFragSdrHw fixed matrix, RGBA32F target:
+  bar 0: 0.000000 0.000000 0.000000  (x255: 0.000 0.000 0.000)
+  bar 1: 0.269406 0.269406 0.269406  (x255: 68.699 68.699 68.699)
+  bar 2: 0.507991 0.507991 0.507991  (x255: 129.538 129.538 129.538)
+  bar 3: 0.752283 0.752283 0.752283  (x255: 191.832 191.832 191.832)
+  bar 4: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 5: 1.000000 1.000000 1.000000  (x255: 255.000 255.000 255.000)
+  bar 6: 0.838418 0.454091 0.068943  (x255: 213.797 115.793 17.580)
+kFragSdrHw fixed matrix, RGBA8 target:
+  bar 0: 0 0 0
+  bar 1: 69 69 69
+  bar 2: 130 130 130
+  bar 3: 192 192 192
+  bar 4: 255 255 255
+  bar 5: 255 255 255
+  bar 6: 214 116 18
+
+### [C10] sws's 16-bit RGB destinations (sws_dst; bar 4 = Y 940, bar 6 = the colour bar)
++ <OUT>/bin/sws_dst <OUT>/raw/bars420.yuv rgb48le 0x2
+rgb48le flags 0x2:  bar 4 R,G,B = 65283,65283,65283  bar 6 R,G,B = 53361,27880,4104
++ <OUT>/bin/sws_dst <OUT>/raw/bars420.yuv rgb48le 0x2002
+rgb48le flags 0x2002:  bar 4 R,G,B = 65283,65283,65283  bar 6 R,G,B = 53361,3320,22680
++ <OUT>/bin/sws_dst <OUT>/raw/bars420.yuv rgba64le 0x2
+rgba64le flags 0x2:  bar 4 R,G,B = 65283,65283,65283  bar 6 R,G,B = 53361,27880,4104
++ <OUT>/bin/sws_dst <OUT>/raw/bars420.yuv rgba64le 0x2002
+rgba64le flags 0x2002:  bar 4 R,G,B = 65283,65283,65283  bar 6 R,G,B = 53361,3320,22680
++ <OUT>/bin/sws_dst <OUT>/raw/bars420.yuv gbrp16le 0x2
+gbrp16le flags 0x2:  bar 4 R,G,B = 65283,65283,65283  bar 6 R,G,B = 53361,27880,4104
++ <OUT>/bin/sws_dst <OUT>/raw/bars420.yuv gbrp16le 0x2002
+gbrp16le flags 0x2002:  bar 4 R,G,B = 65283,65283,65283  bar 6 R,G,B = 53361,27880,4104
+
+### done
++ date
+Tue Nov  3 15:20:59 PST 2026

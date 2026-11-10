@@ -49,13 +49,39 @@ The branches `feat/engineer-tools-poc-on-main` (the panels P, S, X, B and L), `f
   - An agent that had not written the code reviewed the panels' branch (`git diff main...HEAD`). The six defects it found were fixed in `eacc4cd` (`plan/engineer_tools_status.md`, "Review").
   - On 2026-11-03 an agent listed the numbers of the documents, code comments and commit messages that no committed run backed. The lead agent backed what could be run again (`plan/engineer_tools_runs/tests/`, `plan/engineer_tools_runs/sidedata/` and, with a display, `plan/engineer_tools_runs/gui-2026-11-03/`), marked the rest MEASUREMENT PENDING, corrected what the records or the code contradict, and took the numbers out of three code comments.
   - After the merge, on branch `feat/engineer-tools-followups`, the lead agent wrote the Conformance tab's DASH MPD mode and the "safe" column of `mirage_dashcheck`'s table (D-084's decisions after the merge), and their record (`plan/engineer_tools_runs/dash-tab-2026-11-03/`).
-- **What the owner decided**: none of the code's design choices yet. `plan/engineer_tools_decisions_pending.md` lists them, the D-007 plan for the panels among them.
+  - For `plan/engineer_tools_player_fixes.md` (plans for the owner, no code changed), three agents investigated the findings in the existing player, read-only and without opening the player: the renderer's colour handling, the time display, decode errors and the downmix. Their programs and outputs are in `plan/engineer_tools_runs/investigate-2026-11-03/`. The lead agent investigated the seek, made its record (`plan/engineer_tools_runs/seek-2026-11-03/`) and wrote the plans.
+  - On branch `feat/player-fixes` (from `feat/player-fixes-plan`), after the owner's decisions (D-088 to D-091), four agents implemented the four sections of `plan/engineer_tools_player_fixes.md`. Each worked on a branch and in a worktree of its own, without opening the player:
+    - the seek landing check (`a7db00c`);
+    - the positions (`0fb839f`);
+    - the colour fixes (`c28bcfe`, `0068b00`, `2eb443e`);
+    - the decode errors, failed reopens, downmix and W strip (`7211671`, `defba3f`, `07dce07`, `651193e`, `e9ac2c9`, `05165ea`).
+
+    The lead agent reviewed each branch against its plan and asked for what the plan had and the branch did not: `2eb443e` (the plan's rule for a matrix no tag gives), and `651193e` and `05165ea` (4.2's Tracks panel and 4.1's VideoToolbox test). It merged the four branches and wrote `cfd6ae0` (a video track with no decoder), the documents and the records. P-083 lists the agents' choices.
+
+    After the merge, the lead agent ran Claude Code's code review (`/code-review` at its high level) on the merged code against `d99099b`. It checked each of the nine findings against the code, a unit test or a committed record:
+    - fixed by the lead agent: a frame no resampler can be made for was dropped, which stopped the audio clock (`3b4e646`, with a test); the renderer's log wrote a pixel format's unprintable bytes (`39ad661`);
+    - decided by the owner: in an MPEG-TS whose keyframes after the first are not flagged, a seek reads from the media's start (D-093); with audio starting before video, the seek bar ran past the media's end (D-094, `63cde27`);
+    - noted in P-083, or already there: a failed `reconfigure()` is not tried again; the GLFW scrub block is never reached;
+    - not borne out: `SWS_FULL_CHR_H_INT` changes neither the output nor the time of 8-bit 4:2:0 sources (`investigate-2026-11-03/render/results.txt`, [C4]); at open, `av_find_best_stream` with a decoder ignores the streams that have none (its documentation in `libavformat/avformat.h`); FFmpeg's decode loop drops the packet at each error, so the errors a pull counts are failed packets.
+
+    For the first of the owner's two, the lead agent recommended a cap at 16 s on the seek's tries. It described the cap as landing on the target's frame whenever an I-frame lay within those 16 s, and the owner chose it. That description rested on a scratch check of a clip with one reference. The cap's own unit test, on a clip with x264's default three references, then failed: from 16 s back, the decoder made no frame. The lead agent did not commit the cap. It told the owner, who withdrew it (D-093). It then committed the checks behind both decisions (`plan/engineer_tools_runs/review-2026-11-05/`).
+
+    The lead agent ran each section's scripted checks (`plan/engineer_tools_runs/fixes-gui-2026-11-05/`). Its first script skipped the ten `--no-hw` runs of the bars, because its `player()` overwrote the loop's variable, so the agent made them again in `record2.txt`. The screen was locked, and CoreAudio played nothing, so it made the runs that need audio output again once the screen was unlocked (`record3.txt`). Two things turned up on the way: `ScrubDecoder`'s landing on an MPEG-TS, and a one-code difference on 8-bit 4:2:2 and 4:4:4 bars.
+
+    Under D-095 the lead agent planned the fixes of what the checks found (plan section 5, `377475a`), audited the plan with the audit-docs skill and made them: `9b8f04a`, `7d3ee19`, `380b5fd`, `ec2e8e6`. The audit flagged that the agent's account of the one-code difference rested on scratch checks. Looking at every row of the clips then showed that the agent had it wrong. It had called the GPU's filtering inexact, and its scratch fix, filtering in the shader, changed nothing. The clips' bar 2 is a dither, and the difference is no bug. Its record is `plan/engineer_tools_runs/fixes2-2026-11-05/`.
+- **What the owner decided**, each time adopting the agent's recommendation:
+  - D-083 to D-085 (2026-11-03): the three sections of `plan/engineer_tools_decisions_pending.md`;
+  - D-088 to D-091 (2026-11-03): the four sections of `plan/engineer_tools_player_fixes.md`;
+  - D-093 and D-094 (2026-11-04; D-093 changed on 2026-11-05): the two questions the code review of `feat/player-fixes` raised;
+  - D-095 (2026-11-05): small bugs found on the way are planned, audited and fixed by the agent without asking.
 - **Statements in commit messages that no committed record backs**, none of them amended (later records cite these commits' ids):
   - `3dbd88a`: its tests "pass under ThreadSanitizer and under AddressSanitizer with UBSan", the suite passes but for the SidecarSubtitles case, and local files of 100 to 480 MB "scan in 0.05 to 0.12 s from the page cache". Scratch runs, none committed.
   - `2191dbe`: the 48 kHz coefficients "equal to 1e-15" (the test checks them to 1e-9), and the cross-check against FFmpeg's `ebur128` within 0.006 LU, 0.001 LU, 0.06 dB and 0.44 LU (the test allows 0.1, 0.1, 0.5 and 1.0). A scratch run, not committed.
   - `2b0b179`: in the scripted runs, "integrated loudness and LRA as FFmpeg's". That run is not committed; the run of 2026-11-03 shows it (`plan/engineer_tools_runs/gui-2026-11-03/`).
   - `eacc4cd`: "mirage_tests ~[audio] (the subtitle-fixture case fails as on main)". That run is not committed; at `eb0f9a6` every case passes (`plan/engineer_tools_runs/tests/macos-2026-11-03-eb0f9a6.txt`).
   - `8314657`: the HLS check's JSON on the demo package "the same byte for byte" once its code was shared. That run is not committed; `plan/engineer_tools_runs/tests/demos-2026-11-03-44f66cb.txt` shows it at `44f66cb`.
+  - `c28bcfe` and `2eb443e`: checked "with this commit's VideoRenderer and Decoder driven headless (an offscreen CGL context, no window)" on the generated bars and the tag-switch clips, and in `2eb443e`'s case also on an untagged clip whose frames change size. The agent's harness and its outputs are scratch files, not committed. The player's own snapshots of the bars and the tag-switch clips are in `plan/engineer_tools_runs/fixes-gui-2026-11-05/`; the untagged clip whose frames change size is not among them.
+  - `3b4e646`: "Without this change the test fails: nothing was buffered and the clock stayed at 0." The lead agent's run of the test before the change is not committed.
 - **Pending owner confirmation**: the owner's review of these commits and of this section.
 
 ## HLS break markers and encrypted segments

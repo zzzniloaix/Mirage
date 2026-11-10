@@ -1,0 +1,454 @@
+### build
+### clips
+### 2a. swr defaults and the measured matrix (AudioDecoder::open's call)
+libswresample SwR6.3.101
+default center_mix_level   = 0.707107
+default surround_mix_level = 0.707107
+default lfe_mix_level      = 0.000000
+default rematrix_volume    = 1.000000
+default rematrix_maxval    = 0.000000
+default matrix_encoding    = 0 (AV_MATRIX_ENCODING_NONE = 0)
+
+== in 5.1(side) fltp 48000 Hz -> stereo flt 48000 Hz, AudioDecoder::open defaults (no options) ==
+  FL   (1000 Hz sine, peak 0.50): L rms gain +0.00 dB  coef +1.000000 | R rms gain -inf dB   coef +0.000000 | out peak L 0.5000 R 0.0000
+  FR   (1000 Hz sine, peak 0.50): L rms gain -inf dB   coef +0.000000 | R rms gain +0.00 dB  coef +1.000000 | out peak L 0.0000 R 0.5000
+  FC   (1000 Hz sine, peak 0.50): L rms gain -3.01 dB  coef +0.707107 | R rms gain -3.01 dB  coef +0.707107 | out peak L 0.3536 R 0.3536
+  LFE  (  60 Hz sine, peak 0.50): L rms gain -inf dB   coef +0.000000 | R rms gain -inf dB   coef +0.000000 | out peak L 0.0000 R 0.0000
+  SL   (1000 Hz sine, peak 0.50): L rms gain -3.01 dB  coef +0.707107 | R rms gain -inf dB   coef +0.000000 | out peak L 0.3536 R 0.0000
+  SR   (1000 Hz sine, peak 0.50): L rms gain -inf dB   coef +0.000000 | R rms gain -3.01 dB  coef +0.707107 | out peak L 0.0000 R 0.3536
+
+== in 5.1 fltp 48000 Hz -> stereo flt 48000 Hz, AudioDecoder::open defaults (no options) ==
+  FL   (1000 Hz sine, peak 0.50): L rms gain +0.00 dB  coef +1.000000 | R rms gain -inf dB   coef +0.000000 | out peak L 0.5000 R 0.0000
+  FR   (1000 Hz sine, peak 0.50): L rms gain -inf dB   coef +0.000000 | R rms gain +0.00 dB  coef +1.000000 | out peak L 0.0000 R 0.5000
+  FC   (1000 Hz sine, peak 0.50): L rms gain -3.01 dB  coef +0.707107 | R rms gain -3.01 dB  coef +0.707107 | out peak L 0.3536 R 0.3536
+  LFE  (  60 Hz sine, peak 0.50): L rms gain -inf dB   coef +0.000000 | R rms gain -inf dB   coef +0.000000 | out peak L 0.0000 R 0.0000
+  BL   (1000 Hz sine, peak 0.50): L rms gain -3.01 dB  coef +0.707107 | R rms gain -inf dB   coef +0.000000 | out peak L 0.3536 R 0.0000
+  BR   (1000 Hz sine, peak 0.50): L rms gain -inf dB   coef +0.000000 | R rms gain -3.01 dB  coef +0.707107 | out peak L 0.0000 R 0.3536
+
+== in 7.1 fltp 48000 Hz -> stereo flt 48000 Hz, AudioDecoder::open defaults (no options) ==
+  FL   (1000 Hz sine, peak 0.50): L rms gain +0.00 dB  coef +1.000000 | R rms gain -inf dB   coef +0.000000 | out peak L 0.5000 R 0.0000
+  FR   (1000 Hz sine, peak 0.50): L rms gain -inf dB   coef +0.000000 | R rms gain +0.00 dB  coef +1.000000 | out peak L 0.0000 R 0.5000
+  FC   (1000 Hz sine, peak 0.50): L rms gain -3.01 dB  coef +0.707107 | R rms gain -3.01 dB  coef +0.707107 | out peak L 0.3536 R 0.3536
+  LFE  (  60 Hz sine, peak 0.50): L rms gain -inf dB   coef +0.000000 | R rms gain -inf dB   coef +0.000000 | out peak L 0.0000 R 0.0000
+  BL   (1000 Hz sine, peak 0.50): L rms gain -3.01 dB  coef +0.707107 | R rms gain -inf dB   coef +0.000000 | out peak L 0.3536 R 0.0000
+  BR   (1000 Hz sine, peak 0.50): L rms gain -inf dB   coef +0.000000 | R rms gain -3.01 dB  coef +0.707107 | out peak L 0.0000 R 0.3536
+  SL   (1000 Hz sine, peak 0.50): L rms gain -3.01 dB  coef +0.707107 | R rms gain -inf dB   coef +0.000000 | out peak L 0.3536 R 0.0000
+  SR   (1000 Hz sine, peak 0.50): L rms gain -inf dB   coef +0.000000 | R rms gain -3.01 dB  coef +0.707107 | out peak L 0.0000 R 0.3536
+
+== in 5.1(side) fltp 44100 Hz -> stereo flt 48000 Hz, defaults, resampled 44.1 -> 48 kHz ==
+  FL   (1000 Hz sine, peak 0.50): L rms gain -0.00 dB  coef nan | R rms gain -inf dB   coef nan | out peak L 0.5000 R 0.0000
+  FR   (1000 Hz sine, peak 0.50): L rms gain -inf dB   coef nan | R rms gain -0.00 dB  coef nan | out peak L 0.0000 R 0.5000
+  FC   (1000 Hz sine, peak 0.50): L rms gain -3.01 dB  coef nan | R rms gain -3.01 dB  coef nan | out peak L 0.3536 R 0.3536
+  LFE  (  60 Hz sine, peak 0.50): L rms gain -inf dB   coef nan | R rms gain -inf dB   coef nan | out peak L 0.0000 R 0.0000
+  SL   (1000 Hz sine, peak 0.50): L rms gain -3.01 dB  coef nan | R rms gain -inf dB   coef nan | out peak L 0.3536 R 0.0000
+  SR   (1000 Hz sine, peak 0.50): L rms gain -inf dB   coef nan | R rms gain -3.01 dB  coef nan | out peak L 0.0000 R 0.3536
+
+== in 5.1(side) fltp 48000 Hz -> stereo flt 48000 Hz, lfe_mix_level = 1.0 ==
+  FL   (1000 Hz sine, peak 0.50): L rms gain +0.00 dB  coef +1.000000 | R rms gain -inf dB   coef +0.000000 | out peak L 0.5000 R 0.0000
+  FR   (1000 Hz sine, peak 0.50): L rms gain -inf dB   coef +0.000000 | R rms gain +0.00 dB  coef +1.000000 | out peak L 0.0000 R 0.5000
+  FC   (1000 Hz sine, peak 0.50): L rms gain -3.01 dB  coef +0.707107 | R rms gain -3.01 dB  coef +0.707107 | out peak L 0.3536 R 0.3536
+  LFE  (  60 Hz sine, peak 0.50): L rms gain -3.01 dB  coef +0.707107 | R rms gain -3.01 dB  coef +0.707107 | out peak L 0.3536 R 0.3536
+  SL   (1000 Hz sine, peak 0.50): L rms gain -3.01 dB  coef +0.707107 | R rms gain -inf dB   coef +0.000000 | out peak L 0.3536 R 0.0000
+  SR   (1000 Hz sine, peak 0.50): L rms gain -inf dB   coef +0.000000 | R rms gain -3.01 dB  coef +0.707107 | out peak L 0.0000 R 0.3536
+
+== in 5.1(side) fltp 48000 Hz -> stereo flt 48000 Hz, lfe_mix_level = 0.447214 (= 0.316228 / 0.707107) ==
+  FL   (1000 Hz sine, peak 0.50): L rms gain +0.00 dB  coef +1.000000 | R rms gain -inf dB   coef +0.000000 | out peak L 0.5000 R 0.0000
+  FR   (1000 Hz sine, peak 0.50): L rms gain -inf dB   coef +0.000000 | R rms gain +0.00 dB  coef +1.000000 | out peak L 0.0000 R 0.5000
+  FC   (1000 Hz sine, peak 0.50): L rms gain -3.01 dB  coef +0.707107 | R rms gain -3.01 dB  coef +0.707107 | out peak L 0.3536 R 0.3536
+  LFE  (  60 Hz sine, peak 0.50): L rms gain -10.00 dB coef +0.316228 | R rms gain -10.00 dB coef +0.316228 | out peak L 0.1581 R 0.1581
+  SL   (1000 Hz sine, peak 0.50): L rms gain -3.01 dB  coef +0.707107 | R rms gain -inf dB   coef +0.000000 | out peak L 0.3536 R 0.0000
+  SR   (1000 Hz sine, peak 0.50): L rms gain -inf dB   coef +0.000000 | R rms gain -3.01 dB  coef +0.707107 | out peak L 0.0000 R 0.3536
+
+== FL+FC+SL in phase, peak 0.5 each, defaults: out peak L 1.2071 (expected 0.5*(1+0.707107+0.707107) = 1.2071) ==
+== all 6 channels in phase, peak 0.5 each (LFE at 1 kHz here), defaults: out peak L 1.2071 R 1.2071 ==
+lfe_mix_level = -10 (read as dB): LFE->L coef -7.071068 (+16.99 dB, polarity inverted), out peak 3.5355 for in peak 0.5
+defaults, FL+FC+SL 0.5 each: L coef-sum 2.414214, out peak 1.2071
+rematrix_maxval = 1, FL+FC+SL 0.5 each: L coef-sum 1.000000, out peak 0.5000
+rematrix_maxval = 1, FL only: FL->L coef 0.414214 (-7.66 dB)
+### 2b. ffmpeg CLI: LFE-only and per-channel, swr defaults vs AC-3 downmix info vs AC-3 decoder downmix
+  lfe_only_pcm.wav as decoded:
+
+    ch1 Peak level dB: -inf RMS level dB: -inf 
+    ch2 Peak level dB: -inf RMS level dB: -inf 
+    ch3 Peak level dB: -inf RMS level dB: -inf 
+    ch4 Peak level dB: -6.020600 RMS level dB: -9.030900 
+    ch5 Peak level dB: -inf RMS level dB: -inf 
+    ch6 Peak level dB: -inf RMS level dB: -inf
+
+  lfe_only_pcm.wav aresample=ochl=stereo:osf=flt:
+
+    ch1 Peak level dB: -inf RMS level dB: -inf 
+    ch2 Peak level dB: -inf RMS level dB: -inf
+
+  lfe_only_pcm.wav ... :lfe_mix_level=1:
+
+    ch1 Peak level dB: -9.030900 RMS level dB: -12.041200 
+    ch2 Peak level dB: -9.030900 RMS level dB: -12.041200
+
+  lfe_only_aac.mp4 as decoded:
+
+    ch1 Peak level dB: -inf RMS level dB: -inf 
+    ch2 Peak level dB: -inf RMS level dB: -inf 
+    ch3 Peak level dB: -inf RMS level dB: -inf 
+    ch4 Peak level dB: -5.975932 RMS level dB: -9.044025 
+    ch5 Peak level dB: -inf RMS level dB: -inf 
+    ch6 Peak level dB: -inf RMS level dB: -inf
+
+  lfe_only_aac.mp4 aresample=ochl=stereo:osf=flt:
+
+    ch1 Peak level dB: -inf RMS level dB: -inf 
+    ch2 Peak level dB: -inf RMS level dB: -inf
+
+  lfe_only_aac.mp4 ... :lfe_mix_level=1:
+
+    ch1 Peak level dB: -8.986232 RMS level dB: -12.054325 
+    ch2 Peak level dB: -8.986232 RMS level dB: -12.054325
+
+  lfe_only.ac3 as decoded:
+
+    ch1 Peak level dB: -102.479211 RMS level dB: -119.260302 
+    ch2 Peak level dB: -102.678196 RMS level dB: -119.254311 
+    ch3 Peak level dB: -102.827955 RMS level dB: -119.236886 
+    ch4 Peak level dB: -5.991293 RMS level dB: -9.051669 
+    ch5 Peak level dB: -102.397962 RMS level dB: -119.250369 
+    ch6 Peak level dB: -102.087489 RMS level dB: -119.247520
+
+  lfe_only.ac3 aresample=ochl=stereo:osf=flt:
+Mix levels: center 0.594604 - surround 0.500000 - lfe 0.000000. 
+    ch1 Peak level dB: -96.419162 RMS level dB: -113.700970 
+    ch2 Peak level dB: -96.966985 RMS level dB: -113.697717
+
+  lfe_only.ac3 ... :lfe_mix_level=1:
+
+    ch1 Peak level dB: -96.419162 RMS level dB: -113.700970 
+    ch2 Peak level dB: -96.966985 RMS level dB: -113.697717
+
+  fc_only.ac3 as decoded:
+
+    ch1 Peak level dB: -100.884427 RMS level dB: -124.582026 
+    ch2 Peak level dB: -99.637228 RMS level dB: -124.544122 
+    ch3 Peak level dB: -6.018492 RMS level dB: -9.051589 
+    ch4 Peak level dB: -inf RMS level dB: -inf 
+    ch5 Peak level dB: -100.906577 RMS level dB: -124.538560 
+    ch6 Peak level dB: -99.977430 RMS level dB: -124.568408
+
+  fc_only.ac3 aresample=ochl=stereo:osf=flt:
+Mix levels: center 0.594604 - surround 0.500000 - lfe 0.000000. 
+    ch1 Peak level dB: -10.533916 RMS level dB: -13.567039 
+    ch2 Peak level dB: -10.533895 RMS level dB: -13.567039
+
+  fc_only.ac3 ... :lfe_mix_level=1:
+
+    ch1 Peak level dB: -10.533916 RMS level dB: -13.567039 
+    ch2 Peak level dB: -10.533895 RMS level dB: -13.567039
+
+  sl_only.ac3 as decoded:
+
+    ch1 Peak level dB: -100.884427 RMS level dB: -124.582026 
+    ch2 Peak level dB: -99.637228 RMS level dB: -124.593649 
+    ch3 Peak level dB: -100.319782 RMS level dB: -124.514530 
+    ch4 Peak level dB: -inf RMS level dB: -inf 
+    ch5 Peak level dB: -6.018492 RMS level dB: -9.051589 
+    ch6 Peak level dB: -99.977430 RMS level dB: -124.568408
+
+  sl_only.ac3 aresample=ochl=stereo:osf=flt:
+Mix levels: center 0.594604 - surround 0.500000 - lfe 0.000000. 
+    ch1 Peak level dB: -12.039044 RMS level dB: -15.072189 
+    ch2 Peak level dB: -93.820165 RMS level dB: -119.802629
+
+  sl_only.ac3 ... :lfe_mix_level=1:
+
+    ch1 Peak level dB: -12.039044 RMS level dB: -15.072189 
+    ch2 Peak level dB: -93.820165 RMS level dB: -119.802629
+
+  fl_only.ac3 as decoded:
+
+    ch1 Peak level dB: -6.018486 RMS level dB: -9.051589 
+    ch2 Peak level dB: -99.637228 RMS level dB: -124.544122 
+    ch3 Peak level dB: -100.319782 RMS level dB: -124.552490 
+    ch4 Peak level dB: -inf RMS level dB: -inf 
+    ch5 Peak level dB: -100.906577 RMS level dB: -124.538560 
+    ch6 Peak level dB: -99.977430 RMS level dB: -124.568408
+
+  fl_only.ac3 aresample=ochl=stereo:osf=flt:
+Mix levels: center 0.594604 - surround 0.500000 - lfe 0.000000. 
+    ch1 Peak level dB: -6.018473 RMS level dB: -9.051589 
+    ch2 Peak level dB: -93.820165 RMS level dB: -119.790741
+
+  fl_only.ac3 ... :lfe_mix_level=1:
+
+    ch1 Peak level dB: -6.018473 RMS level dB: -9.051589 
+    ch2 Peak level dB: -93.820165 RMS level dB: -119.790741
+
+  lfe_only.ac3 -downmix stereo (AC-3 decoder's own downmix):
+
+    ch1 Peak level dB: -102.841199 RMS level dB: -120.123007 
+    ch2 Peak level dB: -103.389023 RMS level dB: -120.119753
+
+  fc_only.ac3 -downmix stereo (AC-3 decoder's own downmix):
+
+    ch1 Peak level dB: -16.955950 RMS level dB: -19.989075 
+    ch2 Peak level dB: -16.955928 RMS level dB: -19.989075
+
+  sl_only.ac3 -downmix stereo (AC-3 decoder's own downmix):
+
+    ch1 Peak level dB: -18.461080 RMS level dB: -21.494225 
+    ch2 Peak level dB: -100.242202 RMS level dB: -126.224665
+
+  fl_only.ac3 -downmix stereo (AC-3 decoder's own downmix):
+
+    ch1 Peak level dB: -12.440510 RMS level dB: -15.473625 
+    ch2 Peak level dB: -100.242202 RMS level dB: -126.212777
+
+  swr matrix dumps (-loglevel debug):
+[Parsed_aresample_0 @ …] [SWR @ …] FL: FL:1.000000 FR:0.000000 FC:0.707107 LFE:0.000000 BL:0.707107 BR:0.000000 
+[Parsed_aresample_0 @ …] [SWR @ …] FR: FL:0.000000 FR:1.000000 FC:0.707107 LFE:0.000000 BL:0.000000 BR:0.707107 
+[Parsed_aresample_0 @ …] Mix levels: center 0.594604 - surround 0.500000 - lfe 0.000000.
+[Parsed_aresample_0 @ …] [SWR @ …] FL: FL:1.000000 FR:0.000000 FC:0.594604 LFE:0.000000 SL:0.500000 SR:0.000000 
+[Parsed_aresample_0 @ …] [SWR @ …] FR: FL:0.000000 FR:1.000000 FC:0.594604 LFE:0.000000 SL:0.000000 SR:0.500000 
+  AC-3 frame side data:
+side_datum/metadata_relevant_to_a_downmix_procedure:side_data_type=Metadata relevant to a downmix procedure
+### 2c. through the player's AudioDecoder + AudioPlayer (e2e_audio)
+  == lfe_only_aac.mp4
+out L: rms -inf dBFS, peak 0.0000 (240640 frames, 5.013 s output)
+out R: rms -inf dBFS, peak 0.0000 (240640 frames, 5.013 s output)
+W strip: 1200 entries x 40 samples = 48000 samples = 1.000 s at 48 kHz; non-zero 0; max 0.0000; oldest 0.0000, 1/4 0.0000, middle 0.0000, 3/4 0.0000, newest 0.0000
+  == lfe_only.ac3
+out L: rms -112.500628 dBFS, peak 0.0000 (241152 frames, 5.024 s output)
+out R: rms -112.495760 dBFS, peak 0.0000 (241152 frames, 5.024 s output)
+W strip: 1200 entries x 40 samples = 48000 samples = 1.000 s at 48 kHz; non-zero 1200; max 0.0000; oldest 0.0000, 1/4 0.0000, middle 0.0000, 3/4 0.0000, newest 0.0000
+  == lfe_only_pcm.wav
+out L: rms -inf dBFS, peak 0.0000 (240000 frames, 5.000 s output)
+out R: rms -inf dBFS, peak 0.0000 (240000 frames, 5.000 s output)
+W strip: 1200 entries x 40 samples = 48000 samples = 1.000 s at 48 kHz; non-zero 0; max 0.0000; oldest 0.0000, 1/4 0.0000, middle 0.0000, 3/4 0.0000, newest 0.0000
+  == fc_only.ac3
+out L: rms -12.041092 dBFS, peak 0.3536 (241152 frames, 5.024 s output)
+out R: rms -12.041092 dBFS, peak 0.3536 (241152 frames, 5.024 s output)
+W strip: 1200 entries x 40 samples = 48000 samples = 1.000 s at 48 kHz; non-zero 1200; max 0.3536; oldest 0.3536, 1/4 0.3536, middle 0.3536, 3/4 0.3536, newest 0.0000
+  == sl_only.ac3
+out L: rms -12.041092 dBFS, peak 0.3536 (241152 frames, 5.024 s output)
+out R: rms -118.787068 dBFS, peak 0.0000 (241152 frames, 5.024 s output)
+W strip: 1200 entries x 40 samples = 48000 samples = 1.000 s at 48 kHz; non-zero 1200; max 0.3536; oldest 0.3536, 1/4 0.3536, middle 0.3536, 3/4 0.3536, newest 0.0000
+  == fl_only.ac3
+out L: rms -9.030792 dBFS, peak 0.5000 (241152 frames, 5.024 s output)
+out R: rms -118.785581 dBFS, peak 0.0000 (241152 frames, 5.024 s output)
+W strip: 1200 entries x 40 samples = 48000 samples = 1.000 s at 48 kHz; non-zero 1200; max 0.5000; oldest 0.5000, 1/4 0.5000, middle 0.5000, 3/4 0.5000, newest 0.0000
+  == ramp_L.wav speed 1
+out L: rms -11.343039 dBFS, peak 0.6200 (192000 frames, 4.000 s output)
+out R: rms -inf dBFS, peak 0.0000 (192000 frames, 4.000 s output)
+W strip: 1200 entries x 40 samples = 48000 samples = 1.000 s at 48 kHz; non-zero 1200; max 0.6500; oldest 0.5001, 1/4 0.5376, middle 0.5751, 3/4 0.6126, newest 0.6500
+  == ramp_L.wav speed 2
+out L: rms -11.812893 dBFS, peak 0.5660 (92160 frames, 1.920 s output)
+out R: rms -inf dBFS, peak 0.0000 (92160 frames, 1.920 s output)
+W strip: 1200 entries x 40 samples = 48000 samples = 1.000 s at 48 kHz; non-zero 1200; max 0.6260; oldest 0.3265, 1/4 0.4019, middle 0.4763, 3/4 0.5512, newest 0.6260
+  == r_only.wav
+out L: rms -inf dBFS, peak 0.0000 (192000 frames, 4.000 s output)
+out R: rms -9.030881 dBFS, peak 0.5000 (192000 frames, 4.000 s output)
+W strip: 1200 entries x 40 samples = 48000 samples = 1.000 s at 48 kHz; non-zero 0; max 0.0000; oldest 0.0000, 1/4 0.0000, middle 0.0000, 3/4 0.0000, newest 0.0000
+### 1a. decode return codes per set-up and damage (decode_errors)
+h264.mp4 sw1 none: decoder h264, 120 packets read, 121 sends, 120 frames out (0 VT, 120 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x121
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 0 error lines, 0 warning lines; first distinct errors:
+h264.mp4 sw1 flip: decoder h264, 120 packets read, 121 sends, 120 frames out (0 VT, 120 SW), 12 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 12, slices 2)
+  send_packet returns:  [0 "ok"] x121
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 4 error lines, 0 warning lines; first distinct errors:
+h264.mp4 sw1 flip1: decoder h264, 120 packets read, 121 sends, 120 frames out (0 VT, 120 SW), 1 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 1, slices 0)
+  send_packet returns:  [0 "ok"] x121
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 0 error lines, 0 warning lines; first distinct errors:
+h264.mp4 sw1 flipkey: decoder h264, 120 packets read, 121 sends, 120 frames out (0 VT, 120 SW), 1 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 1, slices 1)
+  send_packet returns:  [0 "ok"] x121
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 2 error lines, 0 warning lines; first distinct errors:
+h264.mp4 sw1 trunc: decoder h264, 120 packets read, 121 sends, 108 frames out (0 VT, 108 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x109  [-1094995529 "Invalid data found when processing input"] x12
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 32 error lines, 0 warning lines; first distinct errors:
+h264.mp4 sw1 drop: decoder h264, 120 packets read, 109 sends, 108 frames out (0 VT, 108 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x109
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x108  [-541478725 "End of file"] x1
+  av_log: 8 error lines, 0 warning lines; first distinct errors:
+h264.mp4 sw1 garbage: decoder h264, 120 packets read, 121 sends, 118 frames out (0 VT, 118 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x119  [-1094995529 "Invalid data found when processing input"] x2
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 5 error lines, 0 warning lines; first distinct errors:
+h264.mp4 swmt none: decoder h264, 120 packets read, 121 sends, 120 frames out (0 VT, 120 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x121
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 0 error lines, 0 warning lines; first distinct errors:
+h264.mp4 swmt flip: decoder h264, 120 packets read, 121 sends, 120 frames out (0 VT, 120 SW), 9 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 9, slices 2)
+  send_packet returns:  [0 "ok"] x121
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 4 error lines, 0 warning lines; first distinct errors:
+h264.mp4 swmt flip1: decoder h264, 120 packets read, 121 sends, 120 frames out (0 VT, 120 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x121
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 0 error lines, 0 warning lines; first distinct errors:
+h264.mp4 swmt flipkey: decoder h264, 120 packets read, 121 sends, 120 frames out (0 VT, 120 SW), 1 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 1, slices 1)
+  send_packet returns:  [0 "ok"] x121
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 2 error lines, 0 warning lines; first distinct errors:
+h264.mp4 swmt trunc: decoder h264, 120 packets read, 121 sends, 104 frames out (0 VT, 104 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x110  [-1094995529 "Invalid data found when processing input"] x11
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-1094995529 "Invalid data found when processing input"] x1
+  av_log: 32 error lines, 0 warning lines; first distinct errors:
+h264.mp4 swmt drop: decoder h264, 120 packets read, 109 sends, 108 frames out (0 VT, 108 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x109
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x108  [-541478725 "End of file"] x1
+  av_log: 8 error lines, 0 warning lines; first distinct errors:
+h264.mp4 swmt garbage: decoder h264, 120 packets read, 121 sends, 118 frames out (0 VT, 118 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x119  [-1094995529 "Invalid data found when processing input"] x2
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 5 error lines, 0 warning lines; first distinct errors:
+h264.mp4 vt none: decoder h264, 120 packets read, 121 sends, 120 frames out (120 VT, 0 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x121
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 0 error lines, 0 warning lines; first distinct errors:
+h264.mp4 vt flip: decoder h264, 120 packets read, 121 sends, 20 frames out (20 VT, 0 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x23  [-1313558101 "Unknown error occurred"] x92  [-542398533 "Generic error in an external library"] x6
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-542398533 "Generic error in an external library"] x1
+  av_log: 99 error lines, 92 warning lines; first distinct errors:
+h264.mp4 vt flip1: decoder h264, 120 packets read, 121 sends, 95 frames out (95 VT, 0 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x96  [-1313558101 "Unknown error occurred"] x23  [-542398533 "Generic error in an external library"] x2
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 25 error lines, 23 warning lines; first distinct errors:
+h264.mp4 vt flipkey: decoder h264, 120 packets read, 121 sends, 88 frames out (88 VT, 0 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x89  [-1313558101 "Unknown error occurred"] x30  [-542398533 "Generic error in an external library"] x2
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 32 error lines, 30 warning lines; first distinct errors:
+h264.mp4 vt trunc: decoder h264, 120 packets read, 121 sends, 108 frames out (108 VT, 0 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x109  [-1094995529 "Invalid data found when processing input"] x12
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 32 error lines, 0 warning lines; first distinct errors:
+h264.mp4 vt drop: decoder h264, 120 packets read, 109 sends, 108 frames out (108 VT, 0 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x109
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x108  [-541478725 "End of file"] x1
+  av_log: 8 error lines, 0 warning lines; first distinct errors:
+h264.mp4 vt garbage: decoder h264, 120 packets read, 121 sends, 118 frames out (118 VT, 0 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x119  [-1094995529 "Invalid data found when processing input"] x2
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 5 error lines, 0 warning lines; first distinct errors:
+hevc.mp4 sw1 none: decoder hevc, 120 packets read, 121 sends, 120 frames out (0 VT, 120 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x121
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 0 error lines, 0 warning lines; first distinct errors:
+hevc.mp4 sw1 flip: decoder hevc, 120 packets read, 121 sends, 120 frames out (0 VT, 120 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x121
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 0 error lines, 0 warning lines; first distinct errors:
+hevc.mp4 sw1 flip1: decoder hevc, 120 packets read, 121 sends, 120 frames out (0 VT, 120 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x121
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 0 error lines, 0 warning lines; first distinct errors:
+hevc.mp4 sw1 flipkey: decoder hevc, 120 packets read, 121 sends, 120 frames out (0 VT, 120 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x121
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 1 error lines, 1 warning lines; first distinct errors:
+hevc.mp4 sw1 trunc: decoder hevc, 120 packets read, 121 sends, 28 frames out (0 VT, 28 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x109  [-1094995529 "Invalid data found when processing input"] x12
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 184 error lines, 80 warning lines; first distinct errors:
+hevc.mp4 sw1 drop: decoder hevc, 120 packets read, 109 sends, 28 frames out (0 VT, 28 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x109
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x108  [-541478725 "End of file"] x1
+  av_log: 160 error lines, 80 warning lines; first distinct errors:
+hevc.mp4 sw1 garbage: decoder hevc, 120 packets read, 121 sends, 97 frames out (0 VT, 97 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x119  [-1094995529 "Invalid data found when processing input"] x2
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 46 error lines, 21 warning lines; first distinct errors:
+hevc.mp4 swmt none: decoder hevc, 120 packets read, 121 sends, 120 frames out (0 VT, 120 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x121
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 0 error lines, 0 warning lines; first distinct errors:
+hevc.mp4 swmt flip: decoder hevc, 120 packets read, 121 sends, 120 frames out (0 VT, 120 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x121
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 0 error lines, 0 warning lines; first distinct errors:
+hevc.mp4 swmt flip1: decoder hevc, 120 packets read, 121 sends, 120 frames out (0 VT, 120 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x121
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 0 error lines, 0 warning lines; first distinct errors:
+hevc.mp4 swmt flipkey: decoder hevc, 120 packets read, 121 sends, 120 frames out (0 VT, 120 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x121
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 1 error lines, 1 warning lines; first distinct errors:
+hevc.mp4 swmt trunc: decoder hevc, 120 packets read, 121 sends, 26 frames out (0 VT, 26 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x110  [-1094995529 "Invalid data found when processing input"] x11
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-1094995529 "Invalid data found when processing input"] x1
+  av_log: 184 error lines, 80 warning lines; first distinct errors:
+hevc.mp4 swmt drop: decoder hevc, 120 packets read, 109 sends, 28 frames out (0 VT, 28 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x109
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x108  [-541478725 "End of file"] x1
+  av_log: 160 error lines, 80 warning lines; first distinct errors:
+hevc.mp4 swmt garbage: decoder hevc, 120 packets read, 121 sends, 97 frames out (0 VT, 97 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x119  [-1094995529 "Invalid data found when processing input"] x2
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 46 error lines, 21 warning lines; first distinct errors:
+hevc.mp4 vt none: decoder hevc, 120 packets read, 121 sends, 120 frames out (120 VT, 0 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x121
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 0 error lines, 0 warning lines; first distinct errors:
+hevc.mp4 vt flip: decoder hevc, 120 packets read, 121 sends, 28 frames out (28 VT, 0 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x23  [-1313558101 "Unknown error occurred"] x92  [-542398533 "Generic error in an external library"] x6
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x36  [-542398533 "Generic error in an external library"] x85
+  av_log: 183 error lines, 92 warning lines; first distinct errors:
+hevc.mp4 vt flip1: decoder hevc, 120 packets read, 121 sends, 97 frames out (97 VT, 0 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x96  [-1313558101 "Unknown error occurred"] x23  [-542398533 "Generic error in an external library"] x2
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x99  [-542398533 "Generic error in an external library"] x21  [-541478725 "End of file"] x1
+  av_log: 46 error lines, 23 warning lines; first distinct errors:
+hevc.mp4 vt flipkey: decoder hevc, 120 packets read, 121 sends, 90 frames out (90 VT, 0 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x89  [-1313558101 "Unknown error occurred"] x30  [-542398533 "Generic error in an external library"] x2
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x92  [-542398533 "Generic error in an external library"] x28  [-541478725 "End of file"] x1
+  av_log: 60 error lines, 30 warning lines; first distinct errors:
+hevc.mp4 vt trunc: decoder hevc, 120 packets read, 121 sends, 28 frames out (28 VT, 0 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x109  [-1094995529 "Invalid data found when processing input"] x12
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 184 error lines, 80 warning lines; first distinct errors:
+hevc.mp4 vt drop: decoder hevc, 120 packets read, 109 sends, 28 frames out (28 VT, 0 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x109
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x108  [-541478725 "End of file"] x1
+  av_log: 160 error lines, 80 warning lines; first distinct errors:
+hevc.mp4 vt garbage: decoder hevc, 120 packets read, 121 sends, 97 frames out (97 VT, 0 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  send_packet returns:  [0 "ok"] x119  [-1094995529 "Invalid data found when processing input"] x2
+  receive_frame loop ended with:  [-35 "Resource temporarily unavailable"] x120  [-541478725 "End of file"] x1
+  av_log: 46 error lines, 21 warning lines; first distinct errors:
+  frame threads, EOF drain stopped at the first error vs continued:
+h264.mp4 swmt trunc: decoder h264, 120 packets read, 121 sends, 104 frames out (0 VT, 104 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+h264.mp4 swmt trunc: decoder h264, 120 packets read, 121 sends, 108 frames out (0 VT, 108 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+  VT session creation failure (8192x4320 H.264):
+      log[40] [h264 @ 0x903054380] VideoToolbox malfunction.
+      log[16] [h264 @ 0x903054380] Failed setup for format videotoolbox_vld: hwaccel initialisation returned error.
+h264_8k.mp4 vt none: decoder h264, 6 packets read, 7 sends, 6 frames out (0 VT, 6 SW), 0 with decode_error_flags/CORRUPT (0 CORRUPT; flags: invalid_bitstream 0, missing_ref 0, concealment 0, slices 0)
+    [h264 @ 0x903054380] Failed setup for format videotoolbox_vld: hwaccel initialisation returned error.
+  VT after one damaged P-frame (trace):
+    pkt   6 send 0, frames so far 5, loop end -35
+      log[24] [h264 @ 0xac2c4c380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+      log[16] [h264 @ 0xac2c4c380] hardware accelerator failed to decode picture
+    pkt   7 DAMAGED send -1313558101, frames so far 5, loop end -35
+      log[40] [h264 @ 0xac2c4c380] VideoToolbox decoder needs reconfig, restarting..
+      log[24] [h264 @ 0xac2c4c380] vt decoder cb: output image buffer is null: -12909, reconfig 1
+      log[16] [h264 @ 0xac2c4c380] hardware accelerator failed to decode picture
+    pkt   8 send -1313558101, frames so far 5, loop end -35
+    pkt  29 send -1313558101, frames so far 5, loop end -35
+      log[40] [h264 @ 0xac2c4c380] VideoToolbox decoder needs reconfig, restarting..
+      log[16] [h264 @ 0xac2c4c380] No frame decoded?
+    pkt  30 KEY send -542398533, frames so far 5, loop end -35
+      log[16] [h264 @ 0xac2c4c380] No frame decoded?
+    pkt  31 send -542398533, frames so far 5, loop end -35
+    pkt  32 send 0, frames so far 6, loop end -35
+### 1b. ffmpeg CLI on the noise-damaged file
+  ffmpeg (software):
+   1 [in#0/mov,mp4,m4a,3gp,3g2,mj2 @ …]   Input stream #0:0 (video): 120 packets read (1442548 bytes); 117 frames decoded; 3 decode errors; 
+   8 [vist#0:0/h264 @ …] [dec:h264 @ …] corrupt decoded frame
+  ffmpeg -hwaccel videotoolbox:
+   1 [in#0/mov,mp4,m4a,3gp,3g2,mj2 @ …]   Input stream #0:0 (video): 120 packets read (1442548 bytes); 38 frames decoded; 82 decode errors; 
+   1 [vist#0:0/h264 @ …] [dec:h264 @ …] Decode error rate 0.683333 exceeds maximum 0.666667
+### 1c. FFmpeg calls on a null / never-opened context
+  avcodec_flush_buffers(NULL)                      killed by signal 11 (Segmentation fault: 11)
+  avcodec_flush_buffers(unopened ctx)              killed by signal 11 (Segmentation fault: 11)
+  avcodec_receive_frame(NULL, frame)               killed by signal 11 (Segmentation fault: 11)
+  avcodec_receive_frame(unopened ctx, frame)       returned -22 (Invalid argument)
+  avcodec_send_packet(NULL, pkt)                   killed by signal 11 (Segmentation fault: 11)
+  avcodec_send_packet(unopened ctx, pkt)           returned -22 (Invalid argument)

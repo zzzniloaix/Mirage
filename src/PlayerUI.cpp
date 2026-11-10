@@ -365,7 +365,7 @@ PlayerUIState PlayerUI::build(const PlayerUIInputs& in)
     // Mini progress line when the chrome is hidden.
     showing_mini_ = mini_progress_ && ui_alpha_ < 0.01f && in.duration > 0.0;
     if (showing_mini_) {
-        const float x = static_cast<float>(std::clamp(in.cur_pts / in.duration, 0.0, 1.0)) * win_w;
+        const float x = static_cast<float>(ui::bar_fraction(in.cur_pts, in.start, in.duration)) * win_w;
         bg->AddRectFilled(ImVec2(0, win_h - 2.0f), ImVec2(win_w, win_h), IM_COL32(255, 255, 255, 38));
         bg->AddRectFilled(ImVec2(0, win_h - 2.0f), ImVec2(x, win_h), th::alpha(th::kAccent, 0.85f));
     }
@@ -601,6 +601,7 @@ void PlayerUI::build_controls(const PlayerUIInputs& in, PlayerUIState& out,
     // ── Seek bar ──────────────────────────────────────────────────────────────
     ui::SeekBarIn sbi;
     sbi.dur              = in.duration;
+    sbi.start            = in.start;
     sbi.cur              = in.cur_pts;
     sbi.buffered_end     = in.buffered_end_pts;
     sbi.kf_pts           = in.kf_pts;
@@ -622,7 +623,7 @@ void PlayerUI::build_controls(const PlayerUIInputs& in, PlayerUIState& out,
 
     double fps = in.fps;
     if (tc_mode_ == 1 && !(fps > 0.0)) tc_mode_ = 2;
-    const std::string tc = ui::format_timecode(in.cur_pts, in.duration, tc_mode_, fps);
+    const std::string tc = ui::format_timecode(in.cur_pts, in.start, in.duration, tc_mode_, fps);
     const float tc_w = ui::timecode_width(tc, mono);
     const float vol_w = 80.0f * vol_expand_;
 
@@ -707,10 +708,10 @@ void PlayerUI::build_controls(const PlayerUIInputs& in, PlayerUIState& out,
     x += 8.0f;
     ImGui::SetCursorScreenPos(ImVec2(x, btn_y));
     if (ui::timecode("##tc", tc, mono)) {
-        tc_mode_ = (tc_mode_ + 1) % 3;
+        tc_mode_ = (tc_mode_ + 1) % 4;
         if (tc_mode_ == 1 && !(fps > 0.0)) tc_mode_ = 2;
     }
-    ui::tooltip(in.duration > 0.0 ? "Click: time / frames / remaining" : nullptr);
+    ui::tooltip(in.duration > 0.0 ? "Click: time / frames / remaining / PTS" : nullptr);
 
     // ── Right pill: speed chip, CC, settings, overlays, fullscreen ────────────
     const bool  show_speed = in.speed != 1.0;
@@ -1115,7 +1116,9 @@ void PlayerUI::build_open_card(const PlayerUIInputs& in, PlayerUIState& out, flo
 
 void PlayerUI::draw_hover_card(const PlayerUIInputs& in, const ui::SeekBarOut& sb, float win_w)
 {
-    const double t = std::clamp(static_cast<double>(sb.hover_frac), 0.0, 1.0) * in.duration;
+    // The position under the cursor, and its PTS (the thumbnails').
+    const double pos = std::clamp(static_cast<double>(sb.hover_frac), 0.0, 1.0) * in.duration;
+    const double t   = ui::pts_at(pos, in.start);
     const float  hx = sb.track_min.x + sb.hover_frac * (sb.track_max.x - sb.track_min.x);
     ImDrawList* dl = ImGui::GetWindowDrawList();
     dl->PushClipRectFullScreen();
@@ -1128,10 +1131,10 @@ void PlayerUI::draw_hover_card(const PlayerUIInputs& in, const ui::SeekBarOut& s
     if (in.thumbs) thumb = in.thumbs->nearest_at_or_before(t, in.thumbs->preview_max_gap());
 
     // Chip: time, plus a KF line when a thumbnail is shown.
-    const std::string tline = ui::format_clock(t, hours);
+    const std::string tline = ui::format_clock(pos, hours);
     std::string kline;
     if (thumb) {
-        kline = "KF " + ui::format_clock(thumb->pts, hours) + " · I";
+        kline = "KF " + ui::format_clock(ui::position(thumb->pts, in.start), hours) + " · I";
         if (t - thumb->pts > 0.5) kline += std::format("  (+{:.1f} s)", t - thumb->pts);
     }
     const ImVec2 ts = mono->CalcTextSizeA(13.0f, FLT_MAX, 0.0f, tline.c_str());

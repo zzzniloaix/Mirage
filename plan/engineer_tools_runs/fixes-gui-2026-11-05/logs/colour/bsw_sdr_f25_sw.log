@@ -1,0 +1,245 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  Opening plan/engineer_tools_runs/investigate-2026-11-03/render/clips/bsw_sdr.ts (t=0.375)
+[INFO]  Demuxer: avformat_open_input 6 ms (1 streams, 1 programs) (t=0.381)
+[INFO]  Demuxer: avformat_find_stream_info 2 ms (t=0.384)
+[WARN]  No audio stream found
+[INFO]  Container: MPEG-TS (MPEG-2 Transport Stream)
+[INFO]  Duration:  00:00:03
+[INFO]  Video:     hevc 448×128 @ 25.000 fps  pixel_fmt=yuv420p10le
+[INFO]  Decoder opened: hevc (448×128)  [SW: 13 threads]
+[INFO]  Opened plan/engineer_tools_runs/investigate-2026-11-03/render/clips/bsw_sdr.ts in 43 ms (t=0.418)
+[INFO]  VideoRenderer: 448×128 SDR (yuv420p10le → RGB24 sRGB)  matrix=BT.709  limited-range
+[INFO]  Subtitles: 0 choice(s); initial off (none available)
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=0.426)
+[INFO]  ThumbnailStrip: open 4 ms, probe 3 ms (t=0.428)
+[INFO]  ScrubDecoder: ready (open 4 ms, probe 3 ms) (t=0.429)
+[INFO]  ThumbnailStrip: 7 keyframes found, decoding 7 thumbnails (stride 0.01 s, 160 px tall)
+[INFO]  ThumbnailStrip: coarse pass done (1 thumbnails)
+[INFO]  first-frame: pts=1.480 448x128 software, 11 ms after open (t=0.433)
+[hevc @ 0xba223d500] Could not find ref with POC 0
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d880] Could not find ref with POC 0
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d500] Could not find ref with POC 0
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d880] Could not find ref with POC 0
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d500] Could not find ref with POC 3
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d880] Could not find ref with POC 5
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d500] Could not find ref with POC 5
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d880] Could not find ref with POC 5
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d500] Could not find ref with POC 5
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d880] Could not find ref with POC 8
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d500] Could not find ref with POC 10
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d880] Could not find ref with POC 10
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d500] Could not find ref with POC 10
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d880] Could not find ref with POC 12
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d500] Could not find ref with POC 14
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d880] Could not find ref with POC 14
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d500] Could not find ref with POC 16
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d880] Could not find ref with POC 17
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d500] Could not find ref with POC 18
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d880] Could not find ref with POC 18
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d500] Could not find ref with POC 18
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d500] Could not find ref with POC 21
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 9
+[hevc @ 0xba223d880] Could not find ref with POC 21
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 8
+[hevc @ 0xba223d500] Could not find ref with POC 23
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 8
+[hevc @ 0xba223d500] Could not find ref with POC 0
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d880] Could not find ref with POC 0
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d500] Could not find ref with POC 0
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d880] Could not find ref with POC 3
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d500] Could not find ref with POC 5
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d880] Could not find ref with POC 5
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d500] Could not find ref with POC 5
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d880] Could not find ref with POC 5
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d500] Could not find ref with POC 8
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d880] Could not find ref with POC 10
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d500] Could not find ref with POC 10
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d880] Could not find ref with POC 10
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d500] Could not find ref with POC 12
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d880] Could not find ref with POC 14
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d500] Could not find ref with POC 14
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d880] Could not find ref with POC 16
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d500] Could not find ref with POC 17
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d880] Could not find ref with POC 18
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d500] Could not find ref with POC 18
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d880] Could not find ref with POC 18
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d880] Could not find ref with POC 21
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 9
+[hevc @ 0xba223d500] Could not find ref with POC 21
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 8
+[hevc @ 0xba223d880] Could not find ref with POC 23
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 8
+[hevc @ 0xba223d500] Could not find ref with POC 0
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d880] Could not find ref with POC 0
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d500] Could not find ref with POC 3
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d880] Could not find ref with POC 5
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d500] Could not find ref with POC 5
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d880] Could not find ref with POC 5
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d500] Could not find ref with POC 5
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d880] Could not find ref with POC 8
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d500] Could not find ref with POC 10
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d880] Could not find ref with POC 10
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d500] Could not find ref with POC 10
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d880] Could not find ref with POC 12
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d500] Could not find ref with POC 14
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d880] Could not find ref with POC 14
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d500] Could not find ref with POC 16
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d880] Could not find ref with POC 17
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d500] Could not find ref with POC 18
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d880] Could not find ref with POC 18
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 1
+[hevc @ 0xba223d500] Could not find ref with POC 18
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d500] Could not find ref with POC 21
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 9
+[hevc @ 0xba223d880] Could not find ref with POC 21
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 8
+[hevc @ 0xba223d500] Could not find ref with POC 23
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 8
+[hevc @ 0xba223d500] Could not find ref with POC 69
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d880] Could not find ref with POC 69
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d500] Could not find ref with POC 72
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d500] Could not find ref with POC 69
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d880] Could not find ref with POC 72
+[hevc @ 0xba223d880] Error constructing the frame RPS.
+[hevc @ 0xba223d880] Skipping invalid undecodable NALU: 0
+[hevc @ 0xba223d500] Could not find ref with POC 72
+[hevc @ 0xba223d500] Error constructing the frame RPS.
+[hevc @ 0xba223d500] Skipping invalid undecodable NALU: 0
+[INFO]  ThumbnailStrip: decode complete (4 thumbnails)
+[INFO]  --snapshot: wrote <scratch>/gui3/colour/bsw_sdr_f25_sw.png (2560×731, frame 25)

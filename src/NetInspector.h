@@ -43,9 +43,12 @@ public:
         int                   playing_variant = -1; // index into manifest->variants(), −1 unknown
         double                cur_pts  = 0.0;
         double                duration = 0.0;
+        // Where positions count from (UiFormat.h): the Manifest tab's tag
+        // times are positions; cur_pts and seek_to are absolute PTS.
+        double                start    = 0.0;
     };
     struct Out {
-        double seek_to   = -1.0;   // tag row clicked in the Manifest tab
+        double seek_to   = -1.0;   // PTS of the tag row clicked in the Manifest tab
         bool   close     = false;  // × clicked
         bool   width_set = false;  // the user resized it (or reset the width): user_width() to keep
     };

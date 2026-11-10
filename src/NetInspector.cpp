@@ -3,6 +3,7 @@
 #include "ManifestParser.h"
 #include "NetInspectorUi.h"
 #include "NetworkLogger.h"
+#include "UiFormat.h"
 
 #include <algorithm>
 #include <set>
@@ -1212,9 +1213,11 @@ void NetInspector::draw_manifest(const Inputs& in, Out& out, float w, float h)
         ImGui::TableSetupColumn("Tag",   ImGuiTableColumnFlags_WidthFixed, 150.0f);
         ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
         ImGui::TableHeadersRow();
+        // Tag times count from 0, the playlist's start: positions, not PTS.
+        const double cur_pos = ui::position(in.cur_pts, in.start);
         int current = -1;
         for (int i = 0; i < static_cast<int>(tags.size()); ++i)
-            if (tags[static_cast<std::size_t>(i)].pts <= in.cur_pts + 0.05) current = i;
+            if (tags[static_cast<std::size_t>(i)].pts <= cur_pos + 0.05) current = i;
         for (int i = 0; i < static_cast<int>(tags.size()); ++i) {
             const auto& t = tags[static_cast<std::size_t>(i)];
             ImGui::TableNextRow(ImGuiTableRowFlags_None, 20.0f);
@@ -1224,7 +1227,7 @@ void NetInspector::draw_manifest(const Inputs& in, Out& out, float w, float h)
             const int s = static_cast<int>(t.pts);
             if (ImGui::Selectable(std::format("{}:{:02}.{}", s / 60, s % 60, static_cast<int>((t.pts - s) * 10.0)).c_str(),
                                   false, ImGuiSelectableFlags_SpanAllColumns))
-                out.seek_to = t.pts;
+                out.seek_to = ui::pts_at(t.pts, in.start);
             if (ImGui::IsItemHovered()) ui::tooltip("Click to seek");
             ImGui::PopID();
             ImGui::TableSetColumnIndex(1);
