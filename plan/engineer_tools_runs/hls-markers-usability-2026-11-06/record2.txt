@@ -1,0 +1,88 @@
+$ git rev-parse HEAD
+7b647a180d630bacadada24191080a37f349ec26
+[exit status 0]
+
+$ git status --porcelain
+[exit status 0]
+
+$ sw_vers
+ProductName:		macOS
+ProductVersion:		26.6.2
+BuildVersion:		25G83
+[exit status 0]
+
+$ sh -c ioreg -n Root -d1 -a | plutil -extract IOConsoleUsers xml1 -o - - | grep -A1 CGSSessionScreenIsLocked
+[exit status 1]
+
+$ cmake --build --preset macos-debug
+ninja: no work to do.
+[exit status 0]
+
+$ cmake --build --preset macos-headless
+ninja: no work to do.
+[exit status 0]
+
+$ sh tests/hlsmarkers_demo.sh <repo>/build/macos-debug/mirage_hlscheck <scratch>/hlsfix-rec2/demo
+[INFO]  ConformProbe: master.m3u8 — 4 playlists, 0 segments read, 0 sized, 0.0 MB in 0.0 s: 0 errors, 0 warnings
+
+markers: 1 splice points over 4 playlists, reference v0 360p
+  break-1                   6.000 s  marked in 4, missing in 0, 2 off  [com.apple.hls.interstitial]
+  and 1 other EXT-X-DATERANGE (no interstitial CLASS or SCTE-35: not splice points, not checked; in up to 3 playlists; listed in --json)
+1 error, 1 warning, 0 notes
+ERROR break-1: #EXT-X-CUE-MARKER in audio aac/English is one segment early
+      Line 11: it comes before segment #2 at 4.011 s (0:04.011), −1.989 s from the event at 6.000 s (0:06.000) (EXT-X-DATERANGE START-DATE in v0 360p). The boundary nearest the event is 6.016 s (0:06.016) (segment #3), +16 ms from it. A player splices audio aac/English 2.005 s away from the renditions that mark it there.
+warn  break-1: START-DATE is +300 ms off a segment boundary in v2 1080p
+      Line 11: START-DATE falls at 6.300 s (0:06.300); the nearest boundary is 6.000 s (0:06.000) (segment #3). A player splicing the interstitial there cuts inside a segment, or moves the cut to a boundary 300 ms away.
+
+package and reports: <scratch>/hlsfix-rec2/demo (mirage_hlscheck exit status 1)
+[exit status 0]
+
+$ python3 -I plan/engineer_tools_runs/hls-markers-usability-2026-11-06/make_inputs.py <scratch>/hlsfix-rec2 <scratch>/hlsfix-rec2/demo
+inputs in <scratch>/hlsfix-rec2
+[exit status 0]
+
+$ sh -c cd '<scratch>/hlsfix-rec2' && '<repo>/build/macos-debug/mirage_hlscheck' --markers-only --marker-tag EXT-X-CUE-MARKER --json cli_tails.json tails/master.m3u8 > cli_tails.txt
+[exit status 1]
+
+$ uptime
+15:19  up 7 days, 23:49, 5 users, load averages: 39.08 13.53 8.92
+[exit status 0]
+
+$ (cd <scratch>/hlsfix-rec2 && HOME=<scratch>/hlsfix-rec2/home <repo>/build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-net markers_only=1,marker_tags=EXT-X-CUE-MARKER,marker_open=0,conform_out=tab_tails.json,hls=tails/master.m3u8 --ui-snapshot <scratch>/hlsfix-rec2/tails_b1.png 30 > tails_b1.log)
+[exit status 0]
+
+$ cmp <scratch>/hlsfix-rec2/cli_tails.json <scratch>/hlsfix-rec2/tab_tails.json
+[exit status 0]
+
+$ uptime
+15:19  up 7 days, 23:49, 5 users, load averages: 39.08 13.53 8.92
+[exit status 0]
+
+$ (cd <scratch>/hlsfix-rec2 && HOME=<scratch>/hlsfix-rec2/home <repo>/build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-net markers_only=1,marker_tags=EXT-X-CUE-MARKER,marker_open=1,hls=tails/master.m3u8 --ui-snapshot <scratch>/hlsfix-rec2/tails_b2.png 30 > tails_b2.log)
+[exit status 0]
+
+$ sh -c cd '<scratch>/hlsfix-rec2' && '<repo>/build/macos-debug/mirage_hlscheck' --markers-only --marker-tag EXT-X-CUE-MARKER --json cli_names.json names/master.m3u8 > cli_names.txt
+[exit status 1]
+
+$ uptime
+15:19  up 7 days, 23:49, 5 users, load averages: 38.75 13.89 9.07
+[exit status 0]
+
+$ (cd <scratch>/hlsfix-rec2 && HOME=<scratch>/hlsfix-rec2/home <repo>/build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-net markers_only=1,marker_tags=EXT-X-CUE-MARKER,marker_open=1,conform_out=tab_names.json,hls=names/master.m3u8 --ui-snapshot <scratch>/hlsfix-rec2/names_b2.png 30 > names_b2.log)
+[exit status 0]
+
+$ cmp <scratch>/hlsfix-rec2/cli_names.json <scratch>/hlsfix-rec2/tab_names.json
+[exit status 0]
+
+$ sh tests/hlsmarkers_gui.sh build/macos-debug <scratch>/hlsfix-rec2/guitest
+PASS: checked from the launch screen; the tab's report is mirage_hlscheck's
+output: <scratch>/hlsfix-rec2/guitest
+[exit status 0]
+
+$ git status --porcelain
+[exit status 0]
+
+$ uptime
+15:20  up 7 days, 23:49, 5 users, load averages: 34.51 14.18 9.26
+[exit status 0]
+

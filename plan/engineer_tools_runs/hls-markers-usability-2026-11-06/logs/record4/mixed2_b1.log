@@ -1,0 +1,37 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  ConformProbe: mixed2/master.m3u8 — 33 playlists, 0 segments read, 0 sized, 0.0 MB in 0.0 s: 0 errors, 0 warnings
+[INFO]  conform_out: wrote tab_mixed2.json
+[INFO]  conformance: card break-1 row: dd CODA 64K
+[INFO]  conformance: card break-1 row: v0 720p
+[INFO]  conformance: card break-1 row: aa CODA 128K
+[INFO]  conformance: card break-1 row: aa CODA 64K
+[INFO]  conformance: card break-1 row: aa CODB
+[INFO]  conformance: card break-1 row: bb-CC CODA 128K
+[INFO]  conformance: card break-1 row: bb-CC CODA 64K
+[INFO]  conformance: card break-1 row: bb-CC CODB
+[INFO]  conformance: card break-1 row: dd CODA 128K
+[INFO]  conformance: card break-1 row: dd CODB
+[INFO]  conformance: card break-1 row: ee-419 CODA 128K
+[INFO]  conformance: card break-1 row: ee-419 CODA 64K
+[INFO]  conformance: card break-1 row: ee-419 CODB
+[INFO]  conformance: card break-1 row: ff CODA 128K
+[INFO]  conformance: card break-1 row: ff CODA 64K
+[INFO]  conformance: card break-1 row: ff CODB
+[INFO]  conformance: card break-1 row: gg-HH CODA 128K
+[INFO]  conformance: card break-1 row: gg-HH CODA 64K
+[INFO]  conformance: card break-1 row: gg-HH CODB
+[INFO]  conformance: card break-1 row: ii CODA 128K
+[INFO]  conformance: card break-1 row: ii CODA 64K
+[INFO]  conformance: card break-1 row: ii CODB
+[INFO]  conformance: card break-1 row: jj-KK CODA 128K
+[INFO]  conformance: card break-1 row: jj-KK CODA 64K
+[INFO]  conformance: card break-1 row: jj-KK CODB
+[INFO]  conformance: card break-1 row: ll CODA 128K
+[INFO]  conformance: card break-1 row: ll CODA 64K
+[INFO]  conformance: card break-1 row: ll CODB
+[INFO]  conformance: card break-1 row: mm CODA 128K
+[INFO]  conformance: card break-1 row: mm CODA 64K
+[INFO]  conformance: card break-1 row: mm CODB
+[INFO]  conformance: card break-1 row: aa DESC CODA 128K
+[INFO]  conformance: card break-1 row: bb-CC DESC CODA 128K
+[INFO]  ui-snapshot: wrote <scratch>/hlsfix-rec4/mixed2_b1.png (launcher)

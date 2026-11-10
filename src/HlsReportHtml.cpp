@@ -431,7 +431,9 @@ if (MK) {
   for (const ev of splices) {
     let worst = "ok";
     for (const p of ev.places) if ((RANK[p.severity] ?? 9) < RANK[worst]) worst = p.severity;
-    if (ev.missing.length && RANK[worst] > RANK.warning) worst = "warning";
+    // Each missing marker's grade (D-102); a report from before it has none: warnings.
+    const missSev = ev.missing_severity || ev.missing.map(() => "warning");
+    for (const s of missSev) if ((RANK[s] ?? 9) < RANK[worst]) worst = s;
     let scale = MK.slack * 4;
     for (const p of ev.places) if (fin(p.off)) scale = Math.max(scale, Math.abs(p.off) * 1.15);
     const tb = h("tbody");
@@ -448,9 +450,9 @@ if (MK) {
         h("td", {}, gauge(p.off, p.severity, scale, MK.slack)),
         h("td", {}, pill(p.severity))));
     }
-    for (const m of ev.missing)
+    ev.missing.forEach((m, i) =>
       tb.append(h("tr", {}, h("td", {}, label(m)), h("td", { class: "muted", colspan: "5" }, "carries the tag elsewhere, but not this break"),
-        h("td", {}, pill("warning", "Missing"))));
+        h("td", {}, pill(missSev[i] || "warning", "Missing")))));
     evWrap.append(h("div", { class: "event" },
       h("div", { class: "eh" }, pill(worst, worst === "ok" ? "Aligned" : sevOf(worst).label),
         h("span", { class: "id" }, ev.id), h("span", { class: "when" }, when(ev.time)),

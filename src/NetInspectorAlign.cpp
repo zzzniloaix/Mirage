@@ -774,10 +774,12 @@ void NetInspector::draw_alignment(const Inputs& in, Out& out, float w, float h)
                         marker_tip = std::format("{} · #{} at {:.3f} s\n{:+.0f} ms from the boundary nearest the break ({})",
                                                  ev.id, p.tag, p.at, p.off * 1000.0, hls::severity_name(p.sev));
                 }
-                for (const int k : ev.missing) {
+                for (std::size_t mi = 0; mi < ev.missing.size(); ++mi) {
+                    const int k = ev.missing[mi];
                     if (k < 0 || k >= n) continue;
+                    const hls::Severity ms = mi < ev.missing_sev.size() ? ev.missing_sev[mi] : hls::Severity::Warning;
                     const float yc = tp.y + kAxisH + k * kRowH + (kRowH - 5.0f) * 0.5f;
-                    cdl->AddCircle(ImVec2(xe, yc), 4.5f, C(sev_color(hls::Severity::Warning)), 12, 1.5f);
+                    cdl->AddCircle(ImVec2(xe, yc), 4.5f, C(sev_color(ms)), 12, 1.5f);
                     if (tl_hov && std::fabs(io.MousePos.x - xe) <= 5.0f && std::fabs(io.MousePos.y - yc) <= 8.0f)
                         marker_tip = std::format("{}: no marker in this rendition, which carries the tag elsewhere", ev.id);
                 }

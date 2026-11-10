@@ -204,13 +204,22 @@ public:
 
     bool mini_progress() const { return mini_progress_; }
 
-    // Show the launch screen. Returns non-empty path/URL when the user has chosen
-    // a file (via Browse, Enter, or recent-file click), or empty string each frame
-    // while still waiting.
-    // error_msg: optional red banner shown above the URL input — used to surface
-    //            "failed to open …" after a previous attempt failed.
-    std::string draw_launcher(const std::vector<std::string>& recents,
-                              const std::string& error_msg = {});
+    // What the launch screen's user chose this frame.
+    struct LauncherOut {
+        std::string open;            // a path / URL to open (Browse, Enter, a recent file); empty while waiting
+        bool check_stream = false;   // "Check a stream without playing it": the inspector's Conformance tab
+        bool check_failed = false;   // the error banner's "Check it": the source that failed, in that tab
+    };
+
+    // Show the launch screen.
+    // error_msg:   optional red banner shown above the URL input — used to surface
+    //              "failed to open …" after a previous attempt failed.
+    // offer_check: the source that failed is a playlist (HLS / DASH): the banner
+    //              offers to check it.
+    // right_inset: logical px the network inspector takes on the right; the card
+    //              centres in the rest.
+    LauncherOut draw_launcher(const std::vector<std::string>& recents, const std::string& error_msg = {},
+                              bool offer_check = false, float right_inset = 0.0f);
 
     // Loading card shown instead of the launcher while a source opens on a
     // worker thread: spinner, `what` (the media title), `detail` (dim, e.g.

@@ -3,6 +3,7 @@
 // Pure formatting / layout helpers for the player UI. No ImGui or GL here so
 // they can be unit-tested in mirage_tests.
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -65,5 +66,35 @@ std::vector<float> decimate_ticks(const std::vector<double>& kf, double start, d
 // Index of the last element <= t in the ascending `pts`, or -1 when there is
 // none or when t - pts[idx] > max_gap.
 int index_at_or_before(const std::vector<double>& pts, double t, double max_gap);
+
+// `s` cut in the middle to fit max_w as `width` measures it: its head, "…"
+// and its tail, as many whole UTF-8 characters of each as fit (the tail gets
+// the odd one). `s` itself when it fits; "…" when no character does.
+std::string ellipsize_middle(const std::string& s, float max_w,
+                             const std::function<float(const std::string&)>& width);
+
+// What tells a group's labels apart: each label without the longest prefix
+// and suffix, in whole tokens (split at ' ', '/', '_', '-', '.'), that every
+// label of its group shares. A group is the labels with the same head up to
+// and including the first '/' ("audio aud/"). The head is kept, and "…"
+// marks each end dropped. A label alone in its group, or one with no '/',
+// comes back whole. The result is in the order of `labels`.
+std::vector<std::string> distinct_labels(const std::vector<std::string>& labels);
+
+// A narrow column's rows for `labels`, grouped as distinct_labels groups
+// them. In a group of two or more, a row keeps the name's tokens (split at
+// ' ', '/' and '_', so "cmn-TW" and "5.1" stay whole), each once and in
+// order, except:
+//  * a token every name has;
+//  * a token at least 80% of the names have, the most common first, each
+//    only if every row stays non-empty and unlike the others without it;
+//  * a token that comes in exactly the same names as one before it.
+// The tokens kept are joined by spaces. Then the ends every row still
+// shares go, as distinct_labels drops them. The group's head is dropped:
+// the caller shows the kind. A group in which the first rule leaves a row
+// empty, or two rows alike, gets distinct_labels' rows without the head
+// instead. A label with no '/' comes back whole, and a label alone in its
+// group without its head. In the order of `labels`.
+std::vector<std::string> row_labels(const std::vector<std::string>& labels);
 
 } // namespace ui

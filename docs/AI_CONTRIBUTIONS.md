@@ -97,6 +97,22 @@ The branch `feat/hls-markers` (PR #7), on `feat/engineer-tools-followups`. Every
 - **Statements in commit messages that no committed record backs**, none of them amended:
   - `906bf5e` (its message written for `a47df08`, on the branch over the player fixes): "The demo package's JSON report is byte-identical; its text gains one line" and "Headless 471 and debug 472 cases pass". Scratch runs on that other branch, not committed; on this branch `plan/engineer_tools_runs/hls-markers-2026-11-05/` has the tests' run.
   - `8810ec4`: "the JSON written is unchanged" by the report refactor. A scratch run, not committed; the record compares the command line with the tab, not with the code before the refactor.
+- **The usability fixes (2026-11-06)**, on the branch `feat/hls-markers-usability`, from `feat/hls-markers`:
+  - **What the owner asked**: four usability fixes, relayed by the agent session that had used the marker check on encrypted packages, and the grade of a missing marker (D-102).
+  - **What the AI did**: the lead agent of `feat/player-fixes`, another session, did all of it.
+    - It planned the fixes under D-095 (`plan/hls_markers_usability.md`, `71d263a`) and audited the plan against the code. Five line references and one source were corrected.
+    - It made the fixes in `2eab999` and wrote the record's scripts (`efed1c7`) and the records. Then it made section 3's fixes 2 (`506f7bb`, `2d08592`, `7b647a1`), 3 (`1e82174`, `9ca5b66`, `a218aad`) and 4 (`13103df`, `99b9f2f`, `47b6a46`), and their records.
+    - It asked the owner the one question the plan left open: the grade of a missing marker.
+  - **What it got wrong on the way**, both caught in scratch runs before the commit:
+    - The plan's first rule for the Rendition column (up to 45% of the card) pushed the offsets and the gauge out of view at the inspector's automatic width.
+    - The first `qa_idle()` waited for a result version that a hidden tab never syncs, so a failed open's capture hung until the alarm.
+    - The plan and P-086 say what replaced them.
+    - Twice for section 3, caught after the commits on the owner's packages, by the session that had reported the issues:
+      - The cut in the middle (`2eab999`) did not tell those renditions apart, and neither did dropping the shared ends (`2d08592`). Their NAMEs carry the language at the head and three codec families' tails.
+      - Each time the agent's own made-up package had a shape the fix suited.
+      - Fix 3 (`9ca5b66`) was checked first on a made-up package of the owner's shape, the record's mixed package.
+      - Then the owner asked whether the agent could not check on the real packages itself. It found them on the machine and checked fix 3 there, locally and with no request. Every row was unique, but '.' had split "5.1", and a role token most labels had pushed the codec into the cut. Fix 4 (`99b9f2f`) followed, checked on the same packages. Nothing of them is in the repository.
+  - **What the owner decided**: D-102, adopting the agent's recommendation.
 - **Pending owner confirmation**: the owner's review of these commits and of this section.
 
 ## VMAF code

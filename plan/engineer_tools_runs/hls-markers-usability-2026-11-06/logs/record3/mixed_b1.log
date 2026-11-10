@@ -1,0 +1,35 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  ConformProbe: mixed/master.m3u8 — 31 playlists, 0 segments read, 0 sized, 0.0 MB in 0.0 s: 0 errors, 0 warnings
+[INFO]  conform_out: wrote tab_mixed.json
+[INFO]  conformance: card break-1 row: dd CODB STEREO 128K
+[INFO]  conformance: card break-1 row: v0 720p
+[INFO]  conformance: card break-1 row: aa CODA L51 1 256K
+[INFO]  conformance: card break-1 row: aa CODB STEREO 128K
+[INFO]  conformance: card break-1 row: aa CODC L71 1 1000K
+[INFO]  conformance: card break-1 row: bb-CC CODA L51 1 256K
+[INFO]  conformance: card break-1 row: bb-CC CODB STEREO 128K
+[INFO]  conformance: card break-1 row: bb-CC CODC L71 1 1000K
+[INFO]  conformance: card break-1 row: dd CODA L51 1 256K
+[INFO]  conformance: card break-1 row: dd CODC L71 1 1000K
+[INFO]  conformance: card break-1 row: ee-419 CODA L51 1 256K
+[INFO]  conformance: card break-1 row: ee-419 COD…STEREO 128K
+[INFO]  conformance: card break-1 row: ee-419 CODC L71 1 1000K
+[INFO]  conformance: card break-1 row: ff CODA L51 1 256K
+[INFO]  conformance: card break-1 row: ff CODB STEREO 128K
+[INFO]  conformance: card break-1 row: ff CODC L71 1 1000K
+[INFO]  conformance: card break-1 row: gg-HH CODA L51 1 256K
+[INFO]  conformance: card break-1 row: gg-HH CODB STEREO 128K
+[INFO]  conformance: card break-1 row: gg-HH CODC L71 1 1000K
+[INFO]  conformance: card break-1 row: ii CODA L51 1 256K
+[INFO]  conformance: card break-1 row: ii CODB STEREO 128K
+[INFO]  conformance: card break-1 row: ii CODC L71 1 1000K
+[INFO]  conformance: card break-1 row: jj-KK CODA L51 1 256K
+[INFO]  conformance: card break-1 row: jj-KK CODB STEREO 128K
+[INFO]  conformance: card break-1 row: jj-KK CODC L71 1 1000K
+[INFO]  conformance: card break-1 row: ll CODA L51 1 256K
+[INFO]  conformance: card break-1 row: ll CODB STEREO 128K
+[INFO]  conformance: card break-1 row: ll CODC L71 1 1000K
+[INFO]  conformance: card break-1 row: mm CODA L51 1 256K
+[INFO]  conformance: card break-1 row: mm CODB STEREO 128K
+[INFO]  conformance: card break-1 row: mm CODC L71 1 1000K
+[INFO]  ui-snapshot: wrote <scratch>/hlsfix-rec3/mixed_b1.png (launcher)

@@ -1,0 +1,351 @@
+$ git rev-parse HEAD
+efed1c740e09687f2d4bd6c79e5ebe7277dd738d
+[exit status 0]
+
+$ git status --porcelain
+[exit status 0]
+
+$ sw_vers
+ProductName:		macOS
+ProductVersion:		26.6.2
+BuildVersion:		25G83
+[exit status 0]
+
+$ sh -c ioreg -n Root -d1 -a | plutil -extract IOConsoleUsers xml1 -o - - | grep -A1 CGSSessionScreenIsLocked
+[exit status 1]
+
+$ cmake --build --preset macos-debug
+ninja: no work to do.
+[exit status 0]
+
+$ cmake --build --preset macos-headless
+ninja: no work to do.
+[exit status 0]
+
+$ sh tests/hlsmarkers_demo.sh <repo>/build/macos-debug/mirage_hlscheck <scratch>/hlsfix-rec/demo
+[INFO]  ConformProbe: master.m3u8 — 4 playlists, 0 segments read, 0 sized, 0.0 MB in 0.0 s: 0 errors, 0 warnings
+
+markers: 1 splice points over 4 playlists, reference v0 360p
+  break-1                   6.000 s  marked in 4, missing in 0, 2 off  [com.apple.hls.interstitial]
+  and 1 other EXT-X-DATERANGE (no interstitial CLASS or SCTE-35: not splice points, not checked; in up to 3 playlists; listed in --json)
+1 error, 1 warning, 0 notes
+ERROR break-1: #EXT-X-CUE-MARKER in audio aac/English is one segment early
+      Line 11: it comes before segment #2 at 4.011 s (0:04.011), −1.989 s from the event at 6.000 s (0:06.000) (EXT-X-DATERANGE START-DATE in v0 360p). The boundary nearest the event is 6.016 s (0:06.016) (segment #3), +16 ms from it. A player splices audio aac/English 2.005 s away from the renditions that mark it there.
+warn  break-1: START-DATE is +300 ms off a segment boundary in v2 1080p
+      Line 11: START-DATE falls at 6.300 s (0:06.300); the nearest boundary is 6.000 s (0:06.000) (segment #3). A player splicing the interstitial there cuts inside a segment, or moves the cut to a boundary 300 ms away.
+
+package and reports: <scratch>/hlsfix-rec/demo (mirage_hlscheck exit status 1)
+[exit status 0]
+
+$ python3 -I plan/engineer_tools_runs/hls-markers-usability-2026-11-06/make_inputs.py <scratch>/hlsfix-rec <scratch>/hlsfix-rec/demo
+inputs in <scratch>/hlsfix-rec
+[exit status 0]
+
+$ sh -c cd '<scratch>/hlsfix-rec' && '<repo>/build/macos-debug/mirage_hlscheck' --markers-only --marker-tag EXT-X-CUE-MARKER --json cli_demo.json demo/master.m3u8 > cli_demo.txt
+[exit status 1]
+
+$ uptime
+15:05  up 7 days, 23:35, 5 users, load averages: 5.04 7.68 7.06
+[exit status 0]
+
+$ (cd <scratch>/hlsfix-rec && HOME=<scratch>/hlsfix-rec/home <repo>/build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-net markers_only=1,marker_tags=EXT-X-CUE-MARKER,marker_open=0,conform_out=tab_demo.json,conform_html=tab_demo.html,hls=demo/master.m3u8 --ui-snapshot <scratch>/hlsfix-rec/launcher_demo.png 30 > launcher_demo.log)
+[exit status 0]
+
+$ cmp <scratch>/hlsfix-rec/cli_demo.json <scratch>/hlsfix-rec/tab_demo.json
+[exit status 0]
+
+$ grep -E ui-snapshot|conform_out|conformance: <scratch>/hlsfix-rec/launcher_demo.log
+[INFO]  conform_out: wrote tab_demo.json
+[INFO]  conformance: wrote tab_demo.html
+[INFO]  ui-snapshot: wrote <scratch>/hlsfix-rec/launcher_demo.png (launcher)
+[exit status 0]
+
+$ sh tests/hlsmarkers_gui.sh build/macos-debug <scratch>/hlsfix-rec/guitest
+PASS: checked from the launch screen; the tab's report is mirage_hlscheck's
+output: <scratch>/hlsfix-rec/guitest
+[exit status 0]
+
+$ uptime
+15:06  up 7 days, 23:35, 5 users, load averages: 6.02 7.77 7.10
+[exit status 0]
+
+$ (cd <scratch>/hlsfix-rec && HOME=<scratch>/hlsfix-rec/home <repo>/build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-net tab=network --ui-snapshot <scratch>/hlsfix-rec/launcher_network.png 30 > launcher_network.log)
+[exit status 0]
+
+$ uptime
+15:06  up 7 days, 23:35, 5 users, load averages: 6.02 7.77 7.10
+[exit status 0]
+
+$ (cd <scratch>/hlsfix-rec && HOME=<scratch>/hlsfix-rec/home <repo>/build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-net tab=manifest --ui-snapshot <scratch>/hlsfix-rec/launcher_manifest.png 30 > launcher_manifest.log)
+[exit status 0]
+
+$ uptime
+15:06  up 7 days, 23:35, 5 users, load averages: 6.02 7.77 7.10
+[exit status 0]
+
+$ (cd <scratch>/hlsfix-rec && HOME=<scratch>/hlsfix-rec/home <repo>/build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-net tab=alignment --ui-snapshot <scratch>/hlsfix-rec/launcher_alignment.png 30 > launcher_alignment.log)
+[exit status 0]
+
+$ uptime
+15:06  up 7 days, 23:36, 5 users, load averages: 5.94 7.72 7.09
+[exit status 0]
+
+$ (cd <scratch>/hlsfix-rec && HOME=<scratch>/hlsfix-rec/home <repo>/build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-snapshot <scratch>/hlsfix-rec/enc_fail.png 30 enc/master.m3u8 > enc_fail.log)
+[exit status 0]
+
+$ grep -E avformat_open_input|ui-snapshot <scratch>/hlsfix-rec/enc_fail.log
+[ERROR] avformat_open_input failed: Invalid data found when processing input
+[INFO]  ui-snapshot: wrote <scratch>/hlsfix-rec/enc_fail.png (launcher, after a failed open)
+[exit status 0]
+
+$ uptime
+15:06  up 7 days, 23:36, 5 users, load averages: 5.94 7.72 7.09
+[exit status 0]
+
+$ (cd <scratch>/hlsfix-rec && HOME=<scratch>/hlsfix-rec/home <repo>/build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-snapshot <scratch>/hlsfix-rec/mpd_fail.png 30 mpd/manifest.mpd > mpd_fail.log)
+[exit status 0]
+
+$ grep -E avformat_open_input|ui-snapshot <scratch>/hlsfix-rec/mpd_fail.log
+[ERROR] avformat_open_input failed: Invalid data found when processing input
+[INFO]  ui-snapshot: wrote <scratch>/hlsfix-rec/mpd_fail.png (launcher, after a failed open)
+[exit status 0]
+
+$ sh -c cd '<scratch>/hlsfix-rec' && '<repo>/build/macos-debug/mirage_hlscheck' --markers-only --marker-tag EXT-X-CUE-MARKER --json cli_enc.json enc/master.m3u8 > cli_enc.txt
+[exit status 1]
+
+$ uptime
+15:06  up 7 days, 23:36, 5 users, load averages: 5.87 7.67 7.07
+[exit status 0]
+
+$ (cd <scratch>/hlsfix-rec && HOME=<scratch>/hlsfix-rec/home <repo>/build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-net markers_only=1,marker_tags=EXT-X-CUE-MARKER,conform_out=tab_enc.json,hls=enc/master.m3u8 --ui-snapshot <scratch>/hlsfix-rec/launcher_enc.png 30 > launcher_enc.log)
+[exit status 0]
+
+$ cmp <scratch>/hlsfix-rec/cli_enc.json <scratch>/hlsfix-rec/tab_enc.json
+[exit status 0]
+
+$ sh -c cd '<scratch>/hlsfix-rec' && '<repo>/build/macos-debug/mirage_hlscheck' --markers-only --marker-tag EXT-X-CUE-MARKER --json cli_names.json --html cli_names.html names/master.m3u8
+[INFO]  ConformProbe: names/master.m3u8 — 5 playlists, 0 segments read, 0 sized, 0.0 MB in 0.0 s: 0 errors, 0 warnings
+
+markers: 2 splice points over 5 playlists, reference v0 720p
+  break-1                  12.000 s  marked in 5, missing in 0, 1 off  [com.apple.hls.interstitial]
+  break-2                  18.000 s  marked in 4, missing in 1  [com.apple.hls.interstitial]
+2 errors, 0 warnings, 0 notes
+ERROR break-1: #EXT-X-CUE-MARKER in audio aud/commentary-and-description-stereo-german is one segment early
+      Line 8: it comes before segment #1 at 6.000 s (0:06.000), −6.000 s from the event at 12.000 s (0:12.000) (EXT-X-DATERANGE START-DATE in v0 720p). The boundary nearest the event is 12.000 s (0:12.000) (segment #2), +0 ms from it. A player splices audio aud/commentary-and-description-stereo-german 6.000 s away from the renditions that mark it there.
+ERROR break-2: no #EXT-X-CUE-MARKER in audio aud/commentary-and-description-surround-english
+      audio aud/commentary-and-description-surround-english marks other events with #EXT-X-CUE-MARKER, but not this one at 18.000 s (0:18.000) (EXT-X-DATERANGE START-DATE in v0 720p): a player has no break to splice there in it.
+[exit status 1]
+
+$ uptime
+15:06  up 7 days, 23:36, 5 users, load averages: 5.87 7.67 7.07
+[exit status 0]
+
+$ (cd <scratch>/hlsfix-rec && HOME=<scratch>/hlsfix-rec/home <repo>/build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-net markers_only=1,marker_tags=EXT-X-CUE-MARKER,marker_open=0,conform_out=tab_names.json,hls=names/master.m3u8 --ui-snapshot <scratch>/hlsfix-rec/names_b1.png 30 > names_b1.log)
+[exit status 0]
+
+$ cmp <scratch>/hlsfix-rec/cli_names.json <scratch>/hlsfix-rec/tab_names.json
+[exit status 0]
+
+$ uptime
+15:06  up 7 days, 23:36, 5 users, load averages: 5.80 7.63 7.06
+[exit status 0]
+
+$ (cd <scratch>/hlsfix-rec && HOME=<scratch>/hlsfix-rec/home <repo>/build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-net markers_only=1,marker_tags=EXT-X-CUE-MARKER,marker_open=1,hls=names/master.m3u8 --ui-snapshot <scratch>/hlsfix-rec/names_b2.png 30 > names_b2.log)
+[exit status 0]
+
+$ uptime
+15:06  up 7 days, 23:36, 5 users, load averages: 5.80 7.63 7.06
+[exit status 0]
+
+$ (cd <scratch>/hlsfix-rec && HOME=<scratch>/hlsfix-rec/home <repo>/build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-net width=900,markers_only=1,marker_tags=EXT-X-CUE-MARKER,marker_open=1,hls=names/master.m3u8 --ui-snapshot <scratch>/hlsfix-rec/names_b2_wide.png 30 > names_b2_wide.log)
+[exit status 0]
+
+$ python3 -I plan/engineer_tools_runs/hls-markers-usability-2026-11-06/page_script.py <scratch>/hlsfix-rec/cli_names.html <scratch>/hlsfix-rec/page_check.js
+3 scripts; the last, 19697 characters, in <scratch>/hlsfix-rec/page_check.js
+[exit status 0]
+
+$ /System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Helpers/jsc <scratch>/hlsfix-rec/page_check.js
+parsed
+[exit status 0]
+
+$ grep -o -E "missing": \[[0-9, ]*\], "missing_severity": \[[^]]*\] <scratch>/hlsfix-rec/cli_names.html
+"missing": [], "missing_severity": []
+"missing": [4], "missing_severity": ["error"]
+[exit status 0]
+
+$ sh -c cd '<scratch>/hlsfix-rec' && '<repo>/build/macos-debug/mirage_hlscheck' --marker-tag EXT-X-CUE-MARKER --json cli_playing.json demo/master.m3u8 > cli_playing.txt
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] non-existing PPS 0 referenced
+[h264 @ 0xb75429880] no frame!
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[h264 @ 0xb75428000] non-existing PPS 0 referenced
+[exit status 1]
+
+$ uptime
+15:06  up 7 days, 23:36, 5 users, load averages: 6.05 7.65 7.07
+[exit status 0]
+
+$ (cd <scratch>/hlsfix-rec && HOME=<scratch>/hlsfix-rec/home <repo>/build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-net tab=conformance,conform=1,width=760,marker_tags=EXT-X-CUE-MARKER,marker_open=0,conform_out=tab_playing.json --ui-snapshot <scratch>/hlsfix-rec/tab_playing.png 300 demo/master.m3u8 > tab_playing.log)
+[exit status 0]
+
+$ cmp <scratch>/hlsfix-rec/cli_playing.json <scratch>/hlsfix-rec/tab_playing.json
+[exit status 0]
+
+$ git status --porcelain
+[exit status 0]
+
+$ uptime
+15:06  up 7 days, 23:36, 5 users, load averages: 5.88 7.56 7.05
+[exit status 0]
+

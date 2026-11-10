@@ -72,7 +72,9 @@ const char* kUsage =
     "  --quiet                 the findings only\n"
     "  --help\n"
     "\n"
-    "exit status: 0 no error found, 1 errors found, 2 not checked\n";
+    "exit status: 0 no error found, 1 errors found, 2 not checked\n"
+    "Scripts should read the exit status and --json. The table and the summary\n"
+    "line (\"1 error, 2 warnings, ...\") are for reading and may change.\n";
 
 const char* mark(const hls::Cell& c)
 {

@@ -1,0 +1,10 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  Opening mpd/manifest.mpd (t=0.200)
+[INFO]  ManifestParser: parsed DASH MPD — 0 tags, 1 variants from mpd/manifest.mpd
+[dash @ 0x9cc549400] Failed to open fragment of playlist
+[dash @ 0x9cc549400] Error when loading first fragment of playlist
+[ERROR] avformat_open_input failed: Invalid data found when processing input
+[INFO]  Opened mpd/manifest.mpd in 21 ms (t=0.221)
+[INFO]  MediaSession: closing mpd/manifest.mpd
+[INFO]  MediaSession: threads stopped (0 ms)
+[INFO]  ui-snapshot: wrote <scratch>/hlsfix-rec/mpd_fail.png (launcher, after a failed open)

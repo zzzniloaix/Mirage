@@ -1,0 +1,5 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  ConformProbe: demo/master.m3u8 — 4 playlists, 0 segments read, 0 sized, 0.0 MB in 0.0 s: 0 errors, 0 warnings
+[INFO]  conform_out: wrote tab_demo.json
+[INFO]  conformance: wrote tab_demo.html
+[INFO]  ui-snapshot: wrote <scratch>/hlsfix-rec/launcher_demo.png (launcher)

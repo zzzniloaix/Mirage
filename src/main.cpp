@@ -1043,6 +1043,21 @@ int main(int argc, char* argv[])
     // with an error banner instead of exiting — a bad URL shouldn't kill the app.
     std::unique_ptr<MediaSession> session;
     std::string   launcher_err;
+    std::string   launcher_failed;   // the source of launcher_err, when it is a playlist the inspector can check
+    // The launcher shows the network inspector too (N, or its "Check a
+    // stream" link): an HLS master or an MPD is checked there with nothing
+    // playing. QA: --ui-net with no media argument is applied there, once;
+    // --ui-snapshot captures the launcher when there is nothing to play (no
+    // media given, or its open failed), once the inspector's QA work is idle
+    // and <frame> frames later, as a session waits for its first frame (after
+    // 300 s of waiting, with a warning).
+    const bool no_media_arg = open_path.empty();
+    if (no_media_arg && !cli.ui_net.empty()) {
+        s_show_network.store(true);
+        app.net_inspector.qa_apply(cli.ui_net);
+    }
+    int    launcher_snap_frames = 0;
+    double launcher_snap_since  = -1.0;
 
     while (!session) {
         if (open_path.empty()) {
@@ -1053,6 +1068,11 @@ int main(int argc, char* argv[])
                     break;
                 }
                 glfwPollEvents();
+                net_logger.poll();   // byte counts of the inspector's requests in flight
+                if (s_show_network.load() && s_escape.load() > 0) {   // Esc closes the inspector
+                    s_escape.fetch_sub(1);
+                    s_show_network.store(false);
+                }
 
                 int fb_w, fb_h;
                 glfwGetFramebufferSize(window, &fb_w, &fb_h);
@@ -1061,9 +1081,50 @@ int main(int argc, char* argv[])
                 glClear(GL_COLOR_BUFFER_BIT);
 
                 player_ui.begin_frame();
-                open_path = player_ui.draw_launcher(app.recents, launcher_err);
+                const ImVec2 disp = ImGui::GetIO().DisplaySize;
+                const bool show_net = s_show_network.load();
+                const auto launcher = player_ui.draw_launcher(app.recents, launcher_err, !launcher_failed.empty(),
+                                                              show_net ? app.net_inspector.dock_width(disp.x) : 0.0f);
+                open_path = launcher.open;
+                if (launcher.check_stream) {
+                    s_show_network.store(true);
+                    app.net_inspector.open_conformance();
+                }
+                if (launcher.check_failed) {
+                    s_show_network.store(true);
+                    app.net_inspector.check_url(launcher_failed, ManifestParser::is_dash(launcher_failed));
+                }
+                if (show_net) {
+                    NetInspector::Inputs ni;   // nothing playing: no manifest, no media URL
+                    ni.log = &net_logger;
+                    const auto net_out = app.net_inspector.draw(ni, disp.x, disp.y);
+                    if (net_out.close) s_show_network.store(false);
+                    if (net_out.width_set && app.prefs_enabled) {   // the sidebar width the user chose, kept
+                        app.prefs.net_width = app.net_inspector.user_width();
+                        save_prefs(app.prefs);
+                    }
+                }
                 player_ui.end_frame();
 
+                if (!cli.ui_snap_path.empty() && (no_media_arg || !launcher_err.empty())) {
+                    if (launcher_snap_since < 0.0) launcher_snap_since = glfwGetTime();
+                    const bool idle = app.net_inspector.qa_idle();
+                    if (idle || glfwGetTime() - launcher_snap_since >= 300.0) ++launcher_snap_frames;
+                    if (launcher_snap_frames >= cli.ui_snap_frame) {
+                        if (!idle) logger::warn("ui-snapshot: timeout waiting for the network inspector's check");
+                        glFinish();
+                        std::vector<std::uint8_t> px(static_cast<std::size_t>(fb_w) * fb_h * 4);
+                        glReadBuffer(GL_BACK);
+                        glPixelStorei(GL_PACK_ALIGNMENT, 1);
+                        glReadPixels(0, 0, fb_w, fb_h, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
+                        for (auto i = 3u; i < px.size(); i += 4) px[i] = 255;
+                        stbi_flip_vertically_on_write(1);
+                        const int ok = stbi_write_png(cli.ui_snap_path.c_str(), fb_w, fb_h, 4, px.data(), fb_w * 4);
+                        logger::info("ui-snapshot: wrote {} (launcher{})", cli.ui_snap_path,
+                                     launcher_err.empty() ? "" : ", after a failed open");
+                        std::exit(ok ? 0 : 1);
+                    }
+                }
                 glfwSwapBuffers(window);
             }
             if (open_path.empty()) return quit();   // the window closed without a choice
@@ -1073,6 +1134,8 @@ int main(int argc, char* argv[])
         // playlist can take many seconds); a failure returns to the launcher
         // with the error, Cancel / Esc returns to it without one.
         launcher_err.clear();
+        launcher_failed.clear();
+        std::string opening = open_path;            // what is being opened
         begin_open(app, open_path);
         open_path.clear();
         while (app.opening && !glfwWindowShouldClose(window)) {
@@ -1080,6 +1143,7 @@ int main(int argc, char* argv[])
             if (session || !app.opening) break;
             if (!g_drop_pending.empty()) {          // a drop replaces the open
                 begin_open(app, g_drop_pending);
+                opening = g_drop_pending;
                 g_drop_pending.clear();
             }
             glfwWaitEventsTimeout(1.0 / 60.0);
@@ -1112,6 +1176,9 @@ int main(int argc, char* argv[])
             }
             glfwSwapBuffers(window);
         }
+        // A playlist that failed to open (a DRM master, or any MPD with this
+        // FFmpeg): the launcher offers to check it in the inspector.
+        if (!session && !launcher_err.empty() && ManifestParser::is_manifest(opening)) launcher_failed = opening;
         if (glfwWindowShouldClose(window)) {
             session.reset();
             cancel_open(app);

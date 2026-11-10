@@ -57,16 +57,11 @@ void NetInspector::qa_apply(const std::string& spec)
         const auto eq = item.find('=');
         const std::string k = item.substr(0, eq), v = eq == std::string::npos ? "" : item.substr(eq + 1);
         if (k == "hls") {    // the rest of the spec, commas and all: a master URL
-            std::snprintf(hls_url_, sizeof(hls_url_), "%s", spec.substr(pos + 4).c_str());
-            tab_ = Tab::Conformance;
-            conform_dash_ = false;
-            qa_hls_ = true;
+            check_url(spec.substr(pos + 4), false);
             break;
         }
         if (k == "dash") {   // the rest of the spec, commas and all: an MPD URL
-            std::snprintf(dash_url_, sizeof(dash_url_), "%s", spec.substr(pos + 5).c_str());
-            tab_ = Tab::Conformance;
-            conform_dash_ = qa_dash_ = true;
+            check_url(spec.substr(pos + 5), true);
             break;
         }
         if (k == "tab")      tab_ = v == "manifest" ? Tab::Manifest : v == "alignment" ? Tab::Alignment

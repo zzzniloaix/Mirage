@@ -1,0 +1,230 @@
+$ git rev-parse HEAD
+47b6a4666ed3365c7281a90adf16d82cff858f02
+[exit status 0]
+
+$ git status --porcelain
+[exit status 0]
+
+$ sw_vers
+ProductName:		macOS
+ProductVersion:		26.6.2
+BuildVersion:		25G83
+[exit status 0]
+
+$ sh -c ioreg -n Root -d1 -a | plutil -extract IOConsoleUsers xml1 -o - - | grep -A1 CGSSessionScreenIsLocked
+[exit status 1]
+
+$ cmake --build --preset macos-debug
+ninja: no work to do.
+[exit status 0]
+
+$ cmake --build --preset macos-headless
+ninja: no work to do.
+[exit status 0]
+
+$ sh tests/hlsmarkers_demo.sh <repo>/build/macos-debug/mirage_hlscheck <scratch>/hlsfix-rec4/demo
+[INFO]  ConformProbe: master.m3u8 — 4 playlists, 0 segments read, 0 sized, 0.0 MB in 0.0 s: 0 errors, 0 warnings
+
+markers: 1 splice points over 4 playlists, reference v0 360p
+  break-1                   6.000 s  marked in 4, missing in 0, 2 off  [com.apple.hls.interstitial]
+  and 1 other EXT-X-DATERANGE (no interstitial CLASS or SCTE-35: not splice points, not checked; in up to 3 playlists; listed in --json)
+1 error, 1 warning, 0 notes
+ERROR break-1: #EXT-X-CUE-MARKER in audio aac/English is one segment early
+      Line 11: it comes before segment #2 at 4.011 s (0:04.011), −1.989 s from the event at 6.000 s (0:06.000) (EXT-X-DATERANGE START-DATE in v0 360p). The boundary nearest the event is 6.016 s (0:06.016) (segment #3), +16 ms from it. A player splices audio aac/English 2.005 s away from the renditions that mark it there.
+warn  break-1: START-DATE is +300 ms off a segment boundary in v2 1080p
+      Line 11: START-DATE falls at 6.300 s (0:06.300); the nearest boundary is 6.000 s (0:06.000) (segment #3). A player splicing the interstitial there cuts inside a segment, or moves the cut to a boundary 300 ms away.
+
+package and reports: <scratch>/hlsfix-rec4/demo (mirage_hlscheck exit status 1)
+[exit status 0]
+
+$ python3 -I plan/engineer_tools_runs/hls-markers-usability-2026-11-06/make_inputs.py <scratch>/hlsfix-rec4 <scratch>/hlsfix-rec4/demo
+inputs in <scratch>/hlsfix-rec4
+[exit status 0]
+
+$ sh -c cd '<scratch>/hlsfix-rec4' && '<repo>/build/macos-debug/mirage_hlscheck' --markers-only --marker-tag EXT-X-CUE-MARKER --json cli_mixed2.json mixed2/master.m3u8 > cli_mixed2.txt
+[exit status 1]
+
+$ uptime
+15:59  up 8 days, 29 mins, 3 users, load averages: 7.06 7.74 10.19
+[exit status 0]
+
+$ (cd <scratch>/hlsfix-rec4 && HOME=<scratch>/hlsfix-rec4/home <repo>/build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-net markers_only=1,marker_tags=EXT-X-CUE-MARKER,marker_open=0,conform_out=tab_mixed2.json,hls=mixed2/master.m3u8 --ui-snapshot <scratch>/hlsfix-rec4/mixed2_b1.png 30 > mixed2_b1.log)
+[exit status 0]
+
+$ cmp <scratch>/hlsfix-rec4/cli_mixed2.json <scratch>/hlsfix-rec4/tab_mixed2.json
+[exit status 0]
+
+$ grep -E card .* row: <scratch>/hlsfix-rec4/mixed2_b1.log
+[INFO]  conformance: card break-1 row: dd CODA 64K
+[INFO]  conformance: card break-1 row: v0 720p
+[INFO]  conformance: card break-1 row: aa CODA 128K
+[INFO]  conformance: card break-1 row: aa CODA 64K
+[INFO]  conformance: card break-1 row: aa CODB
+[INFO]  conformance: card break-1 row: bb-CC CODA 128K
+[INFO]  conformance: card break-1 row: bb-CC CODA 64K
+[INFO]  conformance: card break-1 row: bb-CC CODB
+[INFO]  conformance: card break-1 row: dd CODA 128K
+[INFO]  conformance: card break-1 row: dd CODB
+[INFO]  conformance: card break-1 row: ee-419 CODA 128K
+[INFO]  conformance: card break-1 row: ee-419 CODA 64K
+[INFO]  conformance: card break-1 row: ee-419 CODB
+[INFO]  conformance: card break-1 row: ff CODA 128K
+[INFO]  conformance: card break-1 row: ff CODA 64K
+[INFO]  conformance: card break-1 row: ff CODB
+[INFO]  conformance: card break-1 row: gg-HH CODA 128K
+[INFO]  conformance: card break-1 row: gg-HH CODA 64K
+[INFO]  conformance: card break-1 row: gg-HH CODB
+[INFO]  conformance: card break-1 row: ii CODA 128K
+[INFO]  conformance: card break-1 row: ii CODA 64K
+[INFO]  conformance: card break-1 row: ii CODB
+[INFO]  conformance: card break-1 row: jj-KK CODA 128K
+[INFO]  conformance: card break-1 row: jj-KK CODA 64K
+[INFO]  conformance: card break-1 row: jj-KK CODB
+[INFO]  conformance: card break-1 row: ll CODA 128K
+[INFO]  conformance: card break-1 row: ll CODA 64K
+[INFO]  conformance: card break-1 row: ll CODB
+[INFO]  conformance: card break-1 row: mm CODA 128K
+[INFO]  conformance: card break-1 row: mm CODA 64K
+[INFO]  conformance: card break-1 row: mm CODB
+[INFO]  conformance: card break-1 row: aa DESC CODA 128K
+[INFO]  conformance: card break-1 row: bb-CC DESC CODA 128K
+[exit status 0]
+
+$ sh -c grep -E 'card .* row:' '<scratch>/hlsfix-rec4/mixed2_b1.log' | sed -E 's/.*row: //' | sort | uniq -d | wc -l
+       0
+[exit status 0]
+
+$ uptime
+15:59  up 8 days, 29 mins, 3 users, load averages: 8.01 7.92 10.24
+[exit status 0]
+
+$ (cd <scratch>/hlsfix-rec4 && HOME=<scratch>/hlsfix-rec4/home <repo>/build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-net markers_only=1,marker_tags=EXT-X-CUE-MARKER,marker_open=1,hls=mixed2/master.m3u8 --ui-snapshot <scratch>/hlsfix-rec4/mixed2_b2.png 30 > mixed2_b2.log)
+[exit status 0]
+
+$ grep -E card .* row: <scratch>/hlsfix-rec4/mixed2_b2.log
+[INFO]  conformance: card break-2 row: v0 720p
+[INFO]  conformance: card break-2 row: aa CODA 128K
+[INFO]  conformance: card break-2 row: aa CODA 64K
+[INFO]  conformance: card break-2 row: aa CODB
+[INFO]  conformance: card break-2 row: bb-CC CODA 128K
+[INFO]  conformance: card break-2 row: bb-CC CODA 64K
+[INFO]  conformance: card break-2 row: bb-CC CODB
+[INFO]  conformance: card break-2 row: dd CODA 128K
+[INFO]  conformance: card break-2 row: dd CODA 64K
+[INFO]  conformance: card break-2 row: dd CODB
+[INFO]  conformance: card break-2 row: ee-419 CODA 128K
+[INFO]  conformance: card break-2 row: ee-419 CODA 64K
+[INFO]  conformance: card break-2 row: ee-419 CODB
+[INFO]  conformance: card break-2 row: ff CODA 128K
+[INFO]  conformance: card break-2 row: ff CODA 64K
+[INFO]  conformance: card break-2 row: ff CODB
+[INFO]  conformance: card break-2 row: gg-HH CODA 128K
+[INFO]  conformance: card break-2 row: gg-HH CODA 64K
+[INFO]  conformance: card break-2 row: ii CODA 128K
+[INFO]  conformance: card break-2 row: ii CODA 64K
+[INFO]  conformance: card break-2 row: ii CODB
+[INFO]  conformance: card break-2 row: jj-KK CODA 128K
+[INFO]  conformance: card break-2 row: jj-KK CODA 64K
+[INFO]  conformance: card break-2 row: jj-KK CODB
+[INFO]  conformance: card break-2 row: ll CODA 128K
+[INFO]  conformance: card break-2 row: ll CODA 64K
+[INFO]  conformance: card break-2 row: ll CODB
+[INFO]  conformance: card break-2 row: mm CODA 128K
+[INFO]  conformance: card break-2 row: mm CODA 64K
+[INFO]  conformance: card break-2 row: mm CODB
+[INFO]  conformance: card break-2 row: aa DESC CODA 128K
+[INFO]  conformance: card break-2 row: bb-CC DESC CODA 128K
+[INFO]  conformance: card break-2 row: gg-HH CODB
+[exit status 0]
+
+$ sh -c grep -E 'card .* row:' '<scratch>/hlsfix-rec4/mixed2_b2.log' | sed -E 's/.*row: //' | sort | uniq -d | wc -l
+       0
+[exit status 0]
+
+$ uptime
+15:59  up 8 days, 29 mins, 3 users, load averages: 8.01 7.92 10.24
+[exit status 0]
+
+$ (cd <scratch>/hlsfix-rec4 && HOME=<scratch>/hlsfix-rec4/home <repo>/build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-net markers_only=1,marker_tags=EXT-X-CUE-MARKER,marker_open=0,hls=mixed/master.m3u8 --ui-snapshot <scratch>/hlsfix-rec4/mixed_b1.png 30 > mixed_b1.log)
+[exit status 0]
+
+$ grep -E card .* row: <scratch>/hlsfix-rec4/mixed_b1.log
+[INFO]  conformance: card break-1 row: dd CODB
+[INFO]  conformance: card break-1 row: v0 720p
+[INFO]  conformance: card break-1 row: aa CODA 1
+[INFO]  conformance: card break-1 row: aa CODB
+[INFO]  conformance: card break-1 row: aa CODC 1
+[INFO]  conformance: card break-1 row: bb-CC CODA 1
+[INFO]  conformance: card break-1 row: bb-CC CODB
+[INFO]  conformance: card break-1 row: bb-CC CODC 1
+[INFO]  conformance: card break-1 row: dd CODA 1
+[INFO]  conformance: card break-1 row: dd CODC 1
+[INFO]  conformance: card break-1 row: ee-419 CODA 1
+[INFO]  conformance: card break-1 row: ee-419 CODB
+[INFO]  conformance: card break-1 row: ee-419 CODC 1
+[INFO]  conformance: card break-1 row: ff CODA 1
+[INFO]  conformance: card break-1 row: ff CODB
+[INFO]  conformance: card break-1 row: ff CODC 1
+[INFO]  conformance: card break-1 row: gg-HH CODA 1
+[INFO]  conformance: card break-1 row: gg-HH CODB
+[INFO]  conformance: card break-1 row: gg-HH CODC 1
+[INFO]  conformance: card break-1 row: ii CODA 1
+[INFO]  conformance: card break-1 row: ii CODB
+[INFO]  conformance: card break-1 row: ii CODC 1
+[INFO]  conformance: card break-1 row: jj-KK CODA 1
+[INFO]  conformance: card break-1 row: jj-KK CODB
+[INFO]  conformance: card break-1 row: jj-KK CODC 1
+[INFO]  conformance: card break-1 row: ll CODA 1
+[INFO]  conformance: card break-1 row: ll CODB
+[INFO]  conformance: card break-1 row: ll CODC 1
+[INFO]  conformance: card break-1 row: mm CODA 1
+[INFO]  conformance: card break-1 row: mm CODB
+[INFO]  conformance: card break-1 row: mm CODC 1
+[exit status 0]
+
+$ sh -c grep -E 'card .* row:' '<scratch>/hlsfix-rec4/mixed_b1.log' | sed -E 's/.*row: //' | sort | uniq -d | wc -l
+       0
+[exit status 0]
+
+$ uptime
+15:59  up 8 days, 29 mins, 3 users, load averages: 8.09 7.94 10.24
+[exit status 0]
+
+$ (cd <scratch>/hlsfix-rec4 && HOME=<scratch>/hlsfix-rec4/home <repo>/build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-net markers_only=1,marker_tags=EXT-X-CUE-MARKER,marker_open=1,hls=tails/master.m3u8 --ui-snapshot <scratch>/hlsfix-rec4/tails_b2.png 30 > tails_b2.log)
+[exit status 0]
+
+$ grep -E card .* row: <scratch>/hlsfix-rec4/tails_b2.log
+[INFO]  conformance: card break-2 row: v0 720p
+[INFO]  conformance: card break-2 row: aa
+[INFO]  conformance: card break-2 row: bb
+[INFO]  conformance: card break-2 row: dd
+[INFO]  conformance: card break-2 row: cc
+[exit status 0]
+
+$ uptime
+15:59  up 8 days, 29 mins, 3 users, load averages: 8.09 7.94 10.24
+[exit status 0]
+
+$ (cd <scratch>/hlsfix-rec4 && HOME=<scratch>/hlsfix-rec4/home <repo>/build/macos-debug/mirage --qa-no-focus --window 1600x1000 --ui-net markers_only=1,marker_tags=EXT-X-CUE-MARKER,marker_open=1,hls=names/master.m3u8 --ui-snapshot <scratch>/hlsfix-rec4/names_b2.png 30 > names_b2.log)
+[exit status 0]
+
+$ grep -E card .* row: <scratch>/hlsfix-rec4/names_b2.log
+[INFO]  conformance: card break-2 row: v0 720p
+[INFO]  conformance: card break-2 row: …stereo-english
+[INFO]  conformance: card break-2 row: …stereo-french
+[INFO]  conformance: card break-2 row: …stereo-german
+[INFO]  conformance: card break-2 row: …surround-english
+[exit status 0]
+
+$ sh tests/hlsmarkers_gui.sh build/macos-debug <scratch>/hlsfix-rec4/guitest
+PASS: checked from the launch screen; the tab's report is mirage_hlscheck's
+output: <scratch>/hlsfix-rec4/guitest
+[exit status 0]
+
+$ git status --porcelain
+[exit status 0]
+
+$ uptime
+16:00  up 8 days, 29 mins, 3 users, load averages: 8.30 7.99 10.23
+[exit status 0]
+

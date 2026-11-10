@@ -1,0 +1,10 @@
+[INFO]  ConformProbe: names/master.m3u8 — 5 playlists, 0 segments read, 0 sized, 0.0 MB in 0.0 s: 0 errors, 0 warnings
+
+markers: 2 splice points over 5 playlists, reference v0 720p
+  break-1                  12.000 s  marked in 5, missing in 0, 1 off  [com.apple.hls.interstitial]
+  break-2                  18.000 s  marked in 4, missing in 1  [com.apple.hls.interstitial]
+2 errors, 0 warnings, 0 notes
+ERROR break-1: #EXT-X-CUE-MARKER in audio aud/commentary-and-description-stereo-german is one segment early
+      Line 8: it comes before segment #1 at 6.000 s (0:06.000), −6.000 s from the event at 12.000 s (0:12.000) (EXT-X-DATERANGE START-DATE in v0 720p). The boundary nearest the event is 12.000 s (0:12.000) (segment #2), +0 ms from it. A player splices audio aud/commentary-and-description-stereo-german 6.000 s away from the renditions that mark it there.
+ERROR break-2: no #EXT-X-CUE-MARKER in audio aud/commentary-and-description-surround-english
+      audio aud/commentary-and-description-surround-english marks other events with #EXT-X-CUE-MARKER, but not this one at 18.000 s (0:18.000) (EXT-X-DATERANGE START-DATE in v0 720p): a player has no break to splice there in it.
