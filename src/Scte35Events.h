@@ -1,15 +1,16 @@
 #pragma once
 
 // Decoded SCTE-35 messages as events, at their anchors (DECISIONS.md D-070,
-// D-106, D-109; WP05 of eval/phase3-survey/design.md §14, §5.1, §5.5, and its
-// follow-up WP05b, the owner's answers to what WP05 left open). Every message
-// that reaches it as a CueInput (src/PlaylistEvents.h), from any carrier, is
-// decoded (src/Scte35.h), classed, placed on the reference's frames by its
-// anchor's kind, merged into the plain cue it belongs to, and returned as
-// events: the cues for WP04's pair_breaks(), which pairs every cue, plain or
-// decoded (D-076, D-087), and the splice points, messages and cancellations
-// to add to the timeline. Core code (design §3.1): plain structs in and out,
-// nothing read or opened, libavutil at most. WP09c calls it from the build
+// D-106, D-109, D-110; WP05 of eval/phase3-survey/design.md §14, §5.1, §5.5,
+// and its follow-ups WP05b and WP05c, the owner's answers to what WP05 and
+// WP05b left open). Every message that reaches it as a CueInput
+// (src/PlaylistEvents.h), from any carrier, is decoded (src/Scte35.h),
+// classed, placed on the reference's frames by its anchor's kind, merged
+// into the plain cue it belongs to, and returned as events: the cues for
+// WP04's pair_breaks(), which pairs every cue, plain or decoded (D-076,
+// D-087), and the splice points, messages and cancellations to add to the
+// timeline. Core code (design §3.1): plain structs in and out, nothing read
+// or opened, libavutil at most. WP09c calls it from the build
 // (src/TimelineBuild.h), before pair_breaks(), with --cue-types and
 // --bad-crc (Q15, Q16) as MessageOptions. Unit-tested on sections the tests
 // build (tests/Scte35TestSections.h, tests/test_scte35_events.cpp; D-107).
@@ -82,10 +83,20 @@
 //   the in point, END-DATE or, without one, START-DATE plus DURATION (RFC
 //   8216 §4.3.2.7.1), of its own tag alone (D-109 (e)), since the tags of
 //   one ID share START-DATE, the break's start: an SCTE35-IN's START-DATE is
-//   recorded as the range's start, and set against nothing. The in point of
-//   an SCTE35-IN in the tag of its SCTE35-OUT, which that tag's cue_out takes
-//   (D-109 (b), below), is set against the tag's segment all the same (D-106
-//   (a)), so that a break that outlasts the tag's segment has its warning.
+//   recorded as the range's start, and set against nothing. A cue-in message
+//   that its tag's cue_out takes (D-110 (b), below) writes none of these
+//   warnings of its anchors, its in point and its splice times, which lie
+//   outside the tag's segment by their nature where its break outlasts the
+//   segment, nor that a date of its tag can't be set against the segment:
+//   they are recorded all the same, in_segment among them, as a
+//   CUE-OUT-CONT's message's are, and its splice times still make
+//   splice_points (D-110 (d)). A splice time of such a message that isn't
+//   placed still writes design §5.1's warning that its splice_point is left
+//   out (below), one after the last frame of its tag's discontinuity
+//   sequence among them, as an In Point's at the return to content is in a
+//   stitched break: D-110 (d) names the check against the tag's segment,
+//   and a CUE-OUT-CONT's message, which makes no splice_point, writes
+//   neither (D-109 (c)). As built, pending the owner.
 // - Merging (D-106 (d), Q44 (e)). A message a cue tag embeds (its SCTE35=
 //   attribute: forms "CUE-OUT SCTE35", "CUE-OUT-CONT SCTE35" and "CUE-IN
 //   SCTE35") is that tag's: it goes into the payload of the tag's plain cue,
@@ -110,39 +121,58 @@
 //   it, so that a time the others repeat makes none and writes no warning.
 //   Two cue_out messages that share none of the three, or that are of two
 //   segments, are two cue_outs, and a message whose segment isn't known is
-//   a signal of its own.
-// - A tag's SCTE35-OUT and SCTE35-IN (D-109 (b), Q64 option 2). An
-//   EXT-X-DATERANGE's SCTE35-IN in the tag of its SCTE35-OUT, in either
-//   order of the two, makes no cue_in of its own: the cue_out that takes
-//   the SCTE35-OUT, its own, its signal's or a plain one, takes the
-//   SCTE35-IN's record into its payload too, and the member kHeldCueInLine
-//   (src/PlaylistEvents.h), by which pair_breaks() ends its break at its
-//   declared duration, by D-076's order, the tag's DURATION or END-DATE
-//   first, and no later cue_in ends it. An SCTE35-IN whose tag's SCTE35-OUT
-//   makes no cue_out (it doesn't decode, its CRC policy drops it, it isn't
-//   a cue-out) is a cue_in of its own, as an SCTE35-IN of a tag of its own.
-//   Pending the owner, as built, the code saying so where it makes each: a
-//   cue_out that holds its tag's SCTE35-IN and declares no duration makes
-//   no ad_break, with pair_breaks()' warning, and the cue_in after it ends
-//   nothing, where it would end the break of a cue_out that held none,
-//   D-109 (b) saying nothing of a tag that declares none; a plain
-//   EXT-X-CUE-OUT that holds it ends at its own duration before the tag's
-//   DURATION; and two other messages of one tag that make a cue_out and
-//   then a cue_in, such as an SCTE35-CMD that starts a break and an
-//   SCTE35-IN, or an SCTE35-OUT and an SCTE35-CMD that ends it, are a
-//   cue_out and a cue_in at the tag's line, of which pair_breaks() makes an
-//   ad_break of no frames, the tag's DURATION ending nothing.
-// - Every other message is an event of its own class, a cue_in in an
-//   EXT-X-CUE-IN's segment included, since D-106 (d) names the cue-out only
-//   (D-109 (e)), as D-109 (a) does. A message with the classes cue_in and
-//   cue_out whose cue_out part an EXT-X-CUE-OUT of its segment takes, or its
-//   signal's cue_out, makes a cue_in of its own, one for a signal, the first
-//   of its messages' that has one, which ends the break before that
-//   cue_out's starts in either order of their tags: MediaLive writes the
-//   message's tag before the EXT-X-CUE-OUT and Wowza after it (scte35.md
-//   §2.4). That cue_in takes the cue_out's line where its own is later or
-//   null (D-109 (e)), and the cues go to pair_breaks() in the order
-//   cues_to_pair() gives, so that the pairing takes it first.
+//   a signal of its own. The cue_out messages that a plain EXT-X-CUE-OUT
+//   takes are signals in the same three ways, whose splice times make one
+//   splice_point each too (D-110 (e)).
+// - A tag's cue-out and cue-in messages (D-109 (b), D-110 (a), (b), Q64,
+//   Q68 and Q69 option 2). An EXT-X-DATERANGE's cue-in message, of the class
+//   cue_in alone, in the tag of a cue-out message, whichever of SCTE35-CMD,
+//   SCTE35-OUT and SCTE35-IN carries each and in either order of the two,
+//   makes no cue_in of its own: the cue_out that takes the tag's first
+//   cue-out message, its own, its signal's or a plain one, takes the cue-in
+//   message's record into its payload too, so that no ad_break of no frames
+//   comes of the two. That cue_out holds the cue-in message only where the
+//   tag itself declares DURATION or END-DATE, a duration finite and from 0,
+//   and no plain EXT-X-CUE-OUT takes its messages: it then has the member
+//   kHeldCueInLine (src/PlaylistEvents.h), by which pair_breaks() ends its
+//   break at its declared duration, by D-076's order, the tag's DURATION or
+//   END-DATE first, and no later cue_in ends it. Otherwise it pairs as
+//   D-076 has it: the next cue_in ends it, and without one its declared
+//   durations do, in D-076's order, so that a tag that declares no duration
+//   ends at the cue_in after it, and a plain EXT-X-CUE-OUT that takes the
+//   tag's messages at the next EXT-X-CUE-IN (D-110 (a)). A tag's duration
+//   that no AVRational holds exactly, which pair_breaks() can't end a break
+//   at, counts as declared all the same: its cue_out holds the cue-in
+//   message, and pair_breaks() makes no ad_break of it, with its warning,
+//   the cue_in after it ending nothing (declares(); as built, pending the
+//   owner). A cue-in message whose tag has no cue-out message that makes a
+//   cue_out (it doesn't decode, its CRC policy drops it, it isn't a
+//   cue-out), or whose own classes aren't cue_in alone, is a cue_in of its
+//   own, as one of a tag of its own (D-110 (f)).
+// - One cue_in per signal (D-110 (e), Q72 option 2). The cue-in messages
+//   that make a cue_in, every one but a cue tag's own and those their tags'
+//   cue_outs take (above), whether a plain EXT-X-CUE-OUT takes their cue_out
+//   part or not, are one signal where they are of one variant and one
+//   segment and share their section's bytes, an In Point's splice_event_id
+//   or a segmentation_event_id (of a descriptor that makes each a cue_in, an
+//   End type of the cue types, not cancelled), and where they are cue-out
+//   messages of one signal, whose cue_in is the first of its messages' that
+//   ends a break (D-110 (f)). Each signal makes one cue_in, its first
+//   message's in the messages' order, which takes the others' records into
+//   `messages`, none of their durations; their splice times make one
+//   splice_point each, the first message's that gives it. A cue-in message
+//   in an EXT-X-CUE-IN's segment is still a cue_in of its own, since D-106
+//   (d) names the cue-out only (D-109 (e)). A cue_in whose signal has a
+//   message with the classes cue_in and cue_out, whose cue_out part an
+//   EXT-X-CUE-OUT of its segment takes, or the cue_out of its signal of
+//   cue-out messages, joins that cue_out, the first by line if there are
+//   several: it ends the break before that cue_out's starts in either order
+//   of their tags, MediaLive writing the message's tag before the
+//   EXT-X-CUE-OUT and Wowza after it (scte35.md §2.4). It takes the
+//   cue_out's line where its own is later or null (D-109 (e)), and the cues
+//   go to pair_breaks() in the order cues_to_pair() gives, so that the
+//   pairing takes it first.
+// - Every other message is an event of its own class.
 // - A malformed EXT-X-DATERANGE (D-106 (e), Q47 option 2):
 //   parse_playlist_events() hands on each of its SCTE35-* attributes that is
 //   a well-formed hexadecimal-sequence, and keeps the tag as a `daterange`
@@ -174,15 +204,42 @@
 // descriptors of a cue's role, the first that gives a duration in the
 // loop's order declaring segmentation_duration.
 //
+// The owner's answers to what WP05b left open (D-110, Q68 to Q73), each in
+// the rules above and where the code makes it: (a) a cue_out holds its
+// tag's cue-in message only where the tag declares DURATION or END-DATE and
+// no plain EXT-X-CUE-OUT takes its messages, and otherwise pairs as D-076
+// has it (fold(), and pair_breaks()), a duration that no AVRational holds
+// exactly declared too, as built, pending the owner (declares()); (b) every
+// cue-in message of an EXT-X-DATERANGE goes into the cue_out of the tag's
+// cue-out message, whichever attribute carries each (link()); (c) an
+// ad_break of no frames is kept, with a warning (pair_breaks()); (d) none of
+// D-106 (a)'s warnings of the anchors of such a cue-in message, which are
+// recorded, a splice time of it that isn't placed still writing design
+// §5.1's warning, as built, pending the owner (turn(), splice_points()); (e)
+// one splice_point per splice time of a signal that a plain EXT-X-CUE-OUT
+// takes, and one cue_in per signal of cue-in messages (link(), in_cue());
+// (f) WP05b's other choices as built: of D-109 (a)'s three ways, the
+// segmentation_event_id of a descriptor that makes each message a cue_out,
+// a Start type of the cue types, not cancelled; a signal's cue_out its
+// first message's, taking the durations it has null from the others; a
+// signal's cue_in the first of its messages' that ends a break, at the
+// cue_out's line where its own is later; a cue-in message of a tag whose
+// cue-out message makes no cue_out, or whose classes aren't cue_in alone, a
+// cue_in of its own; a held break's ad_break with the tag's line as its
+// cue_in_line and the duration's name as its end, its cue_out a member
+// held_cue_in_line; a CUE-OUT-CONT's message with its anchors; pair_breaks()
+// reading a ticks member beside every duration, a whole number from 0; and
+// the ticks members, null beside a null duration of a cue of its own.
+//
 // The events, each of source scte35, of the carrying variant, with its
 // segment's media sequence number and the media key of its frame, no id
 // (build() gives every event its id). Payloads, in order, a value null
 // where its source doesn't give it, their layout and names D-109 (e)'s:
 //   cue_out, cue_in  line: the tag's, null for another carrier, and for a
-//                    cue_in that joins a cue_out (Merging, above) that
-//                    cue's where its own is later or null; form: the
-//                    CueInput's; raw: the tag's line as written, null for
-//                    another carrier; the durations, in seconds, by
+//                    cue_in that joins a cue_out (One cue_in per signal,
+//                    above) that cue's where its own is later or null;
+//                    form: the CueInput's; raw: the tag's line as written,
+//                    null for another carrier; the durations, in seconds, by
 //                    kDurationNames: duration (an EXT-X-DATERANGE's
 //                    DURATION), end_date_duration (its END-DATE less its
 //                    START-DATE), planned_duration (its PLANNED-DURATION),
@@ -193,9 +250,10 @@
 //                    segmentation descriptor of a cue type of the cue's role
 //                    that gives one), then segmentation_duration_ticks; then
 //                    the message's record: classes, crc_valid, message,
-//                    anchors; a cue_out that takes more messages (D-109 (a),
-//                    (b)) has after them `messages` and, holding its tag's
-//                    SCTE35-IN, held_cue_in_line, as below
+//                    anchors; a cue that takes more messages (D-109 (a),
+//                    D-110 (b), (e)) has after them `messages` and, a
+//                    cue_out holding its tag's cue-in message,
+//                    held_cue_in_line, as below
 //   message          line; form; raw; command: its name (Table 7);
 //                    segmentation_types: the segmentation_type_id of each
 //                    of its segmentation descriptors that isn't cancelled;
@@ -237,11 +295,13 @@
 // duration), with its ticks beside it (D-109 (d)). A signal's cue_out takes
 // the records of its other messages in the same way, in the messages'
 // order, and the durations it has null from the first that gives each
-// (D-109 (a)). A cue_out that takes an SCTE35-IN with its tag's SCTE35-OUT
-// has its record in `messages` after the SCTE35-OUT's (first, for the
-// cue_out of that SCTE35-OUT, whose own record is the cue_out's), and gets
-// once, after the members it has then, held_cue_in_line: the line of the
-// first such tag (D-109 (b)).
+// (D-109 (a)). A cue_out that takes a cue-in message with its tag's cue-out
+// message has its record in `messages` after the cue-out message's (first,
+// for the cue_out of that cue-out message, whose own record is the
+// cue_out's), and, holding it (D-110 (a)), gets once, after the members it
+// has then, held_cue_in_line: the line of the first such tag (D-109 (b)).
+// A signal's cue_in takes the records of its other messages in the same
+// way, in the messages' order, and none of their durations (D-110 (e)).
 
 #include "LadderReportRead.h"
 #include "PlaylistEvents.h"
@@ -333,8 +393,10 @@ struct MessageEvents {
 };
 
 // The events of `messages` by the rules above, in the order of `messages`,
-// a signal's cues at its first message (D-109 (a)), and a message's or a
-// signal's cue_in before its cue_out. `plain_cues` are the plain cue tags'
+// a signal's cue_out at its first message (D-109 (a)), and a signal's
+// cue_in at its first message or, where that is earlier, at the first
+// message of the signal whose cue_out it joins, before that cue_out (D-110
+// (e)). `plain_cues` are the plain cue tags'
 // events of every variant as the build holds them, placed or kUnplaced: the
 // messages that belong to one of them are merged into its payload there. To
 // pair every cue, the caller hands pair_breaks() cues_to_pair() of the

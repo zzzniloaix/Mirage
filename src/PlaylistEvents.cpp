@@ -544,8 +544,9 @@ std::optional<AVRational> tick_seconds(std::int64_t ticks)
 // before any cue_in, if one does, since breaks don't nest (the owner's
 // answer to Q46 (D-087)). A cue_out that holds its cue_in in its tag
 // (kHeldCueInLine) ends at its declared duration even where `in` is given,
-// that cue_in ending nothing (D-109 (b)). A break that can't be made is a
-// warning.
+// that cue_in ending nothing (D-109 (b)); one that declares no duration
+// pairs as any cue_out (D-110 (a)). A break that can't be made is a
+// warning, and so is a break of no frames, which is made (D-110 (c)).
 void make_break(const Event& o, const std::vector<const Event*>& conts, const Event* in,
                 const Event* next_out, const FrameAfter& frame_after, Breaks& out)
 {
@@ -580,7 +581,16 @@ void make_break(const Event& o, const std::vector<const Event*>& conts, const Ev
         if (t && *t >= 0) declared = Declared{ name, d, t };
         else if (d && std::isfinite(*d) && *d >= 0) declared = Declared{ name, d, std::nullopt };
     }
-    const std::optional<std::int64_t> held = int_member(o.payload, kHeldCueInLine);
+    // A cue_out holds its cue_in only where it declares a duration: the
+    // decoder holds one only where its EXT-X-DATERANGE declares DURATION or
+    // END-DATE, and one that declares none pairs as any cue_out does, the
+    // next cue_in ending it (D-110 (a)). A duration that no AVRational
+    // holds exactly counts as declared, here and in the decoder
+    // (src/Scte35Events.cpp's declares()): such a cue_out holds its cue_in
+    // all the same, `in` ending nothing, and makes no break, with the
+    // warning below. As built, pending the owner.
+    const std::optional<std::int64_t> held =
+        declared ? int_member(o.payload, kHeldCueInLine) : std::optional<std::int64_t>{};
 
     std::int64_t     end = 0;
     std::string_view how;
@@ -592,15 +602,6 @@ void make_break(const Event& o, const std::vector<const Event*>& conts, const Ev
         end = in->ref_index;
         how = "cue_in";
     } else {
-        // A cue_out that holds its cue_in and declares no duration makes no
-        // break, with this warning, and `in`, the cue_in after it if one
-        // came, ends nothing, where it would end the break of a cue_out that
-        // held none. D-109 (b) ends a held break at its declared duration and
-        // says nothing of a tag that declares none: as built, pending the
-        // owner.
-        if (!declared && held)
-            return warn(std::format("the EXT-X-DATERANGE at line {} holds its cue_in (D-109 (b)), and it "
-                                    "declares no duration (D-076)", *held));
         if (!declared)
             return warn(std::format("{}, and it declares no duration (D-076)",
                                     next_out ? cue_name(*next_out) + " follows it before any cue_in"
@@ -608,7 +609,8 @@ void make_break(const Event& o, const std::vector<const Event*>& conts, const Ev
         if (o.ref_index < 0) return warn("it has no reference frame (design §5.1)");
         // FrameAfter is given a positive, exact duration only: a zero one
         // ends where the break starts, and one that no AVRational holds
-        // exactly makes no break.
+        // exactly makes no break, a held cue_out's too, whose `in`, if one
+        // came, then ends nothing (above; as built, pending the owner).
         const std::optional<AVRational> q =
             declared->ticks ? tick_seconds(*declared->ticks) : exact_seconds(*declared->seconds);
         if (!q)
@@ -625,6 +627,16 @@ void make_break(const Event& o, const std::vector<const Event*>& conts, const Ev
     if (end < o.ref_index)
         return warn(std::format("it would end at reference frame {}, before its start at {}", end,
                                 o.ref_index));
+    // A break of no frames, its cue_in at its cue_out's frame or its declared
+    // duration 0, is kept, since the playlist says that a break starts and
+    // ends there, with a warning: such a span meets only an interval that
+    // starts before its frame and ends after it (D-078), so that a drop that
+    // starts at its frame doesn't list it (D-110 (c)).
+    if (end == o.ref_index)
+        out.warnings.push_back(std::format(
+            "variant {}: the ad_break of {} has no frames, {} ending it at reference frame {}, where it "
+            "starts: a drop that starts at that frame doesn't list it (D-078, D-110 (c))",
+            o.variant, cue_name(o), how == "cue_in" ? cue_name(*in) : "its " + declared->text(), end));
 
     Event b;
     b.source = Source::Scte35;

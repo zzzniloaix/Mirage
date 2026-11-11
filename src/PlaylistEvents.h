@@ -65,7 +65,11 @@
 //   declared value is kept in the break's payload. A cue_out that holds its
 //   cue_in in its tag (kHeldCueInLine) ends at its declared duration in the
 //   same order, the tag's DURATION or END-DATE first, and no later cue_in
-//   ends it (D-109 (b)).
+//   ends it (D-109 (b)); one that declares no duration holds none, and
+//   pairs as any cue_out, the next cue_in ending it (D-110 (a)). A break of
+//   no frames, its cue_in at its cue_out's frame or its declared duration 0,
+//   is kept, with a warning that says so, since such a span meets no
+//   interval that starts at its frame (D-078, D-110 (c)).
 //
 // Events as parse_playlist_events() and segment_event() return them aren't
 // placed yet: each names its variant and the media sequence number of its
@@ -181,10 +185,14 @@ inline constexpr std::string_view kTicksSuffix   = "_ticks";
 inline constexpr std::int64_t     kDurationClock = 90000;
 
 // The payload member of a cue_out that holds its own cue_in, an
-// EXT-X-DATERANGE's SCTE35-OUT with the SCTE35-IN of the same tag
-// (src/Scte35Events.h): the line of that tag, whose SCTE35-IN makes no
-// cue_in of its own. pair_breaks() ends such a break at its declared
-// duration, and no later cue_in ends it (D-109 (b)).
+// EXT-X-DATERANGE's cue-out message with a cue-in message of the same tag,
+// whichever of its SCTE35-* attributes carries each, where the tag declares
+// DURATION or END-DATE and no plain EXT-X-CUE-OUT takes its messages
+// (src/Scte35Events.h; D-110 (a), (b)): the line of that tag, whose cue-in
+// message makes no cue_in of its own. pair_breaks() ends such a break at
+// its declared duration, and no later cue_in ends it (D-109 (b)); a cue_out
+// with the member that declares no duration pairs as any cue_out (D-110
+// (a)).
 inline constexpr std::string_view kHeldCueInLine = "held_cue_in_line";
 
 // One tag of a media playlist. Its segment is an index, where an event's
@@ -297,7 +305,8 @@ using FrameAfter =
 
 struct Breaks {
     std::vector<Event>       events;     // ad_break spans, placed, in play order within a variant
-    std::vector<std::string> warnings;   // each cue_out that makes no break, and why
+    std::vector<std::string> warnings;   // each cue_out that makes no break, and why, and each
+                                         // break of no frames (D-110 (c))
 };
 
 // The ad breaks of `cues`: every cue_out, cue_out_cont and cue_in of every
@@ -329,9 +338,14 @@ struct Breaks {
 // order (null for one that declares none). The durations keep each
 // duration's ticks beside it, by the name of its member (D-109 (d)). A
 // cue_out whose payload has kHeldCueInLine holds its cue_in (D-109 (b)): it
-// ends at its declared duration, a cue_in after it ending nothing, or makes
-// no break, with a warning, when it declares none; its break's cue_in_line
-// is that member's line, and its end the duration's name.
+// ends at its declared duration, a cue_in after it ending nothing; its
+// break's cue_in_line is that member's line, and its end the duration's
+// name. One that declares no duration holds none: it pairs as any cue_out,
+// the next cue_in ending it (D-110 (a)). A break of no frames, its end at
+// its start, from a cue_in at its cue_out's frame or a declared duration of
+// 0, is made, and a warning names its cue_out and says that it has no
+// frames, so that a drop that starts at its frame doesn't list it (D-078,
+// D-110 (c)).
 Breaks pair_breaks(const std::vector<Event>& cues, const FrameAfter& frame_after);
 
 } // namespace timeline

@@ -6,12 +6,18 @@
 // and the owner's answers of D-109: one cue_out per signal (a), an
 // EXT-X-DATERANGE's SCTE35-IN folded into the cue_out of its SCTE35-OUT (b),
 // no splice_point from an EXT-X-CUE-OUT-CONT's message (c), and each duration
-// in 90 kHz ticks beside its seconds (d). The inputs are built by hand in the
-// shape of testgen's ad ladder (eval/phase3-survey/testgen.md §2.3), as
-// tests/test_timeline_build.cpp builds them, by the Ladder of
-// tests/Scte35TestSections.h: three rungs of eight 25-frame segments at 25
-// fps, the reference v360 and the pairs v270 and v180, the ad in segments 3
-// and 4 restarting its timestamps at the main content's origin.
+// in 90 kHz ticks beside its seconds (d); and of D-110: a break held to its
+// tag's duration only where the tag declares one and no plain EXT-X-CUE-OUT
+// takes it (a), a tag's cue-in message folded into the cue_out of its
+// cue-out message, whichever attribute carries each (b), an ad_break of no
+// frames kept with a warning (c), no D-106 (a) warning of a folded cue-in
+// message's anchors (d), and one splice_point and one cue_in per signal
+// (e). The inputs are built by hand in the shape of testgen's ad ladder
+// (eval/phase3-survey/testgen.md §2.3), as tests/test_timeline_build.cpp
+// builds them, by the Ladder of tests/Scte35TestSections.h: three rungs of
+// eight 25-frame segments at 25 fps, the reference v360 and the pairs v270
+// and v180, the ad in segments 3 and 4 restarting its timestamps at the main
+// content's origin.
 // timeline::build() gives the axis and the plain cues as the build holds
 // them, and its segment and keyframe events are what this module's placement
 // is checked against. The messages are sections that header's writer builds
@@ -159,6 +165,16 @@ bool any_warning(const MessageEvents& m, std::string_view part)
 }
 
 std::string name(int v) { return std::format("variant {} ({})", v, url_of(v)); }
+
+// The ad playlist's segment k from 12:00:00 + k s: an EXT-X-PROGRAM-DATE-TIME
+// of 12:00:`second` and an EXT-X-DATERANGE of ID `id` that starts then, with
+// `attrs` after its START-DATE.
+std::string dated_range(std::string_view second, std::string_view id, std::string_view attrs)
+{
+    return std::format("#EXT-X-PROGRAM-DATE-TIME:2026-03-01T12:00:{0}.000Z\n"
+                       "#EXT-X-DATERANGE:ID=\"{1}\",START-DATE=\"2026-03-01T12:00:{0}.000Z\",{2}\n",
+                       second, id, attrs);
+}
 
 } // namespace
 
@@ -1413,38 +1429,42 @@ TEST_CASE("scte35_events: the cue_out messages of one variant and one segment th
     CHECK(is_null(at(signal_breaks[1]->payload, "cue_in_line")));
 }
 
-TEST_CASE("scte35_events: an EXT-X-DATERANGE's SCTE35-IN in the tag of its SCTE35-OUT makes no cue_in, and "
-          "the break ends at the tag's DURATION or END-DATE (D-109 (b))",
+TEST_CASE("scte35_events: an EXT-X-DATERANGE's SCTE35-IN in the tag of its SCTE35-OUT makes no cue_in; the "
+          "break is held to the tag's DURATION or END-DATE only where the tag declares one and no plain "
+          "EXT-X-CUE-OUT takes it, and the SCTE35-IN's anchors make no warning (D-109 (b), D-110 (a), (d))",
           "[timeline][scte35][scte35_events]")
 {
     // No plain cue tags. v270: in segment 3 a tag with DURATION, SCTE35-OUT
-    // first, and an EXT-X-CUE-IN in segment 6, which ends no break. v180: in
-    // segment 3 a tag with END-DATE, SCTE35-IN first. The reference: in
-    // segment 6 a tag that declares no duration. Each segment has its date.
-    const Section     out = splice_insert({ .event_id = 61, .immediate = true });
-    const Section     in  = splice_insert({ .event_id = 61, .out = false, .immediate = true });
-    const std::string o   = "SCTE35-OUT=" + hex(section(out));
-    const std::string i   = "SCTE35-IN=" + hex(section(in));
-    const auto tag = [](std::string_view pdt, std::string_view id, std::string_view attrs) {
-        return std::format("#EXT-X-PROGRAM-DATE-TIME:2026-03-01T12:00:{0}.000Z\n"
-                           "#EXT-X-DATERANGE:ID=\"{1}\",START-DATE=\"2026-03-01T12:00:{0}.000Z\",{2}\n",
-                           pdt, id, attrs);
-    };
-    const std::string v270 = ad_playlist({ { 3, tag("03", "d", "DURATION=2.0," + o + "," + i) },
-                                           { 6, "#EXT-X-CUE-IN\n" } },
-                                         {}, false);
+    // first, its SCTE35-IN with a splice time at frame 110, in segment 4, and
+    // an EXT-X-CUE-IN in segment 6, which ends no break. v180: in segment 3 a
+    // tag with END-DATE, SCTE35-IN first. The reference: in segment 6 a tag
+    // that declares no duration, and an EXT-X-CUE-IN in segment 7. Each
+    // segment has its date.
+    const Section     out   = splice_insert({ .event_id = 61, .immediate = true });
+    const Section     in    = splice_insert({ .event_id = 61, .out = false, .immediate = true });
+    const Section     timed = splice_insert({ .event_id = 61, .out = false,
+                                              .pts = kOrigin + 35 * kFrame25 });   // frame 110's
+    const std::string o     = "SCTE35-OUT=" + hex(section(out));
+    const std::string i     = "SCTE35-IN=" + hex(section(in));
+    const std::string v270  = ad_playlist(
+        { { 3, dated_range("03", "d", "DURATION=2.0," + o + ",SCTE35-IN=" + hex(section(timed))) },
+          { 6, "#EXT-X-CUE-IN\n" } },
+        {}, false);
     const std::string v180 = ad_playlist(
-        { { 3, tag("03", "e", "END-DATE=\"2026-03-01T12:00:04.000Z\"," + i + "," + o) } }, {}, false);
-    const std::string v360 = ad_playlist({ { 6, tag("06", "n", o + "," + i) } }, {}, false);
+        { { 3, dated_range("03", "e", "END-DATE=\"2026-03-01T12:00:04.000Z\"," + i + "," + o) } }, {},
+        false);
+    const std::string v360 =
+        ad_playlist({ { 6, dated_range("06", "n", o + "," + i) }, { 7, "#EXT-X-CUE-IN\n" } }, {}, false);
     Ladder ladder({ v360, v270, v180 });
     const MessageEvents m = ladder.run();
     INFO(warnings_text(m));
 
     // One cue_out per tag and no cue_in: the SCTE35-IN's record is in the
-    // cue_out's `messages`, and held_cue_in_line names its tag's line.
+    // cue_out's `messages`, and held_cue_in_line names its tag's line where
+    // the tag declares a duration (D-110 (a)).
     CHECK(of_type(m.cues, "cue_in").empty());
     REQUIRE(m.cues.size() == 3);
-    const auto check_held = [&](const Event& e, int variant, const std::string& text_of) {
+    const auto check_taken = [&](const Event& e, int variant, const std::string& text_of, bool held) {
         INFO("variant " << variant);
         CHECK(e.type == "cue_out");
         CHECK(e.variant == variant);
@@ -1456,67 +1476,117 @@ TEST_CASE("scte35_events: an EXT-X-DATERANGE's SCTE35-IN in the tag of its SCTE3
         CHECK(text(field(records[0], "form")) == "DATERANGE SCTE35-IN");
         CHECK(integer(field(records[0], "line")) == line);
         CHECK(texts(field(records[0], "classes")) == std::vector<std::string>{ "cue_in" });
-        CHECK(names(e.payload).back() == "held_cue_in_line");
-        CHECK(integer(at(e.payload, "held_cue_in_line")) == line);
+        CHECK(names(e.payload).back() == (held ? "held_cue_in_line" : "messages"));
+        if (held) CHECK(integer(at(e.payload, "held_cue_in_line")) == line);
     };
-    check_held(m.cues[0], 0, v360);
-    check_held(m.cues[1], 1, v270);
-    check_held(m.cues[2], 2, v180);
+    check_taken(m.cues[0], 0, v360, false);
+    check_taken(m.cues[1], 1, v270, true);
+    check_taken(m.cues[2], 2, v180, true);
     CHECK(number(at(m.cues[1].payload, "duration")) == 2.0);
     CHECK(is_null(at(m.cues[2].payload, "duration")));
     CHECK(number(at(m.cues[2].payload, "end_date_duration")) == 1.0);
+    CHECK(is_null(at(m.cues[0].payload, "duration")));
+    CHECK(is_null(at(m.cues[0].payload, "end_date_duration")));
 
-    // The SCTE35-IN's in point is set against its tag's segment, as D-106
-    // (a) has it: outside it, with a warning, for both tags that date it.
-    CHECK(m.warnings == std::vector<std::string>{
-        std::format("{}: the DATERANGE SCTE35-IN at line {}: its START-DATE 2026-03-01T12:00:03.000Z plus "
-                    "its DURATION of 2.0 s is 2 s from the EXT-X-PROGRAM-DATE-TIME of its segment 3, "
-                    "outside the segment's 1 s (D-106 (a))", name(1), line_with(v270, "#EXT-X-DATERANGE")),
-        std::format("{}: the DATERANGE SCTE35-IN at line {}: its END-DATE 2026-03-01T12:00:04.000Z is 1 s "
-                    "from the EXT-X-PROGRAM-DATE-TIME of its segment 3, outside the segment's 1 s (D-106 "
-                    "(a))", name(2), line_with(v180, "#EXT-X-DATERANGE")) });
+    // The SCTE35-IN's anchors, its in point and its splice time, both
+    // outside its tag's segment, are recorded and make no warning (D-110
+    // (d)); its splice time still makes its splice_point.
+    CHECK(m.warnings.empty());
+    const Value::Object& v270_in = object(list(at(m.cues[1].payload, "messages"))[0]);
+    const Value& late_in = anchor(v270_in, "end_date");
+    CHECK(text(field(late_in, "from")) == "START-DATE + DURATION");
+    CHECK(number(field(late_in, "offset_seconds")) == Catch::Approx(2.0).margin(1e-9));
+    CHECK_FALSE(flag(field(late_in, "in_segment")));
+    const Value& splice = anchor(v270_in, "splice_time");
+    CHECK(integer(field(splice, "ref_index")) == 110);
+    CHECK_FALSE(flag(field(splice, "in_segment")));
+    REQUIRE(m.splice_points.size() == 1);
+    CHECK((m.splice_points[0].variant == 1 && m.splice_points[0].ref_index == 110));
+    CHECK(text(at(m.splice_points[0].payload, "form")) == "DATERANGE SCTE35-IN");
+    CHECK_FALSE(flag(at(m.splice_points[0].payload, "in_segment")));
+    const Value& v180_in = anchor(object(list(at(m.cues[2].payload, "messages"))[0]), "end_date");
+    CHECK(text(field(v180_in, "from")) == "END-DATE");
+    CHECK_FALSE(flag(field(v180_in, "in_segment")));
 
     // Paired: v270's break ends at its DURATION, and the EXT-X-CUE-IN after
     // it ends nothing; v180's at its END-DATE, the SCTE35-IN before the
     // SCTE35-OUT in its tag closing no break; the reference's tag, which
-    // declares no duration, makes none, and says why.
+    // declares no duration, holds nothing and pairs as D-076 has it: the
+    // EXT-X-CUE-IN after it ends it (D-110 (a)).
     const timeline::Breaks b = ladder.pair(m);
-    REQUIRE(b.events.size() == 2);
-    const Event& by_duration = b.events[0];
+    CHECK(b.warnings.empty());
+    REQUIRE(b.events.size() == 3);
+    const Event& by_cue_in = b.events[0];
+    CHECK((by_cue_in.variant == 0 && by_cue_in.ref_index == 150 && by_cue_in.ref_end == 175));
+    CHECK(text(at(by_cue_in.payload, "end")) == "cue_in");
+    CHECK(integer(at(by_cue_in.payload, "cue_out_line")) == line_with(v360, "#EXT-X-DATERANGE"));
+    CHECK(integer(at(by_cue_in.payload, "cue_in_line")) == line_with(v360, "#EXT-X-CUE-IN"));
+    const Event& by_duration = b.events[1];
     CHECK((by_duration.variant == 1 && by_duration.ref_index == 75 && by_duration.ref_end == 125));
     CHECK(text(at(by_duration.payload, "end")) == "duration");
     CHECK(integer(at(by_duration.payload, "cue_in_line")) == line_with(v270, "#EXT-X-DATERANGE"));
     CHECK(integer(at(by_duration.payload, "cue_out_line")) == line_with(v270, "#EXT-X-DATERANGE"));
-    const Event& by_end_date = b.events[1];
+    const Event& by_end_date = b.events[2];
     CHECK((by_end_date.variant == 2 && by_end_date.ref_index == 75 && by_end_date.ref_end == 100));
     CHECK(text(at(by_end_date.payload, "end")) == "end_date_duration");
-    const std::int64_t none_line = line_with(v360, "#EXT-X-DATERANGE");
-    CHECK(b.warnings == std::vector<std::string>{ std::format(
-              "variant 0: no ad_break for the cue_out at line {}: the EXT-X-DATERANGE at line {} holds its "
-              "cue_in (D-109 (b)), and it declares no duration (D-076)", none_line, none_line) });
+    // Without the EXT-X-CUE-IN, the reference's tag makes no break, and the
+    // warning is that of any cue_out that declares nothing.
+    Ladder lone({ ad_playlist({ { 6, dated_range("06", "n", o + "," + i) } }, {}, false), v270, v180 });
+    const timeline::Breaks lb = lone.pair(lone.run());
+    CHECK(of_type(lb.events, "ad_break", 0).empty());
+    CHECK(lb.warnings == std::vector<std::string>{ std::format(
+              "variant 0: no ad_break for the cue_out at line {}: no cue_in follows it, and it declares no "
+              "duration (D-076)", line_with(lone.playlists[0], "#EXT-X-DATERANGE")) });
 
     // With a plain EXT-X-CUE-OUT in its segment, the plain cue takes the
-    // SCTE35-OUT and the SCTE35-IN alike (D-106 (d)), and its break ends at
-    // its own duration, the first by D-076's order, with the CUE-OUT-CONT
-    // between kept and the EXT-X-CUE-IN after it ending nothing.
-    const std::string plain = ad_playlist({ { 3, tag("03", "p", "DURATION=1.0," + o + "," + i) } });
+    // SCTE35-OUT and the SCTE35-IN alike (D-106 (d), D-110 (b)) and holds
+    // neither: its break ends at the EXT-X-CUE-IN after it, as D-076 has it,
+    // with the CUE-OUT-CONT between kept, though the tag's DURATION and the
+    // EXT-X-CUE-OUT's own would end it there too (D-110 (a)).
+    const std::string plain = ad_playlist({ { 3, dated_range("03", "p", "DURATION=1.0," + o + "," + i) } });
     Ladder cued({ ad_playlist({}), plain, ad_playlist({}) });
     const MessageEvents c = cued.run();
     CHECK(c.cues.empty());
+    CHECK(c.warnings.empty());
     const auto outs = of_type(cued.plain, "cue_out", 1);
     REQUIRE(outs.size() == 1);
     const Value::List& taken = list(at(outs[0]->payload, "messages"));
     REQUIRE(taken.size() == 2);
     CHECK(text(field(taken[0], "form")) == "DATERANGE SCTE35-OUT");
     CHECK(text(field(taken[1], "form")) == "DATERANGE SCTE35-IN");
-    CHECK(integer(at(outs[0]->payload, "held_cue_in_line")) == line_with(plain, "#EXT-X-DATERANGE"));
+    CHECK_FALSE(member(outs[0]->payload, "held_cue_in_line"));
     const timeline::Breaks cb     = cued.pair(c);
     const auto             breaks = of_type(cb.events, "ad_break", 1);
     CHECK(cb.warnings.empty());
     REQUIRE(breaks.size() == 1);
     CHECK((breaks[0]->ref_index == 75 && breaks[0]->ref_end == 125));
-    CHECK(text(at(breaks[0]->payload, "end")) == "duration");
+    CHECK(text(at(breaks[0]->payload, "end")) == "cue_in");
+    CHECK(integer(at(breaks[0]->payload, "cue_in_line")) == line_with(plain, "#EXT-X-CUE-IN"));
     CHECK(list(at(breaks[0]->payload, "cue_out_cont_durations")).size() == 1);
+
+    // A tag written before a bare EXT-X-CUE-OUT, which declares 4 s: the
+    // plain cue takes the tag's DURATION for its own null one, and still
+    // ends at the EXT-X-CUE-IN, 2 s on, its cue_in_line after its
+    // cue_out_line.
+    const std::string bare =
+        ad_playlist({ { 3, dated_range("03", "q", "DURATION=4.0," + o + "," + i) + "#EXT-X-CUE-OUT\n" },
+                      { 5, "#EXT-X-CUE-IN\n" } },
+                    {}, false);
+    Ladder before({ ad_playlist({}), bare, ad_playlist({}) });
+    const MessageEvents q = before.run();
+    CHECK(q.cues.empty());
+    const auto bare_outs = of_type(before.plain, "cue_out", 1);
+    REQUIRE(bare_outs.size() == 1);
+    CHECK(number(at(bare_outs[0]->payload, "duration")) == 4.0);
+    CHECK_FALSE(member(bare_outs[0]->payload, "held_cue_in_line"));
+    const timeline::Breaks qb         = before.pair(q);
+    const auto             bare_break = of_type(qb.events, "ad_break", 1);
+    CHECK(qb.warnings.empty());
+    REQUIRE(bare_break.size() == 1);
+    CHECK((bare_break[0]->ref_index == 75 && bare_break[0]->ref_end == 125));
+    CHECK(text(at(bare_break[0]->payload, "end")) == "cue_in");
+    CHECK(integer(at(bare_break[0]->payload, "cue_out_line")) == line_with(bare, "#EXT-X-CUE-OUT\n"));
+    CHECK(integer(at(bare_break[0]->payload, "cue_in_line")) == line_with(bare, "#EXT-X-CUE-IN"));
 }
 
 TEST_CASE("scte35_events: the message an EXT-X-CUE-OUT-CONT repeats makes no splice_point and no anchor "
@@ -1570,4 +1640,414 @@ TEST_CASE("scte35_events: the message an EXT-X-CUE-OUT-CONT repeats makes no spl
     CHECK((breaks[0]->ref_index == 25 && breaks[0]->ref_end == 125));
     CHECK(text(at(breaks[0]->payload, "end")) == "cue_in");
     CHECK(list(at(breaks[0]->payload, "cue_out_cont_durations")).size() == 3);
+}
+
+TEST_CASE("scte35_events: an EXT-X-DATERANGE's cue-in message goes into the cue_out of its tag's first "
+          "cue-out message, its own or its signal's, whichever SCTE35-* attribute carries each, in either "
+          "order (D-110 (b))", "[timeline][scte35][scte35_events]")
+{
+    // No plain cue tags. In segment 3 a tag whose SCTE35-CMD starts an
+    // advertisement, with an SCTE35-IN; in segment 6 a tag whose SCTE35-OUT
+    // starts one, with an SCTE35-CMD that ends it; each declares its
+    // DURATION. v270 writes each tag's two attributes in that order, v180 in
+    // the other. Each tag's two messages are a cue_out and a cue_in at its
+    // line, which alone would make an ad_break of no frames.
+    const Section     start5    = time_signal(std::nullopt, { { .event_id = 5, .type = 0x30 } });
+    const Section     in61      = splice_insert({ .event_id = 61, .out = false, .immediate = true });
+    const Section     start6    = time_signal(std::nullopt, { { .event_id = 6, .type = 0x30 } });
+    const Section     end6      = time_signal(std::nullopt, { { .event_id = 6, .type = 0x31 } });
+    const std::string cmd_start = "SCTE35-CMD=" + hex(section(start5));
+    const std::string in        = "SCTE35-IN=" + hex(section(in61));
+    const std::string out_start = "SCTE35-OUT=" + hex(section(start6));
+    const std::string cmd_end   = "SCTE35-CMD=" + hex(section(end6));
+    const std::string v270 =
+        ad_playlist({ { 3, dated_range("03", "a", "DURATION=2.0," + cmd_start + "," + in) },
+                      { 6, dated_range("06", "b", "DURATION=1.0," + out_start + "," + cmd_end) } },
+                    {}, false);
+    const std::string v180 =
+        ad_playlist({ { 3, dated_range("03", "a", "DURATION=2.0," + in + "," + cmd_start) },
+                      { 6, dated_range("06", "b", "DURATION=1.0," + cmd_end + "," + out_start) } },
+                    {}, false);
+    Ladder ladder({ ad_playlist({}, {}, false), v270, v180 });
+    const MessageEvents m = ladder.run();
+    INFO(warnings_text(m));
+    // No warning: the SCTE35-IN's in point, its START-DATE plus its
+    // DURATION, outside its tag's segment, is recorded only (D-110 (d)).
+    CHECK(m.warnings.empty());
+    CHECK(of_type(m.cues, "cue_in").empty());
+    const timeline::Breaks b = ladder.pair(m);
+    CHECK(b.warnings.empty());
+    for (int v = 1; v < 3; ++v) {
+        INFO("variant " << v);
+        const std::string& text_of = ladder.playlists[static_cast<std::size_t>(v)];
+        // Each tag one cue_out, its cue-out message's, which takes the
+        // cue-in message's record and holds it, its tag declaring DURATION.
+        const auto outs = of_type(m.cues, "cue_out", v);
+        REQUIRE(outs.size() == 2);
+        const auto check = [&](const Event& e, std::int64_t frame, std::string_view id,
+                               std::string_view own, std::string_view taken) {
+            INFO("the tag of ID " << id);
+            const std::int64_t line = line_with(text_of, std::format("ID=\"{}\"", id));
+            CHECK(e.ref_index == frame);
+            CHECK(integer(at(e.payload, "line")) == line);
+            CHECK(text(at(e.payload, "form")) == own);
+            const Value::List& records = list(at(e.payload, "messages"));
+            REQUIRE(records.size() == 1);
+            CHECK(text(field(records[0], "form")) == taken);
+            CHECK(texts(field(records[0], "classes")) == std::vector<std::string>{ "cue_in" });
+            CHECK(integer(at(e.payload, "held_cue_in_line")) == line);
+        };
+        check(*outs[0], 75, "a", "DATERANGE SCTE35-CMD", "DATERANGE SCTE35-IN");
+        check(*outs[1], 150, "b", "DATERANGE SCTE35-OUT", "DATERANGE SCTE35-CMD");
+        // Each break ends at its tag's DURATION.
+        const auto breaks = of_type(b.events, "ad_break", v);
+        REQUIRE(breaks.size() == 2);
+        CHECK((breaks[0]->ref_index == 75 && breaks[0]->ref_end == 125));
+        CHECK((breaks[1]->ref_index == 150 && breaks[1]->ref_end == 175));
+        for (const Event* e : breaks) CHECK(text(at(e->payload, "end")) == "duration");
+    }
+
+    // The tag's cue-out message one signal with an OATCLS of its section
+    // written before it (D-109 (a)): the signal's cue_out, the OATCLS's,
+    // takes the tag's messages, the SCTE35-IN's record among them, and holds
+    // it, the tag declaring DURATION, so that the EXT-X-CUE-IN of segment 6
+    // ends nothing (D-110 (a)).
+    const Section     out61 = splice_insert({ .event_id = 61, .immediate = true });
+    const std::string out   = "SCTE35-OUT=" + hex(section(out61));
+    const std::string signalled_text =
+        ad_playlist({ { 3, oatcls(out61) + dated_range("03", "c", "DURATION=2.0," + out + "," + in) },
+                      { 6, "#EXT-X-CUE-IN\n" } },
+                    {}, false);
+    Ladder signalled({ ad_playlist({}, {}, false), signalled_text, ad_playlist({}, {}, false) });
+    const MessageEvents s = signalled.run();
+    INFO(warnings_text(s));
+    CHECK(s.warnings.empty());
+    REQUIRE(s.cues.size() == 1);
+    const Event&       signal_out = s.cues[0];
+    const std::int64_t range_line = line_with(signalled_text, "#EXT-X-DATERANGE");
+    CHECK((signal_out.type == "cue_out" && signal_out.variant == 1 && signal_out.ref_index == 75));
+    CHECK(text(at(signal_out.payload, "form")) == "OATCLS");
+    CHECK(integer(at(signal_out.payload, "line")) == line_with(signalled_text, oatcls(out61)));
+    CHECK(number(at(signal_out.payload, "duration")) == 2.0);
+    const Value::List& signal_records = list(at(signal_out.payload, "messages"));
+    REQUIRE(signal_records.size() == 2);
+    CHECK(text(field(signal_records[0], "form")) == "DATERANGE SCTE35-OUT");
+    CHECK(text(field(signal_records[1], "form")) == "DATERANGE SCTE35-IN");
+    CHECK(integer(field(signal_records[1], "line")) == range_line);
+    CHECK(names(signal_out.payload).back() == "held_cue_in_line");
+    CHECK(integer(at(signal_out.payload, "held_cue_in_line")) == range_line);
+    const timeline::Breaks sb = signalled.pair(s);
+    CHECK(sb.warnings.empty());
+    REQUIRE(sb.events.size() == 1);
+    CHECK((sb.events[0].ref_index == 75 && sb.events[0].ref_end == 125));
+    CHECK(text(at(sb.events[0].payload, "end")) == "duration");
+    CHECK(integer(at(sb.events[0].payload, "cue_in_line")) == range_line);
+
+    // A tag of two cue-out messages that aren't one signal, an Out Point and
+    // an advertisement's Start, with its SCTE35-IN: a cue_out each, and the
+    // first of them in the tag's attributes takes the SCTE35-IN and holds it,
+    // the other neither. v270 writes the SCTE35-OUT first, v180 the
+    // SCTE35-CMD. Paired, each ends at the tag's DURATION: the first, which
+    // the second follows before any cue_in (D-087), with the tag's line as
+    // its cue_in_line, since it holds the SCTE35-IN, and the second with
+    // none.
+    const std::string v270_two =
+        ad_playlist({ { 3, dated_range("03", "t", "DURATION=2.0," + out + "," + cmd_start + "," + in) } }, {},
+                    false);
+    const std::string v180_two =
+        ad_playlist({ { 3, dated_range("03", "t", "DURATION=2.0," + cmd_start + "," + out + "," + in) } }, {},
+                    false);
+    Ladder two({ ad_playlist({}, {}, false), v270_two, v180_two });
+    const MessageEvents t = two.run();
+    INFO(warnings_text(t));
+    CHECK(t.warnings.empty());
+    CHECK(of_type(t.cues, "cue_in").empty());
+    const timeline::Breaks tb = two.pair(t);
+    CHECK(tb.warnings.empty());
+    for (int v = 1; v < 3; ++v) {
+        INFO("variant " << v);
+        const std::string&     text_of     = two.playlists[static_cast<std::size_t>(v)];
+        const std::int64_t     line        = line_with(text_of, "#EXT-X-DATERANGE");
+        const std::string_view first_form  = v == 1 ? "DATERANGE SCTE35-OUT" : "DATERANGE SCTE35-CMD";
+        const std::string_view second_form = v == 1 ? "DATERANGE SCTE35-CMD" : "DATERANGE SCTE35-OUT";
+        const auto             outs        = of_type(t.cues, "cue_out", v);
+        REQUIRE(outs.size() == 2);
+        CHECK(text(at(outs[0]->payload, "form")) == first_form);
+        CHECK(text(at(outs[1]->payload, "form")) == second_form);
+        const Value::List& records = list(at(outs[0]->payload, "messages"));
+        REQUIRE(records.size() == 1);
+        CHECK(text(field(records[0], "form")) == "DATERANGE SCTE35-IN");
+        CHECK(integer(at(outs[0]->payload, "held_cue_in_line")) == line);
+        CHECK_FALSE(member(outs[1]->payload, "messages"));
+        CHECK_FALSE(member(outs[1]->payload, "held_cue_in_line"));
+        const auto breaks = of_type(tb.events, "ad_break", v);
+        REQUIRE(breaks.size() == 2);
+        for (const Event* e : breaks) {
+            CHECK((e->ref_index == 75 && e->ref_end == 125));
+            CHECK(text(at(e->payload, "end")) == "duration");
+        }
+        CHECK(integer(at(breaks[0]->payload, "cue_in_line")) == line);
+        CHECK(is_null(at(breaks[1]->payload, "cue_in_line")));
+    }
+}
+
+TEST_CASE("scte35_events: an ad_break of no frames, of two tags of one segment or of a declared duration "
+          "of 0, is kept, with a warning (D-110 (c))", "[timeline][scte35][scte35_events]")
+{
+    // No plain cue tags. v270: RFC 8216 §4.3.2.7.1's two tags of one ID in
+    // segment 3, the SCTE35-OUT's and the SCTE35-IN's, which aren't one
+    // tag's to fold: a cue_out and a cue_in at one frame. v180: in segment 3
+    // a tag of DURATION=0 with its SCTE35-OUT and SCTE35-IN, which holds the
+    // SCTE35-IN. The reference: in segment 2 an OATCLS whose break_duration
+    // is 0 ticks, with no cue_in.
+    const Section     out  = splice_insert({ .event_id = 61, .immediate = true });
+    const Section     in   = splice_insert({ .event_id = 61, .out = false, .immediate = true });
+    const Section     none = splice_insert({ .event_id = 8, .immediate = true,
+                                             .duration = std::pair{ true, 0 } });
+    const std::string o    = "SCTE35-OUT=" + hex(section(out));
+    const std::string i    = "SCTE35-IN=" + hex(section(in));
+    const std::string second =
+        "#EXT-X-DATERANGE:ID=\"x\",START-DATE=\"2026-03-01T12:00:03.000Z\"," + i + "\n";
+    const std::string v270 = ad_playlist({ { 3, dated_range("03", "x", o) + second } }, {}, false);
+    const std::string v180 =
+        ad_playlist({ { 3, dated_range("03", "z", "DURATION=0," + o + "," + i) } }, {}, false);
+    const std::string v360 = ad_playlist({ { 2, oatcls(none) } }, {}, false);
+    Ladder ladder({ v360, v270, v180 });
+    const MessageEvents m = ladder.run();
+    INFO(warnings_text(m));
+    CHECK(m.warnings.empty());
+
+    // Each break is kept, its end at its start, and a warning names its
+    // cue_out's line, how it ends, and why a drop that starts at its frame
+    // doesn't list it.
+    const timeline::Breaks b = ladder.pair(m);
+    REQUIRE(b.events.size() == 3);
+    const std::int64_t frames[] = { 50, 75, 75 };
+    const std::string_view ends[] = { "break_duration", "cue_in", "duration" };
+    for (std::size_t k = 0; k < 3; ++k) {
+        INFO("variant " << k);
+        CHECK(b.events[k].variant == static_cast<int>(k));
+        CHECK((b.events[k].ref_index == frames[k] && b.events[k].ref_end == frames[k]));
+        CHECK(text(at(b.events[k].payload, "end")) == ends[k]);
+    }
+    const auto warning = [](int v, std::int64_t line, const std::string& how, std::int64_t frame) {
+        return std::format("variant {}: the ad_break of the cue_out at line {} has no frames, {} ending it "
+                           "at reference frame {}, where it starts: a drop that starts at that frame "
+                           "doesn't list it (D-078, D-110 (c))", v, line, how, frame);
+    };
+    const std::int64_t out_line = line_with(v270, "#EXT-X-DATERANGE");
+    CHECK(b.warnings == std::vector<std::string>{
+        warning(0, line_with(v360, oatcls(none)), "its break_duration of 0 ticks (90 kHz)", 50),
+        warning(1, out_line, std::format("the cue_in at line {}", out_line + 1), 75),
+        warning(2, line_with(v180, "#EXT-X-DATERANGE"), "its duration of 0 s", 75) });
+    CHECK(integer(at(b.events[2].payload, "cue_in_line")) == line_with(v180, "#EXT-X-DATERANGE"));
+}
+
+TEST_CASE("scte35_events: one splice_point per splice time of a signal, whatever cue takes its messages, a "
+          "plain EXT-X-CUE-OUT or a tag's cue_out, and one cue_in per signal of cue-in messages (D-110 (e))",
+          "[timeline][scte35][scte35_events]")
+{
+    // v270, with its plain cue tags: in segment 3 an OATCLS and an
+    // EXT-X-DATERANGE of one splice_insert whose splice time is frame 80's,
+    // which the EXT-X-CUE-OUT takes (D-106 (d)).
+    const Section     out  = splice_insert({ .event_id = 11, .pts = kOrigin + 5 * kFrame25 });
+    const std::string v270 =
+        ad_playlist({ { 3, oatcls(out) + dated_range("03", "s", "SCTE35-OUT=" + hex(section(out))) } });
+    Ladder ladder({ ad_playlist({}), v270, ad_playlist({}) });
+    const MessageEvents m = ladder.run();
+    INFO(warnings_text(m));
+    CHECK(m.warnings.empty());
+    CHECK(m.cues.empty());
+    const auto outs = of_type(ladder.plain, "cue_out", 1);
+    REQUIRE(outs.size() == 1);
+    const Value::List& taken = list(at(outs[0]->payload, "messages"));
+    REQUIRE(taken.size() == 2);
+    // One splice_point, the OATCLS's, the first message that gives it; the
+    // DATERANGE's splice time is an anchor of its record all the same.
+    REQUIRE(m.splice_points.size() == 1);
+    CHECK((m.splice_points[0].variant == 1 && m.splice_points[0].ref_index == 80));
+    CHECK(text(at(m.splice_points[0].payload, "form")) == "OATCLS");
+    CHECK(text(field(taken[1], "form")) == "DATERANGE SCTE35-OUT");
+    CHECK(integer(field(anchor(object(taken[1]), "splice_time"), "ref_index")) == 80);
+
+    // A plain EXT-X-CUE-OUT whose own SCTE35= carries the section of an
+    // OATCLS of its segment, the OATCLS before it in v270 and after it in
+    // v180: one splice_point each, the first message's.
+    const std::string cue_tag = "#EXT-X-CUE-OUT:2.000,SCTE35=" + base64(section(out)) + "\n";
+    Ladder embedded({ ad_playlist({}, {}, false),
+                      ad_playlist({ { 3, oatcls(out) + cue_tag }, { 5, "#EXT-X-CUE-IN\n" } }, {}, false),
+                      ad_playlist({ { 3, cue_tag + oatcls(out) }, { 5, "#EXT-X-CUE-IN\n" } }, {}, false) });
+    const MessageEvents em = embedded.run();
+    INFO(warnings_text(em));
+    CHECK(em.warnings.empty());
+    CHECK(em.cues.empty());
+    using Points = std::vector<std::tuple<int, std::int64_t, std::string>>;
+    Points embedded_points;
+    for (const Event& e : em.splice_points)
+        embedded_points.emplace_back(e.variant, e.ref_index, text(at(e.payload, "form")));
+    CHECK(embedded_points == Points{ { 1, 80, "OATCLS" }, { 2, 80, "CUE-OUT SCTE35" } });
+    for (int v = 1; v < 3; ++v) {
+        const auto cue_outs = of_type(embedded.plain, "cue_out", v);
+        REQUIRE(cue_outs.size() == 1);
+        CHECK(list(at(cue_outs[0]->payload, "messages")).size() == 2);
+    }
+
+    // One In Point written twice in segment 5, after a break's out in
+    // segment 3, with no plain cue tags: in v270 an OATCLS and an
+    // EXT-X-DATERANGE of one section, whose splice time is frame 125's; in
+    // v180 two sections of one splice_event_id; in the reference two
+    // time_signals of one segmentation_event_id, a Provider Advertisement
+    // End, its out the Start of that id.
+    const Section out9  = splice_insert({ .event_id = 9, .immediate = true });
+    const Section in9   = splice_insert({ .event_id = 9, .out = false, .pts = kOrigin + 125 * kFrame25 });
+    const Section in9a  = splice_insert({ .event_id = 9, .out = false, .immediate = true, .avail_num = 1 });
+    const Section in9b  = splice_insert({ .event_id = 9, .out = false, .immediate = true, .avail_num = 2 });
+    const Section ad7   = time_signal(std::nullopt, { { .event_id = 7, .type = 0x30 } });
+    const Section end7a = time_signal(std::nullopt, { { .event_id = 7, .type = 0x31, .num = 1 } });
+    const Section end7b = time_signal(std::nullopt, { { .event_id = 7, .type = 0x31, .num = 2 } });
+    const std::string v270_twice = ad_playlist(
+        { { 3, oatcls(out9) },
+          { 5, oatcls(in9) + dated_range("05", "i", "SCTE35-IN=" + hex(section(in9))) } },
+        {}, false);
+    const std::string v180_twice = ad_playlist(
+        { { 3, oatcls(out9) },
+          { 5, oatcls(in9a) + dated_range("05", "j", "SCTE35-IN=" + hex(section(in9b))) } },
+        {}, false);
+    const std::string v360_twice = ad_playlist(
+        { { 3, oatcls(ad7) },
+          { 5, oatcls(end7a) + dated_range("05", "k", "SCTE35-CMD=" + hex(section(end7b))) } },
+        {}, false);
+    Ladder twice({ v360_twice, v270_twice, v180_twice });
+    const MessageEvents t = twice.run();
+    INFO(warnings_text(t));
+    CHECK(t.warnings.empty());
+    using Spans = std::vector<std::tuple<std::int64_t, std::int64_t, std::string>>;
+    const auto spans = [](const timeline::Breaks& breaks, int variant) {
+        Spans out_spans;
+        for (const Event* e : of_type(breaks.events, "ad_break", variant))
+            out_spans.emplace_back(e->ref_index, *e->ref_end, text(at(e->payload, "end")));
+        return out_spans;
+    };
+    const timeline::Breaks tb = twice.pair(t);
+    CHECK(tb.warnings.empty());
+    for (int v = 0; v < 3; ++v) {
+        INFO("variant " << v);
+        const std::string& text_of = twice.playlists[static_cast<std::size_t>(v)];
+        // One cue_in, the OATCLS's, the first in the messages' order, which
+        // takes the DATERANGE's record.
+        const auto ins = of_type(t.cues, "cue_in", v);
+        REQUIRE(ins.size() == 1);
+        CHECK((ins[0]->segment == 5 && ins[0]->ref_index == 125));
+        CHECK(text(at(ins[0]->payload, "form")) == "OATCLS");
+        CHECK(integer(at(ins[0]->payload, "line")) < line_with(text_of, "#EXT-X-DATERANGE"));
+        const Value::List& records = list(at(ins[0]->payload, "messages"));
+        REQUIRE(records.size() == 1);
+        CHECK(text(field(records[0], "form")).starts_with("DATERANGE SCTE35-"));
+        CHECK(integer(field(records[0], "line")) == line_with(text_of, "#EXT-X-DATERANGE"));
+        CHECK(texts(field(records[0], "classes")) == std::vector<std::string>{ "cue_in" });
+        // Paired: the break ends at its one cue_in.
+        CHECK(spans(tb, v) == Spans{ { 75, 125, "cue_in" } });
+    }
+    // v270's In Point, written twice with its splice time: one splice_point.
+    REQUIRE(t.splice_points.size() == 1);
+    CHECK((t.splice_points[0].variant == 1 && t.splice_points[0].ref_index == 125));
+    CHECK(text(at(t.splice_points[0].payload, "form")) == "OATCLS");
+
+    // A tag's SCTE35-IN, which its cue_out takes (D-110 (b)), and an OATCLS
+    // of the same In Point after the tag in its segment, whose splice time
+    // is frame 110's, in segment 4: their splice times are one signal's,
+    // whatever cue takes each, and make one splice_point, the tag's, with no
+    // warning of it outside the tag's segment (D-110 (d)). The OATCLS is
+    // still a cue_in of its own, which the held break passes over, ending at
+    // its DURATION.
+    const Section     out61  = splice_insert({ .event_id = 61, .immediate = true });
+    const Section     in110  = splice_insert({ .event_id = 61, .out = false,
+                                               .pts = kOrigin + 35 * kFrame25 });   // frame 110's
+    const std::string tag    = "DURATION=2.0,SCTE35-OUT=" + hex(section(out61)) + ",SCTE35-IN="
+                             + hex(section(in110));
+    const std::string folded =
+        ad_playlist({ { 3, dated_range("03", "f", tag) + oatcls(in110) } }, {}, false);
+    Ladder beside({ ad_playlist({}, {}, false), folded, ad_playlist({}, {}, false) });
+    const MessageEvents f = beside.run();
+    INFO(warnings_text(f));
+    CHECK(f.warnings.empty());
+    REQUIRE(f.splice_points.size() == 1);
+    CHECK((f.splice_points[0].variant == 1 && f.splice_points[0].ref_index == 110));
+    CHECK(text(at(f.splice_points[0].payload, "form")) == "DATERANGE SCTE35-IN");
+    CHECK_FALSE(flag(at(f.splice_points[0].payload, "in_segment")));
+    REQUIRE(f.cues.size() == 2);
+    CHECK((f.cues[0].type == "cue_out" && f.cues[0].ref_index == 75));
+    CHECK(integer(at(f.cues[0].payload, "held_cue_in_line")) == line_with(folded, "#EXT-X-DATERANGE"));
+    CHECK((f.cues[1].type == "cue_in" && f.cues[1].ref_index == 75));
+    CHECK(text(at(f.cues[1].payload, "form")) == "OATCLS");
+    CHECK(integer(field(anchor(f.cues[1].payload, "splice_time"), "ref_index")) == 110);
+    const timeline::Breaks fb = beside.pair(f);
+    CHECK(fb.warnings.empty());
+    CHECK(spans(fb, 1) == Spans{ { 75, 125, "duration" } });
+
+    // A message that ends an advertisement and starts the next, and in an
+    // EXT-X-DATERANGE of its segment the End alone, of the same
+    // segmentation_event_id: one cue_in, the first message's, at its line,
+    // which the signal's cue_out shares, before that cue_out, the
+    // DATERANGE's record in its `messages`; the End alone doesn't end the
+    // next break at its frame. v270, no plain cue tags: the advertisement of
+    // segmentation_event_id 1 from segment 1, then in segment 3 the End of
+    // id 1 with the Start of id 2, which declares 1 s.
+    const Section open     = time_signal(std::nullopt, { { .event_id = 1, .type = 0x30 } });
+    const Section boundary =
+        time_signal(std::nullopt, { { .event_id = 1, .type = 0x31 },
+                                    { .event_id = 2, .duration = 90000, .type = 0x30 } });
+    const Section end1     = time_signal(std::nullopt, { { .event_id = 1, .type = 0x31 } });
+    const std::string joined = ad_playlist(
+        { { 1, oatcls(open) },
+          { 3, oatcls(boundary) + dated_range("03", "e", "SCTE35-CMD=" + hex(section(end1))) } },
+        {}, false);
+    Ladder ends({ ad_playlist({}, {}, false), joined, ad_playlist({}, {}, false) });
+    const MessageEvents e = ends.run();
+    INFO(warnings_text(e));
+    CHECK(e.warnings.empty());
+    const std::int64_t boundary_line = line_with(joined, oatcls(boundary));
+    REQUIRE(e.cues.size() == 3);
+    CHECK((e.cues[0].type == "cue_out" && e.cues[0].ref_index == 25));
+    const Event& end_in = e.cues[1];
+    CHECK((end_in.type == "cue_in" && end_in.ref_index == 75));
+    CHECK(integer(at(end_in.payload, "line")) == boundary_line);
+    CHECK(texts(at(end_in.payload, "classes")) == std::vector<std::string>{ "cue_in", "cue_out" });
+    const Value::List& joined_records = list(at(end_in.payload, "messages"));
+    REQUIRE(joined_records.size() == 1);
+    CHECK(text(field(joined_records[0], "form")) == "DATERANGE SCTE35-CMD");
+    CHECK((e.cues[2].type == "cue_out" && e.cues[2].ref_index == 75));
+    CHECK(integer(at(e.cues[2].payload, "line")) == boundary_line);
+    CHECK_FALSE(member(e.cues[2].payload, "messages"));
+    const timeline::Breaks eb = ends.pair(e);
+    CHECK(eb.warnings.empty());
+    CHECK(spans(eb, 1) == Spans{ { 25, 75, "cue_in" }, { 75, 100, "segmentation_duration" } });
+
+    // Two messages in segment 3 that end advertisements of
+    // segmentation_event_ids 1 and 3 and start one of id 2: one signal of
+    // cue-out messages by id 2, whose cue-in parts are one signal too,
+    // though their End ids differ (D-110 (e), (f)): one cue_in, the first's,
+    // the second's record in its `messages`, before the one cue_out.
+    const Section other =
+        time_signal(std::nullopt, { { .event_id = 3, .type = 0x31 },
+                                    { .event_id = 2, .duration = 90000, .type = 0x30 } });
+    const std::string two_ends =
+        ad_playlist({ { 1, oatcls(open) }, { 3, oatcls(boundary) + oatcls(other) } }, {}, false);
+    Ladder both({ ad_playlist({}, {}, false), two_ends, ad_playlist({}, {}, false) });
+    const MessageEvents o = both.run();
+    INFO(warnings_text(o));
+    CHECK(o.warnings.empty());
+    REQUIRE(o.cues.size() == 3);
+    CHECK((o.cues[0].type == "cue_out" && o.cues[0].ref_index == 25));
+    const Event& both_in = o.cues[1];
+    CHECK((both_in.type == "cue_in" && both_in.ref_index == 75));
+    CHECK(integer(at(both_in.payload, "line")) == line_with(two_ends, oatcls(boundary)));
+    const Value::List& both_records = list(at(both_in.payload, "messages"));
+    REQUIRE(both_records.size() == 1);
+    CHECK(integer(field(both_records[0], "line")) == line_with(two_ends, oatcls(other)));
+    CHECK((o.cues[2].type == "cue_out" && o.cues[2].ref_index == 75));
+    CHECK(list(at(o.cues[2].payload, "messages")).size() == 1);
+    const timeline::Breaks ob = both.pair(o);
+    CHECK(ob.warnings.empty());
+    CHECK(spans(ob, 1) == Spans{ { 25, 75, "cue_in" }, { 75, 100, "segmentation_duration" } });
 }

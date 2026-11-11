@@ -4,8 +4,9 @@
 // forms eval/phase3-survey/scte35.md §2 describes, the messages handed on to
 // the decoder, a live playlist refused (DECISIONS.md D-081 (a)), and the
 // pairing of cues into ad breaks by D-076's end rule, for plain cues and for
-// cues from a stub decoder alike. Nothing is read but the text, and no
-// message is decoded: the messages here are made up, in the tags' shapes.
+// cues from a stub decoder alike, a break of no frames kept with a warning
+// (D-110 (c)). Nothing is read but the text, and no message is decoded: the
+// messages here are made up, in the tags' shapes.
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -1034,7 +1035,8 @@ TEST_CASE("playlist_events: pair_breaks pairs each variant's cues in play order"
           "[timeline][playlist_events]")
 {
     // Two breaks in each of two variants; the second variant's playlist has
-    // a cue-out and a cue-in in one segment, which make an empty span.
+    // a cue-out and a cue-in in one segment, which make an empty span, kept
+    // with a warning (D-110 (c)).
     const std::string v0 = vod({ "", "#EXT-X-CUE-OUT:1\n", "#EXT-X-CUE-IN\n", "#EXT-X-CUE-OUT:2\n", "",
                                  "#EXT-X-CUE-IN\n" });
     const std::string v1 = vod({ "#EXT-X-CUE-OUT\n", "#EXT-X-CUE-OUT-CONT:1/3\n", "#EXT-X-CUE-OUT-CONT\n",
@@ -1049,7 +1051,10 @@ TEST_CASE("playlist_events: pair_breaks pairs each variant's cues in play order"
     for (const Event& e : placed(p0.cues)) all.push_back(e);
     std::reverse(all.begin(), all.end());
     const Breaks b = timeline::pair_breaks(all, grid_25());
-    CHECK(b.warnings.empty());
+    CHECK(b.warnings == std::vector<std::string>{
+        "variant 1: the ad_break of the cue_out at line 14 has no frames, the cue_in at line 15 ending it "
+        "at reference frame 75, where it starts: a drop that starts at that frame doesn't list it (D-078, "
+        "D-110 (c))" });
     REQUIRE(b.events.size() == 4);
     CHECK(b.events[0].variant == 0);
     CHECK(b.events[0].ref_index == 25);
@@ -1145,10 +1150,17 @@ TEST_CASE("playlist_events: pair_breaks ends a break without a cue-in at its fir
         CHECK(av_cmp_q(seen_f[0], AVRational{ 7, 25 }) == 0);
         CHECK(f.ref_end == 25 + 7);
         // A zero duration ends where the break starts, without the axis,
-        // which is given positive durations only (FrameAfter).
-        const auto [g, seen_g] = run({ { "duration", Value{ 0.0 } } });
-        CHECK(g.ref_end == 25);
+        // which is given positive durations only (FrameAfter); the break of
+        // no frames is kept, with a warning (D-110 (c)).
+        std::vector<AVRational> seen_g;
+        const Breaks g =
+            timeline::pair_breaks({ cue(kTypeCueOut, 0, 1, 10, 25, { { "duration", Value{ 0.0 } } }) },
+                                  grid_25(200, &seen_g));
+        REQUIRE(g.events.size() == 1);
+        CHECK(g.events[0].ref_end == 25);
+        CHECK(text(at(g.events[0].payload, "end")) == "duration");
         CHECK(seen_g.empty());
+        CHECK(g.warnings.size() == 1);
         // INT_MAX s, the largest duration an AVRational holds; and a decimal
         // of 19 places whose reduced fraction one holds.
         const auto [h, seen_h] = run({ { "duration", Value{ 2147483647.0 } } });
@@ -1472,7 +1484,8 @@ TEST_CASE("playlist_events: pair_breaks takes a duration's 90 kHz ticks before i
 }
 
 TEST_CASE("playlist_events: pair_breaks ends a cue_out that holds its tag's cue_in at its declared "
-          "duration (D-109 (b))", "[timeline][playlist_events]")
+          "duration (D-109 (b)), and one that declares none pairs as any cue_out (D-110 (a))",
+          "[timeline][playlist_events]")
 {
     using timeline::kTypeCueIn;
     using timeline::kTypeCueOut;
@@ -1521,13 +1534,100 @@ TEST_CASE("playlist_events: pair_breaks ends a cue_out that holds its tag's cue_
     CHECK((b.events[1].ref_index == 50 && b.events[1].ref_end == 100));
     CHECK(text(at(b.events[1].payload, "end")) == "cue_in");
 
-    // One that declares no duration makes no break, and says why; the
-    // cue_in after it ends nothing either.
+    // A cue_out with the member that declares no duration, which the decoder
+    // never gives (D-110 (a)), holds nothing: the cue_in after it ends it, as
+    // it ends any cue_out's break; without one it makes no break, and says
+    // why, as a cue_out that declares nothing does.
     b = timeline::pair_breaks({ cue(kTypeCueOut, 1, 3, 14, 75, { { held, line_14 } }),
                                 cue(kTypeCueIn, 1, 5, 21, 125) },
                               grid_25());
+    CHECK(b.warnings.empty());
+    REQUIRE(b.events.size() == 1);
+    CHECK((b.events[0].ref_index == 75 && b.events[0].ref_end == 125));
+    CHECK(text(at(b.events[0].payload, "end")) == "cue_in");
+    CHECK(integer(at(b.events[0].payload, "cue_in_line")) == 21);
+    b = timeline::pair_breaks(
+        { cue(kTypeCueOut, 1, 3, 14, 75, { { "duration", Value{} }, { held, line_14 } }) }, grid_25());
     CHECK(b.events.empty());
     CHECK(b.warnings == std::vector<std::string>{
-        "variant 1: no ad_break for the cue_out at line 14: the EXT-X-DATERANGE at line 14 holds its "
-        "cue_in (D-109 (b)), and it declares no duration (D-076)" });
+        "variant 1: no ad_break for the cue_out at line 14: no cue_in follows it, and it declares no "
+        "duration (D-076)" });
+
+    // One that declares 0 s ends where it starts, the cue_in after it ending
+    // nothing: a break of no frames, kept with a warning (D-110 (c)).
+    b = timeline::pair_breaks(
+        { cue(kTypeCueOut, 0, 3, 14, 75, { { "duration", Value{ 0.0 } }, { held, line_14 } }),
+          cue(kTypeCueIn, 0, 5, 21, 125) },
+        grid_25());
+    REQUIRE(b.events.size() == 1);
+    CHECK((b.events[0].ref_index == 75 && b.events[0].ref_end == 75));
+    CHECK(text(at(b.events[0].payload, "end")) == "duration");
+    CHECK(integer(at(b.events[0].payload, "cue_in_line")) == 14);
+    CHECK(b.warnings == std::vector<std::string>{
+        "variant 0: the ad_break of the cue_out at line 14 has no frames, its duration of 0 s ending it at "
+        "reference frame 75, where it starts: a drop that starts at that frame doesn't list it (D-078, "
+        "D-110 (c))" });
+}
+
+TEST_CASE("playlist_events: pair_breaks keeps an ad_break of no frames, with a warning (D-110 (c))",
+          "[timeline][playlist_events]")
+{
+    // A cue-out and a cue-in of one segment, two plain tags: a break of no
+    // frames at its segment's first frame, ended by the cue-in.
+    const PlaylistEvents p =
+        timeline::parse_playlist_events(vod({ "", "", "", "#EXT-X-CUE-OUT\n#EXT-X-CUE-IN\n" }), kBase, 2);
+    REQUIRE(p.error.empty());
+    REQUIRE(p.cues.size() == 2);
+    Breaks b = timeline::pair_breaks(placed(p.cues), grid_25());
+    REQUIRE(b.events.size() == 1);
+    const Event& empty = b.events[0];
+    CHECK((empty.variant == 2 && empty.ref_index == 75 && empty.ref_end == 75));
+    CHECK(text(at(empty.payload, "end")) == "cue_in");
+    CHECK(integer(at(empty.payload, "cue_out_line")) == 10);
+    CHECK(integer(at(empty.payload, "cue_in_line")) == 11);
+    CHECK(b.warnings == std::vector<std::string>{
+        "variant 2: the ad_break of the cue_out at line 10 has no frames, the cue_in at line 11 ending it "
+        "at reference frame 75, where it starts: a drop that starts at that frame doesn't list it (D-078, "
+        "D-110 (c))" });
+    // What the warning says: a drop that starts at its frame doesn't meet it
+    // (D-078), nor one that ends there; one around its frame does.
+    CHECK_FALSE(timeline::meets(empty, { .ref_index = 75, .ref_end = 100 }));
+    CHECK_FALSE(timeline::meets(empty, { .ref_index = 50, .ref_end = 75 }));
+    CHECK(timeline::meets(empty, { .ref_index = 50, .ref_end = 100 }));
+
+    // A declared duration of 0, without a cue-in, in each of D-076's forms:
+    // EXT-X-CUE-OUT:0, DURATION=0, an END-DATE at its START-DATE and a
+    // break_duration of 0 ticks; each a break of no frames with its warning,
+    // which names its cue_out's line and how it ended.
+    const std::vector<std::pair<Payload, std::string>> zero = {
+        { { { "duration", Value{ 0.0 } } }, "its duration of 0 s" },
+        { { { "end_date_duration", Value{ 0.0 } } }, "its end_date_duration of 0 s" },
+        { { { "break_duration", Value{ 0.0 } }, { "break_duration_ticks", Value{ std::int64_t{ 0 } } } },
+          "its break_duration of 0 ticks (90 kHz)" },
+    };
+    for (const auto& [durations, how] : zero) {
+        INFO(how);
+        b = timeline::pair_breaks({ cue(timeline::kTypeCueOut, 1, 3, 14, 75, durations) }, grid_25());
+        REQUIRE(b.events.size() == 1);
+        CHECK((b.events[0].ref_index == 75 && b.events[0].ref_end == 75));
+        CHECK(b.warnings == std::vector<std::string>{ std::format(
+                  "variant 1: the ad_break of the cue_out at line 14 has no frames, {} ending it at "
+                  "reference frame 75, where it starts: a drop that starts at that frame doesn't list it "
+                  "(D-078, D-110 (c))", how) });
+    }
+    const PlaylistEvents q = timeline::parse_playlist_events(vod({ "", "#EXT-X-CUE-OUT:0\n" }), kBase, 0);
+    REQUIRE(q.cues.size() == 1);
+    b = timeline::pair_breaks(placed(q.cues), grid_25());
+    REQUIRE(b.events.size() == 1);
+    CHECK((b.events[0].ref_index == 25 && b.events[0].ref_end == 25));
+    CHECK(b.warnings == std::vector<std::string>{
+        "variant 0: the ad_break of the cue_out at line 6 has no frames, its duration of 0 s ending it at "
+        "reference frame 25, where it starts: a drop that starts at that frame doesn't list it (D-078, "
+        "D-110 (c))" });
+
+    // A break of frames has no such warning.
+    b = timeline::pair_breaks(
+        { cue(timeline::kTypeCueOut, 1, 3, 14, 75), cue(timeline::kTypeCueIn, 1, 4, 17, 100) }, grid_25());
+    REQUIRE(b.events.size() == 1);
+    CHECK(b.warnings.empty());
 }
