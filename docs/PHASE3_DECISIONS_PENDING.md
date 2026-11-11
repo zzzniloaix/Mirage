@@ -6,7 +6,7 @@ What is open for the owner on `vmaf/phase-3`, §3 of the VMAF work order (the un
 
 44 questions, Q01 to Q44, in three rounds: 27 in round 1, the answers the work packages on the path to §3.2's two acceptance tests need before they start; 9 in round 2, those of sessions, the session fetch, the decoded SCTE-35 messages and the composite example; 8 in round 3, those of the UI, the conditional and later packages, and the differences to report. A question's round is the earliest round of the packages it blocks, and a round's packages start once all of its questions are answered (`eval/phase3-survey/design.md` §12, §14). Q26, Q39, Q43 and Q44 are answered item by item, an item's options numbered: "Q43 (c) 2". The questions marked D-007 (Q01, Q08, Q09, Q10, Q13, Q36, Q37 and Q41) have an answer that is, or includes, an approval or a ruling under D-007. "Blocks" names the work packages that wait for the answer; the packages are listed at the end. After the questions come the differences from the work order to report, and the agent's proposed process choices, to be recorded from P-082 on.
 
-The questions are the design's (`eval/phase3-survey/design/owner_questions.json`), rendered by `eval/phase3-survey/tools/render_pending.py` with the design's paths written as the repository has them and nothing else changed. They are as the design's revision 3 left them, after the third review's seven minor issues (`eval/phase3-survey/review-3/review.md`; `eval/phase3-survey/design/revision-3.md`). The owner's answers are marked here as each round's come in. Round 1's 27 questions were answered on 2026-11-02, every one as the agent recommends (D-071 to D-081); each is marked below. Round 2's 9 were answered on 2026-11-06, every one as the agent recommends, with Q47 (D-103 to D-107); each is marked below. Round 3 is open but for Q09 and Q13, which the owner answered on 2026-11-11 by leaving WP16 and WP17 out of Phase 3 (D-112 (b)). Building round 1's first packages raised three more questions, Q45 to Q47, after round 3 below: the owner answered Q45 and Q46 on 2026-11-04 as the agent recommends (D-086, D-087), and Q47 joins round 2. Building WP08, WP08b and WP09a raised Q48 to Q57, which the owner answered on 2026-11-05 and 2026-11-06, each as the agent recommends (D-092, D-099, D-100), and WP08c two more, Q58 and Q59, which the owner answered on 2026-11-06 as the agent recommends (D-101). Building round 2's first packages, WP00b, WP05 and WP07, raised eight more, Q60 to Q67, answered on 2026-11-10, each as the agent recommends (D-108, D-109): WP09b puts in the answers to Q60 to Q62, and WP05b, a follow-up of WP05's, those to Q63 to Q67, as WP08b and WP08c put in the answers on WP08. Building WP05b and WP09b raised seven more, Q68 to Q74, answered on 2026-11-11, each as the agent recommends (D-110, D-111): a follow-up of WP05b's, WP05c, puts in the answers to Q68 to Q72. The owner also left WP16 and WP17 out of Phase 3, which answers Q09 and Q13 of round 3, and had round 3's other questions asked before round 2 ends (D-112). Building WP09c and WP11b raised four more, Q75 to Q78, which are open.
+The questions are the design's (`eval/phase3-survey/design/owner_questions.json`), rendered by `eval/phase3-survey/tools/render_pending.py` with the design's paths written as the repository has them and nothing else changed. They are as the design's revision 3 left them, after the third review's seven minor issues (`eval/phase3-survey/review-3/review.md`; `eval/phase3-survey/design/revision-3.md`). The owner's answers are marked here as each round's come in. Round 1's 27 questions were answered on 2026-11-02, every one as the agent recommends (D-071 to D-081); each is marked below. Round 2's 9 were answered on 2026-11-06, every one as the agent recommends, with Q47 (D-103 to D-107); each is marked below. Round 3 is open but for Q09 and Q13, which the owner answered on 2026-11-11 by leaving WP16 and WP17 out of Phase 3 (D-112 (b)). Building round 1's first packages raised three more questions, Q45 to Q47, after round 3 below: the owner answered Q45 and Q46 on 2026-11-04 as the agent recommends (D-086, D-087), and Q47 joins round 2. Building WP08, WP08b and WP09a raised Q48 to Q57, which the owner answered on 2026-11-05 and 2026-11-06, each as the agent recommends (D-092, D-099, D-100), and WP08c two more, Q58 and Q59, which the owner answered on 2026-11-06 as the agent recommends (D-101). Building round 2's first packages, WP00b, WP05 and WP07, raised eight more, Q60 to Q67, answered on 2026-11-10, each as the agent recommends (D-108, D-109): WP09b puts in the answers to Q60 to Q62, and WP05b, a follow-up of WP05's, those to Q63 to Q67, as WP08b and WP08c put in the answers on WP08. Building WP05b and WP09b raised seven more, Q68 to Q74, answered on 2026-11-11, each as the agent recommends (D-110, D-111): a follow-up of WP05b's, WP05c, puts in the answers to Q68 to Q72. The owner also left WP16 and WP17 out of Phase 3, which answers Q09 and Q13 of round 3, and had round 3's other questions asked before round 2 ends (D-112). Building WP09c, WP11b and WP05c raised seven more, Q75 to Q81, which are open.
 
 ### Round 1: the path to §3.2's two acceptance tests (27 questions)
 
@@ -1649,6 +1649,51 @@ Are they kept?
 - **3. Every URL with dot segments refused** when `--fetch-base` is given.
 
 **Agent's recommendation.** 1: under it alone, every URL that passes D-108 (c)'s check is fetched at the path of the file the report names.
+
+#### Q79. A folded cue-in message's splice time outside its tag's discontinuity sequence
+
+*Round 2.* Raised by WP05c's review.
+
+**Question.** D-110 (d) records a folded cue-in message's anchors without checking them against its tag's segment. A splice time it gives that lies outside the tag's discontinuity sequence still can't be placed on that sequence's frames, so it makes no splice_point and writes design §5.1's warning that the splice_point is left out. In a stitched break, the in point that a tag in the ad's first segment gives lies past the ad's sequence by its nature (the review's probe, not committed). Is it kept?
+
+- **1. As built**: the warning, so that nothing is left out silently (design §5.1).
+- **2. No warning**: the time recorded with no splice_point, as a CUE-OUT-CONT's message writes none (D-109 (c)).
+- **3. The time placed in the discontinuity sequence where the break ends**, so that an In Point at the return to content makes its splice_point.
+
+**Agent's recommendation.** 1: an event the timeline leaves out is said to be left out, and placing the time in another sequence would need the break's end before its messages are read.
+
+#### Q80. A held tag whose declared duration can't be placed
+
+*Round 2.* Raised by WP05c's review.
+
+**Question.** Under D-110 (a) a tag that declares DURATION or END-DATE holds its cue-in message, and its break ends at that duration, no later cue_in ending it. Where the duration has no exact AVRational, as a decimal with more digits than an int holds (29.97002997) or a sum printed with floating-point noise (30.000000000000004), or where the axis gives no frame for its end, `pair_breaks()` makes no ad_break, with a warning, and the cue_in after the tag ends nothing, so that the break is lost, as it was before WP05c (the review's probe, not committed). How is it paired?
+
+- **1. As built.**
+- **2. Such a tag isn't held**: the decoder takes as declared only a duration that `pair_breaks()` can end a break at, so that the cue_in after it ends the break.
+- **3. `pair_breaks()` ends a held break whose duration it can't place at the cue_in it is given**, as D-076 has it.
+
+**Agent's recommendation.** 3: it is D-110 (a)'s reason, the cue-in still being where the media changes back where the tag's duration can't be used, and it covers both causes in one place.
+
+#### Q81. WP05c's other choices
+
+*Round 2.* Raised by WP05c.
+
+**Question.** Choices that change the events:
+
+- (a) a tag declares DURATION or END-DATE (D-110 (a)) where the decoder reads it as a finite duration from 0, so that a malformed tag, an END-DATE before its START-DATE or a date that can't be read declares nothing;
+- (b) a cue_out that carries `held_cue_in_line` with no declared duration, which only a hand-built cue can be, holds nothing and pairs as any cue_out;
+- (c) a tag with two cue-out messages that aren't one signal gives its cue-in messages to the cue_out of its first cue-out message in the tag's order;
+- (d) a folded cue-in message's anchors are computed and recorded as a CUE-OUT-CONT's message's are, `in_segment` true or false;
+- (e) a cue-in signal makes one splice_point per splice time too;
+- (f) a signal's cue_in holds the first message's record and the other cue-in messages' records in `messages`, none of their durations, the cue-in parts of one cue-out signal's messages counting as one signal even where their End ids differ;
+- (g) a cue-in message that shares bytes or ids with one that its own tag's cue_out takes is still a cue_in of its own.
+
+Are they kept?
+
+- **1. All as built.**
+- **2. Each asked on its own.**
+
+**Agent's recommendation.** 1.
 
 ## Differences from the work order, to report
 
