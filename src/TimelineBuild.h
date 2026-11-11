@@ -1,6 +1,7 @@
 #pragma once
 
-// The merge of every source's events into a Timeline: filled in by WP09a, a session's by WP09b.
+// The merge of every source's events into a Timeline: filled in by WP09a, a session's by WP09b,
+// the decoded SCTE-35 messages by WP09c.
 //
 // build() is eval/phase3-survey/design.md §3.4's step 5 for a ladder without
 // a session (DECISIONS.md D-072 to D-081): from the ladder report as the
@@ -8,9 +9,11 @@
 // playlist (src/PlaylistEvents.h) and its demux pass (VariantMedia, D-074),
 // it makes the reference's axis (src/TimelineAxis.h), the variants, the
 // pairs' curves and every source's events, each placed on the reference's
-// frames by the design's §5.1 rules, and it lists in Timeline::warnings,
-// with the reason, every anchor it can't place, so that nothing is left out
-// silently. add_session() and add_requests() are the section's step 6, a
+// frames by the design's §5.1 rules, the SCTE-35 messages the playlists'
+// tags carry decoded and placed among them (src/Scte35Events.h; design §5.5;
+// D-106, D-109), and it lists in Timeline::warnings, with the reason, every
+// anchor it can't place, so that nothing is left out silently.
+// add_session() and add_requests() are the section's step 6, a
 // scripted session's (D-068, D-104, D-105), on the timeline build() made:
 // the session's spans and its player events from its plan, then, once the
 // session's files are fetched, its network events. attribute_drops() is
@@ -75,15 +78,43 @@
 //   pairs[].index, as the axis's warnings do. A variant the demux pass refused
 //   keeps none of its segment-bound events, keyframes or corrupt packets
 //   (D-081 (c), D-086): one warning says so, and its cues take no part in
-//   the pairing. The SCTE-35 messages a variant's tags embed (CueInput) are
-//   named in one warning per variant: no decoder runs in this build (design
-//   §5.5, whose decoded messages WP05 and WP09c add), so none of them makes
-//   an event yet. Each problem hls::parse_media_timeline found in a
-//   playlist is a warning too, since it can change which segment a tag
-//   belongs to.
-// - Ad breaks: every cue of every variant with a segment map, placed or not
-//   (kUnplaced still takes its turn), paired by pair_breaks(), the axis's
-//   frame_after() ending a break at its declared duration (D-076, D-087).
+//   the pairing; its SCTE-35 messages make no event either, and one warning
+//   of scte35_events() says how many there are. Each problem
+//   hls::parse_media_timeline found in a playlist is a warning too, since it
+//   can change which segment a tag belongs to.
+// - Decoded messages (design §5.5; src/Scte35Events.h). Once every variant's
+//   plain cues are made, placed or not, every message the playlists' tags
+//   embed (PlaylistEvents::messages), in variant order and within a variant
+//   in line order (playlist_messages()), is decoded, classed and placed by
+//   scte35_events() under BuildInputs::messages, --cue-types and --bad-crc
+//   (D-106 (b), (c)), through the variants as build() reads them: [0] the
+//   reference, [k + 1] the distorted input of the report's k-th complete
+//   pair, each with its playlist and its demux pass. A message that belongs
+//   to a plain cue is merged into that cue's payload (D-106 (d)), and the
+//   others make cues of their own, one cue_out per signal (D-109 (a)), and
+//   splice_point, message and cancel events, each of the carrying variant;
+//   what can't be decoded or placed is a warning of scte35_events(). Its
+//   warnings, of every variant, come after the variants' and the pairs',
+//   and before pair_breaks()': a choice of this package's that sets a
+//   document's bytes, pending the owner (docs/TIMELINE_FORMAT.md); or each
+//   variant's after its own warnings. A ladder whose playlists carry no
+//   message, as D-069's carry plain cue tags only
+//   (eval/phase3-survey/testgen.md §2.3), has the events and the warnings it
+//   had before messages were decoded, whatever options
+//   check_message_options() takes.
+// - Ad breaks: every cue, plain and decoded, of every variant with a segment
+//   map, placed or not (kUnplaced still takes its turn), paired by
+//   pair_breaks() in the order cues_to_pair() gives, the decoded first, so
+//   that a cue_in that joins a plain cue_out at its line ends the break
+//   before it, the axis's frame_after() ending a break at its declared
+//   duration (D-076, D-087, D-109 (b), (d), (e)). Of the cues, those placed
+//   are events, one that isn't placed only taking its turn: the plain ones
+//   first, then the decoded ones, so that where a plain cue and a decoded
+//   one share a frame, a type and a variant, as an EXT-X-CUE-IN and a cue-in
+//   message of its segment do (D-109 (e)), assign_ids() numbers the plain
+//   one first, whatever their lines: a choice of this package's that sets a
+//   document's ids, pending the owner (docs/TIMELINE_FORMAT.md); or the
+//   decoded one first, or the one of the earlier line.
 // - Order: the events get their ids from assign_ids() and are put in
 //   canonical order with the overlap index built (Timeline::build_index()),
 //   so that identical inputs give identical timelines (design §4.7), the
@@ -98,7 +129,9 @@
 //   build() placed (fetch_files()), so a session isn't one of BuildInputs.
 //
 // The payloads of the events made here, in order (those of the playlist
-// events, the plain cues and the ad breaks are src/PlaylistEvents.h's).
+// events, the plain cues and the ad breaks are src/PlaylistEvents.h's, those
+// of the decoded messages' events, and the records they add to a plain cue,
+// src/Scte35Events.h's, D-109 (e)).
 // Their names are this package's, since the design gives the vmaf and
 // decoder events none, and the owner's D-099 (c) keeps them; the vmaf ones
 // take the ladder report's own names (alignment.vmaf_contexts,
@@ -127,6 +160,7 @@
 
 #include "LadderReportRead.h"
 #include "PlaylistEvents.h"
+#include "Scte35Events.h"
 #include "SessionPlan.h"
 #include "TimelineDetect.h"
 #include "TimelineModel.h"
@@ -180,12 +214,17 @@ struct VariantRead {
 
 // What build() merges: the ladder report as read, and one VariantRead per
 // variant in build()'s order, [0] the reference and [k + 1] the distorted
-// input of scores.pairs[k]. A session's plan and its requests come after
-// build(), to add_session() and add_requests(): its fetch lists the segments
-// build() placed (fetch_files(), src/SessionPlan.h).
+// input of scores.pairs[k]; and what becomes of the SCTE-35 messages their
+// playlists carry. A session's plan and its requests come after build(), to
+// add_session() and add_requests(): its fetch lists the segments build()
+// placed (fetch_files(), src/SessionPlan.h).
 struct BuildInputs {
     LadderScores             scores;
     std::vector<VariantRead> variants;
+    // Which time_signals are cues, and what becomes of a message whose
+    // CRC_32 fails: --cue-types and --bad-crc (D-106 (b), (c)), D-106's
+    // defaults unless they are given.
+    MessageOptions           messages;
 };
 
 // The timeline of a ladder (see above): its axis, variants, curves and
@@ -193,9 +232,10 @@ struct BuildInputs {
 // built, and its warnings. Empty, with `err` saying why, when the inputs
 // don't fit together: one VariantRead per variant and no other, each
 // playlist one that parse_playlist_events() read, without an error, for the
-// variant it is given for, and the pairs' numbers rising in the report's
-// order within an int, as read_ladder_report() gives them (D-092 (b)).
-// Otherwise `err` is empty, whatever the warnings.
+// variant it is given for, the pairs' numbers rising in the report's order
+// within an int, as read_ladder_report() gives them (D-092 (b)), and message
+// options that check_message_options() takes (src/Scte35Events.h), its text
+// then `err`. Otherwise `err` is empty, whatever the warnings.
 //
 // It places through the pairs as read_ladder_report() checks them: each
 // pair's reference and distorted positions rise from frame to frame, each

@@ -10,25 +10,38 @@
 // segments at 25 fps, the reference v360 and the pairs v270 and v180, the ad
 // in segments 3 and 4 restarting its timestamps at the main content's
 // origin, v180's ad scored low. Then a distorted input on a coarser grid
-// with unpaired frames, a refused variant, a segment none of whose frames is
-// paired, named with the tags it holds, tags no segment holds, an SCTE-35
-// message, a cue_out that makes no break, libvmaf contexts that can't be
-// placed, ad breaks ended by their declared duration, corrupt packets with
-// their boundaries, the same as the adapter's next_boundary() gives, a
-// mezzanine reference, the ranks of a master with shared and equal
-// BANDWIDTHs, inputs that don't fit, the curves read back from a report, a
-// report whose pairs' numbers skip a failed pair (D-092 (b)), detection's
-// attributions, and the same document from the same inputs twice. Then a
-// scripted session merged into the ad ladder's timeline (add_session(),
-// add_requests(); D-068, D-104, D-105): its spans and its player and network
-// events, the ladder's ids kept, a fetch without a UTC anchor, what it
-// refuses, and its drops, its pairs' clipped to its spans (D-077).
+// with unpaired frames, a refused variant, its messages too, a segment none
+// of whose frames is paired, named with the tags it holds, tags no segment
+// holds, an SCTE-35 message that doesn't decode, a cue_out that makes no
+// break, libvmaf contexts that can't be placed, ad breaks ended by their
+// declared duration, corrupt packets with their boundaries, the same as the
+// adapter's next_boundary() gives, a mezzanine reference, the ranks of a
+// master with shared and equal BANDWIDTHs, inputs that don't fit, the
+// curves read back from a report, a report whose pairs' numbers skip a
+// failed pair (D-092 (b)), detection's attributions, and the same document
+// from the same inputs twice. Then the SCTE-35 messages the playlists' tags
+// carry, decoded in the build (design §5.5; D-106, D-109), in sections that
+// tests/Scte35TestSections.h builds from field values (D-107): a message
+// merged into its plain cue_out, a message-only cue_out and cue_in paired,
+// splice points, a message and a cancel, their attribution and their
+// document read back; a message whose CRC_32 fails kept or dropped; the cue
+// types; a plain cue numbered before a decoded one of its frame and the
+// messages' warnings between the variants' and the pairing's, as built while
+// they wait for the owner; and a ladder without messages, the same whatever
+// the options. Then a scripted session merged into the ad ladder's timeline
+// (add_session(), add_requests(); D-068, D-104, D-105): its spans and its
+// player and network events, the ladder's ids kept, a fetch without a UTC
+// anchor, what it refuses, and its drops, its pairs' clipped to its spans
+// (D-077).
 
 #include <catch2/catch_test_macros.hpp>
 
 #include "FileHash.h"
 #include "LadderReportRead.h"
 #include "PlaylistEvents.h"
+#include "Scte35.h"
+#include "Scte35Events.h"
+#include "Scte35TestSections.h"
 #include "TimelineAxis.h"
 #include "TimelineBuild.h"
 #include "TimelineDetect.h"
@@ -205,6 +218,17 @@ timeline::BuildInputs ad_inputs(const std::string& playlist = kAdPlaylist)
     timeline::BuildInputs in;
     in.scores = ad_report();
     for (int v = 0; v < 3; ++v) in.variants.push_back(read_of(playlist, v, ad_media()));
+    return in;
+}
+
+// The same, each variant with its own of `playlists`, [0] the reference's.
+timeline::BuildInputs ad_inputs_of(const std::vector<std::string>& playlists)
+{
+    REQUIRE(playlists.size() == 3);
+    timeline::BuildInputs in;
+    in.scores = ad_report();
+    for (int v = 0; v < 3; ++v)
+        in.variants.push_back(read_of(playlists[static_cast<std::size_t>(v)], v, ad_media()));
     return in;
 }
 
@@ -601,28 +625,47 @@ TEST_CASE("timeline::build: a refused variant keeps none of its segment-bound ev
     CHECK(events_of(u, "segment", 0).empty());
     CHECK(events_of(u, "segment", 1).size() == 8);
     CHECK(u.variants[0].segment_map == "refused: a scored frame the pass doesn't have");
+
+    // A refused variant's SCTE-35 messages make no event either, which one
+    // warning of the decoder's says after the build's own (src/Scte35Events.h):
+    // v180's splice_insert out after its plain EXT-X-CUE-OUT.
+    const std::string carrying = scte35test::ad_playlist(
+        {}, { { 3, scte35test::oatcls(scte35test::splice_insert({ .event_id = 1, .pts = ref_pts(75) })) } });
+    timeline::BuildInputs m = ad_inputs_of({ kAdPlaylist, kAdPlaylist, carrying });
+    m.variants[2].media = timeline::VariantMedia{ .refused = "the PTS of frame 40 isn't the report's" };
+    const timeline::Timeline v = built(m);
+    for (const Event& e : v.events)
+        if (e.variant == 2) CHECK(e.source == Source::Vmaf);
+    REQUIRE(v.warnings.size() == 2);
+    CHECK(v.warnings[0] == t.warnings[0]);
+    CHECK(v.warnings[1] == "variant 2 (" + url_of(2) +
+                               "): no segment map, the PTS of frame 40 isn't the report's: its 1 SCTE-35 "
+                               "message is left out (D-081 (c), D-086)");
 }
 
 TEST_CASE("timeline::build: a segment none of whose frames is paired, tags after the last URI, an "
-          "SCTE-35 message, a cue_out without a break and a playlist's problems are warnings",
-          "[timeline][timeline_build]")
+          "SCTE-35 message that doesn't decode, a cue_out without a break and a playlist's problems are "
+          "warnings", "[timeline][timeline_build]")
 {
     // Every rung's playlist: a PROGRAM-DATE-TIME that doesn't parse, a bare
-    // cue-out with no cue-in, an OATCLS message, and a vendor tag after the
-    // last URI.
+    // cue-out with no cue-in, an OATCLS message that doesn't decode, a
+    // splice_insert's section cut after its first 12 bytes, and a vendor tag
+    // after the last URI.
+    scte35test::Bytes cut = scte35test::section(scte35test::splice_insert({ .event_id = 1, .pts = ref_pts(75) }));
+    cut.resize(12);
     const std::string playlist =
-        "#EXTM3U\n"
-        "#EXT-X-VERSION:3\n"
-        "#EXT-X-TARGETDURATION:1\n"
-        "#EXT-X-MEDIA-SEQUENCE:0\n"
-        "#EXT-X-PLAYLIST-TYPE:VOD\n"
-        "#EXT-X-PROGRAM-DATE-TIME:not a date\n"   // line 6
-        "#EXTINF:1.000000,\nmain_000.ts\n"
-        "#EXTINF:1.000000,\nmain_001.ts\n"
-        "#EXTINF:1.000000,\nmain_002.ts\n"
-        "#EXT-X-DISCONTINUITY\n"                  // line 13
-        "#EXT-X-CUE-OUT\n"                        // line 14
-        "#EXT-OATCLS-SCTE35:/DAlAAAAAAAAAP/wFAUAAAABf+/+AAAAAH4AKTLgAAEAAAAAAAAAMQ8EAA==\n"   // line 15
+        std::string("#EXTM3U\n"
+                    "#EXT-X-VERSION:3\n"
+                    "#EXT-X-TARGETDURATION:1\n"
+                    "#EXT-X-MEDIA-SEQUENCE:0\n"
+                    "#EXT-X-PLAYLIST-TYPE:VOD\n"
+                    "#EXT-X-PROGRAM-DATE-TIME:not a date\n"   // line 6
+                    "#EXTINF:1.000000,\nmain_000.ts\n"
+                    "#EXTINF:1.000000,\nmain_001.ts\n"
+                    "#EXTINF:1.000000,\nmain_002.ts\n"
+                    "#EXT-X-DISCONTINUITY\n"                  // line 13
+                    "#EXT-X-CUE-OUT\n") +                     // line 14
+        "#EXT-OATCLS-SCTE35:" + scte35test::base64(cut) + "\n" +   // line 15
         "#EXTINF:1.000000,\nad_000.ts\n"
         "#EXTINF:1.000000,\nad_001.ts\n"
         "#EXT-X-DISCONTINUITY\n"
@@ -631,6 +674,8 @@ TEST_CASE("timeline::build: a segment none of whose frames is paired, tags after
         "#EXTINF:1.000000,\nmain_007.ts\n"
         "#EXT-X-VENDOR-NOTE:after the last URI\n"   // line 27
         "#EXT-X-ENDLIST\n";
+    const std::string why = scte35::decode(cut).error;
+    REQUIRE_FALSE(why.empty());
     timeline::BuildInputs in = ad_inputs(playlist);
 
     // Pair 0 pairs none of v270's segment 1, frames 25 to 49, whose
@@ -679,10 +724,11 @@ TEST_CASE("timeline::build: a segment none of whose frames is paired, tags after
         // The tag after the last URI (design §5.1).
         CHECK(any_warning(t, name + ": the tag at line 27 follows the last segment's URI, so no segment "
                                     "holds it: it is left out (design §5.1)"));
-        // The undecoded message (design §5.5).
-        CHECK(any_warning(t, name + ": its playlist carries 1 SCTE-35 message, the first at line 15 "
-                                    "(OATCLS), which this build doesn't decode, so they make no event "
-                                    "(design §5.5)"));
+        // The message that doesn't decode makes no event, and a warning says
+        // why (design §5.1, §5.5).
+        CHECK(any_warning(t, name + ": the OATCLS at line 15: it doesn't decode, " + why +
+                                 ": it makes no event (design §5.5)"));
+        CHECK(events_of(t, "splice_point", v).empty());
         // hls::parse_media_timeline's problem.
         CHECK(any_warning(t, name + ": its playlist: line 6: PROGRAM-DATE-TIME"));
         // The cue_out is placed; it makes no break (pair_breaks()).
@@ -1044,6 +1090,394 @@ TEST_CASE("timeline::build: inputs that don't fit together", "[timeline][timelin
 
     (void)timeline::build(ad_inputs(), err);
     CHECK(err.empty());
+}
+
+// ── Decoded SCTE-35 messages (design §5.5; D-106, D-109) ─────────────────────
+
+namespace {
+
+// A message's record in a plain cue's `messages` (src/Scte35Events.h), by
+// its place there.
+const timeline::Payload& message_record(const Event& cue, std::size_t k)
+{
+    const Value* list = member(cue.payload, "messages");
+    REQUIRE(list);
+    REQUIRE(std::holds_alternative<Value::List>(list->v));
+    const Value::List& records = std::get<Value::List>(list->v);
+    REQUIRE(k < records.size());
+    REQUIRE(std::holds_alternative<Value::Object>(records[k].v));
+    return std::get<Value::Object>(records[k].v);
+}
+
+std::optional<bool> flag_member(const timeline::Payload& p, std::string_view name)
+{
+    const Value* v = member(p, name);
+    if (!v || !std::holds_alternative<bool>(v->v)) return std::nullopt;
+    return std::get<bool>(v->v);
+}
+
+// The frames of a variant's events of one type, in the timeline's order.
+std::vector<std::int64_t> frames_of(const timeline::Timeline& t, std::string_view type, int variant)
+{
+    std::vector<std::int64_t> out;
+    for (const Event* e : events_of(t, type, variant)) out.push_back(e->ref_index);
+    return out;
+}
+
+} // namespace
+
+TEST_CASE("timeline::build: decoded SCTE-35 messages, one merged into its plain cue_out, a cue_out and a cue_in "
+          "of messages alone paired, splice points, a message and a cancel (D-106)",
+          "[timeline][timeline_build]")
+{
+    using scte35test::Segmentation;
+    // The splice times of the ad's first frame, 75, and of the main
+    // content's return, 125, the same PTS in every rung, and 2 s of breaks.
+    const std::int64_t out_pts = ref_pts(75), in_pts = ref_pts(125), two_s = 180000;
+    // v270: an OATCLS of a splice_insert out after the plain EXT-X-CUE-OUT of
+    // segment 3, that cue's message (D-106 (d)).
+    const scte35test::Section merged =
+        scte35test::splice_insert({ .event_id = 7, .pts = out_pts, .duration = std::pair{ true, two_s } });
+    const std::string v270 = scte35test::ad_playlist({}, { { 3, scte35test::oatcls(merged) } });
+    // v180, without plain cue tags: an OATCLS of a splice_insert out before
+    // segment 3 and one of its splice_insert in before segment 5.
+    const scte35test::Section out =
+        scte35test::splice_insert({ .event_id = 8, .pts = out_pts, .duration = std::pair{ true, two_s } });
+    const scte35test::Section in = scte35test::splice_insert({ .event_id = 8, .out = false, .pts = in_pts });
+    const std::string v180 = scte35test::ad_playlist(
+        { { 3, scte35test::oatcls(out) }, { 5, scte35test::oatcls(in) } }, {}, false);
+    // The reference, v360: a time_signal of a Program Start, which no cue
+    // type is (D-106 (b)), before segment 1, and the cancellation of
+    // splice_event_id 9 before segment 6.
+    const scte35test::Section program =
+        scte35test::time_signal(ref_pts(25), { Segmentation{ .event_id = 5, .type = 0x10 } });
+    const scte35test::Section cancel = scte35test::splice_insert({ .event_id = 9, .cancel = true });
+    const std::string v360 = scte35test::ad_playlist(
+        { { 1, scte35test::oatcls(program) }, { 6, scte35test::oatcls(cancel) } });
+    const timeline::BuildInputs inputs = ad_inputs_of({ v360, v270, v180 });
+    const timeline::Timeline    t      = built(inputs);
+    INFO(warnings_text(t));
+    CHECK(t.warnings.empty());   // every message decodes, and every anchor is in its tag's segment
+
+    // v270: one cue_out, the plain one at line 14, its message's record in
+    // its payload, and the message's break_duration beside the tag's 2 s, in
+    // seconds and in 90 kHz ticks (D-109 (d)); the plain pairing unchanged.
+    const auto v270_out = events_of(t, "cue_out", 1);
+    REQUIRE(v270_out.size() == 1);
+    const Event& plain = *v270_out[0];
+    CHECK(plain.ref_index == 75);
+    CHECK(int_member(plain.payload, "line") == 14);
+    CHECK(text_member(plain.payload, "form") == "CUE-OUT");
+    const timeline::Payload& record = message_record(plain, 0);
+    CHECK(int_member(record, "line") == scte35test::line_with(v270, "#EXT-OATCLS-SCTE35:"));
+    CHECK(text_member(record, "form") == "OATCLS");
+    CHECK(flag_member(record, "crc_valid") == true);
+    REQUIRE(member(plain.payload, "break_duration"));
+    CHECK(timeline::number_of(*member(plain.payload, "break_duration")) == 2.0);
+    CHECK(int_member(plain.payload, "break_duration_ticks") == two_s);
+    const auto v270_break = events_of(t, "ad_break", 1);
+    REQUIRE(v270_break.size() == 1);
+    CHECK((v270_break[0]->ref_index == 75 && v270_break[0]->ref_end == 125));
+    CHECK(text_member(v270_break[0]->payload, "end") == "cue_in");
+
+    // v180: a cue_out and a cue_in of the messages alone, paired by
+    // pair_breaks() into an ad_break, ended by its cue_in (D-076).
+    const auto v180_out = events_of(t, "cue_out", 2), v180_in = events_of(t, "cue_in", 2);
+    REQUIRE(v180_out.size() == 1);
+    REQUIRE(v180_in.size() == 1);
+    const std::int64_t out_line = scte35test::line_with(v180, scte35test::base64(scte35test::section(out)));
+    const std::int64_t in_line  = scte35test::line_with(v180, scte35test::base64(scte35test::section(in)));
+    CHECK((v180_out[0]->ref_index == 75 && v180_out[0]->segment == 3));
+    CHECK(int_member(v180_out[0]->payload, "line") == out_line);
+    CHECK(text_member(v180_out[0]->payload, "form") == "OATCLS");
+    CHECK(flag_member(v180_out[0]->payload, "crc_valid") == true);
+    CHECK(int_member(v180_out[0]->payload, "break_duration_ticks") == two_s);
+    CHECK((v180_in[0]->ref_index == 125 && v180_in[0]->segment == 5));
+    CHECK(int_member(v180_in[0]->payload, "line") == in_line);
+    const auto v180_break = events_of(t, "ad_break", 2);
+    REQUIRE(v180_break.size() == 1);
+    CHECK((v180_break[0]->ref_index == 75 && v180_break[0]->ref_end == 125));
+    CHECK(text_member(v180_break[0]->payload, "end") == "cue_in");
+    CHECK(int_member(v180_break[0]->payload, "cue_out_line") == out_line);
+    CHECK(int_member(v180_break[0]->payload, "cue_in_line") == in_line);
+    CHECK(events_of(t, "cue_out_cont", 2).empty());
+
+    // Each splice time a splice_point on its variant's own frames (D-106
+    // (a)), in its tag's segment; none of the cancel, which has none.
+    CHECK(frames_of(t, "splice_point", 0) == std::vector<std::int64_t>{ 25 });
+    CHECK(frames_of(t, "splice_point", 1) == std::vector<std::int64_t>{ 75 });
+    CHECK(frames_of(t, "splice_point", 2) == std::vector<std::int64_t>{ 75, 125 });
+    const Event& point = *events_of(t, "splice_point", 1)[0];
+    CHECK(point.segment == 3);
+    CHECK(int_member(point.payload, "line") == int_member(record, "line"));
+    CHECK(text_member(point.payload, "command") == "splice_insert");
+    CHECK(int_member(point.payload, "pts_adjusted") == out_pts);
+    CHECK(int_member(point.payload, "index") == 75);
+    CHECK(flag_member(point.payload, "in_segment") == true);
+
+    // The reference's message and cancel, at the segments their tags precede.
+    const auto message = events_of(t, "message", 0);
+    REQUIRE(message.size() == 1);
+    CHECK((message[0]->ref_index == 25 && message[0]->segment == 1));
+    CHECK(text_member(message[0]->payload, "command") == "time_signal");
+    const Value* types = member(message[0]->payload, "segmentation_types");
+    REQUIRE(types);
+    REQUIRE(std::holds_alternative<Value::List>(types->v));
+    REQUIRE(std::get<Value::List>(types->v).size() == 1);
+    CHECK(std::get<std::int64_t>(std::get<Value::List>(types->v)[0].v) == 0x10);
+    const auto cancelled = events_of(t, "cancel", 0);
+    REQUIRE(cancelled.size() == 1);
+    CHECK((cancelled[0]->ref_index == 150 && cancelled[0]->segment == 6));
+    CHECK(int_member(cancelled[0]->payload, "splice_event_id") == 9);
+    for (int v = 1; v < 3; ++v) {
+        CHECK(events_of(t, "message", v).empty());
+        CHECK(events_of(t, "cancel", v).empty());
+    }
+
+    // Each decoded message's event of the scte35 source, with the media key
+    // of its frame.
+    for (const Event& e : t.events) {
+        if (e.type != "splice_point" && e.type != "message" && e.type != "cancel") continue;
+        INFO(e.id);
+        CHECK(e.source == Source::Scte35);
+        CHECK(e.key.sequence == t.axis.keys[static_cast<std::size_t>(e.ref_index)].sequence);
+        CHECK(e.key.pts == t.axis.keys[static_cast<std::size_t>(e.ref_index)].pts);
+    }
+    // The ladder's 22 events a variant and its two context_starts, as before,
+    // but for v180's two decoded cues where its plain tags made three; then a
+    // message, a cancel and four splice points.
+    CHECK(t.events.size() == 3 * 22 + 2 - 1 + 2 + 4);
+    CHECK(std::is_sorted(t.events.begin(), t.events.end(), timeline::canonical_before));
+
+    // v180's drop lists its decoded cue_out, its splice_point and its
+    // ad_break with the reference's plain cues (D-078), its cue_in at the
+    // drop's end not (half-open).
+    timeline::DetectOptions options;
+    options.window     = 50;
+    options.min_points = 12;
+    std::string err;
+    const std::vector<Attribution> drops =
+        timeline::attribute_drops(t, timeline::pair_curve_refs(t), options, {}, err);
+    INFO(err);
+    REQUIRE(drops.size() == 1);
+    CHECK((drops[0].interval.ref_index == 75 && drops[0].interval.ref_end == 125));
+    CHECK(listed(t, drops[0], Source::Scte35) ==
+          std::vector<std::string>{ "scte35/cue_out/0/0", "scte35/cue_out/2/0", "scte35/splice_point/2/0",
+                                    "scte35/ad_break/0/0", "scte35/ad_break/2/0", "scte35/cue_out_cont/0/0" });
+
+    // The document holds them as any other events, their payloads free
+    // objects (design §8): read back, and written again to the same bytes.
+    timeline::DocInfo info = doc_info(inputs.scores, t);
+    info.detection = timeline::Detection{ .options = options, .curves = timeline::pair_curve_refs(t) };
+    const std::string text = timeline::to_json(t, drops, info);
+    timeline::Timeline       back;
+    std::vector<Attribution> attributions;
+    timeline::DocInfo        back_info;
+    REQUIRE(timeline::from_json(text, back, attributions, back_info, err));
+    REQUIRE(back.events.size() == t.events.size());
+    CHECK(timeline::to_json(back, attributions, back_info) == text);
+}
+
+TEST_CASE("timeline::build: a message whose CRC_32 fails is kept, marked crc_valid false, with a warning, or "
+          "dropped by BadCrc::Drop with a warning (D-106 (c))", "[timeline][timeline_build]")
+{
+    using scte35test::Segmentation;
+    // v270: a splice_insert out whose CRC_32 fails, after the plain
+    // EXT-X-CUE-OUT of segment 3; v360: a time_signal of a Program Start
+    // whose CRC_32 fails, before segment 1; v180: one whose CRC_32 holds,
+    // before segment 6.
+    scte35test::Section bad_out = scte35test::splice_insert({ .event_id = 7, .pts = ref_pts(75) });
+    bad_out.bad_crc             = true;
+    scte35test::Section bad_message =
+        scte35test::time_signal(ref_pts(25), { Segmentation{ .event_id = 5, .type = 0x10 } });
+    bad_message.bad_crc = true;
+    const scte35test::Section good_message =
+        scte35test::time_signal(ref_pts(150), { Segmentation{ .event_id = 6, .type = 0x10 } });
+    const std::string v360 = scte35test::ad_playlist({ { 1, scte35test::oatcls(bad_message) } });
+    const std::string v270 = scte35test::ad_playlist({}, { { 3, scte35test::oatcls(bad_out) } });
+    const std::string v180 = scte35test::ad_playlist({ { 6, scte35test::oatcls(good_message) } });
+    timeline::BuildInputs inputs = ad_inputs_of({ v360, v270, v180 });
+
+    // Each warning names the message, its CRC_32 and the one its bytes give.
+    const auto crc_warning = [](int v, const std::string& playlist, const scte35test::Section& s,
+                                std::string_view fate) {
+        const scte35::SpliceInfo info = scte35::decode(scte35test::section(s));
+        return std::format("variant {} ({}): the OATCLS at line {}: its CRC_32 is 0x{:08X} where its bytes "
+                           "give 0x{:08X}: {} (D-106 (c))", v, url_of(v),
+                           scte35test::line_with(playlist, "#EXT-OATCLS-SCTE35:"), info.crc_32,
+                           info.crc_computed, fate);
+    };
+
+    // Kept, by default: their events, crc_valid false, each with a warning.
+    const timeline::Timeline kept = built(inputs);
+    INFO(warnings_text(kept));
+    CHECK(kept.warnings == std::vector<std::string>{
+                               crc_warning(0, v360, bad_message, "it is kept, marked crc_valid false"),
+                               crc_warning(1, v270, bad_out, "it is kept, marked crc_valid false") });
+    const auto kept_message = events_of(kept, "message", 0);
+    REQUIRE(kept_message.size() == 1);
+    CHECK(kept_message[0]->ref_index == 25);
+    CHECK(flag_member(kept_message[0]->payload, "crc_valid") == false);
+    const auto kept_out = events_of(kept, "cue_out", 1);
+    REQUIRE(kept_out.size() == 1);
+    CHECK(flag_member(message_record(*kept_out[0], 0), "crc_valid") == false);
+    CHECK(frames_of(kept, "splice_point", 0) == std::vector<std::int64_t>{ 25 });
+    CHECK(frames_of(kept, "splice_point", 1) == std::vector<std::int64_t>{ 75 });
+    CHECK(flag_member(events_of(kept, "splice_point", 1)[0]->payload, "crc_valid") == false);
+    const auto good = events_of(kept, "message", 2);
+    REQUIRE(good.size() == 1);
+    CHECK(good[0]->ref_index == 150);
+    CHECK(flag_member(good[0]->payload, "crc_valid") == true);
+
+    // Dropped (--bad-crc drop): no event of either, each with a warning;
+    // the plain cue_out without the message; the good message as it was.
+    inputs.messages.bad_crc = timeline::BadCrc::Drop;
+    const timeline::Timeline dropped = built(inputs);
+    INFO(warnings_text(dropped));
+    CHECK(dropped.warnings == std::vector<std::string>{
+                                  crc_warning(0, v360, bad_message, "it is dropped, as the bad-CRC policy drop says"),
+                                  crc_warning(1, v270, bad_out, "it is dropped, as the bad-CRC policy drop says") });
+    CHECK(events_of(dropped, "message", 0).empty());
+    CHECK(events_of(dropped, "splice_point", 0).empty());
+    CHECK(events_of(dropped, "splice_point", 1).empty());
+    const auto dropped_out = events_of(dropped, "cue_out", 1);
+    REQUIRE(dropped_out.size() == 1);
+    CHECK_FALSE(member(dropped_out[0]->payload, "messages"));
+    const auto names = [](const timeline::Payload& p) {
+        std::vector<std::string> out;
+        for (const auto& [n, v] : p) out.push_back(n);
+        return out;
+    };
+    const timeline::Timeline plain = built(ad_inputs());
+    CHECK(names(dropped_out[0]->payload) == names(events_of(plain, "cue_out", 1)[0]->payload));
+    CHECK(frames_of(dropped, "message", 2) == std::vector<std::int64_t>{ 150 });
+    // The breaks are the plain tags' in both.
+    for (const timeline::Timeline* t : { &kept, &dropped })
+        for (int v = 0; v < 3; ++v) CHECK(frames_of(*t, "ad_break", v) == std::vector<std::int64_t>{ 75 });
+}
+
+TEST_CASE("timeline::build: the cue types decide which time_signals are cues, the others messages, and types "
+          "that are neither Start nor End types are refused (D-106 (b))", "[timeline][timeline_build]")
+{
+    using scte35test::Segmentation;
+    // v180 without plain cue tags: a time_signal of a Provider Placement
+    // Opportunity Start (0x34) before segment 3, and its End (0x35) before
+    // segment 5.
+    const std::string v180 = scte35test::ad_playlist(
+        { { 3, scte35test::oatcls(scte35test::time_signal(ref_pts(75), { Segmentation{ .event_id = 11, .type = 0x34 } })) },
+          { 5, scte35test::oatcls(scte35test::time_signal(ref_pts(125), { Segmentation{ .event_id = 11, .type = 0x35 } })) } },
+        {}, false);
+    timeline::BuildInputs inputs = ad_inputs_of({ kAdPlaylist, kAdPlaylist, v180 });
+
+    // D-106 (b)'s types hold both: a cue_out and a cue_in, paired.
+    const timeline::Timeline t = built(inputs);
+    INFO(warnings_text(t));
+    CHECK(t.warnings.empty());
+    CHECK(frames_of(t, "cue_out", 2) == std::vector<std::int64_t>{ 75 });
+    CHECK(frames_of(t, "cue_in", 2) == std::vector<std::int64_t>{ 125 });
+    const auto brk = events_of(t, "ad_break", 2);
+    REQUIRE(brk.size() == 1);
+    CHECK((brk[0]->ref_index == 75 && brk[0]->ref_end == 125));
+    CHECK(events_of(t, "message", 2).empty());
+
+    // Breaks alone (--cue-types 0x22-0x23): both are messages, and no break
+    // is made; their splice points stay.
+    inputs.messages.cue_types = { 0x22, 0x23 };
+    const timeline::Timeline u = built(inputs);
+    INFO(warnings_text(u));
+    CHECK(u.warnings.empty());
+    CHECK(events_of(u, "cue_out", 2).empty());
+    CHECK(events_of(u, "cue_in", 2).empty());
+    CHECK(events_of(u, "ad_break", 2).empty());
+    const auto messages = events_of(u, "message", 2);
+    REQUIRE(messages.size() == 2);
+    CHECK(messages[0]->ref_index == 75);
+    CHECK(messages[1]->ref_index == 125);
+    CHECK(frames_of(t, "splice_point", 2) == std::vector<std::int64_t>{ 75, 125 });
+    CHECK(frames_of(u, "splice_point", 2) == std::vector<std::int64_t>{ 75, 125 });
+    // The other rungs' plain tags, as before.
+    CHECK(events_of(u, "ad_break", 1).size() == 1);
+
+    // A type that is neither a Start nor an End type makes no cue: the
+    // build refuses it, as check_message_options() says.
+    inputs.messages.cue_types = { 0x22, 0x28 };
+    std::string err;
+    CHECK(timeline::build(inputs, err).events.empty());
+    CHECK(err == timeline::check_message_options(inputs.messages));
+    CHECK(contains(err, "0x28"));
+}
+
+TEST_CASE("timeline::build: a plain cue numbered before a decoded one of its frame, type and variant, and the "
+          "messages' warnings between the variants' and the pairing's, as built", "[timeline][timeline_build]")
+{
+    // Two choices of the build's that set a document's bytes where a
+    // playlist carries a message, pending the owner (src/TimelineBuild.h,
+    // docs/TIMELINE_FORMAT.md), as they are built.
+    //
+    // v180's EXT-X-CUE-IN and, before it in segment 5, an OATCLS of a
+    // splice_insert in, which makes a cue_in of its own at the same frame
+    // (D-109 (e)): the plain one is numbered first, whatever their lines.
+    const std::string v180 = scte35test::ad_playlist(
+        { { 5, scte35test::oatcls(scte35test::splice_insert({ .event_id = 8, .out = false, .pts = ref_pts(125) })) } });
+    const timeline::Timeline t = built(ad_inputs_of({ kAdPlaylist, kAdPlaylist, v180 }));
+    const std::int64_t plain_line   = scte35test::line_with(v180, "#EXT-X-CUE-IN");
+    const std::int64_t decoded_line = scte35test::line_with(v180, "#EXT-OATCLS-SCTE35:");
+    REQUIRE(decoded_line < plain_line);
+    const auto ins = events_of(t, "cue_in", 2);
+    REQUIRE(ins.size() == 2);
+    const auto id_at = [&ins](std::int64_t line) {
+        for (const Event* e : ins)
+            if (int_member(e->payload, "line") == line) return e->id;
+        return std::string();
+    };
+    CHECK(id_at(plain_line) == "scte35/cue_in/2/0");
+    CHECK(id_at(decoded_line) == "scte35/cue_in/2/1");
+
+    // Every rung's playlist without its plain cue tags: an OATCLS of a
+    // Program Start whose CRC_32 fails before segment 1 (D-106 (c)), a bare
+    // EXT-X-CUE-OUT before segment 3 that nothing ends, and a vendor tag
+    // after the last URI. The variants' warnings of every rung come first
+    // (the tag no segment holds), then the messages' (the CRC_32), then the
+    // pairing's (the cue_out without an ad_break).
+    scte35test::Section bad =
+        scte35test::time_signal(ref_pts(25), { scte35test::Segmentation{ .event_id = 5, .type = 0x10 } });
+    bad.bad_crc = true;
+    const std::string warned = scte35test::ad_playlist({ { 1, scte35test::oatcls(bad) }, { 3, "#EXT-X-CUE-OUT\n" } },
+                                                       {}, false, "", "#EXT-X-VENDOR-NOTE:after the last URI\n");
+    const timeline::Timeline w = built(ad_inputs(warned));
+    INFO(warnings_text(w));
+    const auto at = [&w](std::string_view part) {
+        std::vector<std::size_t> out;
+        for (std::size_t i = 0; i < w.warnings.size(); ++i)
+            if (contains(w.warnings[i], part)) out.push_back(i);
+        return out;
+    };
+    const std::vector<std::size_t> variants = at("follows the last segment's URI");
+    const std::vector<std::size_t> messages = at("it is kept, marked crc_valid false (D-106 (c))");
+    const std::vector<std::size_t> pairing  = at("no ad_break for the cue_out");
+    REQUIRE(variants.size() == 3);
+    REQUIRE(messages.size() == 3);
+    REQUIRE(pairing.size() == 3);
+    CHECK(variants.back() < messages.front());
+    CHECK(messages.back() < pairing.front());
+}
+
+TEST_CASE("timeline::build: a ladder whose playlists carry no message, as D-069's carry plain cue tags only, has "
+          "the same events, warnings and document whatever the message options", "[timeline][timeline_build]")
+{
+    timeline::BuildInputs inputs = ad_inputs();
+    const timeline::Timeline a = built(inputs);
+    inputs.messages.cue_types = { 0x10, 0x11 };
+    inputs.messages.bad_crc   = timeline::BadCrc::Drop;
+    const timeline::Timeline b = built(inputs);
+    CHECK(timeline::to_json(b, {}, doc_info(inputs.scores, b)) == timeline::to_json(a, {}, doc_info(inputs.scores, a)));
+    CHECK(a.warnings.empty());
+    CHECK(b.warnings.empty());
+    for (const Event& e : a.events) {
+        INFO(e.id);
+        CHECK((e.type != "splice_point" && e.type != "message" && e.type != "cancel"));
+        CHECK_FALSE(member(e.payload, "messages"));
+    }
 }
 
 // ── Curves and attributions ──────────────────────────────────────────────────

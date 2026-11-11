@@ -205,11 +205,37 @@ public:
     {
         for (std::size_t v = 0; v < in_.variants.size(); ++v) variant_events(static_cast<int>(v));
         for (std::size_t k = 0; k < s_.pairs.size(); ++k) vmaf_events(k);
-        const Breaks breaks = pair_breaks(cues_, [this](std::int64_t f, AVRational d) {
+
+        // The SCTE-35 messages the playlists' tags embed, decoded, classed
+        // and placed once every plain cue is in cues_, placed or not (design
+        // §5.5; D-106, D-109): those that belong to a plain cue are merged
+        // into it there, the others make cues, splice points, messages and
+        // cancellations of their own (src/Scte35Events.h). Their warnings
+        // come after the variants' and the pairs', before the pairing's
+        // (pending the owner, TimelineBuild.h).
+        const MessagePlacement placement = message_placement();
+        MessageEvents decoded =
+            scte35_events(playlist_messages(placement.variants), cues_, placement, in_.messages);
+        warnings_.insert(warnings_.end(), decoded.warnings.begin(), decoded.warnings.end());
+
+        // Every cue, plain and decoded, paired by one owner (design §5.5),
+        // the decoded first, as cues_to_pair() hands them over, so that a
+        // cue_in that joins a plain cue_out at its line ends the break
+        // before it (src/Scte35Events.h).
+        const Breaks breaks = pair_breaks(cues_to_pair(decoded, cues_), [this](std::int64_t f, AVRational d) {
             return t_.axis.frame_after(f, d);
         });
+        // The cues that are placed, the plain ones first, which assign_ids()
+        // then numbers first where a plain and a decoded cue share a frame,
+        // a type and a variant (pending the owner, TimelineBuild.h); one that
+        // isn't placed only took its turn in the pairing, and a warning names
+        // it. The splice points, messages and cancellations come placed.
         for (Event& c : cues_)
             if (c.ref_index != kUnplaced) events_.push_back(std::move(c));
+        for (Event& c : decoded.cues)
+            if (c.ref_index != kUnplaced) events_.push_back(std::move(c));
+        for (Event& e : decoded.splice_points) events_.push_back(std::move(e));
+        for (Event& e : decoded.others) events_.push_back(std::move(e));
         events_.insert(events_.end(), breaks.events.begin(), breaks.events.end());
         warnings_.insert(warnings_.end(), breaks.warnings.begin(), breaks.warnings.end());
 
@@ -224,7 +250,8 @@ private:
     const LadderScores&      s_;
     Timeline&                t_;
     std::vector<Event>       events_;
-    std::vector<Event>       cues_;       // every cue to pair, placed or not
+    std::vector<Event>       cues_;       // every plain cue to pair, placed or not, which
+                                          // the decoded messages merge into (D-106 (d))
     std::vector<std::string> warnings_;
 
     Event placed(Event e, std::int64_t at, std::optional<std::int64_t> end = std::nullopt) const
@@ -241,6 +268,19 @@ private:
         return Placement::distorted(s_.pairs[static_cast<std::size_t>(v - 1)], t_.axis.frames);
     }
 
+    // The variants as scte35_events() places their messages through them
+    // (src/Scte35Events.h), in build()'s order: each with its playlist, none
+    // for a mezzanine, and its demux pass, a refused one's included, whose
+    // messages that function leaves out with its warning (D-081 (c), D-086);
+    // and the report's pairs and the axis.
+    MessagePlacement message_placement() const
+    {
+        MessagePlacement p{ .scores = &s_, .axis = &t_.axis, .variants = {} };
+        for (const VariantRead& r : in_.variants)
+            p.variants.push_back({ .playlist = r.playlist ? &*r.playlist : nullptr, .media = &r.media });
+        return p;
+    }
+
     std::string name(int v) const
     {
         return std::format("variant {} ({})", v, t_.variants[static_cast<std::size_t>(v)].url);
@@ -251,11 +291,9 @@ private:
         const VariantRead&    read = in_.variants[static_cast<std::size_t>(v)];
         const VariantMedia&   m    = read.media;
         const PlaylistEvents* p    = read.playlist ? &*read.playlist : nullptr;
-        if (p) {
+        if (p)
             for (const std::string& problem : p->timeline.problems)
                 warnings_.push_back(std::format("{}: its playlist: {}", name(v), problem));
-            if (!p->messages.empty()) message_warning(v, *p);
-        }
         if (!m.refused.empty()) {
             warnings_.push_back(std::format(
                 "{}: no segment map, {}: its segment-bound events, keyframes and corrupt packets "
@@ -389,18 +427,6 @@ private:
                                         name(v), tag_text(e)));
     }
 
-    void message_warning(int v, const PlaylistEvents& p)
-    {
-        const CueInput& first = p.messages.front();
-        std::string where;
-        if (const auto* a = std::get_if<PlaylistAnchor>(&first.anchor))
-            where = std::format(", the first at line {} ({})", a->line, first.form);
-        warnings_.push_back(std::format(
-            "{}: its playlist carries {}{}, which this build doesn't decode, so they make no event "
-            "(design §5.5)", name(v), plural(p.messages.size(), "SCTE-35 message", "SCTE-35 messages"),
-            where));
-    }
-
     void lost_warning(int v, const Lost& lost, std::string_view one, std::string_view many)
     {
         if (lost.count == 0) return;
@@ -526,6 +552,13 @@ Timeline build(const BuildInputs& in, std::string& err)
 {
     err.clear();
     const LadderScores& s = in.scores;
+    // Cue types that are neither Start nor End types, which make no cue
+    // (D-106 (b)), as the subcommand refuses them, a bad argument
+    // (src/TimelineCli.h).
+    if (std::string why = check_message_options(in.messages); !why.empty()) {
+        err = std::move(why);
+        return {};
+    }
     if (in.variants.size() != s.pairs.size() + 1) {
         err = std::format("the timeline build was given {} for a report of {}: it takes the "
                           "reference and one per complete pair",

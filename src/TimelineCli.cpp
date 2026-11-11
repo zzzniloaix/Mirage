@@ -4,6 +4,8 @@
 #include "JsonText.h"
 #include "LadderReportRead.h"
 #include "PlaylistEvents.h"
+#include "Scte35.h"
+#include "Scte35Events.h"
 #include "SessionFetch.h"
 #include "SessionPlan.h"
 #include "TimelineAxis.h"
@@ -237,6 +239,34 @@ std::string set_fetch_base(TimelineArgs& a, std::string_view v)
     return {};
 }
 
+// --cue-types: the segmentation types that make a time_signal a cue-out or
+// a cue-in (D-106 (b)), as parse_cue_types() reads them, each a Start or an
+// End type (check_message_options()), checked here so that a config file's
+// value is refused on its line, as the command line's is.
+std::string set_cue_types(TimelineArgs& a, std::string_view v)
+{
+    std::string err;
+    std::optional<std::vector<std::uint8_t>> types = parse_cue_types(v, err);
+    if (!types)
+        return std::format("wants segmentation_type_ids in hex, each alone or a range, comma-separated, "
+                           "such as 0x22-0x23,0x30-0x37, not '{}': {}", v, err);
+    timeline::MessageOptions check;
+    check.cue_types = *types;
+    if (std::string why = timeline::check_message_options(check); !why.empty())
+        return std::format("takes Start and End types only, not '{}': {}", v, why);
+    a.cue_types = std::move(types);
+    return {};
+}
+
+// --bad-crc keep|drop (D-106 (c)).
+std::string set_bad_crc(TimelineArgs& a, std::string_view v)
+{
+    if (v == "keep") a.bad_crc = timeline::BadCrc::Keep;
+    else if (v == "drop") a.bad_crc = timeline::BadCrc::Drop;
+    else return std::format("wants keep or drop, not '{}'", v);
+    return {};
+}
+
 std::string set_format(AttributeArgs& a, std::string_view v)
 {
     if (v == "text") a.format = Format::Text;
@@ -318,6 +348,11 @@ const std::array kTimelineOptions = {
              Form::Any, false, false, set_margin_before<TimelineArgs> },
     TOption{ "--margin-after", "S", "list the events up to S seconds after a drop's end too "
              "(default 0)", Form::Any, false, false, set_margin_after<TimelineArgs> },
+    TOption{ "--cue-types", "<segmentation_type_id ranges>", "the segmentation types that make a time_signal "
+             "a cue-out or a cue-in (default 0x22-0x23,0x30-0x37,0x44-0x47; see SCTE-35 below)", Form::Any,
+             false, false, set_cue_types },
+    TOption{ "--bad-crc", "keep|drop", "keep an SCTE-35 message whose CRC_32 fails, marked, or drop it "
+             "(default keep)", Form::Any, false, false, set_bad_crc },
     TOption{ kConfig, "<file>", kConfigHelp, Form::Any, false, false, set_config<TimelineArgs> },
 };
 
@@ -616,13 +651,21 @@ std::string synopsis(std::string_view word, const std::array<Option<Args>, N>& t
 }
 
 // One row per option, its help in a column two spaces past the widest
-// option, attribute's --curve pair:<k>|session:<id>.
+// option it fits, attribute's --curve pair:<k>|session:<id>; an option wider
+// than that, timeline's --cue-types with design §7's placeholder, has its
+// help in the column on the next line, so that every other row is as it was:
+// a choice pending the owner (TimelineCli.h).
 template <class Args, std::size_t N>
 std::string option_rows(const std::array<Option<Args>, N>& table)
 {
+    constexpr std::size_t kColumn = 31;
     std::string out;
-    for (const Option<Args>& o : table) out += std::format("  {:<31}{}\n", spec_of(o), o.help);
-    return out + std::format("  {:<31}{}\n", "-h, --help", "print this help and exit");
+    for (const Option<Args>& o : table) {
+        const std::string spec = spec_of(o);
+        if (spec.size() + 2 > kColumn) out += std::format("  {}\n  {:<{}}{}\n", spec, "", kColumn, o.help);
+        else out += std::format("  {:<{}}{}\n", spec, kColumn, o.help);
+    }
+    return out + std::format("  {:<{}}{}\n", "-h, --help", kColumn, "print this help and exit");
 }
 
 // The first lines of a usage text, up to its first blank line: what a bad
@@ -756,6 +799,82 @@ std::string request_text(const Payload& p)
     return out;
 }
 
+// Whether the payload's `name` is the boolean false, not null or absent.
+bool is_false(const Payload& p, std::string_view name)
+{
+    const Value* v = member(p, name);
+    return v && std::holds_alternative<bool>(v->v) && !std::get<bool>(v->v);
+}
+
+// The line of the tag that carried a decoded SCTE-35 message
+// (src/Scte35Events.h's payloads): its position anchor's, which a cue_in
+// that joins a cue_out keeps where its `line` takes that cue's (D-109 (e));
+// for an event without anchors, a splice_point, its `line`; nullopt for a
+// carrier other than a tag, whose anchor is its media PTS.
+std::optional<std::string> carrier_line(const Payload& p)
+{
+    const Value* anchors = member(p, "anchors");
+    if (!anchors) return present(p, "line") ? std::optional(member_text(p, "line")) : std::nullopt;
+    if (const auto* list = std::get_if<Value::List>(&anchors->v))
+        for (const Value& a : *list)
+            if (const auto* o = std::get_if<Value::Object>(&a.v);
+                o && member_text(*o, "anchor") == "position" && present(*o, "line"))
+                return member_text(*o, "line");
+    return std::nullopt;
+}
+
+// A decoded SCTE-35 message's event as its line starts (src/Scte35Events.h's
+// payloads), a cue of a message's own as its other events: the line of the
+// tag that carried it and its form, "line 16, OATCLS", or the form alone for
+// another carrier, never "line null"; and for a cue_in that joins a cue_out,
+// whose `line` is that cue's where its own is later or null (D-109 (e)),
+// that cue named, "line 16, OATCLS, joining the cue_out at line 15".
+std::string message_head(const Payload& p)
+{
+    const std::string                form = member_text(p, "form");
+    const std::optional<std::string> own  = carrier_line(p);
+    std::string out = own ? std::format("line {}, {}", *own, form) : form;
+    if (present(p, "line") && (!own || member_text(p, "line") != *own))
+        out += std::format(", joining the cue_out at line {}", member_text(p, "line"));
+    return out;
+}
+
+// What an event adds where a decoded message's CRC_32 fails, the message
+// kept, marked, by D-106 (c): a decoded message's event by its crc_valid,
+// and a cue that holds messages, a plain one or a signal's (D-106 (d),
+// D-109 (a), (b)), by the crc_valid of their records in `messages`; nothing
+// for any other event.
+std::string crc_text(const Payload& p)
+{
+    std::string out = is_false(p, "crc_valid") ? ", its CRC_32 fails: kept, crc_valid false (D-106 (c))" : "";
+    std::size_t held = 0;
+    const Value* records = member(p, "messages");
+    if (const auto* list = records ? std::get_if<Value::List>(&records->v) : nullptr)
+        for (const Value& r : *list)
+            if (const auto* o = std::get_if<Value::Object>(&r.v); o && is_false(*o, "crc_valid")) ++held;
+    if (held == 1) out += ", a message it holds fails its CRC_32: kept, crc_valid false (D-106 (c))";
+    if (held > 1)
+        out += std::format(", {} messages it holds fail their CRC_32: kept, crc_valid false (D-106 (c))", held);
+    return out;
+}
+
+// A segmentation_type_id with its name in Table 23: "0x10 (Program Start)".
+std::string segmentation_type_text(const Value& v)
+{
+    const auto* t = std::get_if<std::int64_t>(&v.v);
+    if (!t || *t < 0 || *t > 0xFF) return value_text(v);
+    return std::format("0x{:02X} ({})", *t, scte35::segmentation_type_name(static_cast<std::uint8_t>(*t)));
+}
+
+// Items in words: "a", "a and b", "a, b and c".
+std::string listed_text(const std::vector<std::string>& items)
+{
+    std::string out;
+    for (std::size_t i = 0; i < items.size(); ++i)
+        out += (i == 0 ? "" : i + 1 == items.size() ? " and " : ", ") + items[i];
+    return out;
+}
+
 // What an event's payload says, in a few words (the design's P-AD); the
 // payload itself for a type this doesn't know.
 std::string event_detail(const Event& e)
@@ -790,9 +909,56 @@ std::string event_detail(const Event& e)
                            member_text(p, "discontinuity_sequence"));
     if (e.type == timeline::kTypeProgramDateTime)
         return std::format("{}, {}", line, member_text(p, "date"));
+    // A daterange's and a plain cue's tag as written; a cue of a message's
+    // own, whose payload has the message's classes, by the line and form of
+    // the tag that carried it, as its splice points (message_head()). A cue
+    // marked where its message's CRC_32 fails, or one it holds fails it
+    // (D-106 (c)).
     if (e.type == timeline::kTypeDaterange || e.type == timeline::kTypeCueOut ||
         e.type == timeline::kTypeCueOutCont || e.type == timeline::kTypeCueIn)
-        return std::format("{}, {}", line, member_text(p, "raw"));
+        return (member(p, "classes") ? message_head(p) : std::format("{}, {}", line, member_text(p, "raw"))) +
+               crc_text(p);
+    // A decoded message's splice time (D-106 (a)): the time with its
+    // pts_adjustment where that isn't 0, a component's tag, and the frame of
+    // its input it lands on, which may be outside its tag's segment.
+    if (e.type == timeline::kTypeSplicePoint) {
+        std::string out = std::format("{}, {}: splice time {} (90 kHz)", message_head(p),
+                                      member_text(p, "command"), member_text(p, "pts_adjusted"));
+        const Value* adjustment = member(p, "pts_adjustment");
+        const auto*  ticks      = adjustment ? std::get_if<std::int64_t>(&adjustment->v) : nullptr;
+        if (ticks && *ticks != 0)
+            out += std::format(", pts_time {} + pts_adjustment {}", member_text(p, "pts_time"), *ticks);
+        if (present(p, "component_tag")) out += ", component " + member_text(p, "component_tag");
+        out += std::format(", frame {} of its input", member_text(p, "index"));
+        if (is_false(p, "in_segment")) out += ", outside its tag's segment (D-106 (a))";
+        return out + crc_text(p);
+    }
+    // A decoded message that is neither a cue-out nor a cue-in (D-106 (b)):
+    // its command and the segmentation types it gives.
+    if (e.type == timeline::kTypeMessage) {
+        std::string out = std::format("{}, {}", message_head(p), member_text(p, "command"));
+        const Value* types = member(p, "segmentation_types");
+        const auto*  list  = types ? std::get_if<Value::List>(&types->v) : nullptr;
+        if (list && !list->empty()) {
+            std::vector<std::string> names;
+            for (const Value& t : *list) names.push_back(segmentation_type_text(t));
+            out += std::format(", segmentation type{} {}", names.size() == 1 ? "" : "s", listed_text(names));
+        }
+        return out + crc_text(p);
+    }
+    // A cancellation (D-106 (b)): the splice_insert's event or the
+    // segmentation descriptors' events it cancels.
+    if (e.type == timeline::kTypeCancel) {
+        std::vector<std::string> what;
+        if (present(p, "splice_event_id"))
+            what.push_back("splice_event_id " + member_text(p, "splice_event_id"));
+        const Value* ids  = member(p, "segmentation_event_ids");
+        const auto*  list = ids ? std::get_if<Value::List>(&ids->v) : nullptr;
+        if (list)
+            for (const Value& id : *list) what.push_back("segmentation_event_id " + value_text(id));
+        return std::format("{}, {} cancelling {}{}", message_head(p), member_text(p, "command"),
+                           what.empty() ? std::string("no event it names") : listed_text(what), crc_text(p));
+    }
     if (e.type == timeline::kTypeTag) {
         const Value* value = member(p, "value");
         const bool   none  = !value || std::holds_alternative<std::monostate>(value->v);
@@ -1178,6 +1344,67 @@ std::optional<AVRational> parse_seconds(std::string_view text)
     return AVRational{ static_cast<int>(num), static_cast<int>(den) };
 }
 
+std::optional<std::vector<std::uint8_t>> parse_cue_types(std::string_view text, std::string& err)
+{
+    err.clear();
+    // A segmentation_type_id (Table 23): 0x or 0X, then one or two hex digits.
+    const auto type = [](std::string_view s) -> std::optional<std::uint8_t> {
+        if (s.size() < 3 || s.size() > 4 || s[0] != '0' || (s[1] != 'x' && s[1] != 'X')) return std::nullopt;
+        unsigned v = 0;
+        const auto [end, ec] = std::from_chars(s.data() + 2, s.data() + s.size(), v, 16);
+        if (ec != std::errc() || end != s.data() + s.size()) return std::nullopt;
+        return static_cast<std::uint8_t>(v);
+    };
+    std::vector<std::uint8_t> out;
+    std::size_t from = 0;
+    for (int item = 1;; ++item) {
+        const std::size_t      comma = text.find(',', from);
+        const std::string_view part =
+            text.substr(from, comma == std::string_view::npos ? std::string_view::npos : comma - from);
+        const std::size_t dash = part.find('-');
+        const std::optional<std::uint8_t> first = type(part.substr(0, dash));
+        const std::optional<std::uint8_t> last =
+            dash == std::string_view::npos ? first : type(part.substr(dash + 1));
+        if (!first || !last) {
+            err = std::format("its item {}, '{}', is neither a type such as 0x30 nor a range such as "
+                              "0x30-0x37", item, part);
+            return std::nullopt;
+        }
+        if (*first > *last) {
+            err = std::format("its item {}, '{}', is a range whose first type comes after its last", item,
+                              part);
+            return std::nullopt;
+        }
+        for (unsigned t = *first; t <= *last; ++t) out.push_back(static_cast<std::uint8_t>(t));
+        if (comma == std::string_view::npos) break;
+        from = comma + 1;
+    }
+    std::sort(out.begin(), out.end());
+    out.erase(std::unique(out.begin(), out.end()), out.end());
+    return out;
+}
+
+std::string cue_types_text(const std::vector<std::uint8_t>& types)
+{
+    std::string out;
+    for (std::size_t i = 0; i < types.size();) {
+        std::size_t j = i;
+        while (j + 1 < types.size() && types[j + 1] == types[j] + 1) ++j;
+        out += std::format("{}0x{:02X}", out.empty() ? "" : ",", static_cast<unsigned>(types[i]));
+        if (j > i) out += std::format("-0x{:02X}", static_cast<unsigned>(types[j]));
+        i = j + 1;
+    }
+    return out;
+}
+
+timeline::MessageOptions message_options(const TimelineArgs& args)
+{
+    timeline::MessageOptions m;
+    if (args.cue_types) m.cue_types = *args.cue_types;
+    if (args.bad_crc) m.bad_crc = *args.bad_crc;
+    return m;
+}
+
 std::string check_interval(const timeline::Axis& axis, AVRational from, AVRational to)
 {
     const std::string asked =
@@ -1261,14 +1488,31 @@ std::string timeline_usage()
         "spans that played them, a piece of N points or fewer no drop, and each lists\n"
         "the session's own events, the reference's and the played variant's.\n"
         "\n"
+        "SCTE-35: the messages the playlists' tags carry (#EXT-OATCLS-SCTE35, the\n"
+        "SCTE35-CMD, SCTE35-OUT and SCTE35-IN of EXT-X-DATERANGE, and a cue tag's\n"
+        "SCTE35=) are decoded and placed where the segment their tag precedes starts,\n"
+        "and each splice time is a splice_point on its variant's own frames. A\n"
+        "splice_insert is a cue-out or a cue-in by its out_of_network_indicator, a\n"
+        "time_signal by its segmentation types: --cue-types lists those that count,\n"
+        "as segmentation_type_ids in hex, each alone or a range, comma-separated,\n"
+        "each a Start or an End type, by default 0x22-0x23,0x30-0x37,0x44-0x47\n"
+        "(breaks, advertisements, placement opportunities and ad blocks). Every other\n"
+        "message is a message event and a cancellation a cancel event; a cue-out\n"
+        "message in the segment of an EXT-X-CUE-OUT is that cue's. A message whose\n"
+        "CRC_32 fails is kept, marked crc_valid false, or with --bad-crc drop dropped,\n"
+        "with a warning either way. Every message that can't be decoded or placed is\n"
+        "a warning.\n"
+        "\n"
         "Config file: --config FILE reads settings before the command line, one per\n"
         "line as name = value, where name is a long option's name without the\n"
         "leading --, such as window = 50, and value is the rest of the line without\n"
         "the white space around it. Blank lines and lines starting with # are\n"
         "skipped. Every option but --config can be set there, once, and is checked as\n"
         "on the command line, which replaces the file's setting. The document records\n"
-        "every option with its value, and the file by its path and SHA-256. Relative\n"
-        "paths, the report's own among them, are taken from the current directory.\n"
+        "the file by its path and SHA-256 and every option with its value, but a\n"
+        "session's options only with --session, and --cue-types and --bad-crc only\n"
+        "where they are given. Relative paths, the report's own among them, are\n"
+        "taken from the current directory.\n"
         "\n"
         "Exit status: 0 the document was written; 1 an input couldn't be read or was\n"
         "refused (a live playlist, a report of another layout or of a pair), the\n"
@@ -1364,6 +1608,17 @@ Payload timeline_options(const TimelineArgs& a)
     out.emplace_back("min-points", int_or_null(a.detect.min_points));
     out.emplace_back("margin-before", Value{ rational_text(a.overlap.margin_before) });
     out.emplace_back("margin-after", Value{ rational_text(a.overlap.margin_after) });
+    // The decoded messages' options, in the table's order, each only where
+    // it is given, on the command line or in the config file, so that a
+    // document built without them is what it was before them. A document of
+    // playlists that carry messages, built without them, then doesn't name
+    // D-106's defaults, by which its cues, messages and ad breaks were made,
+    // where threshold and the margins are recorded at theirs: a choice
+    // pending the owner (TimelineCli.h).
+    if (a.cue_types) out.emplace_back("cue-types", Value{ cue_types_text(*a.cue_types) });
+    if (a.bad_crc)
+        out.emplace_back("bad-crc",
+                         Value{ std::string(*a.bad_crc == timeline::BadCrc::Drop ? "drop" : "keep") });
     return out;
 }
 
@@ -1684,6 +1939,9 @@ int run_timeline(const std::vector<std::string_view>& argv)
         return failed(tool, std::format("{} isn't a ladder report the timeline reads: {}", args.report,
                                         err));
     const timeline::LadderScores& scores = in.scores;
+    // What becomes of the SCTE-35 messages: --cue-types and --bad-crc, which
+    // the parse checked (D-106 (b), (c)).
+    in.messages = message_options(args);
 
     // The session's plan (D-105 (a)), read before the media so that a plan
     // with an error is refused at once: a list-valued setting in a file of

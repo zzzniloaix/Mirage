@@ -462,8 +462,15 @@ struct Ladder {
             in.variants.push_back(std::move(r));
         }
         if (adjust) adjust(in);
+        // build() decodes the playlists' messages itself (WP09c): the
+        // timeline and the plain cues here are a build of the same inputs
+        // without them, the plain cues as the build holds them before
+        // decoding, so that run() decodes each message once.
+        timeline::BuildInputs without = in;
+        for (timeline::VariantRead& r : without.variants)
+            if (r.playlist) r.playlist->messages.clear();
         std::string err;
-        t = timeline::build(in, err);
+        t = timeline::build(without, err);
         INFO(err);
         REQUIRE(err.empty());
         for (const timeline::Event& e : t.events)
