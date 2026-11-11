@@ -1,18 +1,20 @@
 // scte35::decode() and the text a message comes in (src/Scte35.h), on
-// splice_info_sections the test builds from field values with a writer of its
-// own, which computes their CRC_32 bit by bit (eval/phase3-survey/design.md
-// P-M): every command, every descriptor the decoder reads and every field of
-// the section, CRC_32 good and bad, truncation at every byte, the legacy
-// splice_command_length, alignment stuffing, the pts_adjustment wrap mod
-// 2^33, the encrypted flag, cancel indicators, base64 and hex. No published
-// message is committed (DECISIONS.md D-107). An optional test case reads a
-// local file of published messages named by MIRAGE_SCTE35_VECTORS, in the
-// format of the survey's scte35_vectors.json, and is skipped without one.
+// splice_info_sections the test builds from field values with the writer of
+// tests/Scte35TestSections.h, which computes their CRC_32 bit by bit
+// (eval/phase3-survey/design.md P-M): every command, every descriptor the
+// decoder reads and every field of the section, CRC_32 good and bad,
+// truncation at every byte, the legacy splice_command_length, alignment
+// stuffing, the pts_adjustment wrap mod 2^33, the encrypted flag, cancel
+// indicators, base64 and hex. No published message is committed
+// (DECISIONS.md D-107). An optional test case reads a local file of published
+// messages named by MIRAGE_SCTE35_VECTORS, in the format of the survey's
+// scte35_vectors.json, and is skipped without one.
 
 #include <catch2/catch_test_macros.hpp>
 
 #include "JsonRead.h"
 #include "Scte35.h"
+#include "Scte35TestSections.h"
 
 #include <cstdint>
 #include <cstdlib>
@@ -28,251 +30,9 @@
 #include <variant>
 #include <vector>
 
-using Bytes = std::vector<std::uint8_t>;
+using namespace scte35test;
 
 namespace {
-
-// ── The writer (P-M) ─────────────────────────────────────────────────────────
-
-// Bit fields, most significant bit first.
-class Writer {
-public:
-    // The low `n` bits of `v`.
-    Writer& put(std::uint64_t v, int n)
-    {
-        for (int i = n - 1; i >= 0; --i) bit(static_cast<unsigned>((v >> i) & 1u));
-        return *this;
-    }
-    Writer& bytes(const Bytes& b)
-    {
-        for (std::uint8_t x : b) put(x, 8);
-        return *this;
-    }
-    Bytes done() const
-    {
-        REQUIRE(bits_ % 8 == 0);
-        return out_;
-    }
-
-private:
-    Bytes       out_;
-    std::size_t bits_ = 0;
-
-    void bit(unsigned b)
-    {
-        if (bits_ % 8 == 0) out_.push_back(0);
-        if (b) out_.back() = static_cast<std::uint8_t>(out_.back() | (0x80u >> (bits_ % 8)));
-        ++bits_;
-    }
-};
-
-// CRC-32/MPEG-2, the test's own, bit by bit: polynomial 0x04C11DB7, from
-// 0xFFFFFFFF, neither reflected nor inverted (scte35.md §3.6).
-std::uint32_t crc_bitwise(const Bytes& b)
-{
-    std::uint32_t crc = 0xFFFFFFFFu;
-    for (std::uint8_t x : b) {
-        crc ^= std::uint32_t{ x } << 24;
-        for (int k = 0; k < 8; ++k) crc = crc & 0x80000000u ? (crc << 1) ^ 0x04C11DB7u : crc << 1;
-    }
-    return crc;
-}
-
-// A splice_time(): time_specified with `pts`, or not; reserved bits as 1s.
-void put_time(Writer& w, std::optional<std::int64_t> pts)
-{
-    if (pts) w.put(1, 1).put(0x3F, 6).put(static_cast<std::uint64_t>(*pts), 33);
-    else w.put(0, 1).put(0x7F, 7);
-}
-
-// A splice_info_section's fields; its lengths and CRC_32 are computed.
-struct Section {
-    std::uint8_t  table_id = scte35::kTableId;
-    bool          section_syntax_indicator = false;
-    bool          private_indicator = false;
-    std::uint8_t  sap_type = 3;
-    std::uint8_t  protocol_version = 0;
-    bool          encrypted = false;
-    std::uint8_t  encryption_algorithm = 0;
-    std::int64_t  pts_adjustment = 0;
-    std::uint8_t  cw_index = 0;
-    std::uint16_t tier = 0xFFF;
-    std::uint8_t  command_type = scte35::kSpliceNull;
-    Bytes         command;                   // the command's bytes
-    bool          legacy = false;            // splice_command_length 0xFFF
-    std::size_t   command_padding = 0;       // bytes splice_command_length counts after the command
-    Bytes         descriptors;               // the loop's bytes
-    std::size_t   stuffing = 0;              // alignment stuffing bytes
-    bool          bad_crc = false;           // CRC_32 off by its last bit
-};
-
-// The bytes from protocol_version to the end of the stuffing.
-Bytes body_of(const Section& s)
-{
-    Writer w;
-    w.put(s.protocol_version, 8)
-        .put(s.encrypted, 1)
-        .put(s.encryption_algorithm, 6)
-        .put(static_cast<std::uint64_t>(s.pts_adjustment), 33)
-        .put(s.cw_index, 8)
-        .put(s.tier, 12)
-        .put(s.legacy ? 0xFFF : s.command.size() + s.command_padding, 12)
-        .put(s.command_type, 8)
-        .bytes(s.command);
-    for (std::size_t i = 0; i < s.command_padding; ++i) w.put(0xFF, 8);
-    w.put(s.descriptors.size(), 16).bytes(s.descriptors);
-    for (std::size_t i = 0; i < s.stuffing; ++i) w.put(0xFF, 8);
-    return w.done();
-}
-
-// A section of `body`, the bytes after section_length, with its CRC_32.
-Bytes seal(const Section& s, const Bytes& body)
-{
-    Writer head;
-    head.put(s.table_id, 8)
-        .put(s.section_syntax_indicator, 1)
-        .put(s.private_indicator, 1)
-        .put(s.sap_type, 2)
-        .put(body.size() + 4, 12);
-    Bytes out = head.done();
-    out.insert(out.end(), body.begin(), body.end());
-    std::uint32_t crc = crc_bitwise(out);
-    if (s.bad_crc) crc ^= 1u;
-    for (int k = 3; k >= 0; --k) out.push_back(static_cast<std::uint8_t>(crc >> (8 * k)));
-    return out;
-}
-
-Bytes build(const Section& s) { return seal(s, body_of(s)); }
-
-// A splice_insert()'s fields (Table 10).
-struct Insert {
-    std::uint32_t event_id = 1;
-    bool          cancel = false;
-    bool          out = true;
-    bool          program = true;
-    bool          immediate = false;
-    bool          compliance = true;
-    std::optional<std::int64_t> pts;                                    // time_specified when set
-    std::vector<std::pair<std::uint8_t, std::optional<std::int64_t>>> components;   // component mode
-    std::optional<std::pair<bool, std::int64_t>> duration;             // auto_return, ticks
-    std::uint16_t program_id = 0;
-    std::uint8_t  avail_num = 0, avails_expected = 0;
-};
-
-Bytes splice_insert(const Insert& c)
-{
-    Writer w;
-    w.put(c.event_id, 32).put(c.cancel, 1).put(0x7F, 7);
-    if (!c.cancel) {
-        w.put(c.out, 1).put(c.program, 1).put(c.duration.has_value(), 1).put(c.immediate, 1)
-            .put(c.compliance, 1).put(0x7, 3);
-        if (c.program && !c.immediate) put_time(w, c.pts);
-        if (!c.program) {
-            w.put(c.components.size(), 8);
-            for (const auto& [tag, pts] : c.components) {
-                w.put(tag, 8);
-                if (!c.immediate) put_time(w, pts);
-            }
-        }
-        if (c.duration)
-            w.put(c.duration->first, 1).put(0x3F, 6)
-                .put(static_cast<std::uint64_t>(c.duration->second), 33);
-        w.put(c.program_id, 16).put(c.avail_num, 8).put(c.avails_expected, 8);
-    }
-    return w.done();
-}
-
-Bytes time_signal(std::optional<std::int64_t> pts)
-{
-    Writer w;
-    put_time(w, pts);
-    return w.done();
-}
-
-// A segmentation_descriptor()'s fields after its identifier (Table 20).
-struct Segmentation {
-    std::uint32_t event_id = 1;
-    bool          cancel = false;
-    bool          compliance = true;
-    bool          program = true;
-    std::optional<std::int64_t> duration;                  // 40 bits
-    bool          restricted = false;                      // delivery_not_restricted_flag 0
-    bool          web = false, no_blackout = false, archive = false;
-    std::uint8_t  device = 0;
-    std::vector<std::pair<std::uint8_t, std::int64_t>> components;   // tag, pts_offset
-    std::uint8_t  upid_type = 0;
-    Bytes         upid;
-    std::uint8_t  type = 0x22;
-    std::uint8_t  num = 0, expected = 0;
-    std::optional<std::pair<std::uint8_t, std::uint8_t>> sub;        // sub_segment_num, _expected
-    Bytes         extra;                                   // bytes after the fields
-};
-
-Bytes segmentation_body(const Segmentation& d)
-{
-    Writer w;
-    w.put(d.event_id, 32).put(d.cancel, 1).put(d.compliance, 1).put(0x3F, 6);
-    if (!d.cancel) {
-        w.put(d.program, 1).put(d.duration.has_value(), 1).put(!d.restricted, 1);
-        if (d.restricted) w.put(d.web, 1).put(d.no_blackout, 1).put(d.archive, 1).put(d.device, 2);
-        else w.put(0x1F, 5);
-        if (!d.program) {
-            w.put(d.components.size(), 8);
-            for (const auto& [tag, offset] : d.components)
-                w.put(tag, 8).put(0x7F, 7).put(static_cast<std::uint64_t>(offset), 33);
-        }
-        if (d.duration) w.put(static_cast<std::uint64_t>(*d.duration), 40);
-        w.put(d.upid_type, 8).put(d.upid.size(), 8).bytes(d.upid);
-        w.put(d.type, 8).put(d.num, 8).put(d.expected, 8);
-        if (d.sub) w.put(d.sub->first, 8).put(d.sub->second, 8);
-    }
-    w.bytes(d.extra);
-    return w.done();
-}
-
-// A splice_descriptor(): tag, length, identifier, body.
-Bytes descriptor(std::uint8_t tag, std::uint32_t identifier, const Bytes& body)
-{
-    Writer w;
-    w.put(tag, 8).put(4 + body.size(), 8).put(identifier, 32).bytes(body);
-    return w.done();
-}
-
-Bytes segmentation(const Segmentation& d)
-{
-    return descriptor(scte35::kSegmentationDescriptor, scte35::kCuei, segmentation_body(d));
-}
-
-Bytes concat(std::initializer_list<Bytes> parts)
-{
-    Bytes out;
-    for (const Bytes& p : parts) out.insert(out.end(), p.begin(), p.end());
-    return out;
-}
-
-// RFC 4648 §4 base64, with its padding, the test's own.
-std::string base64(const Bytes& b)
-{
-    static constexpr char kAlphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    std::string out;
-    for (std::size_t i = 0; i < b.size(); i += 3) {
-        const std::uint32_t n = std::uint32_t{ b[i] } << 16
-                              | (i + 1 < b.size() ? std::uint32_t{ b[i + 1] } << 8 : 0u)
-                              | (i + 2 < b.size() ? std::uint32_t{ b[i + 2] } : 0u);
-        out += kAlphabet[(n >> 18) & 63];
-        out += kAlphabet[(n >> 12) & 63];
-        out += i + 1 < b.size() ? kAlphabet[(n >> 6) & 63] : '=';
-        out += i + 2 < b.size() ? kAlphabet[n & 63] : '=';
-    }
-    return out;
-}
-
-std::string hex(const Bytes& b, std::string_view prefix = "0x", bool upper = true)
-{
-    std::string out(prefix);
-    for (std::uint8_t x : b) out += upper ? std::format("{:02X}", x) : std::format("{:02x}", x);
-    return out;
-}
 
 bool contains(std::string_view s, std::string_view part) { return s.find(part) != std::string_view::npos; }
 
@@ -307,9 +67,9 @@ Section full_section()
     s.pts_adjustment = 900000;
     s.tier           = 0x123;
     s.command_type   = scte35::kSpliceInsert;
-    s.command        = splice_insert({ .event_id = 0x10, .pts = 2700000,
-                                       .duration = std::pair{ true, 2700000 }, .program_id = 7,
-                                       .avail_num = 1, .avails_expected = 2 });
+    s.command        = insert_command({ .event_id = 0x10, .pts = 2700000,
+                                        .duration = std::pair{ true, 2700000 }, .program_id = 7,
+                                        .avail_num = 1, .avails_expected = 2 });
     s.descriptors    = concat({ descriptor(scte35::kAvailDescriptor, scte35::kCuei, { 0, 0, 0, 9 }),
                                 segmentation({ .event_id = 5, .duration = 2700000, .upid_type = 0x08,
                                                .upid = { 1, 2, 3, 4, 5, 6, 7, 8 }, .type = 0x34, .num = 1,
@@ -339,7 +99,7 @@ TEST_CASE("scte35: CRC-32/MPEG-2 through av_crc, against the test's own CRC on t
     }
 
     // A section's CRC_32 is the CRC of the bytes before it, and checks.
-    const Bytes b = build(full_section());
+    const Bytes b = section(full_section());
     const scte35::SpliceInfo s = decoded(b);
     CHECK(s.has_crc);
     CHECK(s.crc_valid);
@@ -355,7 +115,7 @@ TEST_CASE("scte35: base64 and hex text give the section's bytes, and other text 
     for (std::size_t extra = 0; extra < 3; ++extra) {
         Section s   = full_section();
         s.stuffing  = extra;
-        const Bytes b = build(s);
+        const Bytes b = section(s);
         INFO("length " << b.size());
         const std::string text = base64(b);
         const auto from_b64 = scte35::from_base64(text, err);
@@ -405,7 +165,7 @@ TEST_CASE("scte35: splice_insert out and in, immediate, with a break_duration an
 {
     // An Out Point with its splice time and a break that returns by itself.
     Section out = full_section();
-    const scte35::SpliceInfo s = decoded(build(out));
+    const scte35::SpliceInfo s = decoded(section(out));
     CHECK(s.table_id == scte35::kTableId);
     CHECK(s.sap_type == 3);
     CHECK(s.protocol_version == 0);
@@ -444,9 +204,9 @@ TEST_CASE("scte35: splice_insert out and in, immediate, with a break_duration an
 
     // An In Point without a break_duration, whose splice time isn't specified.
     Section in        = out;
-    in.command        = splice_insert({ .event_id = 0x10, .out = false, .compliance = false });
+    in.command        = insert_command({ .event_id = 0x10, .out = false, .compliance = false });
     in.descriptors    = {};
-    const scte35::SpliceInfo si = decoded(build(in));
+    const scte35::SpliceInfo si = decoded(section(in));
     const auto& ci = command<scte35::SpliceInsert>(si);
     CHECK_FALSE(ci.out_of_network);
     CHECK_FALSE(ci.duration_flag);
@@ -458,9 +218,9 @@ TEST_CASE("scte35: splice_insert out and in, immediate, with a break_duration an
 
     // Immediate: no splice_time() at all, and a break that doesn't return by itself.
     Section now = out;
-    now.command = splice_insert({ .event_id = 0x11, .immediate = true,
-                                  .duration = std::pair{ false, 450000 } });
-    const scte35::SpliceInfo sn = decoded(build(now));
+    now.command = insert_command({ .event_id = 0x11, .immediate = true,
+                                   .duration = std::pair{ false, 450000 } });
+    const scte35::SpliceInfo sn = decoded(section(now));
     const auto& cn = command<scte35::SpliceInsert>(sn);
     CHECK(cn.splice_immediate);
     CHECK_FALSE(cn.splice_time);
@@ -472,10 +232,10 @@ TEST_CASE("scte35: splice_insert out and in, immediate, with a break_duration an
     // Component mode (deprecated): each component's splice time, one not
     // specified; then the same immediate, with no splice_time() at all.
     Section parts = out;
-    parts.command = splice_insert({ .event_id = 0x12, .program = false,
-                                    .components = { { 0x21, 1000 }, { 0x22, std::nullopt },
-                                                    { 0x23, 3000 } } });
-    const scte35::SpliceInfo sp = decoded(build(parts));
+    parts.command = insert_command({ .event_id = 0x12, .program = false,
+                                     .components = { { 0x21, 1000 }, { 0x22, std::nullopt },
+                                                     { 0x23, 3000 } } });
+    const scte35::SpliceInfo sp = decoded(section(parts));
     const auto& cp = command<scte35::SpliceInsert>(sp);
     CHECK_FALSE(cp.program_splice);
     CHECK_FALSE(cp.splice_time);
@@ -488,9 +248,9 @@ TEST_CASE("scte35: splice_insert out and in, immediate, with a break_duration an
     CHECK((tp[0].component_tag == 0x21 && tp[0].adjusted == 1000 + 900000));
     CHECK((tp[1].component_tag == 0x23 && tp[1].adjusted == 3000 + 900000));
 
-    parts.command = splice_insert({ .event_id = 0x13, .program = false, .immediate = true,
-                                    .components = { { 0x21, std::nullopt }, { 0x22, std::nullopt } } });
-    const scte35::SpliceInfo sq = decoded(build(parts));
+    parts.command = insert_command({ .event_id = 0x13, .program = false, .immediate = true,
+                                     .components = { { 0x21, std::nullopt }, { 0x22, std::nullopt } } });
+    const scte35::SpliceInfo sq = decoded(section(parts));
     const auto& cq = command<scte35::SpliceInsert>(sq);
     REQUIRE(cq.components.size() == 2);
     CHECK_FALSE(cq.components[0].splice_time);
@@ -502,7 +262,7 @@ TEST_CASE("scte35: time_signal with segmentation descriptors, sub-segments, a UP
 {
     Section s;
     s.command_type = scte35::kTimeSignal;
-    s.command      = time_signal(5400000);
+    s.command      = signal_command(5400000);
     const Bytes dtmf_body  = { 50, static_cast<std::uint8_t>(3 << 5 | 0x1F), '1', '2', '*' };
     const Bytes time_body  = { 0, 0, 0x5F, 0x5E, 0x10, 0x00, 0x00, 0x00, 0x00, 0x2A, 0x00, 0x25 };
     const Bytes audio_body = { static_cast<std::uint8_t>(1 << 4 | 0xF), 0x31, 'e', 'n', 'g',
@@ -534,7 +294,7 @@ TEST_CASE("scte35: time_signal with segmentation descriptors, sub-segments, a UP
         // A tag SCTE reserves (Table 16), skipped by its length.
         descriptor(0x05, scte35::kCuei, { 1, 2, 3 }),
     });
-    const scte35::SpliceInfo d = decoded(build(s));
+    const scte35::SpliceInfo d = decoded(section(s));
     const auto& t = command<scte35::TimeSignal>(d);
     CHECK(t.splice_time.time_specified);
     CHECK(t.splice_time.pts_time == 5400000);
@@ -617,8 +377,8 @@ TEST_CASE("scte35: time_signal with segmentation descriptors, sub-segments, a UP
     CHECK(reserved.error.empty());
 
     // A time_signal whose time isn't specified: an immediate one, no splice time.
-    s.command = time_signal(std::nullopt);
-    const scte35::SpliceInfo n = decoded(build(s));
+    s.command = signal_command(std::nullopt);
+    const scte35::SpliceInfo n = decoded(section(s));
     CHECK_FALSE(command<scte35::TimeSignal>(n).splice_time.time_specified);
     CHECK(scte35::splice_times(n).empty());
 }
@@ -629,19 +389,19 @@ TEST_CASE("scte35: splice_command_length 0xFFF, alignment stuffing, and a comman
     // The legacy length: the command is as long as its syntax.
     Section s = full_section();
     s.legacy  = true;
-    const scte35::SpliceInfo l = decoded(build(s));
+    const scte35::SpliceInfo l = decoded(section(s));
     CHECK(l.splice_command_length == scte35::kLegacyCommandLength);
     CHECK(command<scte35::SpliceInsert>(l).splice_time->pts_time == 2700000);
     REQUIRE(l.descriptors.size() == 2);
     CHECK(body<scte35::SegmentationDescriptor>(l.descriptors[1]).type_id == 0x34);
     s.command_type = scte35::kTimeSignal;
-    s.command      = time_signal(1234);
-    CHECK(command<scte35::TimeSignal>(decoded(build(s))).splice_time.pts_time == 1234);
+    s.command      = signal_command(1234);
+    CHECK(command<scte35::TimeSignal>(decoded(section(s))).splice_time.pts_time == 1234);
 
     // Three bytes of stuffing, which an unencrypted section may have.
     Section st  = full_section();
     st.stuffing = 3;
-    const scte35::SpliceInfo a = decoded(build(st));
+    const scte35::SpliceInfo a = decoded(section(st));
     CHECK(a.alignment_stuffing == 3);
     CHECK(a.descriptors.size() == 2);
     CHECK(a.crc_valid);
@@ -650,7 +410,7 @@ TEST_CASE("scte35: splice_command_length 0xFFF, alignment stuffing, and a comman
     // is found after them.
     Section pad         = full_section();
     pad.command_padding = 2;
-    const scte35::SpliceInfo p = decoded(build(pad));
+    const scte35::SpliceInfo p = decoded(section(pad));
     CHECK(p.command_unused == 2);
     CHECK(p.splice_command_length == pad.command.size() + 2);
     CHECK(p.descriptors.size() == 2);
@@ -660,10 +420,10 @@ TEST_CASE("scte35: splice_command_length 0xFFF, alignment stuffing, and a comman
     priv.legacy       = true;
     priv.command_type = scte35::kPrivateCommand;
     priv.command      = { 0x41, 0x42, 0x43, 0x44, 9, 9 };
-    scte35::SpliceInfo e = scte35::decode(build(priv));
+    scte35::SpliceInfo e = scte35::decode(section(priv));
     CHECK(contains(e.error, "a private_command under splice_command_length 0xFFF has no length"));
     priv.command_type = 0x10;
-    e = scte35::decode(build(priv));
+    e = scte35::decode(section(priv));
     CHECK(contains(e.error, "the reserved splice_command_type 0x10 under splice_command_length 0xFFF has "
                             "no length"));
 }
@@ -678,9 +438,9 @@ TEST_CASE("scte35: pts_adjustment is added to a splice time mod 2^33", "[timelin
 
     Section s;
     s.command_type   = scte35::kTimeSignal;
-    s.command        = time_signal(scte35::kPtsWrap - 90000);
+    s.command        = signal_command(scte35::kPtsWrap - 90000);
     s.pts_adjustment = 180000;
-    const scte35::SpliceInfo d = decoded(build(s));
+    const scte35::SpliceInfo d = decoded(section(s));
     CHECK(d.pts_adjustment == 180000);
     const auto t = scte35::splice_times(d);
     REQUIRE(t.size() == 1);
@@ -688,9 +448,9 @@ TEST_CASE("scte35: pts_adjustment is added to a splice time mod 2^33", "[timelin
     CHECK(t[0].adjusted == 90000);
 
     // Both at their 33-bit maximum.
-    s.command        = time_signal(kTop);
+    s.command        = signal_command(kTop);
     s.pts_adjustment = kTop;
-    const auto top = scte35::splice_times(decoded(build(s)));
+    const auto top = scte35::splice_times(decoded(section(s)));
     REQUIRE(top.size() == 1);
     CHECK(top[0].pts_time == kTop);
     CHECK(top[0].adjusted == kTop - 1);
@@ -701,7 +461,7 @@ TEST_CASE("scte35: a CRC_32 that fails, in its field or in the bytes before it, 
 {
     Section s  = full_section();
     s.bad_crc  = true;
-    const Bytes b = build(s);
+    const Bytes b = section(s);
     const scte35::SpliceInfo d = decoded(b);
     CHECK(d.has_crc);
     CHECK_FALSE(d.crc_valid);
@@ -711,7 +471,7 @@ TEST_CASE("scte35: a CRC_32 that fails, in its field or in the bytes before it, 
 
     // A byte of the section changed after its CRC_32 was computed: avail_num,
     // the second byte from the end of the command, which starts at byte 14.
-    Bytes changed = build(full_section());
+    Bytes changed = section(full_section());
     const std::size_t at = 14 + full_section().command.size() - 2;
     changed[at] = static_cast<std::uint8_t>(changed[at] ^ 0x04);
     const scte35::SpliceInfo c = decoded(changed);
@@ -723,7 +483,7 @@ TEST_CASE("scte35: input cut at every byte is refused, and no field is read past
           "[timeline][scte35]")
 {
     // Every prefix of a whole section: section_length asks for more.
-    const Bytes whole = build(full_section());
+    const Bytes whole = section(full_section());
     for (std::size_t n = 0; n < whole.size(); ++n) {
         const Bytes cut(whole.begin(), whole.begin() + static_cast<std::ptrdiff_t>(n));
         const scte35::SpliceInfo d = scte35::decode(cut);
@@ -762,7 +522,7 @@ TEST_CASE("scte35: input cut at every byte is refused, and no field is read past
     seg[1] = static_cast<std::uint8_t>(seg[1] - 4);   // its upid's bytes and after: past its length
     seg.resize(seg.size() - 4);
     d.descriptors = concat({ avail, seg, Bytes{ 0x00, 0x02, 0xAA, 0xBB } });
-    const scte35::SpliceInfo k = decoded(build(d));
+    const scte35::SpliceInfo k = decoded(section(d));
     REQUIRE(k.descriptors.size() == 3);
     CHECK(std::holds_alternative<std::monostate>(k.descriptors[0].body));
     CHECK(contains(k.descriptors[0].error, "provider_avail_id runs past the end of descriptor 1"));
@@ -780,7 +540,7 @@ TEST_CASE("scte35: an encrypted section is reported undecoded, with its header a
     s.encrypted            = true;
     s.encryption_algorithm = 1;
     s.cw_index             = 5;
-    const scte35::SpliceInfo d = scte35::decode(build(s));
+    const scte35::SpliceInfo d = scte35::decode(section(s));
     CHECK_FALSE(d.decoded());
     CHECK(contains(d.error, "it is encrypted (encrypted_packet 1, encryption_algorithm 1)"));
     CHECK(d.encrypted_packet);
@@ -798,9 +558,9 @@ TEST_CASE("scte35: cancel indicators end a splice_insert and a segmentation desc
           "[timeline][scte35]")
 {
     Section s      = full_section();
-    s.command      = splice_insert({ .event_id = 0xA5A50002, .cancel = true });
+    s.command      = insert_command({ .event_id = 0xA5A50002, .cancel = true });
     s.descriptors  = segmentation({ .event_id = 0xA5A50001, .cancel = true, .compliance = false });
-    const scte35::SpliceInfo d = decoded(build(s));
+    const scte35::SpliceInfo d = decoded(section(s));
     const auto& c = command<scte35::SpliceInsert>(d);
     CHECK(c.splice_event_id == 0xA5A50002);
     CHECK(c.cancel);
@@ -821,13 +581,13 @@ TEST_CASE("scte35: splice_null, bandwidth_reservation, splice_schedule, private_
           "command", "[timeline][scte35]")
 {
     Section s;
-    const scte35::SpliceInfo null = decoded(build(s));
+    const scte35::SpliceInfo null = decoded(section(s));
     CHECK(null.splice_command_type == scte35::kSpliceNull);
     CHECK(std::holds_alternative<std::monostate>(null.command));
     CHECK(scte35::command_name(null.splice_command_type) == "splice_null");
 
     s.command_type = scte35::kBandwidthReservation;
-    CHECK(std::holds_alternative<std::monostate>(decoded(build(s)).command));
+    CHECK(std::holds_alternative<std::monostate>(decoded(section(s)).command));
     CHECK(scte35::command_name(scte35::kBandwidthReservation) == "bandwidth_reservation");
 
     // splice_schedule: an event in program mode with a break, a cancelled
@@ -842,7 +602,7 @@ TEST_CASE("scte35: splice_null, bandwidth_reservation, splice_schedule, private_
         .put(10, 16).put(2, 8).put(3, 8);
     s.command_type = scte35::kSpliceSchedule;
     s.command      = w.done();
-    const scte35::SpliceInfo sched = decoded(build(s));
+    const scte35::SpliceInfo sched = decoded(section(s));
     const auto& e = command<scte35::SpliceSchedule>(sched).events;
     REQUIRE(e.size() == 3);
     CHECK(e[0].splice_event_id == 0x100);
@@ -861,14 +621,14 @@ TEST_CASE("scte35: splice_null, bandwidth_reservation, splice_schedule, private_
 
     s.command_type = scte35::kPrivateCommand;
     s.command      = { 0x41, 0x42, 0x43, 0x44, 1, 2, 3 };
-    const scte35::SpliceInfo priv = decoded(build(s));
+    const scte35::SpliceInfo priv = decoded(section(s));
     const auto& p = command<scte35::PrivateCommand>(priv);
     CHECK(p.identifier == 0x41424344u);
     CHECK(p.bytes == Bytes{ 1, 2, 3 });
 
     s.command_type = 0x10;   // reserved (Table 7)
     s.command      = { 7, 8 };
-    const scte35::SpliceInfo r = decoded(build(s));
+    const scte35::SpliceInfo r = decoded(section(s));
     CHECK(std::holds_alternative<std::monostate>(r.command));
     CHECK(r.command_bytes == Bytes{ 7, 8 });
     CHECK(scte35::command_name(0x10) == "reserved");
@@ -879,17 +639,17 @@ TEST_CASE("scte35: what isn't a splice_info_section of version 0 doesn't decode,
 {
     Section s   = full_section();
     s.table_id  = 0xFD;
-    CHECK(contains(scte35::decode(build(s)).error,
+    CHECK(contains(scte35::decode(section(s)).error,
                    "its table_id is 0xFD, not a splice_info_section's 0xFC"));
 
     s = full_section();
     s.protocol_version = 1;
-    const scte35::SpliceInfo v = scte35::decode(build(s));
+    const scte35::SpliceInfo v = scte35::decode(section(s));
     CHECK(contains(v.error, "its protocol_version is 1"));
     CHECK(v.crc_valid);
 
     // section_length past the input, and too short for the header.
-    Bytes b = build(full_section());
+    Bytes b = section(full_section());
     b[2] = static_cast<std::uint8_t>(b[2] + 1);
     CHECK(contains(scte35::decode(b).error, "makes a section of"));
     const Bytes tiny = { 0xFC, 0x30, 0x05, 0, 0, 0, 0, 0 };
@@ -902,11 +662,11 @@ TEST_CASE("scte35: what isn't a splice_info_section of version 0 doesn't decode,
     body[loop_at + 1] = static_cast<std::uint8_t>(body[loop_at + 1] + 1);
     CHECK(contains(scte35::decode(seal(s, body)).error, "runs past CRC_32"));
     s.descriptors = { 0x00, 0x09, 0x43, 0x55 };   // a descriptor_length of 9 in a loop of 4
-    CHECK(contains(scte35::decode(build(s)).error,
+    CHECK(contains(scte35::decode(section(s)).error,
                    "descriptor 1 (splice_descriptor_tag 0x00, descriptor_length 9) runs past the end of "
                    "the descriptor loop"));
     s.descriptors = { 0x00 };
-    CHECK(contains(scte35::decode(build(s)).error, "descriptor 1 has 1 of its 2 header bytes"));
+    CHECK(contains(scte35::decode(section(s)).error, "descriptor 1 has 1 of its 2 header bytes"));
 }
 
 // ── Published messages, from a local file (P-M; D-107) ───────────────────────

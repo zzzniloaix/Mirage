@@ -1363,3 +1363,171 @@ TEST_CASE("playlist_events: pair_breaks pairs cues from a stub decoder with the 
     CHECK(b.events[2].ref_end == 175);
     CHECK(text(at(b.events[2].payload, "end")) == "cue_in");
 }
+
+TEST_CASE("playlist_events: pair_breaks takes a duration's 90 kHz ticks before its seconds (D-109 (d))",
+          "[timeline][playlist_events]")
+{
+    using timeline::kTypeCueOut;
+    const auto ticks = [](std::int64_t t) { return Value{ t }; };
+    const auto run = [](Payload durations) {
+        std::vector<AVRational> seen;
+        const Breaks b = timeline::pair_breaks({ cue(kTypeCueOut, 0, 1, 10, 25, std::move(durations)) },
+                                               grid_25(200, &seen));
+        REQUIRE(b.warnings.empty());
+        REQUIRE(b.events.size() == 1);
+        return std::pair{ b.events[0], seen };
+    };
+    CHECK(timeline::kDurationClock == 90000);
+    CHECK(timeline::kTicksSuffix == "_ticks");
+    {
+        // 180001 ticks, which 9 doesn't divide, so that no decimal of seconds
+        // holds them: 50 frames and a tick at 25 fps, ending at the 51st
+        // frame after the start. The ticks are kept beside their seconds.
+        const auto [e, seen] = run({ { "break_duration", Value{ 180001.0 / 90000 } },
+                                     { "break_duration_ticks", ticks(180001) } });
+        REQUIRE(seen.size() == 1);
+        CHECK(av_cmp_q(seen[0], AVRational{ 180001, 90000 }) == 0);
+        CHECK(e.ref_end == 25 + 51);
+        CHECK(text(at(e.payload, "end")) == "break_duration");
+        const Value::Object& d = object(at(e.payload, "durations"));
+        REQUIRE(d.size() == 2);
+        CHECK(d[0].first == "break_duration");
+        CHECK(d[1].first == "break_duration_ticks");
+        CHECK(integer(d[1].second) == 180001);
+    }
+    {
+        // The ticks first, whatever the seconds say, and on their own too;
+        // a segmentation_duration of 150000 ticks, 50 frames at 30 fps, is
+        // 5/3 s, 41 frames and two thirds at 25 fps.
+        const auto [e, seen] = run({ { "break_duration", Value{ 3.0 } },
+                                     { "break_duration_ticks", ticks(90000) } });
+        REQUIRE(seen.size() == 1);
+        CHECK(av_cmp_q(seen[0], AVRational{ 1, 1 }) == 0);
+        CHECK(e.ref_end == 50);
+        const auto [f, seen_f] = run({ { "segmentation_duration_ticks", ticks(150000) } });
+        REQUIRE(seen_f.size() == 1);
+        CHECK(av_cmp_q(seen_f[0], AVRational{ 5, 3 }) == 0);
+        CHECK(f.ref_end == 25 + 42);
+        CHECK(text(at(f.payload, "end")) == "segmentation_duration");
+        CHECK(object(at(f.payload, "durations")).size() == 1);
+    }
+    {
+        // A duration in seconds alone, or with null ticks, or ticks that
+        // aren't a whole number from 0, is taken by its seconds, as before.
+        const auto [e, seen] = run({ { "break_duration", Value{ 2.0 } } });
+        REQUIRE(seen.size() == 1);
+        CHECK(av_cmp_q(seen[0], AVRational{ 2, 1 }) == 0);
+        CHECK(e.ref_end == 75);
+        const auto [f, seen_f] = run({ { "break_duration", Value{ 2.0 } },
+                                       { "break_duration_ticks", Value{} } });
+        CHECK(f.ref_end == 75);
+        CHECK(object(at(f.payload, "durations")).size() == 1);
+        const auto [g, seen_g] = run({ { "segmentation_duration", Value{ 1.0 } },
+                                       { "segmentation_duration_ticks", ticks(-1) } });
+        REQUIRE(seen_g.size() == 1);
+        CHECK(av_cmp_q(seen_g[0], AVRational{ 1, 1 }) == 0);
+        CHECK(g.ref_end == 50);
+        const auto [h, seen_h] = run({ { "break_duration", Value{ 1.0 } },
+                                       { "break_duration_ticks", Value{ 90000.0 } } });
+        CHECK(av_cmp_q(seen_h[0], AVRational{ 1, 1 }) == 0);
+        CHECK(h.ref_end == 50);
+    }
+    {
+        // D-076's order holds over the ticks: the tag's own duration first.
+        const auto [e, seen] = run({ { "duration", Value{ 1.0 } }, { "break_duration", Value{ 2.0 } },
+                                     { "break_duration_ticks", ticks(180000) } });
+        CHECK(text(at(e.payload, "end")) == "duration");
+        CHECK(e.ref_end == 50);
+        CHECK(object(at(e.payload, "durations")).size() == 3);
+    }
+    // The seconds of 180001 ticks alone make no break, as before; nor do
+    // ticks that no AVRational holds, a 40-bit segmentation_duration whose
+    // numerator stays above INT_MAX once reduced.
+    Breaks b = timeline::pair_breaks({ cue(kTypeCueOut, 0, 1, 10, 25, { { "break_duration",
+                                                                           Value{ 180001.0 / 90000 } } }) },
+                                     grid_25());
+    CHECK(b.events.empty());
+    CHECK(b.warnings == std::vector<std::string>{
+        "variant 0: no ad_break for the cue_out at line 10: no AVRational holds its break_duration of "
+        "2.000011111111111 s exactly, so the axis isn't asked for its end" });
+    const std::int64_t widest = (std::int64_t{ 1 } << 40) - 1;
+    std::vector<AVRational> seen;
+    b = timeline::pair_breaks(
+        { cue(kTypeCueOut, 0, 1, 10, 25, { { "segmentation_duration_ticks", ticks(widest) } }) },
+        grid_25(200, &seen));
+    CHECK(b.events.empty());
+    CHECK(seen.empty());
+    CHECK(b.warnings == std::vector<std::string>{
+        "variant 0: no ad_break for the cue_out at line 10: no AVRational holds its "
+        "segmentation_duration of 1099511627775 ticks (90 kHz) exactly, so the axis isn't asked for its "
+        "end" });
+    // A cue-in still ends a break before any duration, ticks or not.
+    b = timeline::pair_breaks({ cue(kTypeCueOut, 0, 1, 10, 25, { { "break_duration_ticks",
+                                                                  ticks(180001) } }),
+                                cue(timeline::kTypeCueIn, 0, 2, 12, 50) },
+                              grid_25());
+    REQUIRE(b.events.size() == 1);
+    CHECK(b.events[0].ref_end == 50);
+    CHECK(text(at(b.events[0].payload, "end")) == "cue_in");
+}
+
+TEST_CASE("playlist_events: pair_breaks ends a cue_out that holds its tag's cue_in at its declared "
+          "duration (D-109 (b))", "[timeline][playlist_events]")
+{
+    using timeline::kTypeCueIn;
+    using timeline::kTypeCueOut;
+    using timeline::kTypeCueOutCont;
+    const std::string held(timeline::kHeldCueInLine);
+    CHECK(held == "held_cue_in_line");
+
+    // The cue_out of an EXT-X-DATERANGE at line 14 that holds its SCTE35-IN:
+    // its break ends at its DURATION, with the CUE-OUT-CONT after it; the
+    // cue_in after it ends nothing, and makes no break of its own.
+    const Value line_14{ std::int64_t{ 14 } };
+    Breaks b = timeline::pair_breaks(
+        { cue(kTypeCueOut, 0, 3, 14, 75, { { "duration", Value{ 2.0 } }, { held, line_14 } }),
+          cue(kTypeCueOutCont, 0, 4, 17, 100, { { "duration", Value{ 2.0 } } }),
+          cue(kTypeCueIn, 0, 6, 23, 150) },
+        grid_25());
+    CHECK(b.warnings.empty());
+    REQUIRE(b.events.size() == 1);
+    CHECK(b.events[0].ref_index == 75);
+    CHECK(b.events[0].ref_end == 125);
+    CHECK(text(at(b.events[0].payload, "end")) == "duration");
+    CHECK(integer(at(b.events[0].payload, "cue_out_line")) == 14);
+    CHECK(integer(at(b.events[0].payload, "cue_in_line")) == 14);
+    REQUIRE(list(at(b.events[0].payload, "cue_out_cont_durations")).size() == 1);
+    CHECK(number(list(at(b.events[0].payload, "cue_out_cont_durations"))[0]) == 2.0);
+
+    // By D-076's order: its END-DATE where it has no DURATION.
+    b = timeline::pair_breaks({ cue(kTypeCueOut, 0, 3, 14, 75, { { "duration", Value{} },
+                                                                  { "end_date_duration", Value{ 1.0 } },
+                                                                  { held, line_14 } }) },
+                              grid_25());
+    REQUIRE(b.events.size() == 1);
+    CHECK(b.events[0].ref_end == 100);
+    CHECK(text(at(b.events[0].payload, "end")) == "end_date_duration");
+
+    // Breaks still don't nest (D-087): a cue_out after it ends it at its
+    // duration, and pairs with the next cue_in.
+    b = timeline::pair_breaks({ cue(kTypeCueOut, 0, 1, 10, 25, { { "duration", Value{ 3.0 } },
+                                                                  { held, Value{ std::int64_t{ 10 } } } }),
+                                cue(kTypeCueOut, 0, 2, 12, 50), cue(kTypeCueIn, 0, 4, 16, 100) },
+                              grid_25());
+    CHECK(b.warnings.empty());
+    REQUIRE(b.events.size() == 2);
+    CHECK((b.events[0].ref_index == 25 && b.events[0].ref_end == 100));
+    CHECK(text(at(b.events[0].payload, "end")) == "duration");
+    CHECK((b.events[1].ref_index == 50 && b.events[1].ref_end == 100));
+    CHECK(text(at(b.events[1].payload, "end")) == "cue_in");
+
+    // One that declares no duration makes no break, and says why; the
+    // cue_in after it ends nothing either.
+    b = timeline::pair_breaks({ cue(kTypeCueOut, 1, 3, 14, 75, { { held, line_14 } }),
+                                cue(kTypeCueIn, 1, 5, 21, 125) },
+                              grid_25());
+    CHECK(b.events.empty());
+    CHECK(b.warnings == std::vector<std::string>{
+        "variant 1: no ad_break for the cue_out at line 14: the EXT-X-DATERANGE at line 14 holds its "
+        "cue_in (D-109 (b)), and it declares no duration (D-076)" });
+}

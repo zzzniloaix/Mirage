@@ -25,6 +25,18 @@ using scte35::SpliceInfo;
 // "at or after", the usual reading of a clock that wraps.
 constexpr std::int64_t kHalfWrap = scte35::kPtsWrap / 2;
 
+// The forms of the messages that the rules name (src/PlaylistEvents.cpp
+// writes them): a cue tag's own SCTE35=, and an EXT-X-DATERANGE's
+// SCTE35-OUT and SCTE35-IN.
+constexpr std::string_view kCueOutForm   = "CUE-OUT SCTE35";
+constexpr std::string_view kContForm     = "CUE-OUT-CONT SCTE35";
+constexpr std::string_view kCueInForm    = "CUE-IN SCTE35";
+constexpr std::string_view kRangeOutForm = "DATERANGE SCTE35-OUT";
+constexpr std::string_view kRangeInForm  = "DATERANGE SCTE35-IN";
+
+// Read::signal of a message that is no cue-out message of its own.
+constexpr std::size_t kNoSignal = static_cast<std::size_t>(-1);
+
 // ── Payload values ───────────────────────────────────────────────────────────
 
 Value int_value(std::int64_t v) { return Value{ v }; }
@@ -289,6 +301,11 @@ struct Classes {
     std::optional<std::int64_t> splice_event_id;            // a cancelled splice_insert's
     std::vector<std::int64_t>   segmentation_event_ids;     // the cancelled descriptors'
     std::vector<std::int64_t>   segmentation_types;         // the others' types
+    // What makes a cue-out message one signal with another (D-109 (a)): an
+    // Out Point's splice_event_id, and the segmentation_event_id of each
+    // segmentation descriptor that makes a time_signal a cue_out.
+    std::optional<std::int64_t> out_splice_event_id;
+    std::vector<std::int64_t>   out_segmentation_event_ids;
 
     bool any_cue() const { return in || out; }
     Value names() const
@@ -309,15 +326,17 @@ bool is_cue_type(const MessageOptions& o, std::uint8_t type)
 
 // Every segmentation type of the cue types counts alike, whatever its level
 // in the hierarchy SCTE 35 §10.3.3.7 sets for advertising segments, a Break
-// above its Placement Opportunities and Ad Blocks (scte35.md §3.4): as
-// built, pending the owner. Messages of their own for the levels, each of
-// D-106 (b)'s default cue types, are cues of their own, which pair_breaks()
-// pairs by D-087's rule: a Break Start that declares a duration and then an
-// advertisement's Start make a break that the Break's duration ends, around
-// the advertisements' own breaks, so that one ad_break spans others, which
-// D-087's rationale rules out; a Break Start that declares none makes no
-// break, with pair_breaks()' warning, and its Break End ends the break of
-// the advertisement open at it.
+// above its Placement Opportunities and Ad Blocks (scte35.md §3.4): the
+// owner's answer, D-109 (e), an exception to D-087's rule that no ad_break
+// spans another. Messages of their own for the levels, each of D-106 (b)'s
+// default cue types, are cues of their own, which pair_breaks() pairs by
+// D-087's rule otherwise: a Break Start that declares a duration and then
+// an advertisement's Start make a break that the Break's duration ends,
+// around the advertisements' own breaks, so that one ad_break spans
+// others; a Break Start that declares none makes no break, with
+// pair_breaks()' warning, and its Break End ends the break of the
+// advertisement open at it. A type's role is its name's in Table 23
+// (segmentation_role(), D-109 (e)).
 Classes classify(const SpliceInfo& s, const MessageOptions& options)
 {
     Classes c;
@@ -327,7 +346,8 @@ Classes classify(const SpliceInfo& s, const MessageOptions& options)
             c.cancel          = true;
             c.splice_event_id = insert->splice_event_id;
         } else if (insert->out_of_network) {
-            c.out = true;
+            c.out                 = true;
+            c.out_splice_event_id = insert->splice_event_id;
         } else {
             c.in = true;
         }
@@ -344,24 +364,46 @@ Classes classify(const SpliceInfo& s, const MessageOptions& options)
         c.segmentation_types.push_back(seg->type_id);
         if (!signal || !is_cue_type(options, seg->type_id)) continue;
         const auto role = segmentation_role(seg->type_id);
-        if (role == SegmentationRole::Start) c.out = true;
+        if (role == SegmentationRole::Start) {
+            c.out = true;
+            c.out_segmentation_event_ids.push_back(seg->event_id);
+        }
         if (role == SegmentationRole::End) c.in = true;
     }
     return c;
 }
 
+// A duration a message gives in ticks of its 90 kHz clock, its
+// break_duration or its segmentation_duration: in seconds, as the payload
+// has always written it, and as the whole number of ticks that the member
+// beside it gives, which pair_breaks() reads first (D-109 (d)).
+struct Ticked {
+    double       seconds = 0;
+    std::int64_t ticks   = 0;
+};
+
+// pair_breaks() reads the ticks as ticks of kDurationClock
+// (src/PlaylistEvents.h), and a message gives them in ticks of its 90 kHz
+// clock (src/Scte35.h): two constants of one clock.
+static_assert(kDurationClock == scte35::kClock, "pair_breaks() reads the ticks of the messages' clock");
+
+Ticked ticked(std::int64_t ticks)
+{
+    return { .seconds = static_cast<double>(ticks) / scte35::kClock, .ticks = ticks };
+}
+
 // The segmentation_duration of a cue of `role`: that of the first
 // segmentation descriptor, not cancelled, of a cue type of that role, that
-// gives one, in the loop's order; in seconds. Which of several descriptors'
-// durations a message declares is as built, pending the owner.
-std::optional<double> segmentation_seconds(const SpliceInfo& s, const MessageOptions& options,
+// gives one, in the loop's order (D-109 (e)); in seconds and in its ticks
+// (D-109 (d)).
+std::optional<Ticked> segmentation_seconds(const SpliceInfo& s, const MessageOptions& options,
                                            SegmentationRole role)
 {
     for (const scte35::Descriptor& d : s.descriptors) {
         const auto* seg = std::get_if<scte35::SegmentationDescriptor>(&d.body);
         if (!seg || seg->cancel || !seg->duration || !is_cue_type(options, seg->type_id)) continue;
         if (segmentation_role(seg->type_id) != role) continue;
-        return static_cast<double>(*seg->duration) / scte35::kClock;
+        return ticked(*seg->duration);
     }
     return std::nullopt;
 }
@@ -595,27 +637,76 @@ std::string plural(std::size_t n, std::string_view one, std::string_view many)
 
 // ── One run ──────────────────────────────────────────────────────────────────
 
-// The durations a cue declares, in seconds, by kDurationNames.
-struct Durations {
-    std::optional<double> duration, end_date, planned, break_duration, segmentation;
+// The name of the member beside duration `name` that gives its ticks
+// (src/PlaylistEvents.h, D-109 (d)).
+std::string ticks_name(std::string_view name) { return std::string(name) + std::string(kTicksSuffix); }
 
+// The durations a cue declares, by kDurationNames: in seconds, and beside
+// break_duration and segmentation_duration, which a message gives in 90 kHz
+// ticks, in those ticks too (D-109 (d)).
+struct Durations {
+    std::optional<double> duration, end_date, planned;
+    std::optional<Ticked> break_duration, segmentation;
+
+    // Duration `name`'s seconds, and its ticks where it is given in them.
+    std::pair<std::optional<double>, std::optional<std::int64_t>> by_name(std::string_view name) const
+    {
+        const auto of = [](const std::optional<Ticked>& t) {
+            return std::pair{ t ? std::optional<double>(t->seconds) : std::nullopt,
+                              t ? std::optional<std::int64_t>(t->ticks) : std::nullopt };
+        };
+        if (name == "duration") return { duration, std::nullopt };
+        if (name == "end_date_duration") return { end_date, std::nullopt };
+        if (name == "planned_duration") return { planned, std::nullopt };
+        if (name == "break_duration") return of(break_duration);
+        if (name == "segmentation_duration") return of(segmentation);
+        return {};
+    }
+    // Whether duration `name` is one a message gives in ticks.
+    static bool in_ticks(std::string_view name)
+    {
+        return name == "break_duration" || name == "segmentation_duration";
+    }
+
+    // Every duration in a cue's payload, null where it isn't given, each
+    // given in ticks with its ticks beside it.
     void put(Payload& p) const
     {
-        p.emplace_back("duration", opt_number(duration));
-        p.emplace_back("end_date_duration", opt_number(end_date));
-        p.emplace_back("planned_duration", opt_number(planned));
-        p.emplace_back("break_duration", opt_number(break_duration));
-        p.emplace_back("segmentation_duration", opt_number(segmentation));
+        for (std::string_view n : kDurationNames) {
+            const auto [seconds, ticks] = by_name(n);
+            p.emplace_back(std::string(n), opt_number(seconds));
+            if (in_ticks(n)) p.emplace_back(ticks_name(n), opt_int(ticks));
+        }
     }
-    std::optional<double> by_name(std::string_view name) const
+    // Into the payload of a cue that takes a message: each duration the
+    // cue lacks or has null, with its ticks beside it.
+    void fill(Payload& p) const
     {
-        if (name == "duration") return duration;
-        if (name == "end_date_duration") return end_date;
-        if (name == "planned_duration") return planned;
-        if (name == "break_duration") return break_duration;
-        if (name == "segmentation_duration") return segmentation;
-        return std::nullopt;
+        for (std::string_view n : kDurationNames) {
+            const auto [seconds, ticks] = by_name(n);
+            if (!seconds) continue;
+            const auto named = [&p](std::string_view name) {
+                return std::find_if(p.begin(), p.end(), [name](const auto& m) { return m.first == name; });
+            };
+            auto at = named(n);
+            if (at != p.end() && is_number(at->second)) continue;
+            if (at != p.end()) at->second = number_value(*seconds);
+            else at = p.emplace(p.end(), std::string(n), number_value(*seconds));
+            if (!ticks) continue;
+            const std::string t = ticks_name(n);
+            if (const auto now = named(t); now != p.end()) now->second = int_value(*ticks);
+            else p.emplace(at + 1, t, int_value(*ticks));
+        }
     }
+};
+
+// One splice time of a message: its splice_point, where the time is placed,
+// and the warning written of it, if any (design §5.1; D-106 (a)), made as
+// the message is read and written in its turn.
+struct Splice {
+    scte35::SplicePoint  time;
+    std::optional<Event> point;
+    std::string          warning;
 };
 
 // A message as it is read: what its anchor and its tag give.
@@ -623,7 +714,10 @@ struct Read {
     const CueInput* input = nullptr;
     int             variant = -1;
     std::string     where;                       // how a warning names it
+    bool            usable = false;              // read through, decoded and anchored: it makes events
+    std::vector<std::string> warnings;           // its own as it was read, written in its turn
     SpliceInfo      info;
+    std::vector<std::uint8_t> section;           // the section's bytes (D-109 (a))
     Classes         classes;
     std::optional<std::int64_t> line;            // its tag's
     std::optional<std::string>  raw;             // its tag's line as written
@@ -634,8 +728,49 @@ struct Read {
     std::string                 unsearchable;    // why it has none
     Durations                   tag_durations;   // an EXT-X-DATERANGE's
     Value::List                 anchors;
+    std::vector<Splice>         splices;         // its splice times, in splice_times()' order
+    // For a cue-out message that no plain cue takes, the index of the first
+    // message of its signal, its own when it is the first (D-109 (a));
+    // kNoSignal for any other.
+    std::size_t                 signal = kNoSignal;
+    std::vector<std::size_t>    held;            // for an SCTE35-OUT, the SCTE35-IN its tag holds
+    bool                        held_by_out = false;   // an SCTE35-IN its tag's SCTE35-OUT holds
 };
 
+// Whether cue-out messages `a` and `b` are one signal (D-109 (a)): the same
+// section's bytes, the same Out Point's splice_event_id, or a
+// segmentation_event_id of a descriptor that makes each a cue_out in common.
+bool one_signal(const Read& a, const Read& b)
+{
+    if (a.section == b.section) return true;
+    if (a.classes.out_splice_event_id && a.classes.out_splice_event_id == b.classes.out_splice_event_id)
+        return true;
+    const std::vector<std::int64_t>& theirs = b.classes.out_segmentation_event_ids;
+    return std::any_of(a.classes.out_segmentation_event_ids.begin(),
+                       a.classes.out_segmentation_event_ids.end(), [&theirs](std::int64_t id) {
+                           return std::find(theirs.begin(), theirs.end(), id) != theirs.end();
+                       });
+}
+
+bool is_form(const Read& m, std::string_view form)
+{
+    return m.input->carrier == CueCarrier::PlaylistTag && m.input->form == form;
+}
+
+// The type of the plain cue whose tag embeds `m`, its own SCTE35=; empty
+// for any other message.
+std::string_view embedded_type(const Read& m)
+{
+    if (is_form(m, kCueOutForm)) return kTypeCueOut;
+    if (is_form(m, kContForm)) return kTypeCueOutCont;
+    if (is_form(m, kCueInForm)) return kTypeCueIn;
+    return {};
+}
+
+// The messages are read in their order, then linked (D-109 (a), (b)), then
+// each takes its turn in their order again, writing its warnings and making
+// its events, so that the warnings and the events come in the messages'
+// order, as they would in one pass.
 class Run {
 public:
     Run(std::vector<Event>& plain, const MessagePlacement& pl, const MessageOptions& o)
@@ -644,58 +779,14 @@ public:
     void message(const CueInput& in)
     {
         Read m;
-        m.input = &in;
-        if (const auto* period = std::get_if<PeriodAnchor>(&in.anchor)) {
-            warn(std::format("the {} of period '{}' at {}/{} has a DASH period-time anchor, which nothing "
-                             "places, since no DASH timeline is scored: it makes no event (design §5.5)",
-                             in.form, period->period, period->presentation_time, period->timescale));
-            return;
-        }
-        const auto* tag_anchor   = std::get_if<PlaylistAnchor>(&in.anchor);
-        const auto* media_anchor = std::get_if<MediaPtsAnchor>(&in.anchor);
-        m.variant = tag_anchor ? tag_anchor->variant : media_anchor->variant;
-        if (!known_variant(m.variant)) {
-            warn(std::format("the {} names variant {}, which the build doesn't have ({}): it makes no "
-                             "event", in.form, m.variant,
-                             plural(pl_.variants.size(), "variant", "variants")));
-            return;
-        }
-        const VariantFrames& f = frames(m.variant);
-        m.where = tag_anchor
-                      ? std::format("{}: the {} at line {}", name(m.variant), in.form, tag_anchor->line)
-                      : std::format("{}: the {} at PTS {} ({}/{})", name(m.variant), in.form,
-                                    media_anchor->pts, media_anchor->time_base.num,
-                                    media_anchor->time_base.den);
-        if (f.media() && !f.media()->refused.empty()) {
-            ++refused_[m.variant];   // one warning per variant, at the end
-            return;
-        }
-        if (!decode(m)) return;
-        m.classes = classify(m.info, options_);
-        for (std::size_t i = 0; i < m.info.descriptors.size(); ++i)
-            if (!m.info.descriptors[i].error.empty())
-                warn(std::format("{}: its descriptor {} counts for no class: {}", m.where, i + 1,
-                                 m.info.descriptors[i].error));
-
-        // A message whose own position isn't found still goes on: its cues
-        // take their turn in the pairing, unplaced, and its splice times are
-        // searched in its sequence when that is known (design §5.1).
-        if (tag_anchor && !tag_place(m, *tag_anchor)) return;
-        if (media_anchor) media_place(m, *media_anchor);
-        // Every message with a splice time gives its splice_points, a cue
-        // tag's own SCTE35= included (design §5.5's splice_point row). Where a
-        // vendor repeats the break's message in each EXT-X-CUE-OUT-CONT, as
-        // MediaLive's "SCTE 35 enhanced" output and Wowza do (scte35.md §2.2),
-        // each repeat makes one more splice_point at the same frame, with the
-        // warning that its splice time falls outside the tag's segment, or
-        // outside the tag's sequence in an ad of a sequence of its own: as
-        // built, pending the owner.
-        splice_points(m);
-        emit(m);
+        read(m, in);
+        reads_.push_back(std::move(m));
     }
 
     void finish()
     {
+        link();
+        for (std::size_t i = 0; i < reads_.size(); ++i) turn(i);
         for (const auto& [v, count] : refused_) {
             const VariantFrames& f = frames(v);
             warn(std::format("{}: no segment map, {}: its {} left out (D-081 (c), D-086)", name(v),
@@ -715,6 +806,10 @@ private:
     // number; nullopt: every frame of an input without a playlist.
     std::map<std::pair<int, std::optional<std::int64_t>>, SequenceFrames> sequences_;
     std::map<int, std::size_t>  refused_;
+    std::vector<Read>           reads_;
+    // The splice times each signal has made its splice_point of, by the
+    // index of its first message (D-109 (a)).
+    std::map<std::size_t, std::vector<std::pair<std::int64_t, std::optional<std::uint8_t>>>> times_;
 
     void warn(std::string w) { out.warnings.push_back(std::move(w)); }
 
@@ -761,6 +856,55 @@ private:
         return e;
     }
 
+    // ── Reading ──────────────────────────────────────────────────────────
+
+    // `in` decoded, classed and placed, with its anchors and its splice
+    // times; what can't be read is a warning, kept for its turn.
+    void read(Read& m, const CueInput& in)
+    {
+        m.input = &in;
+        if (const auto* period = std::get_if<PeriodAnchor>(&in.anchor)) {
+            m.warnings.push_back(std::format(
+                "the {} of period '{}' at {}/{} has a DASH period-time anchor, which nothing places, "
+                "since no DASH timeline is scored: it makes no event (design §5.5)",
+                in.form, period->period, period->presentation_time, period->timescale));
+            return;
+        }
+        const auto* tag_anchor   = std::get_if<PlaylistAnchor>(&in.anchor);
+        const auto* media_anchor = std::get_if<MediaPtsAnchor>(&in.anchor);
+        m.variant = tag_anchor ? tag_anchor->variant : media_anchor->variant;
+        if (!known_variant(m.variant)) {
+            m.warnings.push_back(std::format("the {} names variant {}, which the build doesn't have ({}): "
+                                             "it makes no event", in.form, m.variant,
+                                             plural(pl_.variants.size(), "variant", "variants")));
+            return;
+        }
+        const VariantFrames& f = frames(m.variant);
+        m.where = tag_anchor
+                      ? std::format("{}: the {} at line {}", name(m.variant), in.form, tag_anchor->line)
+                      : std::format("{}: the {} at PTS {} ({}/{})", name(m.variant), in.form,
+                                    media_anchor->pts, media_anchor->time_base.num,
+                                    media_anchor->time_base.den);
+        if (f.media() && !f.media()->refused.empty()) {
+            ++refused_[m.variant];   // one warning per variant, at the end
+            return;
+        }
+        if (!decode(m)) return;
+        m.classes = classify(m.info, options_);
+        for (std::size_t i = 0; i < m.info.descriptors.size(); ++i)
+            if (!m.info.descriptors[i].error.empty())
+                m.warnings.push_back(std::format("{}: its descriptor {} counts for no class: {}", m.where,
+                                                 i + 1, m.info.descriptors[i].error));
+
+        // A message whose own position isn't found still goes on: its cues
+        // take their turn in the pairing, unplaced, and its splice times are
+        // searched in its sequence when that is known (design §5.1).
+        if (tag_anchor && !tag_place(m, *tag_anchor)) return;
+        if (media_anchor) media_place(m, *media_anchor);
+        place_splices(m);
+        m.usable = true;
+    }
+
     // The section's bytes, from the text a playlist tag carries or as
     // another carrier gives them, decoded; false, with a warning, when they
     // don't decode or the CRC policy drops them.
@@ -774,8 +918,8 @@ private:
             const bool hex = in.form.starts_with("DATERANGE ") || starts_with_hex_prefix(text);
             bytes = hex ? scte35::from_hex(text, err) : scte35::from_base64(text, err);
             if (!bytes) {
-                warn(std::format("{}: its text isn't {}, {}: it makes no event (design §5.5)", m.where,
-                                 hex ? "hex" : "base64", err));
+                m.warnings.push_back(std::format("{}: its text isn't {}, {}: it makes no event (design "
+                                                 "§5.5)", m.where, hex ? "hex" : "base64", err));
                 return false;
             }
         } else {
@@ -783,19 +927,22 @@ private:
         }
         m.info = scte35::decode(*bytes);
         if (!m.info.decoded()) {
-            warn(std::format("{}: it doesn't decode, {}: it makes no event (design §5.5)", m.where,
-                             m.info.error));
+            m.warnings.push_back(std::format("{}: it doesn't decode, {}: it makes no event (design §5.5)",
+                                             m.where, m.info.error));
             return false;
         }
+        const auto size = static_cast<std::ptrdiff_t>(m.info.input_bytes - m.info.bytes_after);
+        m.section.assign(bytes->begin(), bytes->begin() + size);
         if (!m.info.crc_valid) {
             const std::string crc = std::format("its CRC_32 is 0x{:08X} where its bytes give 0x{:08X}",
                                                 m.info.crc_32, m.info.crc_computed);
             if (options_.bad_crc == BadCrc::Drop) {
-                warn(std::format("{}: {}: it is dropped, as the bad-CRC policy drop says (D-106 (c))",
-                                 m.where, crc));
+                m.warnings.push_back(std::format("{}: {}: it is dropped, as the bad-CRC policy drop says "
+                                                 "(D-106 (c))", m.where, crc));
                 return false;
             }
-            warn(std::format("{}: {}: it is kept, marked crc_valid false (D-106 (c))", m.where, crc));
+            m.warnings.push_back(std::format("{}: {}: it is kept, marked crc_valid false (D-106 (c))",
+                                             m.where, crc));
         }
         return true;
     }
@@ -807,8 +954,8 @@ private:
         const VariantFrames& f = frames(m.variant);
         const PlaylistEvents* p = f.playlist();
         if (!p) {
-            warn(std::format("{}: its variant has no playlist to hold its tag: it makes no event",
-                             m.where));
+            m.warnings.push_back(std::format("{}: its variant has no playlist to hold its tag: it makes "
+                                             "no event", m.where));
             return false;
         }
         m.line = a.line;
@@ -842,14 +989,15 @@ private:
     }
 
     // An EXT-X-DATERANGE's dates and durations; for a malformed one, which
-    // hands on its well-formed SCTE35-* only (D-106 (e)), a warning instead.
-    // The date set against the tag's segment is the one RFC 8216 §4.3.2.7.1
-    // gives the message's point: START-DATE, the time of an SCTE35-OUT's
-    // splice or of an SCTE35-CMD's command; for an SCTE35-IN its in point,
-    // END-DATE or, without one, START-DATE plus DURATION, since the tags of
-    // one ID share START-DATE, the break's start (scte35.md §2.5). An
-    // SCTE35-IN's START-DATE is recorded all the same, as the range's start,
-    // and set against nothing.
+    // hands on its well-formed SCTE35-* only (D-106 (e)), a warning instead,
+    // none of its other attributes read (D-109 (e)). The date set against
+    // the tag's segment is the one RFC 8216 §4.3.2.7.1 gives the message's
+    // point: START-DATE, the time of an SCTE35-OUT's splice or of an
+    // SCTE35-CMD's command; for an SCTE35-IN its in point, END-DATE or,
+    // without one, START-DATE plus DURATION, both of its own tag (D-109 (e)),
+    // since the tags of one ID share START-DATE, the break's start
+    // (scte35.md §2.5). An SCTE35-IN's START-DATE is recorded all the same,
+    // as the range's start, and set against nothing.
     void daterange(Read& m, const PlaylistEvents& p, const PlaylistTag& tag)
     {
         // A DATERANGE that hands on a message has a daterange event only
@@ -859,10 +1007,10 @@ private:
             const Value* error = member(e.payload, "error");
             const auto*  why   = error ? std::get_if<std::string>(&error->v) : nullptr;
             if (!why) continue;
-            warn(std::format("{}: its EXT-X-DATERANGE is malformed, {}: its {}, a well-formed "
-                             "hexadecimal-sequence, is decoded all the same, and none of the tag's "
-                             "other attributes is read (D-106 (e))", m.where, *why,
-                             m.input->form.substr(std::string_view("DATERANGE ").size())));
+            m.warnings.push_back(std::format(
+                "{}: its EXT-X-DATERANGE is malformed, {}: its {}, a well-formed hexadecimal-sequence, is "
+                "decoded all the same, and none of the tag's other attributes is read (D-106 (e))",
+                m.where, *why, m.input->form.substr(std::string_view("DATERANGE ").size())));
             return;
         }
         std::string err;
@@ -885,7 +1033,7 @@ private:
         const auto in_micros = [](double unix) {
             return std::isnan(unix) ? std::nullopt : std::optional<std::int64_t>(micros(unix));
         };
-        const bool        in     = m.input->form == "DATERANGE SCTE35-IN";
+        const bool        in     = m.input->form == kRangeInForm;
         const int         index  = m.segment ? p.timeline.index_of(*m.segment) : -1;
         const std::string unread = "it isn't a date hls::parse_iso8601() reads";
 
@@ -931,7 +1079,7 @@ private:
     // in_segment is null and no warning is written; otherwise a warning says
     // where the date falls outside the segment, or why it can't be set
     // against it (D-106 (a)).
-    void set_date(const Read& m, const PlaylistEvents& p, int index, Value::Object& anchor,
+    void set_date(Read& m, const PlaylistEvents& p, int index, Value::Object& anchor,
                   std::string_view what, std::optional<std::int64_t> at, std::string_view bad, bool checked)
     {
         std::optional<double> pdt, offset;
@@ -950,13 +1098,13 @@ private:
             offset = static_cast<double>(off) / 1e6;
             if (checked) inside = off >= 0 && off < micros(s.duration);
             if (inside == false)
-                warn(std::format("{}: {} is {} s from the EXT-X-PROGRAM-DATE-TIME of its segment {}, "
-                                 "outside the segment's {} s (D-106 (a))",
-                                 m.where, what, *offset, *m.segment, s.duration));
+                m.warnings.push_back(std::format("{}: {} is {} s from the EXT-X-PROGRAM-DATE-TIME of its "
+                                                 "segment {}, outside the segment's {} s (D-106 (a))",
+                                                 m.where, what, *offset, *m.segment, s.duration));
         }
         if (checked && !why.empty())
-            warn(std::format("{}: {} can't be set against its segment: {} (D-106 (a))", m.where, what,
-                             why));
+            m.warnings.push_back(std::format("{}: {} can't be set against its segment: {} (D-106 (a))",
+                                             m.where, what, why));
         anchor.emplace_back("pdt", opt_number(pdt));
         anchor.emplace_back("offset_seconds", opt_number(offset));
         anchor.emplace_back("in_segment", inside ? flag_value(*inside) : Value{});
@@ -965,7 +1113,8 @@ private:
     // A message read from the media: placed at its PTS, as a splice time.
     // One whose PTS isn't placed keeps the reason, for the warning of each
     // of its events (emit()), and its sequence where that is known, in which
-    // its splice times are searched.
+    // its splice times are searched; without a known segment, a PTS is
+    // searched only where the playlist has one sequence (D-109 (e)).
     void media_place(Read& m, const MediaPtsAnchor& a)
     {
         const VariantFrames&  f = frames(m.variant);
@@ -1011,13 +1160,17 @@ private:
         } });
     }
 
-    // Each splice time: a splice_point on the carrying variant's frames, and
-    // an anchor of the message (D-106 (a)).
-    void splice_points(Read& m)
+    // Each splice time: an anchor of the message (D-106 (a)), and the
+    // splice_point it makes on the carrying variant's frames, with the
+    // warning of one outside the tag's segment or left out, for its turn
+    // (splice_points()). A splice time before its sequence's first frame is
+    // outside the sequence (D-109 (e)).
+    void place_splices(Read& m)
     {
         const VariantFrames& f = frames(m.variant);
-        const std::vector<scte35::SplicePoint> times = scte35::splice_times(m.info);
-        for (const scte35::SplicePoint& t : times) {
+        for (const scte35::SplicePoint& t : scte35::splice_times(m.info)) {
+            Splice& s = m.splices.emplace_back();
+            s.time = t;
             std::optional<std::int64_t> index, at, segment;
             std::string why = m.unsearchable;
             if (!valid_base(f.time_base())) why = "can't be placed: its variant's time base isn't known";
@@ -1031,8 +1184,8 @@ private:
             }
             std::optional<bool> inside;
             if (index && m.segment) {
-                const SegmentFrames* s = f.segment(*m.segment);
-                inside = s && *index >= s->first_index && *index < s->first_index + s->frames;
+                const SegmentFrames* g = f.segment(*m.segment);
+                inside = g && *index >= g->first_index && *index < g->first_index + g->frames;
             } else if (!index && m.segment) {
                 inside = false;
             }
@@ -1041,12 +1194,13 @@ private:
                 "its splice time {} (90 kHz){}", t.adjusted,
                 t.component_tag ? std::format(", of component {}", *t.component_tag) : std::string());
             if (!at) {
-                warn(std::format("{}: {} {}: its splice_point is left out (design §5.1)", m.where, what,
-                                 why));
+                s.warning = std::format("{}: {} {}: its splice_point is left out (design §5.1)", m.where,
+                                        what, why);
             } else if (inside == false) {
-                warn(std::format("{}: {} falls on frame {} of its variant, in segment {}, outside the "
-                                 "tag's segment {} (D-106 (a))", m.where, what, *index,
-                                 segment ? std::to_string(*segment) : std::string("none"), *m.segment));
+                s.warning = std::format("{}: {} falls on frame {} of its variant, in segment {}, outside "
+                                        "the tag's segment {} (D-106 (a))", m.where, what, *index,
+                                        segment ? std::to_string(*segment) : std::string("none"),
+                                        *m.segment);
             }
             const auto offset_frames =
                 at && m.position ? std::optional<std::int64_t>(*at - *m.position) : std::nullopt;
@@ -1077,7 +1231,100 @@ private:
             e.payload.emplace_back("index", int_value(*index));
             e.payload.emplace_back("in_segment", inside ? flag_value(*inside) : Value{});
             e.payload.emplace_back("crc_valid", flag_value(m.info.crc_valid));
-            out.splice_points.push_back(std::move(e));
+            s.point = std::move(e);
+        }
+    }
+
+    // ── Linking (D-109 (a), (b)) ─────────────────────────────────────────
+
+    // Which SCTE35-IN each EXT-X-DATERANGE's SCTE35-OUT holds in its tag,
+    // and which cue-out messages that no plain cue takes are one signal, of
+    // one variant and one segment, each signal's first message in the
+    // messages' order making its cues (signal()).
+    void link()
+    {
+        // A tag's SCTE35-OUT, the first it hands on, by variant and line.
+        std::map<std::pair<int, std::int64_t>, std::size_t> outs;
+        for (std::size_t j = 0; j < reads_.size(); ++j) {
+            const Read& o = reads_[j];
+            if (o.usable && is_form(o, kRangeOutForm) && o.classes.out && o.line)
+                outs.emplace(std::pair{ o.variant, *o.line }, j);
+        }
+        // The tag's SCTE35-IN, of the class cue_in alone, is held by that
+        // SCTE35-OUT (D-109 (b)). That pair alone is folded: two other
+        // messages of one tag that make a cue_out and then a cue_in, such as
+        // an SCTE35-CMD that starts a break and an SCTE35-IN, or an
+        // SCTE35-OUT and an SCTE35-CMD that ends it, are still a cue_out and
+        // a cue_in at the tag's line, of which pair_breaks() makes an
+        // ad_break of no frames, the tag's DURATION ending nothing: as
+        // built, pending the owner.
+        for (std::size_t i = 0; i < reads_.size(); ++i) {
+            Read& in = reads_[i];
+            if (!in.usable || !is_form(in, kRangeInForm) || !in.classes.in || in.classes.out || !in.line)
+                continue;
+            const auto o = outs.find(std::pair{ in.variant, *in.line });
+            if (o == outs.end()) continue;
+            reads_[o->second].held.push_back(i);
+            in.held_by_out = true;
+        }
+        // The first message of each signal, as the smallest index of a
+        // union of signals, so that it doesn't depend on which pairs are
+        // compared first; only messages of one variant and one segment are.
+        std::vector<std::size_t> first(reads_.size());
+        for (std::size_t i = 0; i < first.size(); ++i) first[i] = i;
+        const auto root = [&first](std::size_t i) {
+            while (first[i] != i) i = first[i];
+            return i;
+        };
+        std::map<std::pair<int, std::int64_t>, std::vector<std::size_t>> by_segment;
+        std::vector<std::size_t> own;
+        for (std::size_t i = 0; i < reads_.size(); ++i) {
+            const Read& m = reads_[i];
+            if (!m.usable || !m.classes.out || !embedded_type(m).empty() || plain_in_segment(m, kTypeCueOut))
+                continue;
+            own.push_back(i);
+            if (!m.segment) continue;
+            std::vector<std::size_t>& before = by_segment[std::pair{ m.variant, *m.segment }];
+            for (std::size_t j : before) {
+                if (!one_signal(reads_[j], m)) continue;
+                const std::size_t a = root(i), b = root(j);
+                first[std::max(a, b)] = std::min(a, b);
+            }
+            before.push_back(i);
+        }
+        for (std::size_t i : own) reads_[i].signal = root(i);
+    }
+
+    // ── Events ───────────────────────────────────────────────────────────
+
+    // Message `i`'s turn: the warnings of its reading, its splice points,
+    // and its events.
+    void turn(std::size_t i)
+    {
+        Read& m = reads_[i];
+        for (std::string& w : m.warnings) warn(std::move(w));
+        if (!m.usable) return;
+        splice_points(m);
+        emit(i);
+    }
+
+    // The splice_points of `m`'s splice times, each with its warning; none,
+    // and no warning, for the message of an EXT-X-CUE-OUT-CONT, which
+    // repeats its break's message, whose splice time lies before the tag's
+    // segment by its nature (D-109 (c)); and for a signal one per splice
+    // time, the first message's that gives it (D-109 (a)).
+    void splice_points(Read& m)
+    {
+        if (is_form(m, kContForm)) return;
+        for (Splice& s : m.splices) {
+            if (m.signal != kNoSignal) {
+                auto&      made = times_[m.signal];
+                const auto time = std::pair{ s.time.adjusted, s.time.component_tag };
+                if (std::find(made.begin(), made.end(), time) != made.end()) continue;
+                made.push_back(time);
+            }
+            if (!s.warning.empty()) warn(std::move(s.warning));
+            if (s.point) out.splice_points.push_back(std::move(*s.point));
         }
     }
 
@@ -1107,14 +1354,15 @@ private:
     {
         Durations d = m.tag_durations;
         if (const auto* c = std::get_if<scte35::SpliceInsert>(&m.info.command); c && c->break_duration)
-            d.break_duration = static_cast<double>(c->break_duration->duration) / scte35::kClock;
+            d.break_duration = ticked(c->break_duration->duration);
         d.segmentation = segmentation_seconds(m.info, options_, role);
         return d;
     }
 
-    // `m`'s record in the payload of plain cue `cue`, with the durations a
-    // cue_out lacks (see the rules).
-    void merge(Event& cue, const Read& m, const Durations* d) const
+    // `m`'s record in the payload of cue `cue`, a plain one or a signal's,
+    // and with `d`, the durations of kDurationNames that the cue lacks or
+    // has null, each with its ticks beside it (see the rules).
+    void merge(Event& cue, const Read& m, const std::optional<Durations>& d) const
     {
         Value::Object record;
         put_head(record, m);
@@ -1126,14 +1374,21 @@ private:
         }
         if (!std::holds_alternative<Value::List>(list->v)) *list = Value{ Value::List{} };
         std::get<Value::List>(list->v).push_back(Value{ std::move(record) });
-        if (!d) return;
-        for (std::string_view n : kDurationNames) {
-            const std::optional<double> given = d->by_name(n);
-            if (!given) continue;
-            Value* now = member(cue.payload, n);
-            if (now && is_number(*now)) continue;
-            if (now) *now = number_value(*given);
-            else cue.payload.emplace_back(std::string(n), number_value(*given));
+        if (d) d->fill(cue.payload);
+    }
+
+    // The SCTE35-INs that `m`'s tag holds beside it, taken by `cue`, the
+    // cue_out that took `m` (D-109 (b)): their records, and the line of the
+    // first in kHeldCueInLine, by which pair_breaks() ends the cue_out's
+    // break at its declared duration; one that declares none makes no
+    // ad_break, with a warning, the cue_in after it ending nothing: as
+    // built, pending the owner (src/PlaylistEvents.cpp's make_break()).
+    void hold(Event& cue, const Read& m) const
+    {
+        for (std::size_t h : m.held) {
+            merge(cue, reads_[h], std::nullopt);
+            if (!member(cue.payload, kHeldCueInLine))
+                cue.payload.emplace_back(std::string(kHeldCueInLine), opt_int(reads_[h].line));
         }
     }
 
@@ -1156,25 +1411,22 @@ private:
         return best;
     }
 
-    // The events of `m`: merged into its plain cue, or its own (see the rules).
-    void emit(const Read& m)
+    // The events of message `i`: merged into its plain cue, or its own, or
+    // its signal's (see the rules).
+    void emit(std::size_t i)
     {
-        const std::string_view form = m.input->form;
-        std::string_view embedded;   // the plain cue type of the tag that embeds it
-        if (m.input->carrier == CueCarrier::PlaylistTag) {
-            if (form == "CUE-OUT SCTE35") embedded = kTypeCueOut;
-            else if (form == "CUE-OUT-CONT SCTE35") embedded = kTypeCueOutCont;
-            else if (form == "CUE-IN SCTE35") embedded = kTypeCueIn;
-        }
+        const Read&            m        = reads_[i];
+        const std::string_view embedded = embedded_type(m);
         if (!embedded.empty()) {
-            Event* cue = plain_at_line(m, embedded);
-            if (!cue) {
+            Event* tagged = plain_at_line(m, embedded);
+            if (!tagged) {
                 warn(std::format("{}: no {} of its tag was given to take it: it makes no event", m.where,
                                  embedded));
                 return;
             }
-            const Durations d = durations(m, SegmentationRole::Start);
-            merge(*cue, m, embedded == kTypeCueOut ? &d : nullptr);
+            std::optional<Durations> d;
+            if (embedded == kTypeCueOut) d = durations(m, SegmentationRole::Start);
+            merge(*tagged, m, d);
             return;
         }
 
@@ -1197,35 +1449,35 @@ private:
                 out.others.push_back(std::move(e));
             }
         }
-        // A cue_out message in the segment of a plain EXT-X-CUE-OUT of its
-        // variant is that cue's, whatever carries it, once its segment is
-        // known (D-106 (d)); its cue_in, if it has one, is its own and joins
-        // that cue_out (see cue()).
-        Event* joins = m.classes.out ? plain_in_segment(m, kTypeCueOut) : nullptr;
-        // An EXT-X-DATERANGE with both SCTE35-OUT and SCTE35-IN, which RFC
-        // 8216 §4.3.2.7.1 allows, a splice's pair taking one tag of its ID
-        // or several, hands on two messages at one line in the tag's order
-        // (add_daterange(), src/PlaylistEvents.cpp), each placed at the
-        // tag's position: SCTE35-OUT first, a cue_out and a cue_in at one
-        // frame, which pair_breaks() makes an ad_break of no frames, the
-        // tag's DURATION ending nothing: as built, pending the owner.
-        if (m.classes.in) cue(m, kTypeCueIn, SegmentationRole::End, joins);
         if (m.classes.out) {
-            if (joins) {
-                const Durations d = durations(m, SegmentationRole::Start);
-                merge(*joins, m, &d);
-            } else {
-                // Without a plain EXT-X-CUE-OUT in its segment, a cue_out of
-                // its own, also where several messages carry one signal in
-                // one segment: an OATCLS and a DATERANGE SCTE35-OUT of one
-                // splice_insert, or the DATERANGE tags that RFC 8216
-                // §4.3.2.7.1 writes for a section with several segmentation
-                // types, each with the whole section. pair_breaks() then
-                // makes an ad_break of each (D-087), with no warning, D-106
-                // (d) merging a message into a plain EXT-X-CUE-OUT beside it
-                // only: as built, pending the owner.
-                cue(m, kTypeCueOut, SegmentationRole::Start);
+            if (Event* joins = plain_in_segment(m, kTypeCueOut)) {
+                // A cue_out message in the segment of a plain EXT-X-CUE-OUT
+                // of its variant is that cue's, whatever carries it, once
+                // its segment is known (D-106 (d)), and so is the SCTE35-IN
+                // its tag holds (D-109 (b)); its cue_in, if it has one, is
+                // its own and joins that cue_out.
+                if (m.classes.in)
+                    out.cues.push_back(cue(m, kTypeCueIn, SegmentationRole::End,
+                                           int_member(joins->payload, "line")));
+                // Where it holds that SCTE35-IN, the plain cue_out ends at the
+                // first duration it then declares, by D-076's order: its own
+                // EXT-X-CUE-OUT's before the tag's DURATION, its ad_break's
+                // cue_in_line the tag's line, before its cue_out_line where
+                // the tag is written first. An EXT-X-CUE-IN after it ends
+                // nothing, and where nothing is declared it makes no
+                // ad_break, with pair_breaks()' warning, so that the break
+                // that EXT-X-CUE-IN would end is not made: as built, pending
+                // the owner, D-109 (b) saying nothing of a tag that declares
+                // no duration.
+                merge(*joins, m, durations(m, SegmentationRole::Start));
+                hold(*joins, m);
+            } else if (m.signal == i) {
+                signal(i);
             }
+            // A later message of a signal makes no cue: its signal's first
+            // took it (signal()).
+        } else if (m.classes.in && !m.held_by_out) {
+            out.cues.push_back(cue(m, kTypeCueIn, SegmentationRole::End));
         }
         if (!m.classes.any_cue() && !m.classes.cancel) {
             unplaced(kTypeMessage);
@@ -1241,27 +1493,54 @@ private:
         }
     }
 
+    // The cues of the signal whose first message is `f` (D-109 (a)): one
+    // cue_out, f's, which takes the others' records and the durations it
+    // lacks from them as a plain cue does (merge()), and the SCTE35-INs
+    // their tags hold (hold()); and before it one cue_in, of the first of its
+    // messages that also ends a break (classify()), at the cue_out's line
+    // where its own is later or null, so that it ends that break before this
+    // one starts (see cue()).
+    void signal(std::size_t f)
+    {
+        std::vector<std::size_t> members;
+        for (std::size_t i = f; i < reads_.size(); ++i)
+            if (reads_[i].signal == f) members.push_back(i);
+        const Read& first = reads_[f];
+        for (std::size_t i : members) {
+            if (!reads_[i].classes.in) continue;
+            out.cues.push_back(cue(reads_[i], kTypeCueIn, SegmentationRole::End, first.line));
+            break;
+        }
+        Event e = cue(first, kTypeCueOut, SegmentationRole::Start);
+        for (std::size_t i : members) {
+            if (i != f) merge(e, reads_[i], durations(reads_[i], SegmentationRole::Start));
+            hold(e, reads_[i]);
+        }
+        out.cues.push_back(std::move(e));
+    }
+
     // A cue of its own, placed or kUnplaced, for the pairing. A cue_in that
-    // joins plain cue_out `joins`, its message's cue_out part being merged
-    // into it, ends the break before that one starts, an end and a start at
-    // one splice point, in either order of their tags (Wowza writes the
-    // OATCLS after the EXT-X-CUE-OUT, MediaLive before it; scte35.md §2.4):
-    // it takes that cue's line where its own is later, or null, so that
-    // pair_breaks(), given the returned cues first (cues_to_pair()), takes
-    // it before that cue_out. Its own line stays in its position anchor.
-    void cue(const Read& m, std::string_view type, SegmentationRole role, const Event* joins = nullptr)
+    // joins a cue_out whose line is `joins`, that of the plain cue (D-106
+    // (d)) or the signal's cue_out (D-109 (a)) that took its message's
+    // cue_out part, ends the break before that one starts, an end and a
+    // start at one splice point, in either order of their tags (Wowza writes
+    // the OATCLS after the EXT-X-CUE-OUT, MediaLive before it; scte35.md
+    // §2.4): it takes that line where its own is later, or null (D-109 (e)),
+    // so that pair_breaks(), given the returned cues first (cues_to_pair()),
+    // takes it before that cue_out. Its own line stays in its position
+    // anchor.
+    Event cue(const Read& m, std::string_view type, SegmentationRole role,
+              std::optional<std::int64_t> joins = std::nullopt)
     {
         if (!m.position)
             warn(std::format("{}: {}, so its {} isn't placed: it still takes its turn in the pairing "
                              "(design §5.1)", m.where, m.unplaced, type));
         Event e = event(m, type, m.segment, m.position.value_or(kUnplaced));
         put_head(e.payload, m);
-        if (const auto line = joins ? int_member(joins->payload, "line") : std::nullopt;
-            line && (!m.line || *m.line > *line))
-            *member(e.payload, "line") = int_value(*line);
+        if (joins && (!m.line || *m.line > *joins)) *member(e.payload, "line") = int_value(*joins);
         durations(m, role).put(e.payload);
         put_record(e.payload, m);
-        out.cues.push_back(std::move(e));
+        return e;
     }
 };
 

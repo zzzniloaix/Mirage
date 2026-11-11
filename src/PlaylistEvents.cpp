@@ -529,10 +529,23 @@ std::string cue_name(const Event& e)
     return std::format("a {}", e.type);
 }
 
+// `ticks` of kDurationClock as seconds, exactly; nullopt for a count that no
+// AVRational holds, its numerator above INT_MAX once reduced, which
+// av_reduce() would clamp to the nearest fraction it can hold (D-109 (d)).
+std::optional<AVRational> tick_seconds(std::int64_t ticks)
+{
+    AVRational q{ 0, 1 };
+    if (ticks < 0 || !av_reduce(&q.num, &q.den, ticks, kDurationClock, INT_MAX)) return std::nullopt;
+    return q;
+}
+
 // The break that cue_out `o` starts, ended by cue_in `in` or, without one,
 // by its first declared duration; `next_out` is the cue_out that follows it
 // before any cue_in, if one does, since breaks don't nest (the owner's
-// answer to Q46 (D-087)). A break that can't be made is a warning.
+// answer to Q46 (D-087)). A cue_out that holds its cue_in in its tag
+// (kHeldCueInLine) ends at its declared duration even where `in` is given,
+// that cue_in ending nothing (D-109 (b)). A break that can't be made is a
+// warning.
 void make_break(const Event& o, const std::vector<const Event*>& conts, const Event* in,
                 const Event* next_out, const FrameAfter& frame_after, Breaks& out)
 {
@@ -540,20 +553,38 @@ void make_break(const Event& o, const std::vector<const Event*>& conts, const Ev
         out.warnings.push_back(
             std::format("variant {}: no ad_break for {}: {}", o.variant, cue_name(o), why));
     };
-    // Every duration the cue_out declares, kept; the first one given ends a
-    // break without a cue_in (D-076).
+    // Every duration the cue_out declares, kept with its ticks beside it;
+    // the first one given ends a break without a cue_in (D-076), by its
+    // ticks where they are a whole number from 0, before its seconds (D-109
+    // (d)).
+    struct Declared {
+        std::string_view            name;
+        std::optional<double>       seconds;
+        std::optional<std::int64_t> ticks;
+
+        std::string text() const
+        {
+            return ticks ? std::format("{} of {} ticks (90 kHz)", name, *ticks)
+                         : std::format("{} of {} s", name, *seconds);
+        }
+    };
     Value::Object durations;
-    std::optional<std::pair<std::string_view, double>> declared;
+    std::optional<Declared> declared;
     for (std::string_view name : kDurationNames) {
+        const std::string ticks_name = std::string(name) + std::string(kTicksSuffix);
         const auto d = number_member(o.payload, name);
-        if (!d) continue;
-        durations.emplace_back(std::string(name), *member(o.payload, name));
-        if (!declared && std::isfinite(*d) && *d >= 0) declared.emplace(name, *d);
+        const auto t = int_member(o.payload, ticks_name);
+        if (d) durations.emplace_back(std::string(name), *member(o.payload, name));
+        if (t) durations.emplace_back(ticks_name, int_value(*t));
+        if (declared) continue;
+        if (t && *t >= 0) declared = Declared{ name, d, t };
+        else if (d && std::isfinite(*d) && *d >= 0) declared = Declared{ name, d, std::nullopt };
     }
+    const std::optional<std::int64_t> held = int_member(o.payload, kHeldCueInLine);
 
     std::int64_t     end = 0;
     std::string_view how;
-    if (in) {
+    if (in && !held) {
         if (o.ref_index < 0) return warn("it has no reference frame (design §5.1)");
         if (in->ref_index < 0)
             return warn(std::format("{}, which ends it, has no reference frame (design §5.1)",
@@ -561,6 +592,15 @@ void make_break(const Event& o, const std::vector<const Event*>& conts, const Ev
         end = in->ref_index;
         how = "cue_in";
     } else {
+        // A cue_out that holds its cue_in and declares no duration makes no
+        // break, with this warning, and `in`, the cue_in after it if one
+        // came, ends nothing, where it would end the break of a cue_out that
+        // held none. D-109 (b) ends a held break at its declared duration and
+        // says nothing of a tag that declares none: as built, pending the
+        // owner.
+        if (!declared && held)
+            return warn(std::format("the EXT-X-DATERANGE at line {} holds its cue_in (D-109 (b)), and it "
+                                    "declares no duration (D-076)", *held));
         if (!declared)
             return warn(std::format("{}, and it declares no duration (D-076)",
                                     next_out ? cue_name(*next_out) + " follows it before any cue_in"
@@ -569,17 +609,18 @@ void make_break(const Event& o, const std::vector<const Event*>& conts, const Ev
         // FrameAfter is given a positive, exact duration only: a zero one
         // ends where the break starts, and one that no AVRational holds
         // exactly makes no break.
-        const std::optional<AVRational> q = exact_seconds(declared->second);
+        const std::optional<AVRational> q =
+            declared->ticks ? tick_seconds(*declared->ticks) : exact_seconds(*declared->seconds);
         if (!q)
-            return warn(std::format("no AVRational holds its {} of {} s exactly, so the axis isn't "
-                                    "asked for its end", declared->first, declared->second));
+            return warn(std::format("no AVRational holds its {} exactly, so the axis isn't asked for its "
+                                    "end", declared->text()));
         const std::optional<std::int64_t> f =
             q->num == 0 ? std::optional<std::int64_t>{ o.ref_index } : frame_after(o.ref_index, *q);
         if (!f)
-            return warn(std::format("the axis gives no reference frame for the end of its {} of {} s",
-                                    declared->first, declared->second));
+            return warn(std::format("the axis gives no reference frame for the end of its {}",
+                                    declared->text()));
         end = *f;
-        how = declared->first;
+        how = declared->name;
     }
     if (end < o.ref_index)
         return warn(std::format("it would end at reference frame {}, before its start at {}", end,
@@ -604,7 +645,7 @@ void make_break(const Event& o, const std::vector<const Event*>& conts, const Ev
         cont_durations.push_back(d && number_member(c->payload, "duration") ? *d : Value{});
     }
     b.payload.emplace_back("cue_out_line", line_value(&o));
-    b.payload.emplace_back("cue_in_line", line_value(in));
+    b.payload.emplace_back("cue_in_line", held ? int_value(*held) : line_value(in));
     b.payload.emplace_back("end", text_value(how));
     b.payload.emplace_back("durations", Value{ std::move(durations) });
     b.payload.emplace_back("cue_out_cont_durations", Value{ std::move(cont_durations) });

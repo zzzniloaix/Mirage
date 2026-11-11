@@ -62,7 +62,10 @@
 //   cue_in ends at its start plus the first duration its cue_out declares,
 //   in the order D-076 gives: the tag's own, then PLANNED-DURATION, the
 //   message's break_duration and its segmentation_duration (Q17 (a)). Every
-//   declared value is kept in the break's payload.
+//   declared value is kept in the break's payload. A cue_out that holds its
+//   cue_in in its tag (kHeldCueInLine) ends at its declared duration in the
+//   same order, the tag's DURATION or END-DATE first, and no later cue_in
+//   ends it (D-109 (b)).
 //
 // Events as parse_playlist_events() and segment_event() return them aren't
 // placed yet: each names its variant and the media sequence number of its
@@ -158,10 +161,31 @@ inline constexpr std::string_view kTypeAdBreak         = "ad_break";            
 // DURATION), END-DATE less START-DATE, PLANNED-DURATION, the message's
 // break_duration and its segmentation_duration. A plain EXT-X-CUE-OUT gives
 // the first only; the decoder's cues give the others (src/Scte35Events.h).
+// Beside a duration, the member of its name and kTicksSuffix may give it in
+// whole ticks of kDurationClock, which pair_breaks() takes before the
+// seconds, as an exact rational of the ticks over kDurationClock: the
+// decoder's cues give break_duration_ticks and segmentation_duration_ticks
+// beside break_duration and segmentation_duration, which a message gives in
+// ticks of SCTE 35's 90 kHz clock, so that a count that 9 doesn't divide,
+// which no decimal of seconds holds, still ends its break; the seconds stay
+// as they are, and a duration in seconds alone is taken as before (D-109
+// (d)).
 inline constexpr std::string_view kDurationNames[] = {
     "duration", "end_date_duration", "planned_duration", "break_duration",
     "segmentation_duration",
 };
+
+// The suffix of the member that gives a duration of kDurationNames in ticks
+// ("break_duration_ticks"), and the clock of those ticks (D-109 (d)).
+inline constexpr std::string_view kTicksSuffix   = "_ticks";
+inline constexpr std::int64_t     kDurationClock = 90000;
+
+// The payload member of a cue_out that holds its own cue_in, an
+// EXT-X-DATERANGE's SCTE35-OUT with the SCTE35-IN of the same tag
+// (src/Scte35Events.h): the line of that tag, whose SCTE35-IN makes no
+// cue_in of its own. pair_breaks() ends such a break at its declared
+// duration, and no later cue_in ends it (D-109 (b)).
+inline constexpr std::string_view kHeldCueInLine = "held_cue_in_line";
 
 // One tag of a media playlist. Its segment is an index, where an event's
 // and a PlaylistAnchor's are media sequence numbers.
@@ -289,7 +313,11 @@ struct Breaks {
 // 7497/250), so that a break that ends exactly on a frame ends there; a
 // break without a cue_in whose duration no AVRational holds exactly, its
 // numerator or its denominator above INT_MAX once reduced, is not made
-// either, and a warning says so.
+// either, and a warning says so. A declared duration whose member of its
+// name and kTicksSuffix is a whole number from 0 is taken instead as those
+// ticks over kDurationClock, exactly, before its seconds; one that no
+// AVRational holds makes no break without a cue_in either, and a warning
+// says so (D-109 (d)).
 //
 // Each break is a span from its cue_out's reference frame, with that cue's
 // variant, segment and media key, to its cue_in's frame or to frame_after()
@@ -298,7 +326,12 @@ struct Breaks {
 // ended it, as kDurationNames gives it; durations: each duration its cue_out
 // declares, by name, in that order; cue_out_cont_durations: the duration of
 // each cue_out_cont between its cue_out and the cue that ends it, in play
-// order (null for one that declares none).
+// order (null for one that declares none). The durations keep each
+// duration's ticks beside it, by the name of its member (D-109 (d)). A
+// cue_out whose payload has kHeldCueInLine holds its cue_in (D-109 (b)): it
+// ends at its declared duration, a cue_in after it ending nothing, or makes
+// no break, with a warning, when it declares none; its break's cue_in_line
+// is that member's line, and its end the duration's name.
 Breaks pair_breaks(const std::vector<Event>& cues, const FrameAfter& frame_after);
 
 } // namespace timeline

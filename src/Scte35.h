@@ -8,7 +8,7 @@
 // is src/Scte35Events.h's; nothing here reads a file or knows a playlist. No
 // FFmpeg but libavutil: av_crc for the CRC_32 and av_base64_decode for base64,
 // the design's P-L; unit-tested on sections the tests build from field values
-// (tests/test_scte35.cpp; D-107).
+// (tests/Scte35TestSections.h, tests/test_scte35.cpp; D-107).
 //
 // The rules.
 //
@@ -16,9 +16,10 @@
 //   padding: a multiple of 4 characters of its alphabet, '=' at the end
 //   only. Anything else, a blank or a line break included, is refused rather
 //   than skipped, since av_base64_decode() stops at the first '=' and takes
-//   unpadded text, which RFC 4648 doesn't. Hex is an even number of hex
-//   digits in either case after an optional 0x or 0X, which takes RFC 8216
-//   §4.2's hexadecimal-sequence, the form of an EXT-X-DATERANGE's SCTE35-*.
+//   unpadded text, which RFC 4648 doesn't (D-109 (e)). Hex is an even number
+//   of hex digits in either case after an optional 0x or 0X, which takes RFC
+//   8216 §4.2's hexadecimal-sequence, the form of an EXT-X-DATERANGE's
+//   SCTE35-*.
 // - Bounds. The decoder never reads past its input, nor a structure past its
 //   own length: the section past 3 + section_length, the command past
 //   splice_command_length (unless that is 0xFFF, the legacy value after which
@@ -29,15 +30,15 @@
 //   than its section, or a section too short for its header and CRC_32; a
 //   table_id other than 0xFC; a protocol_version other than 0, the only one
 //   SCTE 35 2023r1 defines, a later version's tables being free to differ in
-//   structure (§9.6.1); a field that runs past the structure holding it; a
-//   command whose length isn't known, a private or a reserved one under
-//   splice_command_length 0xFFF; a command that doesn't end on a byte; a
-//   descriptor whose descriptor_length runs past the descriptor loop; and an
-//   encrypted section (encrypted_packet 1), whose command and descriptors
-//   aren't decoded, the work order putting encrypted streams out of scope
-//   (design §5.5). The fields read before the error keep their values: an
-//   encrypted section keeps its header, which is in the clear, and its
-//   CRC_32.
+//   structure (§9.6.1), both D-109 (e)'s; a field that runs past the
+//   structure holding it; a command whose length isn't known, a private or a
+//   reserved one under splice_command_length 0xFFF; a command that doesn't
+//   end on a byte; a descriptor whose descriptor_length runs past the
+//   descriptor loop; and an encrypted section (encrypted_packet 1), whose
+//   command and descriptors aren't decoded, the work order putting encrypted
+//   streams out of scope (design §5.5). The fields read before the error keep
+//   their values: an encrypted section keeps its header, which is in the
+//   clear, and its CRC_32.
 // - The CRC_32 is CRC-32/MPEG-2 over the whole section, table_id through
 //   CRC_32, before any decryption (§9.6.1; scte35.md §3.6), checked as
 //   FFmpeg's MPEG-TS demuxer checks a section: av_crc() of the
