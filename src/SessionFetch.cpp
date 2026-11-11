@@ -88,9 +88,10 @@ std::string fetch_one(NetworkLogger& logger, const Request& r, std::stop_token& 
     // header to take it from (src/NetworkLogger.h). Its row is NetworkLogger's
     // as it makes it: ended once the file is open (ev_open_end(),
     // src/NetworkLogger.cpp), with the bytes the read below gets counted by
-    // poll() and at the close, so that its event lasts the open, not the
-    // read. What a fetch of local files measures is pending the owner
-    // (src/SessionFetch.h).
+    // poll() and at the close, so that its event would last the open, not
+    // the read: the timeline subcommand refuses a session fetch of local
+    // files without --fetch-base for that reason (D-108 (a);
+    // src/SessionFetch.h).
     const bool local_range = ranged && !http && r.range_length > 0;
     NetworkLogger::track_open_begin(NetInitiator::Playback, r.url.c_str(), local_range ? r.range_offset : -1,
                                     local_range ? r.range_offset + r.range_length - 1 : -1);
@@ -128,7 +129,7 @@ FetchResult fetch_session(std::vector<Request> files, std::stop_token cancel)
     logger.install();
     // The session's start: NetworkLogger's clock, and the UTC anchor sampled
     // with it (D-073), written as RFC 3339 UTC to the microsecond with the
-    // zone Z, a form pending the owner (FetchResult::anchor_utc).
+    // zone Z, the form the owner kept (D-108 (c); FetchResult::anchor_utc).
     const std::int64_t t0 = NetworkLogger::now_us();
     out.anchor_utc = std::format(
         "{:%FT%T}Z", std::chrono::floor<std::chrono::microseconds>(std::chrono::system_clock::now()));

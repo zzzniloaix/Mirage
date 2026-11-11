@@ -49,11 +49,12 @@ constexpr std::array<std::string_view, 3> kDecoderTypes = { "keyframe", "corrupt
 // the reference's frames (D-073), the axis's two clocks and the check's two
 // states (src/TimelineAxis.h); the overlap of D-078, half-open on reference
 // frames, over the events of a curve's own inputs (Q28 (a)); the curve kinds
-// of CurveRef, a pair's alone until WP09b writes and reads a session's
-// (CurveRef::Kind::Session). Design §8 names the clocks, the checks and the
-// roles; kOverlapScope's name, a curve's kind "pair" in its {"kind",
-// "index"} form and the run tests' names below are WP08's, which D-092 (d)
-// keeps (src/TimelineDoc.h).
+// of CurveRef, a pair's and a session's (CurveRef::Kind::Session). Design §8
+// names the clocks, the checks and the roles; kOverlapScope's name, a
+// curve's kind "pair" in its {"kind", "index"} form and the run tests' names
+// below are WP08's, which D-092 (d) keeps (src/TimelineDoc.h); a session's
+// kind "session" in the same form is WP09b's, as design §7's --curve
+// session:<id> has it.
 constexpr std::string_view kAxisKind       = "reference-frames";
 constexpr std::string_view kPlaylistTime   = "playlist-time";
 constexpr std::string_view kFrameGrid      = "frame-grid";
@@ -62,6 +63,7 @@ constexpr std::string_view kReportOnly     = "report-only";
 constexpr std::string_view kOverlapRule    = "half-open";
 constexpr std::string_view kOverlapScope   = "curve-inputs";
 constexpr std::string_view kPairCurve      = "pair";
+constexpr std::string_view kSessionCurve   = "session";
 constexpr std::string_view kReference      = "reference";
 constexpr std::string_view kDistorted      = "distorted";
 constexpr std::string_view kMapOk          = "ok";
@@ -89,6 +91,45 @@ std::string_view run_test_name(AxisRun::Test test)
 {
     const auto i = static_cast<std::size_t>(test);
     return i < kRunTests.size() ? kRunTests[i] : std::string_view();
+}
+
+// The rules by which a session's drops come from its pairs' curves, which
+// detection.session_rules records wherever detection ran on a session's
+// curve (design §8): its pairs' drops clipped to the spans that played each
+// pair's variant (D-077, Q22 (c)), under design §6.3's three rules, (i) a
+// clipped piece a drop only if it keeps more than N points, (ii) the pieces
+// of two pairs that meet at a switch two drops, each with its own pair's
+// numbers, (iii) a piece's baseline its pair's at its first point, the
+// drop's; and consecutive spans of one variant clipped as one stretch, as
+// D-077's clipping to the spans that played each variant reads
+// (session_drops(), src/SessionPlan.h). Each value names the rule taken
+// where the design names another: every piece kept, a drop merged across
+// the switch, spans clipped one by one. Design §8 names the key alone: this
+// form, an object of five named rules, and its names are WP09b's, pending
+// the owner (src/TimelineDoc.h).
+Payload session_rules_record()
+{
+    const auto text = [](std::string_view s) { return Value{ std::string(s) }; };
+    return {
+        { "drops", text("pair-drops-clipped-to-spans") },
+        { "pieces", text("more-than-min-points") },
+        { "at_switch", text("two-drops") },
+        { "baseline", text("pair-drop") },
+        { "spans_of_one_variant", text("one-stretch") },
+    };
+}
+
+// Whether `text` is a UTC time as a session's anchor is written, RFC 3339
+// to the microsecond with the zone Z, YYYY-MM-DDTHH:MM:SS.ffffffZ (D-108
+// (c); src/SessionFetch.h): its digits and separators in their places, as
+// the fetch writes it.
+bool utc_anchor(std::string_view text)
+{
+    constexpr std::string_view kForm = "dddd-dd-ddTdd:dd:dd.ddddddZ";
+    if (text.size() != kForm.size()) return false;
+    for (std::size_t i = 0; i < kForm.size(); ++i)
+        if (kForm[i] == 'd' ? text[i] < '0' || text[i] > '9' : text[i] != kForm[i]) return false;
+    return true;
 }
 
 // ── Values of the reference's frames ─────────────────────────────────────────
@@ -542,18 +583,45 @@ std::string strings_json(const std::vector<std::string>& list, std::string_view 
 }
 
 // A curve as {"kind", "index"}, where design §7's --curve option writes
-// "pair:<k>": WP08's form, which D-092 (d) keeps. The index is the pair's
-// number, the ladder report's own pairs[].index (D-092 (b)), that of the
-// curve's variant (pair_number()), where CurveRef::index is the curve's
-// place in Timeline::curves; null for a curve that names no pair, which the
-// schema and the reader refuse (src/TimelineDoc.h). A session's curve names
-// no pair either, so until WP09b gives it a form of its own it is written
-// {"kind": "pair", "index": null}, which the reader refuses for its index.
+// "pair:<k>" or "session:<id>": WP08's form, which D-092 (d) keeps. A pair's
+// index is the pair's number, the ladder report's own pairs[].index (D-092
+// (b)), that of the curve's variant (pair_number()), where CurveRef::index
+// is the curve's place in Timeline::curves; null for a curve that names no
+// pair, which the schema and the reader refuse (src/TimelineDoc.h). A
+// session's, {"kind": "session", "index": s}, is its place in the document's
+// sessions, as CurveRef::index is in Timeline::sessions, and as a variant is
+// named by its place in variants; null for a session the timeline doesn't
+// have, which the reader refuses.
 std::string curve_json(const Timeline& t, CurveRef curve)
 {
+    if (curve.kind == CurveRef::Kind::Session) {
+        const bool there = curve.index >= 0 && static_cast<std::size_t>(curve.index) < t.sessions.size();
+        return std::format("{{\"kind\": {}, \"index\": {}}}", quote(kSessionCurve),
+                           there ? std::format("{}", curve.index) : std::string("null"));
+    }
     const std::optional<int> pair = pair_number(t, curve);
     return std::format("{{\"kind\": {}, \"index\": {}}}", quote(kPairCurve),
                        pair ? std::format("{}", *pair) : std::string("null"));
+}
+
+// A session (design §8): its id, its plan's name, the UTC anchor of its wall
+// clock, null when its files weren't fetched (D-108 (c)), and its spans in
+// play order, each as Span holds it, in design §8's key order.
+std::string session_json(const Session& s)
+{
+    std::vector<std::string> spans;
+    spans.reserve(s.spans.size());
+    for (const Span& p : s.spans)
+        spans.push_back(std::format("{{\"variant\": {}, \"entry\": {}, \"first_seq\": {}, \"last_seq\": {}, "
+                                    "\"ref_index\": {}, \"ref_end\": {}, \"scored\": {}}}",
+                                    index_json(p.variant), p.entry, p.first_seq, p.last_seq, p.ref_index,
+                                    p.ref_end, p.scored ? "true" : "false"));
+    std::string out = "{\n";
+    out += std::format("      \"id\": {},\n", quote(s.id));
+    out += std::format("      \"name\": {},\n", quote(s.name));
+    out += std::format("      \"wallclock_anchor_utc\": {},\n", opt_string(s.wallclock_anchor_utc));
+    out += "      \"spans\": " + lines(spans, "        ") + "\n";
+    return out + "    }";
 }
 
 std::string file_json(const FileRef& f)
@@ -722,15 +790,20 @@ std::string detection_json(const std::optional<Detection>& d, const Timeline& t)
     std::string out = "{";
     for (const auto& [name, value] : detection_record(d->options))
         out += std::format("{}: {}, ", quote(name), value_json(value));
-    // The curves detect() ran on, each by its pair's number (D-092 (b)), and
-    // session_rules null: WP08's reading of design §8's "curves" and
-    // "session_rules", which D-092 (d) keeps (src/TimelineDoc.h). The rules
-    // that clip a pair's drops to a session's spans (design §6.3) are the
-    // session part's (WP09b): a ladder has no session.
+    // The curves detection ran on, a pair's by its pair's number (D-092
+    // (b)), a session's by its place among the sessions; and session_rules,
+    // null where none of them is a session's, as WP08 wrote a ladder's and
+    // D-092 (d) keeps it (src/TimelineDoc.h), and otherwise the rules that
+    // make a session's drops of its pairs' (session_rules_record(), a form
+    // pending the owner).
     out += "\"curves\": [";
-    for (std::size_t i = 0; i < d->curves.size(); ++i)
+    bool session = false;
+    for (std::size_t i = 0; i < d->curves.size(); ++i) {
         out += (i == 0 ? "" : ", ") + curve_json(t, d->curves[i]);
-    return out + "], \"session_rules\": null}";
+        session = session || d->curves[i].kind == CurveRef::Kind::Session;
+    }
+    return out + "], \"session_rules\": " + (session ? payload_json(session_rules_record()) : std::string("null")) +
+           "}";
 }
 
 // The overlap record, its scope named "curve-inputs" by WP08, a name D-092
@@ -817,6 +890,9 @@ constexpr std::array<std::string_view, 12> kVariantKeys = {
     "rank_from_bottom", "playlist", "segment_map",
 };
 constexpr std::array<std::string_view, 3>  kPlaylistKeys = { "url", "location", "sha256" };
+constexpr std::array<std::string_view, 4>  kSessionKeys  = { "id", "name", "wallclock_anchor_utc", "spans" };
+constexpr std::array<std::string_view, 7>  kSpanKeys     = { "variant", "entry", "first_seq", "last_seq",
+                                                            "ref_index", "ref_end", "scored" };
 constexpr std::array<std::string_view, 15> kEventKeys    = {
     "id", "source", "type", "variant", "session", "segment", "ref_index", "ref_end", "t", "t_end",
     "seq", "pts", "pts_ticks", "wallclock", "payload",
@@ -954,13 +1030,12 @@ public:
             if (!file(config, root.member("config_file"), f)) return false;
             info.config_file = std::move(f);
         }
-        std::size_t sessions = 0;
         if (!report(m(doc, "ladder_report"), root.member("ladder_report"), info.report) ||
-            !session_plan(m(doc, "session_plan"), root.member("session_plan")) ||
+            !session_plan(m(doc, "session_plan"), root.member("session_plan"), info.session_plan) ||
             !axis(m(doc, "axis"), root.member("axis"), t.axis, info.reference) ||
             !variants(m(doc, "variants"), root.member("variants"), t) ||
-            !session_list(m(doc, "sessions"), root.member("sessions"), sessions) ||
-            !events(m(doc, "timeline"), root.member("timeline"), sessions, t) ||
+            !session_list(m(doc, "sessions"), root.member("sessions"), info.session_plan.has_value(), t) ||
+            !events(m(doc, "timeline"), root.member("timeline"), t) ||
             !detection(m(doc, "detection"), root.member("detection"), t, info.detection) ||
             !overlap(m(doc, "overlap"), root.member("overlap"), info.overlap) ||
             !attribution_list(m(doc, "attributions"), root.member("attributions"), t, info.overlap,
@@ -1079,10 +1154,9 @@ private:
         return true;
     }
 
-    // An event's variant or session: an index into the `size` of them read
-    // (`what` names them), or -1 for null. A ladder's document has no
-    // session, so there every event's session is null; WP09b's sessions
-    // give it something to name.
+    // An event's variant or session, or a span's variant: an index into the
+    // `size` of them read (`what` names them), or -1 for null. A ladder's
+    // document has no session, so there every event's session is null.
     bool index(const json::Value& v, const Path& at, std::size_t size, std::string_view what,
                int& out)
     {
@@ -1229,23 +1303,123 @@ private:
                string(m(master, "sha256"), master_at.member("sha256"), r.master_sha256);
     }
 
-    // The session part as a ladder alone has it (design §8): no plan and no
-    // session, the only values version 1 takes until WP09b fills them, so
-    // that the version has one layout before and after.
-    bool session_plan(const json::Value& v, const Path& at)
+    // The session part (design §8): the plan of a scripted session, by its
+    // path and SHA-256 (D-105 (a)), or null for a ladder alone, whose
+    // document has session_plan null and sessions empty, as it had before
+    // sessions came.
+    bool session_plan(const json::Value& v, const Path& at, std::optional<FileRef>& out)
     {
-        return v.is_null() ? true : wrong(v, at, "null: a ladder's timeline has no session plan");
+        out.reset();
+        if (v.is_null()) return true;
+        FileRef f;
+        if (!file(v, at, f)) return false;
+        out = std::move(f);
+        return true;
     }
 
-    bool session_list(const json::Value& v, const Path& at, std::size_t& count)
+    // The sessions, the variants read: one at most, as a build has one
+    // session at most (D-072), there exactly when session_plan names its plan,
+    // since a scripted session comes from one (D-105 (a)). Each with a
+    // non-empty id, its plan's name, its UTC anchor, null for a session whose
+    // files weren't fetched or RFC 3339 UTC to the microsecond with Z (D-108
+    // (c)), and its spans in play order, one at least, each starting where
+    // the one before it ended, as make_session() places them (D-105 (a)).
+    // Refusing anything else is WP09b's choice, pending the owner
+    // (src/TimelineDoc.h).
+    bool session_list(const json::Value& v, const Path& at, bool has_plan, Timeline& t)
     {
         const json::Value::Array* list = nullptr;
         if (!array(v, at, list)) return false;
-        const std::size_t n = list->size();
-        if (n != 0)
-            return fail(std::format("{} has {} {}, not none: a ladder's timeline has no session",
-                                    text_of(at), n, n == 1 ? "entry" : "entries"));
-        count = n;
+        if (list->size() > 1)
+            return fail(std::format("{} has {} entries: a timeline document holds one session at most "
+                                    "(D-072)",
+                                    text_of(at), list->size()));
+        if (has_plan != !list->empty())
+            return fail(has_plan ? std::format("{} is empty, but session_plan names a plan: a plan makes a "
+                                               "session (D-105 (a))",
+                                               text_of(at))
+                                 : std::format("{} has a session, but session_plan is null: a scripted "
+                                               "session comes from a plan, recorded by its path and "
+                                               "SHA-256 (D-105 (a))",
+                                               text_of(at)));
+        for (std::size_t i = 0; i < list->size(); ++i) {
+            const json::Value&        x    = (*list)[i];
+            const Path                x_at = at.item(i);
+            Session                   s;
+            const json::Value::Array* spans = nullptr;
+            if (!exact(x, kSessionKeys, x_at) || !string(m(x, "id"), x_at.member("id"), s.id) ||
+                !string(m(x, "name"), x_at.member("name"), s.name) ||
+                !opt_string(m(x, "wallclock_anchor_utc"), x_at.member("wallclock_anchor_utc"),
+                            s.wallclock_anchor_utc) ||
+                !array(m(x, "spans"), x_at.member("spans"), spans))
+                return false;
+            if (s.id.empty()) return fail(std::format("{} is empty", text_of(x_at.member("id"))));
+            if (s.wallclock_anchor_utc && !utc_anchor(*s.wallclock_anchor_utc))
+                return fail(std::format("{} is {}, not RFC 3339 UTC to the microsecond with the zone Z, "
+                                        "YYYY-MM-DDTHH:MM:SS.ffffffZ (D-108 (c))",
+                                        text_of(x_at.member("wallclock_anchor_utc")),
+                                        quote(*s.wallclock_anchor_utc)));
+            const Path spans_at = x_at.member("spans");
+            if (spans->empty())
+                return fail(std::format("{} is empty: a session plays one span at least (D-105 (a))",
+                                        text_of(spans_at)));
+            for (std::size_t k = 0; k < spans->size(); ++k) {
+                Span       p;
+                const Path p_at = spans_at.item(k);
+                if (!span((*spans)[k], p_at, t, p)) return false;
+                if (k > 0 && p.ref_index != s.spans.back().ref_end)
+                    return fail(std::format("{} is {}, not {}, where the span before it ends: each span "
+                                            "starts where the one before it ended (D-105 (a))",
+                                            text_of(p_at.member("ref_index")), p.ref_index,
+                                            s.spans.back().ref_end));
+                s.spans.push_back(p);
+            }
+            t.sessions.push_back(std::move(s));
+        }
+        return true;
+    }
+
+    // A session's span as make_session() places it (src/SessionPlan.h): the
+    // variant it plays, one of the variants, and its plan's entry, one of
+    // that variant's entries; the media sequence numbers of its first and
+    // its last segment, the first no later than the last; the reference
+    // frames it spans, half-open and on the axis; and scored exactly when it
+    // plays a pair's distorted variant, the reference in top-rung mode having
+    // no score (D-105 (b)). These checks, like those of session_list(), are
+    // WP09b's, pending the owner (src/TimelineDoc.h).
+    bool span(const json::Value& v, const Path& at, const Timeline& t, Span& p)
+    {
+        std::int64_t entry = 0;
+        if (!exact(v, kSpanKeys, at) ||
+            !index(m(v, "variant"), at.member("variant"), t.variants.size(), "variants", p.variant) ||
+            !count(m(v, "entry"), at.member("entry"), entry) ||
+            !count(m(v, "first_seq"), at.member("first_seq"), p.first_seq) ||
+            !count(m(v, "last_seq"), at.member("last_seq"), p.last_seq) ||
+            !integer(m(v, "ref_index"), at.member("ref_index"), p.ref_index) ||
+            !integer(m(v, "ref_end"), at.member("ref_end"), p.ref_end) ||
+            !boolean(m(v, "scored"), at.member("scored"), p.scored))
+            return false;
+        if (p.variant < 0)
+            return wrong(m(v, "variant"), at.member("variant"), "an integer: a span plays a variant");
+        const Variant& var = t.variants[static_cast<std::size_t>(p.variant)];
+        p.entry = static_cast<std::size_t>(entry);
+        if (std::find(var.entries.begin(), var.entries.end(), p.entry) == var.entries.end())
+            return fail(std::format("{} is {}, none of the entries of variant {}, which the span plays",
+                                    text_of(at.member("entry")), entry, p.variant));
+        if (p.last_seq < p.first_seq)
+            return fail(std::format("{} is {}, before its first_seq {}", text_of(at.member("last_seq")),
+                                    p.last_seq, p.first_seq));
+        if (p.ref_index < 0 || p.ref_end <= p.ref_index || p.ref_end > t.axis.frames)
+            return fail(std::format("{} runs from reference frame {} to {}, which isn't a span of the axis's "
+                                    "{} frames",
+                                    text_of(at), p.ref_index, p.ref_end, t.axis.frames));
+        if (p.scored != (var.pair >= 0))
+            return fail(std::format("{} is {}, but the span plays {}: a span is scored exactly when it plays "
+                                    "a pair's distorted variant, the reference in top-rung mode having no "
+                                    "score (D-105 (b))",
+                                    text_of(at.member("scored")), p.scored ? "true" : "false",
+                                    var.pair >= 0 ? std::format("pair {}'s distorted variant", var.pair)
+                                                  : std::string("the reference")));
         return true;
     }
 
@@ -1609,8 +1783,9 @@ private:
         return true;
     }
 
-    bool events(const json::Value& v, const Path& at, std::size_t sessions, Timeline& t)
+    bool events(const json::Value& v, const Path& at, Timeline& t)
     {
+        const std::size_t sessions = t.sessions.size();
         const json::Value::Array* list = nullptr;
         if (!array(v, at, list)) return false;
         std::map<std::string, std::size_t, std::less<>> seen;
@@ -1675,19 +1850,40 @@ private:
             }
             // The network and player sources' events are a session's, its
             // fetch's requests and its plan's spans and switches (D-068;
-            // design §5.6, §5.7), and only observed events, a fetch's and later
-            // the player's log, have a wall clock (D-073): a ladder alone has
-            // neither.
+            // design §5.6, §5.7), so an offline event, of another source, is
+            // of no session; and only observed events, a fetch's and later the
+            // player's log, have a wall clock (D-073): a ladder alone has
+            // neither. A request a session's fetch made was observed, so it
+            // has one; a wall clock counts from its session's UTC anchor,
+            // which a session whose files weren't fetched hasn't got (D-108
+            // (c)). The refusals of an offline event with a session, of a
+            // request without a wall clock and of a wall clock without an
+            // anchor are WP09b's, pending the owner (src/TimelineDoc.h).
             const bool observed = e.source == Source::Network || e.source == Source::Player;
             if (observed && e.session < 0)
                 return fail(std::format("{} is a {} event without a session: the {} source's events "
                                         "are a session's (D-068)",
                                         text_of(x_at), source, source));
+            if (!observed && e.session >= 0)
+                return fail(std::format("{} is {}, but a {} event is offline and of no session: a "
+                                        "session's own events are of the network and player sources "
+                                        "(D-068)",
+                                        text_of(x_at.member("session")), e.session, source));
             if (!observed && e.wallclock_us)
                 return fail(std::format("{} is {} s, but a {} event is offline and has no wall "
                                         "clock (D-073)",
                                         text_of(x_at.member("wallclock")),
                                         json::number(*m(x, "wallclock").number()), source));
+            if (e.source == Source::Network && !e.wallclock_us)
+                return fail(std::format("{} is null, but a network event is a request the session's fetch "
+                                        "made, whose wall clock was observed (D-073)",
+                                        text_of(x_at.member("wallclock"))));
+            if (e.wallclock_us && e.session >= 0 &&
+                !t.sessions[static_cast<std::size_t>(e.session)].wallclock_anchor_utc)
+                return fail(std::format("{} is {} s, but session {} has no UTC anchor for it to count from: "
+                                        "its files weren't fetched (D-073, D-108 (c))",
+                                        text_of(x_at.member("wallclock")),
+                                        json::number(*m(x, "wallclock").number()), e.session));
             const json::Value& payload = m(x, "payload");
             if (!payload.object()) return wrong(payload, x_at.member("payload"), "an object");
             e.payload = std::get<Value::Object>(value_of(payload).v);
@@ -1721,16 +1917,25 @@ private:
     // ascending order of their numbers, the report's order of its complete
     // pairs, where attach_curves() puts the report's curves
     // (src/TimelineBuild.h). A number no variant has is refused, naming the
-    // key; two variants with one number variants() has refused already. Any
-    // kind but "pair" is refused: a session's curve is WP09b's to read.
+    // key; two variants with one number variants() has refused already. A
+    // session's curve is named by its place among the sessions, given back
+    // as CurveRef::Kind::Session with that place, one the document doesn't
+    // have refused; any other kind is refused.
     bool curve(const json::Value& v, const Path& at, const Timeline& t, CurveRef& out)
     {
         std::string  kind;
         std::int64_t i = 0;
-        const std::array<std::string_view, 1> kinds = { kPairCurve };
+        const std::array<std::string_view, 2> kinds = { kPairCurve, kSessionCurve };
         if (!exact(v, kCurveKeys, at) || !one_of(m(v, "kind"), at.member("kind"), kinds, kind) ||
             !count(m(v, "index"), at.member("index"), i))
             return false;
+        if (kind == kSessionCurve) {
+            if (static_cast<std::uint64_t>(i) >= t.sessions.size())
+                return fail(std::format("{} is {}, which names none of the {} sessions",
+                                        text_of(at.member("index")), i, t.sessions.size()));
+            out = CurveRef{ .kind = CurveRef::Kind::Session, .index = static_cast<int>(i) };
+            return true;
+        }
         const std::optional<CurveRef> c = i <= std::numeric_limits<int>::max()
                                               ? curve_of_pair(t, static_cast<int>(i))
                                               : std::nullopt;
@@ -1780,14 +1985,40 @@ private:
         if (warm != warm_up(window))
             return fail(std::format("{} is {}, not {}, the warm-up of a window of {} (D-077)",
                                     text_of(at.member("warm_up")), warm, warm_up(window), window));
+        bool session = false;
         for (std::size_t i = 0; i < curves->size(); ++i) {
             CurveRef c;
             if (!curve((*curves)[i], at.member("curves").item(i), t, c)) return false;
             d.curves.push_back(c);
+            session = session || c.kind == CurveRef::Kind::Session;
         }
-        const json::Value& rules = m(v, "session_rules");
-        if (!rules.is_null())
-            return wrong(rules, at.member("session_rules"), "null: a ladder's timeline has no session");
+        // The rules that make a session's drops of its pairs', exactly where
+        // detection ran on a session's curve (session_rules_record()): a
+        // document that names others wasn't made with them. Their form and
+        // this check are WP09b's, pending the owner (src/TimelineDoc.h).
+        const json::Value& rules    = m(v, "session_rules");
+        const Path         rules_at = at.member("session_rules");
+        if (!session) {
+            if (!rules.is_null())
+                return wrong(rules, rules_at, "null: detection ran on no session's curve");
+        } else {
+            if (rules.is_null())
+                return fail(std::format("{} is null, but detection ran on a session's curve, whose drops "
+                                        "are its pairs' clipped to its spans by D-077's rules",
+                                        text_of(rules_at)));
+            const Payload want = session_rules_record();
+            std::vector<std::string_view> keys;
+            for (const auto& [name, value] : want) keys.push_back(name);
+            if (!exact(rules, keys, rules_at)) return false;
+            for (const auto& [name, value] : want) {
+                std::string read;
+                if (!string(m(rules, name), rules_at.member(name), read)) return false;
+                const std::string& taken = std::get<std::string>(value.v);
+                if (read != taken)
+                    return fail(std::format("{} is {}, not {}, D-077's", text_of(rules_at.member(name)),
+                                            quote(read), quote(taken)));
+            }
+        }
         out = std::move(d);
         return true;
     }
@@ -2035,8 +2266,9 @@ std::string to_json(const Timeline& timeline, const std::vector<Attribution>& at
                                  quote(info.ffmpeg_libraries[i].second));
     libraries += "}";
 
-    std::vector<std::string> variants, events, attribution_items;
+    std::vector<std::string> variants, sessions, events, attribution_items;
     for (const Variant& v : timeline.variants) variants.push_back(variant_json(v));
+    for (const Session& s : timeline.sessions) sessions.push_back(session_json(s));
     for (std::size_t i : order) events.push_back(event_json(timeline.events[i], timeline.axis));
     for (const Attribution& a : attributions)
         attribution_items.push_back(attribution_json(a, timeline));
@@ -2051,12 +2283,14 @@ std::string to_json(const Timeline& timeline, const std::vector<Attribution>& at
     out += std::format("  \"config_file\": {},\n",
                        info.config_file ? file_json(*info.config_file) : std::string("null"));
     out += std::format("  \"ladder_report\": {},\n", report_json(info.report));
-    // The session part, in design §8's places, as a ladder alone has it
-    // until WP09b fills it (src/TimelineDoc.h).
-    out += "  \"session_plan\": null,\n";
+    // The session part, in design §8's places: the plan by its path and
+    // SHA-256 and the session, or null and none for a ladder alone, whose
+    // document is as it was before sessions came (src/TimelineDoc.h).
+    out += std::format("  \"session_plan\": {},\n",
+                       info.session_plan ? file_json(*info.session_plan) : std::string("null"));
     out += "  \"axis\": " + axis_json(timeline.axis, info.reference) + ",\n";
     out += "  \"variants\": " + lines(variants, "    ") + ",\n";
-    out += "  \"sessions\": [],\n";
+    out += "  \"sessions\": " + lines(sessions, "    ") + ",\n";
     out += "  \"timeline\": " + lines(events, "    ") + ",\n";
     out += "  \"detection\": " + detection_json(info.detection, timeline) + ",\n";
     out += "  \"overlap\": " + overlap_json(info.overlap) + ",\n";

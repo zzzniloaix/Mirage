@@ -18,7 +18,11 @@
 // mezzanine reference, the ranks of a master with shared and equal
 // BANDWIDTHs, inputs that don't fit, the curves read back from a report, a
 // report whose pairs' numbers skip a failed pair (D-092 (b)), detection's
-// attributions, and the same document from the same inputs twice.
+// attributions, and the same document from the same inputs twice. Then a
+// scripted session merged into the ad ladder's timeline (add_session(),
+// add_requests(); D-068, D-104, D-105): its spans and its player and network
+// events, the ladder's ids kept, a fetch without a UTC anchor, what it
+// refuses, and its drops, its pairs' clipped to its spans (D-077).
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -1250,4 +1254,301 @@ TEST_CASE("timeline::attribute_drops: each pair's drops with the events of its c
     odd.curves[0].vmaf.pop_back();
     CHECK(timeline::attribute_drops(odd, timeline::pair_curve_refs(odd), options, {}, err).empty());
     CHECK(err.starts_with("curve pair:0: "));
+}
+
+// ── A scripted session (design §3.4, step 6) ─────────────────────────────────
+
+namespace {
+
+// The plan of design §9.3's shape on the three rungs: entry 1 (v270) for
+// segments 0 to 2, entry 2 (v180) for 3 and 4, entry 1 for 5 to 7.
+timeline::SessionPlan down_at_the_ad()
+{
+    return timeline::SessionPlan{ .name  = "down at the ad",
+                                  .spans = { { .entry = 1, .first_seq = 0, .last_seq = 2 },
+                                             { .entry = 2, .first_seq = 3, .last_seq = 4 },
+                                             { .entry = 1, .first_seq = 5, .last_seq = 7 } } };
+}
+
+// `files` as fetch_files() lists them, each given one row of an HTTP 200 by
+// hand, one after another from 1 ms on the session's clock, 3 ms each, as
+// fetch_session() would return them (src/SessionFetch.h).
+std::vector<timeline::Request> fetched(std::vector<timeline::Request> files)
+{
+    std::int64_t at = 1000;
+    for (timeline::Request& r : files) {
+        r.chain = { timeline::RequestRow{ .url = r.url, .t_start = at, .t_sent = at + 100, .t_first_byte = at + 2500,
+                                          .t_end = at + 3000, .bytes = 12032, .status = 200, .status_text = "OK",
+                                          .content_length = 12032, .initiator = "playback" } };
+        at += 3000;
+    }
+    return files;
+}
+
+// The ids of `t`'s events of one source, in their order.
+std::vector<std::string> ids_of(const timeline::Timeline& t, Source source)
+{
+    std::vector<std::string> out;
+    for (const Event& e : t.events)
+        if (e.source == source) out.push_back(e.id);
+    return out;
+}
+
+} // namespace
+
+TEST_CASE("timeline::add_session and add_requests: a session merged into a ladder's timeline, its spans and "
+          "its player and network events placed, the ladder's ids kept", "[timeline][timeline_build]")
+{
+    const timeline::BuildInputs in    = ad_inputs();
+    const timeline::Timeline    plain = built(in);
+    timeline::Timeline          t     = plain;
+    std::string err;
+    REQUIRE(timeline::add_session(t, in.scores.entries, down_at_the_ad(), err));
+    CHECK(err.empty());
+
+    // The session: its id its place as text, "0", by which --curve session:0
+    // names it (design §7; a form pending the owner); its plan's name; no
+    // anchor before its fetch; its spans on the reference's frames through
+    // the segments build() placed (design §5.1), each starting where the one
+    // before it ended (D-105 (a)).
+    REQUIRE(t.sessions.size() == 1);
+    const timeline::Session& s = t.sessions[0];
+    CHECK(s.id == "0");
+    CHECK(s.name == "down at the ad");
+    CHECK_FALSE(s.wallclock_anchor_utc);
+    REQUIRE(s.spans.size() == 3);
+    const int          variant[] = { 1, 2, 1 };
+    const std::int64_t from[] = { 0, 75, 125 }, to[] = { 75, 125, 200 };
+    for (std::size_t k = 0; k < 3; ++k) {
+        INFO("span " << k);
+        CHECK(s.spans[k].variant == variant[k]);
+        CHECK(s.spans[k].ref_index == from[k]);
+        CHECK(s.spans[k].ref_end == to[k]);
+        CHECK(s.spans[k].scored);
+    }
+
+    // Its player events, a variant_span per span and a switch at each
+    // boundary where the entry changes (design §5.6, D-108 (b)), each of the
+    // session; the ladder's events keep their ids and places, since the
+    // session's are of a source of their own (assign_ids()).
+    CHECK(ids_of(t, Source::Player) ==
+          std::vector<std::string>{ "player/variant_span/1/0", "player/variant_switch/2/0", "player/variant_span/2/0",
+                                    "player/variant_switch/1/0", "player/variant_span/1/1" });
+    for (const Event& e : t.events)
+        if (e.source == Source::Player) CHECK(e.session == 0);
+    REQUIRE(t.events.size() == plain.events.size() + 5);
+    for (const Event& e : plain.events) {
+        INFO(e.id);
+        const auto same = std::find_if(t.events.begin(), t.events.end(), [&e](const Event& x) { return x.id == e.id; });
+        REQUIRE(same != t.events.end());
+        CHECK(same->ref_index == e.ref_index);
+        CHECK(same->ref_end == e.ref_end);
+        CHECK(same->type == e.type);
+        CHECK(same->session == -1);
+    }
+    CHECK(t.max_end.size() == t.events.size());   // the index built again
+
+    // Its fetch: the files fetch_files() lists in play order (D-104 (a)),
+    // each with a row, added as network events of the session, each on the
+    // media axis (D-105 (c)) with its wall clock, its first row's start
+    // (D-073), the anchor the session's.
+    const std::vector<timeline::Request> files =
+        fetched(timeline::fetch_files(t, 0, in.scores.master_url, "", err));
+    REQUIRE(err.empty());
+    REQUIRE(files.size() == 11);
+    timeline::add_requests(t, 0, files, "2026-11-10T09:30:00.000250Z");
+    CHECK(t.sessions[0].wallclock_anchor_utc == "2026-11-10T09:30:00.000250Z");
+    CHECK(t.warnings == plain.warnings);
+    const std::vector<std::string> network = ids_of(t, Source::Network);
+    CHECK(network.size() == 11);
+    const auto request = [&t](std::string_view id) -> const Event& {
+        const auto e = std::find_if(t.events.begin(), t.events.end(), [id](const Event& x) { return x.id == id; });
+        REQUIRE(e != t.events.end());
+        return *e;
+    };
+    const Event& master = request("network/playlist_request/-/0");
+    CHECK((master.ref_index == 0 && !master.ref_end && master.variant == -1 && master.session == 0));
+    CHECK(master.wallclock_us == 1000);
+    const Event& v180 = request("network/playlist_request/2/0");
+    CHECK(v180.ref_index == 75);   // the first frame of the first span that plays it
+    const Event& ad = request("network/segment_request/2/0");
+    CHECK((ad.ref_index == 75 && ad.ref_end == 100 && ad.segment == 3));
+    CHECK(ad.wallclock_us == 1000 + 6 * 3000);   // the seventh file fetched
+    CHECK(ad.key.sequence == 1);
+    // Every id once.
+    std::vector<std::string> all;
+    for (const Event& e : t.events) all.push_back(e.id);
+    std::sort(all.begin(), all.end());
+    CHECK(std::adjacent_find(all.begin(), all.end()) == all.end());
+
+    // The timeline with its session writes a document that reads back,
+    // the session part filled (src/TimelineDoc.h).
+    timeline::DocInfo info = doc_info(in.scores, t);
+    info.session_plan = timeline::FileRef{ .path = "plan.json", .sha256 = filehash::sha256_hex("a plan") };
+    const std::string text = timeline::to_json(t, {}, info);
+    timeline::Timeline       back;
+    std::vector<Attribution> none;
+    timeline::DocInfo        back_info;
+    REQUIRE(timeline::from_json(text, back, none, back_info, err));
+    REQUIRE(back.sessions.size() == 1);
+    CHECK(back.sessions[0].spans.size() == 3);
+    CHECK(back.events.size() == t.events.size());
+    CHECK(timeline::to_json(back, {}, back_info) == text);
+
+    // A file without a row makes no event and a warning; a session the
+    // timeline doesn't have, a warning alone.
+    timeline::Timeline u = plain;
+    REQUIRE(timeline::add_session(u, in.scores.entries, down_at_the_ad(), err));
+    std::vector<timeline::Request> some = fetched(timeline::fetch_files(u, 0, in.scores.master_url, "", err));
+    some[1].chain.clear();
+    timeline::add_requests(u, 0, some, "2026-11-10T09:30:00.000250Z");
+    CHECK(ids_of(u, Source::Network).size() == 10);
+    REQUIRE(u.warnings.size() == plain.warnings.size() + 1);
+    CHECK(u.warnings.back() == "the session fetch's request for variant 1's media playlist "
+                               "(http://test.invalid/ladder/v270/index.m3u8) has no row of NetworkLogger's: it "
+                               "makes no event (design §5.1)");
+    // An empty anchor gives the session none, and then no request makes an
+    // event, since its wall clock would count from no anchor: one warning
+    // says so, and the timeline's document reads back (src/TimelineBuild.h).
+    timeline::Timeline v = plain;
+    REQUIRE(timeline::add_session(v, in.scores.entries, down_at_the_ad(), err));
+    timeline::add_requests(v, 0, some, "");
+    CHECK_FALSE(v.sessions[0].wallclock_anchor_utc);
+    CHECK(ids_of(v, Source::Network).empty());
+    REQUIRE(v.warnings.size() == plain.warnings.size() + 2);
+    CHECK(v.warnings.back() == "the session fetch has no UTC anchor for its requests' wall clocks to count from: 10 "
+                               "requests with rows of NetworkLogger's make no event (D-073)");
+    timeline::DocInfo v_info = doc_info(in.scores, v);
+    v_info.session_plan      = info.session_plan;
+    timeline::Timeline v_back;
+    timeline::DocInfo  v_back_info;
+    const bool v_read = timeline::from_json(timeline::to_json(v, {}, v_info), v_back, none, v_back_info, err);
+    INFO(err);
+    REQUIRE(v_read);
+    REQUIRE(v_back.sessions.size() == 1);
+    CHECK_FALSE(v_back.sessions[0].wallclock_anchor_utc);
+    CHECK(v_back.events.size() == plain.events.size() + 5);   // the ladder's and the session's player events
+    timeline::Timeline w = plain;
+    timeline::add_requests(w, 0, files, "2026-11-10T09:30:00.000250Z");
+    CHECK(w.events.size() == plain.events.size());
+    REQUIRE(w.warnings.size() == plain.warnings.size() + 1);
+    CHECK(contains(w.warnings.back(), "the timeline has no session 0: it has 0 sessions"));
+}
+
+TEST_CASE("timeline::add_session: what it refuses leaves the timeline as it was", "[timeline][timeline_build]")
+{
+    const timeline::BuildInputs in    = ad_inputs();
+    const timeline::Timeline    plain = built(in);
+    const auto refusal = [&](const timeline::SessionPlan& plan) {
+        timeline::Timeline t = plain;
+        std::string        err;
+        CHECK_FALSE(timeline::add_session(t, in.scores.entries, plan, err));
+        CHECK(t.sessions.empty());
+        CHECK(t.events.size() == plain.events.size());
+        return err;
+    };
+    // make_session()'s refusals (src/SessionPlan.h), each naming what it
+    // refuses: an entry the master hasn't got, a gap between two spans
+    // (D-105 (a)).
+    CHECK(refusal(timeline::SessionPlan{ .spans = { { .entry = 7, .first_seq = 0, .last_seq = 7 } } }) ==
+          "the session plan's spans[0] (entry 7, segments 0 to 7) plays entry 7, which isn't one of the master's "
+          "3 entries");
+    CHECK(contains(refusal(timeline::SessionPlan{ .spans = { { .entry = 1, .first_seq = 0, .last_seq = 2 },
+                                                            { .entry = 2, .first_seq = 4, .last_seq = 7 } } }),
+                   "they leave reference frames 75 to 99 in no span"));
+
+    // One session at most (D-072).
+    timeline::Timeline t = plain;
+    std::string        err;
+    REQUIRE(timeline::add_session(t, in.scores.entries, down_at_the_ad(), err));
+    const std::size_t events = t.events.size();
+    CHECK_FALSE(timeline::add_session(t, in.scores.entries, down_at_the_ad(), err));
+    CHECK(err == "the timeline has 1 session already: a timeline holds one session at most (D-072)");
+    CHECK(t.sessions.size() == 1);
+    CHECK(t.events.size() == events);
+}
+
+TEST_CASE("timeline::attribute_drops: a session's drops are its pairs' drops clipped to its spans, each with "
+          "the session's events (D-077)", "[timeline][timeline_build]")
+{
+    const timeline::BuildInputs in = ad_inputs();
+    timeline::Timeline          t  = built(in);
+    std::string err;
+    REQUIRE(timeline::add_session(t, in.scores.entries, down_at_the_ad(), err));
+    timeline::add_requests(t, 0, fetched(timeline::fetch_files(t, 0, in.scores.master_url, "", err)),
+                           "2026-11-10T09:30:00.000250Z");
+    timeline::DetectOptions options;
+    options.window     = 50;
+    options.min_points = 12;
+
+    // Every pair's curve, then the session's.
+    const std::vector<CurveRef> curves = timeline::curve_refs(t);
+    REQUIRE(curves.size() == 3);
+    CHECK((curves[0].kind == CurveRef::Kind::Pair && curves[0].index == 0));
+    CHECK((curves[1].kind == CurveRef::Kind::Pair && curves[1].index == 1));
+    CHECK((curves[2].kind == CurveRef::Kind::Session && curves[2].index == 0));
+
+    // v180's ad, its pair's drop, and the session's, which plays v180 over
+    // it: the same frames, the pair's baseline and magnitudes (design §6.3,
+    // rule (iii)), the session's own events listed with the reference's and
+    // v180's (D-078).
+    const std::vector<Attribution> drops = timeline::attribute_drops(t, curves, options, {}, err);
+    INFO(err);
+    REQUIRE(err.empty());
+    REQUIRE(drops.size() == 2);
+    const Attribution& pair    = drops[0];
+    const Attribution& session = drops[1];
+    CHECK((pair.curve.kind == CurveRef::Kind::Pair && pair.curve.index == 1));
+    CHECK((session.curve.kind == CurveRef::Kind::Session && session.curve.index == 0));
+    CHECK(session.detected);
+    CHECK((session.interval.ref_index == 75 && session.interval.ref_end == 125));
+    CHECK(session.points == pair.points);
+    CHECK(session.baseline == pair.baseline);
+    CHECK(session.min == pair.min);
+    CHECK(session.mean == pair.mean);
+    CHECK(session.drop_magnitude == pair.drop_magnitude);
+    CHECK(session.mean_drop == pair.mean_drop);
+    std::string why;
+    const std::vector<timeline::Drop> clipped = timeline::session_drops(t, 0, options, why);
+    REQUIRE(clipped.size() == 1);
+    CHECK(session.baseline == clipped[0].baseline);
+    CHECK(listed(t, session, Source::Player) ==
+          std::vector<std::string>{ "player/variant_switch/2/0", "player/variant_span/2/0" });
+    CHECK(listed(t, session, Source::Network) ==
+          std::vector<std::string>{ "network/playlist_request/2/0", "network/segment_request/2/0",
+                                    "network/segment_request/2/1" });
+    CHECK(listed(t, session, Source::Scte35) == listed(t, pair, Source::Scte35));
+    CHECK(listed(t, session, Source::Vmaf) == std::vector<std::string>{ "vmaf/context_start/2/0" });
+
+    // A session that plays v270 over the ad has no drop there; one that
+    // plays the reference over it, in top-rung mode, has none in that
+    // unscored span (D-105 (b)).
+    for (const timeline::SessionPlan& plan :
+         { timeline::SessionPlan{ .spans = { { .entry = 1, .first_seq = 0, .last_seq = 7 } } },
+           timeline::SessionPlan{ .spans = { { .entry = 1, .first_seq = 0, .last_seq = 2 },
+                                             { .entry = 0, .first_seq = 3, .last_seq = 4 },
+                                             { .entry = 2, .first_seq = 5, .last_seq = 7 } } } }) {
+        timeline::Timeline other = built(in);
+        REQUIRE(timeline::add_session(other, in.scores.entries, plan, err));
+        const std::vector<Attribution> found =
+            timeline::attribute_drops(other, { CurveRef{ .kind = CurveRef::Kind::Session, .index = 0 } }, options,
+                                      {}, err);
+        CHECK(err.empty());
+        CHECK(found.empty());
+    }
+
+    // Without W and N none, and no error (D-077); a session the timeline
+    // doesn't have is refused, as a pair's curve it doesn't have is.
+    CHECK(timeline::attribute_drops(t, curves, {}, {}, err).empty());
+    CHECK(err.empty());
+    CHECK(timeline::attribute_drops(t, { CurveRef{ .kind = CurveRef::Kind::Session, .index = 5 } }, options, {},
+                                    err)
+              .empty());
+    CHECK(err == "the timeline has no session at place 5: it has 1 session");
+    timeline::Timeline odd = t;
+    odd.curves[1].vmaf.pop_back();
+    CHECK(timeline::attribute_drops(odd, { CurveRef{ .kind = CurveRef::Kind::Session, .index = 0 } }, options, {},
+                                    err)
+              .empty());
+    CHECK(err.starts_with("curve session:0: pair 1's curve: "));
 }

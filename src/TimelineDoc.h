@@ -1,29 +1,42 @@
 #pragma once
 
-// The timeline document, written and read (DECISIONS.md D-072): the ladder part, by WP08.
+// The timeline document, written and read (DECISIONS.md D-072): the ladder part, by WP08; the session part, by WP09b.
 //
 // One document per timeline build, in a file of its own (Q01 (B)): the
 // events of a ladder report's timeline on the reference's frames (D-073),
-// the attributions of the drops detected in its pairs' curves (D-077,
-// D-078), and what they were made from: the ladder report, named by the
-// SHA-256 of its bytes and of its scores digest (Q06 (c)), its provenance
-// copied (Q04 (a)), and every option of the build. No score is copied: a
-// reader takes the curves from the report the document names. The layout is
+// the attributions of the drops detected in its pairs' curves and in its
+// session's (D-077, D-078), and what they were made from: the ladder
+// report, named by the SHA-256 of its bytes and of its scores digest (Q06
+// (c)), its provenance copied (Q04 (a)), the session's plan, and every
+// option of the build. No score is copied: a reader takes the curves from
+// the report the document names. The layout is
 // eval/phase3-survey/design.md §8's, as schema version 1, with the event
 // types of its §5.9 (Q04 (a), Q05 (a)); docs/schema/mirage-timeline-1.schema.json
 // is its JSON Schema, and docs/TIMELINE_FORMAT.md describes it key by key.
 //
 // The rules.
 //
-// - The ladder part: every key of §8's layout, in its places. The session
-//   part's two keys hold what a ladder alone has, session_plan null and
-//   sessions empty, until WP09b fills them in round 2 with the network and
-//   player events' own fields (design §8, "Who writes what"), so that
-//   version 1 has one layout before and after; a reader of this version
-//   takes those two values only. An event of a ladder's document therefore
-//   has no session, none is of the network or player source, whose events
-//   are a session's (D-068), and none has a wall clock, which only observed
-//   events have (D-073).
+// - The ladder part: every key of §8's layout, in its places.
+// - The session part (design §8, "Who writes what"; D-068, D-104, D-105):
+//   session_plan, the scripted session's plan by its path and SHA-256
+//   (D-105 (a)); sessions, the session with its id (as the build gives it,
+//   "0", a form pending the owner, below), its plan's name, the UTC anchor
+//   of its wall clock, RFC 3339 to the microsecond with Z or null where its
+//   files weren't fetched (D-108 (c)), and its spans, each with its variant,
+//   its plan's entry and segments, its reference frames and whether it is
+//   scored (D-105 (b)); its own events, of the player and network sources,
+//   each with its session's index, the network ones with their wall clock,
+//   seconds from the session's start (D-073), and no other event with a
+//   session; its curve, {"kind": "session", "index"}, by its place among
+//   the sessions; and detection.session_rules where detection ran on its
+//   curve, a form pending the owner (below). The events' payloads are
+//   src/SessionPlan.h's, as the owner kept them (D-108 (c)), and the schema
+//   file types them. A ladder alone has session_plan null and sessions
+//   empty, so that an event of its document has no session, none is of the
+//   network or player source, whose events are a session's (D-068), and
+//   none has a wall clock, which only observed events have (D-073): its
+//   document is the same bytes as before the session part came, and version
+//   1 has one layout before and after.
 // - Additions to §8's layout, each needed to read a document back without
 //   its media (design §3.5): the axis's seconds and media keys, one of each
 //   per reference frame (axis.tick_den, axis.ticks, axis.keys); every run of
@@ -132,25 +145,41 @@
 //   of one pair or two references, an event, a variant, a session or a
 //   curve that isn't there, and seconds or offsets that disagree with the
 //   axis. It also refuses what the rules above and the decisions rule out:
-//   a rational whose terms aren't in their shortest form; a session part
-//   other than a ladder's; an axis whose stretches don't cover its frames,
-//   whose steps, phases or scales break the per-frame values' rules (a
-//   step not in lowest terms or whose denominator isn't positive, a phase
-//   outside 0 to den - 1, a scale below 1, and for frames without a PTS a
-//   step other than 0/1 or a scale other than 1), whose values pass 64
-//   bits, or whose clock and check aren't paired as build_axis() pairs
-//   them, the playlist time with the segment map and the frame grid with
-//   the report only (src/TimelineAxis.h); a variant's playlist with neither
-//   a location nor a SHA-256, which to_json() writes as null, and a
-//   segment_map that isn't null exactly when the playlist is (D-092 (c));
-//   an event whose sequence is negative or whose media key isn't the axis's
-//   key at its ref_index (Event::key, src/TimelineModel.h); a network or
-//   player event without a session; a wall clock on an event of another
-//   source (D-073); and a detected attribution where detection is null
-//   (D-077). It takes one thing that mirage_vmaf timeline never writes: an
-//   attribution whose detected is false, an interval a user gave rather
-//   than a drop (design §6.1), whether detection ran or not, so that the
-//   answers of mirage_vmaf attribute (WP09a) can take this layout.
+//   a rational whose terms aren't in their shortest form; an axis whose
+//   stretches don't cover its frames, whose steps, phases or scales break
+//   the per-frame values' rules (a step not in lowest terms or whose
+//   denominator isn't positive, a phase outside 0 to den - 1, a scale below
+//   1, and for frames without a PTS a step other than 0/1 or a scale other
+//   than 1), whose values pass 64 bits, or whose clock and check aren't
+//   paired as build_axis() pairs them, the playlist time with the segment
+//   map and the frame grid with the report only (src/TimelineAxis.h); a
+//   variant's playlist with neither a location nor a SHA-256, which
+//   to_json() writes as null, and a segment_map that isn't null exactly
+//   when the playlist is (D-092 (c)); an event whose sequence is negative or
+//   whose media key isn't the axis's key at its ref_index (Event::key,
+//   src/TimelineModel.h); a network or player event without a session; a
+//   wall clock on an event of another source (D-073); and a detected
+//   attribution where detection is null (D-077). Of the session part it
+//   refuses, beyond its keys and their kinds, what the writer never writes,
+//   these refusals being WP09b's choices, pending the owner (below): a plan
+//   without a session or a session without a plan, and more than one
+//   session, where D-072 gives a build one at most; a session without an id
+//   or without a span; an anchor in another form than the fetch writes, the
+//   one D-108 (c) keeps; a span whose variant isn't there or doesn't have
+//   its entry, whose last segment comes before its first, whose frames
+//   aren't a span of the axis or don't start where the span before it
+//   ended, as make_session() places them by D-105 (a), or that is scored
+//   where it plays the reference or unscored where it plays a pair's
+//   variant, against D-105 (b); an offline event with a session; a network
+//   event without a wall clock, and a wall clock in a session without an
+//   anchor, the anchor D-108 (c) leaves null where the files weren't
+//   fetched; and a detection whose session_rules aren't
+//   session_rules_record()'s exactly where it ran on a session's curve
+//   (src/TimelineDoc.cpp). It takes one thing that mirage_vmaf timeline
+//   never writes: an attribution whose detected is false, an interval a
+//   user gave rather than a drop (design §6.1), whether detection ran or
+//   not, so that the answers of mirage_vmaf attribute (WP09a) can take this
+//   layout.
 //   Timeline::curves stays empty: the caller fills it from the ladder report
 //   the document names, once that report's hashes match (attach_curves(),
 //   src/TimelineBuild.h), and a curve reference comes back at the place
@@ -262,6 +291,32 @@
 //   curve_of_pair()), a curve reference that names no pair written null
 //   for the reader to refuse.
 //
+// The owner's choices (D-108 (c), of 2026-11-10), on what WP00b and WP07
+// left pending, that the session part writes, as built: a session whose
+// files weren't fetched has no UTC anchor, written null; the anchor's text
+// is RFC 3339 UTC to the microsecond with the zone Z; and the payloads of
+// the session's events are src/SessionPlan.h's, which the schema file now
+// types.
+//
+// Pending the owner: the session part's forms that neither the design nor
+// the decisions settle, WP09b's, each built as described above and marked
+// where it is made; docs/TIMELINE_FORMAT.md lists them with the CLI's.
+// - sessions[].id, which design §8 names without a form: the session's
+//   place among the sessions as text, "0", as add_session() gives it
+//   (src/TimelineBuild.h), by which --curve session:<id> names it, while an
+//   event's session and a session's curve reference count by place; or the
+//   plan's name, which may be empty or repeat, the plan file's name, or an
+//   integer, as a variant's id is.
+// - detection.session_rules, which design §8 names without a form: an
+//   object of five named rules (session_rules_record(),
+//   src/TimelineDoc.cpp), there exactly where detection ran on a session's
+//   curve; or one string naming D-077's rules, a list of their names, or
+//   null always, as for a ladder.
+// - The reader's refusals of the session part (above), which a later
+//   change would take a new schema_version to relax once documents are
+//   kept, as D-092 (d) has the reader strict; or reading such documents
+//   and leaving the checks to the writer.
+//
 // Core code (design §3.1): plain structs and text in and out, and libavutil's
 // rationals only. Nothing here reads a file; write_document() alone writes
 // one. Unit-tested in tests/test_timeline_doc.cpp, whose subset JSON Schema
@@ -372,7 +427,8 @@ bool reference_info(const LadderScores& scores, const Axis& axis, ReferenceInfo&
                     std::string& err);
 
 // What detection ran with, when it ran (D-077): its options, which give W
-// and N, and the curves it ran on, every pair's for a ladder.
+// and N, and the curves it ran on, every pair's for a ladder, and with a
+// session the session's too (curve_refs(), src/TimelineBuild.h).
 struct Detection {
     DetectOptions         options;
     std::vector<CurveRef> curves;
@@ -393,6 +449,10 @@ struct DocInfo {
     // document says "detection": null (D-077).
     std::optional<Detection> detection;
     QueryOptions overlap;                  // the margins the attributions were made with (D-078)
+    // The plan of the timeline's session (D-105 (a)), by its path as given and
+    // the SHA-256 of its bytes; nullopt for a ladder alone, which has none and
+    // no session.
+    std::optional<FileRef> session_plan;
 };
 
 // The document of `timeline` and `attributions`, as above, with a line feed
@@ -402,10 +462,20 @@ struct DocInfo {
 // same bytes whatever the events' order, needs of its inputs:
 // - every event an id, and no two the same one, as assign_ids() gives them:
 //   without them the canonical order isn't total;
-// - each event's type one of its source's (event_types()), its source
-//   neither network nor player and its session -1, as a ladder alone has
-//   them (above), no wall clock, its variant -1 or an index into the
-//   variants, and its media key the axis's key at its ref_index;
+// - each event's type one of its source's (event_types()), its variant -1 or
+//   an index into the variants, and its media key the axis's key at its
+//   ref_index; its session an index into Timeline::sessions for a network or
+//   player event, as add_session() and add_requests() give them
+//   (src/TimelineBuild.h), and -1 for an event of any other source, an
+//   offline one, which is of no session (D-068); a wall clock on a network
+//   event, and on a player event at most, and only in a session with a UTC
+//   anchor, as the fetch gives it (D-073);
+// - Timeline::sessions one at most, there exactly when DocInfo::session_plan
+//   is, as add_session() makes it from a plan: an id, one span at least,
+//   each span on the axis where the one before it ended, of a variant that
+//   has its entry, scored exactly where it plays a pair's variant (D-105),
+//   and an anchor, where there is one, as fetch_session() writes it
+//   (D-108 (c));
 // - each Variant::index its position, one variant at most the reference,
 //   and no two naming one pair; a variant without a playlist (no location
 //   and no SHA-256) with Variant's default segment_map, "ok", which the
@@ -418,12 +488,13 @@ struct DocInfo {
 //   from reference_info() for that axis;
 // - check_options() passing on the detection's options, and a detected
 //   attribution only with the detection that found it;
-// - each CurveRef, an attribution's and detection's, a curve that
+// - each CurveRef, an attribution's and detection's, a pair's curve that
 //   pair_number() gives a number: one of Timeline::curves, on a distorted
 //   variant, as build() and attach_curves() give them, or for a timeline
 //   without curves, as from_json() gives one, a place among its pairs; one
 //   that names no pair is written with the index null, which the schema and
-//   the reader refuse;
+//   the reader refuse; or a session's, a place in Timeline::sessions, one
+//   past them written with the index null too;
 // - each Found::event an index into the events: one past them is written
 //   as null, which the schema and the reader refuse.
 // A document that breaks one of them is written all the same. from_json()
@@ -433,8 +504,8 @@ std::string to_json(const Timeline& timeline, const std::vector<Attribution>& at
                     const DocInfo& info);
 
 // The document `text`, read back: into `timeline` its axis, variants,
-// events (in canonical order, with Timeline::build_index() run) and
-// warnings, its curves left empty; into `attributions` each attribution,
+// sessions, events (in canonical order, with Timeline::build_index() run)
+// and warnings, its curves left empty; into `attributions` each attribution,
 // every Found naming its event by its index in those events, and each
 // searched interval widened again by the overlap record's margins (widen());
 // into `info` the rest. The axis's stretches come back as a tick and a
@@ -443,7 +514,8 @@ std::string to_json(const Timeline& timeline, const std::vector<Attribution>& at
 // curve reference, a pair's number (D-092 (b)), comes back as the CurveRef
 // of the curve whose variant has that number, by curve_of_pair(): its place
 // among the variants' pairs in ascending order, at which attach_curves()
-// puts the report's curve of that pair (src/TimelineBuild.h). A
+// puts the report's curve of that pair (src/TimelineBuild.h); a session's
+// curve reference comes back as its place among the sessions. A
 // number of a payload or of the options comes back in the form of its
 // text: an integer literal as std::int64_t, any other number as a double,
 // so that a whole double written by json::number comes back as an integer;

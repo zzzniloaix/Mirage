@@ -4,6 +4,8 @@
 #include "JsonText.h"
 #include "LadderReportRead.h"
 #include "PlaylistEvents.h"
+#include "SessionFetch.h"
+#include "SessionPlan.h"
 #include "TimelineAxis.h"
 #include "TimelineBuild.h"
 #include "TimelineMedia.h"
@@ -11,10 +13,13 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cerrno>
 #include <charconv>
+#include <chrono>
 #include <climits>
 #include <cmath>
+#include <csignal>
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
@@ -22,7 +27,9 @@
 #include <fstream>
 #include <numeric>
 #include <sstream>
+#include <stop_token>
 #include <system_error>
+#include <thread>
 #include <utility>
 #include <variant>
 
@@ -173,18 +180,60 @@ std::string set_auto(AttributeArgs& a, std::string_view v)
 }
 
 // --curve pair:<k>: k, the pair's number, the ladder report's pairs[].index
-// (D-092 (b)), which answer_query() maps to its curve. Design §7's
-// session:<id>, a session's curve, is WP09b's: refused here as any other
-// text.
+// (D-092 (b)); or session:<id>, design §7's session's curve by its id, the
+// document's sessions[].id; each of which answer_query() maps to its curve.
 std::string set_curve(AttributeArgs& a, std::string_view v)
 {
-    constexpr std::string_view kPair = "pair:";
+    constexpr std::string_view kPair = "pair:", kSession = "session:";
+    if (v.starts_with(kSession) && v.size() > kSession.size()) {
+        a.curve = CurveName{ .kind    = CurveRef::Kind::Session,
+                             .session = std::string(v.substr(kSession.size())) };
+        return {};
+    }
     const std::optional<std::int64_t> k =
         v.starts_with(kPair) ? whole(v.substr(kPair.size())) : std::nullopt;
     if (!k || *k > INT_MAX)
         return std::format("wants pair:<k>, the curve of the ladder report's pair k, as its "
-                           "pairs[].index numbers it, not '{}'", v);
+                           "pairs[].index numbers it, or session:<id>, the curve of the document's "
+                           "session of that id, not '{}'", v);
     a.curve = CurveName{ .kind = CurveRef::Kind::Pair, .number = static_cast<int>(*k) };
+    return {};
+}
+
+bool is_http(std::string_view url)
+{
+    for (const std::string_view scheme : { std::string_view("http://"), std::string_view("https://") })
+        if (url.starts_with(scheme) && url.size() > scheme.size()) return true;
+    return false;
+}
+
+// --session: a scripted session's plan, read and checked once the ladder
+// report is (D-105 (a)).
+std::string set_session(TimelineArgs& a, std::string_view v)
+{
+    a.session = v;
+    return {};
+}
+
+// --fetch on|off (design §7; D-104 (a)).
+std::string set_fetch(TimelineArgs& a, std::string_view v)
+{
+    if (v == "on") a.fetch = true;
+    else if (v == "off") a.fetch = false;
+    else return std::format("wants on or off, not '{}'", v);
+    return {};
+}
+
+// --fetch-base: an http or https URL, so that a session's network events
+// come from network requests alone, D-108 (a)'s reason for refusing a fetch
+// of local files: a local directory as the base would be such a fetch. The
+// rule is WP09b's, pending the owner (TimelineCli.h).
+std::string set_fetch_base(TimelineArgs& a, std::string_view v)
+{
+    if (!is_http(v))
+        return std::format("wants an http or https URL, a server of the ladder's files such as "
+                           "http://127.0.0.1:8080, not '{}'", v);
+    a.fetch_base = v;
     return {};
 }
 
@@ -254,6 +303,12 @@ const std::array kTimelineOptions = {
              false, true, set_report<TimelineArgs> },
     TOption{ "--out", "<timeline.json>", "the timeline document to write", Form::Any, false, true,
              set_out<TimelineArgs> },
+    TOption{ "--session", "<plan.json>", "a scripted session's plan, its spans on the ladder (see Session "
+             "below)", Form::Any, false, false, set_session },
+    TOption{ "--fetch", "on|off", "with --session: fetch the session's files and time each request "
+             "(default on)", Form::Any, false, false, set_fetch },
+    TOption{ "--fetch-base", "<url>", "with --fetch on: fetch them from this http or https server, each "
+             "by its path from the master's directory", Form::Any, false, false, set_fetch_base },
     TOption{ "--threshold", "T", kThresholdHelp, Form::Any, false, false,
              set_threshold_of<TimelineArgs> },
     TOption{ "--window", "W", kWindowHelp, Form::Any, false, false, set_window_of<TimelineArgs> },
@@ -279,8 +334,9 @@ const std::array kAttributeOptions = {
              false, set_auto },
     AOption{ "--report", "<report.json>", "the ladder report the document names (default: the path "
              "the document gives)", Form::Any, false, false, set_report<AttributeArgs> },
-    AOption{ "--curve", "pair:<k>", "the curve of the report's pair k, by its pairs[].index (default: "
-             "every pair's)", Form::Any, false, false, set_curve },
+    AOption{ "--curve", "pair:<k>|session:<id>", "the curve of the report's pair k, by its pairs[].index, "
+             "or of the document's session <id> (default: every curve)", Form::Any, false, false,
+             set_curve },
     AOption{ "--threshold", "T", "with --auto: a point more than T VMAF points below its baseline is "
              "low (default 6)", Form::Auto, false, false, set_threshold_of<AttributeArgs> },
     AOption{ "--window", "W", "with --auto: the baseline is the median of the last W points that "
@@ -559,12 +615,14 @@ std::string synopsis(std::string_view word, const std::array<Option<Args>, N>& t
     return queries ? out + ")" : out;
 }
 
+// One row per option, its help in a column two spaces past the widest
+// option, attribute's --curve pair:<k>|session:<id>.
 template <class Args, std::size_t N>
 std::string option_rows(const std::array<Option<Args>, N>& table)
 {
     std::string out;
-    for (const Option<Args>& o : table) out += std::format("  {:<29}{}\n", spec_of(o), o.help);
-    return out + std::format("  {:<29}{}\n", "-h, --help", "print this help and exit");
+    for (const Option<Args>& o : table) out += std::format("  {:<31}{}\n", spec_of(o), o.help);
+    return out + std::format("  {:<31}{}\n", "-h, --help", "print this help and exit");
 }
 
 // The first lines of a usage text, up to its first blank line: what a bad
@@ -635,12 +693,88 @@ std::string member_text(const Payload& p, std::string_view name)
     return v ? value_text(*v) : std::string("?");
 }
 
+// Whether the payload has `name` and it isn't null.
+bool present(const Payload& p, std::string_view name)
+{
+    const Value* v = member(p, name);
+    return v && !std::holds_alternative<std::monostate>(v->v);
+}
+
+// The object member `name`; an empty one when the payload lacks it.
+const Payload& object_member(const Payload& p, std::string_view name)
+{
+    static const Payload kNone;
+    const Value* v = member(p, name);
+    return v && std::holds_alternative<Value::Object>(v->v) ? std::get<Value::Object>(v->v) : kNone;
+}
+
+// A number of seconds of a payload, three decimals; "?" for none.
+std::string seconds_text(const Payload& p, std::string_view name)
+{
+    const Value* v = member(p, name);
+    const std::optional<double> s = v ? timeline::number_of(*v) : std::nullopt;
+    return s ? std::format("{:.3f} s", *s) : std::string("? s");
+}
+
+// A rung as a session's player events name it (D-075; src/SessionPlan.h):
+// "entry 1 (v270/index.m3u8, 480x270, BANDWIDTH 600000; rank 2 from the top,
+// 2 from the bottom)", what the rung doesn't have left out.
+std::string rung_text(const Payload& r)
+{
+    std::string out = std::format("entry {} ({}", member_text(r, "entry"), member_text(r, "uri"));
+    if (present(r, "resolution")) out += ", " + member_text(r, "resolution");
+    if (present(r, "bandwidth")) out += ", BANDWIDTH " + member_text(r, "bandwidth");
+    if (present(r, "rank_from_top"))
+        out += std::format("; rank {} from the top, {} from the bottom", member_text(r, "rank_from_top"),
+                           member_text(r, "rank_from_bottom"));
+    return out + ")";
+}
+
+// A session fetch's request as design §6.4's prototype printed one: its URL,
+// its byte range, when the fetch made it on the session's clock, how long it
+// took to its last byte and to its response's head, its bytes and its
+// status, and whether it failed and why (src/SessionPlan.h's payload).
+std::string request_text(const Payload& p)
+{
+    std::string out = member_text(p, "url");
+    const Payload& range = object_member(p, "range");
+    if (!range.empty())
+        out += std::format(" (bytes {} at {})", member_text(range, "length"), member_text(range, "offset"));
+    out += std::format(", requested at {}: {} from request to last byte", seconds_text(p, "start"),
+                       seconds_text(p, "duration"));
+    const Value* start = member(p, "start");
+    const Value* head  = member(p, "first_byte");
+    const std::optional<double> s = start ? timeline::number_of(*start) : std::nullopt;
+    const std::optional<double> h = head ? timeline::number_of(*head) : std::nullopt;
+    if (s && h) out += std::format(" ({:.3f} s to the response head)", *h - *s);
+    if (present(p, "bytes")) out += std::format(", {} bytes", member_text(p, "bytes"));
+    if (present(p, "status"))
+        out += std::format(", {} {}", member_text(p, "status"), member_text(p, "status_text"));
+    const Value* failed = member(p, "failed");
+    if (failed && std::holds_alternative<bool>(failed->v) && std::get<bool>(failed->v))
+        out += present(p, "error") ? std::format(", failed: {}", member_text(p, "error")) : ", failed";
+    return out;
+}
+
 // What an event's payload says, in a few words (the design's P-AD); the
 // payload itself for a type this doesn't know.
 std::string event_detail(const Event& e)
 {
     const Payload& p = e.payload;
     const std::string line = std::format("line {}", member_text(p, "line"));
+    if (e.type == timeline::kTypeVariantSpan) {
+        const Value*      scored = member(p, "scored");
+        const bool        none   = scored && std::holds_alternative<bool>(scored->v) && !std::get<bool>(scored->v);
+        const std::string first = member_text(p, "first_seq"), last = member_text(p, "last_seq");
+        // Its segments as the session's header gives them, first-last.
+        return std::format("{}, {}{}", rung_text(p),
+                           first == last ? "segment " + first : std::format("segments {}-{}", first, last),
+                           none ? ", not scored: the reference in top-rung mode (D-105 (b))" : "");
+    }
+    if (e.type == timeline::kTypeVariantSwitch)
+        return std::format("{} -> {}", rung_text(object_member(p, "from")), rung_text(object_member(p, "to")));
+    if (e.type == timeline::kTypeSegmentRequest || e.type == timeline::kTypePlaylistRequest)
+        return request_text(p);
     if (e.type == timeline::kTypeSegment) {
         std::string out =
             std::format("{}, EXTINF {} s", member_text(p, "uri"), member_text(p, "extinf"));
@@ -732,9 +866,21 @@ int reference_variant(const Timeline& t)
     return -1;
 }
 
-// A curve by its pair's number (D-092 (b)), as --curve names it.
+// A curve as --curve gives it: "pair:<k>" or "session:<id>".
+std::string curve_name_text(const CurveName& c)
+{
+    return c.kind == CurveRef::Kind::Session ? std::format("session:{}", c.session)
+                                             : std::format("pair:{}", c.number);
+}
+
+// A curve as --curve names it: a pair's by its pair's number (D-092 (b)), a
+// session's by its id.
 std::string curve_text(const Timeline& t, CurveRef c)
 {
+    if (c.kind == CurveRef::Kind::Session)
+        return c.index >= 0 && static_cast<std::size_t>(c.index) < t.sessions.size()
+                   ? std::format("session:{}", t.sessions[static_cast<std::size_t>(c.index)].id)
+                   : std::string("of no session");
     const std::optional<int> pair = timeline::pair_number(t, c);
     return pair ? std::format("pair:{}", *pair) : std::string("of no pair");
 }
@@ -745,6 +891,30 @@ std::string curve_header(const Timeline& t, CurveRef c)
     const int ref = reference_variant(t);
     return std::format("Curve {}: {}, scored against {}\n", curve_text(t, c), variant_text(t, v),
                        ref < 0 ? std::string("no reference") : variant_text(t, ref));
+}
+
+std::string frames_text(Interval i);
+
+// A session's curve: its id and name, and each span by its entry, its
+// segments and its reference frames, one that plays the reference in
+// top-rung mode marked unscored (D-105 (b)); then the reference its pairs
+// are scored against. This wording of a session's lines, here and in
+// event_detail(), is pending the owner (TimelineCli.h).
+std::string session_header(const Timeline& t, CurveRef c)
+{
+    const timeline::Session& s = t.sessions[static_cast<std::size_t>(c.index)];
+    std::string spans;
+    for (std::size_t k = 0; k < s.spans.size(); ++k) {
+        const timeline::Span& p = s.spans[k];
+        spans += std::format("{}entry {}, {}, {}{}", k == 0 ? "" : "; ", p.entry,
+                             p.first_seq == p.last_seq ? std::format("segment {}", p.first_seq)
+                                                       : std::format("segments {}-{}", p.first_seq, p.last_seq),
+                             frames_text(Interval{ .ref_index = p.ref_index, .ref_end = p.ref_end }),
+                             p.scored ? "" : ", not scored");
+    }
+    const int ref = reference_variant(t);
+    return std::format("Curve {}, the session {}: {}; scored against {}\n", curve_text(t, c), json::quote(s.name),
+                       spans, ref < 0 ? std::string("no reference") : variant_text(t, ref));
 }
 
 std::string frames_text(Interval i)
@@ -782,7 +952,10 @@ std::string answer_block(const Timeline& t, const Attribution& a, std::int64_t n
             if (f.event >= t.events.size()) continue;
             const Event& e = t.events[f.event];
             any = true;
-            std::string where = variant_name(t, e.variant);
+            // The master's request is of no variant (src/SessionPlan.h).
+            std::string where = e.variant < 0 && e.type == timeline::kTypePlaylistRequest
+                                    ? std::string("the master")
+                                    : variant_name(t, e.variant);
             if (e.segment) where += std::format(", segment {}", *e.segment);
             std::string seconds = offset_text(f.offset_s);
             if (f.offset_end_s) seconds += " to " + offset_text(*f.offset_end_s);
@@ -871,6 +1044,73 @@ std::string reads_back(const std::string& text)
 constexpr std::string_view kTimelineTool  = "mirage_vmaf timeline";
 constexpr std::string_view kAttributeTool = "mirage_vmaf attribute";
 
+// ── Stopping a build ─────────────────────────────────────────────────────────
+
+// Set by SIGINT and SIGTERM while mirage_vmaf timeline builds, on whatever
+// thread takes the signal, and read by the thread that passes it on: a
+// lock-free atomic, which a signal handler may set, as mirage_vmaf --ladder
+// keeps its own (tools/mirage_vmaf.cpp; D-047).
+std::atomic<int> g_timeline_signal{ 0 };
+static_assert(std::atomic<int>::is_always_lock_free);
+
+extern "C" void on_timeline_signal(int sig) { g_timeline_signal.store(sig, std::memory_order_relaxed); }
+
+// While it lives, SIGINT and SIGTERM request a stop on its token, which the
+// build's playlist reads, demux passes and session fetch take: a handler
+// may only set a flag, which a thread of its own passes on to the stop
+// source, as mirage_vmaf --ladder does (D-047). The handlers are the
+// default ones again once it is gone. tools/mirage_vmaf.cpp dispatches the
+// subcommands before it installs any handler, so the build keeps its own.
+// A build stopped so exits with status 1 and writes no document, a choice
+// pending the owner (TimelineCli.h).
+class SignalStop {
+public:
+    SignalStop()
+    {
+        g_timeline_signal.store(0, std::memory_order_relaxed);
+        std::signal(SIGINT, on_timeline_signal);
+        std::signal(SIGTERM, on_timeline_signal);
+        watch_ = std::jthread([this](std::stop_token st) {
+            while (!st.stop_requested()) {
+                if (g_timeline_signal.load(std::memory_order_relaxed) != 0) {
+                    source_.request_stop();
+                    return;
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            }
+        });
+    }
+    ~SignalStop()
+    {
+        watch_.request_stop();
+        watch_.join();
+        std::signal(SIGINT, SIG_DFL);
+        std::signal(SIGTERM, SIG_DFL);
+    }
+    SignalStop(const SignalStop&)            = delete;
+    SignalStop& operator=(const SignalStop&) = delete;
+
+    std::stop_token token() const { return source_.get_token(); }
+
+private:
+    std::stop_source source_;
+    std::jthread     watch_;
+};
+
+// What a fetched file is, for a message: "the master", "variant 2's media
+// playlist", "segment 3 of variant 2".
+std::string fetched_text(const timeline::Request& r)
+{
+    switch (r.kind) {
+    case timeline::FetchedFile::Master:        return "the master";
+    case timeline::FetchedFile::MediaPlaylist: return std::format("variant {}'s media playlist", r.variant);
+    case timeline::FetchedFile::Segment:
+        return r.segment ? std::format("segment {} of variant {}", *r.segment, r.variant)
+                         : std::format("a segment of variant {}", r.variant);
+    }
+    return "a file";
+}
+
 } // namespace
 
 // ── Parsing ──────────────────────────────────────────────────────────────────
@@ -881,6 +1121,16 @@ std::string parse_timeline(const std::vector<std::string_view>& argv, TimelineAr
     TimelineArgs args;
     if (std::string err = Parser(kTimelineOptions).parse(argv, args, load); !err.empty()) return err;
     if (std::string err = timeline::check_options(args.detect); !err.empty()) return err;
+    // The fetch's options go with a session, and the fetch base with its
+    // fetch, on the command line or in the config file alike, as attribute
+    // refuses --threshold with another query than --auto: a rule pending the
+    // owner (TimelineCli.h).
+    if (args.session.empty()) {
+        if (args.fetch) return "--fetch goes with --session, which isn't given";
+        if (!args.fetch_base.empty()) return "--fetch-base goes with --session, which isn't given";
+    }
+    if (!args.fetch_base.empty() && args.fetch && !*args.fetch)
+        return "--fetch-base goes with --fetch on, not with --fetch off";
     out = std::move(args);
     return {};
 }
@@ -991,6 +1241,26 @@ std::string timeline_usage()
         "events of the pair's distorted playlist and of the reference that meet its\n"
         "frames, half-open, widened by the margins, grouped by source.\n"
         "\n"
+        "Session: --session FILE names a scripted session's plan, a JSON file that\n"
+        "lists its spans in play order, each a master entry with the media sequence\n"
+        "numbers of the first and the last segment it plays:\n"
+        "  {{\"schema\": \"mirage-session-plan\", \"schema_version\": 1, \"name\": \"...\",\n"
+        "   \"spans\": [{{\"entry\": 1, \"first_seq\": 0, \"last_seq\": 2}}, ...]}}\n"
+        "The document records it by its path and SHA-256. Each span covers its\n"
+        "segments' reference frames and starts where the one before it ended; one\n"
+        "that plays the reference in top-rung mode has no score. The session's events\n"
+        "are a variant_span over each span and a variant_switch where the entry\n"
+        "changes. With --fetch on, the default, the session's files are then fetched\n"
+        "one at a time, as quickly as the server answers: the master, each played\n"
+        "variant's media playlist once, and each span's segments, each request timed\n"
+        "by the network logger and written with its wall clock. Files that aren't\n"
+        "http or https URLs are refused unless --fetch-base gives a server of the\n"
+        "ladder's files, from which each is fetched by its path from the master's\n"
+        "directory: the logger would time a local file's open alone. With --window\n"
+        "and --min-points, the session's drops are its pairs' drops clipped to the\n"
+        "spans that played them, a piece of N points or fewer no drop, and each lists\n"
+        "the session's own events, the reference's and the played variant's.\n"
+        "\n"
         "Config file: --config FILE reads settings before the command line, one per\n"
         "line as name = value, where name is a long option's name without the\n"
         "leading --, such as window = 50, and value is the rest of the line without\n"
@@ -1001,9 +1271,15 @@ std::string timeline_usage()
         "paths, the report's own among them, are taken from the current directory.\n"
         "\n"
         "Exit status: 0 the document was written; 1 an input couldn't be read or was\n"
-        "refused (a live playlist, a report of another layout or of a pair) or the\n"
+        "refused (a live playlist, a report of another layout or of a pair), the\n"
+        "session's fetch couldn't run, SIGINT or SIGTERM stopped the build, or the\n"
         "document couldn't be written: no new document is left at --out; 2 bad\n"
-        "arguments, or a config file that can't be read or has an error.\n",
+        "arguments, a config file or a session plan that can't be read or has an\n"
+        "error, a plan that doesn't fit the ladder, a fetch of files that aren't\n"
+        "http or https URLs without --fetch-base, or with --fetch-base a fetch of a\n"
+        "file outside the master's directory, which has no path on its server. A\n"
+        "file the fetch can't read is a failed request in the document, not a\n"
+        "failure of the build.\n",
         synopsis("timeline", kTimelineOptions), option_rows(kTimelineOptions));
 }
 
@@ -1013,19 +1289,23 @@ std::string attribute_usage()
         "Usage: {}\n"
         "\n"
         "Answers which events of a timeline document, which mirage_vmaf timeline wrote,\n"
-        "meet an interval of a pair's curve, without reading media. It reads the\n"
-        "ladder report the document names and checks that its SHA-256 is the\n"
-        "document's, or for a redacted copy that its scores digest is, and takes the\n"
-        "pairs' curves from it. The interval is one query: seconds on the document's\n"
-        "axis (--interval), reference frames (--frames), one of the document's drops\n"
-        "(--drop), or each drop that detection finds again with the parameters given\n"
-        "(--auto, as mirage_vmaf timeline detects; W and N have no default). Without\n"
-        "--curve every pair's curve is answered. An event meets [a, b) of reference\n"
-        "frames when it is a point at a frame f with a <= f < b, or a span [s, e)\n"
-        "with s < b and e > a; the margins widen the interval first. The events are\n"
-        "those of the pair's distorted playlist and of the reference, in groups by\n"
-        "source in this order: vmaf, network, playlist, scte35, player, decoder; and by\n"
-        "offset within a group, with their offsets in seconds and in reference frames.\n"
+        "meet an interval of a pair's curve or of the document's session's, without\n"
+        "reading media. It reads the ladder report the document names and checks that\n"
+        "its SHA-256 is the document's, or for a redacted copy that its scores digest\n"
+        "is, and takes the pairs' curves from it; a session's curve is, over each of\n"
+        "its spans, the curve of the pair whose playlist the span plays. The interval\n"
+        "is one query: seconds on the document's axis (--interval), reference frames\n"
+        "(--frames), one of the document's drops (--drop), or each drop that\n"
+        "detection finds again with the parameters given (--auto, as mirage_vmaf\n"
+        "timeline detects; W and N have no default). Without --curve every curve is\n"
+        "answered, each pair's, then the session's. An event meets [a, b) of\n"
+        "reference frames when it is a point at a frame f with a <= f < b, or a span\n"
+        "[s, e) with s < b and e > a; the margins widen the interval first. The\n"
+        "events are those of the pair's distorted playlist and of the reference, or\n"
+        "for a session's curve its own, the reference's and those of the playlist\n"
+        "each span plays within that span; in groups by source in this order: vmaf,\n"
+        "network, playlist, scte35, player, decoder; and by offset within a group,\n"
+        "with their offsets in seconds and in reference frames.\n"
         "\n"
         "Options:\n"
         "{}"
@@ -1067,15 +1347,37 @@ std::string attribute_usage()
 
 Payload timeline_options(const TimelineArgs& a)
 {
-    return {
+    Payload out = {
         { "report", Value{ a.report } },
         { "out", Value{ a.out } },
-        { "threshold", Value{ a.detect.threshold } },
-        { "window", int_or_null(a.detect.window) },
-        { "min-points", int_or_null(a.detect.min_points) },
-        { "margin-before", Value{ rational_text(a.overlap.margin_before) } },
-        { "margin-after", Value{ rational_text(a.overlap.margin_after) } },
     };
+    // A session's options, in the table's order, only with a session, so that
+    // a ladder's record is as it was before them: a choice pending the owner
+    // (TimelineCli.h).
+    if (!a.session.empty()) {
+        out.emplace_back("session", Value{ a.session });
+        out.emplace_back("fetch", Value{ std::string(a.fetch.value_or(true) ? "on" : "off") });
+        out.emplace_back("fetch-base", a.fetch_base.empty() ? Value{} : Value{ a.fetch_base });
+    }
+    out.emplace_back("threshold", Value{ a.detect.threshold });
+    out.emplace_back("window", int_or_null(a.detect.window));
+    out.emplace_back("min-points", int_or_null(a.detect.min_points));
+    out.emplace_back("margin-before", Value{ rational_text(a.overlap.margin_before) });
+    out.emplace_back("margin-after", Value{ rational_text(a.overlap.margin_after) });
+    return out;
+}
+
+std::string check_fetch(const std::vector<timeline::Request>& files, const std::string& fetch_base)
+{
+    if (!fetch_base.empty()) return {};
+    for (const timeline::Request& r : files)
+        if (!is_http(r.url))
+            return std::format("the session's fetch would read {} at {}, which isn't an http or https URL: "
+                               "NetworkLogger times a local file's open and not its read, so a fetch of "
+                               "local files is refused (D-108 (a)): give --fetch-base <url>, a server of "
+                               "the ladder's files, or --fetch off",
+                               fetched_text(r), r.url);
+    return {};
 }
 
 Payload attribute_options(const AttributeArgs& a, const std::string& report)
@@ -1090,11 +1392,7 @@ Payload attribute_options(const AttributeArgs& a, const std::string& report)
         { "drop", a.query == Query::Drop ? Value{ a.drop } : Value{} },
         { "auto", Value{ a.query == Query::Auto } },
         { "report", Value{ report } },
-        // A session's curve, design §7's session:<id>, is WP09b's to record:
-        // none is recorded for it here, and answer_query() refuses it.
-        { "curve", a.curve && a.curve->kind == CurveRef::Kind::Pair
-                       ? Value{ std::format("pair:{}", a.curve->number) }
-                       : Value{} },
+        { "curve", a.curve ? Value{ curve_name_text(*a.curve) } : Value{} },
         { "threshold", Value{ a.detect.threshold } },
         { "window", int_or_null(a.detect.window) },
         { "min-points", int_or_null(a.detect.min_points) },
@@ -1122,12 +1420,14 @@ std::string answer_text(const Timeline& timeline, const std::vector<CurveRef>& c
 {
     std::string out;
     for (const CurveRef c : curves) {
-        // A pair's curve; a session's, and its answers, are WP09b's to print:
-        // nothing is printed for them here.
-        if (c.kind != CurveRef::Kind::Pair || c.index < 0 ||
-            static_cast<std::size_t>(c.index) >= timeline.curves.size())
-            continue;
-        out += "\n" + curve_header(timeline, c);
+        // A pair's curve, or a session's; a curve the timeline doesn't have
+        // prints nothing.
+        const bool pair = c.kind == CurveRef::Kind::Pair && c.index >= 0 &&
+                          static_cast<std::size_t>(c.index) < timeline.curves.size();
+        const bool session = c.kind == CurveRef::Kind::Session && c.index >= 0 &&
+                             static_cast<std::size_t>(c.index) < timeline.sessions.size();
+        if (!pair && !session) continue;
+        out += "\n" + (pair ? curve_header(timeline, c) : session_header(timeline, c));
         bool any = false;
         for (std::size_t i = 0; i < answers.size(); ++i) {
             if (answers[i].curve.kind != c.kind || answers[i].curve.index != c.index) continue;
@@ -1164,8 +1464,9 @@ struct HashingLoader {
 
 // Each scored input of `in.scores`: its media playlist read again (P-D)
 // and parsed, and its demux pass (D-074). The reference is a playlist unless
-// it is a mezzanine (design §5.2). Prints a line for each.
-std::optional<Failure> read_variants(timeline::BuildInputs& in)
+// it is a mezzanine (design §5.2). Prints a line for each. A stop on
+// `cancel` ends a read that waits, and the build with it.
+std::optional<Failure> read_variants(timeline::BuildInputs& in, std::stop_token cancel)
 {
     const timeline::LadderScores& scores = in.scores;
     const std::size_t variants = scores.pairs.size() + 1;
@@ -1175,7 +1476,7 @@ std::optional<Failure> read_variants(timeline::BuildInputs& in)
         timeline::VariantRead& read = in.variants[v];
         const bool playlist = v > 0 || scores.reference_mode != "mezzanine";
         if (playlist) {
-            const timeline::PlaylistText text = timeline::read_playlist(url);
+            const timeline::PlaylistText text = timeline::read_playlist(url, cancel);
             if (!text.error.empty())
                 return Failure{ std::format("cannot read variant {}'s playlist {}: {}", v, url,
                                             text.error) };
@@ -1193,7 +1494,7 @@ std::optional<Failure> read_variants(timeline::BuildInputs& in)
         else scored.push_back(timeline::distorted_frames(scores.pairs[v - 1]));
         std::string err;
         const hls::MediaTimeline* segments = playlist ? &read.playlist->timeline : nullptr;
-        read.media = timeline::read_media(url, segments, scored, {}, err);
+        read.media = timeline::read_media(url, segments, scored, cancel, err);
         if (!err.empty())
             return Failure{ std::format("the demux pass of variant {} ({}) failed: {}", v, url, err) };
 
@@ -1227,16 +1528,29 @@ std::optional<Failure> answer_query(const AttributeArgs& args, const Timeline& t
                                     const std::vector<Attribution>& recorded,
                                     const timeline::DocInfo& info, Answer& out)
 {
-    // A session's curve, design §7's --curve session:<id>, is WP09b's to
-    // answer: set_curve() makes none, and one given here is refused, since a
-    // document this reader takes has no session (src/TimelineDoc.h).
-    if (args.curve && args.curve->kind != CurveRef::Kind::Pair)
-        return Failure{ "--curve names a session's curve: the document has no session", 2 };
     // --curve names a pair by its number, the report's pairs[].index: the
     // curve whose variant has it (D-092 (b)); a number no complete pair of
-    // the document has is an argument it doesn't fit (D-099 (c)).
+    // the document has is an argument it doesn't fit (D-099 (c)). It names a
+    // session's curve by the session's id, design §7's session:<id>, which
+    // the document's sessions[].id gives; an id it doesn't have is such an
+    // argument too.
     std::optional<CurveRef> asked;
-    if (args.curve) {
+    if (args.curve && args.curve->kind == CurveRef::Kind::Session) {
+        for (std::size_t s = 0; s < t.sessions.size() && !asked; ++s)
+            if (t.sessions[s].id == args.curve->session)
+                asked = CurveRef{ .kind = CurveRef::Kind::Session, .index = static_cast<int>(s) };
+        if (!asked) {
+            std::string has = t.sessions.empty() ? std::string("it has none")
+                              : t.sessions.size() == 1 ? std::string("its session is ")
+                                                       : std::string("its sessions are ");
+            for (std::size_t s = 0; s < t.sessions.size(); ++s)
+                has += std::format("{}session:{}", s == 0 ? "" : s + 1 == t.sessions.size() ? " and " : ", ",
+                                   t.sessions[s].id);
+            return Failure{ std::format("--curve session:{}: the document has no session {}: {}",
+                                        args.curve->session, args.curve->session, has), 2 };
+        }
+        out.curves = { *asked };
+    } else if (args.curve) {
         asked = timeline::curve_of_pair(t, args.curve->number);
         if (!asked) {
             const std::vector<CurveRef> all = timeline::pair_curve_refs(t);
@@ -1251,10 +1565,12 @@ std::optional<Failure> answer_query(const AttributeArgs& args, const Timeline& t
         }
         out.curves = { *asked };
     } else {
-        out.curves = timeline::pair_curve_refs(t);
+        // Every curve: each pair's, then the session's, a choice pending the
+        // owner (TimelineCli.h).
+        out.curves = timeline::curve_refs(t);
     }
     const std::string on_curve =
-        args.curve ? std::format(" on curve pair:{}", args.curve->number) : std::string();
+        args.curve ? std::format(" on curve {}", curve_name_text(*args.curve)) : std::string();
 
     switch (args.query) {
     case Query::Auto: {
@@ -1351,6 +1667,10 @@ int run_timeline(const std::vector<std::string_view>& argv)
         return 0;
     }
     setup_ffmpeg();
+    // SIGINT and SIGTERM stop the build from here on, as they stop
+    // mirage_vmaf --ladder (D-047): its reads and its fetch take the token.
+    const SignalStop      stop;
+    const std::stop_token cancel = stop.token();
 
     // The ladder report (D-081 (b)), named by two hashes (D-072).
     const FileText report = read_file(args.report);
@@ -1363,19 +1683,98 @@ int run_timeline(const std::vector<std::string_view>& argv)
     if (!err.empty())
         return failed(tool, std::format("{} isn't a ladder report the timeline reads: {}", args.report,
                                         err));
-    if (const std::optional<Failure> f = read_variants(in)) return failed(tool, f->message, f->status);
     const timeline::LadderScores& scores = in.scores;
 
-    const Timeline t = timeline::build(in, err);
+    // The session's plan (D-105 (a)), read before the media so that a plan
+    // with an error is refused at once: a list-valued setting in a file of
+    // its own (design §7), whose errors are bad arguments, exit status 2, as
+    // a config file's are, a choice pending the owner (TimelineCli.h).
+    std::optional<timeline::SessionPlan> plan;
+    std::string                          plan_sha256;
+    const bool fetch = !args.session.empty() && args.fetch.value_or(true);
+    if (!args.session.empty()) {
+        const FileText text = read_file(args.session);
+        if (!text.error.empty())
+            return failed(tool, std::format("cannot read the session plan {}: {}", args.session, text.error),
+                          2);
+        plan = timeline::parse_session_plan(text.text, err);
+        if (!err.empty())
+            return failed(tool, std::format("{} isn't a session plan this reads: {}", args.session, err), 2);
+        plan_sha256 = filehash::sha256_hex(text.text);
+        // The fetch's first file is the master: a local one without a fetch
+        // base is refused here, before the media is read (D-108 (a)).
+        const timeline::Request master{ .kind = timeline::FetchedFile::Master, .url = scores.master_url };
+        if (const std::string why = fetch ? check_fetch({ master }, args.fetch_base) : std::string();
+            !why.empty())
+            return failed(tool, why, 2);
+    }
+
+    if (const std::optional<Failure> f = read_variants(in, cancel)) return failed(tool, f->message, f->status);
+
+    Timeline t = timeline::build(in, err);
     if (!err.empty()) return failed(tool, err);
     for (const std::string& w : t.axis.warnings) warn(tool, "the axis: " + w);
     for (const std::string& w : t.warnings) warn(tool, w);
+    const std::size_t ladder_warnings = t.warnings.size();
 
-    // Detection, only with W and N (D-077).
-    std::vector<Attribution> attributions;
+    // The session (design §3.4, step 6): its spans and player events, then
+    // its fetch, after the demux passes, with nothing else reading (design
+    // §5.7), and its requests as network events (D-104, D-105). A plan that
+    // doesn't fit the ladder is a bad argument, exit status 2, as one that
+    // can't be read is, a choice pending the owner (TimelineCli.h).
+    if (plan) {
+        if (!timeline::add_session(t, scores.entries, *plan, err))
+            return failed(tool, std::format("the session plan {} doesn't fit the ladder report {}: {}",
+                                            args.session, args.report, err),
+                          2);
+        const timeline::Session& s = t.sessions.front();
+        std::fputs(std::format("{}: session {} of {}: {} span{} over reference frames {}-{}{}\n", tool, s.id,
+                               args.session, s.spans.size(), s.spans.size() == 1 ? "" : "s",
+                               s.spans.front().ref_index, s.spans.back().ref_end - 1,
+                               fetch ? "" : "; its files aren't fetched (--fetch off)")
+                       .c_str(),
+                   stdout);
+        std::fflush(stdout);
+        if (fetch) {
+            // With --fetch-base, a URL outside the master's directory refuses
+            // the whole fetch (fetch_url(); D-108 (c)), before anything is
+            // fetched: exit status 2, as an argument the fetch can't honour,
+            // a status pending the owner (TimelineCli.h).
+            std::vector<timeline::Request> files =
+                timeline::fetch_files(t, 0, scores.master_url, args.fetch_base, err);
+            if (!err.empty())
+                return failed(tool, args.fetch_base.empty()
+                                        ? std::format("the session's fetch: {}", err)
+                                        : std::format("--fetch-base {}: {}", args.fetch_base, err),
+                              2);
+            if (const std::string why = check_fetch(files, args.fetch_base); !why.empty())
+                return failed(tool, why, 2);
+            const timeline::FetchResult r = timeline::fetch_session(std::move(files), cancel);
+            if (!r.error.empty())
+                return failed(tool, std::format("the session's fetch didn't finish: {}", r.error));
+            timeline::add_requests(t, 0, r.files, r.anchor_utc);
+            std::size_t failures = 0;
+            for (const timeline::Request& f : r.files)
+                if (!f.error.empty() || (!f.chain.empty() && f.chain.back().failed)) ++failures;
+            std::fputs(std::format("{}: session {}'s fetch: {} file{} from {}, {} failed\n", tool, s.id,
+                                   r.files.size(), r.files.size() == 1 ? "" : "s",
+                                   args.fetch_base.empty() ? std::string("the report's URLs") : args.fetch_base,
+                                   failures)
+                           .c_str(),
+                       stdout);
+            std::fflush(stdout);
+            for (std::size_t i = ladder_warnings; i < t.warnings.size(); ++i) warn(tool, t.warnings[i]);
+        }
+    }
+
+    // Detection, only with W and N (D-077): each pair's curve, then the
+    // session's, whose drops are its pairs' clipped to its spans; the
+    // session's beside the pairs' is a choice pending the owner
+    // (TimelineCli.h).
+    const std::vector<CurveRef> curves = timeline::curve_refs(t);
+    std::vector<Attribution>    attributions;
     if (args.detect.given()) {
-        attributions =
-            timeline::attribute_drops(t, timeline::pair_curve_refs(t), args.detect, args.overlap, err);
+        attributions = timeline::attribute_drops(t, curves, args.detect, args.overlap, err);
         if (!err.empty()) return failed(tool, err);
     } else {
         std::fputs(no_detection_note(args.detect).c_str(), stderr);
@@ -1391,21 +1790,30 @@ int run_timeline(const std::vector<std::string_view>& argv)
     info.report.sha256        = filehash::sha256_hex(report.text);
     info.report.scores_sha256 = filehash::sha256_hex(timeline::scores_text(scores));
     if (!timeline::reference_info(scores, t.axis, info.reference, err)) return failed(tool, err);
-    if (args.detect.given())
-        info.detection = timeline::Detection{ .options = args.detect,
-                                              .curves  = timeline::pair_curve_refs(t) };
+    if (plan) info.session_plan = timeline::FileRef{ args.session, plan_sha256 };
+    if (args.detect.given()) info.detection = timeline::Detection{ .options = args.detect, .curves = curves };
     info.overlap = args.overlap;
 
+    // A stop requested once the reads were done, during detection, say,
+    // still writes no document, as one during a read doesn't: exit status 1
+    // and no document, a choice pending the owner (TimelineCli.h).
+    if (cancel.stop_requested())
+        return failed(tool, "a stop was requested (SIGINT or SIGTERM): no document is written");
     const std::string text = timeline::to_json(t, attributions, info);
     if (const std::string back = reads_back(text); !back.empty())
         return failed(tool, "the document wouldn't read back, so it isn't written: " + back);
     if (!timeline::write_document(args.out, text, err)) return failed(tool, err);
 
-    const std::string detected =
-        args.detect.given() ? std::format("{} drop{} on {} curve{}", attributions.size(),
-                                          attributions.size() == 1 ? "" : "s", t.curves.size(),
-                                          t.curves.size() == 1 ? "" : "s")
+    std::size_t on_session = 0;
+    for (const Attribution& a : attributions)
+        if (a.curve.kind == CurveRef::Kind::Session) ++on_session;
+    const std::size_t pair_drops = attributions.size() - on_session;
+    std::string detected =
+        args.detect.given() ? std::format("{} drop{} on {} curve{}", pair_drops, pair_drops == 1 ? "" : "s",
+                                          t.curves.size(), t.curves.size() == 1 ? "" : "s")
                             : std::string("no detection");
+    if (args.detect.given() && !t.sessions.empty())
+        detected += std::format(" and {} on the session's", on_session);
     const std::size_t warnings = t.axis.warnings.size() + t.warnings.size();
     std::fputs(std::format("{}: {} events on {} reference frames, offsets in seconds on {}; {}; {} "
                            "warning{}; document written to {}\n",

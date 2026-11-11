@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Mirage timeline document, schema version 1",
-  "description": "The events of one ladder report's timeline on its reference's frames and the attributions of its drops, as mirage_vmaf timeline writes them (docs/TIMELINE_FORMAT.md; DECISIONS.md D-072). This file describes the ladder part, where the session part holds what a ladder alone has, session_plan null and sessions empty, until sessions are added in round 2 of Phase 3. It uses only type, enum, required, properties, additionalProperties and items, which the subset validator of tests/test_timeline_doc.cpp checks. Every field written from a double is typed number, since a whole double is written as an integer literal.",
+  "description": "The events of one ladder report's timeline on its reference's frames and the attributions of its drops, as mirage_vmaf timeline writes them (docs/TIMELINE_FORMAT.md; DECISIONS.md D-072): the ladder part, and the session part of a scripted session, its plan, its spans and its own events, whose payloads it types (D-068, D-104, D-105, D-108); a ladder alone has session_plan null and sessions empty. It uses only type, enum, const, required, properties, additionalProperties, items, allOf, if and then, which the subset validator of tests/test_timeline_doc.cpp checks. Every field written from a double is typed number, since a whole double is written as an integer literal.",
   "type": "object",
   "required": [
     "schema", "schema_version", "tool", "command", "ffmpeg_libraries", "options", "config_file",
@@ -66,8 +66,14 @@
       }
     },
     "session_plan": {
-      "description": "The session plan of the build: null in a ladder's document, which has no session, until sessions are added in round 2 of Phase 3.",
-      "type": "null"
+      "description": "The plan of the build's scripted session, by its path as given and the SHA-256 of its bytes (DECISIONS.md D-105 (a)); null for a ladder alone, which has no session.",
+      "type": ["object", "null"],
+      "required": ["path", "sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "path": { "type": "string" },
+        "sha256": { "type": "string" }
+      }
     },
     "axis": {
       "description": "What events are placed on, the reference's frames, and the seconds offsets are printed in (DECISIONS.md D-073), with the check of the two clocks.",
@@ -205,9 +211,39 @@
       }
     },
     "sessions": {
-      "description": "The sessions of the build: none in a ladder's document, until sessions are added in round 2 of Phase 3; an event's session names one of them.",
+      "description": "The build's scripted session, one at most (DECISIONS.md D-072), there exactly when session_plan is; none for a ladder alone. An event's session and a session's curve name it by its place here.",
       "type": "array",
-      "items": false
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "wallclock_anchor_utc", "spans"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "description": "What --curve session:<id> names it by: its place among the sessions as text, a form pending the owner (docs/TIMELINE_FORMAT.md).", "type": "string" },
+          "name": { "description": "Its plan's name, which may be empty.", "type": "string" },
+          "wallclock_anchor_utc": {
+            "description": "The UTC time its fetch started, from which its requests' wall clocks count, RFC 3339 to the microsecond with the zone Z, YYYY-MM-DDTHH:MM:SS.ffffffZ; null when its files weren't fetched (DECISIONS.md D-073, D-108 (c)).",
+            "type": ["string", "null"]
+          },
+          "spans": {
+            "description": "Its spans in play order, one at least, each starting where the one before it ended (DECISIONS.md D-105 (a)).",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["variant", "entry", "first_seq", "last_seq", "ref_index", "ref_end", "scored"],
+              "additionalProperties": false,
+              "properties": {
+                "variant": { "description": "The variant it plays, by its id.", "type": "integer" },
+                "entry": { "description": "The plan's master entry, one of the variant's.", "type": "integer" },
+                "first_seq": { "type": "integer" },
+                "last_seq": { "type": "integer" },
+                "ref_index": { "type": "integer" },
+                "ref_end": { "description": "Exclusive: where its last segment's span ends.", "type": "integer" },
+                "scored": { "description": "False where it plays the reference in top-rung mode, which has no score (DECISIONS.md D-105 (b)).", "type": "boolean" }
+              }
+            }
+          }
+        }
+      }
     },
     "timeline": {
       "description": "Every event, once, in canonical order: a point at a reference frame or a span of reference frames, half-open.",
@@ -244,7 +280,151 @@
           "pts_ticks": { "type": ["integer", "null"] },
           "wallclock": { "type": ["number", "null"] },
           "payload": { "type": "object" }
-        }
+        },
+        "allOf": [
+          {
+            "description": "A request of a session's fetch, one per fetched file, a redirected one included (DECISIONS.md D-104 (a)): of its session, with its wall clock, seconds from the session's start (D-073), and the payload src/SessionPlan.h gives it, as the owner kept it (D-108 (c)), its times seconds from the session's start, null where a row didn't reach them.",
+            "if": { "required": ["source"], "properties": { "source": { "const": "network" } } },
+            "then": {
+              "properties": {
+                "session": { "type": "integer" },
+                "wallclock": { "type": "number" },
+                "payload": {
+                  "type": "object",
+                  "required": [
+                    "url", "range", "status", "status_text", "bytes", "start", "first_byte", "end", "duration",
+                    "failed", "error", "origin", "chain"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "url": { "description": "As fetched: the report's, or the same path on --fetch-base's server.", "type": "string" },
+                    "range": {
+                      "description": "The segment's EXT-X-BYTERANGE, all that was read of its file; null for the whole file.",
+                      "type": ["object", "null"],
+                      "required": ["offset", "length"],
+                      "additionalProperties": false,
+                      "properties": {
+                        "offset": { "type": "integer" },
+                        "length": { "type": "integer" }
+                      }
+                    },
+                    "status": { "description": "The last row's HTTP status; null without one.", "type": ["integer", "null"] },
+                    "status_text": { "type": ["string", "null"] },
+                    "bytes": { "description": "The last row's body bytes; null when unknown.", "type": ["integer", "null"] },
+                    "start": { "description": "The first row's start, its open's, connection included.", "type": ["number", "null"] },
+                    "first_byte": { "description": "When the last row's status line came.", "type": ["number", "null"] },
+                    "end": { "description": "The last row's end.", "type": ["number", "null"] },
+                    "duration": { "description": "end minus start.", "type": ["number", "null"] },
+                    "failed": { "type": "boolean" },
+                    "error": { "description": "The fetch's own failure, or null.", "type": ["string", "null"] },
+                    "origin": { "const": "fetch" },
+                    "chain": {
+                      "description": "Each row the network logger made of the file's fetch, in order: one per request, a redirect's included.",
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "url", "start", "sent", "first_byte", "end", "status", "status_text", "bytes",
+                          "content_length", "failed", "error"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "url": { "type": "string" },
+                          "start": { "type": ["number", "null"] },
+                          "sent": { "type": ["number", "null"] },
+                          "first_byte": { "type": ["number", "null"] },
+                          "end": { "type": ["number", "null"] },
+                          "status": { "type": ["integer", "null"] },
+                          "status_text": { "type": ["string", "null"] },
+                          "bytes": { "type": ["integer", "null"] },
+                          "content_length": { "type": ["integer", "null"] },
+                          "failed": { "type": "boolean" },
+                          "error": { "type": ["string", "null"] }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "description": "A span of a session, over the reference frames of its segments, with the rung it plays by its master entry, URI, BANDWIDTH, RESOLUTION and both ranks (DECISIONS.md D-075), its plan's segments, and whether it is scored (D-105 (b)).",
+            "if": { "required": ["type"], "properties": { "type": { "const": "variant_span" } } },
+            "then": {
+              "properties": {
+                "session": { "type": "integer" },
+                "payload": {
+                  "type": "object",
+                  "required": [
+                    "entry", "uri", "bandwidth", "resolution", "rank_from_top", "rank_from_bottom", "first_seq",
+                    "last_seq", "scored"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "entry": { "type": "integer" },
+                    "uri": { "type": ["string", "null"] },
+                    "bandwidth": { "type": ["integer", "null"] },
+                    "resolution": { "type": ["string", "null"] },
+                    "rank_from_top": { "type": ["integer", "null"] },
+                    "rank_from_bottom": { "type": ["integer", "null"] },
+                    "first_seq": { "type": "integer" },
+                    "last_seq": { "type": "integer" },
+                    "scored": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "description": "A session's switch, at the first frame of a span whose entry isn't the one before it (DECISIONS.md D-108 (b)), on the variant played from it, from the rung of the span before to the rung of the span it starts, each by its master entry, URI, BANDWIDTH, RESOLUTION and both ranks (D-075), as its plan scripts it.",
+            "if": { "required": ["type"], "properties": { "type": { "const": "variant_switch" } } },
+            "then": {
+              "properties": {
+                "session": { "type": "integer" },
+                "payload": {
+                  "type": "object",
+                  "required": ["from", "to", "origin"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "from": {
+                      "type": "object",
+                      "required": ["entry", "uri", "bandwidth", "resolution", "rank_from_top", "rank_from_bottom"],
+                      "additionalProperties": false,
+                      "properties": {
+                        "entry": { "type": "integer" },
+                        "uri": { "type": ["string", "null"] },
+                        "bandwidth": { "type": ["integer", "null"] },
+                        "resolution": { "type": ["string", "null"] },
+                        "rank_from_top": { "type": ["integer", "null"] },
+                        "rank_from_bottom": { "type": ["integer", "null"] }
+                      }
+                    },
+                    "to": {
+                      "type": "object",
+                      "required": ["entry", "uri", "bandwidth", "resolution", "rank_from_top", "rank_from_bottom"],
+                      "additionalProperties": false,
+                      "properties": {
+                        "entry": { "type": "integer" },
+                        "uri": { "type": ["string", "null"] },
+                        "bandwidth": { "type": ["integer", "null"] },
+                        "resolution": { "type": ["string", "null"] },
+                        "rank_from_top": { "type": ["integer", "null"] },
+                        "rank_from_bottom": { "type": ["integer", "null"] }
+                      }
+                    },
+                    "origin": { "const": "plan" }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "description": "An offline event is of no session, whose own events are of the network and player sources (DECISIONS.md D-068), and has no wall clock (D-073).",
+            "if": { "required": ["source"], "properties": { "source": { "enum": ["vmaf", "playlist", "scte35", "decoder"] } } },
+            "then": { "properties": { "session": { "type": "null" }, "wallclock": { "type": "null" } } }
+          }
+        ]
       }
     },
     "detection": {
@@ -263,18 +443,31 @@
         "warm_up": { "type": "integer" },
         "context_first": { "enum": ["no-special-case"] },
         "curves": {
+          "description": "The curves detection ran on: a pair's by its pair's number (DECISIONS.md D-092 (b)), a session's by its place in sessions.",
           "type": "array",
           "items": {
             "type": "object",
             "required": ["kind", "index"],
             "additionalProperties": false,
             "properties": {
-              "kind": { "enum": ["pair"] },
+              "kind": { "enum": ["pair", "session"] },
               "index": { "type": "integer" }
             }
           }
         },
-        "session_rules": { "type": "null" }
+        "session_rules": {
+          "description": "The rules by which a session's drops are its pairs' drops clipped to the spans that played them (DECISIONS.md D-077; design section 6.3), where detection ran on a session's curve; null where it ran on no session's. This form, an object of five named rules, is pending the owner (docs/TIMELINE_FORMAT.md).",
+          "type": ["object", "null"],
+          "required": ["drops", "pieces", "at_switch", "baseline", "spans_of_one_variant"],
+          "additionalProperties": false,
+          "properties": {
+            "drops": { "enum": ["pair-drops-clipped-to-spans"] },
+            "pieces": { "enum": ["more-than-min-points"] },
+            "at_switch": { "enum": ["two-drops"] },
+            "baseline": { "enum": ["pair-drop"] },
+            "spans_of_one_variant": { "enum": ["one-stretch"] }
+          }
+        }
       }
     },
     "overlap": {
@@ -301,11 +494,12 @@
         "additionalProperties": false,
         "properties": {
           "curve": {
+            "description": "A pair's curve by its pair's number (DECISIONS.md D-092 (b)), or a session's by its place in sessions.",
             "type": "object",
             "required": ["kind", "index"],
             "additionalProperties": false,
             "properties": {
-              "kind": { "enum": ["pair"] },
+              "kind": { "enum": ["pair", "session"] },
               "index": { "type": "integer" }
             }
           },

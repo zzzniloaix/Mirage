@@ -1,6 +1,7 @@
 // timeline::to_json(), from_json() and write_document() (src/TimelineDoc.h):
-// the timeline document of DECISIONS.md D-072, its ladder part, on
-// timelines the test builds with the round-1 modules from inputs of its own
+// the timeline document of DECISIONS.md D-072, its ladder part and its
+// session part, on timelines the test builds with the round-1 modules, and
+// add_session() and add_requests() for a session, from inputs of its own
 // in the shape of testgen's ad ladder (eval/phase3-survey/testgen.md §2.3):
 // three rungs of eight 25-frame segments at 25 fps, the reference v360 and
 // the pairs v270 and v180, the ad in segments 3 and 4 restarting its
@@ -18,8 +19,12 @@
 // of 1/600 s and for an ad at another frame rate, values off each of them,
 // and the whole step where it holds as many frames, a pair's number, the
 // report's pairs[].index (D-092 (b)), the null segment map of a variant
-// without a playlist (D-092 (c)), the reference the axis is built on, and
-// the writing through a temporary file.
+// without a playlist (D-092 (c)), the reference the axis is built on, the
+// writing through a temporary file; and a scripted session's part (D-068,
+// D-105, D-108), checked against the schema file, whose subset validator
+// takes const, allOf, if and then for it, read back and written again the
+// same, a session not fetched and one over the reference, and the reader's
+// refusals of the session part, an offline event with a session among them.
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -150,17 +155,20 @@ json::Value string_value(std::string s) { return json::Value{ std::move(s) }; }
 // ── The subset JSON Schema validator (the design's P-AI) ─────────────────────
 
 // The keywords of JSON Schema draft 2020-12
-// (https://json-schema.org/draft/2020-12/json-schema-validation) that the
-// subset checks: type, enum, required, properties, additionalProperties and
-// items, as the draft defines each; and the annotations $schema, title and
+// (https://json-schema.org/draft/2020-12/json-schema-validation and
+// https://json-schema.org/draft/2020-12/json-schema-core) that the subset
+// checks: type, enum, const, required, properties, additionalProperties and
+// items, and the applicators allOf, if and then, which the session part
+// needs to type each of its events' payloads by the event's source or type,
+// as the draft defines each; and the annotations $schema, title and
 // description, which check nothing. Any other keyword is an error, so that
 // no part of a schema file goes unchecked. One departure from the draft:
 // "integer" is an integer literal, as src/JsonRead.h keeps one, where the
 // draft also takes a number whose fraction is zero (1.0); to_json() writes
 // every integer as a literal and every double through json::number.
 constexpr std::string_view kAnnotations[] = { "$schema", "title", "description" };
-constexpr std::string_view kKeywords[]    = { "type", "enum", "required", "properties",
-                                              "additionalProperties", "items" };
+constexpr std::string_view kKeywords[]    = { "type", "enum", "const", "required", "properties",
+                                              "additionalProperties", "items", "allOf", "if", "then" };
 constexpr std::string_view kTypeNames[]   = { "null", "boolean", "object", "array",
                                               "number", "string", "integer" };
 
@@ -216,6 +224,8 @@ void subset_errors(const json::Value& schema, const std::string& where, std::vec
                 if (!n->string() || !among(kTypeNames, *n->string())) out.push_back(here + ": no type name");
         } else if (k == "enum") {
             if (!x.array()) out.push_back(here + ": a list of values");
+        } else if (k == "const") {
+            // Any value.
         } else if (k == "required") {
             const json::Value::Array* a = x.array();
             if (!a) out.push_back(here + ": a list of names");
@@ -227,8 +237,13 @@ void subset_errors(const json::Value& schema, const std::string& where, std::vec
             if (!p) out.push_back(here + ": an object of schemas");
             else
                 for (const auto& [name, s] : *p) subset_errors(s, here + "." + name, out);
-        } else if (k == "additionalProperties" || k == "items") {
+        } else if (k == "additionalProperties" || k == "items" || k == "if" || k == "then") {
             subset_errors(x, here, out);
+        } else if (k == "allOf") {
+            const json::Value::Array* a = x.array();
+            if (!a || a->empty()) out.push_back(here + ": a non-empty list of schemas");
+            else
+                for (std::size_t i = 0; i < a->size(); ++i) subset_errors((*a)[i], std::format("{}[{}]", here, i), out);
         } else {
             out.push_back(here + ": a keyword outside the subset");
         }
@@ -263,6 +278,18 @@ void check(const json::Value& schema, const json::Value& v, const std::string& w
             const json::Value::Array* a = x.array();
             if (!a || std::none_of(a->begin(), a->end(), [&](const json::Value& e) { return same(e, v); }))
                 out.push_back(where + ": " + text_of(v) + ", not one of " + text_of(x));
+        } else if (k == "const") {
+            if (!same(x, v)) out.push_back(where + ": " + text_of(v) + ", not " + text_of(x));
+        } else if (k == "allOf") {
+            if (const json::Value::Array* a = x.array())
+                for (const json::Value& s : *a) check(s, v, where, out);
+        } else if (k == "if") {
+            // "then" holds where "if" does; "if" itself fails nothing.
+            std::vector<std::string> unless;
+            check(x, v, where, unless);
+            if (const json::Value* then = schema.find("then"); then && unless.empty()) check(*then, v, where, out);
+        } else if (k == "then") {
+            // Applied by "if", and without it nothing, as the draft has it.
         } else if (k == "required") {
             if (v.object() && x.array())
                 for (const json::Value& n : *x.array())
@@ -713,6 +740,24 @@ void check_same(const timeline::Timeline& a, const timeline::Timeline& b)
         CHECK(x.wallclock_us == y.wallclock_us);
         CHECK(alike(x.payload, y.payload));
     }
+    REQUIRE(a.sessions.size() == b.sessions.size());
+    for (std::size_t i = 0; i < a.sessions.size(); ++i) {
+        const timeline::Session &x = a.sessions[i], &y = b.sessions[i];
+        CHECK(x.id == y.id);
+        CHECK(x.name == y.name);
+        CHECK(x.wallclock_anchor_utc == y.wallclock_anchor_utc);
+        REQUIRE(x.spans.size() == y.spans.size());
+        for (std::size_t k = 0; k < x.spans.size(); ++k) {
+            const timeline::Span &p = x.spans[k], &q = y.spans[k];
+            CHECK(p.variant == q.variant);
+            CHECK(p.entry == q.entry);
+            CHECK(p.first_seq == q.first_seq);
+            CHECK(p.last_seq == q.last_seq);
+            CHECK(p.ref_index == q.ref_index);
+            CHECK(p.ref_end == q.ref_end);
+            CHECK(p.scored == q.scored);
+        }
+    }
     CHECK(a.max_end == b.max_end);
     CHECK(a.warnings == b.warnings);
 }
@@ -722,6 +767,7 @@ void check_same(const std::vector<Attribution>& a, const std::vector<Attribution
     REQUIRE(a.size() == b.size());
     for (std::size_t i = 0; i < a.size(); ++i) {
         const Attribution &x = a[i], &y = b[i];
+        CHECK(x.curve.kind == y.curve.kind);
         CHECK(x.curve.index == y.curve.index);
         CHECK(x.interval.ref_index == y.interval.ref_index);
         CHECK(x.interval.ref_end == y.interval.ref_end);
@@ -755,8 +801,8 @@ void check_same(const std::vector<Attribution>& a, const std::vector<Attribution
 // RESOLUTION, CODECS or playlist, and so no segment map, which keeps
 // Variant's default and is written null (D-092 (c)); v180 without a
 // RESOLUTION; and a payload of every value kind. An event with a session
-// and a wall clock comes with the session part, whose sessions it can name
-// (WP09b): a ladder's document has neither.
+// and a wall clock is the session part's, whose sessions it can name
+// (with_session(), below): a ladder's document has neither.
 Built varied()
 {
     Built b = ad_ladder({ .detect = true, .reference_refused = true,
@@ -852,6 +898,102 @@ std::string round_trip(const Built& b)
     check_same(b.timeline, r.timeline);
     CHECK(timeline::to_json(r.timeline, r.attributions, r.info) == text);
     return text;
+}
+
+// The UTC anchor the session tests give their fetch, in the form the fetch
+// writes (D-108 (c)).
+constexpr std::string_view kAnchor = "2026-11-10T09:30:00.000250Z";
+
+// The ad ladder's timeline with a scripted session, design §8's session
+// part (D-068): the plan of design §9.3's shape, entry 1 (v270) for
+// segments 0 to 2, entry 2 (v180) for 3 and 4 and entry 1 for 5 to 7,
+// placed by add_session() (src/TimelineBuild.h); with `fetched`, its fetch
+// as fetch_files() lists it, each file given rows by hand one after another
+// from 1 ms on the session's clock, 3 ms each: the master a redirect of two
+// rows, v270's media playlist a 404, v270's segment 7 a connection refused,
+// and v180's segment 3, the ad's first, the work order's request of 2.3 s;
+// added by add_requests() with kAnchor. Detection on every pair's curve and
+// the session's (curve_refs()) with the acceptance tests' W = 50 and N = 12
+// (D-077), which find v180's ad, frames 75 to 124, on its pair's curve and
+// on the session's, which plays v180 there.
+Built with_session(bool fetched = true)
+{
+    Built b = ad_ladder({ .detect = false });
+    timeline::Timeline& t = b.timeline;
+    std::string err;
+    const timeline::SessionPlan plan{ .name  = "down at the ad",
+                                      .spans = { { .entry = 1, .first_seq = 0, .last_seq = 2 },
+                                                 { .entry = 2, .first_seq = 3, .last_seq = 4 },
+                                                 { .entry = 1, .first_seq = 5, .last_seq = 7 } } };
+    REQUIRE(timeline::add_session(t, b.scores.entries, plan, err));
+    if (fetched) {
+        std::vector<timeline::Request> files = timeline::fetch_files(t, 0, b.scores.master_url, "", err);
+        INFO(err);
+        REQUIRE(err.empty());
+        REQUIRE(files.size() == 11);
+        std::int64_t at = 1000;
+        for (timeline::Request& r : files) {
+            const bool slow = r.kind == timeline::FetchedFile::Segment && r.variant == 2 && r.segment == 3;
+            const std::int64_t length = slow ? 2300000 : 3000;
+            timeline::RequestRow row{ .url = r.url, .t_start = at, .t_sent = at + 100,
+                                      .t_first_byte = at + length - 500, .t_end = at + length, .bytes = 12032,
+                                      .status = 200, .status_text = "OK", .content_length = 12032,
+                                      .initiator = "playback" };
+            if (r.kind == timeline::FetchedFile::Master) {
+                timeline::RequestRow moved = row;
+                moved.t_first_byte = at + 800;
+                moved.t_end        = at + 900;
+                moved.bytes = moved.content_length = 0;
+                moved.status      = 302;
+                moved.status_text = "Found";
+                row.url    = "http://test.invalid/elsewhere/master.m3u8";
+                row.t_start = row.t_sent = at + 900;
+                r.chain = { moved, row };
+            } else if (r.kind == timeline::FetchedFile::MediaPlaylist && r.variant == 1) {
+                row.status      = 404;
+                row.status_text = "Not Found";
+                row.failed      = true;
+                row.bytes = row.content_length = 0;
+                r.chain = { row };
+                r.error = "Server returned 404 Not Found";
+            } else if (r.kind == timeline::FetchedFile::Segment && r.variant == 1 && r.segment == 7) {
+                row.t_sent = row.t_first_byte = -1;
+                row.t_end  = at + 2500;
+                row.bytes = row.content_length = -1;
+                row.status = 0;
+                row.status_text.clear();
+                row.failed = true;
+                row.error  = "Connection refused";
+                r.chain = { row };
+                r.error = "Connection refused";
+            } else {
+                r.chain = { row };
+            }
+            at += length;
+        }
+        timeline::add_requests(t, 0, files, std::string(kAnchor));
+    }
+    timeline::DetectOptions options;
+    options.window     = 50;
+    options.min_points = 12;
+    const std::vector<CurveRef> curves = timeline::curve_refs(t);
+    b.attributions = timeline::attribute_drops(t, curves, options, b.info.overlap, err);
+    INFO(err);
+    REQUIRE(err.empty());
+    b.info.detection    = timeline::Detection{ .options = options, .curves = curves };
+    b.info.session_plan = timeline::FileRef{ .path   = "down-at-the-ad.plan.json",
+                                             .sha256 = filehash::sha256_hex("the plan's bytes") };
+    return b;
+}
+
+// The place in `doc`'s timeline of the event `id`; the timeline's size when
+// none has it.
+std::size_t place_of(json::Value& doc, std::string_view id)
+{
+    std::size_t i = 0;
+    while (i < at(doc, "timeline").array()->size() && *at(doc, std::format("timeline[{}].id", i)).string() != id)
+        ++i;
+    return i;
 }
 
 // A reference of the shape the tests of the axis's stretches give
@@ -1047,14 +1189,48 @@ TEST_CASE("timeline schema: the subset validator takes and refuses as JSON Schem
     CHECK(failures(object, R"({"a": 1, "b": [], "e": {}})") == std::vector<std::string>{ "$.e: no f" });
     CHECK(failures(object, R"([])") == std::vector<std::string>{ R"($: an array, not of type "object")" });
 
-    // "items": false, as the schema file has it for a ladder's sessions: an
-    // array with no item.
+    // "items": false: an array with no item.
     const json::Value none = parsed(R"({"type": "array", "items": false})");
     CHECK(failures(none, "[]").empty());
     CHECK(failures(none, "[{}]") == std::vector<std::string>{ "$[0]: the schema allows nothing here" });
     std::vector<std::string> none_errors;
     subset_errors(none, "schema", none_errors);
     CHECK(none_errors.empty());
+
+    // "const", JSON's equality as "enum" has it; "allOf", every schema of
+    // the list; "if" and "then", "then" where "if" holds and nothing where
+    // it doesn't, "if" failing nothing itself: as the schema file types a
+    // session's events by their source or type.
+    const json::Value one = parsed(R"({"const": 2})");
+    CHECK(failures(one, "2").empty());
+    CHECK(failures(one, "2.0").empty());
+    CHECK(failures(one, "3") == std::vector<std::string>{ "$: 3, not 2" });
+    CHECK(failures(one, R"("2")") == std::vector<std::string>{ R"($: "2", not 2)" });
+    const json::Value typed = parsed(R"({
+        "type": "object",
+        "allOf": [
+            {"if": {"required": ["s"], "properties": {"s": {"const": "net"}}},
+             "then": {"required": ["w"], "properties": {"w": {"type": "number"}}}},
+            {"if": {"required": ["s"], "properties": {"s": {"enum": ["vmaf", "tag"]}}},
+             "then": {"properties": {"w": {"type": "null"}}}},
+            {"then": {"required": ["never"]}}
+        ]})");
+    CHECK(failures(typed, R"({"s": "net", "w": 1.5})").empty());
+    CHECK(failures(typed, R"({"s": "tag", "w": null})").empty());
+    CHECK(failures(typed, R"({"s": "other", "w": "x"})").empty());   // neither "if" holds
+    CHECK(failures(typed, R"({"w": "x"})").empty());                 // no "s": neither holds
+    CHECK(failures(typed, R"({"s": "net"})") == std::vector<std::string>{ "$: no w" });
+    CHECK(failures(typed, R"({"s": "net", "w": null})") ==
+          std::vector<std::string>{ R"($.w: null, not of type "number")" });
+    CHECK(failures(typed, R"({"s": "vmaf", "w": 0})") ==
+          std::vector<std::string>{ R"($.w: an integer, not of type "null")" });
+    std::vector<std::string> typed_errors;
+    subset_errors(typed, "schema", typed_errors);
+    CHECK(typed_errors.empty());
+    subset_errors(parsed(R"({"allOf": [], "if": {"minimum": 1}, "then": 3})"), "schema", typed_errors);
+    CHECK(typed_errors == std::vector<std::string>{ "schema.allOf: a non-empty list of schemas",
+                                                    "schema.if.minimum: a keyword outside the subset",
+                                                    "schema.then: a schema is an object or a boolean" });
 
     // A keyword outside the subset is an error, wherever it is.
     const json::Value outside = parsed(R"({"properties": {"a": {"minimum": 0}}})");
@@ -1066,6 +1242,10 @@ TEST_CASE("timeline schema: the subset validator takes and refuses as JSON Schem
     errors.clear();
     subset_errors(parsed(R"({"type": "float", "required": [1], "items": 3})"), "schema", errors);
     CHECK(errors.size() == 3);
+    errors.clear();
+    subset_errors(parsed(R"({"else": {}, "oneOf": [{}]})"), "schema", errors);
+    CHECK(errors == std::vector<std::string>{ "schema.else: a keyword outside the subset",
+                                              "schema.oneOf: a keyword outside the subset" });
     errors.clear();
     subset_errors(object, "schema", errors);
     CHECK(errors.empty());
@@ -1178,7 +1358,7 @@ TEST_CASE("timeline::to_json: the ad ladder's document, checked against the sche
                       R"("libvmaf_package_version":"1.2.4","master":{{"url":"http://test.invalid/ladder/)"
                       R"(master.m3u8","location":"http://test.invalid/ladder/master.m3u8","sha256":"{}"}}}})",
                       b.info.report.sha256, b.info.report.scores_sha256, b.scores.master_sha256));
-    // The session part as a ladder alone has it, until WP09b fills it.
+    // The session part as a ladder alone has it: no plan and no session.
     CHECK(text_of(at(doc, "session_plan")) == "null");
     CHECK(text_of(at(doc, "sessions")) == "[]");
 
@@ -2295,6 +2475,295 @@ TEST_CASE("timeline::to_json: a step of D-100's is taken only where it holds mor
     }
 }
 
+// ── The session part ─────────────────────────────────────────────────────────
+
+TEST_CASE("timeline::to_json: a session's part, checked against the schema file, read back and written "
+          "again the same", "[timeline][timeline_doc]")
+{
+    const Built b = with_session();
+    const std::string text = document(b);
+    CHECK(schema_failures(text).empty());
+    json::Value doc = parsed(text);
+    // An offline event has no session and no wall clock (D-068, D-073), as
+    // the schema file types it.
+    json::Value offline = parsed(text);
+    const std::size_t segment = place_of(offline, "playlist/segment/2/0");
+    at(offline, std::format("timeline[{}].session", segment)) = integer_value(0);
+    CHECK(schema_failures(text_of(offline)) ==
+          std::vector<std::string>{ std::format(R"($.timeline[{}].session: an integer, not of type "null")", segment) });
+
+    // The plan by its path and SHA-256 (D-105 (a)); the session, its UTC
+    // anchor (D-073, D-108 (c)) and its spans, in design §8's keys, v180's
+    // between v270's two (D-105 (a)), every one scored (D-105 (b)).
+    CHECK(text_of(at(doc, "session_plan")) ==
+          std::format(R"({{"path":"down-at-the-ad.plan.json","sha256":"{}"}})",
+                      filehash::sha256_hex("the plan's bytes")));
+    CHECK(text_of(at(doc, "sessions")) ==
+          R"([{"id":"0","name":"down at the ad","wallclock_anchor_utc":"2026-11-10T09:30:00.000250Z","spans":[)"
+          R"({"variant":1,"entry":1,"first_seq":0,"last_seq":2,"ref_index":0,"ref_end":75,"scored":true},)"
+          R"({"variant":2,"entry":2,"first_seq":3,"last_seq":4,"ref_index":75,"ref_end":125,"scored":true},)"
+          R"({"variant":1,"entry":1,"first_seq":5,"last_seq":7,"ref_index":125,"ref_end":200,"scored":true}]}])");
+    // Its spans' text, as the writer lays it out: one span to a line.
+    CHECK(text.find("      \"spans\": [\n        {\"variant\": 1, \"entry\": 1, \"first_seq\": 0, \"last_seq\": 2, "
+                    "\"ref_index\": 0, \"ref_end\": 75, \"scored\": true},\n") != std::string::npos);
+
+    // A request, of its session, on its segment's span (D-105 (c)), its wall
+    // clock its first row's start, seconds from the session's start
+    // (D-073), and its payload as src/SessionPlan.h gives it (D-108 (c)):
+    // v180's segment 3, the work order's 2.3 s.
+    const std::size_t slow = place_of(doc, "network/segment_request/2/0");
+    CHECK(text_of(at(doc, std::format("timeline[{}]", slow))) ==
+          R"({"id":"network/segment_request/2/0","source":"network","type":"segment_request","variant":2,)"
+          R"("session":0,"segment":3,"ref_index":75,"ref_end":100,"t":3,"t_end":4,"seq":1,"pts":10,)"
+          R"("pts_ticks":900000,"wallclock":0.019,"payload":{"url":"http://test.invalid/ladder/v180/ad_000.ts",)"
+          R"("range":null,"status":200,"status_text":"OK","bytes":12032,"start":0.019,"first_byte":2.3185,)"
+          R"("end":2.319,"duration":2.3,"failed":false,"error":null,"origin":"fetch","chain":[{"url":)"
+          R"("http://test.invalid/ladder/v180/ad_000.ts","start":0.019,"sent":0.0191,"first_byte":2.3185,)"
+          R"("end":2.319,"status":200,"status_text":"OK","bytes":12032,"content_length":12032,"failed":false,)"
+          R"("error":null}]}})");
+    // The master's, of no variant, at the session's first frame, its two
+    // rows a redirect's, its status the last's (D-104 (a)).
+    const std::size_t master = place_of(doc, "network/playlist_request/-/0");
+    CHECK(text_of(at(doc, std::format("timeline[{}].variant", master))) == "null");
+    CHECK(text_of(at(doc, std::format("timeline[{}].ref_index", master))) == "0");
+    CHECK(text_of(at(doc, std::format("timeline[{}].payload.status", master))) == "200");
+    CHECK(text_of(at(doc, std::format("timeline[{}].payload.duration", master))) == "0.003");
+    CHECK(at(doc, std::format("timeline[{}].payload.chain", master)).array()->size() == 2);
+    CHECK(text_of(at(doc, std::format("timeline[{}].payload.chain[0].status", master))) == "302");
+    // A 404, and a connection refused, whose row reached no status line.
+    const std::size_t missing = place_of(doc, "network/playlist_request/1/0");
+    CHECK(text_of(at(doc, std::format("timeline[{}].payload.status", missing))) == "404");
+    CHECK(text_of(at(doc, std::format("timeline[{}].payload.failed", missing))) == "true");
+    CHECK(text_of(at(doc, std::format("timeline[{}].payload.error", missing))) == R"("Server returned 404 Not Found")");
+    const std::size_t refused = place_of(doc, "network/segment_request/1/5");
+    CHECK(text_of(at(doc, std::format("timeline[{}].segment", refused))) == "7");
+    CHECK(text_of(at(doc, std::format("timeline[{}].payload", refused))) ==
+          R"({"url":"http://test.invalid/ladder/v270/main_007.ts","range":null,"status":null,"status_text":null,)"
+          R"("bytes":null,"start":2.328,"first_byte":null,"end":2.3305,"duration":0.0025,"failed":true,)"
+          R"("error":"Connection refused","origin":"fetch","chain":[{"url":)"
+          R"("http://test.invalid/ladder/v270/main_007.ts","start":2.328,"sent":null,"first_byte":null,)"
+          R"("end":2.3305,"status":null,"status_text":null,"bytes":null,"content_length":null,"failed":true,)"
+          R"("error":"Connection refused"}]})");
+
+    // The player's events: no wall clock, which a scripted plan's spans and
+    // switches don't have (D-073); a switch on the variant played from it,
+    // from the rung before to the one after, by entry and URI with both
+    // ranks (D-075).
+    const std::size_t down = place_of(doc, "player/variant_switch/2/0");
+    CHECK(text_of(at(doc, std::format("timeline[{}]", down))) ==
+          R"({"id":"player/variant_switch/2/0","source":"player","type":"variant_switch","variant":2,)"
+          R"("session":0,"segment":null,"ref_index":75,"ref_end":null,"t":3,"t_end":null,"seq":1,"pts":10,)"
+          R"("pts_ticks":900000,"wallclock":null,"payload":{"from":{"entry":1,"uri":"v270/index.m3u8",)"
+          R"("bandwidth":600000,"resolution":"480x270","rank_from_top":2,"rank_from_bottom":2},"to":)"
+          R"({"entry":2,"uri":"v180/index.m3u8","bandwidth":350000,"resolution":"320x180","rank_from_top":3,)"
+          R"("rank_from_bottom":1},"origin":"plan"}})");
+    CHECK(text_of(at(doc, std::format("timeline[{}].payload", place_of(doc, "player/variant_span/2/0")))) ==
+          R"({"entry":2,"uri":"v180/index.m3u8","bandwidth":350000,"resolution":"320x180","rank_from_top":3,)"
+          R"("rank_from_bottom":1,"first_seq":3,"last_seq":4,"scored":true})");
+
+    // Detection on every pair's curve and the session's, with the rules of
+    // its drops (D-077); the drop of v180's pair, then the session's, with
+    // that pair's numbers (design §6.3, rule (iii)), its own events among
+    // those it lists.
+    CHECK(text_of(at(doc, "detection.curves")) ==
+          R"([{"kind":"pair","index":0},{"kind":"pair","index":1},{"kind":"session","index":0}])");
+    CHECK(text_of(at(doc, "detection.session_rules")) ==
+          R"({"drops":"pair-drops-clipped-to-spans","pieces":"more-than-min-points","at_switch":"two-drops",)"
+          R"("baseline":"pair-drop","spans_of_one_variant":"one-stretch"})");
+    REQUIRE(b.attributions.size() == 2);
+    CHECK(text_of(at(doc, "attributions[0].curve")) == R"({"kind":"pair","index":1})");
+    CHECK(text_of(at(doc, "attributions[1].curve")) == R"({"kind":"session","index":0})");
+    const Attribution& pair    = b.attributions[0];
+    const Attribution& session = b.attributions[1];
+    CHECK((session.interval.ref_index == 75 && session.interval.ref_end == 125));
+    CHECK(session.points == 50);
+    CHECK(session.baseline == pair.baseline);
+    CHECK(session.drop_magnitude == pair.drop_magnitude);
+    CHECK(session.mean_drop == pair.mean_drop);
+    CHECK(listed(b.timeline, session, Source::Network) ==
+          Ids{ "network/playlist_request/2/0", "network/segment_request/2/0", "network/segment_request/2/1" });
+    CHECK(listed(b.timeline, session, Source::Player) ==
+          Ids{ "player/variant_switch/2/0", "player/variant_span/2/0" });
+    CHECK(listed(b.timeline, session, Source::Scte35) == listed(b.timeline, pair, Source::Scte35));
+    CHECK(listed(b.timeline, pair, Source::Network).empty());
+    CHECK(listed(b.timeline, pair, Source::Player).empty());
+
+    // Read back field by field and written again to the same bytes.
+    const Read r = read(text);
+    INFO(r.err);
+    REQUIRE(r.ok);
+    check_same(b.timeline, r.timeline);
+    check_same(b.attributions, r.attributions);
+    REQUIRE(r.info.session_plan);
+    CHECK(r.info.session_plan->path == "down-at-the-ad.plan.json");
+    REQUIRE(r.info.detection);
+    REQUIRE(r.info.detection->curves.size() == 3);
+    CHECK(r.info.detection->curves[2].kind == CurveRef::Kind::Session);
+    CHECK(r.info.detection->curves[2].index == 0);
+    CHECK(timeline::to_json(r.timeline, r.attributions, r.info) == text);
+    // The same timeline from the same inputs, whatever the events' order.
+    Built shuffled = b;
+    std::reverse(shuffled.timeline.events.begin(), shuffled.timeline.events.end());
+    for (Attribution& a : shuffled.attributions)
+        for (auto& group : a.by_source)
+            for (Found& f : group) f.event = shuffled.timeline.events.size() - 1 - f.event;
+    CHECK(document(shuffled) == text);
+}
+
+TEST_CASE("timeline::to_json: a session whose files weren't fetched has no anchor and no request, and one "
+          "over the reference has unscored spans", "[timeline][timeline_doc]")
+{
+    // --fetch off (design §7): no network event, and the anchor null
+    // (D-108 (c)).
+    const Built off = with_session(false);
+    const std::string text = round_trip(off);
+    json::Value doc = parsed(text);
+    CHECK(text_of(at(doc, "sessions[0].wallclock_anchor_utc")) == "null");
+    for (const Event& e : off.timeline.events) CHECK(e.source != Source::Network);
+    REQUIRE(off.attributions.size() == 2);   // the session's drop doesn't need its fetch
+    CHECK(off.attributions[1].curve.kind == CurveRef::Kind::Session);
+
+    // A span of the reference in top-rung mode isn't scored (D-105 (b)):
+    // the session's curve has no point there, and no drop.
+    Built b = ad_ladder({ .detect = false });
+    std::string err;
+    REQUIRE(timeline::add_session(b.timeline, b.scores.entries,
+                                  timeline::SessionPlan{ .name  = "",
+                                                         .spans = { { .entry = 0, .first_seq = 0, .last_seq = 4 },
+                                                                    { .entry = 1, .first_seq = 5, .last_seq = 7 } } },
+                                  err));
+    b.info.session_plan = timeline::FileRef{ .path = "top.plan.json", .sha256 = filehash::sha256_hex("top") };
+    json::Value top = parsed(round_trip(b));
+    CHECK(text_of(at(top, "sessions[0].name")) == R"("")");
+    CHECK(text_of(at(top, "sessions[0].spans[0].scored")) == "false");
+    CHECK(text_of(at(top, "sessions[0].spans[1].scored")) == "true");
+    CHECK(text_of(at(top, "detection")) == "null");
+    CHECK(text_of(at(top, std::format("timeline[{}].payload.scored", place_of(top, "player/variant_span/0/0")))) ==
+          "false");
+}
+
+TEST_CASE("timeline::from_json: the session part's refusals, each naming the key", "[timeline][timeline_doc]")
+{
+    const std::string text = document(with_session());
+    REQUIRE(read(text).ok);
+    const auto refused = [&text](const std::function<void(json::Value&)>& change) {
+        json::Value doc = parsed(text);
+        change(doc);
+        const Read r = read(text_of(doc));
+        CHECK_FALSE(r.ok);
+        CHECK(r.timeline.sessions.empty());
+        return r.err;
+    };
+    const auto set = [](std::string path, json::Value v) {
+        return [path, v](json::Value& d) { at(d, path) = v; };
+    };
+    json::Value tree = parsed(text);
+    const std::string slow = std::format("timeline[{}]", place_of(tree, "network/segment_request/2/0"));
+    const std::string span = std::format("timeline[{}]", place_of(tree, "player/variant_span/2/0"));
+
+    // A plan makes one session, and a document holds one at most (D-072,
+    // D-105 (a)).
+    CHECK(refused(set("session_plan", json::Value{})) ==
+          "sessions has a session, but session_plan is null: a scripted session comes from a plan, "
+          "recorded by its path and SHA-256 (D-105 (a))");
+    CHECK(refused(set("sessions", json::Value{ json::Value::Array{} })) ==
+          "sessions is empty, but session_plan names a plan: a plan makes a session (D-105 (a))");
+    CHECK(refused([](json::Value& d) {
+              auto& list = std::get<json::Value::Array>(at(d, "sessions").v);
+              list.push_back(list.front());
+          }) == "sessions has 2 entries: a timeline document holds one session at most (D-072)");
+    CHECK(refused([](json::Value& d) { erase(d, "session_plan", "sha256"); }) ==
+          "no session_plan.sha256: schema version 1 has it");
+
+    // A session's keys and values.
+    CHECK(refused([](json::Value& d) { erase(d, "sessions[0]", "name"); }) ==
+          "no sessions[0].name: schema version 1 has it");
+    CHECK(refused([](json::Value& d) {
+              std::get<json::Value::Object>(at(d, "sessions[0]").v).emplace_back("log", json::Value{});
+          }) == "sessions[0].log is no key of schema version 1");
+    CHECK(refused(set("sessions[0].id", string_value(""))) == "sessions[0].id is empty");
+    CHECK(refused(set("sessions[0].id", integer_value(0))) == "sessions[0].id is an integer, not a string");
+    for (const char* anchor : { "2026-11-10T09:30:00Z", "2026-11-10 09:30:00.000250Z",
+                                "2026-11-10T09:30:00.000250+00:00", "2026-11-10T09:30:00.0002500Z",
+                                "2026-1x-10T09:30:00.000250Z" }) {
+        INFO(anchor);
+        CHECK(refused(set("sessions[0].wallclock_anchor_utc", string_value(anchor))) ==
+              std::format("sessions[0].wallclock_anchor_utc is \"{}\", not RFC 3339 UTC to the microsecond with "
+                          "the zone Z, YYYY-MM-DDTHH:MM:SS.ffffffZ (D-108 (c))",
+                          anchor));
+    }
+    CHECK(refused(set("sessions[0].spans", json::Value{ json::Value::Array{} })) ==
+          "sessions[0].spans is empty: a session plays one span at least (D-105 (a))");
+
+    // A span: its variant and entry, its segments, its frames, and its
+    // scored flag (D-105 (a), (b)).
+    CHECK(refused(set("sessions[0].spans[0].variant", json::Value{})) ==
+          "sessions[0].spans[0].variant is null, not an integer: a span plays a variant");
+    CHECK(refused(set("sessions[0].spans[0].variant", integer_value(3))) ==
+          "sessions[0].spans[0].variant is 3, which names none of the 3 variants");
+    CHECK(refused(set("sessions[0].spans[0].entry", integer_value(2))) ==
+          "sessions[0].spans[0].entry is 2, none of the entries of variant 1, which the span plays");
+    CHECK(refused(set("sessions[0].spans[1].last_seq", integer_value(2))) ==
+          "sessions[0].spans[1].last_seq is 2, before its first_seq 3");
+    CHECK(refused(set("sessions[0].spans[1].first_seq", integer_value(-1))) ==
+          "sessions[0].spans[1].first_seq is -1, not a count from 0");
+    CHECK(refused(set("sessions[0].spans[2].ref_end", integer_value(201))) ==
+          "sessions[0].spans[2] runs from reference frame 125 to 201, which isn't a span of the axis's 200 "
+          "frames");
+    CHECK(refused(set("sessions[0].spans[0].ref_end", integer_value(0))) ==
+          "sessions[0].spans[0] runs from reference frame 0 to 0, which isn't a span of the axis's 200 frames");
+    CHECK(refused(set("sessions[0].spans[1].ref_index", integer_value(76))) ==
+          "sessions[0].spans[1].ref_index is 76, not 75, where the span before it ends: each span starts "
+          "where the one before it ended (D-105 (a))");
+    CHECK(refused(set("sessions[0].spans[0].scored", json::Value{ false })) ==
+          "sessions[0].spans[0].scored is false, but the span plays pair 0's distorted variant: a span is "
+          "scored exactly when it plays a pair's distorted variant, the reference in top-rung mode having no "
+          "score (D-105 (b))");
+    CHECK(refused([](json::Value& d) {
+              at(d, "sessions[0].spans[0].variant") = integer_value(0);
+              at(d, "sessions[0].spans[0].entry")   = integer_value(0);
+          }) == "sessions[0].spans[0].scored is true, but the span plays the reference: a span is scored exactly "
+                "when it plays a pair's distorted variant, the reference in top-rung mode having no score "
+                "(D-105 (b))");
+
+    // Its events: a session they name, a request's wall clock, which counts
+    // from the session's anchor (D-073, D-108 (c)).
+    CHECK(refused(set(slow + ".session", integer_value(1))) ==
+          slow + ".session is 1, which names none of the 1 sessions");
+    CHECK(refused(set(slow + ".wallclock", json::Value{})) ==
+          slow + ".wallclock is null, but a network event is a request the session's fetch made, whose wall "
+                 "clock was observed (D-073)");
+    CHECK(refused(set("sessions[0].wallclock_anchor_utc", json::Value{})).ends_with(
+          ".wallclock is 0.001 s, but session 0 has no UTC anchor for it to count from: its files weren't "
+          "fetched (D-073, D-108 (c))"));
+    CHECK(refused(set(span + ".session", json::Value{})) ==
+          span + " is a player event without a session: the player source's events are a session's (D-068)");
+    // An offline event is of no session (D-068): with the session's index,
+    // v180's segment 0, over frames the session plays v270 on, would leave
+    // its pair's scope and join the session's, which D-078 rules out.
+    const std::string segment = std::format("timeline[{}]", place_of(tree, "playlist/segment/2/0"));
+    CHECK(refused(set(segment + ".session", integer_value(0))) ==
+          segment + ".session is 0, but a playlist event is offline and of no session: a session's own events are "
+                    "of the network and player sources (D-068)");
+
+    // Its curve, by its place among the sessions, and the rules of its
+    // drops where detection ran on it (D-077).
+    CHECK(refused(set("attributions[1].curve.index", integer_value(1))) ==
+          "attributions[1].curve.index is 1, which names none of the 1 sessions");
+    CHECK(refused(set("detection.curves[2].index", integer_value(2))) ==
+          "detection.curves[2].index is 2, which names none of the 1 sessions");
+    CHECK(refused(set("detection.session_rules", json::Value{})) ==
+          "detection.session_rules is null, but detection ran on a session's curve, whose drops are its "
+          "pairs' clipped to its spans by D-077's rules");
+    CHECK(refused(set("detection.session_rules.at_switch", string_value("merged"))) ==
+          R"(detection.session_rules.at_switch is "merged", not "two-drops", D-077's)");
+    CHECK(refused([](json::Value& d) { erase(d, "detection.session_rules", "baseline"); }) ==
+          "no detection.session_rules.baseline: schema version 1 has it");
+    CHECK(refused([](json::Value& d) {
+              std::get<json::Value::Array>(at(d, "detection.curves").v).pop_back();
+          }) == "detection.session_rules is an object, not null: detection ran on no session's curve");
+}
+
 // ── Reading ──────────────────────────────────────────────────────────────────
 
 TEST_CASE("timeline::from_json: a reader round trip", "[timeline][timeline_doc]")
@@ -2482,15 +2951,20 @@ TEST_CASE("timeline::from_json: refusals, each naming the key", "[timeline][time
     CHECK(refused([](json::Value& d) { erase(d, "axis.reference", "sequences"); }) ==
           "no axis.reference.sequences: schema version 1 has it");
 
-    // The session part, which a ladder's document holds as null and empty
-    // until WP09b fills it, and the sessions an event can name: none.
+    // The session part, which a ladder's document holds as null and empty,
+    // and the sessions an event can name: none. A plan without a session,
+    // and a session without a plan, are refused (D-105 (a)); the session
+    // part's own refusals are the next test case's.
     CHECK(refused([](json::Value& d) { erase(d, "", "sessions"); }) == "no sessions: schema version 1 has it");
     CHECK(refused([](json::Value& d) { erase(d, "", "session_plan"); }) ==
           "no session_plan: schema version 1 has it");
     CHECK(refused(set("session_plan", json::Value{ json::Value::Object{} })) ==
-          "session_plan is an object, not null: a ladder's timeline has no session plan");
+          "no session_plan.path: schema version 1 has it");
+    CHECK(refused(set("session_plan", parsed(R"({"path": "plan.json", "sha256": "00"})"))) ==
+          "sessions is empty, but session_plan names a plan: a plan makes a session (D-105 (a))");
     CHECK(refused(set("sessions", json::Value{ json::Value::Array{ json::Value{ json::Value::Object{} } } })) ==
-          "sessions has 1 entry, not none: a ladder's timeline has no session");
+          "sessions has a session, but session_plan is null: a scripted session comes from a plan, "
+          "recorded by its path and SHA-256 (D-105 (a))");
     CHECK(refused(set("sessions", json::Value{ json::Value::Object{} })) == "sessions is an object, not an array");
     CHECK(refused(set(cue_at + ".session", integer_value(0))) ==
           cue_at + ".session is 0, which names none of the 0 sessions");
@@ -2518,7 +2992,7 @@ TEST_CASE("timeline::from_json: refusals, each naming the key", "[timeline][time
           "detection.warm_up is 24, not 25, the warm-up of a window of 50 (D-077)");
     CHECK(refused(set("detection.window", integer_value(0))).starts_with("detection: "));
     CHECK(refused(set("detection.session_rules", json::Value{ json::Value::Object{} })) ==
-          "detection.session_rules is an object, not null: a ladder's timeline has no session");
+          "detection.session_rules is an object, not null: detection ran on no session's curve");
     CHECK(refused(set("detection.curves[1].index", integer_value(2))) ==
           "detection.curves[1].index is 2, the pair of none of the variants");
 
@@ -2688,7 +3162,9 @@ TEST_CASE("timeline::from_json: refusals, each naming the key", "[timeline][time
     CHECK(refused(set("attributions[0].curve.index", integer_value(9))) ==
           "attributions[0].curve.index is 9, the pair of none of the variants");
     CHECK(refused(set("attributions[0].curve.kind", string_value("session"))) ==
-          R"(attributions[0].curve.kind is "session", not "pair": schema version 1's)");
+          "attributions[0].curve.index is 1, which names none of the 0 sessions");
+    CHECK(refused(set("attributions[0].curve.kind", string_value("rung"))) ==
+          R"(attributions[0].curve.kind is "rung", not "pair" or "session": schema version 1's)");
     CHECK(refused([](json::Value& d) {
               std::get<json::Value::Array>(at(d, "attributions[0].overlapping_events").v).pop_back();
           }) == "attributions[0].overlapping_events has 5 groups, not one per source, 6");

@@ -1,6 +1,6 @@
 #pragma once
 
-// The merge of every source's events into a Timeline: filled in by WP09a.
+// The merge of every source's events into a Timeline: filled in by WP09a, a session's by WP09b.
 //
 // build() is eval/phase3-survey/design.md §3.4's step 5 for a ladder without
 // a session (DECISIONS.md D-072 to D-081): from the ladder report as the
@@ -10,13 +10,18 @@
 // pairs' curves and every source's events, each placed on the reference's
 // frames by the design's §5.1 rules, and it lists in Timeline::warnings,
 // with the reason, every anchor it can't place, so that nothing is left out
-// silently. attribute_drops() is the same section's step 7: detection on the
-// pairs' curves and the attribution of each drop (D-077, D-078). Core code
-// (design §3.1): plain structs in and out, nothing read or opened here,
-// libavutil's rationals at most. The adapter src/TimelineMedia.h reads the
-// playlists and runs the demux pass, and src/TimelineCli.h, the subcommands,
-// calls both. Unit-tested on inputs the tests build by hand
-// (tests/test_timeline_build.cpp).
+// silently. add_session() and add_requests() are the section's step 6, a
+// scripted session's (D-068, D-104, D-105), on the timeline build() made:
+// the session's spans and its player events from its plan, then, once the
+// session's files are fetched, its network events. attribute_drops() is
+// step 7: detection on the pairs' curves, a session's drops being its
+// pairs' drops clipped to its spans, and the attribution of each drop
+// (D-077, D-078). Core code (design §3.1): plain structs in and out, nothing
+// read or opened here, libavutil's rationals at most. The adapters
+// src/TimelineMedia.h and src/SessionFetch.h read the playlists, run the
+// demux pass and fetch a session's files, and src/TimelineCli.h, the
+// subcommands, calls them all. Unit-tested on inputs the tests build by
+// hand (tests/test_timeline_build.cpp).
 //
 // The rules.
 //
@@ -81,7 +86,16 @@
 //   frame_after() ending a break at its declared duration (D-076, D-087).
 // - Order: the events get their ids from assign_ids() and are put in
 //   canonical order with the overlap index built (Timeline::build_index()),
-//   so that identical inputs give identical timelines (design §4.7).
+//   so that identical inputs give identical timelines (design §4.7), the
+//   fetch's measured times and wall clock apart.
+// - A session (add_session(), add_requests(); src/SessionPlan.h): its spans
+//   on the reference's frames through the segments build() placed (design
+//   §5.1), its player events and, after its fetch, its network events, each
+//   carrying the session's index (Event::session), placed by D-105 (c); a
+//   session adds events of the player and network sources alone, which
+//   assign_ids() numbers apart from the ladder's, so that the ladder's
+//   events keep their ids. Its fetch comes after build(), from the segments
+//   build() placed (fetch_files()), so a session isn't one of BuildInputs.
 //
 // The payloads of the events made here, in order (those of the playlist
 // events, the plain cues and the ad breaks are src/PlaylistEvents.h's).
@@ -113,6 +127,7 @@
 
 #include "LadderReportRead.h"
 #include "PlaylistEvents.h"
+#include "SessionPlan.h"
 #include "TimelineDetect.h"
 #include "TimelineModel.h"
 #include "TimelineQuery.h"
@@ -165,8 +180,9 @@ struct VariantRead {
 
 // What build() merges: the ladder report as read, and one VariantRead per
 // variant in build()'s order, [0] the reference and [k + 1] the distorted
-// input of scores.pairs[k]. A session's plan and its requests come in round
-// 2 (design §14, WP09b).
+// input of scores.pairs[k]. A session's plan and its requests come after
+// build(), to add_session() and add_requests(): its fetch lists the segments
+// build() placed (fetch_files(), src/SessionPlan.h).
 struct BuildInputs {
     LadderScores             scores;
     std::vector<VariantRead> variants;
@@ -216,17 +232,75 @@ bool attach_curves(Timeline& timeline, const LadderScores& scores, std::string& 
 // ladder (D-077).
 std::vector<CurveRef> pair_curve_refs(const Timeline& timeline);
 
-// The drops detect() finds on each of `curves` with `detect`, each with the
-// events attribute() finds for its interval with `query` (D-077, D-078):
+// Every curve of `timeline`: each pair's, in order (pair_curve_refs()), then
+// each session's, by its place in Timeline::sessions: what mirage_vmaf
+// timeline runs detection on, and attribute answers without --curve, for a
+// ladder with a session, choices pending the owner (src/TimelineCli.h).
+std::vector<CurveRef> curve_refs(const Timeline& timeline);
+
+// The drops of each of `curves`, each with the events attribute() finds for
+// its interval with `query` (D-077, D-078): a pair's curve's, those detect()
+// finds on it with `detect`; a session's, its pairs' drops clipped to the
+// spans that played them under design §6.3's rules (session_drops(),
+// src/SessionPlan.h; D-077), none over a span that isn't scored (D-105 (b)),
+// listed for the session's curve, whose scope is the session's own events,
+// the reference's and the played variant's in each span (D-078). Each with
 // detected true, and the baseline and both magnitudes those of its drop
-// (Q27 (c)), attribute() giving its points, minimum and mean. In the order
-// of `curves`, and each curve's drops in its order. None when W and N aren't
-// both given. Empty, with `err` saying why, when a curve isn't one the
-// timeline has, or isn't one detect() takes, named then by its pair's
-// number (pair_number(), src/TimelineDoc.h), or an option is one
-// check_options() refuses; otherwise `err` is empty.
+// (Q27 (c)), attribute() giving its points, minimum and mean, which for a
+// session's drop are those of its pair's low points in its interval. In the
+// order of `curves`, and each curve's drops in its order. None when W and N
+// aren't both given. Empty, with `err` saying why, when a curve isn't one
+// the timeline has, or isn't one detect() or session_drops() takes, named
+// then by its pair's number (pair_number(), src/TimelineDoc.h) or by its
+// session's id, or an option is one check_options() refuses; otherwise
+// `err` is empty.
 std::vector<Attribution> attribute_drops(const Timeline& timeline, const std::vector<CurveRef>& curves,
                                          const DetectOptions& detect, const QueryOptions& query,
                                          std::string& err);
+
+// ── A scripted session (design §3.4, step 6; D-068) ──────────────────────────
+
+// Adds the session of `plan` to `timeline`, a ladder's timeline as build()
+// gives it, the master's entries being `entries` (LadderScores::entries):
+// its spans on the reference's frames (make_session(), src/SessionPlan.h;
+// D-105 (a), (b)); its id, its place among the timeline's sessions as text,
+// "0", by which --curve session:<id> names it (design §7), while an event's
+// session and the document's curve references count sessions by place
+// (src/TimelineDoc.h): design §8 gives the id no form, so this one is
+// WP09b's, pending the owner; no wall clock anchor until add_requests()
+// gives it one; and its player events, a variant_span over each span and a
+// variant_switch where the entry played changes (session_events(); design
+// §5.6, D-108 (b)). Then every event gets its id again (assign_ids(), which
+// leaves the ladder's events' ids as they were) and the index is built
+// again. A timeline holds one session at most (D-072). Returns false, with
+// `err` saying why and `timeline` unchanged, for a plan that make_session()
+// refuses (an entry the ladder doesn't have or whose variant isn't scored
+// or has no segment map, a segment the timeline doesn't have, a gap or an
+// overlap, each named) or for a second session; otherwise `err` is empty.
+// The session's files aren't fetched here: fetch_files() lists them,
+// src/SessionFetch.h fetches them and add_requests() adds what it returns.
+bool add_session(Timeline& timeline, const std::vector<MasterEntry>& entries, const SessionPlan& plan,
+                 std::string& err);
+
+// Adds to session `session` of `timeline` its fetch: `files` as
+// fetch_session() returns them (src/SessionFetch.h), each with NetworkLogger's
+// rows, and `anchor_utc`, the UTC time the fetch started, which becomes the
+// session's wall clock anchor (Session::wallclock_anchor_utc; D-073), none
+// when it is empty. Each file makes one network event (request_events(),
+// src/SessionPlan.h; D-104 (a)), a segment_request over its segment's span
+// or a playlist_request at the first frame of the first span that plays its
+// variant, the master's at the session's first frame (D-105 (c)), with its
+// wall clock, its first row's start; a file whose event can't be made is a
+// warning in Timeline::warnings. With an empty `anchor_utc` no file makes an
+// event, since a request's wall clock counts from its session's anchor and
+// a document holds neither a request without a wall clock nor a wall clock
+// in a session without an anchor (src/TimelineDoc.h): one warning then says
+// how many requests had rows, and the session keeps no anchor. fetch_session()
+// gives an empty anchor only with no file, its fetch not started, so a
+// document of what this gives reads back either way. Then every event gets
+// its id again and the index is built again, as add_session() does. For a
+// session the timeline doesn't have, nothing but request_events()'s warning.
+void add_requests(Timeline& timeline, int session, const std::vector<Request>& files,
+                  const std::string& anchor_utc);
 
 } // namespace timeline

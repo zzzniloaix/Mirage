@@ -678,8 +678,8 @@ TEST_CASE("session plan: a plan that names what the ladder doesn't have, or whos
 
 // ── Its events ───────────────────────────────────────────────────────────────
 
-TEST_CASE("session plan: a variant_span over each span and a variant_switch at each boundary, a rung named "
-          "by its entry and URI with both ranks",
+TEST_CASE("session plan: a variant_span over each span and a variant_switch at each boundary where the "
+          "entry changes, a rung named by its entry and URI with both ranks",
           "[timeline][session][session_plan]")
 {
     const timeline::Timeline t = with_session(example_plan());
@@ -753,16 +753,55 @@ TEST_CASE("session plan: a variant_span over each span and a variant_switch at e
     REQUIRE(to_270.size() == 1);
     check_rung(object_member(to_270[0]->payload, "from"), 0, 1, 5);
 
-    // A boundary between two spans of one entry makes a switch too, with
-    // the same rung on both sides, as built while the choice is pending the
-    // owner (src/SessionPlan.h).
+    // A boundary between two spans of one entry makes no switch: nothing
+    // changes there (D-108 (b)). Each span keeps its variant_span.
     const timeline::Timeline same = with_session(
         plan_of({ { .entry = 2, .first_seq = 0, .last_seq = 3 }, { .entry = 2, .first_seq = 4, .last_seq = 7 } }));
-    const auto stay = events_of(same, "variant_switch", 2);
-    REQUIRE(stay.size() == 1);
-    CHECK(stay[0]->ref_index == 100);
-    check_rung(object_member(stay[0]->payload, "from"), 2, 3, 3);
-    check_rung(object_member(stay[0]->payload, "to"), 2, 3, 3);
+    CHECK(events_of(same, "variant_switch", 2).empty());
+    const auto halves = events_of(same, "variant_span", 2);
+    REQUIRE(halves.size() == 2);
+    CHECK((halves[0]->ref_index == 0 && halves[0]->ref_end == 100));
+    CHECK((halves[1]->ref_index == 100 && halves[1]->ref_end == 200));
+
+    // Two entries that name one playlist still switch, the master's entry
+    // being what changes (D-108 (b)): entry 5, a second entry of v360's
+    // playlist at another BANDWIDTH, names variant 2 as entry 2 does, and a
+    // switch from one to the other is placed on that variant.
+    timeline::BuildInputs twin_in = ladder_inputs();
+    timeline::MasterEntry twin    = twin_in.scores.entries[2];
+    twin.index     = 5;
+    twin.line      = 13;
+    twin.bandwidth = 1100000;
+    twin_in.scores.entries.push_back(twin);
+    twin_in.scores.pairs[1].entries = { 2, 5 };
+    std::string twin_err;
+    timeline::Timeline twins = timeline::build(twin_in, twin_err);
+    INFO(twin_err);
+    REQUIRE(twin_err.empty());
+    REQUIRE(twins.variants[2].entries == std::vector<std::size_t>{ 2, 5 });
+    timeline::Session two = timeline::make_session(
+        twins, twin_in.scores.entries,
+        plan_of({ { .entry = 2, .first_seq = 0, .last_seq = 3 }, { .entry = 5, .first_seq = 4, .last_seq = 7 } }),
+        twin_err);
+    REQUIRE(twin_err.empty());
+    REQUIRE(two.spans.size() == 2);
+    CHECK((two.spans[0].variant == 2 && two.spans[1].variant == 2));
+    twins.sessions.push_back(std::move(two));
+    const std::vector<Event> twin_events = timeline::session_events(twins, twin_in.scores.entries, 0);
+    std::vector<const Event*> twin_switches;
+    for (const Event& e : twin_events)
+        if (e.type == "variant_switch") twin_switches.push_back(&e);
+    REQUIRE(twin_switches.size() == 1);
+    const Event& across = *twin_switches[0];
+    CHECK(across.ref_index == 100);
+    CHECK(across.variant == 2);
+    const Value::Object& from_twin = object_member(across.payload, "from");
+    const Value::Object& to_twin   = object_member(across.payload, "to");
+    CHECK(int_member(from_twin, "entry") == 2);
+    CHECK(int_member(to_twin, "entry") == 5);
+    CHECK(text_member(from_twin, "uri") == text_member(to_twin, "uri"));
+    CHECK(int_member(from_twin, "bandwidth") == kBandwidth[2]);
+    CHECK(int_member(to_twin, "bandwidth") == 1100000);
 
     // The ladder's own events keep their ids: the session's are of sources
     // of their own (assign_ids() numbers each source, type and variant).

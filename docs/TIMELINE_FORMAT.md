@@ -1,12 +1,12 @@
 # The timeline document, schema version 1
 
-`mirage_vmaf timeline` writes one timeline document per build: the events of one ladder report's timeline, placed on the reference's frames, and the attributions of the drops found in its pairs' curves, with everything needed to make them again. It is a file of its own, beside the ladder report, which it names by two hashes and whose scores it doesn't copy (`docs/DECISIONS.md` D-072). This file describes its layout key by key, its event vocabulary, and where it stands against §7 of the VMAF work order. `docs/schema/mirage-timeline-1.schema.json` is its JSON Schema; `src/TimelineDoc.h` writes and reads it; `tests/test_timeline_doc.cpp` checks what the writer writes against the schema file with a validator of the schema keywords that file uses, and reads it back.
+`mirage_vmaf timeline` writes one timeline document per build: the events of one ladder report's timeline, placed on the reference's frames, and the attributions of the drops found in its pairs' curves and in its session's, with everything needed to make them again. It is a file of its own, beside the ladder report, which it names by two hashes and whose scores it doesn't copy (`docs/DECISIONS.md` D-072). This file describes its layout key by key, its event vocabulary, and where it stands against §7 of the VMAF work order. `docs/schema/mirage-timeline-1.schema.json` is its JSON Schema; `src/TimelineDoc.h` writes and reads it; `tests/test_timeline_doc.cpp` checks what the writer writes against the schema file with a validator of the schema keywords that file uses, and reads it back.
 
-What is described here is the ladder part, which every document has. The session part (a scripted session's plan, its spans, its switches and the requests of its fetch, D-068) comes with sessions, in round 2 of Phase 3 (`eval/phase3-survey/design.md` §8 and §14, WP09b), which fills `session_plan` and `sessions` and gives the network and player events their fields. Both keys are in their places in every document already, so that schema version 1 has one layout before and after: a document of a ladder alone has `session_plan` null and `sessions` empty, no event with a session, and no event of the network or player source, whose events are a session's. A reader of this version takes no other value of the two keys until then.
+Every document has the ladder part. A build with `--session` adds the session part ([below](#the-session-part)): a scripted session's plan, its spans on the reference's frames, its switches, and the requests of its fetch with their wall clock (D-068, D-104, D-105). A document of a ladder alone has `session_plan` null and `sessions` empty, no event with a session, no event of the network or player source, whose events are a session's, and no wall clock: it is the same bytes as before the session part came, and schema version 1 has one layout before and after.
 
 `mirage_vmaf attribute --format json` writes its answers in the same layout, a document whose command is `"attribute"` ([below](#the-answers-of-mirage_vmaf-attribute)).
 
-Some of the forms below are choices the design left open, which the owner settled on 2026-11-05 (D-092), choices made in implementing them, which the owner settled the same day (D-099), four that the first build of those left pending, which the owner settled on 2026-11-06 (D-100), and two that the build of D-100 left pending, which the owner kept as built the same day (D-101); each is marked where it is described, and [Settled by the owner](#settled-by-the-owner) lists them.
+Some of the forms below are choices the design left open, which the owner settled on 2026-11-05 (D-092), choices made in implementing them, which the owner settled the same day (D-099), four that the first build of those left pending, which the owner settled on 2026-11-06 (D-100), two that the build of D-100 left pending, which the owner kept as built the same day (D-101), and those of the session part that WP00b and WP07 left pending, which the owner settled on 2026-11-10 (D-108: a fetch of local files without `--fetch-base` refused, no switch between two spans of one entry, and six forms kept as they were built); each is marked where it is described, and [Settled by the owner](#settled-by-the-owner) lists them. The session part's other forms are this version's own choices, which wait for the owner's answer: each is marked "pending the owner" where it is described, and the session part's [Pending the owner](#pending-the-owner) lists them.
 
 ## Conventions
 
@@ -29,10 +29,10 @@ Some of the forms below are choices the design left open, which the owner settle
 | `options` | every option of the build, by name, with the value it ran with |
 | `config_file` | `{path, sha256}` of the config file the options were read from (D-030), or null |
 | `ladder_report` | the report the timeline was built from (below) |
-| `session_plan` | null: a ladder alone has no session plan (the session part, round 2) |
+| `session_plan` | `{path, sha256}` of the scripted session's plan, its path as given and the SHA-256 of its bytes (D-105 (a)); null for a ladder alone ([the session part](#the-session-part)) |
 | `axis` | the reference's frames and seconds (below) |
 | `variants` | each scored playlist (below) |
-| `sessions` | `[]`: a ladder alone has no session (the session part, round 2) |
+| `sessions` | the scripted session, one at most (D-072), there exactly when `session_plan` is; `[]` for a ladder alone ([the session part](#the-session-part)) |
 | `timeline` | the events (below) |
 | `detection` | what detection ran with (below), or null when it didn't run |
 | `overlap` | which events an attribution lists (below) |
@@ -82,12 +82,12 @@ Each event has:
 | `id` | its name in the document, `<source>/<type>/<variant>/<n>`, `-` for no variant, `n` counting that source's, type's and variant's events in canonical order |
 | `source`, `type` | the source and the type, from the vocabulary below |
 | `variant` | the variant whose input or playlist it comes from; null for none |
-| `session` | the session it belongs to, an index into `sessions`; null for every event of a ladder alone. A network or player event has one: their events are a session's (D-068) |
+| `session` | the session it belongs to, an index into `sessions`: a session's own events, its spans, switches and requests, carry it, and every other event has null, so every event of a ladder alone. A network or player event has one: their events are a session's (D-068) |
 | `segment` | the media sequence number of its segment, for an event bound to one; null otherwise |
 | `ref_index`, `ref_end` | its reference frame; a span's exclusive end, null for a point |
 | `t`, `t_end` | the seconds of `ref_index` and `ref_end` on the axis |
 | `seq`, `pts`, `pts_ticks` | the media key of its frame: at one of the axis's frames, that frame's key in `axis.keys` |
-| `wallclock` | seconds from its session's start on one steady clock, for an observed event, of the network or player source; null for every offline event, so for every event of a ladder alone (D-073) |
+| `wallclock` | seconds from its session's start on one steady clock, for an observed event, of the network or player source, counted from the session's `wallclock_anchor_utc`: a session fetch's request has one, its first row's start; a scripted session's spans and switches, planned rather than observed, have none, nor does any offline event, so no event of a ladder alone (D-073) |
 | `payload` | what its source says of it, an object whose members keep their order |
 
 The vocabulary (design §5.9), the sources in the order attributions group them:
@@ -96,8 +96,8 @@ The vocabulary (design §5.9), the sources in the order attributions group them:
 |---|---|---|---|
 | `vmaf` | `context_start` | point | the first pair of a libvmaf context other than a pair's first context; it scores low (D-037) |
 | | `unpaired_frame` | point | a frame the aligner left unpaired (the report's `alignment.failures`): a distorted frame at the next paired frame of its input (D-081 (d)), a reference frame at itself |
-| `network` | `segment_request` | span | a session fetch's request of a segment, over its segment's frames (session part) |
-| | `playlist_request` | point | a session fetch's request of a playlist (session part) |
+| `network` | `segment_request` | span | a session fetch's request of a segment, over its segment's frames (D-105 (c)) |
+| | `playlist_request` | point | a session fetch's request of a playlist: the master's at the session's first frame, a variant's media playlist's at the first frame of the first span that plays it (D-105 (c)) |
 | `playlist` | `segment` | span | a media segment, from its first frame to the next segment's |
 | | `discontinuity` | point | an `EXT-X-DISCONTINUITY`, never taken for an ad boundary (D-076) |
 | | `program_date_time` | point | an `EXT-X-PROGRAM-DATE-TIME` |
@@ -107,17 +107,17 @@ The vocabulary (design §5.9), the sources in the order attributions group them:
 | `scte35` | `cue_out`, `cue_out_cont`, `cue_in` | point | the plain cue tags `EXT-X-CUE-OUT`, `EXT-X-CUE-OUT-CONT` and `EXT-X-CUE-IN` (D-070) and, from round 2, decoded messages that Q15 classes as outs or ins, which make `cue_out` and `cue_in` events (design §5.5) |
 | | `ad_break` | span | a cue_out to the next cue_in of its variant, or to the end of the duration it declares; breaks don't nest (D-076, D-087) |
 | | `splice_point`, `message`, `cancel` | point | from decoded SCTE-35 messages (round 2) |
-| `player` | `variant_span` | span | the variant a session played over a span (session part) |
-| | `variant_switch` | point | a session's switch from one variant to another (session part) |
+| `player` | `variant_span` | span | the variant a session plays over one span of its plan, over its segments' frames |
+| | `variant_switch` | point | a session's switch from one master entry to another, at the first frame of the span it starts; none between two spans of one entry (D-108 (b)) |
 | `decoder` | `keyframe` | point | the frame of a key packet in the demux pass (D-074) |
 | | `corrupt_packet` | point | the frame of a packet flagged corrupt, with the next segment boundary in its payload (D-081 (h)) |
 | | `decode_error` | point | only as Q09 (round 3) answers: under (a), the scoring decode's errors, which the analyzer would record in the ladder report; under (b), the errors of a decode pass of the timeline build; none under (c) (design §5.8) |
 
-A tag that several rungs' playlists carry is one event per variant (D-081 (f)). The payloads of the playlist and plain cue events are those `src/PlaylistEvents.h` lists for each type (every one starts with the tag's `line`), and an ad break's are its cue lines, how it ended and every duration declared; the other types' payloads are their makers', described with them. A reader reads a payload whatever its members.
+A tag that several rungs' playlists carry is one event per variant (D-081 (f)). The payloads of the playlist and plain cue events are those `src/PlaylistEvents.h` lists for each type (every one starts with the tag's `line`), and an ad break's are its cue lines, how it ended and every duration declared; the other types' payloads are their makers', described with them; those of a session's events, the network and player sources', are [the session part's](#the-session-part), which the schema file types. A reader reads a payload whatever its members.
 
 ## detection
 
-Null when no detection ran: `mirage_vmaf timeline` detects only when the window W and the count N are both given, and otherwise writes no attribution (D-077). When it ran: `threshold` (T, in VMAF points), `window` (W) and `min_points` (N), both counting points of the curve; `baseline`, `"median-non-low"`, the median of the last W points that weren't low; `warm_up`, W/2 rounded down and at least 1, the points at a curve's start that can't be low; `context_first`, `"no-special-case"`, how a libvmaf context's first pair is taken; `curves`, the curves detection ran on, each `{kind, index}` with `kind` `"pair"` and `index` the pair's number, as `variants[].pair` gives it (D-092 (b)); and `session_rules`, null for a ladder alone (the rules that clip a pair's drops to a session's spans, design §6.3, come with the session part). `curves` as that list, the `{kind, index}` form where design §7's `--curve` option writes `pair:<k>`, and `session_rules` null are WP08's forms, which the owner kept (D-092 (d)).
+Null when no detection ran: `mirage_vmaf timeline` detects only when the window W and the count N are both given, and otherwise writes no attribution (D-077). When it ran: `threshold` (T, in VMAF points), `window` (W) and `min_points` (N), both counting points of the curve; `baseline`, `"median-non-low"`, the median of the last W points that weren't low; `warm_up`, W/2 rounded down and at least 1, the points at a curve's start that can't be low; `context_first`, `"no-special-case"`, how a libvmaf context's first pair is taken; `curves`, the curves detection ran on, each `{kind, index}`, with `kind` `"pair"` and `index` the pair's number, as `variants[].pair` gives it (D-092 (b)), every pair's in their order, then, with a session, the session's, `kind` `"session"` and `index` the session's place in `sessions` (the session's curve beside the pairs' is pending the owner, [below](#pending-the-owner)); and `session_rules`, null where detection ran on no session's curve, as for a ladder alone, and otherwise the rules by which a session's drops are made of its pairs', in a form pending the owner ([the session part](#its-curve-its-drops-and-their-attributions)). `curves` as that list, the `{kind, index}` form where design §7's `--curve` option writes `pair:<k>`, and `session_rules` null for a ladder are WP08's forms, which the owner kept (D-092 (d)); a session's curve takes the same form, its kind named as design §7's `--curve session:<id>` names it.
 
 ## overlap
 
@@ -127,29 +127,108 @@ Null when no detection ran: `mirage_vmaf timeline` detects only when the window 
 
 One per drop that detection found on a curve it ran on, and none when `detection` is null (D-077): all that `mirage_vmaf timeline` writes has `detected` true. An attribution with `detected` false answers an interval a user gave rather than a drop (design §6.1); the timeline subcommand never writes one, and a reader takes one whether detection ran or not, so that `mirage_vmaf attribute`'s answers can take this layout (WP09a).
 
-- `curve`: `{kind, index}`, the pair's curve, `index` the pair's number as `variants[].pair` gives it (D-092 (b)); `detected`: true for a drop detection found, false for a user's interval.
+- `curve`: `{kind, index}`: a pair's curve, `{"kind": "pair", "index": k}`, `k` the pair's number as `variants[].pair` gives it (D-092 (b)), or a session's, `{"kind": "session", "index": s}`, `s` its place in `sessions`; `detected`: true for a drop detection found, false for a user's interval.
 - `interval`: the drop's reference frames `ref_index` to `ref_end`, half-open: from its first low point's frame to the frame of the curve's next point, or to one past its last point where the curve ends (D-081 (g)); `t` and `t_end`, their seconds; `points`, the curve's points with a score in it.
 - `baseline`: the trailing baseline at the drop's first point; `min` and `mean`: of its points' scores; `drop_magnitude`, the baseline minus the minimum, and `mean_drop`, the baseline minus the mean (Q27 (c)).
 - `overlapping_events`: six groups, one per source in the order of the vocabulary above, each `{source, events}`, empty groups included (D-092 (d)). Each event is `{event, offset, offset_end, offset_frames, offset_end_frames}`: its `id`, and its start's and a span's end's distance from the interval's start in seconds on the axis and in reference frames. Within a group events come by offset, with no ranking (D-078).
+
+## The session part
+
+`mirage_vmaf timeline --session <plan.json>` builds the timeline of a scripted session over the ladder (D-068): the variant played over each span of the reference's frames, from a plan of segment ranges, and, with `--fetch on`, its default with a session (design §7), the requests of a fetch of the session's files, with their times (D-104, D-105). Of the forms below, the owner kept six as they were built (D-108 (c)): a session's null anchor where its files weren't fetched, the anchor's text, a plan refused for a segment the timeline doesn't have, the plan file's layout, the payloads of the session's events, and `--fetch-base`'s rebasing, a URL outside the master's directory refusing the whole fetch; D-108 (a) refuses a fetch of local files without `--fetch-base`, and D-108 (b) places no switch between two spans of one entry. Each is marked where it is described. The others are this version's, each marked "pending the owner" where it is described and listed [below](#pending-the-owner).
+
+### The plan
+
+The plan is a file of its own, which the document records by its path and SHA-256 (D-105 (a)), in the layout the owner kept as it was built (D-108 (c)): JSON with four members, every one required and no other, `schema` `"mirage-session-plan"`, `schema_version` 1, `name`, a string that may be empty, and `spans`, its spans in play order, one at least, each `{entry, first_seq, last_seq}`: a master entry, by its index among the master's entries from 0, as the ladder report numbers them, and the media sequence numbers of the first and the last segment it plays, both included.
+
+```
+{"schema": "mirage-session-plan", "schema_version": 1, "name": "down at the ad",
+ "spans": [{"entry": 1, "first_seq": 0, "last_seq": 2},
+           {"entry": 2, "first_seq": 3, "last_seq": 4},
+           {"entry": 1, "first_seq": 5, "last_seq": 7}]}
+```
+
+Each span covers the reference frames of its segments, through the pair where its entry names a distorted playlist (design §5.1), and must start where the span before it ended: a plan that leaves a gap or overlaps is refused, naming the frames (D-105 (a)). An entry the master doesn't have, one whose playlist is neither the reference nor a complete pair's distorted one, or one whose variant's segment map was refused (D-081 (c)) refuses the whole plan, naming the span, as design §14 has a plan's unknown entries refused; so does a segment the timeline doesn't have, not in its playlist or not placed by the build, naming the span and the segment (D-108 (c)). `mirage_vmaf timeline` exits with status 2 for a plan that can't be read, isn't one, or doesn't fit the ladder, as the list-valued setting it is (pending the owner).
+
+### session_plan and sessions
+
+`session_plan` is `{path, sha256}`: the plan's path as given and the SHA-256 of its bytes. `sessions` holds the session, one at most (D-072), there exactly when `session_plan` is, since a scripted session comes from a plan:
+
+- `id`: `"0"`, its place among the document's sessions as text (pending the owner), by which `--curve session:<id>` names it; an event's `session` and a session's curve's `index` count sessions by place;
+- `name`: the plan's;
+- `wallclock_anchor_utc`: the UTC time the session's fetch started, from which every request's `wallclock` counts, RFC 3339 to the microsecond with the zone `Z`, `YYYY-MM-DDTHH:MM:SS.ffffffZ`; null when the session's files weren't fetched (`--fetch off`), and then no event of the session has a wall clock (D-108 (c));
+- `spans`: one per span of the plan, in its order, each `{variant, entry, first_seq, last_seq, ref_index, ref_end, scored}`: the variant it plays, by its id, and the plan's entry, one of that variant's; its first and last segment; the reference frames it spans, half-open, `ref_end` where its last segment's span ends and the next span starts; and `scored`, false where it plays the reference in top-rung mode, which has no score (D-105 (b)), true where it plays a pair's distorted playlist.
+
+The build's `options` gain the three session options, `session`, `fetch` (`"on"` or `"off"`) and `fetch-base` (null without one), only with `--session`, so that a ladder's are as they were before them (pending the owner).
+
+### Its events
+
+A session's own events carry its index in `session`, and no other event has one. Its player events have no wall clock: a scripted plan's spans and switches are planned, not observed (D-073). Their payloads, as WP07 built them and the owner kept them (D-108 (c)):
+
+- `variant_span`, over each span: the rung it plays, `entry`, `uri` as the master gives it, `bandwidth` and `resolution` of that entry, null where the master gives none, and `rank_from_top` and `rank_from_bottom`, its variant's ranks (D-075); then `first_seq`, `last_seq` and `scored`, as the span has them. Its `variant` is the variant it plays.
+- `variant_switch`, at the first frame of each span after the first that plays another entry than the span before it: `from` and `to`, the rungs of the span before and of the span it starts, each `{entry, uri, bandwidth, resolution, rank_from_top, rank_from_bottom}`, and `origin`, `"plan"`. Its `variant` is the variant played from it. Two spans of one entry make no switch, since nothing changes there; two entries that name one playlist still switch, the master's entry being what changes (D-108 (b)).
+
+Its network events, one per file the fetch read, a redirected one included, each with a wall clock, its first row's start (D-073), and placed on the media axis (D-105 (c)): a `segment_request` over its segment's span, with its `segment`, a `playlist_request` of a variant's media playlist at the first frame of the first span that plays the variant, and the master's at the session's first frame, of no variant. Their payloads, kept as they were built too (D-108 (c)), times in seconds from the session's start on the steady clock of `wallclock`, null where a row didn't reach them:
+
+- `url`: as fetched, the report's or the same path on `--fetch-base`'s server; `range`: `{offset, length}`, the segment's `EXT-X-BYTERANGE`, all that was read of its file, or null for the whole file;
+- `status` and `status_text`: the last row's, null without an HTTP status; `bytes`: the last row's body bytes, null when unknown;
+- `start`: the first row's start, its open's, connection included; `first_byte`: when the last row's status line came; `end`: the last row's end; `duration`: `end` minus `start`, so that a redirect's chain is timed whole (D-104 (a));
+- `failed`: whether the fetch failed to open or read the file, a body cut short among them, or the network logger marked the last row failed, a status of 400 or more among them; `error`: the fetch's own failure, or null; `origin`: `"fetch"`;
+- `chain`: each row the network logger made of the file's fetch, in order, one per request, `{url, start, sent, first_byte, end, status, status_text, bytes, content_length, failed, error}`, a row's `error` the logger's text of a failure or of a reconnect, null when it has none.
+
+The schema file types each of these payloads, by the event's source or type.
+
+### Its fetch
+
+The fetch reads the session's files after the demux passes, in play order: the master, each played variant's media playlist once, the first time a span plays it, and each span's segments (D-104 (a)). It reads one file at a time, each opened once the one before it was read, unpaced, each tried once, a failure recorded as a failed request: what one sequential client got, as quickly as its server allowed, not a player's fetch pattern (design §5.7). It reads the report's URLs, or, with `--fetch-base <url>`, each URL's path after the master's directory on that server, a URL outside that directory refusing the whole fetch before anything is fetched (D-108 (c)), with exit status 2 (pending the owner), so that a ladder scored from local files is timed over HTTP from a server of them. A fetch whose files aren't http or https URLs, with no `--fetch-base`, is refused before anything is fetched, exit status 2, since the network logger times a local file's open and not its read: the network events then come from network requests alone (D-108 (a)). `--fetch-base` itself must be an http or https URL, and goes with `--fetch on`, as `--fetch` and `--fetch-base` go with `--session`: otherwise each is refused, exit status 2 (pending the owner). SIGINT or SIGTERM stops the build, its fetch included, which then exits with status 1 and writes no document (pending the owner).
+
+### Its curve, its drops and their attributions
+
+A session's curve is, over each scored span, the curve of the pair whose distorted playlist the span plays, in the span's frames, a coarser pair's gaps kept, and has no point over a span that isn't scored (design §4.4; D-068, D-105 (b)). With `--window` and `--min-points`, detection runs on every pair's curve and then on the session's (pending the owner), so that the ladder's attributions are the same with or without a session. The session's drops are its pairs' drops clipped to the spans that played each pair's variant (D-077), by the rules `detection.session_rules` names:
+
+| Member | Value | The rule |
+|---|---|---|
+| `drops` | `"pair-drops-clipped-to-spans"` | a session's drops are its pairs' drops clipped to the spans that played each pair's variant, not drops of its own curve (D-077, Q22 (c)) |
+| `pieces` | `"more-than-min-points"` | a clipped piece is a drop only if it keeps more than N of the drop's low points, as any drop must (design §6.3, rule (i)) |
+| `at_switch` | `"two-drops"` | the pieces of two pairs that meet at a switch stay two drops, each with its own pair's numbers (rule (ii)) |
+| `baseline` | `"pair-drop"` | a piece reports its pair's baseline at its own first point, which is its drop's (rule (iii)) |
+| `spans_of_one_variant` | `"one-stretch"` | consecutive spans of one variant are one stretch of frames for the clipping, as D-077's clipping to the spans that played each variant reads |
+
+Design §8 names `session_rules` alone: this form, an object of these five members, and their names and values are this version's, pending the owner. A session's drop's attribution lists the session's own events, the reference's, and the events of the variant each span plays that meet the part of the interval the span covers, so no other rung's copy of a tag (D-078).
+
+### Pending the owner
+
+The session part's forms that change what a document or a run says, that neither the design nor the decisions settle, and that wait for the owner's answer, each with what it could be instead; until then each is as described above (`src/TimelineDoc.h`, `src/TimelineCli.h`):
+
+- `sessions[].id`: the session's place among the sessions as text, `"0"`; or the plan's name, which may be empty or repeat, the plan file's name, or an integer, as a variant's id is.
+- `detection.session_rules`: an object of the five named rules above, there exactly where detection ran on a session's curve; or one string naming D-077's rules, a list of their names, or null always, as for a ladder.
+- The exit status of a plan that can't be read, isn't one or doesn't fit the ladder, and, with `--fetch-base`, of a fetch of a URL outside the master's directory, which D-108 (c) refuses without naming a status: 2, as for a bad argument; or 1, as for an input refused.
+- `--fetch-base` an http or https URL only, a local directory or a `file://` URL refused, exit status 2; or taken, the fetch then reading local files from it, or taken with a warning.
+- `--fetch` and `--fetch-base` without `--session`, and `--fetch-base` with `--fetch off`, refused, exit status 2; or taken and left unused.
+- The session options in `options` only with `--session`; or always, null or `"off"` without a session, which changes every ladder's document.
+- Detection with a session on every pair's curve and then on the session's, so that a document has both kinds of attributions; or on the session's curve alone.
+- `mirage_vmaf attribute` without `--curve`: every curve, each pair's and then the session's, `--drop K` counting the drops in that order; or every pair's alone, as D-099 (c) words it, the session's only through `--curve session:<id>`.
+- A build that SIGINT or SIGTERM stopped: exit status 1 and no document; or status 1 with a document of what was fetched before the stop, as D-047 has `mirage_vmaf --ladder` write a report of its complete pairs; or 128 plus the signal's number.
+- The reader's refusals of the session part ([below](#reading-a-document-back)), each of something the writer never writes, which a later change would take a new `schema_version` to relax once documents are kept, as D-092 (d) has the reader strict; or reading such documents, the checks left to the writer.
+- Outside the document, the wording of `mirage_vmaf attribute`'s text for a session's curve, the design's P-AD extended (`src/TimelineCli.h`); or its events' payloads printed as JSON, as for a type the text doesn't know.
 
 ## The answers of mirage_vmaf attribute
 
 `mirage_vmaf attribute --format json` writes its answer as a document of this schema and version whose `command` is `"attribute"`, the layout the owner kept (D-099 (c); `src/TimelineCli.h`). It holds:
 
 - `axis`, `variants`, `timeline` and `warnings`: those of the document it queried, as they were read;
-- `attributions`: the answer. For `--auto`, each drop that detection found again, `detected` true; for `--drop`, the document's drop, `detected` true with its baseline and both magnitudes, its events looked for again with the margins given; for `--interval` and `--frames`, one attribution per curve answered, every pair's or `--curve`'s, `detected` false;
-- `detection`: for `--auto`, the parameters it ran with and the curves it ran on; for `--drop`, the queried document's record; null for `--interval` and `--frames`, which detect nothing;
+- `attributions`: the answer. For `--auto`, each drop that detection found again, `detected` true; for `--drop`, the document's drop, `detected` true with its baseline and both magnitudes, its events looked for again with the margins given; for `--interval` and `--frames`, one attribution per curve answered, `--curve`'s or every curve's, each pair's then the session's (pending the owner, [above](#pending-the-owner)), `detected` false;
+- `detection`: for `--auto`, the parameters it ran with and the curves it ran on, with the session's rules where they include a session's curve; for `--drop`, the queried document's record; null for `--interval` and `--frames`, which detect nothing;
 - `overlap`: the margins of the query;
-- `options` and `config_file`: those of the attribute subcommand (`--timeline`, the query, `--report`, `--curve` as `pair:<k>` by the pair's number, the parameters, the margins, `--format` and `--out`), and its config file or null;
+- `options` and `config_file`: those of the attribute subcommand (`--timeline`, the query, `--report`, `--curve` as `pair:<k>` by the pair's number or `session:<id>` by the session's id, the parameters, the margins, `--format` and `--out`), and its config file or null;
 - `ffmpeg_libraries`: the libraries of the attribute run;
 - `ladder_report`: the report it read, by its path as attribute took it, the document's or `--report`'s, with both hashes of what it read, the SHA-256 of a redacted copy being that copy's, and its provenance;
-- `session_plan` and `sessions` as a ladder's.
+- `session_plan` and `sessions`: those of the document it queried, as they were read.
 
 A reader reads it as any other document of this version: `mirage_vmaf attribute` reads one back before it writes it, and takes one as `--timeline`, whose `--drop` then counts the answer's drops.
 
 ## Reading a document back
 
-`timeline::from_json` reads what the writer writes and refuses anything else, naming the key: another schema or version, a missing or unknown key, a value of another kind, an event type outside its source's vocabulary, two events with one id, two variants of one pair or two references, an event, a variant, a session or a curve that isn't there, and seconds or offsets that disagree with the axis. It refuses as well what the sections above rule out: a rational whose terms aren't in their shortest form; a session part other than a ladder's; ticks or keys whose stretches don't cover the axis's frames, or whose steps, phases, scales or values break the rules of the axis; an axis whose `seconds` and `checked` aren't paired as above; a `playlist` whose `location` and `sha256` are both empty, and a `segment_map` that isn't null exactly when the variant's `playlist` is; an event whose `seq` is negative, or whose media key isn't its frame's in `axis.keys`; a network or player event without a session; a wall clock on an event of another source; and an attribution with `detected` true when `detection` is null. It restores the axis exactly from its stretches and widens each attribution's interval by the overlap's margins again. It gives a null `segment_map` back as `"ok"`, the default of `timeline::Variant`, and leaves the curves to the caller, who reads them from the ladder report the document names once its hashes match (`timeline::attach_curves`, `src/TimelineBuild.h`): the k-th curve is the report's k-th complete pair, on the variant whose `pair` is that pair's `pairs[].index`. A curve reference names a pair by its number, and comes back as the curve whose variant has it (`timeline::curve_of_pair`, `src/TimelineDoc.h`): its place among the variants' pairs in the order of their numbers, which is where the report's curve of that pair goes, since the report lists its complete pairs in the plan's order (D-092 (b)). A number that no variant has is refused, naming the key, the number of a pair that failed among them.
+`timeline::from_json` reads what the writer writes and refuses anything else, naming the key: another schema or version, a missing or unknown key, a value of another kind, an event type outside its source's vocabulary, two events with one id, two variants of one pair or two references, an event, a variant, a session or a curve that isn't there, and seconds or offsets that disagree with the axis. It refuses as well what the sections above rule out: a rational whose terms aren't in their shortest form; a `session_rules` that isn't null where `detection.curves` holds no session's curve; ticks or keys whose stretches don't cover the axis's frames, or whose steps, phases, scales or values break the rules of the axis; an axis whose `seconds` and `checked` aren't paired as above; a `playlist` whose `location` and `sha256` are both empty, and a `segment_map` that isn't null exactly when the variant's `playlist` is; an event whose `seq` is negative, or whose media key isn't its frame's in `axis.keys`; a network or player event without a session; a wall clock on an event of another source; and an attribution with `detected` true when `detection` is null. Of the session part it refuses, beyond its keys and their kinds, what the writer never writes, these refusals being this version's, pending the owner ([above](#pending-the-owner)): a `session_plan` without a session or a session without a plan; more than one session; a session without an `id` or without a span; an anchor in another form than the one above; a span whose variant isn't there or hasn't its entry, whose last segment comes before its first, whose frames aren't a span of the axis or don't start where the span before it ended, or whose `scored` isn't true exactly where it plays a pair's distorted playlist; an offline event, of the `vmaf`, `playlist`, `scte35` or `decoder` source, with a session; a network event without a wall clock, and a wall clock in a session without an anchor; and a `session_rules` other than the session part's where `detection.curves` holds a session's curve. It restores the axis exactly from its stretches and widens each attribution's interval by the overlap's margins again. It gives a null `segment_map` back as `"ok"`, the default of `timeline::Variant`, and leaves the curves to the caller, who reads them from the ladder report the document names once its hashes match (`timeline::attach_curves`, `src/TimelineBuild.h`): the k-th curve is the report's k-th complete pair, on the variant whose `pair` is that pair's `pairs[].index`. A curve reference names a pair by its number, and comes back as the curve whose variant has it (`timeline::curve_of_pair`, `src/TimelineDoc.h`): its place among the variants' pairs in the order of their numbers, which is where the report's curve of that pair goes, since the report lists its complete pairs in the plan's order (D-092 (b)). A number that no variant has is refused, naming the key, the number of a pair that failed among them. A session's curve reference comes back as its place among the sessions, whose curve the session's spans and the pairs' curves give (`timeline::curve_points`, `src/TimelineModel.h`).
 
 Every key is required and no other is taken, and every value in seconds is computed again and compared, so any later addition to the layout takes another `schema_version`; the ladder report's reader, by contrast, passes over keys it doesn't know in later layouts. The owner kept that strictness (D-092 (d)).
 
@@ -182,6 +261,14 @@ The two choices that the build of D-100 left pending, as the owner kept them on 
 
 Every value comes back exactly in each case.
 
+The choices of the session part that WP00b and WP07 left pending, as the owner settled them on 2026-11-10 (D-108):
+
+- (a) a session's fetch whose files aren't http or https URLs, with no `--fetch-base`, refused before anything is fetched, exit status 2, the message naming `--fetch-base` and `--fetch off`, so that a document's network events come from network requests alone; this version implements it;
+- (b) no `variant_switch` between two spans of one entry, while two entries that name one playlist still switch; this version implements it;
+- (c) six forms as they were built: a session whose files weren't fetched has `wallclock_anchor_utc` null; the anchor's text RFC 3339 UTC to the microsecond, with `Z`; a plan span through a segment the timeline doesn't have refusing the whole plan; the plan file's layout; the payloads of the session's events, which this version fixes as [the session part](#the-session-part) gives them and the schema file types them; and `--fetch-base` taking each URL's path after the master's directory, a URL outside it refusing the whole fetch.
+
+The session part's other forms, this version's own, wait for the owner: the session part's [Pending the owner](#pending-the-owner) lists them.
+
 ## Against the work order's §7
 
 §7 lists the fields of `mirage_vmaf`'s one JSON output, the timeline and the attributions among them. Where each is here:
@@ -199,4 +286,4 @@ Every value comes back exactly in each case.
 | `timeline[]`, with its five fields (`source`, `type`, `payload`, `pts` and `wallclock`) | `timeline[]`, the same five fields extended: an `id`, the `variant`, `session` and `segment`, the position on the reference's frames with its seconds, and the media key `seq` and `pts_ticks` beside `pts` |
 | `attributions[]`: `interval`, `drop_magnitude`, `overlapping_events` | `attributions[]`, with the same three: `interval` an object of reference frames and seconds; `drop_magnitude` beside `baseline`, `min`, `mean` and `mean_drop`; `overlapping_events` an array of groups by source, each event named by its id with its offsets; the detection parameters in `detection` |
 
-These are differences from the work order, reported and not settled by this file (`docs/PHASE3_DECISIONS_PENDING.md`, "Differences from the work order, to report"): the document is separate from the ladder report, and its attributions group events, give offsets and carry their parameters (item 13); events sit on reference frames keyed by sequence and PTS, and offsets are seconds of the axis rather than PTS differences (item 4); only observed events have a wall clock, so a ladder's have none (item 5); a ladder alone has no network events (item 6); the aligner's unpaired frames are `vmaf` events, not the decoder's (item 3); rungs are named by entry and URI with two ranks (item 10).
+These are differences from the work order, reported and not settled by this file (`docs/PHASE3_DECISIONS_PENDING.md`, "Differences from the work order, to report"): the document is separate from the ladder report, and its attributions group events, give offsets and carry their parameters (item 13); events sit on reference frames keyed by sequence and PTS, and offsets are seconds of the axis rather than PTS differences (item 4); only observed events have a wall clock, a session fetch's requests, so a ladder's events have none (item 5); a ladder alone has no network events, which only a session's fetch makes (item 6); the aligner's unpaired frames are `vmaf` events, not the decoder's (item 3); rungs are named by entry and URI with two ranks (item 10).

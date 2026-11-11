@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <format>
+#include <iterator>
 #include <limits>
 #include <map>
 #include <utility>
@@ -660,6 +661,14 @@ std::vector<CurveRef> pair_curve_refs(const Timeline& timeline)
     return out;
 }
 
+std::vector<CurveRef> curve_refs(const Timeline& timeline)
+{
+    std::vector<CurveRef> out = pair_curve_refs(timeline);
+    for (std::size_t s = 0; s < timeline.sessions.size(); ++s)
+        out.push_back({ .kind = CurveRef::Kind::Session, .index = static_cast<int>(s) });
+    return out;
+}
+
 std::vector<Attribution> attribute_drops(const Timeline& timeline, const std::vector<CurveRef>& curves,
                                          const DetectOptions& detect, const QueryOptions& query,
                                          std::string& err)
@@ -672,31 +681,39 @@ std::vector<Attribution> attribute_drops(const Timeline& timeline, const std::ve
     std::vector<Attribution> out;
     if (!detect.given()) return out;
     for (const CurveRef c : curves) {
-        // A session's drops are its pairs' drops clipped to the spans that
-        // played them, not drops of its own curve (D-077; design §6.3):
-        // WP07's session_drops() (src/SessionPlan.h), which WP09b brings into
-        // the build. A session's curve is refused here.
+        std::vector<Drop> drops;
+        std::string       why;
         if (c.kind == CurveRef::Kind::Session) {
-            err = std::format("the curve of the session at place {}: a session's drops are its "
-                              "pairs' drops clipped to its spans (D-077), not drops of its own curve",
-                              c.index);
-            return {};
-        }
-        // A curve is its place in Timeline::curves; a message names it by its
-        // pair's number, the report's pairs[].index (D-092 (b)).
-        if (c.kind != CurveRef::Kind::Pair || c.index < 0 ||
-            static_cast<std::size_t>(c.index) >= timeline.curves.size()) {
-            err = std::format("the timeline has no curve at place {}: it has {}", c.index,
-                              plural(timeline.curves.size(), "pair's curve", "pairs' curves"));
-            return {};
-        }
-        std::string why;
-        const std::vector<Drop> drops = timeline::detect(curve_points(timeline, c), detect, why);
-        if (!why.empty()) {
-            const std::optional<int> pair = pair_number(timeline, c);
-            err = pair ? std::format("curve pair:{}: {}", *pair, why)
-                       : std::format("the curve at place {}, whose variant is no pair's: {}", c.index, why);
-            return {};
+            // A session's drops are its pairs' drops clipped to the spans
+            // that played them, not drops of its own curve (D-077; design
+            // §6.3), named by the session's id as --curve names them.
+            if (c.index < 0 || static_cast<std::size_t>(c.index) >= timeline.sessions.size()) {
+                err = std::format("the timeline has no session at place {}: it has {}", c.index,
+                                  plural(timeline.sessions.size(), "session", "sessions"));
+                return {};
+            }
+            drops = session_drops(timeline, c.index, detect, why);
+            if (!why.empty()) {
+                err = std::format("curve session:{}: {}", timeline.sessions[static_cast<std::size_t>(c.index)].id,
+                                  why);
+                return {};
+            }
+        } else {
+            // A curve is its place in Timeline::curves; a message names it
+            // by its pair's number, the report's pairs[].index (D-092 (b)).
+            if (c.kind != CurveRef::Kind::Pair || c.index < 0 ||
+                static_cast<std::size_t>(c.index) >= timeline.curves.size()) {
+                err = std::format("the timeline has no curve at place {}: it has {}", c.index,
+                                  plural(timeline.curves.size(), "pair's curve", "pairs' curves"));
+                return {};
+            }
+            drops = timeline::detect(curve_points(timeline, c), detect, why);
+            if (!why.empty()) {
+                const std::optional<int> pair = pair_number(timeline, c);
+                err = pair ? std::format("curve pair:{}: {}", *pair, why)
+                           : std::format("the curve at place {}, whose variant is no pair's: {}", c.index, why);
+                return {};
+            }
         }
         for (const Drop& d : drops) {
             Attribution a    = attribute(timeline, c, d.interval, query);
@@ -708,6 +725,60 @@ std::vector<Attribution> attribute_drops(const Timeline& timeline, const std::ve
         }
     }
     return out;
+}
+
+// ── A scripted session ───────────────────────────────────────────────────────
+
+bool add_session(Timeline& timeline, const std::vector<MasterEntry>& entries, const SessionPlan& plan,
+                 std::string& err)
+{
+    err.clear();
+    if (!timeline.sessions.empty()) {
+        err = std::format("the timeline has {} already: a timeline holds one session at most (D-072)",
+                          plural(timeline.sessions.size(), "session", "sessions"));
+        return false;
+    }
+    Session s = make_session(timeline, entries, plan, err);
+    if (!err.empty()) return false;
+    // Its id, by which --curve session:<id> names it (design §7), is its
+    // place among the timeline's sessions as text, a form of WP09b's,
+    // pending the owner (TimelineBuild.h): a session's own name is its
+    // plan's, which may be empty or repeat another's.
+    const int index = static_cast<int>(timeline.sessions.size());
+    s.id = std::format("{}", index);
+    timeline.sessions.push_back(std::move(s));
+    std::vector<Event> player = session_events(timeline, entries, index);
+    timeline.events.insert(timeline.events.end(), std::make_move_iterator(player.begin()),
+                           std::make_move_iterator(player.end()));
+    // The session's events are of the player source alone, which
+    // assign_ids() numbers apart, so the ladder's events keep their ids.
+    assign_ids(timeline.events);
+    timeline.build_index();
+    return true;
+}
+
+void add_requests(Timeline& timeline, int session, const std::vector<Request>& files,
+                  const std::string& anchor_utc)
+{
+    RequestEvents net = request_events(timeline, session, files);
+    // The UTC time the fetch started, from which each request's wall clock
+    // counts (D-073): a session whose files weren't fetched has none
+    // (D-108 (c)). Without it no request makes an event, whose wall clock
+    // would count from nothing (TimelineBuild.h), and one warning says so.
+    if (anchor_utc.empty()) {
+        if (const std::size_t n = net.events.size(); n > 0)
+            net.warnings.push_back(std::format("the session fetch has no UTC anchor for its requests' wall clocks to "
+                                               "count from: {} with rows of NetworkLogger's {} no event (D-073)",
+                                               plural(n, "request", "requests"), n == 1 ? "makes" : "make"));
+        net.events.clear();
+    } else if (session >= 0 && static_cast<std::size_t>(session) < timeline.sessions.size()) {
+        timeline.sessions[static_cast<std::size_t>(session)].wallclock_anchor_utc = anchor_utc;
+    }
+    timeline.events.insert(timeline.events.end(), std::make_move_iterator(net.events.begin()),
+                           std::make_move_iterator(net.events.end()));
+    timeline.warnings.insert(timeline.warnings.end(), net.warnings.begin(), net.warnings.end());
+    assign_ids(timeline.events);
+    timeline.build_index();
 }
 
 } // namespace timeline

@@ -155,12 +155,10 @@ struct Session {
     std::string name;                    // its plan's name (SessionPlan::name)
     // The UTC time sampled as its fetch started, from which Event::wallclock_us
     // of each of its requests counts, in microseconds on one steady clock
-    // (D-073); nullopt: its files weren't fetched, and none of its events has
-    // a wall clock. Pending the owner: what a session whose files weren't
-    // fetched (--fetch off, design §7) holds here, and so what a document
-    // writes in its sessions[].wallclock_anchor_utc, which design §8 doesn't
-    // mark "| null"; and the anchor's text form. The type leaves each answer
-    // open: nullopt written null or "", or an anchor sampled with no fetch.
+    // (D-073), as RFC 3339 UTC to the microsecond with the zone Z,
+    // YYYY-MM-DDTHH:MM:SS.ffffffZ; nullopt: its files weren't fetched (--fetch
+    // off, design §7), none of its events has a wall clock, and a document
+    // writes its sessions[].wallclock_anchor_utc null (the owner's D-108 (c)).
     std::optional<std::string> wallclock_anchor_utc;
     // In play order, one per span of its plan, each starting where the one
     // before it ended: a plan that leaves a gap or overlaps is refused, naming

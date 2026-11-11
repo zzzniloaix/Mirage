@@ -251,8 +251,8 @@ std::string file_text(const Request& r)
 }
 
 // A row of a network event's chain, with the members request_events()
-// lists (src/SessionPlan.h): a form of WP07's, pending the owner until
-// WP09b's schema fixes it.
+// lists (src/SessionPlan.h): a form of WP07's, which the owner kept (D-108
+// (c)) and the schema file types.
 Value row_value(const RequestRow& row)
 {
     const bool http = row.status > 0;
@@ -417,9 +417,9 @@ Session make_session(const Timeline& timeline, const std::vector<MasterEntry>& e
         // frames it can't name, and the fetch without the segment's URL
         // (fetch_files()). So the whole plan is refused for one such
         // segment, also for one none of whose frames paired, and a session
-        // can't play across it. This check is WP07's, pending the owner:
-        // design §14 lists unknown entries and gaps or overlaps as the
-        // plan's checks.
+        // can't play across it. This check is WP07's, beside design §14's
+        // unknown entries and gaps or overlaps, and the owner kept it
+        // (D-108 (c)).
         if (const std::optional<std::int64_t> seq = missing_segment(segments, v, p.first_seq, p.last_seq)) {
             err = std::format("the session plan's {} plays segment {} of variant {} ({}), which isn't on the "
                               "timeline: its playlist lists no segment {}, or the build couldn't place it on "
@@ -473,11 +473,12 @@ std::vector<Event> session_events(const Timeline& timeline, const std::vector<Ma
     if (!s) return out;
     for (std::size_t k = 0; k < s->spans.size(); ++k) {
         const Span& span = s->spans[k];
-        // A switch at each span boundary after the first (design §5.6),
-        // also between two spans of one entry, whose `from` and `to` are
-        // then the same rung: whether such a boundary makes one is pending
-        // the owner (src/SessionPlan.h).
-        if (k > 0) {
+        // A switch at each span boundary after the first (design §5.6)
+        // where the entry played changes: none between two spans of one
+        // entry, where nothing changes, while two entries that name one
+        // playlist still switch, the master's entry being what changes
+        // (D-108 (b)).
+        if (k > 0 && s->spans[k - 1].entry != span.entry) {
             Event e = player_event(timeline, kTypeVariantSwitch, session, span.variant, span.ref_index,
                                    std::nullopt);
             e.payload.emplace_back("from", Value{ rung_members(timeline, entries, s->spans[k - 1]) });
@@ -503,10 +504,10 @@ std::string fetch_url(const std::string& url, const std::string& master_url, con
     err.clear();
     if (fetch_base.empty()) return url;
     // The rule is WP07's reading of design §5.7's paths rebased onto
-    // --fetch-base, pending the owner (src/SessionPlan.h): a URL's part after
-    // the master's directory, added to the base; a URL outside that
-    // directory, on another host or beside it, is refused, and with it the
-    // whole of fetch_files().
+    // --fetch-base, which the owner kept (D-108 (c); src/SessionPlan.h): a
+    // URL's part after the master's directory, added to the base; a URL
+    // outside that directory, on another host or beside it, is refused, and
+    // with it the whole of fetch_files().
     // The master's directory: its URL up to its last '/' before any query
     // or fragment; empty for a master in the current directory, under which
     // only a relative path is.
@@ -641,8 +642,8 @@ RequestEvents request_events(const Timeline& timeline, int session, const std::v
         e.ref_end      = end;
         e.key          = key_at(timeline, at);
         e.wallclock_us = first.t_start;
-        // The payload's members and units are WP07's, pending the owner
-        // until WP09b's schema fixes them (src/SessionPlan.h).
+        // The payload's members and units are WP07's, which the owner kept
+        // (D-108 (c)) and the schema file types (src/SessionPlan.h).
         const bool http = last.status > 0;
         Payload&   p    = e.payload;
         p.emplace_back("url", text_value(r.url));

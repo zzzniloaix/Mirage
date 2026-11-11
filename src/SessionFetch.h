@@ -66,13 +66,15 @@
 //   target's, from where the first ended. A local file has one row, for its
 //   open, which by reading src/NetworkLogger.cpp ends once the file is open:
 //   NetworkLogger times no read of a local file, so a fetch of local files
-//   measures their opens, and a local file's event lasts its open, whatever
-//   the file's size, its bytes the bytes read. What a fetch of local files
-//   measures is pending the owner, since neither D-104 nor design §5.7 says:
-//   this is how it is built, NetworkLogger's rows kept as it makes them. A
-//   ladder scored from local files is timed over HTTP when its files are
-//   fetched from a fetch base that serves them (fetch_url(),
-//   src/SessionPlan.h).
+//   measures their opens, and a local file's event would last its open,
+//   whatever the file's size, its bytes the bytes read. fetch_session()
+//   keeps NetworkLogger's rows as it makes them, a local file's included;
+//   the timeline subcommand refuses such a fetch before anything is fetched,
+//   a session whose files aren't http or https URLs without --fetch-base
+//   exiting with status 2, so that a session's network events come from
+//   network requests alone (D-108 (a); src/TimelineCli.h). A ladder scored
+//   from local files is timed over HTTP when its files are fetched from a
+//   fetch base that serves them (fetch_url(), src/SessionPlan.h).
 // - A stop requested on `cancel` interrupts the file being fetched, while
 //   its open waits or while its body is read, which is recorded with its
 //   error, and ends the fetch.
@@ -92,9 +94,8 @@ struct FetchResult {
     std::vector<Request> files;
     // The UTC time at the fetch's start, the session's anchor (D-073;
     // Session::wallclock_anchor_utc): RFC 3339 to the microsecond with the
-    // zone Z, YYYY-MM-DDTHH:MM:SS.ffffffZ. Empty when the fetch didn't start.
-    // The text form is pending the owner: no decision fixes it, and
-    // src/TimelineModel.h leaves it open; this one is how it is built.
+    // zone Z, YYYY-MM-DDTHH:MM:SS.ffffffZ, the form the owner kept
+    // (D-108 (c)). Empty when the fetch didn't start.
     std::string anchor_utc;
     // Why the fetch didn't try every file: a stop requested, or another
     // NetworkLogger installed; empty when it tried each, failed ones

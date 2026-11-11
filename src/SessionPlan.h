@@ -30,9 +30,10 @@
 //   isn't scored (D-105 (b)).
 // - Its events (session_events()), of the player source (design §5.6): a
 //   `variant_span` over each span, and a `variant_switch` at the first frame
-//   of each span after the first, from the rung played before to the one
-//   played from there, origin "plan". A rung is named by its master entry
-//   and URI with both BANDWIDTH ranks (D-075).
+//   of each span after the first that plays another entry than the span
+//   before it (D-108 (b)), from the rung played before to the one played
+//   from there, origin "plan". A rung is named by its master entry and URI
+//   with both BANDWIDTH ranks (D-075).
 // - Its fetch's files (fetch_files()), in the fetch's order (D-104 (a)):
 //   the master; the media playlist of each span's variant, the first time a
 //   span plays it; and each span's segments, from its first to its last.
@@ -61,15 +62,16 @@
 // - Its drops (session_drops()): the pairs' drops clipped to the spans that
 //   played them, under design §6.3's three rules (D-077).
 //
-// Pending the owner, since neither the design nor the decisions settle
-// them, and built as each declaration below says: the plan's layout beyond
-// D-105 (a)'s spans (parse_session_plan()); a plan refused for a segment
-// the timeline doesn't have (make_session()); a switch between two spans of
-// one entry (session_events()); the payloads' members and units, until
-// WP09b's schema fixes them (session_events(), request_events()); and the
-// rebasing onto a fetch base (fetch_url()). src/SessionFetch.h has the
-// fetch's two: what a fetch of local files measures, and the anchor's text
-// form.
+// What neither the design nor the decisions before it settled, the owner
+// settled in D-108. There is no switch between two spans of one entry
+// (D-108 (b); session_events()). And the rest stays as built, each as the
+// declaration below says (D-108 (c)): the plan's layout beyond D-105 (a)'s
+// spans (parse_session_plan()); a plan refused for a segment the timeline
+// doesn't have (make_session()); the payloads' members and units
+// (session_events(), request_events()), which
+// docs/schema/mirage-timeline-1.schema.json types and docs/TIMELINE_FORMAT.md
+// describes; and the rebasing onto a fetch base, a URL outside the master's
+// directory refusing the whole fetch (fetch_url()).
 //
 // The events made here have no id yet: the caller adds them to the
 // timeline's events, gives every event its id (assign_ids(), which leaves
@@ -197,10 +199,10 @@ inline constexpr int              kPlanVersion = 1;
 //            and "last_seq", the media sequence numbers of the first and the
 //            last segment it plays, both included: integers from 0, the first
 //            no greater than the last.
-// D-105 (a) fixes only the spans' {entry, first_seq, last_seq} and that the
-// file is versioned: the rest of this layout, its top-level members and
-// their names, and the strict reading, every member required and no other
-// taken, is WP07's, pending the owner.
+// D-105 (a) fixes the spans' {entry, first_seq, last_seq} and that the file
+// is versioned; the rest of this layout, its top-level members and their
+// names, and the strict reading, every member required and no other taken,
+// are WP07's, which the owner kept (D-108 (c)).
 // For example, entry 1 for segments 0 to 2, entry 2 for 3 and 4, entry 1
 // for 5 to 7 (design §9.3):
 //   {"schema": "mirage-session-plan", "schema_version": 1, "name": "down at the ad",
@@ -224,10 +226,10 @@ SessionPlan parse_session_plan(std::string_view text, std::string& err);
 // entries and segments concerned, and the result is empty; otherwise `err`
 // is empty. A span through a segment the timeline doesn't have, one its
 // playlist doesn't list or one the build couldn't place, as a segment none
-// of whose frames is paired, refuses the whole plan, so a session can't
-// play across one such segment: a check of WP07's, pending the owner, since
-// design §14 lists unknown entries and gaps or overlaps as the plan's
-// checks.
+// of whose frames is paired, refuses the whole plan, naming the span and the
+// segment, so a session can't play across one such segment: the owner kept
+// this check of WP07's (D-108 (c)), which design §14's list of the plan's
+// checks, unknown entries and gaps or overlaps, doesn't name.
 Session make_session(const Timeline& timeline, const std::vector<MasterEntry>& entries,
                      const SessionPlan& plan, std::string& err);
 
@@ -241,8 +243,9 @@ inline constexpr std::string_view kTypePlaylistRequest = "playlist_request";   /
 
 // The player events of session `session` of `timeline` (design §5.6), the
 // master's entries being `entries`, in play order: a variant_span over each
-// span, and before each span after the first a variant_switch at its first
-// frame. Each carries the session's index, no segment, and the media key of
+// span, and before each span after the first that plays another entry than
+// the span before it a variant_switch at its first frame (D-108 (b)). Each
+// carries the session's index, no segment, and the media key of
 // the frame it starts at; a variant_span the variant it plays, a
 // variant_switch the variant played from it. Payloads, in order, a rung
 // being an object of its entry, its URI as the master gives it, its
@@ -254,18 +257,16 @@ inline constexpr std::string_view kTypePlaylistRequest = "playlist_request";   /
 //                   a span of the reference in top-rung mode (D-105 (b))
 //   variant_switch  from: the rung of the span before; to: the rung of the
 //                   span it starts; origin: "plan"
-// A switch is made at every boundary between two spans, whether or not
-// their entries differ: between two spans of one entry its `from` and `to`
-// are the same rung, and an attribution of the session lists it where
-// nothing changes. Design §5.6 puts a switch at each span boundary after the
-// first, and whether a boundary between two spans of one entry makes one is
-// pending the owner. These forms, a rung's members flat in a variant_span,
+// No switch is made at a boundary between two spans of one entry, where
+// nothing changes, so that an attribution of the session lists no player
+// event there; two entries that name one playlist still switch, the
+// master's entry being what changes, `from` and `to` then naming the same
+// variant (D-108 (b)). These forms, a rung's members flat in a variant_span,
 // whose first_seq, last_seq and scored are written always, and as objects
 // in a variant_switch, a switch's Event::variant the variant played from it
 // (the one design §6.4's prototype lists a switch under), and the members'
-// names, are WP07's, pending the owner until WP09b's schema fixes them
-// (D-099 (c) settled round 1's payload names only). None for a session that
-// isn't there.
+// names, are WP07's, which the owner kept (D-108 (c)): the schema file
+// types them. None for a session that isn't there.
 std::vector<Event> session_events(const Timeline& timeline, const std::vector<MasterEntry>& entries,
                                   int session);
 
@@ -279,9 +280,10 @@ std::vector<Event> session_events(const Timeline& timeline, const std::vector<Ma
 // ad_000.ts is fetched from http://127.0.0.1:8080/v180/ad_000.ts. A URL that
 // isn't under that directory can't be rebased: `err` says so, and the result
 // is empty; otherwise `err` is empty. This rule is WP07's reading of design
-// §5.7's paths rebased onto --fetch-base, pending the owner: a ladder whose
-// segments are on another host, or beside the master's directory, can't be
-// fetched from a base, fetch_files() refusing its whole fetch.
+// §5.7's paths rebased onto --fetch-base, which the owner kept (D-108 (c)):
+// a ladder whose segments are on another host, or beside the master's
+// directory, can't be fetched from a base, fetch_files() refusing its whole
+// fetch.
 std::string fetch_url(const std::string& url, const std::string& master_url,
                       const std::string& fetch_base, std::string& err);
 
@@ -320,9 +322,8 @@ struct RequestEvents {
 //   row, in order, as {url, start, sent, first_byte, end, status,
 //   status_text, bytes, content_length, failed, error}, NetworkLogger's
 //   error text of a row null when empty.
-// These payloads' members and units are WP07's, pending the owner until
-// WP09b's schema fixes them (D-099 (c) settled round 1's payload names
-// only).
+// These payloads' members and units are WP07's, which the owner kept
+// (D-108 (c)): the schema file types them.
 RequestEvents request_events(const Timeline& timeline, int session, const std::vector<Request>& files);
 
 // ── Its drops (D-077; design §6.3) ───────────────────────────────────────────
