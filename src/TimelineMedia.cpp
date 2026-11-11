@@ -114,10 +114,12 @@ private:
             // byte range's end, and what a short forward seek read instead of
             // seeking. Over HTTP the demuxer asks the server for the range and
             // doesn't seek, so the reads start at the context's position 0
-            // (from = 0): that branch is untested in ctest. Since WP07,
-            // tests/HttpFileServer.h answers a Range header with 206 for the
-            // paths whose rule asks it to (HttpFileRule::ranges), and no test
-            // of this file uses that rule yet.
+            // (from = 0): that branch is tested by the case "TimelineMedia:
+            // EXT-X-BYTERANGE segments of one file over HTTP, each range a
+            // request answered with its bytes alone" of
+            // tests/test_timeline_media.cpp, whose server answers each
+            // range's Range header with 206 (HttpFileRule::ranges,
+            // tests/HttpFileServer.h).
             const std::int64_t from = f.offset && !over_http(f.url) ? *f.offset : 0;
             f.bytes      = avio_tell(pb) - from;
             f.bytes_read = pb->bytes_read;

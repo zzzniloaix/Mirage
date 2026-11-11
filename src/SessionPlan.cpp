@@ -237,6 +237,54 @@ std::optional<std::int64_t> int_member(const Payload& p, std::string_view name)
     return std::nullopt;
 }
 
+// `path` with its dot segments resolved, as RFC 3986 §5.2.4 removes them:
+// each "." segment dropped and each ".." one with the segment before it, a
+// path that ends in one of them then ending with '/'. A ".." at the start of
+// a relative path, which leaves the directory the path starts from, is
+// kept, since it names a directory above that one; at the root of an
+// absolute path it is dropped, as the RFC drops it.
+std::string resolved_path(std::string_view path)
+{
+    const bool absolute = path.starts_with('/');
+    if (absolute) path.remove_prefix(1);
+    std::vector<std::string_view> kept;
+    for (;;) {
+        const std::size_t      slash = path.find('/');
+        const std::string_view seg   = path.substr(0, slash);
+        if (seg == "..") {
+            if (!kept.empty() && kept.back() != "..") kept.pop_back();
+            else if (!absolute) kept.push_back(seg);
+        } else if (seg != ".") {
+            kept.push_back(seg);
+        }
+        if (slash == std::string_view::npos) {
+            if (seg == "." || seg == "..") kept.emplace_back();   // a directory: its '/'
+            break;
+        }
+        path.remove_prefix(slash + 1);
+    }
+    std::string out = absolute ? "/" : "";
+    for (std::size_t i = 0; i < kept.size(); ++i) {
+        if (i > 0) out += '/';
+        out += kept[i];
+    }
+    return out;
+}
+
+// `url` with the dot segments of its path resolved (resolved_path()), what
+// comes before the path, a scheme and an authority ("http://host:port"), and
+// a query or fragment, from the first '?' or '#' on, kept as they are, as
+// fetch_url() splits a URL; a URL without "://" is a path.
+std::string without_dot_segments(std::string_view url)
+{
+    const std::size_t      end  = std::min(url.find_first_of("?#"), url.size());
+    const std::string_view head = url.substr(0, end);
+    std::size_t            at   = 0;   // where its path starts
+    if (const std::size_t scheme = head.find("://"); scheme != std::string_view::npos)
+        at = std::min(head.find('/', scheme + 3), head.size());
+    return std::string(head.substr(0, at)) + resolved_path(head.substr(at)) + std::string(url.substr(end));
+}
+
 // "the master", "variant 2's media playlist", "segment 3 of variant 2"
 std::string file_text(const Request& r)
 {
@@ -508,22 +556,57 @@ std::string fetch_url(const std::string& url, const std::string& master_url, con
     // URL's part after the master's directory, added to the base; a URL
     // outside that directory, on another host or beside it, is refused, and
     // with it the whole of fetch_files().
+    // Both URLs are compared with their dot segments resolved (RFC 3986
+    // §5.2.4; without_dot_segments()), the paths they name: a URL that
+    // leaves the directory through "../" is outside it, whatever its text
+    // starts with, and refuses the whole fetch (D-108 (c)). The report's URLs
+    // can hold dot segments: mirage_vmaf --ladder joins a local master's
+    // directory and its entries' URIs as text (vmafladder::resolve(),
+    // src/VMAFLadder.h); and a playlist's segments come with their dot
+    // segments resolved where the playlist's URL is an absolute path or an
+    // http or https URL, but keep them where it is a relative local path
+    // (hls::resolve_uri(), src/HlsAlign.cpp). So where the master is given
+    // by a relative path, a URL's text can start with its directory while
+    // the URL leaves it.
+    // A URL under the directory is fetched at its resolved path from it, so
+    // that one that leaves it and comes back is fetched without its dot
+    // segments, and a refusal's message gives the URL resolved beside it
+    // where the two differ: a choice pending the owner, the others being its
+    // text after the directory, for the server to resolve, which names the
+    // same file only where its dot segments stay inside the directory, or a
+    // refusal of any URL that has them.
+    const std::string resolved = without_dot_segments(url);
+    const std::string master   = without_dot_segments(master_url);
     // The master's directory: its URL up to its last '/' before any query
     // or fragment; empty for a master in the current directory, under which
     // only a relative path is.
-    const std::string_view head  = std::string_view(master_url).substr(0, master_url.find_first_of("?#"));
+    const std::string_view head  = std::string_view(master).substr(0, master.find_first_of("?#"));
     const std::size_t      slash = head.rfind('/');
     const std::string      dir(slash == std::string_view::npos ? std::string_view() : head.substr(0, slash + 1));
-    const bool relative = url.find("://") == std::string::npos && !url.starts_with('/');
-    if (!url.starts_with(dir) || (dir.empty() && !relative) || url.size() == dir.size()) {
-        err = std::format("{} isn't under the master's directory {}, so it has no path to fetch from {} "
+    const bool relative = resolved.find("://") == std::string::npos && !resolved.starts_with('/');
+    // The URL's path from the directory, which a ".." left at its start, as
+    // only a relative path keeps one, would climb out of.
+    const std::string_view rest =
+        resolved.starts_with(dir) ? std::string_view(resolved).substr(dir.size()) : std::string_view();
+    if (!resolved.starts_with(dir) || (dir.empty() && !relative) || rest.empty() || rest.starts_with("../")) {
+        // The URL, then, where resolving its dot segments changes it, the
+        // URL resolved, or "the current directory" where that leaves
+        // nothing, as of "a/..": a form pending the owner with the rebasing.
+        err = std::format("{}{} isn't under the master's directory {}, so it has no path to fetch from {} "
                           "(design §5.7)",
-                          url, dir.empty() ? std::string("(the current directory)") : dir, fetch_base);
+                          url,
+                          resolved == url ? std::string()
+                                          : std::format(" ({} with its dot segments resolved)",
+                                                        resolved.empty() ? std::string("the current directory")
+                                                                         : resolved),
+                          dir.empty() ? std::string("(the current directory)") : dir, fetch_base);
         return {};
     }
+    // At its path from the directory, its dot segments resolved: the choice
+    // pending the owner above.
     std::string out = fetch_base;
     if (!out.ends_with('/')) out += '/';
-    return out + url.substr(dir.size());
+    return out + std::string(rest);
 }
 
 std::vector<Request> fetch_files(const Timeline& timeline, int session, const std::string& master_url,

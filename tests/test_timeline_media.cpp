@@ -3,7 +3,8 @@
 // libraries, read from a local directory and from a local HTTP server
 // (tests/HttpFileServer.h): every frame placed in its segment by byte
 // position and checked against what the writer wrote, with B-frames,
-// timestamps that restart at a discontinuity, byte ranges, a missing frame,
+// timestamps that restart at a discontinuity, byte ranges, locally and over
+// HTTP from a server that answers their Range headers, a missing frame,
 // an unmarked splice's corrupt packets, FFmpeg's hls muxer's short last
 // EXTINF and an input that isn't a playlist; and the placement rules alone
 // (map_frames()) on packets the test makes up.
@@ -658,6 +659,49 @@ TEST_CASE("TimelineMedia: the same over HTTP, from the playlist read with read_p
     check_layout(m, s);
     CHECK(m.keyframes == local.keyframes);
     CHECK(m.corrupt.empty());
+}
+
+TEST_CASE("TimelineMedia: EXT-X-BYTERANGE segments of one file over HTTP, each range a request answered with "
+          "its bytes alone",
+          "[timeline][timeline_media]")
+{
+    // The local byte-range case's stream, served by a server that answers a
+    // Range header with 206 and the range's bytes (HttpFileRule::ranges).
+    // Over HTTP FFmpeg's hls demuxer asks the server for each segment's range
+    // and doesn't seek (over_http(), src/TimelineMedia.cpp), so the pass
+    // counts what the demuxer took of a range from the context's first
+    // position, where locally it counts from the range's first byte, to
+    // which the demuxer seeks or reads up.
+    const Stream s = write_stream("mirage_test_media_http_ranges", plain(4),
+                                  { .width = 192, .height = 108, .gop = 1, .byte_ranges = true });
+    HttpFileServer server(s.dir, { .path = "all.ts", .ranges = true });
+    REQUIRE(server.ok());
+    const std::string url = server.url("index.m3u8");
+    std::string err;
+    const Demuxed d = timeline::demux(url, {}, err);
+    REQUIRE(err.empty());
+    REQUIRE(d.files.size() == 4);
+    std::vector<std::string> asked;
+    for (std::size_t k = 0; k < 4; ++k) {
+        INFO("segment " << k);
+        CHECK(d.files[k].url == server.url("all.ts"));
+        CHECK(d.files[k].offset == s.offset[k]);
+        CHECK(d.files[k].bytes == s.bytes[k]);
+        // The server sent the range's bytes alone, so the context read no
+        // more: P-F's count agrees here, as on a whole file.
+        CHECK(d.files[k].bytes_read == s.bytes[k]);
+        asked.push_back(std::format("bytes={}-{}", s.offset[k], s.offset[k] + s.bytes[k] - 1));
+    }
+    // Each segment's range asked for once, in the playlist's order.
+    CHECK(server.ranges("all.ts") == asked);
+
+    // Every frame in its segment, as the local case maps them.
+    const hls::MediaTimeline tl = hls::parse_media_timeline(read_file(s.playlist), url);
+    REQUIRE(tl.ok);
+    const VariantMedia m = timeline::map_frames(d, &tl, { scored(every_frame(s)) });
+    REQUIRE(m.refused.empty());
+    check_layout(m, s);
+    CHECK(m.keyframes.size() == 40);
 }
 
 TEST_CASE("TimelineMedia: a segment whose first request gets no answer is tried again, and read once",

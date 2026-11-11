@@ -5,15 +5,17 @@
 // (D-075); its curve (curve_points()) and the scope of its attributions
 // (attribute(), D-078); the work order's example on a hand-built timeline;
 // its drops under design §6.3's three rules (D-077); and its fetch's files
-// in their order (D-104 (a)) and their events on the media axis
-// (D-105 (c)), on rows the test builds by hand (the fetch itself is
-// tests/test_session_fetch.cpp's). Mostly on a five-rung version of
-// testgen's ad ladder (eval/phase3-survey/testgen.md §2.3), built by hand
-// and merged by timeline::build() as tests/test_timeline_build.cpp merges
-// its three-rung one: eight 25-frame segments at 25 fps, the reference v720
-// in top-rung mode and the pairs v540, v360, v270 and v180, the ad in
-// segments 3 and 4 restarting its timestamps at the main content's origin,
-// v270's ad scored low.
+// in their order (D-104 (a)), on a fetch base at their paths from the
+// master's directory (D-108 (c)), their dot segments resolved (pending the
+// owner), and their events on the media axis (D-105 (c)), on rows the test
+// builds by hand (the fetch itself is tests/test_session_fetch.cpp's).
+// Mostly on a five-rung version of testgen's ad ladder
+// (eval/phase3-survey/testgen.md §2.3), built by hand and merged by
+// timeline::build() as tests/test_timeline_build.cpp merges its three-rung
+// one: eight 25-frame segments at 25 fps, the reference v720 in top-rung
+// mode and the pairs v540, v360, v270 and v180, the ad in segments 3 and 4
+// restarting its timestamps at the main content's origin, v270's ad scored
+// low.
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -1259,6 +1261,90 @@ TEST_CASE("session plan: fetch_url, the same path from the master's directory on
     CHECK(timeline::fetch_url("/data/other/x.ts", "/data/ladder/master.m3u8", base, err).empty());
     CHECK(contains(err, "isn't under the master's directory /data/ladder/"));
     CHECK(timeline::fetch_url("/data/ladder/", "/data/ladder/master.m3u8", base, err).empty());
+}
+
+TEST_CASE("session plan: fetch_url compares a URL with the master's directory once the dot segments of both "
+          "are resolved, so that one that leaves it through ../ refuses the whole fetch (D-108 (c))",
+          "[timeline][session][session_plan]")
+{
+    std::string err;
+    const std::string base = "http://127.0.0.1:8080";
+    // Where a URL holds dot segments, the checks below of its fetch at its
+    // path from the master's directory with them resolved, and of a
+    // refusal's message that gives it resolved, pin a choice pending the
+    // owner (fetch_url(), src/SessionPlan.cpp); those of a refusal alone
+    // rest on D-108 (c).
+    // A media playlist that leaves the master's directory through "../": the
+    // URL mirage_vmaf --ladder gives the entry ../other/v180/index.m3u8 of a
+    // master given by an absolute path, joined to its directory as text
+    // (vmafladder::resolve(), src/VMAFLadder.h), while its segments' URLs
+    // come with their dot segments resolved, its URL being an absolute path
+    // (hls::resolve_uri(), src/HlsAlign.cpp). Outside the directory,
+    // whatever its text starts with.
+    CHECK(timeline::fetch_url("/data/ladder/../other/v180/index.m3u8", "/data/ladder/master.m3u8", base, err)
+              .empty());
+    CHECK(err == "/data/ladder/../other/v180/index.m3u8 (/data/other/v180/index.m3u8 with its dot segments "
+                 "resolved) isn't under the master's directory /data/ladder/, so it has no path to fetch from "
+                 "http://127.0.0.1:8080 (design §5.7)");
+    // One that leaves and comes back, or names a directory by ".": under it,
+    // fetched at its path from it with its dot segments resolved, pending
+    // the owner (fetch_url(), src/SessionPlan.cpp).
+    CHECK(timeline::fetch_url("/data/ladder/v270/../v180/./index.m3u8", "/data/ladder/master.m3u8", base, err) ==
+          "http://127.0.0.1:8080/v180/index.m3u8");
+    CHECK(err.empty());
+    CHECK(timeline::fetch_url("/data/ladder/../ladder/v180/ad_000.ts", "/data/ladder/master.m3u8", base, err) ==
+          "http://127.0.0.1:8080/v180/ad_000.ts");
+    // The master's own: its directory is the resolved one.
+    CHECK(timeline::fetch_url("/data/ladder/v180/ad_000.ts", "/data/x/../ladder/./master.m3u8", base, err) ==
+          "http://127.0.0.1:8080/v180/ad_000.ts");
+    CHECK(timeline::fetch_url("/data/x/v180/ad_000.ts", "/data/x/../ladder/master.m3u8", base, err).empty());
+    CHECK(err == "/data/x/v180/ad_000.ts isn't under the master's directory /data/ladder/, so it has no path to "
+                 "fetch from http://127.0.0.1:8080 (design §5.7)");
+    // An http URL's path; its host and query as they are, and a "../" at
+    // the root removed, the path staying at the root (RFC 3986 §5.2.4).
+    CHECK(timeline::fetch_url("https://cdn.test.invalid/a/../b/v1/s.ts", "https://cdn.test.invalid/a/m.m3u8", base,
+                              err).empty());
+    CHECK(timeline::fetch_url("https://cdn.test.invalid/a/./v1/../v2/s.ts?u=../x", "https://cdn.test.invalid/a/m.m3u8",
+                              base, err) == "http://127.0.0.1:8080/v2/s.ts?u=../x");
+    CHECK(timeline::fetch_url("http://cdn.test.invalid/../a/s.ts", "http://cdn.test.invalid/a/m.m3u8", base, err) ==
+          "http://127.0.0.1:8080/s.ts");
+    // Relative paths: a "../" that leaves the master's directory, the
+    // current directory among them, and one that stays in a directory above
+    // the current one.
+    CHECK(timeline::fetch_url("../v1/index.m3u8", "master.m3u8", base, err).empty());
+    CHECK(timeline::fetch_url("ladder/../../x.ts", "ladder/master.m3u8", base, err).empty());
+    CHECK(timeline::fetch_url("../../x.ts", "../master.m3u8", base, err).empty());
+    CHECK(timeline::fetch_url("v0/../v1/index.m3u8", "master.m3u8", base, err) ==
+          "http://127.0.0.1:8080/v1/index.m3u8");
+    CHECK(timeline::fetch_url("../ladder/v1/s.ts", "../ladder/master.m3u8", base, err) ==
+          "http://127.0.0.1:8080/v1/s.ts");
+    // A master given by a relative path whose entry leaves its directory:
+    // the entry's media playlist and its segments, which keep their dot
+    // segments, its URL being a relative path (hls::resolve_uri()), start
+    // with the master's directory as text, and are outside it all the same.
+    CHECK(timeline::fetch_url("beside/../ladder/v270/index.m3u8", "beside/master.m3u8", base, err).empty());
+    CHECK(err == "beside/../ladder/v270/index.m3u8 (ladder/v270/index.m3u8 with its dot segments resolved) isn't "
+                 "under the master's directory beside/, so it has no path to fetch from http://127.0.0.1:8080 "
+                 "(design §5.7)");
+    CHECK(timeline::fetch_url("beside/../ladder/v270/main_000.ts", "beside/master.m3u8", base, err).empty());
+    // One that resolves to the current directory itself, which names no
+    // file under the master's.
+    CHECK(timeline::fetch_url("a/..", "master.m3u8", base, err).empty());
+    CHECK(err == "a/.. (the current directory with its dot segments resolved) isn't under the master's directory "
+                 "(the current directory), so it has no path to fetch from http://127.0.0.1:8080 (design §5.7)");
+    // Without a fetch base, the URL as the report gives it.
+    CHECK(timeline::fetch_url("/data/ladder/../other/x.ts", "/data/ladder/master.m3u8", "", err) ==
+          "/data/ladder/../other/x.ts");
+    CHECK(err.empty());
+
+    // Through fetch_files(): a played variant's playlist outside the master's
+    // directory refuses the whole fetch, though its segments are under it.
+    timeline::Timeline t = with_session(example_plan());
+    t.variants[1].url = "http://test.invalid/ladder/../outside/v540/index.m3u8";
+    CHECK(timeline::fetch_files(t, 0, kMaster, "http://127.0.0.1:9", err).empty());
+    CHECK(err == "http://test.invalid/ladder/../outside/v540/index.m3u8 (http://test.invalid/outside/v540/index.m3u8 "
+                 "with its dot segments resolved) isn't under the master's directory http://test.invalid/ladder/, so "
+                 "it has no path to fetch from http://127.0.0.1:9 (design §5.7)");
 }
 
 TEST_CASE("session plan: a segment's byte range is what the fetch reads of its file",
