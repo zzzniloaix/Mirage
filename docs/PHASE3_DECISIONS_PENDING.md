@@ -6,7 +6,7 @@ What is open for the owner on `vmaf/phase-3`, §3 of the VMAF work order (the un
 
 44 questions, Q01 to Q44, in three rounds: 27 in round 1, the answers the work packages on the path to §3.2's two acceptance tests need before they start; 9 in round 2, those of sessions, the session fetch, the decoded SCTE-35 messages and the composite example; 8 in round 3, those of the UI, the conditional and later packages, and the differences to report. A question's round is the earliest round of the packages it blocks, and a round's packages start once all of its questions are answered (`eval/phase3-survey/design.md` §12, §14). Q26, Q39, Q43 and Q44 are answered item by item, an item's options numbered: "Q43 (c) 2". The questions marked D-007 (Q01, Q08, Q09, Q10, Q13, Q36, Q37 and Q41) have an answer that is, or includes, an approval or a ruling under D-007. "Blocks" names the work packages that wait for the answer; the packages are listed at the end. After the questions come the differences from the work order to report, and the agent's proposed process choices, to be recorded from P-082 on.
 
-The questions are the design's (`eval/phase3-survey/design/owner_questions.json`), rendered by `eval/phase3-survey/tools/render_pending.py` with the design's paths written as the repository has them and nothing else changed. They are as the design's revision 3 left them, after the third review's seven minor issues (`eval/phase3-survey/review-3/review.md`; `eval/phase3-survey/design/revision-3.md`). The owner's answers are marked here as each round's come in. Round 1's 27 questions were answered on 2026-11-02, every one as the agent recommends (D-071 to D-081); each is marked below. Round 2's 9 were answered on 2026-11-06, every one as the agent recommends, with Q47 (D-103 to D-107); each is marked below. Round 3 is open but for Q09 and Q13, which the owner answered on 2026-11-11 by leaving WP16 and WP17 out of Phase 3 (D-112 (b)). Building round 1's first packages raised three more questions, Q45 to Q47, after round 3 below: the owner answered Q45 and Q46 on 2026-11-04 as the agent recommends (D-086, D-087), and Q47 joins round 2. Building WP08, WP08b and WP09a raised Q48 to Q57, which the owner answered on 2026-11-05 and 2026-11-06, each as the agent recommends (D-092, D-099, D-100), and WP08c two more, Q58 and Q59, which the owner answered on 2026-11-06 as the agent recommends (D-101). Building round 2's first packages, WP00b, WP05 and WP07, raised eight more, Q60 to Q67, answered on 2026-11-10, each as the agent recommends (D-108, D-109): WP09b puts in the answers to Q60 to Q62, and WP05b, a follow-up of WP05's, those to Q63 to Q67, as WP08b and WP08c put in the answers on WP08. Building WP05b and WP09b raised seven more, Q68 to Q74, answered on 2026-11-11, each as the agent recommends (D-110, D-111): a follow-up of WP05b's, WP05c, puts in the answers to Q68 to Q72. The owner also left WP16 and WP17 out of Phase 3, which answers Q09 and Q13 of round 3, and had round 3's other questions asked before round 2 ends (D-112).
+The questions are the design's (`eval/phase3-survey/design/owner_questions.json`), rendered by `eval/phase3-survey/tools/render_pending.py` with the design's paths written as the repository has them and nothing else changed. They are as the design's revision 3 left them, after the third review's seven minor issues (`eval/phase3-survey/review-3/review.md`; `eval/phase3-survey/design/revision-3.md`). The owner's answers are marked here as each round's come in. Round 1's 27 questions were answered on 2026-11-02, every one as the agent recommends (D-071 to D-081); each is marked below. Round 2's 9 were answered on 2026-11-06, every one as the agent recommends, with Q47 (D-103 to D-107); each is marked below. Round 3 is open but for Q09 and Q13, which the owner answered on 2026-11-11 by leaving WP16 and WP17 out of Phase 3 (D-112 (b)). Building round 1's first packages raised three more questions, Q45 to Q47, after round 3 below: the owner answered Q45 and Q46 on 2026-11-04 as the agent recommends (D-086, D-087), and Q47 joins round 2. Building WP08, WP08b and WP09a raised Q48 to Q57, which the owner answered on 2026-11-05 and 2026-11-06, each as the agent recommends (D-092, D-099, D-100), and WP08c two more, Q58 and Q59, which the owner answered on 2026-11-06 as the agent recommends (D-101). Building round 2's first packages, WP00b, WP05 and WP07, raised eight more, Q60 to Q67, answered on 2026-11-10, each as the agent recommends (D-108, D-109): WP09b puts in the answers to Q60 to Q62, and WP05b, a follow-up of WP05's, those to Q63 to Q67, as WP08b and WP08c put in the answers on WP08. Building WP05b and WP09b raised seven more, Q68 to Q74, answered on 2026-11-11, each as the agent recommends (D-110, D-111): a follow-up of WP05b's, WP05c, puts in the answers to Q68 to Q72. The owner also left WP16 and WP17 out of Phase 3, which answers Q09 and Q13 of round 3, and had round 3's other questions asked before round 2 ends (D-112). Building WP09c and WP11b raised four more, Q75 to Q78, which are open.
 
 ### Round 1: the path to §3.2's two acceptance tests (27 questions)
 
@@ -1592,6 +1592,63 @@ Are they kept?
 **Agent's recommendation.** 1. Of these, (h) is the closest: a document of what was fetched before the stop would hold a session whose requests the attribution can't rely on.
 
 **Answered** on 2026-11-11: 1, as the agent recommends (`docs/DECISIONS.md` D-111).
+
+#### Q75. Recording `--cue-types` and `--bad-crc`
+
+*Round 2.* Raised by WP09c and its review.
+
+**Question.** `--cue-types` (D-106 (b)) and `--bad-crc` (D-106 (c)) shape a document's cue_out, cue_in, message and ad_break events wherever a playlist carries an SCTE-35 message. The options record has each only where it is given, as the session's options are recorded only with `--session` (D-111 (e)), so that a document of D-069's ladders, which carry plain cue tags only, keeps its bytes. A ladder whose playlists carry messages, built without the two options, then gets a document that doesn't name D-106's defaults, while the threshold and the margins are recorded at theirs, and design §6.3 and §8 have every parameter recorded. How are they recorded?
+
+- **1. As built**: each only where it is given.
+- **2. Both wherever a playlist carries a message**, defaults included: a message-free document keeps its bytes, and every document whose events the two options shaped names them.
+- **3. Both where either is given.**
+- **4. Always**, which changes every document's options record.
+
+**Agent's recommendation.** 2: every document then names each setting that shaped its events, and the documents the two options didn't shape stay as they are.
+
+#### Q76. `--cue-types`' syntax
+
+*Round 2.* Raised by WP09c and its review.
+
+**Question.** `--cue-types` takes segmentation_type_ids written `0x` or `0X` and one or two hex digits, each alone or a range `first-last`, separated by commas with no blanks; an empty set is refused. Design §7 and Q15 (a), which D-106 (b) adopts, write the default set with a blank after each comma, `0x22-0x23, 0x30-0x37, 0x44-0x47`, which is refused, also as a config file's value, where no shell quoting is needed (`tests/test_timeline_cli.cpp` pins the refusal). What does it take?
+
+- **1. As built.**
+- **2. Blanks allowed after the commas**, on the command line and in a config file, the options record keeping its canonical form without them.
+- **3. Decimal ids too.**
+- **4. A word for the empty set**, such as `none`, so that splice_insert alone makes cues (Q15 (b)'s alternative).
+
+**Agent's recommendation.** 2: the design's own spelling of the default is then accepted, and the record stays canonical.
+
+#### Q77. WP09c's other choices
+
+*Round 2.* Raised by WP09c and its review.
+
+**Question.** Choices that change a document's bytes or an answer:
+
+- (a) the options record writes `cue-types` as canonical ranges, ascending, in upper-case hex after `0x`, each run of consecutive types one range (`0x22-0x23,0x30-0x37,0x44-0x47` for D-106 (b)'s set), and `bad-crc` as `keep` or `drop`;
+- (b) attribute's text gives a line of its own to each splice_point, message and cancel, in the style of design §6.4's prototype; a decoded cue's line names its own tag's line and form, and the cue_out it joins where it joins one; and a line is marked where a message's CRC_32 fails, a cue's line also where a message it holds fails;
+- (c) of a plain cue and a decoded one that share a frame, an end, a source, a type and a variant, the plain one is numbered first, so that a plain cue's id doesn't move when a message adds an event beside it;
+- (d) the decoded messages' warnings come after the variants' and the pairs' warnings and before the pairing's;
+- (e) an option wider than the help's option column has its help on the next line, every other row unchanged.
+
+Are they kept?
+
+- **1. All as built.**
+- **2. Each asked on its own.**
+
+**Agent's recommendation.** 1.
+
+#### Q78. `--fetch-base` and a URL with dot segments
+
+*Round 2.* Raised by WP11b and its review.
+
+**Question.** D-108 (c) has `--fetch-base` take each URL's path after the master's directory, a URL outside it refusing the whole fetch. The check compared the URLs' text, so that a URL leaving the directory through `../` passed it; WP11b fixed it, taking both URLs with their dot segments resolved (RFC 3986 §5.2.4). Where a URL under the directory has dot segments, `/data/ladder/v270/../v180/x.ts` for example, what is fetched?
+
+- **1. As built: its resolved path**, `<base>/v180/x.ts`, a refusal's message giving the URL resolved beside the URL where the two differ.
+- **2. Its text after the directory**, for the server to resolve, which names the same file only while the dot segments stay inside the directory.
+- **3. Every URL with dot segments refused** when `--fetch-base` is given.
+
+**Agent's recommendation.** 1: under it alone, every URL that passes D-108 (c)'s check is fetched at the path of the file the report names.
 
 ## Differences from the work order, to report
 

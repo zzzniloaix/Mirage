@@ -1021,6 +1021,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Owner's words**, translated by the agent: (a) "Add a whole multiplier (Recommended)"; (b) "All as built (Recommended)"; (c) "All as built (Recommended)".
 - **Alternatives**: (a) the playlist-time ticks written per segment as following the keys' PTS, the axis's own rule, with the formula as fallback; kept as WP08b built them, growing with frames at those rates; one value per frame for those ticks. (b), (c) each item asked on its own.
 - **Rationale**: (a) A PTS rounded by one tick moves those ticks by s, while the floor term of D-092 (a)'s formula moves by 0 or 1 a frame, so no rational step alone follows them; the multiplier keeps them exact and self-contained, and all three kinds of values grow with segments. (b), (c) As the agent recommended.
+- **Overtaken** in part (2026-11-11, by D-106 as WP09c builds it): the build decodes the playlists' SCTE-35 messages, so the one warning per variant for messages it doesn't decode is gone; the rest of this decision stands.
 - **Who**: owner, adopting the agent's recommendation
 - **Date**: 2026-11-05
 
@@ -2732,6 +2733,7 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Alternatives**: the packages one after another in one worktree, which the design's §14 avoids so that each one's files have one owner; the reviews' fixes as commits of their own, where each package keeps one commit; P-F's count of the bytes read; a test file with the design's ladder case only.
 - **Rationale**: the shared declarations let six packages build at once without touching each other's files, and the reviews read each package against the design and the decisions before it merged. The byte count follows what FFmpeg's demuxer reads, which a test of four byte ranges of one file showed differs from what the context read.
 - **Result** (`eval/test_runs/macos-2026-11-04-2f81afe.txt`, at `2f81afe`): `mirage_tests '~[audio]'` passed at the first run, 325575 assertions in 533 test cases; ctest passed 546 of 546; the five Python suites passed, 28, 136, 11, 16 and 14 tests. Before that record, a ctest run at the same commit failed one test of 546, the Demuxer's seamless switches on a local file (`tests/test_demuxer_switch.cpp:492`: an audio packet's PTS of 5.25 s against a bound of 4.85 s plus 0.5), with load averages of 23.28, 18.02 and 15.30 just after; that test has failed now and then before (D-039), and passed in five runs of its own and in the next ctest run (`eval/test_runs/macos-2026-11-04-2f81afe-demuxer.txt`).
+- **Overtaken** in part (2026-11-11): the byte count over HTTP is tested in ctest since WP11b, by a case of `tests/test_timeline_media.cpp` that serves a byte-range playlist's segments with `tests/HttpFileServer.h`'s Range rule (WP07's).
 - **Who**: agent
 - **Date**: 2026-11-04
 - **Status**: pending owner confirmation
