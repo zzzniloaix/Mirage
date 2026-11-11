@@ -6,7 +6,7 @@ What is open for the owner on `vmaf/phase-3`, §3 of the VMAF work order (the un
 
 44 questions, Q01 to Q44, in three rounds: 27 in round 1, the answers the work packages on the path to §3.2's two acceptance tests need before they start; 9 in round 2, those of sessions, the session fetch, the decoded SCTE-35 messages and the composite example; 8 in round 3, those of the UI, the conditional and later packages, and the differences to report. A question's round is the earliest round of the packages it blocks, and a round's packages start once all of its questions are answered (`eval/phase3-survey/design.md` §12, §14). Q26, Q39, Q43 and Q44 are answered item by item, an item's options numbered: "Q43 (c) 2". The questions marked D-007 (Q01, Q08, Q09, Q10, Q13, Q36, Q37 and Q41) have an answer that is, or includes, an approval or a ruling under D-007. "Blocks" names the work packages that wait for the answer; the packages are listed at the end. After the questions come the differences from the work order to report, and the agent's proposed process choices, to be recorded from P-082 on.
 
-The questions are the design's (`eval/phase3-survey/design/owner_questions.json`), rendered by `eval/phase3-survey/tools/render_pending.py` with the design's paths written as the repository has them and nothing else changed. They are as the design's revision 3 left them, after the third review's seven minor issues (`eval/phase3-survey/review-3/review.md`; `eval/phase3-survey/design/revision-3.md`). The owner's answers are marked here as each round's come in. Round 1's 27 questions were answered on 2026-11-02, every one as the agent recommends (D-071 to D-081); each is marked below. Round 2's 9 were answered on 2026-11-06, every one as the agent recommends, with Q47 (D-103 to D-107); each is marked below. Round 3 is open. Building round 1's first packages raised three more questions, Q45 to Q47, after round 3 below: the owner answered Q45 and Q46 on 2026-11-04 as the agent recommends (D-086, D-087), and Q47 joins round 2. Building WP08, WP08b and WP09a raised Q48 to Q57, which the owner answered on 2026-11-05 and 2026-11-06, each as the agent recommends (D-092, D-099, D-100), and WP08c two more, Q58 and Q59, which the owner answered on 2026-11-06 as the agent recommends (D-101). Building round 2's first packages, WP00b, WP05 and WP07, raised eight more, Q60 to Q67, answered on 2026-11-10, each as the agent recommends (D-108, D-109): WP09b puts in the answers to Q60 to Q62, and WP05b, a follow-up of WP05's, those to Q63 to Q67, as WP08b and WP08c put in the answers on WP08.
+The questions are the design's (`eval/phase3-survey/design/owner_questions.json`), rendered by `eval/phase3-survey/tools/render_pending.py` with the design's paths written as the repository has them and nothing else changed. They are as the design's revision 3 left them, after the third review's seven minor issues (`eval/phase3-survey/review-3/review.md`; `eval/phase3-survey/design/revision-3.md`). The owner's answers are marked here as each round's come in. Round 1's 27 questions were answered on 2026-11-02, every one as the agent recommends (D-071 to D-081); each is marked below. Round 2's 9 were answered on 2026-11-06, every one as the agent recommends, with Q47 (D-103 to D-107); each is marked below. Round 3 is open. Building round 1's first packages raised three more questions, Q45 to Q47, after round 3 below: the owner answered Q45 and Q46 on 2026-11-04 as the agent recommends (D-086, D-087), and Q47 joins round 2. Building WP08, WP08b and WP09a raised Q48 to Q57, which the owner answered on 2026-11-05 and 2026-11-06, each as the agent recommends (D-092, D-099, D-100), and WP08c two more, Q58 and Q59, which the owner answered on 2026-11-06 as the agent recommends (D-101). Building round 2's first packages, WP00b, WP05 and WP07, raised eight more, Q60 to Q67, answered on 2026-11-10, each as the agent recommends (D-108, D-109): WP09b puts in the answers to Q60 to Q62, and WP05b, a follow-up of WP05's, those to Q63 to Q67, as WP08b and WP08c put in the answers on WP08. Building WP05b and WP09b raised seven more, Q68 to Q74, which are open: Q68 to Q73 on the decoded messages, whose answers a follow-up of WP05b's is to put in, and Q74 on WP09b's choices.
 
 ### Round 1: the path to §3.2's two acceptance tests (27 questions)
 
@@ -1457,6 +1457,123 @@ Are they kept?
 **Agent's recommendation.** 1. Of these, (a) is the closest: the alternatives, time_signal cues paired by segmentation_event_id within their level, or cues from the outermost level present alone, the inner levels' messages becoming `message` events, would pair otherwise than D-087's rule does, or need a rule for which level is outermost where breaks differ.
 
 **Answered** on 2026-11-10: 1, as the agent recommends (`docs/DECISIONS.md` D-109 (e)); its (a) is recorded there as an exception to D-087.
+
+#### Q68. A cue_out that holds its tag's SCTE35-IN, where nothing declares its end or a plain `EXT-X-CUE-OUT` takes it
+
+*Round 2.* Raised by WP05b and its review.
+
+**Question.** Under D-109 (b) the cue_out that takes an `EXT-X-DATERANGE`'s SCTE35-OUT holds the SCTE35-IN of the same tag, and `pair_breaks()` ends its break at its declared duration, by D-076's order, no later cue_in ending it (`kHeldCueInLine`, `src/PlaylistEvents.h`). Two cases that D-109 (b) doesn't name are built so:
+
+- the tag declares neither DURATION nor END-DATE, and nothing else declares a duration: the cue_out makes no ad_break, with a warning, and the cue_in after it ends nothing, so that a break the branch made before WP05b, from the tag's cue_out to a later tag's cue_in, is no longer made (`make_break()` in `src/PlaylistEvents.cpp`; the review's probe, not committed);
+- a plain `EXT-X-CUE-OUT` in the tag's segment takes the tag's messages (D-106 (d)) and holds its SCTE35-IN as well: its break ends at its own duration, the `EXT-X-CUE-OUT`'s value first by D-076's order, an `EXT-X-CUE-IN` after it ends nothing, and where the tag is written first the ad_break's cue_in_line, the tag's, comes before its cue_out_line (`emit()` in `src/Scte35Events.cpp`).
+
+How are they paired?
+
+- **1. As built.**
+- **2. The break is held only where the tag declares its duration and no plain cue takes its messages**; otherwise the SCTE35-IN's record still goes into the cue_out, which pairs as D-076 has it, the next cue_in ending it.
+- **3. Only the first case changed**: a cue_out that holds its tag's SCTE35-IN and declares no duration pairs with the next cue_in; a plain `EXT-X-CUE-OUT` holds it as built.
+
+**Agent's recommendation.** 2: D-109 (b) answered for a tag that declares its break's duration; where it declares none, or where a plain `EXT-X-CUE-OUT` marks the break, D-076's cue-in is still where the media changes back, and no break that was made before is lost.
+
+#### Q69. Other pairs of messages in one `EXT-X-DATERANGE`
+
+*Round 2.* Raised by WP05b's review.
+
+**Question.** D-109 (b) folds an SCTE35-IN into the cue_out of its tag's SCTE35-OUT. Two other messages of one tag that make a cue_out and then a cue_in, an SCTE35-CMD that starts a break with an SCTE35-IN, or an SCTE35-OUT with an SCTE35-CMD that ends it, are still a cue_out and a cue_in at the tag's line, of which `pair_breaks()` makes an ad_break of no frames, the tag's DURATION ending nothing (`link()` in `src/Scte35Events.cpp`; the review's probe, not committed). Is it kept?
+
+- **1. As built.**
+- **2. Folded as D-109 (b) folds an SCTE35-IN**: a cue-in message of an `EXT-X-DATERANGE` goes into the cue_out of a cue-out message of the same tag, whichever attribute carries each, and the break ends at the tag's DURATION or END-DATE, with Q68's answer for a tag that declares neither.
+- **3. Kept, with a warning** that the ad_break has no frames.
+
+**Agent's recommendation.** 2: it is D-109 (b)'s case, one tag declaring one break; which attribute carries each message doesn't change what the tag declares.
+
+#### Q70. The ad_breaks of no frames that remain
+
+*Round 2.* Raised by WP05's fix and by WP05b.
+
+**Question.** An ad_break of no frames, with no warning, still comes of a cue_out and a cue_in at one frame from two tags of one segment (two plain tags, two messages, such as two `EXT-X-DATERANGE` tags of one ID, one with SCTE35-OUT and one with SCTE35-IN, or one of each), and of a declared duration of 0 (`EXT-X-CUE-OUT:0`, DURATION=0, an END-DATE at the START-DATE, a break_duration of 0 ticks). Under D-078 a span of no frames meets an interval only where the interval starts before its frame and ends after it, so a drop that starts with such a break, with no margin, doesn't list it. How are they kept?
+
+- **1. As built.**
+- **2. No ad_break**, with a warning.
+- **3. The ad_break kept, with a warning** that it has no frames.
+- **4. A cue_in at its cue_out's frame ends nothing**, and the break waits for the next cue_in or its declared duration.
+
+**Agent's recommendation.** 3: the playlist does say that a break starts and ends there, which the timeline keeps, and the warning says why a drop that starts at that frame doesn't list it; 2 would hide a break the playlist declares, and 4 would make one it doesn't.
+
+#### Q71. The anchors of a folded SCTE35-IN
+
+*Round 2.* Raised by WP05b and its review.
+
+**Question.** An SCTE35-IN folded into its tag's cue_out (D-109 (b)) keeps its anchors, its in point (the tag's END-DATE, or START-DATE plus DURATION) and its splice times among them, and each is checked against the tag's segment with D-106 (a)'s warning. A break's in point lies at its end, so every folded tag whose break outlasts its segment gets the warning (`tests/test_scte35_events.cpp` asserts two; the review's probe, not committed). Is it kept?
+
+- **1. As built.**
+- **2. Recorded, not checked**, with no warning, as D-109 (c) has a CUE-OUT-CONT's message; its splice times still make splice_points.
+- **3. Checked against the segment where the break ends.**
+
+**Agent's recommendation.** 2: as in D-109 (c), the anchor lies outside the tag's segment by its nature, so the warning tells nothing; 3 would need the break's end placed before its message is read.
+
+#### Q72. One signal's messages beside a plain `EXT-X-CUE-OUT`, and one signal's cue-in messages
+
+*Round 2.* Raised by WP05b and its review.
+
+**Question.** D-109 (a) makes one cue_out of the cue-out messages of one signal, and one splice_point per splice time, where no plain `EXT-X-CUE-OUT` is in their segment. Two cases it doesn't name are built so:
+
+- (a) where a plain `EXT-X-CUE-OUT` takes the messages (D-106 (d)), each message still makes its own splice_points, so that one signal written twice makes two at one frame (the review's probe, not committed);
+- (b) the cue-in messages of one signal in one segment, an OATCLS and an `EXT-X-DATERANGE` of one In Point for example, make a cue_in each: the first ends the break, and `pair_breaks()` passes over the second without a warning.
+
+Are they kept?
+
+- **1. As built.**
+- **2. One per signal there too**: in (a) one splice_point per splice time of the signal, and in (b) one cue_in per signal, by D-109 (a)'s three ways of sharing, the others' records in its payload.
+- **3. Only (a) changed.**
+
+**Agent's recommendation.** 2: it is D-109 (a)'s reason, one signal written twice, where two events would claim two.
+
+#### Q73. WP05b's other choices
+
+*Round 2.* Raised by WP05b.
+
+**Question.** Choices that change the events:
+
+- (a) of D-109 (a)'s three ways, the segmentation_event_id is that of a descriptor that makes each message a cue-out, a Start type of the cue types, not cancelled; any descriptor's id would also merge the cues of two levels whose messages share a descriptor of another type, a Program's, say, where D-109 (e) counts the levels alike;
+- (b) a signal's cue_out is its first message's in the messages' order (variant, then line), and it takes the durations it has null from the others, as a plain cue takes a message's (D-106 (d));
+- (c) a signal's cue_in is the first of its messages' that ends a break, at the cue_out's line where its own is later, so that it ends the open break before the signal's starts; the others' End types stay in their records;
+- (d) an SCTE35-IN whose tag's SCTE35-OUT makes no cue_out (it doesn't decode, `--bad-crc drop` drops it, or it isn't a cue-out), or whose own classes aren't cue_in alone, is a cue_in of its own, as before;
+- (e) a held break's ad_break has the tag's line as its cue_in_line and the duration's name as its end, and its cue_out has a member `held_cue_in_line`, so that the ad_break's layout is unchanged;
+- (f) a CUE-OUT-CONT's message keeps its anchors, computed and recorded, `in_segment` among them (D-109 (c));
+- (g) `pair_breaks()` reads a `<name>_ticks` member beside every duration of `kDurationNames`, a whole number from 0, and passes over any other value for the seconds;
+- (h) a cue of its own writes the ticks members null beside a null duration, so that its layout is fixed, and an ad_break keeps them beside the seconds in its `durations`.
+
+Are they kept?
+
+- **1. All as built.**
+- **2. Each asked on its own.**
+
+**Agent's recommendation.** 1.
+
+#### Q74. WP09b's choices
+
+*Round 2.* Raised by WP09b and its review.
+
+**Question.** Choices that change a document's bytes, an answer, an exit status, or what is refused:
+
+- (a) a session's id, `sessions[].id` and the `<id>` of `--curve session:<id>`, is its place among the document's sessions as text, `"0"`, where the plan's name may be empty or repeat;
+- (b) `detection.session_rules` is an object of five named rules, D-077's clipping of the pairs' drops to the spans, design §6.3's three and the joining of one variant's consecutive spans, written exactly where detection ran on a session's curve, null otherwise, as for a ladder;
+- (c) exit status 2, as for a config file's errors, for a plan that can't be read, isn't a plan or doesn't fit the ladder, and for a fetch under `--fetch-base` whose URL lies outside the master's directory (D-108 (c));
+- (d) `--fetch-base` takes an http or https URL only, anything else refused with exit status 2, by D-108 (a)'s reason, and it is refused with `--fetch off`;
+- (e) the options record has the session's three options only where `--session` is given, so that a ladder's record and document keep their bytes;
+- (f) with a session, detection runs on every pair's curve, then the session's, so that a document's ladder part is the same with or without a session;
+- (g) `attribute` without `--curve` answers every curve, each pair's, then the session's, and `--drop K` counts their drops in that order, where D-099 (c) names the pairs' curves;
+- (h) a build stopped by SIGINT or SIGTERM exits with status 1 and writes no document, where `mirage_vmaf --ladder` writes a report of its complete pairs (D-047);
+- (i) the reader refuses a plan without a session and a session without a plan, more than one session (D-072), a span that doesn't fit the variants or the axis or fails D-105 (a)'s contiguity or (b)'s scored flag, an anchor in another form, a network event without a wall clock, a wall clock in a session without an anchor (D-073), and an offline event that names a session, as strict as D-092 (d)'s reader;
+- (j) the text answer for a session: a header listing its spans by entry, segments and frames, the unscored marked, a switch as its two rungs with their ranks, and a request as its URL, times, bytes and status, in the form of design §6.4's prototype.
+
+Are they kept?
+
+- **1. All as built.**
+- **2. Each asked on its own.**
+
+**Agent's recommendation.** 1. Of these, (h) is the closest: a document of what was fetched before the stop would hold a session whose requests the attribution can't rely on.
 
 ## Differences from the work order, to report
 
