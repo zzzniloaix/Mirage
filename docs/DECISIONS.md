@@ -1146,6 +1146,42 @@ The remaining open items are listed in the "Decisions needed from the owner" sec
 - **Who**: owner, adopting the agent's recommendation
 - **Date**: 2026-11-10
 
+### D-110 Decoded messages after WP05b: a break held only where its tag declares its end, a tag's other out and in messages folded, a break of no frames kept with a warning, a folded cue-in's anchors unchecked, one event per signal, WP05b's other choices as built
+
+- **Decision**: six answers on what WP05b and its review left to the owner (Q68 to Q73):
+  - (a) The cue_out that takes an `EXT-X-DATERANGE`'s SCTE35-OUT holds the tag's cue-in message, its break ending at its declared duration and no later cue_in ending it (D-109 (b)), only where the tag itself declares DURATION or END-DATE and no plain `EXT-X-CUE-OUT` takes its messages; otherwise the cue-in message's record still goes into the cue_out, which pairs as D-076 has it, the next cue_in ending it (Q68, option 2).
+  - (b) A cue-in message of an `EXT-X-DATERANGE` goes into the cue_out of a cue-out message of the same tag, whichever of SCTE35-OUT, SCTE35-IN and SCTE35-CMD carries each, as D-109 (b) folds an SCTE35-IN, with (a) for the tag's duration (Q69, option 2).
+  - (c) An ad_break of no frames is kept, with a warning that it has no frames (Q70, option 3).
+  - (d) The anchors of a folded cue-in message, its in point and its splice times, are recorded and not checked against the tag's segment, with no warning, as D-109 (c) has a CUE-OUT-CONT's message; its splice times still make splice_points (Q71, option 2).
+  - (e) One event per signal there too: where a plain `EXT-X-CUE-OUT` takes the messages of a signal, one splice_point per splice time of the signal; and the cue-in messages of one variant and one segment that share their section's bytes, their splice_event_id or their segmentation_event_id make one cue_in, the others' records in its payload (Q72, option 2).
+  - (f) WP05b's other choices stay as built (Q73): of D-109 (a)'s three ways, the segmentation_event_id is that of a descriptor that makes each message a cue-out, of a Start type of the cue types and not cancelled; a signal's cue_out is its first message's, taking the durations it has null from the others; its cue_in is the first of its messages' that ends a break, at the cue_out's line where its own is later; an SCTE35-IN whose tag's SCTE35-OUT makes no cue_out, or whose own classes aren't cue_in alone, is a cue_in of its own; a held break's ad_break has the tag's line as its cue_in_line and the duration's name as its end, its cue_out a member `held_cue_in_line`; a CUE-OUT-CONT's message keeps its anchors; `pair_breaks()` reads a `<name>_ticks` member beside every duration of `kDurationNames`, a whole number from 0, passing over any other value for the seconds; and a cue of its own writes the ticks members null beside a null duration, which an ad_break keeps beside the seconds in its `durations`.
+- **Owner's words**, translated by the agent: "Just do it all as recommended", in answer to Q68 to Q74, which the agent had asked with their options and its recommendations, and to the three ways to finish sooner it had proposed (D-112). The agent took the answer as adopting each recommendation and each of the three, said so in its reply, and asked the owner to say at once if it was not meant so.
+- **Alternatives**: (a) as built; only the case of a tag that declares no duration changed (Q68). (b) As built, an ad_break of no frames; kept, with a warning (Q69). (c) As built; no ad_break, with a warning; a cue_in at its cue_out's frame ending nothing (Q70). (d) As built; checked against the segment where the break ends (Q71). (e) As built; only the splice_points changed (Q72). (f) Each item asked on its own (Q73).
+- **Rationale**: as the agent recommended: (a) D-109 (b) answered for a tag that declares its break's duration; where it declares none, or where a plain `EXT-X-CUE-OUT` marks the break, D-076's cue-in is still where the media changes back, and no break that was made before is lost. (b) It is D-109 (b)'s case, one tag declaring one break; which attribute carries each message doesn't change what the tag declares. (c) The playlist does say that a break starts and ends there, and the warning says why a drop that starts at that frame doesn't list it (D-078); leaving the break out would hide one the playlist declares, and letting such a cue_in end nothing would make one it doesn't. (d) The anchor lies outside the tag's segment by its nature, so the warning tells nothing. (e) It is D-109 (a)'s reason, one signal written twice, where two events would claim two.
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-11
+
+### D-111 WP09b's choices as built
+
+- **Decision**: WP09b's choices stay as built (Q74, option 1): (a) a session's id, `sessions[].id` and the `<id>` of `--curve session:<id>`, is its place among the document's sessions as text, `"0"`; (b) `detection.session_rules` is an object of five named rules, written exactly where detection ran on a session's curve and null otherwise; (c) exit status 2 for a plan that can't be read, isn't a plan or doesn't fit the ladder, and for a fetch under `--fetch-base` whose URL lies outside the master's directory; (d) `--fetch-base` takes an http or https URL only, and is refused with `--fetch off`; (e) the options record has the session's three options only where `--session` is given; (f) with a session, detection runs on every pair's curve, then the session's; (g) `attribute` without `--curve` answers every curve, each pair's, then the session's, `--drop K` counting their drops in that order; (h) a build stopped by SIGINT or SIGTERM exits with status 1 and writes no document; (i) the reader refuses a plan without a session and a session without a plan, more than one session, a span that doesn't fit the variants or the axis or fails D-105 (a)'s contiguity or (b)'s scored flag, an anchor in another form, a network event without a wall clock, a wall clock in a session without an anchor, and an offline event that names a session; (j) the text answer for a session, in the form of design §6.4's prototype.
+- **Owner's words**: D-110's.
+- **Alternatives**: each item asked on its own; for (h), exit status 1 with a document of what was fetched before the stop, as `mirage_vmaf --ladder` writes a report of its complete pairs (D-047), or 128 plus the signal.
+- **Rationale**: as the agent recommended: each records only what the inputs show or follows a decided rule, D-108 (a)'s for the refusals with status 2 and D-092 (d)'s for the reader; for (h), a document of what was fetched before the stop would hold a session whose requests the attribution can't rely on.
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-11
+
+### D-112 Finishing sooner: round 3's questions asked now, WP16 and WP17 left out, Phase 4's survey begun beside round 3
+
+- **Decision**: three ways to finish the work order sooner, which the agent proposed when the owner asked how long it would still take:
+  - (a) Round 3's questions are asked now, before round 2's last packages are merged, so that round 3's packages can start when round 2 ends (`eval/phase3-survey/design.md` §12 starts a round's packages once all of its questions are answered).
+  - (b) Round 3's conditional and later packages, WP16 and WP17, are left out of Phase 3. This answers Q09 with (c), decode errors not in Phase 3 and a difference to report, the option the agent's recommendation names where the owner neither rules on (a) nor approves its plan, and Q13 with (a), the player's own session log not in Phase 3, as the agent recommends.
+  - (c) Phase 4's survey and its plan under D-007 begin now, beside round 3, reading the code only; nothing of Phase 4 is built before the owner has answered its questions and approved its plan (D-007).
+- **Owner's words**: D-110's.
+- **Alternatives**: round 3's questions asked when round 2 ends; WP16 and WP17 built where the answers to Q09 and Q13 call for them; Phase 4 surveyed after Phase 3, in the work order's order of phases.
+- **Rationale**: the waits for the owner's answers have been the longest between rounds; neither WP16 nor WP17 is on the path of §3.2's two tests or of the composite example; and a survey reads code and changes nothing, so it can run beside the packages that build.
+- **Who**: owner, adopting the agent's proposal
+- **Date**: 2026-11-11
+
 ---
 
 ## Measurement / process choices (proposed by the agent, confirmed by the owner)

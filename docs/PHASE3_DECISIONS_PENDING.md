@@ -6,7 +6,7 @@ What is open for the owner on `vmaf/phase-3`, §3 of the VMAF work order (the un
 
 44 questions, Q01 to Q44, in three rounds: 27 in round 1, the answers the work packages on the path to §3.2's two acceptance tests need before they start; 9 in round 2, those of sessions, the session fetch, the decoded SCTE-35 messages and the composite example; 8 in round 3, those of the UI, the conditional and later packages, and the differences to report. A question's round is the earliest round of the packages it blocks, and a round's packages start once all of its questions are answered (`eval/phase3-survey/design.md` §12, §14). Q26, Q39, Q43 and Q44 are answered item by item, an item's options numbered: "Q43 (c) 2". The questions marked D-007 (Q01, Q08, Q09, Q10, Q13, Q36, Q37 and Q41) have an answer that is, or includes, an approval or a ruling under D-007. "Blocks" names the work packages that wait for the answer; the packages are listed at the end. After the questions come the differences from the work order to report, and the agent's proposed process choices, to be recorded from P-082 on.
 
-The questions are the design's (`eval/phase3-survey/design/owner_questions.json`), rendered by `eval/phase3-survey/tools/render_pending.py` with the design's paths written as the repository has them and nothing else changed. They are as the design's revision 3 left them, after the third review's seven minor issues (`eval/phase3-survey/review-3/review.md`; `eval/phase3-survey/design/revision-3.md`). The owner's answers are marked here as each round's come in. Round 1's 27 questions were answered on 2026-11-02, every one as the agent recommends (D-071 to D-081); each is marked below. Round 2's 9 were answered on 2026-11-06, every one as the agent recommends, with Q47 (D-103 to D-107); each is marked below. Round 3 is open. Building round 1's first packages raised three more questions, Q45 to Q47, after round 3 below: the owner answered Q45 and Q46 on 2026-11-04 as the agent recommends (D-086, D-087), and Q47 joins round 2. Building WP08, WP08b and WP09a raised Q48 to Q57, which the owner answered on 2026-11-05 and 2026-11-06, each as the agent recommends (D-092, D-099, D-100), and WP08c two more, Q58 and Q59, which the owner answered on 2026-11-06 as the agent recommends (D-101). Building round 2's first packages, WP00b, WP05 and WP07, raised eight more, Q60 to Q67, answered on 2026-11-10, each as the agent recommends (D-108, D-109): WP09b puts in the answers to Q60 to Q62, and WP05b, a follow-up of WP05's, those to Q63 to Q67, as WP08b and WP08c put in the answers on WP08. Building WP05b and WP09b raised seven more, Q68 to Q74, which are open: Q68 to Q73 on the decoded messages, whose answers a follow-up of WP05b's is to put in, and Q74 on WP09b's choices.
+The questions are the design's (`eval/phase3-survey/design/owner_questions.json`), rendered by `eval/phase3-survey/tools/render_pending.py` with the design's paths written as the repository has them and nothing else changed. They are as the design's revision 3 left them, after the third review's seven minor issues (`eval/phase3-survey/review-3/review.md`; `eval/phase3-survey/design/revision-3.md`). The owner's answers are marked here as each round's come in. Round 1's 27 questions were answered on 2026-11-02, every one as the agent recommends (D-071 to D-081); each is marked below. Round 2's 9 were answered on 2026-11-06, every one as the agent recommends, with Q47 (D-103 to D-107); each is marked below. Round 3 is open but for Q09 and Q13, which the owner answered on 2026-11-11 by leaving WP16 and WP17 out of Phase 3 (D-112 (b)). Building round 1's first packages raised three more questions, Q45 to Q47, after round 3 below: the owner answered Q45 and Q46 on 2026-11-04 as the agent recommends (D-086, D-087), and Q47 joins round 2. Building WP08, WP08b and WP09a raised Q48 to Q57, which the owner answered on 2026-11-05 and 2026-11-06, each as the agent recommends (D-092, D-099, D-100), and WP08c two more, Q58 and Q59, which the owner answered on 2026-11-06 as the agent recommends (D-101). Building round 2's first packages, WP00b, WP05 and WP07, raised eight more, Q60 to Q67, answered on 2026-11-10, each as the agent recommends (D-108, D-109): WP09b puts in the answers to Q60 to Q62, and WP05b, a follow-up of WP05's, those to Q63 to Q67, as WP08b and WP08c put in the answers on WP08. Building WP05b and WP09b raised seven more, Q68 to Q74, answered on 2026-11-11, each as the agent recommends (D-110, D-111): a follow-up of WP05b's, WP05c, puts in the answers to Q68 to Q72. The owner also left WP16 and WP17 out of Phase 3, which answers Q09 and Q13 of round 3, and had round 3's other questions asked before round 2 ends (D-112).
 
 ### Round 1: the path to §3.2's two acceptance tests (27 questions)
 
@@ -958,6 +958,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 
 **Agent's recommendation.** (a) if the owner so rules or approves the plan; otherwise (c).
 
+**Answered** on 2026-11-11: (c), the option the agent's recommendation names where the owner neither rules on (a) nor approves its plan, the owner leaving WP16 out of Phase 3 (`docs/DECISIONS.md` D-112 (b)).
+
 **Why.** Only the scoring decode's errors explain the scores being attributed, at no decode cost. Neither acceptance test needs them, so the package is conditional and off the acceptance path.
 
 **Blocks.** WP16.
@@ -977,6 +979,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 - **(c) From the existing switch-trace text.** No change to the player, a reader of it in WP17; but free text without the rung, on logger::uptime()'s clock, which isn't NetworkLogger's (`eval/phase3-survey/sources.md` §6 and §9).
 
 **Agent's recommendation.** (a).
+
+**Answered** on 2026-11-11: (a), as the agent recommends, the owner leaving WP17 out of Phase 3 (`docs/DECISIONS.md` D-112 (b)).
 
 **Why.** Neither acceptance test nor the composite example needs it, and (b) is a render and decode path change the owner should take with its own plan.
 
@@ -1475,6 +1479,8 @@ How are they paired?
 
 **Agent's recommendation.** 2: D-109 (b) answered for a tag that declares its break's duration; where it declares none, or where a plain `EXT-X-CUE-OUT` marks the break, D-076's cue-in is still where the media changes back, and no break that was made before is lost.
 
+**Answered** on 2026-11-11: 2, as the agent recommends (`docs/DECISIONS.md` D-110 (a)).
+
 #### Q69. Other pairs of messages in one `EXT-X-DATERANGE`
 
 *Round 2.* Raised by WP05b's review.
@@ -1486,6 +1492,8 @@ How are they paired?
 - **3. Kept, with a warning** that the ad_break has no frames.
 
 **Agent's recommendation.** 2: it is D-109 (b)'s case, one tag declaring one break; which attribute carries each message doesn't change what the tag declares.
+
+**Answered** on 2026-11-11: 2, as the agent recommends (`docs/DECISIONS.md` D-110 (b)).
 
 #### Q70. The ad_breaks of no frames that remain
 
@@ -1500,6 +1508,8 @@ How are they paired?
 
 **Agent's recommendation.** 3: the playlist does say that a break starts and ends there, which the timeline keeps, and the warning says why a drop that starts at that frame doesn't list it; 2 would hide a break the playlist declares, and 4 would make one it doesn't.
 
+**Answered** on 2026-11-11: 3, as the agent recommends (`docs/DECISIONS.md` D-110 (c)).
+
 #### Q71. The anchors of a folded SCTE35-IN
 
 *Round 2.* Raised by WP05b and its review.
@@ -1511,6 +1521,8 @@ How are they paired?
 - **3. Checked against the segment where the break ends.**
 
 **Agent's recommendation.** 2: as in D-109 (c), the anchor lies outside the tag's segment by its nature, so the warning tells nothing; 3 would need the break's end placed before its message is read.
+
+**Answered** on 2026-11-11: 2, as the agent recommends (`docs/DECISIONS.md` D-110 (d)).
 
 #### Q72. One signal's messages beside a plain `EXT-X-CUE-OUT`, and one signal's cue-in messages
 
@@ -1528,6 +1540,8 @@ Are they kept?
 - **3. Only (a) changed.**
 
 **Agent's recommendation.** 2: it is D-109 (a)'s reason, one signal written twice, where two events would claim two.
+
+**Answered** on 2026-11-11: 2, as the agent recommends (`docs/DECISIONS.md` D-110 (e)).
 
 #### Q73. WP05b's other choices
 
@@ -1550,6 +1564,8 @@ Are they kept?
 - **2. Each asked on its own.**
 
 **Agent's recommendation.** 1.
+
+**Answered** on 2026-11-11: 1, as the agent recommends (`docs/DECISIONS.md` D-110 (f)).
 
 #### Q74. WP09b's choices
 
@@ -1574,6 +1590,8 @@ Are they kept?
 - **2. Each asked on its own.**
 
 **Agent's recommendation.** 1. Of these, (h) is the closest: a document of what was fetched before the stop would hold a session whose requests the attribution can't rely on.
+
+**Answered** on 2026-11-11: 1, as the agent recommends (`docs/DECISIONS.md` D-111).
 
 ## Differences from the work order, to report
 
@@ -1674,3 +1692,5 @@ A repository document found wrong, reported and not edited: `docs/VMAF_GAP_REPOR
 | WP15c | The closing documents and the PR description | 3 | WP09c, WP13, WP14, WP15b | none |
 | WP16 | Conditional: what the scorer records, its extra pair, and a decode pass | 3 | WP03, WP06, WP09c | Q01, Q08, Q09, Q10, Q12 |
 | WP17 | Later: the player's session log | 3 | WP07, WP13 | Q11, Q13 |
+
+WP16 and WP17 are left out of Phase 3 (`docs/DECISIONS.md` D-112 (b)).
