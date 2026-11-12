@@ -210,6 +210,22 @@ if(NOT MIRAGE_HEADLESS)
         src/KeyframeIndex.cpp
         src/FrameScan.cpp
         src/LoudnessMeter.cpp
+        src/TimelineModel.cpp
+        src/TimelineAxis.cpp
+        src/TimelineQuery.cpp
+        src/TimelineDetect.cpp
+        src/TimelineBuild.cpp
+        src/TimelineDoc.cpp
+        src/JsonRead.cpp
+        src/LadderReportRead.cpp
+        src/PlaylistEvents.cpp
+        src/Scte35.cpp
+        src/Scte35Events.cpp
+        src/SessionPlan.cpp
+        src/TimelineLoad.cpp
+        src/TimelineView.cpp
+        src/TimelineMatch.cpp
+        src/TimelinePanel.cpp
     )
 
     target_include_directories(mirage PRIVATE
@@ -411,6 +427,10 @@ add_executable(mirage_tests
     tests/test_session_fetch.cpp
     tests/test_timeline_media.cpp
     tests/test_timeline_cli.cpp
+    tests/test_timeline_load.cpp
+    tests/test_timeline_view.cpp
+    tests/test_timeline_match.cpp
+    tests/test_hls_seek_behaviour.cpp
     tests/test_synthetic_ladder.cpp
     tests/test_attribution_acceptance.cpp
     tests/test_attribution_session.cpp
@@ -476,6 +496,9 @@ add_executable(mirage_tests
     src/TimelineMedia.cpp
     src/SessionFetch.cpp
     src/TimelineCli.cpp
+    src/TimelineLoad.cpp
+    src/TimelineView.cpp
+    src/TimelineMatch.cpp
 )
 
 target_include_directories(mirage_tests PRIVATE
