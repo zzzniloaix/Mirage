@@ -2,23 +2,25 @@
 // DECISIONS.md D-079): their option tables and config files (the design's
 // P-V), a session's options and the decoded messages' --cue-types and
 // --bad-crc (D-106 (b), (c)) among them, the seconds and the cue types the
-// options take exactly (P-A), the help, the records a document keeps of the
-// options, the line timeline prints when it doesn't detect, the refusal of
-// a session fetch of local files (D-108 (a)), the text of an answer (the
+// options take exactly (P-A), the cue types with blanks after their commas
+// (D-113 (b)), the help, the records a document keeps of the options, the
+// decoded messages' at their defaults wherever a playlist carries a message
+// (D-113 (a)), the line timeline prints when it doesn't detect, the refusal
+// of a session fetch of local files (D-108 (a)), the text of an answer (the
 // design's P-AD) on timelines the test builds by hand, a session's curve's
 // and a decoded message's events among them, and on the decoded cues of a
-// build, mirage_vmaf's own help, and
-// runs of each subcommand as mirage_vmaf runs them (the design's P-T), on a
-// synthetic ad ladder (tests/SyntheticLadder.h) scored by mirage_vmaf
-// --ladder: their outputs and exit statuses (P-W), intervals and frames past
-// the axis, a lone --window, a report whose pairs' numbers skip a failed
-// pair with --curve by those numbers (D-092 (b)), a redacted copy of the
-// report and one that changed; a scripted session over that ladder (D-068),
-// its files fetched from tests/HttpFileServer.h's server of the ladder
-// (D-104), or not fetched, the plans and fetches refused, a fetch of local
-// files and one of files outside the master's directory among them, a fetch
-// stopped by SIGINT or SIGTERM, and attribute on the session's curve; and a
-// copy of the ladder whose media playlist carries SCTE-35 messages that
+// build, mirage_vmaf's own help, and runs of each subcommand as mirage_vmaf
+// runs them (the design's P-T), on a synthetic ad ladder
+// (tests/SyntheticLadder.h) scored by mirage_vmaf --ladder: their outputs
+// and exit statuses (P-W), intervals and frames past the axis, a lone
+// --window, a report whose pairs' numbers skip a failed pair with --curve by
+// those numbers (D-092 (b)), a redacted copy of the report and one that
+// changed; a scripted session over that ladder (D-068), its files fetched
+// from tests/HttpFileServer.h's server of the ladder (D-104), or not
+// fetched, the plans and fetches refused, a fetch of local files and one of
+// files outside the master's directory among them, a fetch stopped by SIGINT
+// or SIGTERM, and attribute on the session's curve; and a copy of the ladder
+// whose media playlist carries SCTE-35 messages that
 // tests/Scte35TestSections.h builds (D-107), decoded by the build.
 
 #include <catch2/catch_test_macros.hpp>
@@ -233,6 +235,23 @@ const Value* option(const timeline::Payload& p, std::string_view name)
     return nullptr;
 }
 
+// An options record as text, a line `name=value` per member in its order,
+// for comparing two records: their values are null, booleans, integers,
+// numbers and strings.
+std::string record_text(const timeline::Payload& p)
+{
+    std::string out;
+    for (const auto& [n, v] : p) {
+        std::string value = "null";
+        if (const auto* s = std::get_if<std::string>(&v.v)) value = "'" + *s + "'";
+        else if (const auto* i = std::get_if<std::int64_t>(&v.v)) value = std::to_string(*i);
+        else if (const auto* d = std::get_if<double>(&v.v)) value = std::format("{}", *d);
+        else if (const auto* b = std::get_if<bool>(&v.v)) value = *b ? "true" : "false";
+        out += std::format("{}={}\n", n, value);
+    }
+    return out;
+}
+
 } // namespace
 
 // ── mirage_vmaf timeline's options ───────────────────────────────────────────
@@ -397,11 +416,12 @@ TEST_CASE("timelinecli::parse_timeline: a session's options, their default, thei
     REQUIRE(parse_t({ "--config", "base.conf", "--report", "r", "--out", "o" }, f, files).empty());
     CHECK(f.fetch_base == "http://127.0.0.1:9");
 
-    // The fetch's options go with a session, a rule pending the owner
-    // (src/TimelineCli.h), and the fetch base with its fetch, whether the
-    // command line or the file gives them; a fetch base is an http or https
-    // URL, so that a session's network events come from network requests
-    // alone (D-108 (a)'s reason): the fetch base's rules are D-111 (d)'s.
+    // The fetch's options go with a session, a rule the owner kept (D-113
+    // (h); src/TimelineCli.h), and the fetch base with its fetch, whether
+    // the command line or the file gives them; a fetch base is an http or
+    // https URL, so that a session's network events come from network
+    // requests alone (D-108 (a)'s reason): the fetch base's rules are D-111
+    // (d)'s.
     TimelineArgs g;
     g.report = "kept";
     const auto refused = [&g, &files](const std::vector<std::string_view>& argv) { return parse_t(argv, g, files); };
@@ -467,7 +487,7 @@ TEST_CASE("timelinecli::parse_timeline: --cue-types and --bad-crc, their default
     // (D-030), a value checked on its line as on the command line.
     const Files files{ { { "m.conf", "cue-types = 0x30-0x31\nbad-crc = drop\n" },
                          { "types.conf", "# cue types\ncue-types = 0x22-0x28\n" },
-                         { "syntax.conf", "cue-types = 0x22, 0x23\n" },
+                         { "syntax.conf", "cue-types = 0x22 ,0x23\n" },
                          { "crc.conf", "bad-crc = maybe\n" } } };
     TimelineArgs f;
     REQUIRE(parse_t({ "--config", "m.conf", "--report", "r", "--out", "o" }, f, files).empty());
@@ -502,9 +522,12 @@ TEST_CASE("timelinecli::parse_timeline: --cue-types and --bad-crc, their default
     CHECK(refused({ "--config", "types.conf", "--report", "r", "--out", "o" }) ==
           "config file types.conf, line 2: cue-types takes Start and End types only, not '0x22-0x28': " +
               timeline::check_message_options(reserved));
-    CHECK(refused({ "--config", "syntax.conf", "--report", "r", "--out", "o" }).starts_with(
-        "config file syntax.conf, line 1: cue-types wants segmentation_type_ids in hex, each alone or a range, "
-        "comma-separated, such as 0x22-0x23,0x30-0x37, not '0x22, 0x23': its item 2, ' 0x23', is neither"));
+    // A blank before a comma, which D-113 (b) doesn't take (the next test
+    // case has those after one).
+    CHECK(refused({ "--config", "syntax.conf", "--report", "r", "--out", "o" }) ==
+          "config file syntax.conf, line 1: cue-types wants segmentation_type_ids in hex, each alone or a range, "
+          "comma-separated, such as 0x22-0x23,0x30-0x37, not '0x22 ,0x23': its item 1, '0x22 ', is neither a type "
+          "such as 0x30 nor a range such as 0x30-0x37: blanks are taken after a comma only");
     CHECK(refused({ "--report", "r", "--out", "o", "--bad-crc", "maybe" }) == "--bad-crc wants keep or drop, not 'maybe'");
     CHECK(refused({ "--config", "crc.conf", "--report", "r", "--out", "o" }) ==
           "config file crc.conf, line 1: bad-crc wants keep or drop, not 'maybe'");
@@ -518,7 +541,8 @@ TEST_CASE("timelinecli::parse_cue_types and cue_types_text: segmentation_type_id
 {
     std::string err;
     const auto types = [&err](std::string_view text) { return timelinecli::parse_cue_types(text, err); };
-    // D-106 (b)'s set, as design §7 writes it, and back.
+    // D-106 (b)'s set, in the record's form (D-113 (c)), and back; design
+    // §7's spelling of it, with blanks, is the next test case's.
     const std::vector<std::uint8_t> defaults(std::begin(timeline::kDefaultCueTypes),
                                              std::end(timeline::kDefaultCueTypes));
     CHECK(types("0x22-0x23,0x30-0x37,0x44-0x47") == defaults);
@@ -537,15 +561,97 @@ TEST_CASE("timelinecli::parse_cue_types and cue_types_text: segmentation_type_id
     CHECK(timelinecli::cue_types_text({ 0x01, 0x02, 0x03, 0x05, 0x10 }) == "0x01-0x03,0x05,0x10");
     CHECK(timelinecli::cue_types_text({}).empty());
 
-    // Anything else, each naming its item.
+    // Anything else, each naming its item: a blank among them where D-113
+    // (b) takes none, anywhere but after a comma (the next test case).
     for (std::string_view bad : { "", "0x", "0x123", "22", "x22", "0x22,", ",0x22", "0x22-", "-0x22", "0x22 ",
-                                  " 0x22", "0x22, 0x23", "0x22-0x23-0x24", "0xGG", "0x-1", "+0x22", "0x22;0x23" }) {
+                                  " 0x22", "0x22 ,0x23", "0x22-0x23-0x24", "0xGG", "0x-1", "+0x22", "0x22;0x23" }) {
         INFO(bad);
         CHECK_FALSE(types(bad));
         CHECK(err.starts_with("its item "));
     }
     CHECK_FALSE(types("0x30,0x22-0x20"));
     CHECK(err == "its item 2, '0x22-0x20', is a range whose first type comes after its last");
+}
+
+TEST_CASE("timelinecli::parse_cue_types and parse_timeline: blanks after --cue-types' commas, design §7's "
+          "spelling of the default taken on the command line and in a config file, the record canonical "
+          "(D-113 (b), (c))", "[timeline][timeline_cli]")
+{
+    std::string err;
+    const auto types = [&err](std::string_view text) { return timelinecli::parse_cue_types(text, err); };
+    const std::vector<std::uint8_t> defaults(std::begin(timeline::kDefaultCueTypes),
+                                             std::end(timeline::kDefaultCueTypes));
+    const std::string canonical = "0x22-0x23,0x30-0x37,0x44-0x47";
+    const std::string spelled   = "0x22-0x23, 0x30-0x37, 0x44-0x47";   // design §7's, and Q15 (a)'s
+
+    // After a comma, any number of blanks, spaces and tabs, the set the same
+    // as without them.
+    CHECK(types(spelled) == defaults);
+    CHECK(err.empty());
+    CHECK(types("0x22-0x23,\t0x30-0x37,  \t 0x44-0x47") == defaults);
+    CHECK(types("0x31, 0x30") == std::vector<std::uint8_t>{ 0x30, 0x31 });
+
+    // Anywhere else, a blank is refused, naming its item: before a comma, at
+    // either end of the value, within an item. A reading of D-113 (b),
+    // pending the owner, the narrowest as to where a blank goes
+    // (src/TimelineCli.h).
+    const std::vector<std::pair<std::string_view, std::string_view>> elsewhere = {
+        { "0x22 ,0x23", "its item 1, '0x22 '" },
+        { " 0x22,0x23", "its item 1, ' 0x22'" },
+        { "0x22, 0x23 ", "its item 2, '0x23 '" },
+        { "0x22 - 0x23", "its item 1, '0x22 - 0x23'" },
+        { "0x22,0x2 3", "its item 2, '0x2 3'" },
+    };
+    for (const auto& [text, item] : elsewhere) {
+        INFO(text);
+        CHECK_FALSE(types(text));
+        CHECK(err == std::string(item) + ", is neither a type such as 0x30 nor a range such as 0x30-0x37: blanks "
+                                         "are taken after a comma only");
+    }
+    // Nothing after a comma's blanks is an empty item; other white space,
+    // a line feed or a carriage return, isn't a blank.
+    CHECK_FALSE(types("0x22, "));
+    CHECK(err == "its item 2, '', is neither a type such as 0x30 nor a range such as 0x30-0x37");
+    CHECK_FALSE(types("0x22,\n0x23"));
+    CHECK(err.starts_with("its item 2, '\n0x23'"));
+    CHECK_FALSE(types("0x22,\r0x23"));
+    CHECK(err.starts_with("its item 2, '\r0x23'"));
+
+    // Given as an option's value, and as a config file's setting, whose
+    // value loses the blanks at its ends before the parse sees it; recorded
+    // canonical either way, as cue_types_text() writes it (D-113 (c)).
+    TimelineArgs a;
+    REQUIRE(parse_t({ "--report", "r", "--out", "o", "--cue-types", spelled }, a).empty());
+    REQUIRE(a.cue_types);
+    CHECK(*a.cue_types == defaults);
+    CHECK(std::get<std::string>(option(timelinecli::timeline_options(a), "cue-types")->v) == canonical);
+    const Files files{ { { "spelled.conf", "cue-types = " + spelled + "\n" },
+                         { "tabs.conf", "cue-types =\t0x30-0x31,\t0x44 \n" },
+                         { "before.conf", "cue-types = 0x30 , 0x31\n" } } };
+    TimelineArgs f;
+    REQUIRE(parse_t({ "--config", "spelled.conf", "--report", "r", "--out", "o" }, f, files).empty());
+    REQUIRE(f.cue_types);
+    CHECK(*f.cue_types == defaults);
+    CHECK(std::get<std::string>(option(timelinecli::timeline_options(f), "cue-types")->v) == canonical);
+    CHECK(std::get<std::string>(option(timelinecli::timeline_options(f, true), "cue-types")->v) == canonical);
+    TimelineArgs g;
+    REQUIRE(parse_t({ "--config", "tabs.conf", "--report", "r", "--out", "o" }, g, files).empty());
+    CHECK(g.cue_types == std::vector<std::uint8_t>{ 0x30, 0x31, 0x44 });
+    CHECK(std::get<std::string>(option(timelinecli::timeline_options(g), "cue-types")->v) == "0x30-0x31,0x44");
+    // The command line's value reaches the parse as given: the blank at its
+    // end, which tabs.conf's value loses, is refused there.
+    TimelineArgs e;
+    CHECK(parse_t({ "--report", "r", "--out", "o", "--cue-types", "0x30-0x31,\t0x44 " }, e) ==
+          "--cue-types wants segmentation_type_ids in hex, each alone or a range, comma-separated, such as "
+          "0x22-0x23,0x30-0x37, not '0x30-0x31,\t0x44 ': its item 2, '0x44 ', is neither a type such as 0x30 nor "
+          "a range such as 0x30-0x37: blanks are taken after a comma only");
+    CHECK_FALSE(e.cue_types);
+    TimelineArgs h;
+    CHECK(parse_t({ "--config", "before.conf", "--report", "r", "--out", "o" }, h, files) ==
+          "config file before.conf, line 1: cue-types wants segmentation_type_ids in hex, each alone or a range, "
+          "comma-separated, such as 0x22-0x23,0x30-0x37, not '0x30 , 0x31': its item 1, '0x30 ', is neither a type "
+          "such as 0x30 nor a range such as 0x30-0x37: blanks are taken after a comma only");
+    CHECK_FALSE(h.cue_types);
 }
 
 TEST_CASE("timelinecli::check_fetch: a session's fetch of files that aren't http or https URLs is refused "
@@ -811,14 +917,17 @@ TEST_CASE("timelinecli: each subcommand's help lists its options; mirage_vmaf's 
     CHECK(contains(t, "\nSession: --session FILE names a scripted session's plan"));
     CHECK(contains(t, "\nSCTE-35: the messages the playlists' tags carry (#EXT-OATCLS-SCTE35, the\n"));
     CHECK(contains(t, " by default 0x22-0x23,0x30-0x37,0x44-0x47\n"));
+    // Blanks after a comma, as design §7 writes the default (D-113 (b)).
+    CHECK(contains(t, "ad blocks); blanks may\nfollow a comma, as in 0x22-0x23, 0x30-0x37. "));
     CHECK(contains(t, timelinecli::cue_types_text({ std::begin(timeline::kDefaultCueTypes),
                                                     std::end(timeline::kDefaultCueTypes) })));
     CHECK(contains(t, "Config file: "));
-    // What the document records of the options, a session's and the decoded
-    // messages' where they are given (src/TimelineCli.h).
+    // What the document records of the options: a session's with a session,
+    // and the decoded messages' where they are given or a playlist carries
+    // a message (D-113 (a); src/TimelineCli.h).
     CHECK(contains(t, "The document records\nthe file by its path and SHA-256 and every option with its value, but a\n"
                       "session's options only with --session, and --cue-types and --bad-crc only\n"
-                      "where they are given."));
+                      "where they are given or a playlist carries an SCTE-35 message. Relative\n"));
     CHECK(contains(t, "Exit status: "));
     // Both of a fetch's refusals with exit status 2: local files without
     // --fetch-base (D-108 (a)), and with it a file outside the master's
@@ -925,12 +1034,14 @@ TEST_CASE("timelinecli::timeline_options and attribute_options: every option wit
                 .empty());
     CHECK(std::get<std::string>(option(timelinecli::attribute_options(b, "r.json"), "curve")->v) == "session:0");
 
-    // --cue-types and --bad-crc each where it is given, after the margins, so
-    // that a document built without them is as it was (a choice pending the
-    // owner, Q75; src/TimelineCli.h): the set as ranges of consecutive types,
-    // the policy as its word (pending the owner too, Q77). Their place alone:
-    // which options come before them without a session is the session part's
-    // choice, which the owner kept (D-111 (e)).
+    // --cue-types and --bad-crc each where it is given, after the margins,
+    // for a build whose playlists carry no SCTE-35 message, so that its
+    // document is as it was (D-113 (a); src/TimelineCli.h): the set as
+    // ranges of consecutive types, the policy as its word (D-113 (c)). Where
+    // a playlist carries one, both are recorded, given or not (below, and
+    // the next test case). Their place alone: which options come before
+    // them without a session is the session part's choice, which the owner
+    // kept (D-111 (e)).
     TimelineArgs m;
     REQUIRE(timelinecli::parse_timeline({ "--report", "r", "--out", "o", "--cue-types", "0x31,0x30,0x44-0x47",
                                           "--bad-crc", "drop" }, m).empty());
@@ -948,6 +1059,146 @@ TEST_CASE("timelinecli::timeline_options and attribute_options: every option wit
     CHECK_FALSE(option(kp, "cue-types"));
     CHECK(std::get<std::string>(option(kp, "bad-crc")->v) == "keep");
     CHECK(kp.back().first == "bad-crc");
+    // The one-argument form is the record of a build whose playlists carry
+    // no message.
+    CHECK(record_text(kp) == record_text(timelinecli::timeline_options(k, false)));
+    CHECK(record_text(mp) == record_text(timelinecli::timeline_options(m, false)));
+    CHECK(record_text(p) == record_text(timelinecli::timeline_options(t, false)));
+}
+
+TEST_CASE("timelinecli::timeline_options and carries_messages: --cue-types and --bad-crc recorded, their defaults "
+          "included, wherever a playlist carries an SCTE-35 message, and only where given otherwise (D-113 (a))",
+          "[timeline][timeline_cli]")
+{
+    const auto names_of = [](const timeline::Payload& p) {
+        std::vector<std::string> out;
+        for (const auto& [n, v] : p) out.push_back(n);
+        return out;
+    };
+    const std::vector<std::string> ladder = { "report", "out", "threshold", "window", "min-points",
+                                              "margin-before", "margin-after" };
+    const std::vector<std::string> both = { "report", "out", "threshold", "window", "min-points",
+                                            "margin-before", "margin-after", "cue-types", "bad-crc" };
+    const std::string defaults = "0x22-0x23,0x30-0x37,0x44-0x47";   // D-106 (b)'s set, as D-113 (c) writes it
+
+    // Neither option given: a build whose playlists carry no message records
+    // neither, its record as it was before them; one whose playlists carry
+    // one records both at D-106's defaults, after the margins.
+    TimelineArgs a;
+    REQUIRE(timelinecli::parse_timeline({ "--report", "r", "--out", "o" }, a).empty());
+    CHECK(names_of(timelinecli::timeline_options(a, false)) == ladder);
+    const timeline::Payload carried = timelinecli::timeline_options(a, true);
+    CHECK(names_of(carried) == both);
+    CHECK(std::get<std::string>(option(carried, "cue-types")->v) == defaults);
+    CHECK(std::get<std::string>(option(carried, "bad-crc")->v) == "keep");
+
+    // One given: recorded with its value either way, and the other at its
+    // default where a playlist carries a message.
+    TimelineArgs c;
+    REQUIRE(timelinecli::parse_timeline({ "--report", "r", "--out", "o", "--cue-types", "0x30-0x37" }, c).empty());
+    timeline::Payload p = timelinecli::timeline_options(c, false);
+    CHECK(names_of(p).back() == "cue-types");
+    CHECK_FALSE(option(p, "bad-crc"));
+    p = timelinecli::timeline_options(c, true);
+    CHECK(names_of(p) == both);
+    CHECK(std::get<std::string>(option(p, "cue-types")->v) == "0x30-0x37");
+    CHECK(std::get<std::string>(option(p, "bad-crc")->v) == "keep");
+    TimelineArgs d;
+    REQUIRE(timelinecli::parse_timeline({ "--report", "r", "--out", "o", "--bad-crc", "drop" }, d).empty());
+    p = timelinecli::timeline_options(d, true);
+    CHECK(names_of(p) == both);
+    CHECK(std::get<std::string>(option(p, "cue-types")->v) == defaults);
+    CHECK(std::get<std::string>(option(p, "bad-crc")->v) == "drop");
+    // Given in a config file, as on the command line.
+    const Files files{ { { "m.conf", "bad-crc = keep\n" } } };
+    TimelineArgs f;
+    REQUIRE(parse_t({ "--config", "m.conf", "--report", "r", "--out", "o" }, f, files).empty());
+    p = timelinecli::timeline_options(f, false);
+    CHECK(names_of(p).back() == "bad-crc");
+    CHECK_FALSE(option(p, "cue-types"));
+
+    // With a session, after the margins too, which come after the session's
+    // options (D-111 (e)).
+    TimelineArgs s;
+    REQUIRE(timelinecli::parse_timeline({ "--report", "r", "--out", "o", "--session", "p.json" }, s).empty());
+    CHECK(names_of(timelinecli::timeline_options(s, true)) ==
+          std::vector<std::string>{ "report", "out", "session", "fetch", "fetch-base", "threshold", "window",
+                                    "min-points", "margin-before", "margin-after", "cue-types", "bad-crc" });
+
+    // Which builds carry a message: a playlist read, the reference's or a
+    // pair's distorted one, with a tag in a form the build decodes
+    // (src/Scte35Events.h), whatever else its playlists hold.
+    const auto inputs = [](const std::vector<std::optional<std::string>>& playlists) {
+        timeline::BuildInputs in;
+        for (std::size_t v = 0; v < playlists.size(); ++v) {
+            timeline::VariantRead r;
+            const int variant = static_cast<int>(v);
+            if (playlists[v])
+                r.playlist = timeline::parse_playlist_events(*playlists[v], scte35test::url_of(variant), variant);
+            in.variants.push_back(std::move(r));
+        }
+        return in;
+    };
+    const timeline::PlaylistEvents read_plain =
+        timeline::parse_playlist_events(scte35test::ad_playlist({}), scte35test::url_of(0), 0);
+    REQUIRE(read_plain.error.empty());
+    CHECK(read_plain.cues.size() == 3);   // D-069's shape: the plain cue tags, and no message
+    CHECK(read_plain.messages.empty());
+    const std::string plain = scte35test::ad_playlist({});
+    CHECK_FALSE(timelinecli::carries_messages(inputs({})));
+    CHECK_FALSE(timelinecli::carries_messages(inputs({ plain, plain, plain })));
+    CHECK_FALSE(timelinecli::carries_messages(inputs({ std::nullopt, plain })));   // a mezzanine reference
+    // Each form, on one variant, with the form parse_playlist_events() hands
+    // it on in: an OATCLS; an EXT-X-DATERANGE's SCTE35-OUT, SCTE35-IN or
+    // SCTE35-CMD, and a malformed one's well-formed SCTE35-OUT (D-106 (e));
+    // and the SCTE35= of an EXT-X-CUE-OUT, an EXT-X-CUE-OUT-CONT and an
+    // EXT-X-CUE-IN.
+    const scte35test::Bytes out =
+        scte35test::section(scte35test::splice_insert({ .event_id = 1, .immediate = true }));
+    const std::string date = "#EXT-X-DATERANGE:ID=\"x\",START-DATE=\"2026-03-01T12:00:03.000Z\",";
+    const std::vector<std::pair<std::string, std::string>> tags = {
+        { "#EXT-OATCLS-SCTE35:" + scte35test::base64(out) + "\n", "OATCLS" },
+        { date + "SCTE35-OUT=" + scte35test::hex(out) + "\n", "DATERANGE SCTE35-OUT" },
+        { date + "SCTE35-IN=" + scte35test::hex(out) + "\n", "DATERANGE SCTE35-IN" },
+        { date + "SCTE35-CMD=" + scte35test::hex(out) + "\n", "DATERANGE SCTE35-CMD" },
+        { date + "DURATION=\"abc\",SCTE35-OUT=" + scte35test::hex(out) + "\n", "DATERANGE SCTE35-OUT" },
+        { "#EXT-X-CUE-OUT:2.000,SCTE35=" + scte35test::base64(out) + "\n", "CUE-OUT SCTE35" },
+        { "#EXT-X-CUE-OUT-CONT:ElapsedTime=1.0,Duration=2.0,SCTE35=" + scte35test::base64(out) + "\n",
+          "CUE-OUT-CONT SCTE35" },
+        { "#EXT-X-CUE-IN:SCTE35=" + scte35test::base64(out) + "\n", "CUE-IN SCTE35" },
+    };
+    for (const auto& [tag, form] : tags) {
+        INFO(tag);
+        const std::string carrying = scte35test::ad_playlist({ { 3, tag } }, {}, false);
+        const timeline::PlaylistEvents read = timeline::parse_playlist_events(carrying, scte35test::url_of(2), 2);
+        REQUIRE(read.error.empty());
+        REQUIRE(read.messages.size() == 1);
+        CHECK(read.messages[0].form == form);
+        CHECK(timelinecli::carries_messages(inputs({ plain, plain, carrying })));
+        CHECK(timelinecli::carries_messages(inputs({ carrying, std::nullopt })));
+    }
+    // The malformed one is also a daterange event, kept raw with its error,
+    // which a DATERANGE that parses and hands on a message doesn't make.
+    const timeline::PlaylistEvents malformed = timeline::parse_playlist_events(
+        scte35test::ad_playlist({ { 3, tags[4].first } }, {}, false), scte35test::url_of(2), 2);
+    const auto daterange = std::find_if(malformed.events.begin(), malformed.events.end(),
+                                        [](const Event& e) { return e.type == timeline::kTypeDaterange; });
+    REQUIRE(daterange != malformed.events.end());
+    CHECK(option(daterange->payload, "error"));
+
+    // Every message a tag hands on counts, whatever its text holds and
+    // whatever becomes of it, a reading of D-113 (a) pending the owner
+    // (src/TimelineCli.h): an OATCLS whose value is no section's base64, a
+    // bare one and one whose value is empty, which carry no message, and
+    // the messages of a variant whose segment map was refused, which make
+    // no event (D-081 (c), D-086).
+    for (const char* tag : { "#EXT-OATCLS-SCTE35:not base64\n", "#EXT-OATCLS-SCTE35\n", "#EXT-OATCLS-SCTE35:\n" }) {
+        INFO(tag);
+        CHECK(timelinecli::carries_messages(inputs({ plain, scte35test::ad_playlist({ { 3, tag } }) })));
+    }
+    timeline::BuildInputs refused = inputs({ plain, scte35test::ad_playlist({ { 3, tags[0].first } }) });
+    refused.variants[1].media.refused = "the test refuses it";
+    CHECK(timelinecli::carries_messages(refused));
 }
 
 TEST_CASE("timelinecli::no_detection_note: which of W and N is missing (D-077)", "[timeline][timeline_cli]")
@@ -1562,7 +1813,17 @@ TEST_CASE("mirage_vmaf timeline and attribute: run as programs on a synthetic ad
         for (const Event& e : d.timeline.events)
             if (e.type == "ad_break") CHECK((e.ref_index == 75 && e.ref_end == 125));
         // The options record: every option with its value (P-V); a ladder's
-        // has no session option, as before sessions came, nor a session part.
+        // has no session option, as before sessions came, nor a session part;
+        // and D-069's ladder, whose playlists carry plain cue tags and no
+        // SCTE-35 message, has neither --cue-types nor --bad-crc, so that its
+        // record, and its document, are what they were before the decoded
+        // messages' options came (D-113 (a)).
+        std::vector<std::string> recorded;
+        for (const auto& [n, v] : d.info.options) recorded.push_back(n);
+        CHECK(recorded == std::vector<std::string>{ "report", "out", "threshold", "window", "min-points",
+                                                    "margin-before", "margin-after" });
+        CHECK_FALSE(contains(text, "\"cue-types\""));
+        CHECK_FALSE(contains(text, "\"bad-crc\""));
         CHECK(std::holds_alternative<std::monostate>(option(d.info.options, "window")->v));
         CHECK(std::get<std::string>(option(d.info.options, "out")->v) == events);
         CHECK_FALSE(option(d.info.options, "session"));
@@ -1938,6 +2199,13 @@ TEST_CASE("mirage_vmaf timeline and attribute: run as programs on a synthetic ad
         CHECK(std::get<std::string>(option(d.info.options, "session")->v) == plan);
         CHECK(std::get<std::string>(option(d.info.options, "fetch")->v) == "on");
         CHECK(std::get<std::string>(option(d.info.options, "fetch-base")->v) == session_base);
+        // D-069's ladder carries no SCTE-35 message: the record has the
+        // session's options and no decoded message's (D-113 (a)), as the
+        // composite example's document has them.
+        std::vector<std::string> recorded;
+        for (const auto& [n, v] : d.info.options) recorded.push_back(n);
+        CHECK(recorded == std::vector<std::string>{ "report", "out", "session", "fetch", "fetch-base", "threshold",
+                                                    "window", "min-points", "margin-before", "margin-after" });
 
         // Its events: a variant_span per span and a switch at each change of
         // entry (D-108 (b)); a request per file, each of status 200, with a
@@ -2055,9 +2323,9 @@ TEST_CASE("mirage_vmaf timeline and attribute: run as programs on a synthetic ad
                                        "segment 8 of variant 1 ("));
         CHECK_FALSE(fs::exists(never));
 
-        // Bad arguments: the fetch's options without a session, a rule
-        // pending the owner (src/TimelineCli.h), and a fetch base that isn't
-        // a server's (D-111 (d)).
+        // Bad arguments: the fetch's options without a session, a rule the
+        // owner kept (D-113 (h); src/TimelineCli.h), and a fetch base that
+        // isn't a server's (D-111 (d)).
         const ToolRun lone_fetch = run_tool({ "timeline", "--report", report, "--out", never, "--fetch", "off" });
         CHECK(lone_fetch.status == 2);
         CHECK(lone_fetch.err.starts_with("mirage_vmaf timeline: --fetch goes with --session, which isn't given\n"));
@@ -2222,7 +2490,7 @@ TEST_CASE("mirage_vmaf timeline and attribute: run as programs on a synthetic ad
     }
 
     SECTION("timeline on a ladder whose media playlist carries SCTE-35 messages: one merged into its cue_out, "
-            "their splice points, one whose CRC_32 fails kept or dropped, --cue-types recorded (D-106)")
+            "their splice points, one whose CRC_32 fails kept or dropped, both options recorded (D-106, D-113)")
     {
         // v180's playlist again, in a directory beside the ladder's, with
         // its segments copied beside it, and two OATCLS tags built from
@@ -2318,9 +2586,15 @@ TEST_CASE("mirage_vmaf timeline and attribute: run as programs on a synthetic ad
         CHECK(count_type(d.timeline, "splice_point") == 2);
         for (const Event& e : d.timeline.events)
             if (e.type == "ad_break") CHECK((e.ref_index == 75 && e.ref_end == 125));
-        // Neither option is recorded, as they weren't given.
-        CHECK_FALSE(option(d.info.options, "cue-types"));
-        CHECK_FALSE(option(d.info.options, "bad-crc"));
+        // A playlist of the ladder carries messages: both options are
+        // recorded, after the margins, at D-106's defaults, which shaped its
+        // cues, messages and ad breaks, though neither was given (D-113 (a)).
+        std::vector<std::string> recorded;
+        for (const auto& [n, v] : d.info.options) recorded.push_back(n);
+        CHECK(recorded == std::vector<std::string>{ "report", "out", "threshold", "window", "min-points",
+                                                    "margin-before", "margin-after", "cue-types", "bad-crc" });
+        CHECK(std::get<std::string>(option(d.info.options, "cue-types")->v) == "0x22-0x23,0x30-0x37,0x44-0x47");
+        CHECK(std::get<std::string>(option(d.info.options, "bad-crc")->v) == "keep");
 
         // attribute's line of the splice point, on v180's curve.
         const ToolRun answer = run_tool({ "attribute", "--timeline", doc, "--frames", "75-124", "--curve", "pair:1" });
@@ -2330,11 +2604,13 @@ TEST_CASE("mirage_vmaf timeline and attribute: run as programs on a synthetic ad
                                                "line {}, OATCLS, splice_insert: splice time {} (90 kHz), frame 75 of "
                                                "its input\n", out_line, ad_pts)));
 
-        // With --bad-crc drop and --cue-types: the message of the bad CRC_32
-        // dropped, with its warning; the other as before; both recorded.
+        // With --bad-crc drop and --cue-types, written with a blank after its
+        // comma (D-113 (b)): the message of the bad CRC_32 dropped, with its
+        // warning; the other as before; both recorded, the set in its
+        // canonical form (D-113 (c)).
         const std::string dropped = (dir / "ad.message.drop.timeline.json").string();
         const ToolRun s = run_tool({ "timeline", "--report", beside_report, "--out", dropped, "--bad-crc", "drop",
-                                     "--cue-types", "0x30-0x37" });
+                                     "--cue-types", "0x30-0x37, 0x22-0x23" });
         INFO(s.err);
         REQUIRE(s.status == 0);
         const Doc e = read_doc(read_text(dropped));
@@ -2344,7 +2620,7 @@ TEST_CASE("mirage_vmaf timeline and attribute: run as programs on a synthetic ad
         CHECK(count_type(e.timeline, "splice_point") == 1);
         REQUIRE(e.timeline.warnings.size() == 1);
         CHECK(e.timeline.warnings[0].ends_with(": it is dropped, as the bad-CRC policy drop says (D-106 (c))"));
-        CHECK(std::get<std::string>(option(e.info.options, "cue-types")->v) == "0x30-0x37");
+        CHECK(std::get<std::string>(option(e.info.options, "cue-types")->v) == "0x22-0x23,0x30-0x37");
         CHECK(std::get<std::string>(option(e.info.options, "bad-crc")->v) == "drop");
 
         // A cue type that is neither a Start nor an End type: a bad

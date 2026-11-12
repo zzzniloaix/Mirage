@@ -26,8 +26,8 @@
 // splice points, a message and a cancel, their attribution and their
 // document read back; a message whose CRC_32 fails kept or dropped; the cue
 // types; a plain cue numbered before a decoded one of its frame and the
-// messages' warnings between the variants' and the pairing's, as built while
-// they wait for the owner; and a ladder without messages, the same whatever
+// messages' warnings between the variants' and the pairing's, as the owner
+// kept them (D-113 (c)); and a ladder without messages, the same whatever
 // the options. Then a scripted session merged into the ad ladder's timeline
 // (add_session(), add_requests(); D-068, D-104, D-105): its spans and its
 // player and network events, the ladder's ids kept, a fetch without a UTC
@@ -1408,11 +1408,12 @@ TEST_CASE("timeline::build: the cue types decide which time_signals are cues, th
 }
 
 TEST_CASE("timeline::build: a plain cue numbered before a decoded one of its frame, type and variant, and the "
-          "messages' warnings between the variants' and the pairing's, as built", "[timeline][timeline_build]")
+          "messages' warnings between the variants' and the pairing's, as the owner kept them (D-113 (c))",
+          "[timeline][timeline_build]")
 {
     // Two choices of the build's that set a document's bytes where a
-    // playlist carries a message, pending the owner (Q77;
-    // src/TimelineBuild.h, docs/TIMELINE_FORMAT.md), as they are built.
+    // playlist carries a message, WP09c's, which the owner kept (D-113 (c);
+    // src/TimelineBuild.h, docs/TIMELINE_FORMAT.md).
     //
     // v180's EXT-X-CUE-IN and, before it in segment 5, an OATCLS of a
     // splice_insert in, which makes a cue_in of its own at the same frame

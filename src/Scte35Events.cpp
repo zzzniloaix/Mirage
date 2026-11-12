@@ -802,13 +802,14 @@ bool is_range(const Read& m)
 // Whether the EXT-X-DATERANGE of message `m` itself declares its break's
 // duration (D-110 (a)): its DURATION, or its END-DATE less its START-DATE,
 // finite and from 0. A malformed tag declares none, since none of its other
-// attributes is read (D-106 (e), D-109 (e)). As built, pending the owner,
-// Q81. A duration that no AVRational holds exactly, its numerator or its
-// denominator above INT_MAX once reduced, is one pair_breaks() can't end a
-// break at (src/PlaylistEvents.h), and is declared all the same: the tag's
-// cue_out holds its cue-in message, and pair_breaks() makes no ad_break of
-// it, with its warning, the cue_in after it ending nothing. As built,
-// pending the owner, Q80.
+// attributes is read (D-106 (e), D-109 (e)): WP05c's reading, which the
+// owner kept (D-113 (g)). A duration that no AVRational holds exactly, its
+// numerator or its denominator above INT_MAX once reduced, is one
+// pair_breaks() can't end a break at (src/PlaylistEvents.h), and is
+// declared all the same: the tag's cue_out holds its cue-in message, and
+// pair_breaks() ends its break at the cue_in after it, as D-076 has it,
+// with a warning that the duration couldn't be used, so that the break
+// isn't lost (D-113 (f)).
 bool declares(const Read& m)
 {
     const auto taken = [](const std::optional<double>& d) { return d && std::isfinite(*d) && *d >= 0; };
@@ -1061,8 +1062,8 @@ private:
     // as the range's start, and set against nothing. Where the message is a
     // cue-in message that its tag's cue_out takes, as link() finds after
     // every message is read, the dates are set against the segment and
-    // recorded all the same, in_segment among them (pending the owner, Q81),
-    // and their warnings aren't written (D-110 (d)).
+    // recorded all the same, in_segment among them (D-113 (g)), and their
+    // warnings aren't written (D-110 (d)).
     void daterange(Read& m, const PlaylistEvents& p, const PlaylistTag& tag)
     {
         // A DATERANGE that hands on a message has a daterange event only
@@ -1233,7 +1234,7 @@ private:
     // (splice_points()). A splice time before its sequence's first frame is
     // outside the sequence (D-109 (e)). The anchor is recorded, in_segment
     // among its members, whatever the turn writes of it (D-109 (c), D-110
-    // (d)), a folded cue-in message's as built, pending the owner, Q81.
+    // (d)), a folded cue-in message's too (D-113 (g)).
     void place_splices(Read& m)
     {
         const VariantFrames& f = frames(m.variant);
@@ -1351,7 +1352,7 @@ private:
     {
         // A tag's cue-out message, the first it hands on, whichever of
         // SCTE35-CMD, SCTE35-OUT and SCTE35-IN carries it, by variant and line:
-        // of two that aren't one signal, the first, pending the owner, Q81.
+        // of two that aren't one signal, the first (D-113 (g)).
         std::map<std::pair<int, std::int64_t>, std::size_t> outs;
         for (std::size_t j = 0; j < reads_.size(); ++j) {
             const Read& o = reads_[j];
@@ -1396,7 +1397,7 @@ private:
         // The cue-in messages' signals, in the same three ways (D-110 (e)),
         // a cue-out signal's cue-in messages being one, since a signal's
         // cue_in is the first of its messages' that ends a break (D-110 (f)),
-        // whatever their End ids: as built, pending the owner, Q81.
+        // whatever their End ids (D-113 (g)).
         const std::vector<std::size_t> in_first = signals(cue_ins, [](const Read& a, const Read& b) {
             return one_in_signal(a, b) || (a.out_signal != kNoSignal && a.out_signal == b.out_signal);
         });
@@ -1404,7 +1405,7 @@ private:
         // The signals whose splice times make one splice_point each: the
         // cue-out messages, or the cue-in messages, that are one signal,
         // whatever cue takes them (D-109 (a), D-110 (e)), those of cue-in
-        // messages as built, pending the owner, Q81.
+        // messages too (D-113 (g)).
         const std::vector<std::size_t> timed_first = signals(timed, [](const Read& a, const Read& b) {
             return (a.classes.out && b.classes.out && one_signal(a, b))
                 || (a.classes.in && b.classes.in && one_in_signal(a, b));
@@ -1447,14 +1448,14 @@ private:
     // segment by its nature (D-109 (c)); for a signal, of cue-out or of
     // cue-in messages, whatever cue takes them, one per splice time, the
     // first message's that gives it (D-109 (a), D-110 (e); for a signal of
-    // cue-in messages, pending the owner, Q81); and for a cue-in message
-    // that its tag's cue_out takes, no warning that a time falls outside the
-    // tag's segment (D-110 (d)). Such a message's splice time that isn't
-    // placed still writes design §5.1's warning that its splice_point is
-    // left out, one after the last frame of its tag's discontinuity sequence
-    // among them, as an In Point's at the return to content is in a stitched
-    // break: D-110 (d) names the check against the tag's segment only. As
-    // built, pending the owner, Q79.
+    // cue-in messages, D-113 (g)); and for a cue-in message that its tag's
+    // cue_out takes, no warning that a time falls outside the tag's segment
+    // (D-110 (d)). Such a message's splice time that isn't placed still
+    // writes design §5.1's warning that its splice_point is left out, one
+    // after the last frame of its tag's discontinuity sequence among them,
+    // as an In Point's at the return to content is in a stitched break:
+    // D-110 (d) names the check against the tag's segment only. As WP05c
+    // built it, which the owner kept (D-113 (e)).
     void splice_points(Read& m)
     {
         if (is_form(m, kContForm)) return;
@@ -1528,9 +1529,12 @@ private:
     // `cue` holds them: it gets once the line of the first such tag in
     // kHeldCueInLine, by which pair_breaks() ends its break at its declared
     // duration, by D-076's order, no later cue_in ending it (D-109 (b),
-    // D-110 (a)). Otherwise it pairs as D-076 has it, the next cue_in ending
-    // it, and without one its declared durations: a plain EXT-X-CUE-OUT
-    // that takes the tag's messages ends at the next EXT-X-CUE-IN.
+    // D-110 (a)), but where pair_breaks() can't place that duration, no
+    // AVRational holding it exactly or the axis giving no frame for its
+    // end, the cue_in after it ends the break (D-113 (f)). Otherwise it
+    // pairs as D-076 has it, the next cue_in ending it, and without one its
+    // declared durations: a plain EXT-X-CUE-OUT that takes the tag's
+    // messages ends at the next EXT-X-CUE-IN.
     void fold(Event& cue, const Read& m, bool own) const
     {
         for (std::size_t h : m.folds) merge(cue, reads_[h], std::nullopt);
@@ -1652,13 +1656,13 @@ private:
 
     // The cue_in of the signal of cue-in messages whose first is `g` (D-110
     // (e)): g's, which takes the others' records into `messages`, none of
-    // their durations, as built, pending the owner, Q81. Where a message of
-    // the signal is a cue-out message as well, whose cue_out part a plain
-    // EXT-X-CUE-OUT of its segment takes (D-106 (d)) or its signal's cue_out
-    // (D-109 (a)), the cue_in joins that cue_out, the first by line if there
-    // are several: it takes the cue_out's line where its own is later or
-    // null, and link() makes it before that cue_out, so that it ends the
-    // break open before the cue_out starts the next (cue()).
+    // their durations (D-113 (g)). Where a message of the signal is a
+    // cue-out message as well, whose cue_out part a plain EXT-X-CUE-OUT of
+    // its segment takes (D-106 (d)) or its signal's cue_out (D-109 (a)),
+    // the cue_in joins that cue_out, the first by line if there are
+    // several: it takes the cue_out's line where its own is later or null,
+    // and link() makes it before that cue_out, so that it ends the break
+    // open before the cue_out starts the next (cue()).
     Event in_cue(std::size_t g)
     {
         std::vector<std::size_t>    members;

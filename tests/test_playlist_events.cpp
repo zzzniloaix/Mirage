@@ -5,8 +5,9 @@
 // the decoder, a live playlist refused (DECISIONS.md D-081 (a)), and the
 // pairing of cues into ad breaks by D-076's end rule, for plain cues and for
 // cues from a stub decoder alike, a break of no frames kept with a warning
-// (D-110 (c)). Nothing is read but the text, and no message is decoded: the
-// messages here are made up, in the tags' shapes.
+// (D-110 (c)), and a held break whose declared duration can't be placed
+// ended at its cue_in (D-113 (f)). Nothing is read but the text, and no
+// message is decoded: the messages here are made up, in the tags' shapes.
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -1565,6 +1566,146 @@ TEST_CASE("playlist_events: pair_breaks ends a cue_out that holds its tag's cue_
     CHECK(integer(at(b.events[0].payload, "cue_in_line")) == 14);
     CHECK(b.warnings == std::vector<std::string>{
         "variant 0: the ad_break of the cue_out at line 14 has no frames, its duration of 0 s ending it at "
+        "reference frame 75, where it starts: a drop that starts at that frame doesn't list it (D-078, "
+        "D-110 (c))" });
+}
+
+TEST_CASE("playlist_events: pair_breaks ends a held break whose declared duration it can't place at the cue_in "
+          "it is given, as D-076 has it, with a warning that says so (D-113 (f))", "[timeline][playlist_events]")
+{
+    using timeline::kTypeCueIn;
+    using timeline::kTypeCueOut;
+    using timeline::kTypeCueOutCont;
+    const std::string held(timeline::kHeldCueInLine);
+    const Value line_14{ std::int64_t{ 14 } };
+    // The warning of a held cue_out at line 14 whose duration `why` can't
+    // place, ended by the cue_in at line `in`.
+    const auto ended = [](int variant, std::string_view why, int in) {
+        return std::format("variant {}: the cue_out at line 14 holds its cue_in (D-109 (b)), but the duration it "
+                           "declares can't be used, since {}: the cue_in at line {} ends its ad_break instead, as "
+                           "D-076 has it (D-113 (f))", variant, why, in);
+    };
+
+    // A duration with no exact AVRational: a decimal with more digits than
+    // an int holds, and a sum printed with floating-point noise. The
+    // EXT-X-DATERANGE at line 14 in segment 3 holds its cue_in, the
+    // EXT-X-CUE-IN at line 23 in segment 6 follows it: the break runs from
+    // frame 75 to the cue_in's 150, its end "cue_in" and its cue_in_line the
+    // cue_in's, its durations kept, and the axis isn't asked.
+    const std::vector<std::pair<double, std::string_view>> inexact = {
+        { 29.97002997, "29.97002997" },
+        { 30.000000000000004, "30.000000000000004" },
+    };
+    for (const auto& [seconds, shown] : inexact) {
+        INFO(shown);
+        std::vector<AVRational> seen;
+        const Breaks b = timeline::pair_breaks(
+            { cue(kTypeCueOut, 1, 3, 14, 75, { { "duration", Value{ seconds } }, { held, line_14 } }),
+              cue(kTypeCueOutCont, 1, 4, 17, 100, { { "duration", Value{ seconds } } }),
+              cue(kTypeCueIn, 1, 6, 23, 150) },
+            grid_25(200, &seen));
+        CHECK(seen.empty());
+        REQUIRE(b.events.size() == 1);
+        const Event& e = b.events[0];
+        CHECK((e.variant == 1 && e.segment == 3 && e.ref_index == 75 && e.ref_end == 150));
+        CHECK(text(at(e.payload, "end")) == "cue_in");
+        CHECK(integer(at(e.payload, "cue_out_line")) == 14);
+        CHECK(integer(at(e.payload, "cue_in_line")) == 23);
+        CHECK(number(at(object(at(e.payload, "durations")), "duration")) == seconds);
+        CHECK(list(at(e.payload, "cue_out_cont_durations")).size() == 1);
+        CHECK(b.warnings == std::vector<std::string>{ ended(
+                  1, std::format("no AVRational holds its duration of {} s exactly, so the axis isn't asked for "
+                                 "its end", shown), 23) });
+    }
+    // In ticks too: a break_duration of 2^33 - 1 ticks, the largest that
+    // SCTE 35's 33 bits hold, whose numerator over 90000 no int holds.
+    constexpr std::int64_t kTicks = (std::int64_t{ 1 } << 33) - 1;
+    Breaks b = timeline::pair_breaks(
+        { cue(kTypeCueOut, 0, 3, 14, 75, { { "break_duration", Value{ static_cast<double>(kTicks) / 90000 } },
+                                            { "break_duration_ticks", Value{ kTicks } },
+                                            { held, line_14 } }),
+          cue(kTypeCueIn, 0, 5, 21, 125) },
+        grid_25());
+    REQUIRE(b.events.size() == 1);
+    CHECK((b.events[0].ref_index == 75 && b.events[0].ref_end == 125));
+    CHECK(text(at(b.events[0].payload, "end")) == "cue_in");
+    CHECK(b.warnings == std::vector<std::string>{ ended(
+              0, std::format("no AVRational holds its break_duration of {} ticks (90 kHz) exactly, so the axis "
+                             "isn't asked for its end", kTicks), 21) });
+
+    // An end the axis can't place: a duration of 2 s for which FrameAfter
+    // gives no frame. The cue_in after it ends the break.
+    const timeline::FrameAfter no_frame = [](std::int64_t, AVRational) { return std::optional<std::int64_t>{}; };
+    b = timeline::pair_breaks({ cue(kTypeCueOut, 2, 3, 14, 75, { { "duration", Value{ 2.0 } }, { held, line_14 } }),
+                                cue(kTypeCueIn, 2, 5, 21, 125) },
+                              no_frame);
+    REQUIRE(b.events.size() == 1);
+    CHECK((b.events[0].variant == 2 && b.events[0].ref_index == 75 && b.events[0].ref_end == 125));
+    CHECK(text(at(b.events[0].payload, "end")) == "cue_in");
+    CHECK(integer(at(b.events[0].payload, "cue_in_line")) == 21);
+    CHECK(b.warnings == std::vector<std::string>{
+        ended(2, "the axis gives no reference frame for the end of its duration of 2 s", 21) });
+
+    // A held break whose duration is placed is as before (D-110 (a)): it ends
+    // at its duration, the cue_in after it ending nothing, with no warning.
+    b = timeline::pair_breaks({ cue(kTypeCueOut, 2, 3, 14, 75, { { "duration", Value{ 2.0 } }, { held, line_14 } }),
+                                cue(kTypeCueIn, 2, 6, 23, 150) },
+                              grid_25());
+    CHECK(b.warnings.empty());
+    REQUIRE(b.events.size() == 1);
+    CHECK((b.events[0].ref_index == 75 && b.events[0].ref_end == 125));
+    CHECK(text(at(b.events[0].payload, "end")) == "duration");
+    CHECK(integer(at(b.events[0].payload, "cue_in_line")) == 14);
+    // And a cue_out that holds none, whose duration can't be placed, ends at
+    // its cue_in as any cue_out does, with no warning.
+    b = timeline::pair_breaks({ cue(kTypeCueOut, 2, 3, 14, 75, { { "duration", Value{ 29.97002997 } } }),
+                                cue(kTypeCueIn, 2, 6, 23, 150) },
+                              grid_25());
+    CHECK(b.warnings.empty());
+    REQUIRE(b.events.size() == 1);
+    CHECK((b.events[0].ref_end == 150 && text(at(b.events[0].payload, "end")) == "cue_in"));
+
+    // With no cue_in given there is no break, as before, and the warning
+    // says why: none follows it, or a cue_out follows it before any (D-087),
+    // which pairs with the next cue_in.
+    const Payload inexact_held = { { "duration", Value{ 29.97002997 } }, { held, line_14 } };
+    const std::string unplaced =
+        "no AVRational holds its duration of 29.97002997 s exactly, so the axis isn't asked for its end";
+    b = timeline::pair_breaks({ cue(kTypeCueOut, 0, 3, 14, 75, inexact_held) }, grid_25());
+    CHECK(b.events.empty());
+    CHECK(b.warnings == std::vector<std::string>{ "variant 0: no ad_break for the cue_out at line 14: " + unplaced });
+    b = timeline::pair_breaks({ cue(kTypeCueOut, 0, 3, 14, 75, inexact_held), cue(kTypeCueOut, 0, 4, 17, 100),
+                                cue(kTypeCueIn, 0, 6, 23, 150) },
+                              grid_25());
+    REQUIRE(b.events.size() == 1);
+    CHECK((b.events[0].ref_index == 100 && b.events[0].ref_end == 150));
+    CHECK(b.warnings == std::vector<std::string>{ "variant 0: no ad_break for the cue_out at line 14: " + unplaced });
+    // A cue_in that would end it but isn't placed, or one placed before the
+    // cue_out's frame, against FrameAfter's order: no break, the warning
+    // naming the duration and the cue_in.
+    b = timeline::pair_breaks({ cue(kTypeCueOut, 0, 3, 14, 75, inexact_held), cue(kTypeCueIn, 0, 6, 23, kUnplaced) },
+                              grid_25());
+    CHECK(b.events.empty());
+    CHECK(b.warnings == std::vector<std::string>{
+        "variant 0: no ad_break for the cue_out at line 14: " + unplaced + ", and the cue_in at line 23, which then "
+        "ends it (D-113 (f)), has no reference frame (design §5.1)" });
+    b = timeline::pair_breaks({ cue(kTypeCueOut, 0, 3, 14, 75, inexact_held), cue(kTypeCueIn, 0, 6, 23, 50) },
+                              grid_25());
+    CHECK(b.events.empty());
+    CHECK(b.warnings == std::vector<std::string>{
+        "variant 0: no ad_break for the cue_out at line 14: " + unplaced + ", and the cue_in at line 23, which then "
+        "ends it (D-113 (f)), is at reference frame 50, before its start at 75" });
+
+    // A cue_in at the cue_out's frame: a break of no frames, kept (D-110
+    // (c)), with both warnings, how it ended first.
+    b = timeline::pair_breaks({ cue(kTypeCueOut, 0, 3, 14, 75, inexact_held), cue(kTypeCueIn, 0, 3, 16, 75) },
+                              grid_25());
+    REQUIRE(b.events.size() == 1);
+    CHECK((b.events[0].ref_index == 75 && b.events[0].ref_end == 75));
+    CHECK(integer(at(b.events[0].payload, "cue_in_line")) == 16);
+    CHECK(b.warnings == std::vector<std::string>{
+        ended(0, unplaced, 16),
+        "variant 0: the ad_break of the cue_out at line 14 has no frames, the cue_in at line 16 ending it at "
         "reference frame 75, where it starts: a drop that starts at that frame doesn't list it (D-078, "
         "D-110 (c))" });
 }

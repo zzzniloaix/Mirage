@@ -288,7 +288,8 @@ std::vector<Event> session_events(const Timeline& timeline, const std::vector<Ma
 // the master's directory, can't be fetched from a base, fetch_files()
 // refusing its whole fetch. The path rebased is the resolved one, and a
 // refusal's text gives the resolved URL beside the URL where the two
-// differ: both pending the owner (Q78; src/SessionPlan.cpp).
+// differ: both WP11b's, which the owner kept (D-113 (d);
+// src/SessionPlan.cpp).
 std::string fetch_url(const std::string& url, const std::string& master_url,
                       const std::string& fetch_base, std::string& err);
 

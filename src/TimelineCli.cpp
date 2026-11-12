@@ -654,7 +654,7 @@ std::string synopsis(std::string_view word, const std::array<Option<Args>, N>& t
 // option it fits, attribute's --curve pair:<k>|session:<id>; an option wider
 // than that, timeline's --cue-types with design §7's placeholder, has its
 // help in the column on the next line, so that every other row is as it was:
-// a choice pending the owner, Q77 (TimelineCli.h).
+// WP09c's choice, which the owner kept (D-113 (c)).
 template <class Args, std::size_t N>
 std::string option_rows(const std::array<Option<Args>, N>& table)
 {
@@ -830,7 +830,7 @@ std::optional<std::string> carrier_line(const Payload& p)
 // whose `line` is that cue's where its own is later or null (D-109 (e)),
 // that cue named, "line 16, OATCLS, joining the cue_out at line 15". This
 // wording of a decoded message's lines, here, in crc_text() and in
-// event_detail(), is pending the owner, Q77 (TimelineCli.h).
+// event_detail(), is WP09c's, which the owner kept (D-113 (c)).
 std::string message_head(const Payload& p)
 {
     const std::string                form = member_text(p, "form");
@@ -1289,8 +1289,8 @@ std::string parse_timeline(const std::vector<std::string_view>& argv, TimelineAr
     TimelineArgs args;
     if (std::string err = Parser(kTimelineOptions).parse(argv, args, load); !err.empty()) return err;
     if (std::string err = timeline::check_options(args.detect); !err.empty()) return err;
-    // The fetch's options go with a session, a rule pending the owner
-    // (TimelineCli.h), and the fetch base with its fetch (D-111 (d)), on the
+    // The fetch's options go with a session, WP09b's rule, which the owner
+    // kept (D-113 (h)), and the fetch base with its fetch (D-111 (d)), on the
     // command line or in the config file alike, as attribute refuses
     // --threshold with another query than --auto.
     if (args.session.empty()) {
@@ -1357,6 +1357,9 @@ std::optional<std::vector<std::uint8_t>> parse_cue_types(std::string_view text, 
         if (ec != std::errc() || end != s.data() + s.size()) return std::nullopt;
         return static_cast<std::uint8_t>(v);
     };
+    // A blank, as parse_attributes() (src/PlaylistEvents.h) and a config
+    // file's lines take one (trimmed()): a space or a tab.
+    const auto blank = [](char c) { return c == ' ' || c == '\t'; };
     std::vector<std::uint8_t> out;
     std::size_t from = 0;
     for (int item = 1;; ++item) {
@@ -1369,7 +1372,9 @@ std::optional<std::vector<std::uint8_t>> parse_cue_types(std::string_view text, 
             dash == std::string_view::npos ? first : type(part.substr(dash + 1));
         if (!first || !last) {
             err = std::format("its item {}, '{}', is neither a type such as 0x30 nor a range such as "
-                              "0x30-0x37", item, part);
+                              "0x30-0x37{}", item, part,
+                              std::any_of(part.begin(), part.end(), blank)
+                                  ? ": blanks are taken after a comma only" : "");
             return std::nullopt;
         }
         if (*first > *last) {
@@ -1379,7 +1384,14 @@ std::optional<std::vector<std::uint8_t>> parse_cue_types(std::string_view text, 
         }
         for (unsigned t = *first; t <= *last; ++t) out.push_back(static_cast<std::uint8_t>(t));
         if (comma == std::string_view::npos) break;
+        // The blanks after a comma are passed over, so that the default set
+        // as design §7 writes it, "0x22-0x23, 0x30-0x37, 0x44-0x47", is taken
+        // (D-113 (b)); one anywhere else is refused with its item: which
+        // blanks, and that they go after a comma only, are this package's
+        // reading of D-113 (b), which names neither, pending the owner
+        // (TimelineCli.h).
         from = comma + 1;
+        while (from < text.size() && blank(text[from])) ++from;
     }
     std::sort(out.begin(), out.end());
     out.erase(std::unique(out.begin(), out.end()), out.end());
@@ -1498,12 +1510,12 @@ std::string timeline_usage()
         "time_signal by its segmentation types: --cue-types lists those that count,\n"
         "as segmentation_type_ids in hex, each alone or a range, comma-separated,\n"
         "each a Start or an End type, by default 0x22-0x23,0x30-0x37,0x44-0x47\n"
-        "(breaks, advertisements, placement opportunities and ad blocks). Every other\n"
-        "message is a message event and a cancellation a cancel event; a cue-out\n"
-        "message in the segment of an EXT-X-CUE-OUT is that cue's. A message whose\n"
-        "CRC_32 fails is kept, marked crc_valid false, or with --bad-crc drop dropped,\n"
-        "with a warning either way. Every message that can't be decoded or placed is\n"
-        "a warning.\n"
+        "(breaks, advertisements, placement opportunities and ad blocks); blanks may\n"
+        "follow a comma, as in 0x22-0x23, 0x30-0x37. Every other message is a message\n"
+        "event and a cancellation a cancel event; a cue-out message in the segment of\n"
+        "an EXT-X-CUE-OUT is that cue's. A message whose CRC_32 fails is kept, marked\n"
+        "crc_valid false, or with --bad-crc drop dropped, with a warning either way.\n"
+        "Every message that can't be decoded or placed is a warning.\n"
         "\n"
         "Config file: --config FILE reads settings before the command line, one per\n"
         "line as name = value, where name is a long option's name without the\n"
@@ -1513,8 +1525,8 @@ std::string timeline_usage()
         "on the command line, which replaces the file's setting. The document records\n"
         "the file by its path and SHA-256 and every option with its value, but a\n"
         "session's options only with --session, and --cue-types and --bad-crc only\n"
-        "where they are given. Relative paths, the report's own among them, are\n"
-        "taken from the current directory.\n"
+        "where they are given or a playlist carries an SCTE-35 message. Relative\n"
+        "paths, the report's own among them, are taken from the current directory.\n"
         "\n"
         "Exit status: 0 the document was written; 1 an input couldn't be read or was\n"
         "refused (a live playlist, a report of another layout or of a pair), the\n"
@@ -1591,7 +1603,20 @@ std::string attribute_usage()
 
 // ── Records and text ─────────────────────────────────────────────────────────
 
-Payload timeline_options(const TimelineArgs& a)
+bool carries_messages(const timeline::BuildInputs& in)
+{
+    // Every message a tag hands on counts, whatever its text holds and
+    // whatever becomes of it, an empty one and a refused variant's among
+    // them, which make no event: this package's reading of D-113 (a),
+    // pending the owner (TimelineCli.h).
+    return std::any_of(in.variants.begin(), in.variants.end(), [](const timeline::VariantRead& r) {
+        return r.playlist && !r.playlist->messages.empty();
+    });
+}
+
+Payload timeline_options(const TimelineArgs& a) { return timeline_options(a, false); }
+
+Payload timeline_options(const TimelineArgs& a, bool messages)
 {
     Payload out = {
         { "report", Value{ a.report } },
@@ -1610,17 +1635,19 @@ Payload timeline_options(const TimelineArgs& a)
     out.emplace_back("min-points", int_or_null(a.detect.min_points));
     out.emplace_back("margin-before", Value{ rational_text(a.overlap.margin_before) });
     out.emplace_back("margin-after", Value{ rational_text(a.overlap.margin_after) });
-    // The decoded messages' options, in the table's order, each only where
-    // it is given, on the command line or in the config file, so that a
-    // document built without them is what it was before them. A document of
-    // playlists that carry messages, built without them, then doesn't name
-    // D-106's defaults, by which its cues, messages and ad breaks were made,
-    // where threshold and the margins are recorded at theirs: a choice
-    // pending the owner, Q75 (TimelineCli.h).
-    if (a.cue_types) out.emplace_back("cue-types", Value{ cue_types_text(*a.cue_types) });
-    if (a.bad_crc)
-        out.emplace_back("bad-crc",
-                         Value{ std::string(*a.bad_crc == timeline::BadCrc::Drop ? "drop" : "keep") });
+    // The decoded messages' options, in the table's order, after the
+    // margins: both, their defaults included, where a playlist carries an
+    // SCTE-35 message, so that every document whose cues, messages and ad
+    // breaks they shaped names them, as threshold and the margins are
+    // recorded at theirs (design §6.3, §8); otherwise each where it is
+    // given, on the command line or in the config file, so that a document
+    // whose playlists carry no message, as D-069's carry plain cue tags
+    // only, keeps its bytes (D-113 (a)). The set as canonical ranges, the
+    // policy as its word (D-113 (c)).
+    const timeline::MessageOptions m = message_options(a);
+    if (messages || a.cue_types) out.emplace_back("cue-types", Value{ cue_types_text(m.cue_types) });
+    if (messages || a.bad_crc)
+        out.emplace_back("bad-crc", Value{ std::string(m.bad_crc == timeline::BadCrc::Drop ? "drop" : "keep") });
     return out;
 }
 
@@ -2044,7 +2071,9 @@ int run_timeline(const std::vector<std::string_view>& argv)
     timeline::DocInfo info;
     info.command          = "timeline";
     info.ffmpeg_libraries = ffmpeg_libraries();
-    info.options          = timeline_options(args);
+    // --cue-types and --bad-crc at their defaults too where a playlist read
+    // carries a message (D-113 (a)).
+    info.options          = timeline_options(args, carries_messages(in));
     if (!args.config.empty()) info.config_file = timeline::FileRef{ args.config, config_sha256 };
     info.report               = timeline::report_info(scores);
     info.report.path          = args.report;

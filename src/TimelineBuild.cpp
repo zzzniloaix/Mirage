@@ -211,8 +211,8 @@ public:
         // §5.5; D-106, D-109): those that belong to a plain cue are merged
         // into it there, the others make cues, splice points, messages and
         // cancellations of their own (src/Scte35Events.h). Their warnings
-        // come after the variants' and the pairs', before the pairing's
-        // (pending the owner, Q77; TimelineBuild.h).
+        // come after the variants' and the pairs', before the pairing's, as
+        // the owner kept it (D-113 (c); TimelineBuild.h).
         const MessagePlacement placement = message_placement();
         MessageEvents decoded =
             scte35_events(playlist_messages(placement.variants), cues_, placement, in_.messages);
@@ -227,10 +227,10 @@ public:
         });
         // The cues that are placed, the plain ones first, which assign_ids()
         // then numbers first where a plain and a decoded cue share a frame,
-        // a type and a variant (pending the owner, Q77; TimelineBuild.h);
-        // one that isn't placed only took its turn in the pairing, and a
-        // warning names it. The splice points, messages and cancellations
-        // come placed.
+        // a type and a variant, as the owner kept it (D-113 (c);
+        // TimelineBuild.h); one that isn't placed only took its turn in the
+        // pairing, and a warning names it. The splice points, messages and
+        // cancellations come placed.
         for (Event& c : cues_)
             if (c.ref_index != kUnplaced) events_.push_back(std::move(c));
         for (Event& c : decoded.cues)

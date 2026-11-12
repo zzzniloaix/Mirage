@@ -544,10 +544,13 @@ std::optional<AVRational> tick_seconds(std::int64_t ticks)
 // before any cue_in, if one does, since breaks don't nest (the owner's
 // answer to Q46 (D-087)). A cue_out that holds its cue_in in its tag
 // (kHeldCueInLine) ends at its declared duration even where `in` is given,
-// that cue_in ending nothing (D-109 (b)); one that declares no duration
-// pairs as any cue_out, as D-110 (a) pairs a tag that declares none: a
-// choice pending the owner, Q81. A break that can't be made is a warning,
-// and so is a break of no frames, which is made (D-110 (c)).
+// that cue_in ending nothing (D-109 (b)), unless that duration can't be
+// placed, no AVRational holding it exactly or the axis giving no frame for
+// its end: then `in` ends it, as D-076 has it, with a warning that says
+// so, so that the break isn't lost (D-113 (f)). One that declares no
+// duration pairs as any cue_out, as D-110 (a) pairs a tag that declares
+// none, which the owner kept (D-113 (g)). A break that can't be made is a
+// warning, and so is a break of no frames, which is made (D-110 (c)).
 void make_break(const Event& o, const std::vector<const Event*>& conts, const Event* in,
                 const Event* next_out, const FrameAfter& frame_after, Breaks& out)
 {
@@ -586,16 +589,19 @@ void make_break(const Event& o, const std::vector<const Event*>& conts, const Ev
     // decoder holds one only where its EXT-X-DATERANGE declares DURATION or
     // END-DATE (D-110 (a)), and one that declares none pairs as any cue_out
     // does, the next cue_in ending it, as D-110 (a) pairs a tag that
-    // declares no duration: a choice pending the owner, Q81. A duration that
-    // no AVRational holds exactly counts as declared, here and in the
+    // declares no duration, which the owner kept (D-113 (g)). A duration
+    // that no AVRational holds exactly counts as declared, here and in the
     // decoder (src/Scte35Events.cpp's declares()): such a cue_out holds its
-    // cue_in all the same, `in` ending nothing, and makes no break, with the
-    // warning below. As built, pending the owner, Q80.
+    // cue_in all the same, and the cue_in it is given ends its break, as one
+    // whose end the axis can't place (below; D-113 (f)).
     const std::optional<std::int64_t> held =
         declared ? int_member(o.payload, kHeldCueInLine) : std::optional<std::int64_t>{};
 
     std::int64_t     end = 0;
     std::string_view how;
+    // Why a held cue_out's declared duration can't end its break, where the
+    // cue_in it is given then ends it (D-113 (f)); empty otherwise.
+    std::string unused;
     if (in && !held) {
         if (o.ref_index < 0) return warn("it has no reference frame (design §5.1)");
         if (in->ref_index < 0)
@@ -611,24 +617,46 @@ void make_break(const Event& o, const std::vector<const Event*>& conts, const Ev
         if (o.ref_index < 0) return warn("it has no reference frame (design §5.1)");
         // FrameAfter is given a positive, exact duration only: a zero one
         // ends where the break starts, and one that no AVRational holds
-        // exactly makes no break, a held cue_out's too, whose `in`, if one
-        // came, then ends nothing (above; as built, pending the owner, Q80).
+        // exactly isn't asked for.
         const std::optional<AVRational> q =
             declared->ticks ? tick_seconds(*declared->ticks) : exact_seconds(*declared->seconds);
-        if (!q)
-            return warn(std::format("no AVRational holds its {} exactly, so the axis isn't asked for its "
-                                    "end", declared->text()));
         const std::optional<std::int64_t> f =
-            q->num == 0 ? std::optional<std::int64_t>{ o.ref_index } : frame_after(o.ref_index, *q);
-        if (!f)
-            return warn(std::format("the axis gives no reference frame for the end of its {}",
-                                    declared->text()));
-        end = *f;
-        how = declared->name;
+            !q ? std::optional<std::int64_t>{}
+               : q->num == 0 ? std::optional<std::int64_t>{ o.ref_index } : frame_after(o.ref_index, *q);
+        if (f) {
+            end = *f;
+            how = declared->name;
+        } else {
+            std::string why =
+                !q ? std::format("no AVRational holds its {} exactly, so the axis isn't asked for its end",
+                                 declared->text())
+                   : std::format("the axis gives no reference frame for the end of its {}", declared->text());
+            // A held cue_out whose declared duration can't be placed, either
+            // way, is ended by the cue_in it is given, as D-076 has it, so
+            // that its break isn't lost (D-113 (f)). With no cue_in given, as
+            // here for every cue_out that holds none, there is no break.
+            if (!held || !in) return warn(why);
+            if (in->ref_index < 0)
+                return warn(std::format("{}, and {}, which then ends it (D-113 (f)), has no reference frame "
+                                        "(design §5.1)", why, cue_name(*in)));
+            end    = in->ref_index;
+            how    = "cue_in";
+            unused = std::move(why);
+        }
     }
     if (end < o.ref_index)
-        return warn(std::format("it would end at reference frame {}, before its start at {}", end,
-                                o.ref_index));
+        return warn(unused.empty()
+                        ? std::format("it would end at reference frame {}, before its start at {}", end,
+                                      o.ref_index)
+                        : std::format("{}, and {}, which then ends it (D-113 (f)), is at reference frame {}, "
+                                      "before its start at {}", unused, cue_name(*in), end, o.ref_index));
+    // A held break that the cue_in it is given ends says so, and why its
+    // declared duration couldn't be used (D-113 (f)).
+    if (!unused.empty())
+        out.warnings.push_back(std::format(
+            "variant {}: {} holds its cue_in (D-109 (b)), but the duration it declares can't be used, since "
+            "{}: {} ends its ad_break instead, as D-076 has it (D-113 (f))",
+            o.variant, cue_name(o), unused, cue_name(*in)));
     // A break of no frames, its cue_in at its cue_out's frame or its declared
     // duration 0, is kept, since the playlist says that a break starts and
     // ends there, with a warning: such a span meets only an interval that
@@ -659,7 +687,9 @@ void make_break(const Event& o, const std::vector<const Event*>& conts, const Ev
         cont_durations.push_back(d && number_member(c->payload, "duration") ? *d : Value{});
     }
     b.payload.emplace_back("cue_out_line", line_value(&o));
-    b.payload.emplace_back("cue_in_line", held ? int_value(*held) : line_value(in));
+    // A held break's cue_in is its tag's (D-110 (f)), but where the cue_in
+    // it was given ended it, that cue_in's (D-113 (f)).
+    b.payload.emplace_back("cue_in_line", held && unused.empty() ? int_value(*held) : line_value(in));
     b.payload.emplace_back("end", text_value(how));
     b.payload.emplace_back("durations", Value{ std::move(durations) });
     b.payload.emplace_back("cue_out_cont_durations", Value{ std::move(cont_durations) });

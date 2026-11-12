@@ -23,7 +23,8 @@
 //   (timeline::kDefaultCueTypes), each a Start or an End type
 //   (timeline::check_message_options()); --bad-crc keep|drop what becomes
 //   of a message whose CRC_32 fails, kept and marked by default, with a
-//   warning either way (D-106 (c)).
+//   warning either way (D-106 (c)). Where a playlist carries a message, the
+//   document records both, their defaults included (D-113 (a)).
 // - timeline --session <plan.json> (design §3.4, step 6; D-068) also reads a
 //   scripted session's plan (src/SessionPlan.h; D-105 (a)), which the
 //   document records by its path and SHA-256, places the session's spans
@@ -46,9 +47,9 @@
 //   --ladder's does (D-047), and writes no document, where D-047 has
 //   --ladder write a report of its complete pairs. Each choice the design
 //   and the decisions left open here is listed below: the owner kept them as
-//   built (D-111), but for one, which is pending the owner. The path rebased
-//   for a URL with dot segments, and the resolved URL that a refusal's text
-//   gives, pending the owner, Q78, are src/SessionPlan.h's (fetch_url()).
+//   built (D-111, D-113 (h)). The path rebased for a URL with dot segments,
+//   and the resolved URL that a refusal's text gives, which the owner kept
+//   as built too (D-113 (d)), are src/SessionPlan.h's (fetch_url()).
 // - attribute (design §3.5) reads a timeline document and the ladder report
 //   it names, checks the report's SHA-256, or for a redacted copy its
 //   scores digest (D-072), takes the pairs' curves from it, and answers one
@@ -72,19 +73,19 @@
 // are left out when the command line gives another query, as vmafcli
 // leaves out a file's settings of the other form of its inputs. --auto,
 // which takes no value on the command line, is `auto = on` in a file.
-// timeline's --fetch and --fetch-base go with --session only, a rule
-// pending the owner (below), and --fetch-base with --fetch on only (D-111
-// (d)): given otherwise, on the command line or in the file, they are
-// refused, as attribute refuses --threshold with another query than --auto.
-// The plan itself is a file of its own, since D-030's file holds each
-// setting once and a plan is a list of spans (design §7; D-105 (a)).
-// --cue-types takes segmentation_type_ids in hex, each alone or a range,
-// comma-separated without blanks (parse_cue_types()), so that the default
-// as design §7 writes it, "0x22-0x23, 0x30-0x37, 0x44-0x47", a blank after
-// each comma as in Q15 (a), which D-106 (b) adopts, is refused: a rule
-// pending the owner, Q76 (below). A value in a config file is checked on
-// its line as one on the command line is, a type that is neither a Start
-// nor an End type included.
+// timeline's --fetch and --fetch-base go with --session only (D-113 (h),
+// below), and --fetch-base with --fetch on only (D-111 (d)): given
+// otherwise, on the command line or in the file, they are refused, as
+// attribute refuses --threshold with another query than --auto. The plan
+// itself is a file of its own, since D-030's file holds each setting once
+// and a plan is a list of spans (design §7; D-105 (a)). --cue-types takes
+// segmentation_type_ids in hex, each alone or a range, comma-separated,
+// with blanks after a comma (parse_cue_types()), so that the default as
+// design §7 writes it, "0x22-0x23, 0x30-0x37, 0x44-0x47", a blank after
+// each comma as in Q15 (a), which D-106 (b) adopts, is taken, on the
+// command line and in a config file (D-113 (b), below). A value in a
+// config file is checked on its line as one on the command line is, a type
+// that is neither a Start nor an End type included.
 //
 // Defaults are the decisions' only: T = 6, W and N none (D-077), margins
 // none (D-078), text (D-079), --fetch on with a session (design §7),
@@ -119,52 +120,66 @@
 //   design's P-AD extended: its header with the spans, a switch's two
 //   rungs, a request's URL, times, bytes and status.
 //
-// Pending the owner: --fetch or --fetch-base without --session is refused,
-// exit status 2; or taken and left unused.
+// The owner kept one more of WP09b's rules as built (D-113 (h), of
+// 2026-11-12, Q82): --fetch or --fetch-base without --session is refused,
+// exit status 2, on the command line or in the config file
+// (parse_timeline()), an option that can't act being an argument error, as
+// D-111 (d) refuses --fetch-base with --fetch off.
 //
-// Pending the owner too, the choices the decoded messages' options and
-// lines made where the design and the decisions say nothing, each built as
-// written here (the order of the decoded events' ids and of their warnings
-// is src/TimelineBuild.h's, Q77):
-// - --cue-types and --bad-crc are recorded with the other options only where
-//   each is given (Q75), on the command line or in the config file, so that
-//   a document built without them is what it was before them; then a
-//   document of playlists that carry messages, built without them, doesn't
-//   name the cue types and the CRC policy, D-106's defaults, by which its
-//   cues, messages and ad breaks were made, where design §6.3 and §8 have
-//   every option recorded, as threshold and the margins are at their
-//   defaults; or both where either is given; or both wherever a playlist
-//   carries a message, so that a document of D-069's ladders, which carry
-//   none, keeps its bytes and every other names them; or always, which
-//   changes every document;
-// - --cue-types' value (Q76): segmentation_type_ids in hex with 0x, one or
-//   two digits each, alone or as a range first-last, comma-separated,
-//   without blanks, the set not empty, so that the default as design §7
-//   writes it, "0x22-0x23, 0x30-0x37, 0x44-0x47", is refused, exit status 2,
-//   a config file's value too, which no shell quotes; or decimal ids too,
-//   blanks after the commas, or a word for no type at all, splice_insert
-//   alone making cues (Q15 (b)'s alternative);
-// - its record (Q77), the set as ranges in that form, ascending, each run
-//   of consecutive types one range ("0x22-0x23,0x30-0x37,0x44-0x47"); or
-//   the list of the ids as integers, or the value as given; --bad-crc's,
-//   "keep" or "drop";
-// - the text of a decoded message's events (answer_text(); Q77): the line of
-//   a splice_point, a message, a cancel or a cue of a message's own starts
-//   with the line and form of the tag that carried it, the form alone for
-//   another carrier, a cue_in that joins a cue_out naming that cue's line
-//   ("line 16, OATCLS, joining the cue_out at line 15"; D-109 (e)); then its
-//   command, a splice point's time, the frame it lands on and whether that
-//   is outside its tag's segment, a message's segmentation types, what a
-//   cancel cancels; and a mark where its CRC_32 fails, which a cue also
-//   gets, a plain one or a signal's, where a message it holds fails its
-//   CRC_32 (D-106 (c), (d), D-109 (a)); or the payload as JSON, as for a
-//   type answer_text() doesn't know, a decoded cue's tag as written, as a
-//   plain cue's, or no mark on a cue's line;
-// - the help's row of an option wider than its column (Q77), --cue-types
+// The owner's answers (D-113, of 2026-11-12) on what the decoded messages'
+// options and lines chose where the design and the decisions said nothing
+// (Q75 to Q77), each built as written here (the order of the decoded
+// events' ids and of their warnings, which D-113 (c) keeps as built, is
+// src/TimelineBuild.h's):
+// - (a) --cue-types and --bad-crc are recorded with the other options,
+//   after the margins: both, their defaults included, wherever a playlist
+//   the build reads carries an SCTE-35 message (carries_messages()), so
+//   that every document whose cues, messages and ad breaks they shaped
+//   names them, as threshold and the margins are recorded at their
+//   defaults (design §6.3, §8); otherwise each where it is given, on the
+//   command line or in the config file, so that a document whose playlists
+//   carry none, as D-069's carry plain cue tags only, keeps its bytes (Q75,
+//   option 2). Which playlists carry one, D-113 (a) doesn't say. Here a
+//   playlist counts wherever a tag of a form the build decodes hands on a
+//   message, whatever its text holds and whatever becomes of it: a bare
+//   #EXT-OATCLS-SCTE35, one whose text is empty or isn't base64, and the
+//   messages of a variant whose segment map was refused, which make no
+//   event (D-081 (c), D-086), count as a message that decodes does, so
+//   that a document whose events the two options didn't shape names them
+//   too. Of the readings that ask only the playlists the build reads, it
+//   is the widest, naming them in the most documents, where the others
+//   count a playlist only where a message decodes, or only where one makes
+//   an event: this package's reading, pending the owner;
+// - (b) --cue-types' value: segmentation_type_ids in hex with 0x, one or
+//   two digits each, alone or as a range first-last, comma-separated, the
+//   set not empty, with blanks after a comma, so that the default as
+//   design §7 writes it, "0x22-0x23, 0x30-0x37, 0x44-0x47", is taken, a
+//   config file's value too, which no shell quotes (Q76, option 2). Which
+//   characters are blanks, a space or a tab as parse_attributes() and a
+//   config file's lines take them, any number of them after a comma, and
+//   that a blank anywhere else, before a comma, at either end of a
+//   command-line value (a config file's value loses its end blanks first,
+//   as every setting's does) or within an item, is refused, D-113 (b)
+//   doesn't say: this package's reading, pending the owner, the narrowest
+//   as to where a blank goes but not as to which blanks or how many, a
+//   space alone, or exactly one blank after a comma, being narrower;
+// - (c) the record of --cue-types, the set as ranges in that form without
+//   blanks, ascending, each run of consecutive types one range
+//   ("0x22-0x23,0x30-0x37,0x44-0x47"), and of --bad-crc, "keep" or "drop"
+//   (Q77 (a)); the text of a decoded message's events (answer_text(); Q77
+//   (b)): the line of a splice_point, a message, a cancel or a cue of a
+//   message's own starts with the line and form of the tag that carried it,
+//   the form alone for another carrier, a cue_in that joins a cue_out
+//   naming that cue's line ("line 16, OATCLS, joining the cue_out at line
+//   15"; D-109 (e)); then its command, a splice point's time, the frame it
+//   lands on and whether that is outside its tag's segment, a message's
+//   segmentation types, what a cancel cancels; and a mark where its CRC_32
+//   fails, which a cue also gets, a plain one or a signal's, where a
+//   message it holds fails its CRC_32 (D-106 (c), (d), D-109 (a)); and the
+//   help's row of an option wider than its column (Q77 (e)), --cue-types
 //   with design §7's placeholder: its help in the column on the next line,
-//   every other row as it was (option_rows()); or a wider column for
-//   timeline's table, which moves every row, or a shorter placeholder than
-//   design §7's.
+//   every other row as it was (option_rows()); the record's form, the text
+//   and the row as WP09c built them (Q77, option 1).
 //
 // Choices the design left open, which the owner's D-099 (c) keeps as they
 // are here, and stated in the help: attribute's --report defaults to the
@@ -214,11 +229,11 @@
 // an error or doesn't fit the ladder, a --fetch-base that isn't an http or
 // https URL or is given with --fetch off, and with --fetch-base a fetch of
 // a URL outside the master's directory, which D-108 (c) refuses without
-// naming a status (D-111 (c), (d)), and, pending the owner (above),
-// --fetch or --fetch-base without --session; and for attribute the
-// arguments above that don't fit the document. A file the fetch fails to
-// read, a 404 or a body cut short, is no failure of the build: it is a
-// failed request, recorded as such (D-104 (a)).
+// naming a status (D-111 (c), (d)), and --fetch or --fetch-base without
+// --session (D-113 (h)); and for attribute the arguments above that don't
+// fit the document. A file the fetch fails to read, a 404 or a body cut
+// short, is no failure of the build: it is a failed request, recorded as
+// such (D-104 (a)).
 // Before anything is read, each sets FFmpeg's log level to warnings and
 // initializes its network, as mirage_vmaf does after its own parse (the
 // design's P-N).
@@ -246,6 +261,10 @@ extern "C" {
 #include <string>
 #include <string_view>
 #include <vector>
+
+namespace timeline {
+struct BuildInputs;   // src/TimelineBuild.h
+}
 
 namespace timelinecli {
 
@@ -344,17 +363,23 @@ std::optional<AVRational> parse_seconds(std::string_view text);
 // --cue-types' value as the set it names (D-106 (b); design §7): items
 // separated by ',', each a segmentation_type_id written 0x or 0X and one or
 // two hex digits, or a range of them, first-last with first at or before
-// last, without blanks ("0x22-0x23,0x30-0x37,0x44-0x47"), a rule pending the
-// owner, Q76 (above); ascending, each type once. nullopt, with `err` saying
-// which item is wrong and why, for any other text, the empty one included.
-// Whether each type is a Start or an End type is
-// timeline::check_message_options()'s, not this.
+// last ("0x22-0x23,0x30-0x37,0x44-0x47"); blanks, spaces and tabs, may
+// follow a comma, as design §7 writes the default, "0x22-0x23, 0x30-0x37,
+// 0x44-0x47", the same set (D-113 (b)), and are refused anywhere else,
+// before a comma, at either end of the value or within an item: a reading
+// of D-113 (b), which names neither the blanks nor where else one goes,
+// pending the owner, the narrowest as to where a blank goes (above);
+// ascending, each type once. nullopt, with `err` saying which item is
+// wrong and why, for any other text, the empty one included. Whether each
+// type is a Start or an End type is timeline::check_message_options()'s,
+// not this.
 std::optional<std::vector<std::uint8_t>> parse_cue_types(std::string_view text, std::string& err);
 
 // The set `types`, ascending and each once, as parse_cue_types() takes it:
 // each run of consecutive types a range, a type alone by itself, with two
-// upper-case hex digits after 0x; what the options record writes, a choice
-// pending the owner, Q77 (above). D-106 (b)'s set is
+// upper-case hex digits after 0x, and no blank; what the options record
+// writes, WP09c's form, which the owner kept, the record canonical whatever
+// blanks the value had (D-113 (b), (c)). D-106 (b)'s set is
 // "0x22-0x23,0x30-0x37,0x44-0x47".
 std::string cue_types_text(const std::vector<std::uint8_t>& types);
 
@@ -382,11 +407,37 @@ std::string check_interval(const timeline::Axis& axis, AVRational from, AVRation
 // fetch ("on" or "off") and fetch-base (null when not given), are recorded
 // only with a session, so that a ladder's record is as it was before them
 // (D-111 (e)); cue-types (cue_types_text()) and bad-crc ("keep" or "drop")
-// each only where it is given, after the margins, a choice pending the
-// owner, Q75 (above). attribute's also name its query, its curve,
-// "pair:<k>" or "session:<id>", or null, its format and the report it read.
+// after the margins, each where it is given, and both, their defaults
+// included, where a playlist carries an SCTE-35 message (D-113 (a),
+// above), which the overload below takes: this one gives the record of a
+// build whose playlists carry none. attribute's also name its query, its
+// curve, "pair:<k>" or "session:<id>", or null, its format and the report
+// it read.
 timeline::Payload timeline_options(const TimelineArgs& args);
 timeline::Payload attribute_options(const AttributeArgs& args, const std::string& report);
+
+// Whether a media playlist that the build of `in` reads, the reference's
+// or a complete pair's distorted one, carries an SCTE-35 message in a form
+// the build decodes: an #EXT-OATCLS-SCTE35, an EXT-X-DATERANGE's
+// SCTE35-CMD, SCTE35-OUT or SCTE35-IN, a malformed one's where the
+// attribute is a well-formed hexadecimal-sequence (D-106 (e)), or the
+// SCTE35= of a plain EXT-X-CUE-OUT, EXT-X-CUE-OUT-CONT or EXT-X-CUE-IN
+// (src/Scte35Events.h), each of which parse_playlist_events() hands on as
+// a CueInput (PlaylistEvents::messages). Every CueInput counts, whatever
+// its text holds and whatever becomes of it, so that a bare
+// #EXT-OATCLS-SCTE35 or one whose text is empty, which carry no message,
+// one whose text isn't base64, and a message of a variant whose segment
+// map was refused count as a message that decodes does, though none of
+// them makes an event: a reading pending the owner (above). A playlist of
+// the ladder that no complete pair scored isn't read, and so isn't asked.
+bool carries_messages(const timeline::BuildInputs& in);
+
+// timeline_options() of a build whose playlists carry an SCTE-35 message
+// where `messages` is true (carries_messages()): cue-types and bad-crc are
+// then both recorded, their defaults included, whether they are given or
+// not, as D-113 (a) has it; otherwise each where it is given, as
+// timeline_options(args) records them.
+timeline::Payload timeline_options(const TimelineArgs& args, bool messages);
 
 // What is wrong with a session fetch of `files`, as fetch_files() lists
 // them (src/SessionPlan.h), with `fetch_base` the --fetch-base given, or
@@ -425,8 +476,8 @@ std::string no_detection_note(const timeline::DetectOptions& detect);
 // fails (D-106 (c)), as a cue that holds a message whose CRC_32 fails gets
 // one. Segments and frames are ranges first-last, both included. The
 // wording of a session's lines is the one the owner kept (D-111 (j)), and
-// that of a decoded message's is pending the owner, Q77 (above). A curve
-// with no answer, which only detection leaves, says "no drop".
+// so is that of a decoded message's (D-113 (c), above). A curve with no
+// answer, which only detection leaves, says "no drop".
 std::string answer_text(const timeline::Timeline& timeline, const std::vector<timeline::CurveRef>& curves,
                         const std::vector<timeline::Attribution>& answers,
                         const std::vector<std::int64_t>& numbers);

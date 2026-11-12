@@ -12,7 +12,9 @@
 // cue-out message, whichever attribute carries each (b), an ad_break of no
 // frames kept with a warning (c), no D-106 (a) warning of a folded cue-in
 // message's anchors (d), and one splice_point and one cue_in per signal
-// (e). The inputs are built by hand in the shape of testgen's ad ladder
+// (e); and of D-113 (f): a held break whose declared duration can't be
+// placed ended at the cue_in after it, with a warning. The inputs are
+// built by hand in the shape of testgen's ad ladder
 // (eval/phase3-survey/testgen.md §2.3), as tests/test_timeline_build.cpp
 // builds them, by the Ladder of tests/Scte35TestSections.h: three rungs of
 // eight 25-frame segments at 25 fps, the reference v360 and the pairs v270
@@ -1587,6 +1589,96 @@ TEST_CASE("scte35_events: an EXT-X-DATERANGE's SCTE35-IN in the tag of its SCTE3
     CHECK(text(at(bare_break[0]->payload, "end")) == "cue_in");
     CHECK(integer(at(bare_break[0]->payload, "cue_out_line")) == line_with(bare, "#EXT-X-CUE-OUT\n"));
     CHECK(integer(at(bare_break[0]->payload, "cue_in_line")) == line_with(bare, "#EXT-X-CUE-IN"));
+}
+
+TEST_CASE("scte35_events: a held EXT-X-DATERANGE whose declared duration pair_breaks() can't place, no AVRational "
+          "holding it or the axis giving no frame for its end, is ended by the EXT-X-CUE-IN after it, with a "
+          "warning (D-113 (f))", "[timeline][scte35][scte35_events]")
+{
+    // No plain cue tags but an EXT-X-CUE-IN in segment 6. In segment 3 of
+    // each variant an EXT-X-DATERANGE with an SCTE35-OUT and its SCTE35-IN,
+    // which it holds, declaring its DURATION (D-110 (a)): 2.0 s on the
+    // reference, which the axis places; on v270 29.97002997, a decimal with
+    // more digits than an int holds, and on v180 30.000000000000004, a sum
+    // printed with floating-point noise, which no AVRational holds exactly.
+    const Section     out      = splice_insert({ .event_id = 61, .immediate = true });
+    const Section     in       = splice_insert({ .event_id = 61, .out = false, .immediate = true });
+    const std::string messages = "SCTE35-OUT=" + hex(section(out)) + ",SCTE35-IN=" + hex(section(in));
+    const auto        held     = [&messages](std::string_view duration) {
+        return ad_playlist({ { 3, dated_range("03", "h", std::format("DURATION={},{}", duration, messages)) },
+                             { 6, "#EXT-X-CUE-IN\n" } },
+                           {}, false);
+    };
+    Ladder ladder({ held("2.0"), held("29.97002997"), held("30.000000000000004") });
+    const MessageEvents m = ladder.run();
+    INFO(warnings_text(m));
+    CHECK(m.warnings.empty());
+
+    // One cue_out per tag, holding the tag's cue-in message, its DURATION as
+    // the decoder reads it: such a duration is declared all the same
+    // (declares(); D-113 (g)).
+    REQUIRE(m.cues.size() == 3);
+    const double declared[] = { 2.0, 29.97002997, 30.000000000000004 };
+    for (const Event& e : m.cues) {
+        INFO("variant " << e.variant);
+        CHECK(e.type == "cue_out");
+        const std::int64_t line = line_with(ladder.playlists[static_cast<std::size_t>(e.variant)], "#EXT-X-DATERANGE");
+        CHECK(integer(at(e.payload, "held_cue_in_line")) == line);
+        CHECK(number(at(e.payload, "duration")) == declared[e.variant]);
+    }
+
+    // Paired on the axis: the reference's held break ends at its DURATION,
+    // at frame 125, the EXT-X-CUE-IN after it ending nothing (D-109 (b),
+    // D-110 (a)), with no warning; the two others, whose durations the axis
+    // isn't asked for, at the EXT-X-CUE-IN, at frame 150, as D-076 has it,
+    // so that neither break is lost, each with its warning (D-113 (f)).
+    const auto warning = [&ladder](int variant, std::string_view why) {
+        const std::string& text = ladder.playlists[static_cast<std::size_t>(variant)];
+        return std::format("variant {}: the cue_out at line {} holds its cue_in (D-109 (b)), but the duration it "
+                           "declares can't be used, since {}: the cue_in at line {} ends its ad_break instead, as "
+                           "D-076 has it (D-113 (f))",
+                           variant, line_with(text, "#EXT-X-DATERANGE"), why, line_with(text, "#EXT-X-CUE-IN"));
+    };
+    const auto inexact = [](std::string_view shown) {
+        return std::format("no AVRational holds its duration of {} s exactly, so the axis isn't asked for its end",
+                           shown);
+    };
+    std::vector<AVRational> asked;
+    const timeline::Breaks b = ladder.pair(m, &asked);
+    REQUIRE(b.events.size() == 3);
+    REQUIRE(asked.size() == 1);
+    CHECK((asked[0].num == 2 && asked[0].den == 1));
+    const Event& placed = b.events[0];
+    CHECK((placed.variant == 0 && placed.ref_index == 75 && placed.ref_end == 125));
+    CHECK(text(at(placed.payload, "end")) == "duration");
+    CHECK(integer(at(placed.payload, "cue_in_line")) == line_with(ladder.playlists[0], "#EXT-X-DATERANGE"));
+    for (const int v : { 1, 2 }) {
+        INFO("variant " << v);
+        const Event& e = b.events[static_cast<std::size_t>(v)];
+        CHECK((e.variant == v && e.ref_index == 75 && e.ref_end == 150));
+        CHECK(text(at(e.payload, "end")) == "cue_in");
+        CHECK(integer(at(e.payload, "cue_out_line")) ==
+              line_with(ladder.playlists[static_cast<std::size_t>(v)], "#EXT-X-DATERANGE"));
+        CHECK(integer(at(e.payload, "cue_in_line")) ==
+              line_with(ladder.playlists[static_cast<std::size_t>(v)], "#EXT-X-CUE-IN"));
+    }
+    CHECK(b.warnings == std::vector<std::string>{ warning(1, inexact("29.97002997")),
+                                                  warning(2, inexact("30.000000000000004")) });
+
+    // On an axis that gives no frame for an end, the reference's held break,
+    // whose 2 s the axis can't place, ends at the EXT-X-CUE-IN after it too.
+    const timeline::Breaks n =
+        timeline::pair_breaks(timeline::cues_to_pair(m, ladder.plain),
+                              [](std::int64_t, AVRational) { return std::optional<std::int64_t>{}; });
+    REQUIRE(n.events.size() == 3);
+    for (const Event& e : n.events) {
+        INFO("variant " << e.variant);
+        CHECK((e.ref_index == 75 && e.ref_end == 150));
+        CHECK(text(at(e.payload, "end")) == "cue_in");
+    }
+    CHECK(n.warnings ==
+          std::vector<std::string>{ warning(0, "the axis gives no reference frame for the end of its duration of 2 s"),
+                                    warning(1, inexact("29.97002997")), warning(2, inexact("30.000000000000004")) });
 }
 
 TEST_CASE("scte35_events: the message an EXT-X-CUE-OUT-CONT repeats makes no splice_point and no anchor "

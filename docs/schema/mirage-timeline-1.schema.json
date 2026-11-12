@@ -297,7 +297,7 @@
                   ],
                   "additionalProperties": false,
                   "properties": {
-                    "url": { "description": "As fetched: the report's, or its path from the master's directory on --fetch-base's server, its dot segments resolved (pending the owner, Q78; docs/TIMELINE_FORMAT.md).", "type": "string" },
+                    "url": { "description": "As fetched: the report's, or its path from the master's directory on --fetch-base's server, its dot segments resolved, as the owner kept it (DECISIONS.md D-113 (d); docs/TIMELINE_FORMAT.md).", "type": "string" },
                     "range": {
                       "description": "The segment's EXT-X-BYTERANGE, all that was read of its file; null for the whole file.",
                       "type": ["object", "null"],

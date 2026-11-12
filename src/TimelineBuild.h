@@ -73,16 +73,17 @@
 //   unpaired frames after their input's last paired frame, one warning for
 //   each kind and input; a libvmaf context that starts at no scored frame of
 //   its pair or off the axis, one warning each; and a cue_out that makes no
-//   ad break, and an ad_break of no frames, which is kept (D-110 (c)), each
-//   with a warning of pair_breaks()'s. This granularity is the owner's
-//   D-099 (c). A warning about a pair names it by its number, the report's
-//   pairs[].index, as the axis's warnings do. A variant the demux pass refused
-//   keeps none of its segment-bound events, keyframes or corrupt packets
-//   (D-081 (c), D-086): one warning says so, and its cues take no part in
-//   the pairing; its SCTE-35 messages make no event either, and one warning
-//   of scte35_events() says how many there are. Each problem
-//   hls::parse_media_timeline found in a playlist is a warning too, since it
-//   can change which segment a tag belongs to.
+//   ad break, an ad_break of no frames, which is kept (D-110 (c)), and a
+//   held ad_break that the cue_in after it ends, its declared duration not
+//   placed (D-113 (f)), each with a warning of pair_breaks()'s. This
+//   granularity is the owner's D-099 (c). A warning about a pair names it
+//   by its number, the report's pairs[].index, as the axis's warnings do. A
+//   variant the demux pass refused keeps none of its segment-bound events,
+//   keyframes or corrupt packets (D-081 (c), D-086): one warning says so,
+//   and its cues take no part in the pairing; its SCTE-35 messages make no
+//   event either, and one warning of scte35_events() says how many there
+//   are. Each problem hls::parse_media_timeline found in a playlist is a
+//   warning too, since it can change which segment a tag belongs to.
 // - Decoded messages (design §5.5; src/Scte35Events.h). Once every variant's
 //   plain cues are made, placed or not, every message the playlists' tags
 //   embed (PlaylistEvents::messages), in variant order and within a variant
@@ -96,12 +97,11 @@
 //   splice_point, message and cancel events, each of the carrying variant;
 //   what can't be decoded or placed is a warning of scte35_events(). Its
 //   warnings, of every variant, come after the variants' and the pairs',
-//   and before pair_breaks()': a choice of this package's that sets a
-//   document's bytes, pending the owner, Q77 (docs/TIMELINE_FORMAT.md); or
-//   each variant's after its own warnings. A ladder whose playlists carry no
-//   message, as D-069's carry plain cue tags only
-//   (eval/phase3-survey/testgen.md §2.3), has the events and the warnings it
-//   had before messages were decoded, whatever options
+//   and before pair_breaks()': WP09c's choice, which sets a document's
+//   bytes and which the owner kept (D-113 (c); docs/TIMELINE_FORMAT.md). A
+//   ladder whose playlists carry no message, as D-069's carry plain cue
+//   tags only (eval/phase3-survey/testgen.md §2.3), has the events and the
+//   warnings it had before messages were decoded, whatever options
 //   check_message_options() takes.
 // - Ad breaks: every cue, plain and decoded, of every variant with a segment
 //   map, placed or not (kUnplaced still takes its turn), paired by
@@ -113,9 +113,8 @@
 //   first, then the decoded ones, so that where a plain cue and a decoded
 //   one share a frame, a type and a variant, as an EXT-X-CUE-IN and a cue-in
 //   message of its segment do (D-109 (e)), assign_ids() numbers the plain
-//   one first, whatever their lines: a choice of this package's that sets a
-//   document's ids, pending the owner, Q77 (docs/TIMELINE_FORMAT.md); or the
-//   decoded one first, or the one of the earlier line.
+//   one first, whatever their lines: WP09c's choice, which sets a document's
+//   ids and which the owner kept (D-113 (c); docs/TIMELINE_FORMAT.md).
 // - Order: the events get their ids from assign_ids() and are put in
 //   canonical order with the overlap index built (Timeline::build_index()),
 //   so that identical inputs give identical timelines (design §4.7), the

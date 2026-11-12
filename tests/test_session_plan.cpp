@@ -6,9 +6,9 @@
 // (attribute(), D-078); the work order's example on a hand-built timeline;
 // its drops under design §6.3's three rules (D-077); and its fetch's files
 // in their order (D-104 (a)), on a fetch base at their paths from the
-// master's directory (D-108 (c)), their dot segments resolved (pending the
-// owner, Q78), and their events on the media axis (D-105 (c)), on rows the
-// test builds by hand (the fetch itself is tests/test_session_fetch.cpp's).
+// master's directory (D-108 (c)), their dot segments resolved (D-113 (d)),
+// and their events on the media axis (D-105 (c)), on rows the test builds
+// by hand (the fetch itself is tests/test_session_fetch.cpp's).
 // Mostly on a five-rung version of testgen's ad ladder
 // (eval/phase3-survey/testgen.md §2.3), built by hand and merged by
 // timeline::build() as tests/test_timeline_build.cpp merges its three-rung
@@ -1271,9 +1271,9 @@ TEST_CASE("session plan: fetch_url compares a URL with the master's directory on
     const std::string base = "http://127.0.0.1:8080";
     // Where a URL holds dot segments, the checks below of its fetch at its
     // path from the master's directory with them resolved, and of a
-    // refusal's message that gives it resolved, pin a choice pending the
-    // owner (fetch_url(), src/SessionPlan.cpp); those of a refusal alone
-    // rest on D-108 (c).
+    // refusal's message that gives it resolved, pin WP11b's choice, which
+    // the owner kept (D-113 (d); fetch_url(), src/SessionPlan.cpp); those of
+    // a refusal alone rest on D-108 (c).
     // A media playlist that leaves the master's directory through "../": the
     // URL mirage_vmaf --ladder gives the entry ../other/v180/index.m3u8 of a
     // master given by an absolute path, joined to its directory as text
@@ -1287,8 +1287,8 @@ TEST_CASE("session plan: fetch_url compares a URL with the master's directory on
                  "resolved) isn't under the master's directory /data/ladder/, so it has no path to fetch from "
                  "http://127.0.0.1:8080 (design §5.7)");
     // One that leaves and comes back, or names a directory by ".": under it,
-    // fetched at its path from it with its dot segments resolved, pending
-    // the owner (Q78; fetch_url(), src/SessionPlan.cpp).
+    // fetched at its path from it with its dot segments resolved, as the
+    // owner kept it (D-113 (d); fetch_url(), src/SessionPlan.cpp).
     CHECK(timeline::fetch_url("/data/ladder/v270/../v180/./index.m3u8", "/data/ladder/master.m3u8", base, err) ==
           "http://127.0.0.1:8080/v180/index.m3u8");
     CHECK(err.empty());
