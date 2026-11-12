@@ -6,7 +6,7 @@ What is open for the owner on `vmaf/phase-3`, §3 of the VMAF work order (the un
 
 44 questions, Q01 to Q44, in three rounds: 27 in round 1, the answers the work packages on the path to §3.2's two acceptance tests need before they start; 9 in round 2, those of sessions, the session fetch, the decoded SCTE-35 messages and the composite example; 8 in round 3, those of the UI, the conditional and later packages, and the differences to report. A question's round is the earliest round of the packages it blocks, and a round's packages start once all of its questions are answered (`eval/phase3-survey/design.md` §12, §14). Q26, Q39, Q43 and Q44 are answered item by item, an item's options numbered: "Q43 (c) 2". The questions marked D-007 (Q01, Q08, Q09, Q10, Q13, Q36, Q37 and Q41) have an answer that is, or includes, an approval or a ruling under D-007. "Blocks" names the work packages that wait for the answer; the packages are listed at the end. After the questions come the differences from the work order to report, and the agent's proposed process choices, to be recorded from P-082 on.
 
-The questions are the design's (`eval/phase3-survey/design/owner_questions.json`), rendered by `eval/phase3-survey/tools/render_pending.py` with the design's paths written as the repository has them and nothing else changed. They are as the design's revision 3 left them, after the third review's seven minor issues (`eval/phase3-survey/review-3/review.md`; `eval/phase3-survey/design/revision-3.md`). The owner's answers are marked here as each round's come in. Round 1's 27 questions were answered on 2026-11-02, every one as the agent recommends (D-071 to D-081); each is marked below. Round 2's 9 were answered on 2026-11-06, every one as the agent recommends, with Q47 (D-103 to D-107); each is marked below. Round 3 is open but for Q09 and Q13, which the owner answered on 2026-11-11 by leaving WP16 and WP17 out of Phase 3 (D-112 (b)). Building round 1's first packages raised three more questions, Q45 to Q47, after round 3 below: the owner answered Q45 and Q46 on 2026-11-04 as the agent recommends (D-086, D-087), and Q47 joins round 2. Building WP08, WP08b and WP09a raised Q48 to Q57, which the owner answered on 2026-11-05 and 2026-11-06, each as the agent recommends (D-092, D-099, D-100), and WP08c two more, Q58 and Q59, which the owner answered on 2026-11-06 as the agent recommends (D-101). Building round 2's first packages, WP00b, WP05 and WP07, raised eight more, Q60 to Q67, answered on 2026-11-10, each as the agent recommends (D-108, D-109): WP09b puts in the answers to Q60 to Q62, and WP05b, a follow-up of WP05's, those to Q63 to Q67, as WP08b and WP08c put in the answers on WP08. Building WP05b and WP09b raised seven more, Q68 to Q74, answered on 2026-11-11, each as the agent recommends (D-110, D-111): a follow-up of WP05b's, WP05c, puts in the answers to Q68 to Q72. The owner also left WP16 and WP17 out of Phase 3, which answers Q09 and Q13 of round 3, and had round 3's other questions asked before round 2 ends (D-112). Building WP09c, WP11b, WP05c and WP09d raised eight more, Q75 to Q82, which are open.
+The questions are the design's (`eval/phase3-survey/design/owner_questions.json`), rendered by `eval/phase3-survey/tools/render_pending.py` with the design's paths written as the repository has them and nothing else changed. They are as the design's revision 3 left them, after the third review's seven minor issues (`eval/phase3-survey/review-3/review.md`; `eval/phase3-survey/design/revision-3.md`). The owner's answers are marked here as each round's come in. Round 1's 27 questions were answered on 2026-11-02, every one as the agent recommends (D-071 to D-081); each is marked below. Round 2's 9 were answered on 2026-11-06, every one as the agent recommends, with Q47 (D-103 to D-107); each is marked below. Round 3 is answered: Q09 and Q13 on 2026-11-11, by the owner's leaving WP16 and WP17 out of Phase 3 (D-112 (b)), and the other six on 2026-11-12, each as the agent recommends, Q36's answer being the owner's approval under D-007 of the panel's plan (D-114); each is marked below. Building round 1's first packages raised three more questions, Q45 to Q47, after round 3 below: the owner answered Q45 and Q46 on 2026-11-04 as the agent recommends (D-086, D-087), and Q47 joins round 2. Building WP08, WP08b and WP09a raised Q48 to Q57, which the owner answered on 2026-11-05 and 2026-11-06, each as the agent recommends (D-092, D-099, D-100), and WP08c two more, Q58 and Q59, which the owner answered on 2026-11-06 as the agent recommends (D-101). Building round 2's first packages, WP00b, WP05 and WP07, raised eight more, Q60 to Q67, answered on 2026-11-10, each as the agent recommends (D-108, D-109): WP09b puts in the answers to Q60 to Q62, and WP05b, a follow-up of WP05's, those to Q63 to Q67, as WP08b and WP08c put in the answers on WP08. Building WP05b and WP09b raised seven more, Q68 to Q74, answered on 2026-11-11, each as the agent recommends (D-110, D-111): a follow-up of WP05b's, WP05c, puts in the answers to Q68 to Q72. The owner also left WP16 and WP17 out of Phase 3, which answers Q09 and Q13 of round 3, and had round 3's other questions asked before round 2 ends (D-112). Building WP09c, WP11b, WP05c and WP09d raised eight more, Q75 to Q82, answered on 2026-11-12, each as the agent recommends (D-113): a follow-up package, WP09e, puts in the answers to Q75, Q76 and Q80.
 
 ### Round 1: the path to §3.2's two acceptance tests (27 questions)
 
@@ -1003,6 +1003,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 
 **Agent's recommendation.** (a), built after the headless packages.
 
+**Answered** on 2026-11-12: (a), built after the headless packages, as the agent recommends: the owner's approval under D-007 of `eval/phase3-survey/design.md` §10 as the panel's plan (`docs/DECISIONS.md` D-114 (a)).
+
 **Why.** A timeline belongs beside the seek bar it shares a clock with (`eval/phase3-survey/ui.md` §2.6), and the headless packages carry the paper's claim first.
 
 **Blocks.** WP00c, WP12, WP13.
@@ -1023,6 +1025,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 
 **Agent's recommendation.** (a) for Phase 3.
 
+**Answered** on 2026-11-12: (a), as the agent recommends for Phase 3 (`docs/DECISIONS.md` D-114 (b)).
+
 **Why.** It touches no render or decode path; (b) or (c) can follow with their own plan.
 
 **Blocks.** WP12, WP13.
@@ -1042,6 +1046,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 - **(c) No key.** The View menu, the overlays popover and --ui-overlays only.
 
 **Agent's recommendation.** The owner's preference; L if a key is wanted.
+
+**Answered** on 2026-11-12: (a), L, the key the agent suggested (`docs/DECISIONS.md` D-114 (c)).
 
 **Why.** A key binding is a matter of taste; L is the mnemonic one.
 
@@ -1070,6 +1076,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 
 **Agent's recommendation.** (a) 1; (b) 2.
 
+**Answered** on 2026-11-12: (a) 1 and (b) 2, as the agent recommends (`docs/DECISIONS.md` D-114 (d)).
+
 **Why.** It adds the least new mechanism, the panel and the CLI can't disagree, and a click needs no setting.
 
 **Blocks.** WP12, WP13.
@@ -1090,6 +1098,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 
 **Agent's recommendation.** (a) now, (c) with the UI package.
 
+**Answered** on 2026-11-12: (a) now and (c) with the UI package, as the agent recommends (`docs/DECISIONS.md` D-114 (e)).
+
 **Why.** The headless work doesn't need them, and the panel's lane replaces the ruler without editing a tested parser.
 
 **Blocks.** WP13.
@@ -1109,6 +1119,8 @@ The questions are the design's (`eval/phase3-survey/design/owner_questions.json`
 - **(c) Some reopened.** The owner names which, and the agent writes options for each.
 
 **Agent's recommendation.** (a).
+
+**Answered** on 2026-11-12: (a), as the agent recommends (`docs/DECISIONS.md` D-114 (f)).
 
 **Why.** Each follows from decided items or facts of the code, and reporting them is the work order's rule; correcting a Phase 0 document is a separate call the owner can make with (b).
 
@@ -1606,6 +1618,8 @@ Are they kept?
 
 **Agent's recommendation.** 2: every document then names each setting that shaped its events, and the documents the two options didn't shape stay as they are.
 
+**Answered** on 2026-11-12: 2, as the agent recommends (`docs/DECISIONS.md` D-113 (a)).
+
 #### Q76. `--cue-types`' syntax
 
 *Round 2.* Raised by WP09c and its review.
@@ -1618,6 +1632,8 @@ Are they kept?
 - **4. A word for the empty set**, such as `none`, so that splice_insert alone makes cues (Q15 (b)'s alternative).
 
 **Agent's recommendation.** 2: the design's own spelling of the default is then accepted, and the record stays canonical.
+
+**Answered** on 2026-11-12: 2, as the agent recommends (`docs/DECISIONS.md` D-113 (b)).
 
 #### Q77. WP09c's other choices
 
@@ -1638,6 +1654,8 @@ Are they kept?
 
 **Agent's recommendation.** 1.
 
+**Answered** on 2026-11-12: 1, as the agent recommends (`docs/DECISIONS.md` D-113 (c)).
+
 #### Q78. `--fetch-base` and a URL with dot segments
 
 *Round 2.* Raised by WP11b and its review.
@@ -1649,6 +1667,8 @@ Are they kept?
 - **3. Every URL with dot segments refused** when `--fetch-base` is given.
 
 **Agent's recommendation.** 1: under it alone, every URL that passes D-108 (c)'s check is fetched at the path of the file the report names.
+
+**Answered** on 2026-11-12: 1, as the agent recommends (`docs/DECISIONS.md` D-113 (d)).
 
 #### Q79. A folded cue-in message's splice time outside its tag's discontinuity sequence
 
@@ -1662,6 +1682,8 @@ Are they kept?
 
 **Agent's recommendation.** 1: an event the timeline leaves out is said to be left out, and placing the time in another sequence would need the break's end before its messages are read.
 
+**Answered** on 2026-11-12: 1, as the agent recommends (`docs/DECISIONS.md` D-113 (e)).
+
 #### Q80. A held tag whose declared duration can't be placed
 
 *Round 2.* Raised by WP05c's review.
@@ -1673,6 +1695,8 @@ Are they kept?
 - **3. `pair_breaks()` ends a held break whose duration it can't place at the cue_in it is given**, as D-076 has it.
 
 **Agent's recommendation.** 3: it is D-110 (a)'s reason, the cue-in still being where the media changes back where the tag's duration can't be used, and it covers both causes in one place.
+
+**Answered** on 2026-11-12: 3, as the agent recommends (`docs/DECISIONS.md` D-113 (f)).
 
 #### Q81. WP05c's other choices
 
@@ -1695,6 +1719,8 @@ Are they kept?
 
 **Agent's recommendation.** 1.
 
+**Answered** on 2026-11-12: 1, as the agent recommends (`docs/DECISIONS.md` D-113 (g)).
+
 #### Q82. `--fetch` and `--fetch-base` without `--session`
 
 *Round 2.* Raised by WP09d's review.
@@ -1705,6 +1731,8 @@ Are they kept?
 - **2. Accepted and ignored, with a warning.**
 
 **Agent's recommendation.** 1: an option that can't act is an argument error, as D-099 (c) refuses arguments the document can't satisfy and D-111 (d) refuses `--fetch-base` with `--fetch off`.
+
+**Answered** on 2026-11-12: 1, as the agent recommends (`docs/DECISIONS.md` D-113 (h)).
 
 ## Differences from the work order, to report
 
