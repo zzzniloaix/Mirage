@@ -1,0 +1,62 @@
+Filters: [attribution] [acceptance]
+Randomness seeded to: 651189080
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+mirage_tests is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+attribution acceptance: a degraded segment and an ad boundary
+  test 1: v270's segment 4, encoded at a low quality, is v270's one drop, and
+          v180 has none
+-------------------------------------------------------------------------------
+<repo>/tests/test_attribution_acceptance.cpp:586
+...............................................................................
+
+<repo>/tests/test_attribution_acceptance.cpp:389: warning:
+  degraded: made with libx264
+
+-------------------------------------------------------------------------------
+attribution acceptance: a degraded segment and an ad boundary
+  test 2, the ad's timestamps from the main content's origin: v180's ad is
+  v180's one drop, from its cue-out, and v270 has none
+-------------------------------------------------------------------------------
+<repo>/tests/test_attribution_acceptance.cpp:606
+...............................................................................
+
+<repo>/tests/test_attribution_acceptance.cpp:389: warning:
+  ad-main-origin: made with libx264
+
+-------------------------------------------------------------------------------
+attribution acceptance: a degraded segment and an ad boundary
+  test 2, the ad's timestamps from 1 s
+-------------------------------------------------------------------------------
+<repo>/tests/test_attribution_acceptance.cpp:611
+...............................................................................
+
+<repo>/tests/test_attribution_acceptance.cpp:389: warning:
+  ad-from-1s: made with libx264
+
+-------------------------------------------------------------------------------
+attribution acceptance: a degraded segment and an ad boundary
+  test 2, the ad's timestamps continuing the main content's
+-------------------------------------------------------------------------------
+<repo>/tests/test_attribution_acceptance.cpp:613
+...............................................................................
+
+<repo>/tests/test_attribution_acceptance.cpp:389: warning:
+  ad-continuous: made with libx264
+
+-------------------------------------------------------------------------------
+attribution acceptance: test 3, the work order's example on a scripted session
+whose ad segment is answered late
+-------------------------------------------------------------------------------
+<repo>/tests/test_attribution_session.cpp:548
+...............................................................................
+
+<repo>/tests/test_attribution_session.cpp:559: warning:
+  ad-main-origin: made with libx264
+
+===============================================================================
+All tests passed (1840 assertions in 2 test cases)
+

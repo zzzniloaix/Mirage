@@ -6,7 +6,7 @@ Records of the unit test suites run at a commit, for the PR descriptions that qu
 - `cmake --build --preset macos-debug`, which rebuilds whatever the tests need;
 - in the records of 2026-10-23, whether the gitignored fixture of the subtitle test is present: it is in the main working tree, not in a clean checkout (`docs/BUILD.md`, step 4); since D-032 the test writes its fixture itself (P-036), and the records of 2026-10-24 and 2026-10-26 show that no source or test names the fixture's directory;
 - `mirage_tests` without the `[audio]` tests, in the form of `docs/BUILD.md` step 4, and a second run only if the first fails;
-- the four Python suites of `eval/` (`eval/README.md`, "Tests"), and on `vmaf/phase-2` a fifth, `eval/ladder/tests`, in the records of 2026-10-24 and later with `TMPDIR` in a scratch directory outside the repository;
+- the four Python suites of `eval/` (`eval/README.md`, "Tests"), and on `vmaf/phase-2` a fifth, `eval/ladder/tests`, in the records of 2026-10-24 and later with `TMPDIR` in a scratch directory outside the repository, and on `vmaf/phase-3` from 2026-11-12 a sixth, `eval/timeline/tests`;
 - the working tree's state afterwards;
 - since `macos-2026-10-29-93acc4d.txt`, `uptime` first and last: the machine's load averages, of which what else was running takes its share.
 - since `macos-2026-10-29-90153d6.txt`, `sw_vers` after the first `uptime`: the macOS version, 26.6.2 (25G83) since an update of 2026-10-29, where every committed environment capture before it gives 26.2 (25C56) (`docs/BUILD.md`, "Versions").
@@ -26,6 +26,7 @@ Local paths appear as `<repo>`, `<home>`, `<tmp>` and `<scratch>`.
 | `macos-2026-10-29-90153d6.txt` | `90153d6858ae1ec02411d883ed7e56c39c7fb67a` (`vmaf/phase-2`) | `mirage_tests '~[audio]'`: all tests passed, 118740 assertions in 348 test cases, at the first run; the Python suites: 28, 136, 11, 16 and 14 tests, all OK; load averages 4.65, 4.82 and 5.15 at the start; macOS 26.6.2 (25G83) (P-078) |
 | `macos-2026-11-04-2f81afe.txt` | `2f81afe` (`vmaf/phase-3`) | `mirage_tests '~[audio]'`: all tests passed, 325575 assertions in 533 test cases, at the first run; ctest: 546 of 546 passed; the Python suites: 28, 136, 11, 16 and 14 tests, OK. A ctest run before it failed one test, the Demuxer's seamless switches, which then passed in five runs of its own and the next ctest run: `macos-2026-11-04-2f81afe-demuxer.txt` (P-082) |
 | `macos-2026-11-06-74d7215.txt` | `74d7215` (`vmaf/phase-3`) | `mirage_tests '~[audio]'`: all tests passed, 501535 assertions in 584 test cases, at the first run; ctest: 597 of 597 passed; the Python suites: 28, 136, 11, 16 and 14 tests, OK (P-084) |
+| `macos-2026-11-12-f7d5ed8.txt` | `f7d5ed8` (`vmaf/phase-3`) | `mirage_tests '~[audio]'`: 708 of 709 test cases passed and 1 skipped, the optional vectors case, 583484 assertions, at the first run; ctest: 731 of 731 passed, that case skipped; the Python suites: 28, 136, 11, 16, 14 and 19 tests, OK; load averages 5.61, 5.13 and 4.73 at the start (P-087) |
 
 ## Repeated runs of one test (P-031)
 

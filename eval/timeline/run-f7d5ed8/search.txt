@@ -1,0 +1,1 @@
+check.py redact --search-only: 132 files of <out> searched; nothing local left
