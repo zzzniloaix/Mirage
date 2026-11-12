@@ -1,0 +1,178 @@
+[
+  {
+    "title": "P-A Exact arithmetic",
+    "choice": "Event positions are reference frame indices (int64). PTS are int64 ticks of their stream's time base, recovered from the report's seconds by rounding seconds x den / num and checked against the demux pass's packet PTS (design-evaluation run 04: every frame agreed). Seconds come from libavutil's rational arithmetic (AVRational, av_rescale_q_rnd), as VMAFAlign already uses it (src/VMAFAlign.h:9-11), and are turned into doubles only when written with json::number.",
+    "alternatives": "A Rational type of the module's own with 128-bit intermediates (design-library P-B); seconds as doubles with tolerances, which listed boundary events inconsistently (design-evaluation runs 07 and 08; design-library runs axis-ad-float, axis-degraded-float)."
+  },
+  {
+    "title": "P-B The timeline core's dependency rule",
+    "choice": "The core files include no libavformat, libavcodec, libvmaf, GL or ImGui header; libavutil is allowed, as VMAFAlign uses it. The adapters (TimelineMedia, SessionFetch) are the only code that opens inputs, and each returns plain structs that a test can build by hand.",
+    "alternatives": "A core with no FFmpeg at all and its own CRC, base64 and rationals (design-library P-A, P-H)."
+  },
+  {
+    "title": "P-C Build wiring",
+    "choice": "Per-target source lists, as CMakeLists.txt has them (150-194, 233-246, 264-329). CMakeLists.txt is changed only by the wiring packages, one commit per round (WP00a, WP00b, WP00c), each adding, as empty compiling files with their lines, the files whose existence that round's answers or the owner's decisions settle, once those answers are in, and by one wiring commit the lead makes when a conditional package (WP16, WP17) starts; no other package edits it, so parallel packages never conflict there. The edits come one at a time: each wiring package depends on the one before it, and the lead's commit for a conditional package is made while no wiring package is open.",
+    "alternatives": "A CMake OBJECT library linked into the three targets (design-library P-A), a pattern the build doesn't use yet; one skeleton commit for every round's files at once, which would wire files whose existence later answers decide; each package editing CMakeLists.txt, which the lead then merges."
+  },
+  {
+    "title": "P-D Media playlists read again at build time",
+    "choice": "The timeline build reads each scored media playlist with vmafladder::read_master (any #EXTM3U text, the analyzer's network limits, src/VMAFLadder.cpp:293-334) and writes its URL, location and SHA-256 into the document; the ladder report is not changed for it.",
+    "alternatives": "The ladder report recording each pair's media-playlist SHA-256s, a report change that is the owner's to make (it breaks tests/test_vmaf_report.cpp:909's exact key count); tapping the bytes the hls demuxer read (sources.md §11, choice 3 (b)), whose handle avformat_open_input probes."
+  },
+  {
+    "title": "P-E Live media playlists refused",
+    "moved_to": "Q43 (a)"
+  },
+  {
+    "title": "P-F The demux pass",
+    "choice": "Each scored playlist is opened as DecodeCtx::open() opens an input (the interrupt callback, vmafnet::set_io_limits, vmafsegments::set_hls_options, avformat_find_stream_info, the best video stream; src/VMAFAnalyzer.cpp:166-194), with an io_open/io_close2 recorder of its own (each file in open order with its bytes_read at close), and its packets are read with av_read_frame without decoding.",
+    "alternatives": "A decode pass (Q09 (b)); extending SegmentWatch, which changes a tested header (src/VMAFSegments.h)."
+  },
+  {
+    "title": "P-G Frames to segments",
+    "choice": "A packet's segment is the one whose bytes, counted in open order with the playlist's own open left out, hold its AVPacket::pos; an input's frames are each segment's packets in PTS order, the segments in read order; every scored frame's PTS is checked against the report's. What a mismatch costs is Q43 (c).",
+    "alternatives": "PTS against EXTINF sums (145 and 193 of 200 right, design-library runs map-by-pos-*); segment heads through hls::parse_segment_start (sources.md §11, choice 2 (c))."
+  },
+  {
+    "title": "P-H Placement rules",
+    "moved_to": "Q43 (d) and Q44 (b)"
+  },
+  {
+    "title": "P-I Canonical order and deterministic ids",
+    "choice": "Events are ordered by (ref_index, ref_end, source, type, variant, id); an id is a string made of the source, the type, the variant and a per-type index; identical inputs give byte-identical documents apart from measured fields (the fetch's times and wall clock).",
+    "alternatives": "Insertion order; integer ids, which change when another source's events are added."
+  },
+  {
+    "title": "P-J The overlap index",
+    "choice": "A vector of events sorted by start with a running maximum of ends, built once per timeline, and checked against brute force on random events in the tests.",
+    "alternatives": "An interval tree; the documents hold one event per segment and per tag (32 to 44 events for the prototype's 200-frame ladders, design-evaluation run 11)."
+  },
+  {
+    "title": "P-K Where a tag belongs, and one cue per signal",
+    "moved_to": "Q44 (e); its first half, a tag belonging to the segment whose URI follows it, is RFC 8216's rule (design §5.1)"
+  },
+  {
+    "title": "P-L SCTE-35 decoding with libavutil",
+    "choice": "The CRC_32 is checked with av_crc(av_crc_get_table(AV_CRC_32_IEEE), UINT32_MAX, section, length) == 0, as FFmpeg's MPEG-TS demuxer checks sections ([mpegts.c#L463](https://github.com/FFmpeg/FFmpeg/blob/n8.1.1/libavformat/mpegts.c#L463); scte35.md §3.6); base64 through av_base64_decode; hex parsed in the module; the decoder never reads past its input; an encrypted message (encrypted_packet 1) is reported undecoded.",
+    "alternatives": "A constexpr CRC table of the module's own, tested against av_crc (design-library P-H)."
+  },
+  {
+    "title": "P-M SCTE-35 test sections",
+    "choice": "The tests build each section from field values with a writer in the test, which computes its CRC. The published messages the scte35 survey collected, which stay outside the repository until Q21 is answered, and scte35.md's reference decoder (scte35.md §3.7) serve as a cross-check while the decoder is written. An optional test case reads a local vectors file named by the MIRAGE_SCTE35_VECTORS environment variable and is skipped when it is unset; nothing third-party is committed unless Q21 allows it.",
+    "alternatives": "Committing third-party vectors (Q21)."
+  },
+  {
+    "title": "P-N The session fetch",
+    "choice": "After the demux passes, the build fetches the session's files: the master first, then each span's files in play order, with the pacing and the playlist fetches of Q44 (f) and (g), one connection per file and the analyzer's network limits (D-036). NetworkLogger is installed for the fetch only and uninstalled after it, which restores FFmpeg's default callback (src/NetworkLogger.cpp:179-185); no other code installs a callback (design/runs/log-callback-grep.txt). Each file's rows are copied with copy_changed_since() and the logger cleared after its close (src/NetworkLogger.h:157-160), so the 4000-row limit (src/NetworkLogger.h:194) evicts nothing; rows are tagged NetInitiator::Playback; times are steady microseconds from the session's start plus one UTC anchor; fetch URLs are the report's, or the same paths rebased onto --fetch-base. run_timeline() and run_attribute() set FFmpeg's log level and initialize its network as tools/mirage_vmaf.cpp:155-156 does, since they are dispatched before those lines. Retries, redirects, pacing and playlist fetches, which change the network events, are Q44 (c), (d), (f) and (g); revision 2 moved the last two out of this entry.",
+    "alternatives": "NetworkLogger installed for the whole process; a new initiator value, which changes src/NetworkLogger.h; the rows copied once at the end, which could lose a long session's first requests to the row limit."
+  },
+  {
+    "title": "P-O A delay rule and a redirect rule in tests/HttpFileServer.h",
+    "choice": "The test server gains a rule that holds a path's response head for a set time, and one that answers a path with a redirect to another, keeping its hold and cut rules (tests/HttpFileServer.h:31-36).",
+    "alternatives": "A second server class."
+  },
+  {
+    "title": "P-P Segment-range plans follow one another",
+    "moved_to": "Q44 (a)"
+  },
+  {
+    "title": "P-Q The synthetic ladders' generator, and how often it runs",
+    "choice": "testgen's prototype (testgen/src/testgen.cpp) is ported to tests/SyntheticLadder.{h,cpp}, compiled with optimization in every build type, since generation took 16.941 s unoptimized against 2.022 to 2.313 s optimized (testgen.md §3.4); each ladder is made once per process, as tests/test_vmaf_ladder.cpp:192-216 makes its fixtures; the generator's layout is the ground truth. ctest runs each Catch2 test case in its own process (review-adversarial/runs/ctest-registration.txt), so the acceptance cases are sections of one test case, which makes each of its ladders once per ctest run; the composite example and WP10's determinism check are test cases of their own, for seven generations per ctest run under Q34 (d) (design §9.5).",
+    "alternatives": "A CTest fixture (FIXTURES_SETUP, with FIXTURES_REQUIRED set on the acceptance tests through the TEST_SPEC and PROPERTIES arguments of Catch2 v3.7.1's catch_discover_tests, https://github.com/catchorg/Catch2/blob/v3.7.1/extras/Catch.cmake#L29-L34) that writes the ladders once per ctest run into the build tree: fewer generations, but one directory that two ctest runs of a build tree would share, against the per-process rule of D-032 and P-036; the prototype as is; a generation per test case."
+  },
+  {
+    "title": "P-R Acceptance assertions independent of open choices",
+    "choice": "The acceptance tests assert reference frame ranges, URIs, media sequence numbers, event types and offsets in frames, with detection parameters pinned inside the measured region (T = 6, W = 50, N = 12, the prototype's values, inside design-evaluation run 05's region), not the tool's defaults; the seconds of the axis the owner picks are checked in WP01's unit tests.",
+    "alternatives": "Assertions on the defaults, which wait for Q26 and change with it."
+  },
+  {
+    "title": "P-S The composite example's delay",
+    "choice": "In ctest the composite example uses a delay of its own, under the analyzer's 5 s network limit (D-036), and asserts a measured duration at least the delay and status 200; the work order's 2.3 s is used only in the eval harness.",
+    "alternatives": "2.3 s in ctest."
+  },
+  {
+    "title": "P-T Tests that run programs, and test tags",
+    "choice": "The acceptance and CLI tests run mirage_vmaf as a program with posix_spawn through MIRAGE_VMAF_PATH, as tests/test_vmaf_ladder.cpp:286-310 does; the new tests are tagged [timeline], [scte35], [session], [attribution] and [acceptance].",
+    "alternatives": "In-process calls only, which skip the CLI and the files a user gets."
+  },
+  {
+    "title": "P-U Keeping the media",
+    "choice": "With MIRAGE_KEEP_MEDIA=<dir> the acceptance and composite test cases keep their ladders, reports and documents, each test case under <dir>/<its name>/, so that two test processes under ctest -j never write one directory; the eval harness and the UI's scripted QA run read them there (ui.md §5.3 asks for such a switch).",
+    "alternatives": "A generator program under tools/; one shared directory, which two processes would write at once."
+  },
+  {
+    "title": "P-V The subcommands' option tables",
+    "choice": "Each subcommand has an option table of its own in TimelineCli, built as vmafcli's is (one row: the option, its config setting, its help; src/VMAFCli.cpp:26-35, 92-124), with D-030's name = value config file, one per invocation, recorded by path and SHA-256, the command line replacing the file; vmafcli's parser is unchanged, since its parse() and read_settings() are written against its own kOptions and Args (src/VMAFCli.cpp:195-257, 273-344).",
+    "alternatives": "vmafcli's parser made generic for the subcommands (design-library P-G), which changes tested code."
+  },
+  {
+    "title": "P-W Exit statuses and writing",
+    "choice": "The subcommands exit as mirage_vmaf does (tools/mirage_vmaf.cpp:7-17): 0 written, 1 a failure (an unreadable input, a hash mismatch, an input refused under Q43 (a) or (b), no document left at --out), 2 bad arguments or config file; documents are written through a temporary file renamed over --out, as vmafreport::write_file does (src/VMAFReport.h:149).",
+    "alternatives": "None proposed."
+  },
+  {
+    "title": "P-X The ladder report reader's scope",
+    "moved_to": "Q43 (b)"
+  },
+  {
+    "title": "P-Y The JSON reader's form",
+    "choice": "A document tree with objects kept in their order, duplicate keys refused (as the tests' reader refuses them, tests/test_vmaf_report.cpp:104), a nesting limit, and numbers read with std::from_chars so that they round-trip with json::number; its memory and time on the largest committed ladder report are measured before the panel loads such reports.",
+    "alternatives": "A streaming reader from the start (Q32 (b))."
+  },
+  {
+    "title": "P-Z Hashes, and the digest against redaction",
+    "choice": "Hashes are computed at the edges with filehash::sha256_hex; the core returns the canonical text to hash; the scores digest leaves out every field the eval scripts redact (eval/ladder/pool_check.py:117-118, eval/consistency/ladder_check.py:25-27), which a test checks by redacting a report as they do.",
+    "alternatives": "Hashing inside the core."
+  },
+  {
+    "title": "P-AA The rank rule",
+    "moved_to": "Q43 (e)"
+  },
+  {
+    "title": "P-AB Events in several variants' playlists",
+    "moved_to": "Q43 (f)"
+  },
+  {
+    "title": "P-AC Provenance copied into the document",
+    "moved_to": "Q04 (a), since the ladder report's provenance copied into the document is part of design §8's layout"
+  },
+  {
+    "title": "P-AD The attribute subcommand's text layout",
+    "choice": "One block per drop: its curve, reference frames, interval in seconds, baseline, minimum, mean and magnitudes; then one line per event, grouped by source in §3.1's order, with its offsets in seconds and in frames, as design-evaluation run 10's prototype printed it. Which format is the default is Q31 (a).",
+    "alternatives": "JSON only."
+  },
+  {
+    "title": "P-AE A drop's interval, and intervals given in seconds",
+    "moved_to": "Q43 (g)"
+  },
+  {
+    "title": "P-AF The evaluation harness's records",
+    "choice": "eval/timeline/ in standard-library Python, each record with cmd.txt and environment.txt that give the commit by git rev-parse HEAD, as P-006's practice is.",
+    "alternatives": "None proposed."
+  },
+  {
+    "title": "P-AG Shared declarations",
+    "choice": "WP00a writes the declarations that round-1 packages running in parallel share, once the answers they encode are in (Q02, Q03, Q04, Q07), and WP00b those of the sessions (Q11, Q12); each module's own functions and option structs are written by the package that implements it. After each, a change to a type another package uses goes through the lead, who merges it before the packages that need it.",
+    "alternatives": "Each package declaring what it needs, merged later; the declarations written before the owner's answers, which would present the agent's recommendations as made."
+  },
+  {
+    "title": "P-AH Worktrees and merges",
+    "choice": "Each package is built in a worktree branched from vmaf/phase-3 (D-066) and merged by the lead in design §14's order; each round's answers are recorded by the lead in docs/DECISIONS.md and marked in docs/PHASE3_DECISIONS_PENDING.md before that round's packages start; nothing is pushed until the owner says.",
+    "alternatives": "None proposed."
+  },
+  {
+    "title": "P-AI Checking the schema file in ctest",
+    "choice": "A subset JSON Schema validator in the test (type, required, properties, items, enum, additionalProperties) checks the writer's output against docs/schema/mirage-timeline-1.schema.json; no dependency is added.",
+    "alternatives": "A Python validator, a new dependency for standard-library-only eval tooling (schema.md, open issue 3); key tests only, leaving the schema file unchecked."
+  },
+  {
+    "title": "P-AJ Axis helpers copied, not moved",
+    "choice": "TimelineView gets its own copies of nice_step and axis_label (src/NetInspectorAlign.cpp:69-107, in an anonymous namespace that ends at :109), and src/NetInspectorAlign.cpp stays unchanged.",
+    "alternatives": "Moving them into TimelineView and changing NetInspectorAlign.cpp to use them (ui.md §2.5): one definition, but a change to a working file for no behaviour."
+  },
+  {
+    "title": "P-AK The quote check of documents and posted text",
+    "choice": "Before each commit of a Phase 3 document, and of this survey and design when they are committed, and before Phase 3's PR description or any other text about Phase 3 is posted, the agent checks every file and text against the work order's translation, which stays outside the repository (D-013), for runs of six or more words in common; the checker's output, which names files, lines and counts but no shared words, is kept as the record of the commit or the posting, and its prose runs must be 0 (design/runs/quote-check.txt is the first).",
+    "alternatives": "Asking the owner whether short quotations are within D-013, which D-060's acceptance of a rendering with none quoted already answers; no check."
+  }
+]

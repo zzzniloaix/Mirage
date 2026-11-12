@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/ffmpeg-n8.1.1-hls.c/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://raw.githubusercontent.com/FFmpeg/FFmpeg/n8.1.1/libavformat/hls.c'
+date_utc: 2026-11-01T03:27:07Z
+http_code=200
+url_effective=https://raw.githubusercontent.com/FFmpeg/FFmpeg/n8.1.1/libavformat/hls.c
+size_download=101090
+content_type=text/plain; charset=utf-8
+curl_exit=0
+sha256=921a624c99eb18cccd3ceb6c299591b20954ddeb02c3657f7b05e024a871d2b3

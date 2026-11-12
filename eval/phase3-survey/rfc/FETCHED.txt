@@ -1,0 +1,5 @@
+RFC 8216, fetched to check the section and text citations of <out>/sources.md, and
+read by run check-scte35-fixture, then removed (it carries its authors' email
+addresses). Fetched with:
+  curl -sS -f -L https://www.rfc-editor.org/rfc/rfc8216.txt -o <out>/rfc/rfc8216.txt
+954910a5ad73506cfdb5abe11571f6b859d49d1f82191ffe616595a40687e58e  rfc8216.txt  3363 lines

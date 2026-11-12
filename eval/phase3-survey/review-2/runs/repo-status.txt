@@ -1,0 +1,6 @@
+# cwd: <repo>
+# command: 'git' '--no-optional-locks' '-C' '<repo>' 'status' '--short' '--branch'
+# started: 2026-11-01T07:44:33Z, ended: 2026-11-01T07:44:33Z (UTC)
+# stdout and stderr, in order:
+## vmaf/phase-3
+# exit status: 0

@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/stream-unified-remix-avod-master/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://demo-dev.unified-remix.com/unified-origin-drm/smil-origin/avod-smil/eyJtYWluIjoiaHR0cDovL3N0b3JhZ2UudW5pZmllZC1yZW1peC5jb20vbWFpbi9iaWctYnVjay1idW5ueS9iaWctYnVjay1idW5ueV9kcmVmLm1wNCIsImJyZWFrcyI6W3sidGltZSI6MTAsImR1cmF0aW9uIjozMH1dfQ==.ism/.m3u8'
+date_utc: 2026-11-01T03:43:38Z
+http_code=404
+url_effective=https://demo-dev.unified-remix.com/unified-origin-drm/smil-origin/avod-smil/eyJtYWluIjoiaHR0cDovL3N0b3JhZ2UudW5pZmllZC1yZW1peC5jb20vbWFpbi9iaWctYnVjay1idW5ueS9iaWctYnVjay1idW5ueV9kcmVmLm1wNCIsImJyZWFrcyI6W3sidGltZSI6MTAsImR1cmF0aW9uIjozMH1dfQ==.ism/.m3u8
+size_download=19
+content_type=text/plain; charset=utf-8
+curl_exit=0
+sha256=b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793

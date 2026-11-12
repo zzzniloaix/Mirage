@@ -1,0 +1,517 @@
+{
+ "schema_version": "PROTOTYPE (not a decision: the owner sets the version and its form)",
+ "made_by": "design-evaluation/tools/attribute.py",
+ "ladder_report": "degraded-x264.json",
+ "reference": {
+  "variant": "v360",
+  "mode": "top-rung"
+ },
+ "axis": "reference playlist time, seconds (raw PTS and continuous PTS printed for comparison)",
+ "pts": "ticks of the reference time base, from the report's seconds",
+ "parameters": {
+  "detector": "trailing median of non-low scores",
+  "threshold": 6.0,
+  "window": 50,
+  "min_frames_exclusive": 12
+ },
+ "curve": "pair 1 (v180)",
+ "timeline": [
+  {
+   "id": 0,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v360",
+   "segment": 0,
+   "t": 0.0,
+   "t_end": 1.0,
+   "ref_index": 0,
+   "wallclock": null,
+   "payload": {
+    "uri": "seg_000.ts",
+    "seq": 0,
+    "extinf_s": 1.0,
+    "disc_seq": 0
+   }
+  },
+  {
+   "id": 1,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v360",
+   "segment": 0,
+   "t": 0.0,
+   "t_end": null,
+   "ref_index": 0,
+   "wallclock": null,
+   "payload": {
+    "frame": 0
+   }
+  },
+  {
+   "id": 2,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v360",
+   "segment": 1,
+   "t": 1.0,
+   "t_end": 2.0,
+   "ref_index": 25,
+   "wallclock": null,
+   "payload": {
+    "uri": "seg_001.ts",
+    "seq": 1,
+    "extinf_s": 1.0,
+    "disc_seq": 0
+   }
+  },
+  {
+   "id": 3,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v360",
+   "segment": 1,
+   "t": 1.0,
+   "t_end": null,
+   "ref_index": 25,
+   "wallclock": null,
+   "payload": {
+    "frame": 25
+   }
+  },
+  {
+   "id": 4,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v360",
+   "segment": 2,
+   "t": 2.0,
+   "t_end": 3.0,
+   "ref_index": 50,
+   "wallclock": null,
+   "payload": {
+    "uri": "seg_002.ts",
+    "seq": 2,
+    "extinf_s": 1.0,
+    "disc_seq": 0
+   }
+  },
+  {
+   "id": 5,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v360",
+   "segment": 2,
+   "t": 2.0,
+   "t_end": null,
+   "ref_index": 50,
+   "wallclock": null,
+   "payload": {
+    "frame": 50
+   }
+  },
+  {
+   "id": 6,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v360",
+   "segment": 3,
+   "t": 3.0,
+   "t_end": 4.0,
+   "ref_index": 75,
+   "wallclock": null,
+   "payload": {
+    "uri": "seg_003.ts",
+    "seq": 3,
+    "extinf_s": 1.0,
+    "disc_seq": 0
+   }
+  },
+  {
+   "id": 7,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v360",
+   "segment": 3,
+   "t": 3.0,
+   "t_end": null,
+   "ref_index": 75,
+   "wallclock": null,
+   "payload": {
+    "frame": 75
+   }
+  },
+  {
+   "id": 8,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v360",
+   "segment": 4,
+   "t": 4.0,
+   "t_end": 5.0,
+   "ref_index": 100,
+   "wallclock": null,
+   "payload": {
+    "uri": "seg_004.ts",
+    "seq": 4,
+    "extinf_s": 1.0,
+    "disc_seq": 0
+   }
+  },
+  {
+   "id": 9,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v360",
+   "segment": 4,
+   "t": 4.0,
+   "t_end": null,
+   "ref_index": 100,
+   "wallclock": null,
+   "payload": {
+    "frame": 100
+   }
+  },
+  {
+   "id": 10,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v360",
+   "segment": 5,
+   "t": 5.0,
+   "t_end": 6.0,
+   "ref_index": 125,
+   "wallclock": null,
+   "payload": {
+    "uri": "seg_005.ts",
+    "seq": 5,
+    "extinf_s": 1.0,
+    "disc_seq": 0
+   }
+  },
+  {
+   "id": 11,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v360",
+   "segment": 5,
+   "t": 5.0,
+   "t_end": null,
+   "ref_index": 125,
+   "wallclock": null,
+   "payload": {
+    "frame": 125
+   }
+  },
+  {
+   "id": 12,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v360",
+   "segment": 6,
+   "t": 6.0,
+   "t_end": 7.0,
+   "ref_index": 150,
+   "wallclock": null,
+   "payload": {
+    "uri": "seg_006.ts",
+    "seq": 6,
+    "extinf_s": 1.0,
+    "disc_seq": 0
+   }
+  },
+  {
+   "id": 13,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v360",
+   "segment": 6,
+   "t": 6.0,
+   "t_end": null,
+   "ref_index": 150,
+   "wallclock": null,
+   "payload": {
+    "frame": 150
+   }
+  },
+  {
+   "id": 14,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v360",
+   "segment": 7,
+   "t": 7.0,
+   "t_end": 8.0,
+   "ref_index": 175,
+   "wallclock": null,
+   "payload": {
+    "uri": "seg_007.ts",
+    "seq": 7,
+    "extinf_s": 1.0,
+    "disc_seq": 0
+   }
+  },
+  {
+   "id": 15,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v360",
+   "segment": 7,
+   "t": 7.0,
+   "t_end": null,
+   "ref_index": 175,
+   "wallclock": null,
+   "payload": {
+    "frame": 175
+   }
+  },
+  {
+   "id": 16,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v180",
+   "segment": 0,
+   "t": 0.0,
+   "t_end": 1.0,
+   "ref_index": 0,
+   "wallclock": null,
+   "payload": {
+    "uri": "seg_000.ts",
+    "seq": 0,
+    "extinf_s": 1.0,
+    "disc_seq": 0
+   }
+  },
+  {
+   "id": 17,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v180",
+   "segment": 0,
+   "t": 0.0,
+   "t_end": null,
+   "ref_index": 0,
+   "wallclock": null,
+   "payload": {
+    "frame": 0
+   }
+  },
+  {
+   "id": 18,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v180",
+   "segment": 1,
+   "t": 1.0,
+   "t_end": 2.0,
+   "ref_index": 25,
+   "wallclock": null,
+   "payload": {
+    "uri": "seg_001.ts",
+    "seq": 1,
+    "extinf_s": 1.0,
+    "disc_seq": 0
+   }
+  },
+  {
+   "id": 19,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v180",
+   "segment": 1,
+   "t": 1.0,
+   "t_end": null,
+   "ref_index": 25,
+   "wallclock": null,
+   "payload": {
+    "frame": 25
+   }
+  },
+  {
+   "id": 20,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v180",
+   "segment": 2,
+   "t": 2.0,
+   "t_end": 3.0,
+   "ref_index": 50,
+   "wallclock": null,
+   "payload": {
+    "uri": "seg_002.ts",
+    "seq": 2,
+    "extinf_s": 1.0,
+    "disc_seq": 0
+   }
+  },
+  {
+   "id": 21,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v180",
+   "segment": 2,
+   "t": 2.0,
+   "t_end": null,
+   "ref_index": 50,
+   "wallclock": null,
+   "payload": {
+    "frame": 50
+   }
+  },
+  {
+   "id": 22,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v180",
+   "segment": 3,
+   "t": 3.0,
+   "t_end": 4.0,
+   "ref_index": 75,
+   "wallclock": null,
+   "payload": {
+    "uri": "seg_003.ts",
+    "seq": 3,
+    "extinf_s": 1.0,
+    "disc_seq": 0
+   }
+  },
+  {
+   "id": 23,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v180",
+   "segment": 3,
+   "t": 3.0,
+   "t_end": null,
+   "ref_index": 75,
+   "wallclock": null,
+   "payload": {
+    "frame": 75
+   }
+  },
+  {
+   "id": 24,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v180",
+   "segment": 4,
+   "t": 4.0,
+   "t_end": 5.0,
+   "ref_index": 100,
+   "wallclock": null,
+   "payload": {
+    "uri": "seg_004.ts",
+    "seq": 4,
+    "extinf_s": 1.0,
+    "disc_seq": 0
+   }
+  },
+  {
+   "id": 25,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v180",
+   "segment": 4,
+   "t": 4.0,
+   "t_end": null,
+   "ref_index": 100,
+   "wallclock": null,
+   "payload": {
+    "frame": 100
+   }
+  },
+  {
+   "id": 26,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v180",
+   "segment": 5,
+   "t": 5.0,
+   "t_end": 6.0,
+   "ref_index": 125,
+   "wallclock": null,
+   "payload": {
+    "uri": "seg_005.ts",
+    "seq": 5,
+    "extinf_s": 1.0,
+    "disc_seq": 0
+   }
+  },
+  {
+   "id": 27,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v180",
+   "segment": 5,
+   "t": 5.0,
+   "t_end": null,
+   "ref_index": 125,
+   "wallclock": null,
+   "payload": {
+    "frame": 125
+   }
+  },
+  {
+   "id": 28,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v180",
+   "segment": 6,
+   "t": 6.0,
+   "t_end": 7.0,
+   "ref_index": 150,
+   "wallclock": null,
+   "payload": {
+    "uri": "seg_006.ts",
+    "seq": 6,
+    "extinf_s": 1.0,
+    "disc_seq": 0
+   }
+  },
+  {
+   "id": 29,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v180",
+   "segment": 6,
+   "t": 6.0,
+   "t_end": null,
+   "ref_index": 150,
+   "wallclock": null,
+   "payload": {
+    "frame": 150
+   }
+  },
+  {
+   "id": 30,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v180",
+   "segment": 7,
+   "t": 7.0,
+   "t_end": 8.0,
+   "ref_index": 175,
+   "wallclock": null,
+   "payload": {
+    "uri": "seg_007.ts",
+    "seq": 7,
+    "extinf_s": 1.0,
+    "disc_seq": 0
+   }
+  },
+  {
+   "id": 31,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v180",
+   "segment": 7,
+   "t": 7.0,
+   "t_end": null,
+   "ref_index": 175,
+   "wallclock": null,
+   "payload": {
+    "frame": 175
+   }
+  }
+ ],
+ "attributions": []
+}

@@ -1,0 +1,6 @@
+$ ./testgen mezzanine media/mezzanine/ad.mkv --kind ad
+(in <out>/testgen)
+--- stdout ---
+mezzanine written: FFV1 in Matroska, 640x360, 200 frames at 25 fps, kind ad, source noise, 19725131 bytes, SI 61.405 TI 22.440, wall time 2.241 s
+--- stderr ---
+--- exit status 0, wall time 2.284 s (time.monotonic) ---

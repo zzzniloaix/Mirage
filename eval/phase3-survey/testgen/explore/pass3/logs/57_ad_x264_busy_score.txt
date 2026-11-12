@@ -1,0 +1,10 @@
+$ <scratch>/accept/wt/build/macos-release/mirage_vmaf --ladder master.m3u8 --out ../../reports/ad-x264-busy.json
+(in <out>/testgen/media/ad-x264-busy)
+--- stdout ---
+[INFO]  VMAFAnalyzer: 200 frames  mean=74.34  min=8.42  p5=17.89  [Analysis]
+mirage_vmaf: pair 2 of 2, v180/index.m3u8: 200 frame pairs scored
+[INFO]  VMAFAnalyzer: 200 frames  mean=97.71  min=89.21  p5=95.67  [Analysis]
+mirage_vmaf: pair 1 of 2, v270/index.m3u8: 200 frame pairs scored
+mirage_vmaf: 2 of 2 pairs of the ladder scored against v360/index.m3u8 (top-rung), 0 entries skipped, 11 at a time; the run is complete; report written to ../../reports/ad-x264-busy.json
+--- stderr ---
+--- exit status 0, wall time 0.563 s (time.monotonic) ---

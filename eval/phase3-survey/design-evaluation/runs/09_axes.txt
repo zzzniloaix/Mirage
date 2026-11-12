@@ -1,0 +1,44 @@
+$ python3 -I -B tools/attribute.py ladder <out>/design-evaluation/../testgen/media/ad-x264-a <out>/design-evaluation/../testgen/reports/ad-x264.json <out>/design-evaluation/out/segmap ad-x264-a <out>/design-evaluation/out/axes-ad-x264-v180.json --threshold 6 --window 50 --min-frames 12 --curve v180 --ticks --axes-at 0,74,75,124,125,199
+(in <out>/design-evaluation)
+started 2026-11-01T04:37:48.898838Z, ended 2026-11-01T04:37:48.977069Z, exit status 0, wall 0.078 s
+--- stdout ---
+# ad-x264-a, ladder; curve pair 1 (v180); reference v360 (top-rung); detection: trailing median of the last 50 non-low scores, low = more than 6 below it, a drop = more than 12 low frames (the prototype's parameters, not defaults)
+events: 42 (decoder/keyframe, playlist/discontinuity, scte35/ad_break, scte35/cue_in, scte35/cue_out, scte35/cue_out_cont)
+
+Drop 1: reference frames 75-124 (50 frames); playlist time 3.000-5.000 s; raw reference PTS 10.000-12.000 s; continuous PTS 13.000-15.000 s; baseline 91.692, min 22.237, mean 27.395, magnitude 69.455
+  scte35   cue_out          v360, segment 3 at +0.000 s: line 14 '2.000'
+  scte35   cue_out_cont     v360, segment 4 at +1.000 s: line 17 '1.000/2.000'
+  scte35   ad_break         v360 at +0.000 s to +2.000 s: cue-out to cue-in, declared duration 2.0 s, placed by tag position
+  scte35   cue_out          v270, segment 3 at +0.000 s: line 14 '2.000'
+  scte35   cue_out_cont     v270, segment 4 at +1.000 s: line 17 '1.000/2.000'
+  scte35   ad_break         v270 at +0.000 s to +2.000 s: cue-out to cue-in, declared duration 2.0 s, placed by tag position
+  scte35   cue_out          v180, segment 3 at +0.000 s: line 14 '2.000'
+  scte35   cue_out_cont     v180, segment 4 at +1.000 s: line 17 '1.000/2.000'
+  scte35   ad_break         v180 at +0.000 s to +2.000 s: cue-out to cue-in, declared duration 2.0 s, placed by tag position
+  playlist discontinuity    v360, segment 3 at +0.000 s: line 13
+  playlist discontinuity    v270, segment 3 at +0.000 s: line 13
+  playlist discontinuity    v180, segment 3 at +0.000 s: line 13
+  decoder  keyframe         v360, segment 3 at +0.000 s: {"frame": 75}
+  decoder  keyframe         v360, segment 4 at +1.000 s: {"frame": 100}
+  decoder  keyframe         v270, segment 3 at +0.000 s: {"frame": 75}
+  decoder  keyframe         v270, segment 4 at +1.000 s: {"frame": 100}
+  decoder  keyframe         v180, segment 3 at +0.000 s: {"frame": 75}
+  decoder  keyframe         v180, segment 4 at +1.000 s: {"frame": 100}
+
+Reference frames on the three candidate axes (seconds):
+frame	raw PTS	continuous PTS	playlist time
+0	10.000	10.000	0.000
+74	12.960	12.960	2.960
+75	10.000	13.000	3.000
+124	11.960	14.960	4.960
+125	15.000	18.000	5.000
+199	17.960	20.960	7.960
+from frame 0 to frame 74: raw PTS 2.960 s, continuous PTS 2.960 s, playlist time 2.960 s
+from frame 74 to frame 75: raw PTS -2.960 s, continuous PTS 0.040 s, playlist time 0.040 s
+from frame 75 to frame 124: raw PTS 1.960 s, continuous PTS 1.960 s, playlist time 1.960 s
+from frame 124 to frame 125: raw PTS 3.040 s, continuous PTS 3.040 s, playlist time 0.040 s
+from frame 125 to frame 199: raw PTS 2.960 s, continuous PTS 2.960 s, playlist time 2.960 s
+raw PTS values shared by more than one reference frame: 50
+--- stderr ---
+
+--- end ---

@@ -4,6 +4,12 @@
 // video playlists of an HLS master playlist with a pool of workers
 // (src/VMAFLadder.h) and writes one report of them all. See --help.
 //
+// Its subcommands, a first argument of "timeline" or "attribute", build a
+// ladder report's event timeline and query it (src/TimelineCli.h;
+// DECISIONS.md D-079); each has its own --help, and exits 0 when its
+// document or answer is written, 1 on a failure and 2 on bad arguments, as
+// below for a report.
+//
 // Exit codes:
 //   0 — report written, also when more frames than the threshold allows
 //       failed to pair by timestamp: that is a warning, on stderr and in the
@@ -17,6 +23,7 @@
 //   2 — bad arguments, or a --config file that can't be read or has an error
 
 #include "FileHash.h"
+#include "TimelineCli.h"
 #include "VMAFAnalyzer.h"
 #include "VMAFCli.h"
 #include "VMAFLadder.h"
@@ -131,6 +138,17 @@ int score_ladder(const vmafcli::Args& args, const VMAFOptions& opts, vmafreport:
 
 int main(int argc, char** argv)
 {
+    // A subcommand's word comes first, before the scorer's options are
+    // parsed: today's command lines, which take no word, keep their meaning
+    // (eval/phase3-survey/design.md §3.6, §7). Each subcommand sets FFmpeg's
+    // log level and network itself, as below (the design's P-N).
+    if (argc > 1) {
+        const std::string_view word = argv[1];
+        const std::vector<std::string_view> rest(argv + 2, argv + argc);
+        if (word == "timeline") return timelinecli::run_timeline(rest);
+        if (word == "attribute") return timelinecli::run_attribute(rest);
+    }
+
     vmafcli::Args args;
     // The SHA-256 of the --config file's contents, of the bytes parse() reads.
     std::string config_sha256;

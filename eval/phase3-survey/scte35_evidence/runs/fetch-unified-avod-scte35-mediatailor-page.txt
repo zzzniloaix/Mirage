@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/unified-avod-scte35-mediatailor-page/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://demo.unified-streaming.com/k8s/avod-scte35-mediatailor/stable/'
+date_utc: 2026-11-01T03:42:44Z
+http_code=200
+url_effective=https://demo.unified-streaming.com/k8s/avod-scte35-mediatailor/stable/
+size_download=40715
+content_type=text/html
+curl_exit=0
+sha256=59d62e16f29da433288da6a4eebebb332ec7e12e25bc54942551400b162c7fd8

@@ -1,0 +1,2 @@
+cwd: <out>/runs/fixture-data
+command: '<out>/probe/bin/netlog_probe' '.' 'dis/index.m3u8'

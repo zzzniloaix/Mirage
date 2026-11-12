@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/unified-demo-scte35/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://demo.unified-streaming.com/scte35/'
+date_utc: 2026-11-01T03:42:29Z
+http_code=200
+url_effective=https://demo.unified-streaming.com/scte35/
+size_download=69586
+content_type=text/html
+curl_exit=0
+sha256=99d10896f5dd5af6b46540924690d584577df89e261a6b4268b933d7a2760c9a

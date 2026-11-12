@@ -1,0 +1,37 @@
+command: grep -n -E "Skip \('|variant_bitrate|id3|ID3|AVMEDIA_TYPE_DATA|EVENT_FLAG|metadata" downloads/ffmpeg-n8.1.1-hls.c/body
+699:    av_dict_copy(&tmp, *opts, 0);
+700:    av_dict_copy(&tmp, opts2, 0);
+712:            av_dict_copy(&tmp, *opts, 0);
+713:            av_dict_copy(&tmp, opts2, 0);
+824:        av_dict_copy(&opts, c->avio_opts, 0);
+990:            av_log(c->ctx, AV_LOG_VERBOSE, "Skip ('%s')\n", line);
+1150:static void parse_id3(AVFormatContext *s, AVIOContext *pb,
+1208:static void handle_id3(AVIOContext *pb, struct playlist *pls)
+1215:    parse_id3(pls->ctx, pb, &metadata, &timestamp, &pls->audio_setup_info, &apic, &extra_meta);
+1235:        av_dict_copy(&pls->ctx->metadata, metadata, 0);
+1343:        handle_id3(&id3ioctx.pub, pls);
+1821:    av_dict_copy(&opts, c->seg_format_opts, 0);
+2044:        av_dict_set_int(&stream->metadata, "variant_bitrate", bandwidth, 0);
+2063:    av_dict_copy(&st->metadata, ist->metadata, 0);
+2214:        av_dict_set_int(&program->metadata, "variant_bitrate", v->bandwidth, 0);
+2369:        av_dict_copy(&options, c->seg_format_opts, 0);
+2416:            av_dict_copy(&pls->main_streams[0]->metadata, pls->ctx->metadata, 0);
+2619:        // and set its AVSTREAM_EVENT_FLAG_METADATA_UPDATED flag.
+2620:        if (pls->ctx->event_flags & AVFMT_EVENT_FLAG_METADATA_UPDATED) {
+2623:                av_dict_copy(&st->metadata, pls->ctx->metadata, 0);
+2624:                st->event_flags |= AVSTREAM_EVENT_FLAG_METADATA_UPDATED;
+2626:            pls->ctx->event_flags &= ~AVFMT_EVENT_FLAG_METADATA_UPDATED;
+
+command: grep -n -i -E 'scte|0x86|SCTE_35' downloads/ffmpeg-n8.1.1-mpegts.c/body downloads/ffmpeg-n8.1.1-mpegts.h/body
+downloads/ffmpeg-n8.1.1-mpegts.h/body:163:#define STREAM_TYPE_BLURAY_AUDIO_DTS_HD_MASTER          0x86
+downloads/ffmpeg-n8.1.1-mpegts.h/body:169:#define STREAM_TYPE_SCTE_DATA_SCTE_35 0x86 /* ANSI/SCTE 35 */
+downloads/ffmpeg-n8.1.1-mpegts.c/body:844:/* SCTE types */
+downloads/ffmpeg-n8.1.1-mpegts.c/body:845:static const StreamType SCTE_types[] = {
+downloads/ffmpeg-n8.1.1-mpegts.c/body:846:    { STREAM_TYPE_SCTE_DATA_SCTE_35, AVMEDIA_TYPE_DATA,  AV_CODEC_ID_SCTE_35    },
+downloads/ffmpeg-n8.1.1-mpegts.c/body:1790:static void scte_data_cb(MpegTSFilter *filter, const uint8_t *section,
+downloads/ffmpeg-n8.1.1-mpegts.c/body:1801:     * In case we receive an SCTE-35 packet before mpegts context is fully
+downloads/ffmpeg-n8.1.1-mpegts.c/body:2522:    case STREAM_TYPE_SCTE_DATA_SCTE_35:
+downloads/ffmpeg-n8.1.1-mpegts.c/body:2524:           for different things.  ANSI/SCTE 35 splice_info_section() is a
+downloads/ffmpeg-n8.1.1-mpegts.c/body:2700:                if (stream_type == STREAM_TYPE_SCTE_DATA_SCTE_35 && prog_reg_desc == AV_RL32("CUEI")) {
+downloads/ffmpeg-n8.1.1-mpegts.c/body:2701:                    mpegts_find_stream_type(st, stream_type, SCTE_types);
+downloads/ffmpeg-n8.1.1-mpegts.c/body:2702:                    mpegts_open_section_filter(ts, pid, scte_data_cb, ts, 1);

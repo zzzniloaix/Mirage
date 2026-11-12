@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/gcloud-video-stitcher-ad-markers/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://docs.cloud.google.com/video-stitcher/docs/concepts/ad-markers'
+date_utc: 2026-11-01T03:49:20Z
+http_code=200
+url_effective=https://docs.cloud.google.com/video-stitcher/docs/concepts/ad-markers
+size_download=164817
+content_type=text/html; charset=utf-8
+curl_exit=0
+sha256=705dd18825f5f58eff012bc27165af9d257e660b94e3897178ce43c8a6dcbd30

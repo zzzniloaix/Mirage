@@ -1,0 +1,2 @@
+cwd: <out>/runs
+command: 'python3' '-I' '<out>/probe/check_scte35_fixture.py' '<out>/rfc/rfc8216.txt' '<out>/runs/fixture-data/dis/tagged.m3u8'

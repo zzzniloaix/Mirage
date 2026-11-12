@@ -1,0 +1,7 @@
+command (cwd: <scratch>/phase3): grep -rniE '<a pattern of model and vendor names, removed under D-060>' docs-draft/PHASE3_SURVEY.md docs-draft/PHASE3_DECISIONS_PENDING.md docs-draft/PHASE3_STATUS.md records/phase3-survey | cut -d: -f1,2; echo grep_done
+date_utc: 2026-11-01T11:30:42Z
+output (stdout and stderr):
+records/phase3-survey/review-2/runs/code-lines.txt:1077
+records/phase3-survey/review-3/runs/code-lines.txt:172
+grep_done
+exit=0

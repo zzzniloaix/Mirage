@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/gh-m3u8-parser-repo/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://api.github.com/repos/videojs/m3u8-parser'
+date_utc: 2026-11-01T03:46:36Z
+http_code=200
+url_effective=https://api.github.com/repos/videojs/m3u8-parser
+size_download=6809
+content_type=application/json; charset=utf-8
+curl_exit=0
+sha256=83ea255ec67bd7e983aa351f8a29dbf598faea246f266362a39cab1533979480

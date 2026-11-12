@@ -1,0 +1,435 @@
+$ python3 -I -B tools/sweep.py <out>/design-evaluation/../testgen/reports
+(in <out>/design-evaluation)
+started 2026-11-01T04:33:23.620081Z, ended 2026-11-01T04:33:24.562784Z, exit status 0, wall 0.942 s
+--- stdout ---
+21 curves: degraded-x264.json:v270(target 100-124), degraded-x264.json:v180(control), degraded-mpeg2.json:v270(target 100-124), degraded-mpeg2.json:v180(control), degraded-x264-mezzanine.json:v360(control), degraded-x264-mezzanine.json:v270(target 100-124), degraded-x264-mezzanine.json:v180(control), ad-x264.json:v270(control), ad-x264.json:v180(target 75-124), ad-mpeg2.json:v270(control), ad-mpeg2.json:v180(target 75-124), ad-x264-origin1.json:v270(control), ad-x264-origin1.json:v180(target 75-124), ad-x264-nodisc.json:v270(control), ad-x264-nodisc.json:v180(target 75-124), ad-x264-busy.json:v270(control), ad-x264-busy.json:v180(target 75-124), ad-x264-control.json:v270(control), ad-x264-control.json:v180(control), ad-x264-busy-control.json:v270(control), ad-x264-busy-control.json:v180(control)
+
+## Grids over the four acceptance curves (degraded-x264 v270, v180; ad-x264 v180, v270): E = every target exact and every control without a drop; h = every target hit (not all exact) and every control without a drop; . = some target missed or some control has a drop
+
+median_nonlow, W = 10: rows T, columns N =  0  1  2  3  4  5  8 12 16 20 24 30 40 49
+  T  3:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  4:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  5:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  6:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  7:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  8:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 10:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 12:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 15:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 20:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 25:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 30:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 40:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 50:  h  h  h  h  h  h  h  h  h  h  .  .  .  .
+
+median_nonlow, W = 25: rows T, columns N =  0  1  2  3  4  5  8 12 16 20 24 30 40 49
+  T  3:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  4:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  5:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  6:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  7:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  8:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 10:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 12:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 15:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 20:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 25:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 30:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 40:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 50:  h  h  h  h  h  h  h  h  h  h  .  .  .  .
+
+median_nonlow, W = 50: rows T, columns N =  0  1  2  3  4  5  8 12 16 20 24 30 40 49
+  T  3:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  4:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  5:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  6:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  7:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  8:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 10:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 12:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 15:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 20:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 25:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 30:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 40:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 50:  h  h  h  h  h  h  h  h  h  h  .  .  .  .
+
+median_nonlow, W = 100: rows T, columns N =  0  1  2  3  4  5  8 12 16 20 24 30 40 49
+  T  3:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  4:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  5:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  6:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  7:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  8:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 10:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 12:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 15:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 20:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 25:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 30:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 40:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 50:  h  h  h  h  h  h  h  h  h  h  .  .  .  .
+
+mean_nonlow, W = 10: rows T, columns N =  0  1  2  3  4  5  8 12 16 20 24 30 40 49
+  T  3:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  4:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  5:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  6:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  7:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  8:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 10:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 12:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 15:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 20:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 25:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 30:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 40:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 50:  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+mean_nonlow, W = 25: rows T, columns N =  0  1  2  3  4  5  8 12 16 20 24 30 40 49
+  T  3:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  4:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  5:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  6:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  7:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  8:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 10:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 12:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 15:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 20:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 25:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 30:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 40:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 50:  h  h  h  h  h  h  h  h  h  h  .  .  .  .
+
+mean_nonlow, W = 50: rows T, columns N =  0  1  2  3  4  5  8 12 16 20 24 30 40 49
+  T  3:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  4:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  5:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  6:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  7:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  8:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 10:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 12:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 15:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 20:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 25:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 30:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 40:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 50:  h  h  h  h  h  h  h  h  h  h  .  .  .  .
+
+mean_nonlow, W = 100: rows T, columns N =  0  1  2  3  4  5  8 12 16 20 24 30 40 49
+  T  3:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  4:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  5:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  6:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  7:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  8:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 10:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 12:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 15:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 20:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 25:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 30:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 40:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 50:  h  h  h  h  h  h  h  h  h  h  .  .  .  .
+
+median_all, W = 10: rows T, columns N =  0  1  2  3  4  5  8 12 16 20 24 30 40 49
+  T  3:  .  h  h  h  h  h  .  .  .  .  .  .  .  .
+  T  4:  .  h  h  h  h  h  .  .  .  .  .  .  .  .
+  T  5:  .  h  h  h  h  h  .  .  .  .  .  .  .  .
+  T  6:  .  h  h  h  h  h  .  .  .  .  .  .  .  .
+  T  7:  h  h  h  h  h  h  .  .  .  .  .  .  .  .
+  T  8:  h  h  h  h  h  h  .  .  .  .  .  .  .  .
+  T 10:  h  h  h  h  h  h  .  .  .  .  .  .  .  .
+  T 12:  h  h  h  h  h  h  .  .  .  .  .  .  .  .
+  T 15:  h  h  h  h  h  h  .  .  .  .  .  .  .  .
+  T 20:  h  h  h  h  h  h  .  .  .  .  .  .  .  .
+  T 25:  h  h  h  h  h  h  .  .  .  .  .  .  .  .
+  T 30:  h  h  h  h  h  .  .  .  .  .  .  .  .  .
+  T 40:  h  h  h  h  h  .  .  .  .  .  .  .  .  .
+  T 50:  h  h  h  h  .  .  .  .  .  .  .  .  .  .
+
+median_all, W = 25: rows T, columns N =  0  1  2  3  4  5  8 12 16 20 24 30 40 49
+  T  3:  .  h  h  h  h  h  h  h  .  .  .  .  .  .
+  T  4:  .  h  h  h  h  h  h  h  .  .  .  .  .  .
+  T  5:  .  h  h  h  h  h  h  h  .  .  .  .  .  .
+  T  6:  .  h  h  h  h  h  h  h  .  .  .  .  .  .
+  T  7:  h  h  h  h  h  h  h  h  .  .  .  .  .  .
+  T  8:  h  h  h  h  h  h  h  h  .  .  .  .  .  .
+  T 10:  h  h  h  h  h  h  h  h  .  .  .  .  .  .
+  T 12:  h  h  h  h  h  h  h  h  .  .  .  .  .  .
+  T 15:  h  h  h  h  h  h  h  h  .  .  .  .  .  .
+  T 20:  h  h  h  h  h  h  h  h  .  .  .  .  .  .
+  T 25:  h  h  h  h  h  h  h  h  .  .  .  .  .  .
+  T 30:  h  h  h  h  h  h  h  h  .  .  .  .  .  .
+  T 40:  h  h  h  h  h  h  h  h  .  .  .  .  .  .
+  T 50:  h  h  h  h  h  h  h  .  .  .  .  .  .  .
+
+median_all, W = 50: rows T, columns N =  0  1  2  3  4  5  8 12 16 20 24 30 40 49
+  T  3:  .  h  h  h  h  h  h  h  h  h  h  .  .  .
+  T  4:  .  h  h  h  h  h  h  h  h  h  h  .  .  .
+  T  5:  .  h  h  h  h  h  h  h  h  h  h  .  .  .
+  T  6:  h  h  h  h  h  h  h  h  h  h  h  .  .  .
+  T  7:  h  h  h  h  h  h  h  h  h  h  h  .  .  .
+  T  8:  h  h  h  h  h  h  h  h  h  h  h  .  .  .
+  T 10:  h  h  h  h  h  h  h  h  h  h  h  .  .  .
+  T 12:  h  h  h  h  h  h  h  h  h  h  h  .  .  .
+  T 15:  h  h  h  h  h  h  h  h  h  h  h  .  .  .
+  T 20:  h  h  h  h  h  h  h  h  h  h  h  .  .  .
+  T 25:  h  h  h  h  h  h  h  h  h  h  h  .  .  .
+  T 30:  h  h  h  h  h  h  h  h  h  h  h  .  .  .
+  T 40:  h  h  h  h  h  h  h  h  h  h  h  .  .  .
+  T 50:  h  h  h  h  h  h  h  h  h  h  .  .  .  .
+
+median_all, W = 100: rows T, columns N =  0  1  2  3  4  5  8 12 16 20 24 30 40 49
+  T  3:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  4:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  5:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  6:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  7:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  8:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 10:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 12:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 15:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 20:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 25:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 30:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 40:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 50:  h  h  h  h  h  h  h  h  h  h  .  .  .  .
+
+## Grids over all curves: E = every target exact and every control without a drop; h = every target hit (not all exact) and every control without a drop; . = some target missed or some control has a drop
+
+median_nonlow, W = 10: rows T, columns N =  0  1  2  3  4  5  8 12 16 20 24 30 40 49
+  T  3:  .  .  .  .  .  .  h  h  h  h  h  .  .  .
+  T  4:  .  .  .  .  .  h  h  h  h  h  h  .  .  .
+  T  5:  .  .  .  .  .  E  E  E  E  E  E  .  .  .
+  T  6:  .  .  .  E  E  E  E  E  E  E  E  .  .  .
+  T  7:  .  .  E  E  E  E  E  E  E  E  E  .  .  .
+  T  8:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 10:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 12:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 15:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 20:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 25:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 30:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 40:  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+  T 50:  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+median_nonlow, W = 25: rows T, columns N =  0  1  2  3  4  5  8 12 16 20 24 30 40 49
+  T  3:  .  .  .  .  .  .  h  h  h  h  h  .  .  .
+  T  4:  .  .  .  .  .  h  h  h  h  h  h  .  .  .
+  T  5:  .  .  .  .  .  h  h  h  h  h  h  .  .  .
+  T  6:  .  .  .  E  E  E  E  E  E  E  E  .  .  .
+  T  7:  .  .  E  E  E  E  E  E  E  E  E  .  .  .
+  T  8:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 10:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 12:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 15:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 20:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 25:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 30:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 40:  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+  T 50:  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+median_nonlow, W = 50: rows T, columns N =  0  1  2  3  4  5  8 12 16 20 24 30 40 49
+  T  3:  .  .  .  .  .  .  h  h  h  h  h  .  .  .
+  T  4:  .  .  .  .  .  h  h  h  h  h  h  .  .  .
+  T  5:  .  .  .  .  .  E  E  E  E  E  E  .  .  .
+  T  6:  .  .  .  E  E  E  E  E  E  E  E  .  .  .
+  T  7:  .  .  E  E  E  E  E  E  E  E  E  .  .  .
+  T  8:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 10:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 12:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 15:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 20:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 25:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 30:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 40:  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+  T 50:  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+median_nonlow, W = 100: rows T, columns N =  0  1  2  3  4  5  8 12 16 20 24 30 40 49
+  T  3:  .  .  .  .  .  .  h  h  h  h  h  .  .  .
+  T  4:  .  .  .  .  .  h  h  h  h  h  h  .  .  .
+  T  5:  .  .  .  .  .  h  h  h  h  h  h  .  .  .
+  T  6:  .  .  .  E  E  E  E  E  E  E  E  .  .  .
+  T  7:  .  .  E  E  E  E  E  E  E  E  E  .  .  .
+  T  8:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 10:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 12:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 15:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 20:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 25:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 30:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 40:  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+  T 50:  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+mean_nonlow, W = 10: rows T, columns N =  0  1  2  3  4  5  8 12 16 20 24 30 40 49
+  T  3:  .  .  .  .  .  .  h  h  h  h  h  .  .  .
+  T  4:  .  .  .  .  .  h  h  h  h  h  h  .  .  .
+  T  5:  .  .  .  E  E  E  E  E  E  E  E  .  .  .
+  T  6:  .  .  E  E  E  E  E  E  E  E  E  .  .  .
+  T  7:  .  .  E  E  E  E  E  E  E  E  E  .  .  .
+  T  8:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 10:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 12:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 15:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 20:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 25:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 30:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 40:  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+  T 50:  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+mean_nonlow, W = 25: rows T, columns N =  0  1  2  3  4  5  8 12 16 20 24 30 40 49
+  T  3:  .  .  .  .  .  .  h  h  h  h  h  .  .  .
+  T  4:  .  .  .  .  .  h  h  h  h  h  h  .  .  .
+  T  5:  .  .  .  .  .  h  h  h  h  h  h  .  .  .
+  T  6:  .  .  .  E  E  E  E  E  E  E  E  .  .  .
+  T  7:  .  .  E  E  E  E  E  E  E  E  E  .  .  .
+  T  8:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 10:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 12:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 15:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 20:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 25:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 30:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 40:  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+  T 50:  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+mean_nonlow, W = 50: rows T, columns N =  0  1  2  3  4  5  8 12 16 20 24 30 40 49
+  T  3:  .  .  .  .  .  .  h  h  h  h  h  .  .  .
+  T  4:  .  .  .  .  .  h  h  h  h  h  h  .  .  .
+  T  5:  .  .  .  .  .  E  E  E  E  E  E  .  .  .
+  T  6:  .  .  .  E  E  E  E  E  E  E  E  .  .  .
+  T  7:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  8:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 10:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 12:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 15:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 20:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 25:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 30:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 40:  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+  T 50:  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+mean_nonlow, W = 100: rows T, columns N =  0  1  2  3  4  5  8 12 16 20 24 30 40 49
+  T  3:  .  .  .  .  .  .  h  h  h  h  h  .  .  .
+  T  4:  .  .  .  .  .  h  h  h  h  h  h  .  .  .
+  T  5:  .  .  .  .  .  E  E  E  E  E  E  .  .  .
+  T  6:  .  .  .  E  E  E  E  E  E  E  E  .  .  .
+  T  7:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T  8:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 10:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 12:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 15:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 20:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 25:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 30:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 40:  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+  T 50:  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+median_all, W = 10: rows T, columns N =  0  1  2  3  4  5  8 12 16 20 24 30 40 49
+  T  3:  .  .  .  h  h  h  .  .  .  .  .  .  .  .
+  T  4:  .  .  h  h  h  h  .  .  .  .  .  .  .  .
+  T  5:  .  .  h  h  h  h  .  .  .  .  .  .  .  .
+  T  6:  .  .  h  h  h  h  .  .  .  .  .  .  .  .
+  T  7:  .  .  h  h  h  h  .  .  .  .  .  .  .  .
+  T  8:  .  h  h  h  h  h  .  .  .  .  .  .  .  .
+  T 10:  .  h  h  h  h  h  .  .  .  .  .  .  .  .
+  T 12:  .  h  h  h  h  h  .  .  .  .  .  .  .  .
+  T 15:  h  h  h  h  h  h  .  .  .  .  .  .  .  .
+  T 20:  h  h  h  h  h  .  .  .  .  .  .  .  .  .
+  T 25:  h  h  h  h  h  .  .  .  .  .  .  .  .  .
+  T 30:  h  h  h  h  h  .  .  .  .  .  .  .  .  .
+  T 40:  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+  T 50:  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+median_all, W = 25: rows T, columns N =  0  1  2  3  4  5  8 12 16 20 24 30 40 49
+  T  3:  .  .  .  .  .  h  h  h  .  .  .  .  .  .
+  T  4:  .  .  .  h  h  h  h  h  .  .  .  .  .  .
+  T  5:  .  .  .  h  h  h  h  h  .  .  .  .  .  .
+  T  6:  .  .  h  h  h  h  h  h  .  .  .  .  .  .
+  T  7:  .  .  h  h  h  h  h  h  .  .  .  .  .  .
+  T  8:  .  h  h  h  h  h  h  h  .  .  .  .  .  .
+  T 10:  .  h  h  h  h  h  h  h  .  .  .  .  .  .
+  T 12:  .  h  h  h  h  h  h  h  .  .  .  .  .  .
+  T 15:  h  h  h  h  h  h  h  h  .  .  .  .  .  .
+  T 20:  h  h  h  h  h  h  h  h  .  .  .  .  .  .
+  T 25:  h  h  h  h  h  h  h  h  .  .  .  .  .  .
+  T 30:  h  h  h  h  h  h  h  h  .  .  .  .  .  .
+  T 40:  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+  T 50:  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+median_all, W = 50: rows T, columns N =  0  1  2  3  4  5  8 12 16 20 24 30 40 49
+  T  3:  .  .  .  .  .  .  h  h  h  h  h  .  .  .
+  T  4:  .  .  .  .  .  h  h  h  h  h  h  .  .  .
+  T  5:  .  .  .  .  .  h  h  h  h  h  h  .  .  .
+  T  6:  .  .  .  h  h  h  h  h  h  h  h  .  .  .
+  T  7:  .  .  h  h  h  h  h  h  h  h  h  .  .  .
+  T  8:  .  h  h  h  h  h  h  h  h  h  h  .  .  .
+  T 10:  .  h  h  h  h  h  h  h  h  h  h  .  .  .
+  T 12:  .  h  h  h  h  h  h  h  h  h  h  .  .  .
+  T 15:  h  h  h  h  h  h  h  h  h  h  h  .  .  .
+  T 20:  h  h  h  h  h  h  h  h  h  h  h  .  .  .
+  T 25:  h  h  h  h  h  h  h  h  h  h  h  .  .  .
+  T 30:  h  h  h  h  h  h  h  h  h  h  h  .  .  .
+  T 40:  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+  T 50:  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+median_all, W = 100: rows T, columns N =  0  1  2  3  4  5  8 12 16 20 24 30 40 49
+  T  3:  .  .  .  .  .  .  E  E  E  E  E  .  .  .
+  T  4:  .  .  .  .  .  E  E  E  E  E  E  .  .  .
+  T  5:  .  .  .  .  .  E  E  E  E  E  E  .  .  .
+  T  6:  .  .  .  E  E  E  E  E  E  E  E  .  .  .
+  T  7:  .  .  E  E  E  E  E  E  E  E  E  .  .  .
+  T  8:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 10:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 12:  .  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 15:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 20:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 25:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 30:  E  E  E  E  E  E  E  E  E  E  E  .  .  .
+  T 40:  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+  T 50:  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+## Each curve at the work order's suggested T = 6, median_nonlow, W = 50
+N =  0: degraded-x264.json:v270=exact, degraded-x264.json:v180=ok, degraded-mpeg2.json:v270=exact, degraded-mpeg2.json:v180=ok, degraded-x264-mezzanine.json:v360=ok, degraded-x264-mezzanine.json:v270=exact, degraded-x264-mezzanine.json:v180=ok, ad-x264.json:v270=ok, ad-x264.json:v180=exact, ad-mpeg2.json:v270=fp, ad-mpeg2.json:v180=exact, ad-x264-origin1.json:v270=ok, ad-x264-origin1.json:v180=exact, ad-x264-nodisc.json:v270=ok, ad-x264-nodisc.json:v180=exact, ad-x264-busy.json:v270=fp, ad-x264-busy.json:v180=exact, ad-x264-control.json:v270=ok, ad-x264-control.json:v180=fp, ad-x264-busy-control.json:v270=fp, ad-x264-busy-control.json:v180=fp
+N =  1: degraded-x264.json:v270=exact, degraded-x264.json:v180=ok, degraded-mpeg2.json:v270=exact, degraded-mpeg2.json:v180=ok, degraded-x264-mezzanine.json:v360=ok, degraded-x264-mezzanine.json:v270=exact, degraded-x264-mezzanine.json:v180=ok, ad-x264.json:v270=ok, ad-x264.json:v180=exact, ad-mpeg2.json:v270=ok, ad-mpeg2.json:v180=exact, ad-x264-origin1.json:v270=ok, ad-x264-origin1.json:v180=exact, ad-x264-nodisc.json:v270=ok, ad-x264-nodisc.json:v180=exact, ad-x264-busy.json:v270=ok, ad-x264-busy.json:v180=exact, ad-x264-control.json:v270=ok, ad-x264-control.json:v180=ok, ad-x264-busy-control.json:v270=ok, ad-x264-busy-control.json:v180=fp
+N =  2: degraded-x264.json:v270=exact, degraded-x264.json:v180=ok, degraded-mpeg2.json:v270=exact, degraded-mpeg2.json:v180=ok, degraded-x264-mezzanine.json:v360=ok, degraded-x264-mezzanine.json:v270=exact, degraded-x264-mezzanine.json:v180=ok, ad-x264.json:v270=ok, ad-x264.json:v180=exact, ad-mpeg2.json:v270=ok, ad-mpeg2.json:v180=exact, ad-x264-origin1.json:v270=ok, ad-x264-origin1.json:v180=exact, ad-x264-nodisc.json:v270=ok, ad-x264-nodisc.json:v180=exact, ad-x264-busy.json:v270=ok, ad-x264-busy.json:v180=exact, ad-x264-control.json:v270=ok, ad-x264-control.json:v180=ok, ad-x264-busy-control.json:v270=ok, ad-x264-busy-control.json:v180=fp
+N =  3: degraded-x264.json:v270=exact, degraded-x264.json:v180=ok, degraded-mpeg2.json:v270=exact, degraded-mpeg2.json:v180=ok, degraded-x264-mezzanine.json:v360=ok, degraded-x264-mezzanine.json:v270=exact, degraded-x264-mezzanine.json:v180=ok, ad-x264.json:v270=ok, ad-x264.json:v180=exact, ad-mpeg2.json:v270=ok, ad-mpeg2.json:v180=exact, ad-x264-origin1.json:v270=ok, ad-x264-origin1.json:v180=exact, ad-x264-nodisc.json:v270=ok, ad-x264-nodisc.json:v180=exact, ad-x264-busy.json:v270=ok, ad-x264-busy.json:v180=exact, ad-x264-control.json:v270=ok, ad-x264-control.json:v180=ok, ad-x264-busy-control.json:v270=ok, ad-x264-busy-control.json:v180=ok
+N =  4: degraded-x264.json:v270=exact, degraded-x264.json:v180=ok, degraded-mpeg2.json:v270=exact, degraded-mpeg2.json:v180=ok, degraded-x264-mezzanine.json:v360=ok, degraded-x264-mezzanine.json:v270=exact, degraded-x264-mezzanine.json:v180=ok, ad-x264.json:v270=ok, ad-x264.json:v180=exact, ad-mpeg2.json:v270=ok, ad-mpeg2.json:v180=exact, ad-x264-origin1.json:v270=ok, ad-x264-origin1.json:v180=exact, ad-x264-nodisc.json:v270=ok, ad-x264-nodisc.json:v180=exact, ad-x264-busy.json:v270=ok, ad-x264-busy.json:v180=exact, ad-x264-control.json:v270=ok, ad-x264-control.json:v180=ok, ad-x264-busy-control.json:v270=ok, ad-x264-busy-control.json:v180=ok
+N =  5: degraded-x264.json:v270=exact, degraded-x264.json:v180=ok, degraded-mpeg2.json:v270=exact, degraded-mpeg2.json:v180=ok, degraded-x264-mezzanine.json:v360=ok, degraded-x264-mezzanine.json:v270=exact, degraded-x264-mezzanine.json:v180=ok, ad-x264.json:v270=ok, ad-x264.json:v180=exact, ad-mpeg2.json:v270=ok, ad-mpeg2.json:v180=exact, ad-x264-origin1.json:v270=ok, ad-x264-origin1.json:v180=exact, ad-x264-nodisc.json:v270=ok, ad-x264-nodisc.json:v180=exact, ad-x264-busy.json:v270=ok, ad-x264-busy.json:v180=exact, ad-x264-control.json:v270=ok, ad-x264-control.json:v180=ok, ad-x264-busy-control.json:v270=ok, ad-x264-busy-control.json:v180=ok
+N =  8: degraded-x264.json:v270=exact, degraded-x264.json:v180=ok, degraded-mpeg2.json:v270=exact, degraded-mpeg2.json:v180=ok, degraded-x264-mezzanine.json:v360=ok, degraded-x264-mezzanine.json:v270=exact, degraded-x264-mezzanine.json:v180=ok, ad-x264.json:v270=ok, ad-x264.json:v180=exact, ad-mpeg2.json:v270=ok, ad-mpeg2.json:v180=exact, ad-x264-origin1.json:v270=ok, ad-x264-origin1.json:v180=exact, ad-x264-nodisc.json:v270=ok, ad-x264-nodisc.json:v180=exact, ad-x264-busy.json:v270=ok, ad-x264-busy.json:v180=exact, ad-x264-control.json:v270=ok, ad-x264-control.json:v180=ok, ad-x264-busy-control.json:v270=ok, ad-x264-busy-control.json:v180=ok
+N = 12: degraded-x264.json:v270=exact, degraded-x264.json:v180=ok, degraded-mpeg2.json:v270=exact, degraded-mpeg2.json:v180=ok, degraded-x264-mezzanine.json:v360=ok, degraded-x264-mezzanine.json:v270=exact, degraded-x264-mezzanine.json:v180=ok, ad-x264.json:v270=ok, ad-x264.json:v180=exact, ad-mpeg2.json:v270=ok, ad-mpeg2.json:v180=exact, ad-x264-origin1.json:v270=ok, ad-x264-origin1.json:v180=exact, ad-x264-nodisc.json:v270=ok, ad-x264-nodisc.json:v180=exact, ad-x264-busy.json:v270=ok, ad-x264-busy.json:v180=exact, ad-x264-control.json:v270=ok, ad-x264-control.json:v180=ok, ad-x264-busy-control.json:v270=ok, ad-x264-busy-control.json:v180=ok
+N = 16: degraded-x264.json:v270=exact, degraded-x264.json:v180=ok, degraded-mpeg2.json:v270=exact, degraded-mpeg2.json:v180=ok, degraded-x264-mezzanine.json:v360=ok, degraded-x264-mezzanine.json:v270=exact, degraded-x264-mezzanine.json:v180=ok, ad-x264.json:v270=ok, ad-x264.json:v180=exact, ad-mpeg2.json:v270=ok, ad-mpeg2.json:v180=exact, ad-x264-origin1.json:v270=ok, ad-x264-origin1.json:v180=exact, ad-x264-nodisc.json:v270=ok, ad-x264-nodisc.json:v180=exact, ad-x264-busy.json:v270=ok, ad-x264-busy.json:v180=exact, ad-x264-control.json:v270=ok, ad-x264-control.json:v180=ok, ad-x264-busy-control.json:v270=ok, ad-x264-busy-control.json:v180=ok
+N = 20: degraded-x264.json:v270=exact, degraded-x264.json:v180=ok, degraded-mpeg2.json:v270=exact, degraded-mpeg2.json:v180=ok, degraded-x264-mezzanine.json:v360=ok, degraded-x264-mezzanine.json:v270=exact, degraded-x264-mezzanine.json:v180=ok, ad-x264.json:v270=ok, ad-x264.json:v180=exact, ad-mpeg2.json:v270=ok, ad-mpeg2.json:v180=exact, ad-x264-origin1.json:v270=ok, ad-x264-origin1.json:v180=exact, ad-x264-nodisc.json:v270=ok, ad-x264-nodisc.json:v180=exact, ad-x264-busy.json:v270=ok, ad-x264-busy.json:v180=exact, ad-x264-control.json:v270=ok, ad-x264-control.json:v180=ok, ad-x264-busy-control.json:v270=ok, ad-x264-busy-control.json:v180=ok
+N = 24: degraded-x264.json:v270=exact, degraded-x264.json:v180=ok, degraded-mpeg2.json:v270=exact, degraded-mpeg2.json:v180=ok, degraded-x264-mezzanine.json:v360=ok, degraded-x264-mezzanine.json:v270=exact, degraded-x264-mezzanine.json:v180=ok, ad-x264.json:v270=ok, ad-x264.json:v180=exact, ad-mpeg2.json:v270=ok, ad-mpeg2.json:v180=exact, ad-x264-origin1.json:v270=ok, ad-x264-origin1.json:v180=exact, ad-x264-nodisc.json:v270=ok, ad-x264-nodisc.json:v180=exact, ad-x264-busy.json:v270=ok, ad-x264-busy.json:v180=exact, ad-x264-control.json:v270=ok, ad-x264-control.json:v180=ok, ad-x264-busy-control.json:v270=ok, ad-x264-busy-control.json:v180=ok
+N = 30: degraded-x264.json:v270=miss, degraded-x264.json:v180=ok, degraded-mpeg2.json:v270=miss, degraded-mpeg2.json:v180=ok, degraded-x264-mezzanine.json:v360=ok, degraded-x264-mezzanine.json:v270=miss, degraded-x264-mezzanine.json:v180=ok, ad-x264.json:v270=ok, ad-x264.json:v180=exact, ad-mpeg2.json:v270=ok, ad-mpeg2.json:v180=exact, ad-x264-origin1.json:v270=ok, ad-x264-origin1.json:v180=exact, ad-x264-nodisc.json:v270=ok, ad-x264-nodisc.json:v180=exact, ad-x264-busy.json:v270=ok, ad-x264-busy.json:v180=exact, ad-x264-control.json:v270=ok, ad-x264-control.json:v180=ok, ad-x264-busy-control.json:v270=ok, ad-x264-busy-control.json:v180=ok
+N = 40: degraded-x264.json:v270=miss, degraded-x264.json:v180=ok, degraded-mpeg2.json:v270=miss, degraded-mpeg2.json:v180=ok, degraded-x264-mezzanine.json:v360=ok, degraded-x264-mezzanine.json:v270=miss, degraded-x264-mezzanine.json:v180=ok, ad-x264.json:v270=ok, ad-x264.json:v180=exact, ad-mpeg2.json:v270=ok, ad-mpeg2.json:v180=exact, ad-x264-origin1.json:v270=ok, ad-x264-origin1.json:v180=exact, ad-x264-nodisc.json:v270=ok, ad-x264-nodisc.json:v180=exact, ad-x264-busy.json:v270=ok, ad-x264-busy.json:v180=exact, ad-x264-control.json:v270=ok, ad-x264-control.json:v180=ok, ad-x264-busy-control.json:v270=ok, ad-x264-busy-control.json:v180=ok
+N = 49: degraded-x264.json:v270=miss, degraded-x264.json:v180=ok, degraded-mpeg2.json:v270=miss, degraded-mpeg2.json:v180=ok, degraded-x264-mezzanine.json:v360=ok, degraded-x264-mezzanine.json:v270=miss, degraded-x264-mezzanine.json:v180=ok, ad-x264.json:v270=ok, ad-x264.json:v180=exact, ad-mpeg2.json:v270=ok, ad-mpeg2.json:v180=exact, ad-x264-origin1.json:v270=ok, ad-x264-origin1.json:v180=exact, ad-x264-nodisc.json:v270=ok, ad-x264-nodisc.json:v180=exact, ad-x264-busy.json:v270=ok, ad-x264-busy.json:v180=exact, ad-x264-control.json:v270=ok, ad-x264-control.json:v180=ok, ad-x264-busy-control.json:v270=ok, ad-x264-busy-control.json:v180=ok
+
+## The drops found at T = 6, median_nonlow, W = 50, N = 0 (every run of low frames)
+degraded-x264.json:v270: 100-124 (25)
+degraded-x264.json:v180: none
+degraded-mpeg2.json:v270: 100-124 (25)
+degraded-mpeg2.json:v180: none
+degraded-x264-mezzanine.json:v360: none
+degraded-x264-mezzanine.json:v270: 100-124 (25)
+degraded-x264-mezzanine.json:v180: none
+ad-x264.json:v270: none
+ad-x264.json:v180: 75-124 (50)
+ad-mpeg2.json:v270: 75-75 (1)
+ad-mpeg2.json:v180: 75-124 (50)
+ad-x264-origin1.json:v270: none
+ad-x264-origin1.json:v180: 75-124 (50)
+ad-x264-nodisc.json:v270: none
+ad-x264-nodisc.json:v180: 75-124 (50)
+ad-x264-busy.json:v270: 75-75 (1)
+ad-x264-busy.json:v180: 75-124 (50)
+ad-x264-control.json:v270: none
+ad-x264-control.json:v180: 75-75 (1)
+ad-x264-busy-control.json:v270: 75-75 (1)
+ad-x264-busy-control.json:v180: 75-76 (2), 78-78 (1), 80-80 (1), 82-82 (1), 84-84 (1), 86-86 (1), 88-90 (3), 92-92 (1), 94-94 (1), 96-96 (1), 98-98 (1), 102-102 (1), 104-104 (1), 106-106 (1), 108-108 (1), 110-110 (1), 112-112 (1), 114-114 (1), 116-116 (1), 118-118 (1), 120-120 (1), 122-122 (1), 124-124 (1)
+--- stderr ---
+
+--- end ---

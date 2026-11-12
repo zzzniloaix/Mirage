@@ -1,0 +1,6 @@
+# cwd: <out>
+# command: 'python3' '-I' '<scratch>/phase3/tools/quote_check.py' '<scratch>/phase3/private/work_order_p3.txt' 'review-2/review.json' 'review-2/review.md' 'review-2/runs/catch2-citation.txt' 'review-2/runs/code-lines.txt' 'review-2/runs/ffmpeg-citations.txt' 'review-2/runs/package-check.txt' 'review-2/runs/player-keys.txt' 'review-2/runs/question-lengths.txt' 'review-2/runs/quote-check.txt' 'review-2/runs/rate-change-check.txt' 'review-2/runs/render-cmp.txt' 'review-2/runs/render-json-unchanged.txt' 'review-2/runs/render.txt' 'review-2/runs/repo-state.txt' 'review-2/runs/repo-status.txt' 'review-2/tools/line_has.py' 'review-2/tools/package_check.py' 'review-2/tools/privacy_check.py' 'review-2/tools/question_lengths.py' 'review-2/tools/rate_change_check.py' 'review-2/tools/run.sh' 'review-2/tools/show_lines.py'
+# started: 2026-11-01T07:56:09Z, ended: 2026-11-01T07:56:09Z (UTC)
+# stdout and stderr, in order:
+in all: 0 prose runs, 0 runs of names, K = 6
+# exit status: 0

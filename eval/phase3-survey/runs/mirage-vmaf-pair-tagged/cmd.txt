@@ -1,0 +1,2 @@
+cwd: <out>/runs/fixture-data
+command: '<repo>/build/macos-debug/mirage_vmaf' '--ref' 'ref/index.m3u8' '--dis' 'dis/tagged.m3u8' '--out' '../mirage-vmaf-pair-tagged/report.json'

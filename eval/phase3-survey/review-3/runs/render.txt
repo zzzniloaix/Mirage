@@ -1,0 +1,6 @@
+# cwd: <out>/review-3
+# command: 'python3' '-I' '-B' '<out>/design/tools/render.py' '<out>/review-3/design-copy' '<out>/review-3/design-rendered.md'
+# started: 2026-11-01T08:45:08Z, ended: 2026-11-01T08:45:08Z (UTC)
+# stdout and stderr, in order:
+<out>/review-3/design-rendered.md: 273449 bytes; 44 questions (27, 9 and 8 in rounds 1 to 3), 24 packages, 28 P-entries (9 moved), 22 risks
+# exit status: 0

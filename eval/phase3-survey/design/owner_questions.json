@@ -1,0 +1,1668 @@
+[
+  {
+    "id": "Q01",
+    "title": "Where the timeline and its attributions are written",
+    "round": 1,
+    "d007": true,
+    "summary": "Q01 decides whether the timeline's events and attributions go into the ladder report or into a document of their own; the agent recommends a separate timeline document that names its ladder report by hash and copies no scores.",
+    "question": "§7 places `timeline` and `attributions` in mirage_vmaf's one JSON output, while D-068 scores a ladder once and attributes many sessions against it. Where are the timeline's events and the attributions written? Option (C) needs the analyzer to record events while scoring, which under D-007 is the owner's to rule on, or to approve as a written plan.",
+    "options": [
+      {
+        "label": "(A) In the ladder report",
+        "description": "Top-level `timeline` and `attributions` next to `pairs`, as §7 lists them, with no JSON reader needed. But each new session means scoring again (the full advanced ladder took 1882.86 s, schema.md §3.3) or rewriting the scored file, and per-frame lines are already 99.91% of a full report (same section)."
+      },
+      {
+        "label": "(B) A separate timeline document, naming the ladder report by hash",
+        "description": "One ladder report and at most one session per document; scores are read from the report, not copied, so the scoring run's output and every committed comparison stay as they are. The prototype's documents for 200-frame ladders were 8577 to 14470 bytes (design-evaluation run 11); it needs a JSON reader, a hash rule that survives redaction (Q06) and a reported difference from §7."
+      },
+      {
+        "label": "(B') As (B), with the session's per-frame curve copied",
+        "description": "The document reads without its report, but it grows with the frames (36000 entries for one 60 fps pair of Apple's advanced sample, schema.md §3.3) and repeats scores the report holds."
+      },
+      {
+        "label": "(C) Per-variant events in the report, the session in a document",
+        "description": "The per-variant events come from the scoring run itself, but the report changes (a key under `pairs[]` breaks the exact key count at tests/test_vmaf_report.cpp:909) and the analyzer must record them, a D-007 matter. That recording would be WP16's and would move into round 1, ahead of the packages that read it (design §14)."
+      }
+    ],
+    "agent_recommendation": "(B)",
+    "why": "It keeps D-068's one scoring for many sessions, leaves the committed records and their checks valid, and keeps per-frame data in the report; its costs (a JSON reader, a hash rule, a reported difference) are each one bounded package.",
+    "blocks": [
+      "WP00a",
+      "WP08",
+      "WP09a",
+      "WP11a",
+      "WP09b",
+      "WP11b",
+      "WP12",
+      "WP16"
+    ]
+  },
+  {
+    "id": "Q02",
+    "title": "The single time base: where events sit, how they are compared, and the seconds of offsets",
+    "round": 1,
+    "d007": false,
+    "summary": "Q02 decides on what clock events are placed and compared and in which seconds offsets are printed; the agent recommends placing and comparing on reference frames and printing the reference's playlist time, falling back to the frame index times the frame duration where the reference has no segment map, with the two compared at every frame wherever both exist and the frame-index seconds everywhere as a close second.",
+    "question": "§3.1 asks for one time base keyed by media PTS, the reference's timeline, but where an ad's timestamps restart at the main content's origin raw PTS repeat: 50 PTS values each name two reference frames in testgen's ad ladder (design-evaluation run 09). Under (b) to (d) events are placed and compared on reference frames and keep their media key (the report's sequence and the PTS), so the events an interval lists are the same and only the printed seconds differ, apart from durations given in seconds (design §4.2). Wherever the reference has a segment map, design §4.2's check computes both (c)'s and (d)'s seconds at every frame and warns where they differ by more than half a frame, so the choice between them is which to print there, and what to print where there is no map. On what clock are events placed and compared, and in which seconds are offsets printed?",
+    "options": [
+      {
+        "label": "(a) Raw reference PTS for everything",
+        "description": "The work order's wording, nothing derived. On the ad ladder it lists main_000.ts and main_001.ts for the ad's drop (design-library run axis-ad), and offsets step back by 2.960 s at the ad's first frame (design-evaluation run 09)."
+      },
+      {
+        "label": "(b) Reference frames; seconds of the PTS, the report's sequences laid end to end",
+        "description": "Needs only the ladder report. A report sequence breaks only at a backward step or a forward jump of more than 10 s (src/VMAFAlign.h:114), so smaller jumps stay in the seconds: the 2 s ad break spans 5.000 s (design-evaluation run 09)."
+      },
+      {
+        "label": "(c) Reference frames; seconds of the reference's playlist time",
+        "description": "Each frame at its segment's EXTINF sum plus its PTS offset in the segment: equal to (d) on the four ladders checked, and right through a missing frame or a change of rate, after which (d) was 0.040 s and 0.083 to 1.167 s off (simulated, design/runs/seconds-check.txt), except within a segment that lost its playlist discontinuity sequence's first frame, where both were a frame early (review-3/runs/seconds-check-sequence-start.txt). It is off instead where an EXTINF doesn't match its segment's frames, which RFC 8216 §4.3.2.1 advises against (0.040 s after one EXTINF simulated a frame too long, same run). It needs the reference's segment map, so a reference without one (a mezzanine, a refused map) falls back to (d)."
+      },
+      {
+        "label": "(d) Reference frames; seconds = frame index times the frame duration",
+        "description": "Defined from the report for every reference, a mezzanine included, and equal to (c) on the four ladders checked (design/runs/seconds-check.txt). It is off after a missing frame or a change of rate, by the amounts under (c), and right where an EXTINF is off; design §4.2's check, which needs the segment map, warns at the frames where it leaves (c) by more than half a frame."
+      }
+    ],
+    "agent_recommendation": "(c), falling back to (d) where the reference has no segment map, with design §4.2's check; (d) alone a close second",
+    "why": "Frames make the events an interval lists exact and independent of the seconds (design-evaluation runs 07 and 08 showed doubles listing boundary events inconsistently). Since design §4.2's check computes both wherever the reference has a segment map, the choice is which seconds to print where they differ: (c) stays right after a missing frame or a change of rate (from the next segment on if the frame missing is a sequence's first), and RFC 8216 §4.3.2.3 puts changes of encoding parameters at discontinuities such as an ad's, while (c) is otherwise off only where an EXTINF departs from its frames; (d) gives every reference and both reference modes one definition, the better choice if the owner expects rounded or integer EXTINF.",
+    "blocks": [
+      "WP00a",
+      "WP01",
+      "WP08",
+      "WP09a",
+      "WP11a",
+      "WP12",
+      "WP14"
+    ]
+  },
+  {
+    "id": "Q03",
+    "title": "Which events have a wall clock, and on what clock",
+    "round": 1,
+    "d007": false,
+    "summary": "Q03 decides what an event's wall clock holds; the agent recommends a wall clock only for observed events (the session fetch now, the player's log later), as microseconds of one steady clock from a UTC anchor sampled at the session's start, and none for offline events.",
+    "question": "§3.1 records a wall clock beside media time without saying which clock. Offline facts (scores, playlist tags, decoder facts) were observed at no particular time, while a session fetch's requests were. What does an event's wall clock hold?",
+    "options": [
+      {
+        "label": "(a) The observation time of observed events only",
+        "description": "When a fetch's request was made, later also the player's log; null for offline events; no common origin stated."
+      },
+      {
+        "label": "(b) (a), as microseconds from one UTC anchor per session",
+        "description": "One steady clock from the session's start plus a UTC time sampled then (sources.md §11, choice 7 (c)); a segment's EXT-X-PROGRAM-DATE-TIME stays in its payload. Monotonic and comparable within a session; offline events, and so every event of an acceptance test, have none (design §11, item 5)."
+      },
+      {
+        "label": "(c) A date from EXT-X-PROGRAM-DATE-TIME for offline events too",
+        "description": "Every event under a PDT gets a date, but a PDT is a program date, not an observation, and many playlists have none."
+      }
+    ],
+    "agent_recommendation": "(b)",
+    "why": "It records only what was observed, on one monotonic clock; NetworkLogger already keeps steady microseconds and maps them to wall time (src/NetworkLogger.h:189-192).",
+    "blocks": [
+      "WP00a",
+      "WP08",
+      "WP07",
+      "WP09b"
+    ]
+  },
+  {
+    "id": "Q04",
+    "title": "The timeline document's layout and event vocabulary, as its first schema version",
+    "round": 1,
+    "d007": false,
+    "summary": "Q04 decides the layout and event vocabulary of the timeline document's first schema version; the agent recommends design §8 and §5.9's layout, which keeps §7's names where §7 has the field and adds spans, groups by source, offsets, parameters and the report's provenance.",
+    "question": "Design §8 proposes the document's layout and §5.9 each source's event types, with §7's field names where §7 has them. Which becomes the document's schema version 1?",
+    "options": [
+      {
+        "label": "(a) As design §8 and §5.9 propose",
+        "description": "§7's `timeline[]` and `attributions[]` names, extended with reference-frame positions, spans, ids and seconds; `overlapping_events` an array of groups in §3.1's source order, each event with offsets in seconds and frames; the parameters and the ladder report's provenance copied (formerly P-AC, whose alternative was the report's hashes only); scores not copied. It files the aligner's unpaired frames under `vmaf`, not under the decoder as §3.1 groups dropped frames, a difference to report (design §11, item 3)."
+      },
+      {
+        "label": "(b) §7's literal shapes only",
+        "description": "`pts` and `payload` only, `overlapping_events` a flat list, the rest in payloads: closest to §7's text, but spans, groups and offsets then rest on payload conventions the schema doesn't state."
+      },
+      {
+        "label": "(c) (a), declared provisional until Phase 5",
+        "description": "The same layout, its names to be revisited when §7's report schema is decided; readers must expect a version 2."
+      }
+    ],
+    "agent_recommendation": "(a)",
+    "why": "It keeps §7's names and adds what the example and the reproduction need; a prototype of this shape answered the example (design-evaluation run 10).",
+    "blocks": [
+      "WP00a",
+      "WP04",
+      "WP08",
+      "WP09a",
+      "WP11a",
+      "WP05",
+      "WP07",
+      "WP09b",
+      "WP11b",
+      "WP14"
+    ]
+  },
+  {
+    "id": "Q05",
+    "title": "Versioning and provenance of the timeline document",
+    "round": 1,
+    "d007": false,
+    "summary": "Q05 decides what versioning and provenance the new document carries; the agent recommends schema_version and a JSON Schema file now, leaving tool_version and git_commit to Phase 5, with the commit recorded by the eval tooling as P-006 has it.",
+    "question": "§7 (Phase 5) wants `schema_version`, a JSON Schema file, `tool_version` and `git_commit`; the build has no version (CMakeLists.txt:2), and P-006 has the eval tooling record the commit when it runs. What does the new document carry?",
+    "options": [
+      {
+        "label": "(a) `schema_version` and a schema file now; the rest with Phase 5",
+        "description": "An integer version from 1, as six eval scripts version their outputs (schema.md §1.7); the schema under docs/schema/; the commit recorded by the eval tooling (P-006)."
+      },
+      {
+        "label": "(b) (a), plus `tool_version` and `git_commit` now",
+        "description": "The commit from a configure-time `git rev-parse` (a CMake step of WP00a), which can go stale between configure and run, the reason P-006 records it at run time; changes P-006."
+      },
+      {
+        "label": "(c) `schema_version` only, the schema file with Phase 5",
+        "description": "Less work now; the paper can't cite a schema for the new document until then."
+      },
+      {
+        "label": "(d) Neither until Phase 5",
+        "description": "Readers tell layouts apart by their keys, as for the 12 committed mirage_vmaf report layouts (schema.md §1.8)."
+      }
+    ],
+    "agent_recommendation": "(a)",
+    "why": "A new format costs nothing to version from its first day, its schema can be cited, and P-006's confirmed rule for the commit stays.",
+    "blocks": [
+      "WP00a",
+      "WP08",
+      "WP09b",
+      "WP12"
+    ]
+  },
+  {
+    "id": "Q06",
+    "title": "How a timeline document names its ladder report",
+    "round": 1,
+    "d007": false,
+    "summary": "Q06 decides how a document identifies the ladder report it was built from; the agent recommends both the SHA-256 of the report's bytes and the SHA-256 of a canonical digest of what attribution uses, which survives the redaction of committed copies.",
+    "question": "Committed copies of ladder reports are redacted (local paths replaced), so the hash of the bytes mirage_vmaf wrote doesn't match a committed copy (schema.md §1.8). How does a document name its report?",
+    "options": [
+      {
+        "label": "(a) SHA-256 of the report's bytes",
+        "description": "Exact identity of the file; fails against a redacted, committed copy."
+      },
+      {
+        "label": "(b) SHA-256 of a canonical digest of what attribution uses",
+        "description": "Each pair's index and entries, each frame's indices, PTS and score, and the settings that hold no path. Redaction leaves it unchanged; a canonical form to define and test (P-Z)."
+      },
+      {
+        "label": "(c) Both",
+        "description": "The file it was built from, and a redaction-proof check against the committed record."
+      }
+    ],
+    "agent_recommendation": "(c)",
+    "why": "Each covers what the other can't, and both are cheap to compute when the report is read.",
+    "blocks": [
+      "WP03",
+      "WP08",
+      "WP09a",
+      "WP12"
+    ]
+  },
+  {
+    "id": "Q07",
+    "title": "How rungs are named in outputs",
+    "round": 1,
+    "d007": false,
+    "summary": "Q07 decides how outputs name a rung; the agent recommends the master entry index and URI as its identity, with its BANDWIDTH ranks from the top and from the bottom printed as labels.",
+    "question": "The work order's example names a switch between two numbered rungs, but the ladder report has no rung numbers: entries are numbered in the master's order (src/VMAFLadder.h:88). How does Phase 3 name a rung? Which BANDWIDTH ranks a playlist that several entries name is Q43 (e).",
+    "options": [
+      {
+        "label": "(a) The master entry index and URI only",
+        "description": "Exact as the master gives them; no number to read at a glance."
+      },
+      {
+        "label": "(b) Plus an ascending BANDWIDTH rank (1 = lowest)",
+        "description": "A switch from 5 to 3 then reads as down; the ranks change when a rung is added."
+      },
+      {
+        "label": "(c) Plus a descending rank (1 = highest)",
+        "description": "A switch from 5 to 3 then reads as up; the ranks change when a rung is added."
+      },
+      {
+        "label": "(d) Entry and URI as identity, both ranks as labels",
+        "description": "Unambiguous whatever convention a reader assumes; longer text (design-evaluation run 10 prints both)."
+      }
+    ],
+    "agent_recommendation": "(d)",
+    "why": "The identity never changes, and printing both ranks imposes no reading of the example that the work order doesn't state.",
+    "blocks": [
+      "WP00a",
+      "WP08",
+      "WP09a",
+      "WP07",
+      "WP09b",
+      "WP11b",
+      "WP14"
+    ]
+  },
+  {
+    "id": "Q08",
+    "title": "Where each scored frame's segment, and the keyframes, come from",
+    "round": 1,
+    "d007": true,
+    "summary": "Q08 decides how each scored frame is mapped to its segment and where keyframes come from; the agent recommends a demux-only pass in the timeline build, which leaves the scorer and its reports unchanged.",
+    "question": "Placing playlist, SCTE-35 and network events needs each scored frame's segment, and §3.1 asks for keyframes; today no frame is mapped to a segment (sources.md §2). Who records them? Option (b) changes the analyzer's reading of its inputs, which needs the owner's ruling under D-007, or a written plan the owner approves.",
+    "options": [
+      {
+        "label": "(a) A demux-only pass in the timeline build",
+        "description": "Each scored playlist read again without decoding, packets placed by byte position and checked against the report's PTS; keyframes and corrupt flags from packet flags. Exact on every playlist probed (200 of 200 frames on each of 15 playlists, design-evaluation runs 03 and 04); scorer and report unchanged; every segment read again (time on real ladders: MEASUREMENT PENDING)."
+      },
+      {
+        "label": "(b) The analyzer records them while scoring",
+        "description": "No second read, exact by construction; but the analyzer's reading and the report change (a key under `pairs[]`, counted at tests/test_vmaf_report.cpp:909), older reports lack it, and it is a D-007 and D-068 matter. The acceptance tests would then wait for that change, WP16's, and its ruling or plan (design §14)."
+      },
+      {
+        "label": "(c) PTS against EXTINF sums, no extra read",
+        "description": "FFmpeg's own rule ([hls.c#L1916-L1945](https://github.com/FFmpeg/FFmpeg/blob/n8.1.1/libavformat/hls.c#L1916-L1945)); right for 145 of 200 packets on the ad ladders and 193 of 200 on the degraded one (design-library runs map-by-pos-*), and it can't place a PTS two segments share."
+      }
+    ],
+    "agent_recommendation": "(a)",
+    "why": "It was exact on every playlist probed, leaves §2's scorer and its committed comparisons untouched, and its PTS check makes a failure visible; what a failure costs is Q43 (c).",
+    "blocks": [
+      "WP00a",
+      "WP06",
+      "WP09a",
+      "WP16"
+    ]
+  },
+  {
+    "id": "Q09",
+    "title": "Decode errors in the timeline",
+    "round": 3,
+    "d007": true,
+    "summary": "Q09 decides whether and how Phase 3 records decode errors; the agent recommends recording the scoring decode's errors in the analyzer if the owner rules that recording alone is outside D-007 or approves its short plan, and otherwise leaving decode errors out of Phase 3.",
+    "question": "§3.1 lists decode errors, but today a damaged segment scores to a complete report with no trace of them: 6 frames carried decode_error_flags 4 and scored 0 to 34.6 (sources.md §7). Where do decode errors come from? Option (a) touches the analyzer's decode loop: answering it is a ruling under D-007 that recording alone is outside it, or the approval of a written plan.",
+    "options": [
+      {
+        "label": "(a) Recorded by the analyzer while scoring",
+        "description": "The flags and send errors read in DecodeCtx (src/VMAFAnalyzer.cpp:197-241), as a sparse per-pair list in the report; no frame, pairing or score changes, and no extra decode. A ladder must be scored again to carry them; WP16 records them and makes them decode_error events."
+      },
+      {
+        "label": "(b) A decode pass in the timeline build",
+        "description": "The scorer untouched; every variant decoded again (time: MEASUREMENT PENDING), in an adapter of its own (WP16), recording a second decode's errors, not the scored one's."
+      },
+      {
+        "label": "(c) Not in Phase 3",
+        "description": "Keyframes and corrupt packets from the demux pass and unpaired frames from the report only; decode errors a difference to report."
+      }
+    ],
+    "agent_recommendation": "(a) if the owner so rules or approves the plan; otherwise (c)",
+    "why": "Only the scoring decode's errors explain the scores being attributed, at no decode cost. Neither acceptance test needs them, so the package is conditional and off the acceptance path.",
+    "blocks": [
+      "WP16"
+    ]
+  },
+  {
+    "id": "Q10",
+    "title": "Where a scripted session's per-segment HTTP timing comes from",
+    "round": 2,
+    "d007": true,
+    "summary": "Q10 decides where a scripted session's per-segment HTTP timing comes from; the agent recommends a sequential fetch of the session's files after scoring, timed by the player's NetworkLogger compiled into mirage_vmaf.",
+    "question": "D-068 gives a session the HTTP timing of its segments but no source for a scripted one, and the example needs a segment request's duration; the scoring reads are paced by decoding and scoring (sources.md §3.3). Without a session a ladder has no network events, both acceptance tests included (design §11, item 6). Which source? Option (e) changes the analyzer's input reading, which needs the owner's ruling under D-007 or a written plan, and D-068 keeps the decode path unchanged.",
+    "options": [
+      {
+        "label": "(a) A fetch of the session's files, timed by NetworkLogger",
+        "description": "The master, each played playlist and segment in play order, as Q44 (f) and (g) say; NetworkLogger compiled into mirage_vmaf unchanged and installed for the fetch only (design §3.3, §5.7), giving status, request sent, first byte, end and bytes. A prototype measured 2.313 s for a segment served 2.3 s late (design-evaluation run 06); it is not a player's fetch, and it relies on FFmpeg 8.1.1's log wording."
+      },
+      {
+        "label": "(b) The same fetch, timed by avio alone",
+        "description": "No log parsing; the status only as the class of a failed open's AVERROR_HTTP_* ([http.c#L592-L608](https://github.com/FFmpeg/FFmpeg/blob/n8.1.1/libavformat/http.c#L592-L608)), so 200 and 206 are not told apart."
+      },
+      {
+        "label": "(c) Declared in the plan",
+        "description": "Deterministic, but it measures nothing: the example's 2.3 s becomes an input, which makes the answer circular."
+      },
+      {
+        "label": "(d) None for scripted sessions",
+        "description": "Timing only from the player's log, later; Phase 3 can't answer the example's network part."
+      },
+      {
+        "label": "(e) (a), plus what the scoring reads saw",
+        "description": "A per-input recorder in SegmentWatch's hooks, labelled scoring-paced (sources.md §11, choice 5 (a)), so that every ladder gets network events. Its times are paced by scoring, the report changes and ladders must be scored again: a D-007 and D-068 matter, and WP16's work."
+      }
+    ],
+    "agent_recommendation": "(a)",
+    "why": "It uses the component §3.1 names, gives every field §3.1 lists, and a test can make one segment slow with a delayed local server. (e) gives ladders without sessions network events, but paced by scoring they don't show how long a player would wait.",
+    "blocks": [
+      "WP00b",
+      "WP07",
+      "WP09b",
+      "WP11b",
+      "WP14",
+      "WP16"
+    ]
+  },
+  {
+    "id": "Q11",
+    "title": "The session plan's format",
+    "round": 2,
+    "d007": false,
+    "summary": "Q11 decides the scripted session plan's file format; the agent recommends versioned JSON whose spans are master entries with their first and last media sequence numbers.",
+    "question": "A scripted session (D-068) says which variant plays over each span of media. A plan is a list, which D-030's config file can't hold (each setting is given once, src/VMAFCli.cpp:224), so it is a file of its own, recorded by path and SHA-256. Which format, and in which unit?",
+    "options": [
+      {
+        "label": "(a) Versioned JSON, spans as segment ranges",
+        "description": "`{entry, first_seq, last_seq}` in play order: exact, no snapping rule, the fetched segments follow directly, and HLS switches at segment boundaries. The player's log can later add observed fields to the same format."
+      },
+      {
+        "label": "(b) Versioned JSON, spans in seconds on the axis",
+        "description": "Closer to D-068's span of media time, but it needs a snapping rule, and a rule for fetching around a switch inside a segment."
+      },
+      {
+        "label": "(c) Text lines `<entry> <first>-<last>`",
+        "description": "The simplest to write; a second format for the player's log later."
+      },
+      {
+        "label": "(d) The player's `--qa-switch` syntax",
+        "description": "Already known (src/main.cpp:553-556), but its times are wall seconds after the first frame, and `v<height>` is ambiguous when two playlists share a height."
+      }
+    ],
+    "agent_recommendation": "(a)",
+    "why": "Segment ranges are exact for HLS and give the fetch list directly; JSON reuses the reader Phase 3 needs anyway.",
+    "blocks": [
+      "WP00b",
+      "WP07",
+      "WP09b",
+      "WP11b",
+      "WP17"
+    ]
+  },
+  {
+    "id": "Q12",
+    "title": "A session's spans that play the reference in top-rung mode",
+    "round": 2,
+    "d007": false,
+    "summary": "Q12 decides what a session's curve holds where its plan plays the top rung, which top-rung mode doesn't score; the agent recommends leaving those spans unscored and marked, with no detection there.",
+    "question": "In top-rung mode the top rung is the reference and has no score (src/VMAFLadder.h:36-38). What does a session's curve hold where its plan plays the top rung?",
+    "options": [
+      {
+        "label": "(a) Unscored",
+        "description": "No points and no detection there; the document marks the span `scored: false`."
+      },
+      {
+        "label": "(b) Taken as 100",
+        "description": "Assumed, not measured; a switch down from it looks like a drop of 100 minus the next score."
+      },
+      {
+        "label": "(c) Sessions require mezzanine mode",
+        "description": "Every variant is scored, but a stitched ladder can't be scored against a one-file mezzanine (76.92% of frames failed, testgen.md §3.5)."
+      },
+      {
+        "label": "(d) The top rung scored against itself once",
+        "description": "Measured, at the cost of one more pair in §2's run (WP16), for a curve that says nothing about encoding."
+      }
+    ],
+    "agent_recommendation": "(a)",
+    "why": "It claims nothing that wasn't measured and needs no change to §2.",
+    "blocks": [
+      "WP00b",
+      "WP07",
+      "WP09b",
+      "WP16"
+    ]
+  },
+  {
+    "id": "Q13",
+    "title": "The player's own session log in Phase 3",
+    "round": 3,
+    "d007": true,
+    "summary": "Q13 decides whether the player's own session log is part of Phase 3; the agent recommends leaving it out, so that sessions come only from scripted plans, and taking it later with its own D-007 plan.",
+    "question": "D-068 has sessions from a scripted plan now and later from a log the player records. Recording needs hooks in switch_video, read_loop, video_decode_loop and on_present (sources.md §6), which sit in the render and decode path. Is the log part of Phase 3? Answering (b) asks the agent for a written plan under D-007, for the owner to approve before any code.",
+    "options": [
+      {
+        "label": "(a) Not in Phase 3",
+        "description": "Scripted plans only, the plan's format leaving room for the log. The decoder events D-068's limits expect for frames dropped at a switch then don't exist in Phase 3, a difference to report (design §11, item 3)."
+      },
+      {
+        "label": "(b) In Phase 3, under a D-007 plan",
+        "description": "Logging-only hooks with the rung, the take-over point and the frames dropped; its package shares src/main.cpp with the panel's, so the two run one after the other."
+      },
+      {
+        "label": "(c) From the existing switch-trace text",
+        "description": "No change to the player, a reader of it in WP17; but free text without the rung, on logger::uptime()'s clock, which isn't NetworkLogger's (sources.md §6 and §9)."
+      }
+    ],
+    "agent_recommendation": "(a)",
+    "why": "Neither acceptance test nor the composite example needs it, and (b) is a render and decode path change the owner should take with its own plan.",
+    "blocks": [
+      "WP17"
+    ]
+  },
+  {
+    "id": "Q14",
+    "title": "The anchor that places an SCTE-35 cue",
+    "round": 2,
+    "d007": false,
+    "summary": "Q14 decides which anchor places a cue that carries an SCTE-35 message; the agent recommends the tag's position (the segment it precedes), with a decoded splice time kept as its own splice_point event and every anchor recorded.",
+    "question": "A cue can be placed by its tag's position, by a DATERANGE's START-DATE through PROGRAM-DATE-TIME, or by its message's splice time; vendors disagree, and several published messages carry no splice time (scte35.md §4). D-069's ladders carry plain tags, which every option places by position (testgen.md §2.3). Which anchor places cues that carry a message?",
+    "options": [
+      {
+        "label": "(a) Position, with the other anchors recorded",
+        "description": "Cue events at the segments their tags precede; a splice time becomes a `splice_point` event, placed on the carrying variant's own frames (design §5.1); a warning when an anchor falls outside the tag's segment. Segment-accurate; the rule MediaTailor, Video Stitcher and broadpeak.io state (scte35.md §4.1)."
+      },
+      {
+        "label": "(b) Splice time when the message has one, else position",
+        "description": "The standard's splice point, frame-accurate where present; absent from many published messages, and an upstream restamp without a pts_adjustment update misplaces it."
+      },
+      {
+        "label": "(c) START-DATE through PDT for DATERANGE, else position",
+        "description": "The HLS rule for DATERANGE, but it needs a PDT; in Wowza's published example tag and date are 13.8 s apart (scte35.md §4.2)."
+      },
+      {
+        "label": "(d) A configurable precedence",
+        "description": "Every anchor recorded and one declared order (scte35.md suggests splice time, START-DATE, position), with a warning when they disagree; one more option to defend and test."
+      }
+    ],
+    "agent_recommendation": "(a)",
+    "why": "Position is where stitched media changes segment and every form has it, while the frame-accurate time stays visible as its own event.",
+    "blocks": [
+      "WP05"
+    ]
+  },
+  {
+    "id": "Q15",
+    "title": "Which decoded SCTE-35 messages count as cue-outs and cue-ins, and cancellations",
+    "round": 2,
+    "d007": false,
+    "summary": "Q15 decides which decoded SCTE-35 messages count as break starts and ends, and whether cancellations are kept; the agent recommends splice_insert by its out-of-network flag and time_signal with the break, advertisement, placement-opportunity and ad-block segmentation types, every other message kept as a non-break event and cancellations as their own events.",
+    "question": "splice_insert says out or in by its out_of_network_indicator; for time_signal the segmentation_type_ids that count are a choice, and sources' defaults differ (scte35.md §4.4). Which set, and are cancelled events kept?",
+    "options": [
+      {
+        "label": "(a) Breaks, advertisements, placement opportunities and ad blocks",
+        "description": "time_signal with types 0x22-0x23, 0x30-0x37 and 0x44-0x47 (SCTE 35 2023r1 Table 23); every other message a `message` event and a cancellation a `cancel` event; the set configurable (`--cue-types`)."
+      },
+      {
+        "label": "(b) splice_insert only",
+        "description": "Every time_signal a non-break message; misses segmentation-only signalling."
+      },
+      {
+        "label": "(c) MediaPackage v1's default set",
+        "description": "splice_insert plus provider and distributor advertisements and placement opportunities (scte35.md §4.4); one vendor's choice."
+      },
+      {
+        "label": "(d) Every Start/End pair of Table 23",
+        "description": "Programs, chapters and the rest become breaks too."
+      }
+    ],
+    "agent_recommendation": "(a)",
+    "why": "It covers the break hierarchy the standard defines and keeps every other message on the timeline, so a program or chapter boundary can still be attributed.",
+    "blocks": [
+      "WP05",
+      "WP09c"
+    ]
+  },
+  {
+    "id": "Q16",
+    "title": "An SCTE-35 message whose CRC_32 fails",
+    "round": 2,
+    "d007": false,
+    "summary": "Q16 decides what happens to an SCTE-35 message with a bad CRC_32; the agent recommends keeping it, marked crc_valid: false with a warning, with an option to drop such messages.",
+    "question": "Of 79 published messages collected, 9 have a bad CRC_32, 1 of them a library's intended negative test (scte35.md §5; scte35_evidence/runs/check_vectors.txt; review-3/runs/vector-status.txt; the survey's summary, scte35.md §0 item 5, gives 3 in error). What does Phase 3 do with such a message?",
+    "options": [
+      {
+        "label": "(a) Kept, marked",
+        "description": "`crc_valid: false` and a warning; still attributable; `--bad-crc drop` drops them."
+      },
+      {
+        "label": "(b) Dropped",
+        "description": "A corrupted message isn't trusted; its tag still shows by position."
+      },
+      {
+        "label": "(c) Kept silently",
+        "description": "No signal of the doubt."
+      }
+    ],
+    "agent_recommendation": "(a)",
+    "why": "Vendors and the RFCs publish such messages, and an event the attribution omits can't explain a drop.",
+    "blocks": [
+      "WP05",
+      "WP09c"
+    ]
+  },
+  {
+    "id": "Q17",
+    "title": "An ad break's end when several sources give a duration",
+    "round": 1,
+    "d007": false,
+    "summary": "Q17 decides where an ad break ends when its tags and messages give several durations; the agent recommends ending it at its cue-in when there is one, else at its start plus the first of a declared order of durations, keeping every value in the payload.",
+    "question": "A break's duration can come from EXT-X-CUE-OUT's value, DATERANGE's DURATION, PLANNED-DURATION or END-DATE, break_duration, segmentation_duration, or the cue-in's position. Which places the break's end?",
+    "options": [
+      {
+        "label": "(a) The cue-in, else a declared order",
+        "description": "Every value kept; without a cue-in, the tag's own duration (CUE-OUT's value, DATERANGE's DURATION or END-DATE), then PLANNED-DURATION, break_duration and segmentation_duration. On testgen's ad ladder the cue-in gave 2.000 s, equal to EXT-X-CUE-OUT:2.000 (design-evaluation run 10)."
+      },
+      {
+        "label": "(b) The tag's duration first",
+        "description": "Google Video Stitcher's rule (scte35.md §4.4)."
+      },
+      {
+        "label": "(c) The message's break_duration first",
+        "description": "The standard's value; absent from tag-only cues."
+      }
+    ],
+    "agent_recommendation": "(a)",
+    "why": "The cue-in is where the media changes back, and keeping every value shows any disagreement.",
+    "blocks": [
+      "WP04"
+    ]
+  },
+  {
+    "id": "Q18",
+    "title": "SCTE-35 signalling beyond D-070's list",
+    "round": 1,
+    "d007": false,
+    "summary": "Q18 decides whether Phase 3 reads SCTE-35 tags that D-070 doesn't list; the agent recommends D-070's list only, the other tags kept as raw playlist tag events.",
+    "question": "Sources also use #EXT-X-SCTE35 (the standard's own HLS tag), #EXT-X-SPLICEPOINT-SCTE35 and Adobe's #EXT-X-CUE (scte35.md §2.6 and §9). Does Phase 3 read them?",
+    "options": [
+      {
+        "label": "(a) D-070's list only",
+        "description": "The others kept as raw `tag` events and listed as such; a difference to report."
+      },
+      {
+        "label": "(b) Add EXT-X-SCTE35 and EXT-X-SPLICEPOINT-SCTE35",
+        "description": "Their base64 messages through the same decoder; a little more parsing and tests."
+      },
+      {
+        "label": "(c) Add all three",
+        "description": "EXT-X-CUE carries attributes, no message."
+      }
+    ],
+    "agent_recommendation": "(a)",
+    "why": "D-070 decided the list; the others are visible as tags and can be added later at little cost.",
+    "blocks": [
+      "WP04",
+      "WP05"
+    ]
+  },
+  {
+    "id": "Q19",
+    "title": "A bare EXT-X-DISCONTINUITY as an ad boundary",
+    "round": 1,
+    "d007": false,
+    "summary": "Q19 decides whether a discontinuity without cue tags is taken as an ad boundary; the agent recommends never inferring one, so that it stays a discontinuity event.",
+    "question": "AWS MediaTailor's stitched playlists drop the cue tags and keep only EXT-X-DISCONTINUITY (testgen.md §5). Is a discontinuity without cue tags an ad boundary on the timeline?",
+    "options": [
+      {
+        "label": "(a) Never inferred",
+        "description": "A `discontinuity` event only."
+      },
+      {
+        "label": "(b) Inferred",
+        "description": "An `ad_break` from pairs of discontinuities; helps with stitched streams, but it is an inference the paper would have to defend."
+      },
+      {
+        "label": "(c) Inference as an option, off by default",
+        "description": "Available for stitched streams; one more option."
+      }
+    ],
+    "agent_recommendation": "(a)",
+    "why": "The evaluation mustn't claim SCTE-35 where none was signalled, and the attribution still lists the discontinuity at the drop (design-evaluation run 10).",
+    "blocks": [
+      "WP04",
+      "WP09a"
+    ]
+  },
+  {
+    "id": "Q20",
+    "title": "DASH period boundaries",
+    "round": 1,
+    "d007": false,
+    "summary": "Q20 decides what Phase 3 does with DASH; the agent recommends an interface only: a reserved period event type and design §5.5's cue interface, with no DASH reader.",
+    "question": "§3.1 lists DASH period boundaries, but mirage_vmaf scores HLS ladders only (src/VMAFLadder.h:15-22), and D-070 leaves DASH's EventStream as an interface. What does Phase 3 do with DASH?",
+    "options": [
+      {
+        "label": "(a) An interface only",
+        "description": "A `period` type reserved and the cue interface of design §5.5 declared, with no reader; reported as a difference."
+      },
+      {
+        "label": "(b) Parse an MPD's periods and EventStreams",
+        "description": "Events for a DASH presentation of a scored HLS ladder's content, read by WP04 with an XML parser that mirage_vmaf would then link (WP00a); the join between the two presentations is unmeasured."
+      },
+      {
+        "label": "(c) DASH ladder scoring",
+        "description": "Outside §2's scope."
+      }
+    ],
+    "agent_recommendation": "(a)",
+    "why": "Without DASH scoring, DASH events would reach no curve.",
+    "blocks": [
+      "WP00a",
+      "WP04",
+      "WP09a"
+    ]
+  },
+  {
+    "id": "Q21",
+    "title": "Which SCTE-35 test vectors may be committed",
+    "round": 2,
+    "d007": false,
+    "summary": "Q21 decides which published SCTE-35 messages Phase 3's tests may commit; the agent recommends committing only sections the tests build themselves, until the owner settles the licences.",
+    "question": "The published messages collected carry different terms (scte35.md §5): scte35-go is Apache-2.0 but includes copies of SCTE's samples, SCTE's PDF and several vendors' pages are All Rights Reserved, some pages state no licence, and of threefive's two repositories the documentation of superkabuki/threefive_is_scte35 is GPL-2.0 and the example playlists and smoke test of futzu/threefive are MIT, each by GitHub's detection. Which may Phase 3's tests commit to GPL-3.0-or-later Mirage?",
+    "options": [
+      {
+        "label": "(a) Self-made only",
+        "description": "Sections the test builds from field values, with their CRC; the decoder checked against the published vectors during development, outside the repository."
+      },
+      {
+        "label": "(b) Plus scte35-go's own test cases and futzu/threefive's examples",
+        "description": "Apache-2.0 for scte35-go's cases, its copies of SCTE's samples left out, and MIT for futzu/threefive's 6 messages, for which their source gives no decode, so a test could check only that they decode with a valid CRC (scte35.md §5)."
+      },
+      {
+        "label": "(c) Plus the standard's samples and the RFCs' examples",
+        "description": "SCTE's All Rights Reserved; the RFC examples under the IETF Trust's terms."
+      },
+      {
+        "label": "(d) Plus vendor documentation examples",
+        "description": "Pages without a licence or All Rights Reserved, and threefive's GPL-2.0 documentation."
+      }
+    ],
+    "agent_recommendation": "(a), until the owner settles the licences, as with D-008",
+    "why": "It needs no licence judgement, and the layout is still checked during development against the 61 published messages that decode with a valid CRC and no disagreement with their sources (scte35.md §5).",
+    "blocks": [
+      "WP05"
+    ]
+  },
+  {
+    "id": "Q22",
+    "title": "Which curves automatic detection runs on",
+    "round": 1,
+    "d007": false,
+    "summary": "Q22 decides which curves automatic detection runs on and how a session's drops are found; the agent recommends each pair's curve, with a session's drops taken as its pairs' drops clipped to the spans that played them, under design §6.3's three rules.",
+    "question": "§3.2 compares the score with the variant's own trailing baseline, and D-068 defines a session's curve as the score of the variant played at each frame. Which curves does detection run on, and how are a session's drops found? Design §6.3 gives (c)'s three rules, with their alternatives: for pieces of N points or fewer, for drops that meet at a switch, and for the baseline a piece reports.",
+    "options": [
+      {
+        "label": "(a) Each scored pair's curve only",
+        "description": "Both acceptance tests are of this kind; a session adds events but no drops."
+      },
+      {
+        "label": "(b) The pairs' curves, and the session's curve with its own trailing baseline",
+        "description": "A switch can become a drop depending on the rung gap against T: on the switch-down plan, a drop at T = 3, 4 and 5 and none at T = 5.5, 6, 6.5, 7 and 8 (review-adversarial/runs/switch-t-sweep.txt). The composite drop's baseline was 97.681, v270's level (design/runs/detection-semantics-ad.txt)."
+      },
+      {
+        "label": "(c) The pairs' curves, and session drops as the pairs' drops clipped to the spans that played each variant",
+        "description": "Each session point is compared with its own variant's baseline, so a switch alone is never a drop, and there is no second detector. The composite drop: frames 75 to 124, v180's baseline 91.692, magnitude 69.455 (design/runs/detection-semantics-ad.txt)."
+      },
+      {
+        "label": "(d) The session's curve only",
+        "description": "Misses drops in variants no session plays, the two acceptance tests' among them."
+      }
+    ],
+    "agent_recommendation": "(c), with design §6.3's three rules",
+    "why": "It applies the work order's per-variant baseline to sessions too and still finds the composite drop, while under (b) whether a switch is a drop changes between T = 5 and T = 5.5 on one plan, a fragility the paper would have to explain.",
+    "blocks": [
+      "WP02",
+      "WP08",
+      "WP09a",
+      "WP11a",
+      "WP07",
+      "WP09b",
+      "WP11b",
+      "WP14"
+    ]
+  },
+  {
+    "id": "Q23",
+    "title": "The trailing baseline's statistic and warm-up",
+    "round": 1,
+    "d007": false,
+    "summary": "Q23 decides how the trailing baseline is computed and from when it is used; the agent recommends the median of the last W points that weren't low, used once W/2 such points exist, which leaves the first W/2 points of every curve unexamined.",
+    "question": "The work order doesn't define the sliding baseline. Which statistic over the last W points, and from when is it used?",
+    "options": [
+      {
+        "label": "(a) Median of the last W points that weren't low, used once W/2 such points exist",
+        "description": "Exact on the four acceptance curves at every point of the measured grid, T from 3 to 40 and N from 1 to 24 (design §2; design-evaluation run 05), and a drop never lowers its own baseline. Its blind start: the first W/2 points of every curve can't be low, at W = 50 the whole first segment of a D-069 ladder (25 frames, testgen.md §3.1)."
+      },
+      {
+        "label": "(b) Mean of the same points",
+        "description": "Also exact on the acceptance curves on the same grid (design-evaluation run 05); less robust to outliers; the same blind start."
+      },
+      {
+        "label": "(c) Median of the last W points, low or not",
+        "description": "Follows a long drop down: the drops found were shorter than the truth at W = 10 to 50 and exact only at W = 100 (design-evaluation run 05)."
+      },
+      {
+        "label": "(d) One median per curve",
+        "description": "No window and no blind start; blind to slow changes of level."
+      }
+    ],
+    "agent_recommendation": "(a)",
+    "why": "It was exact across the measured grid, is robust to outliers, and a drop doesn't pull its baseline down; its blind start is written in the document's detection record and tested (WP02).",
+    "blocks": [
+      "WP02",
+      "WP08",
+      "WP11a",
+      "WP11b",
+      "WP14"
+    ]
+  },
+  {
+    "id": "Q24",
+    "title": "Units of W and N, and points without a score",
+    "round": 1,
+    "d007": false,
+    "summary": "Q24 decides whether W and N count curve points, reference frames or seconds, and what happens at gaps; the agent recommends counting points of the curve and skipping gaps.",
+    "question": "A 30 fps variant's curve has a point at every other reference frame of a 60 fps reference (schema.md §3.1), and a session's curve has no points on unscored spans. In what are W and N counted, and what happens at gaps?",
+    "options": [
+      {
+        "label": "(a) Points of the curve, gaps skipped",
+        "description": "Nothing invented at gaps; the same N covers more time on a coarser curve."
+      },
+      {
+        "label": "(b) Reference frames, gaps holding the last score",
+        "description": "The same N is the same time on every curve; scores are invented at gaps."
+      },
+      {
+        "label": "(c) Seconds of the axis, gaps skipped",
+        "description": "Uniform in time; N is no longer a count of frames."
+      }
+    ],
+    "agent_recommendation": "(a)",
+    "why": "The work order counts frames, and nothing is invented at the gaps.",
+    "blocks": [
+      "WP02",
+      "WP08",
+      "WP09a"
+    ]
+  },
+  {
+    "id": "Q25",
+    "title": "Frames that start a libvmaf context (D-037)",
+    "round": 1,
+    "d007": false,
+    "summary": "Q25 decides whether detection treats the first pair of each libvmaf context, which scores low, specially; the agent recommends no special case, which keeps the ad's drop starting on its cue-out's frame.",
+    "question": "The first pair of every libvmaf context scores low (D-037): frame 75, where testgen's ad starts a new context, is the control rung v270's only frame more than 6 points below its median (testgen.md §3.6, item 7). How does detection treat these frames?",
+    "options": [
+      {
+        "label": "(a) No special case",
+        "description": "N of 1 or more passes over their single-frame dips, and the ad's drop starts at frame 75 with the cue-out's frame inside (design/runs/detection-semantics-ad.txt)."
+      },
+      {
+        "label": "(b) Left out of the curve",
+        "description": "As D-037's second minimum leaves them out; the ad's drop then starts at frame 76 and the cue-out's frame 75 falls before it, so the strict overlap no longer lists the cue (same run)."
+      },
+      {
+        "label": "(c) Left out of the baseline only",
+        "description": "They can be low but never enter the baseline; the same drop as (a) on this ladder (same run)."
+      }
+    ],
+    "agent_recommendation": "(a)",
+    "why": "(b) moves an ad's drop off its cue by one frame, N of 1 or more already ignores single-frame dips, and (c) adds a rule that changed nothing measured.",
+    "blocks": [
+      "WP02",
+      "WP08",
+      "WP11a",
+      "WP11b",
+      "WP14"
+    ]
+  },
+  {
+    "id": "Q26",
+    "title": "Detection's defaults, and when the timeline subcommand detects",
+    "round": 1,
+    "d007": false,
+    "summary": "Q26 decides the shipped defaults of T, W and N and when the timeline subcommand runs detection; the agent recommends T = 6 by default with W and N required, and detection only when W and N are given, so that a build without them writes events only and says so.",
+    "question": "§3.2 suggests a threshold of 6 VMAF points; W and N have no suggested value, nothing measured on real video sets them, and the acceptance tests pin their own (P-R). Item (a) is the defaults; item (b) is when `timeline` detects, since with W and N required an events-only build would otherwise fail (design §7).",
+    "options": [],
+    "items": [
+      {
+        "id": "a",
+        "title": "The defaults of T, W and N",
+        "options": [
+          {
+            "label": "1. T = 6 by default; W and N required until measured",
+            "description": "The work order's value for T; W and N must be given."
+          },
+          {
+            "label": "2. All three set now from the synthetic sweep",
+            "description": "Synthetic content, one source picture, 200 frames per pair: design-evaluation run 05 shows a wide region where the acceptance cases pass, not good defaults for real video."
+          },
+          {
+            "label": "3. All three required",
+            "description": "No default until a measurement."
+          }
+        ],
+        "agent_recommendation": "1",
+        "why": "What would set W and N is detection over D-011's ladders with injected degradations (design §6.3); the longest run of low points in testgen's busy control was 3 (design-evaluation run 05)."
+      },
+      {
+        "id": "b",
+        "title": "When `timeline` detects",
+        "options": [
+          {
+            "label": "1. Always, W and N required",
+            "description": "`timeline` without `--window` and `--min-points` fails, even when only events are wanted."
+          },
+          {
+            "label": "2. Only when W and N are given",
+            "description": "Otherwise the document has `detection: null` and no attributions, and a line on stderr says why."
+          },
+          {
+            "label": "3. A `--detect on|off` option, default on",
+            "description": "Explicit; W and N required when on; one more option."
+          }
+        ],
+        "agent_recommendation": "2",
+        "why": "Events-only builds work without a new option, and both the document and stderr say that no detection ran."
+      }
+    ],
+    "agent_recommendation": "(a) 1; (b) 2",
+    "why": "T has the work order's value and W and N have none, while the tests don't depend on defaults; and events-only builds then need no new option.",
+    "blocks": [
+      "WP02",
+      "WP08",
+      "WP09a"
+    ]
+  },
+  {
+    "id": "Q27",
+    "title": "What drop_magnitude measures",
+    "round": 1,
+    "d007": false,
+    "summary": "Q27 decides what an attribution's drop_magnitude measures; the agent recommends both depths: the baseline minus the drop's minimum as drop_magnitude, and the baseline minus its mean as mean_drop.",
+    "question": "§7 names an attribution's `drop_magnitude` without defining it. What does it measure?",
+    "options": [
+      {
+        "label": "(a) Baseline minus the drop's minimum",
+        "description": "The worst frame's depth."
+      },
+      {
+        "label": "(b) Baseline minus the drop's mean",
+        "description": "The drop's average depth."
+      },
+      {
+        "label": "(c) Both",
+        "description": "(a) as `drop_magnitude`, (b) as `mean_drop`."
+      }
+    ],
+    "agent_recommendation": "(c)",
+    "why": "Both are cheap and answer different questions; §7's name keeps the first. Under Q23 (a) the baseline is the same at every point of a drop (design §6.3).",
+    "blocks": [
+      "WP02",
+      "WP08",
+      "WP09a"
+    ]
+  },
+  {
+    "id": "Q28",
+    "title": "Which variants' events an attribution lists",
+    "round": 1,
+    "d007": false,
+    "summary": "Q28 decides which variants' events an attribution of a curve lists; the agent recommends the curve's own inputs: for a pair, its distorted variant's and the reference's events; for a session, the played variant's in each span, the reference's and the session's own.",
+    "question": "Every rung's playlist can carry the same tags (all three rungs of testgen's ad ladder carry the cue tags), and a query without scope lists each copy (design-evaluation run 09). Which variants' events does an attribution of a curve list?",
+    "options": [
+      {
+        "label": "(a) The curve's own inputs",
+        "description": "For a pair, its distorted variant's and the reference's; for a session, the played variant's in each span, the reference's, and the session's own. Run 10's prototype did this for pairs; for its session it listed only the played variant's and the session's own, so (a) adds the reference's copies there (design §6.4)."
+      },
+      {
+        "label": "(b) Every scored variant's events",
+        "description": "Shows that a cue is in every rung; three copies of each tag on a three-rung ladder."
+      },
+      {
+        "label": "(c) The distorted input's only",
+        "description": "Leaves out the reference's segments and tags."
+      }
+    ],
+    "agent_recommendation": "(a)",
+    "why": "It keeps another rung's events out of a curve's answer and keeps the reference, whose timeline every curve is on.",
+    "blocks": [
+      "WP01",
+      "WP08",
+      "WP09a",
+      "WP07"
+    ]
+  },
+  {
+    "id": "Q29",
+    "title": "Which events overlap an interval",
+    "round": 1,
+    "d007": false,
+    "summary": "Q29 decides what overlapping an interval means for points and spans; the agent recommends strict half-open overlap on reference frames, with optional margins before and after that are zero by default.",
+    "question": "§3.2 returns the events that overlap a drop's interval in time. Events are points (a tag, a switch) or spans (a segment, a break, a request). Which events overlap?",
+    "options": [
+      {
+        "label": "(a) Strict half-open overlap on reference frames",
+        "description": "A point at frame f meets [a, b) when a ≤ f < b, a span [s, e) when s < b and e > a. On the ad ladder the cue-in at the drop's end isn't listed, but the ad_break span is, with its end offset of +2.000 s (design-evaluation run 10)."
+      },
+      {
+        "label": "(b) (a) plus points exactly at the end, flagged at_end",
+        "description": "Lists the cue-in at the drop's end, and with it every boundary event there: the next segment, its keyframe, its discontinuity."
+      },
+      {
+        "label": "(c) (a) plus optional margins before and after, zero by default",
+        "description": "At its default it is (a); a margin finds causes that precede their effect, a slow fetch or the corrupt flag one frame before the ad (Q43 (h)); one more pair of options."
+      },
+      {
+        "label": "(d) Closed intervals",
+        "description": "Touching ends count, at both ends."
+      }
+    ],
+    "agent_recommendation": "(c)",
+    "why": "By default it is overlap made exact, and the margins meet the one need for more without changing default outputs.",
+    "blocks": [
+      "WP01",
+      "WP08",
+      "WP09a",
+      "WP11a"
+    ]
+  },
+  {
+    "id": "Q30",
+    "title": "Ordering and ranking of the events an attribution lists",
+    "round": 1,
+    "d007": false,
+    "summary": "Q30 decides whether an attribution ranks its events by likely relevance; the agent recommends no ranking: groups in §3.1's source order and events by offset within a group.",
+    "question": "§3.2 asks for the events by source, with offsets, and says nothing of their order. Should an attribution rank its events by likely relevance?",
+    "options": [
+      {
+        "label": "(a) No ranking",
+        "description": "Groups in §3.1's source order (vmaf, network, playlist, scte35, player, decoder), events by offset within a group."
+      },
+      {
+        "label": "(b) Ranked by a heuristic",
+        "description": "Distance from the drop's start, or overlap fraction: a causal heuristic needing an evaluation of its own."
+      },
+      {
+        "label": "(c) A likely-cause field",
+        "description": "An inference the paper would have to defend."
+      }
+    ],
+    "agent_recommendation": "(a)",
+    "why": "The claim is overlap; a ranking is a causal model that would need its own evaluation.",
+    "blocks": [
+      "WP01",
+      "WP08",
+      "WP09a"
+    ]
+  },
+  {
+    "id": "Q31",
+    "title": "The CLI subcommands: shape, names and options",
+    "round": 1,
+    "d007": false,
+    "summary": "Q31 decides the shape, names and options of the CLI subcommands; the agent recommends two first-word subcommands of mirage_vmaf, timeline to build and attribute to query, with design §7's options and text output by default.",
+    "question": "§3.2 asks for a CLI subcommand; mirage_vmaf has none, and today an argument that isn't an option is an error (src/VMAFCli.cpp:288). What are the subcommands, and their options (design §7)?",
+    "options": [
+      {
+        "label": "(a) Two first-word subcommands, timeline and attribute",
+        "description": "timeline builds, detects and writes a document, doing the I/O once; attribute queries a document without reading media; the bare options still score. With design §7's options, attribute printing text by default and JSON with `--format json`."
+      },
+      {
+        "label": "(b) One subcommand that builds and queries",
+        "description": "Every query reads every segment and fetches the session again."
+      },
+      {
+        "label": "(c) A separate program, mirage_timeline",
+        "description": "As D-017 separated mirage_vmaf from the player; one more binary to build, package and test."
+      },
+      {
+        "label": "(d) A third form of mirage_vmaf's options",
+        "description": "`--timeline` beside `--ref/--dis` and `--ladder`: the parser's forms grow, and a query's options mix with scoring's."
+      }
+    ],
+    "agent_recommendation": "(a), with design §7's option set",
+    "why": "The build does the I/O once, queries are offline, cheap and deterministic, and existing command lines keep their meaning.",
+    "blocks": [
+      "WP00a",
+      "WP09a",
+      "WP11a",
+      "WP14"
+    ]
+  },
+  {
+    "id": "Q32",
+    "title": "The JSON reader",
+    "round": 1,
+    "d007": false,
+    "summary": "Q32 decides whether Phase 3's JSON reader is written in the repository or taken as a dependency; the agent recommends a document-tree reader written in the repository, moving to streaming only if a measurement of a full report needs it.",
+    "question": "src/ writes JSON by hand and reads none (src/JsonText.h:1-21); Phase 3 reads ladder reports, plans and documents, and a full ladder report is 27969051 bytes of text (schema.md §3.3). Written in the repository, or a dependency?",
+    "options": [
+      {
+        "label": "(a) Written in the repository, building a document tree",
+        "description": "No new dependency, as D-030 chose for the config file; its memory on full reports: MEASUREMENT PENDING."
+      },
+      {
+        "label": "(b) Written in the repository, streaming large arrays",
+        "description": "Bounded memory; more code."
+      },
+      {
+        "label": "(c) A header-only library through FetchContent",
+        "description": "Less code; a new dependency in D-031's list."
+      }
+    ],
+    "agent_recommendation": "(a), moving to (b) if a full report's load needs it",
+    "why": "It follows D-030's choice of no new dependency and the repository's own writers; streaming is added only if a measurement says it is needed.",
+    "blocks": [
+      "WP00a",
+      "WP03"
+    ]
+  },
+  {
+    "id": "Q33",
+    "title": "The encoder of the acceptance tests",
+    "round": 1,
+    "d007": false,
+    "summary": "Q33 decides which encoder makes the synthetic ladders of the acceptance tests; the agent recommends libx264 where it is present and FFmpeg's MPEG-2 encoder otherwise, the encoder recorded in the test's output.",
+    "question": "D-069's ladders are encoded within the tests through FFmpeg's libraries, and an acceptance test that skips shows nothing. Which encoder?",
+    "options": [
+      {
+        "label": "(a) libx264, the tests skipped where it is absent",
+        "description": "Real HLS ladders' codec, a CODECS value, B-frames, and the same x264 commit in Homebrew and the Docker image (testgen.md §3.3); but a skipped acceptance test shows nothing."
+      },
+      {
+        "label": "(b) FFmpeg's MPEG-2 encoder",
+        "description": "In every FFmpeg build; no HLS CODECS value; a smaller drop (62.022 against 96.923 to 97.671, testgen.md §3.1)."
+      },
+      {
+        "label": "(c) libx264 when present, else MPEG-2",
+        "description": "The same assertions, the encoder recorded. With MPEG-2 the pinned parameters passed on the degraded ladder and the ad from the main origin (design-evaluation run 05); the ad from 1 s ran with libx264 only and the continuous ad not at all, so those two with MPEG-2 are MEASUREMENT PENDING."
+      }
+    ],
+    "agent_recommendation": "(c)",
+    "why": "Both encoders gave clear drops confined to the intended frames, with the same attributions, where they were run (design-evaluation run 10), and the tests then run in every build.",
+    "blocks": [
+      "WP10",
+      "WP11a"
+    ]
+  },
+  {
+    "id": "Q34",
+    "title": "The ad's timestamps in acceptance test 2",
+    "round": 1,
+    "d007": false,
+    "summary": "Q34 decides which timestamp arrangement the ad of acceptance test 2 uses; the agent recommends all three (restarting at the main content's origin as the acceptance test proper, from 1 s, and continuous), each generated once in the acceptance test's process.",
+    "question": "The ad's PTS can restart at the main content's origin (PTS repeat across the splice), start at another origin (a jump of more than 10 s, where the report's sequences match the playlist's), or continue the main content's. Which does acceptance test 2 use?",
+    "options": [
+      {
+        "label": "(a) Restart at the main content's origin",
+        "description": "The hard case for the time key; testgen's default (testgen.md §3.6, items 4 and 5)."
+      },
+      {
+        "label": "(b) From 1 s",
+        "description": "The report's sequences match the playlist's (testgen.md §3.5)."
+      },
+      {
+        "label": "(c) Continuous",
+        "description": "The only arrangement in which ui.md's probe reached the ad by a seek (ui.md §2.4); not yet generated or scored."
+      },
+      {
+        "label": "(d) All three, (a) as the acceptance test proper",
+        "description": "Three ad ladders made in the acceptance test's process; their time in a Debug build: MEASUREMENT PENDING (design §9.5)."
+      }
+    ],
+    "agent_recommendation": "(d)",
+    "why": "(a) is the case the time key must handle, and (b) and (c) cover the aligner's other case and the UI's seekable one.",
+    "blocks": [
+      "WP10",
+      "WP11a"
+    ]
+  },
+  {
+    "id": "Q35",
+    "title": "The rest of the synthetic content",
+    "round": 1,
+    "d007": false,
+    "summary": "Q35 decides the remaining choices of D-069's synthetic content as one package; the agent recommends testgen's measured choices: the fractal-noise source, a calm ad, continuity counters marked at the splice, no binary SCTE-35 in the ladders, the generator compiled with optimization, and top-rung mode.",
+    "question": "testgen.md §4 lists other choices for D-069's content: the source picture, the ad's content, the continuity counters at the splice, binary SCTE-35 forms in the ladders, the generator's speed in a Debug build, and the reference mode. How are they settled?",
+    "options": [
+      {
+        "label": "(a) testgen's measured recommendations as one package",
+        "description": "The fractal-noise source (the ramp's ladder fails D-002's BANDWIDTH order, testgen.md §2.2), the calm ad (the busy one nears the threshold at the normal quantizer, testgen.md §3.2), counters marked at the splice, no binary SCTE-35 in the ladders (the decoder's tests build sections instead), the generator optimized in every build type (P-Q), and top-rung mode."
+      },
+      {
+        "label": "(b) Item by item",
+        "description": "The owner answers each of testgen.md §4's items on its own."
+      },
+      {
+        "label": "(c) The existing tests' ramp and MPEG-2 helpers",
+        "description": "Reuses code, but the ramp's measured BANDWIDTH puts v270 above v360, so the ladder is refused (testgen.md §2.2)."
+      }
+    ],
+    "agent_recommendation": "(a)",
+    "why": "Each item was measured to give a clear, deterministic drop confined to the intended frames (testgen.md §3).",
+    "blocks": [
+      "WP10",
+      "WP11a"
+    ]
+  },
+  {
+    "id": "Q36",
+    "title": "The §3.3 UI plan under D-007, and the panel's place",
+    "round": 3,
+    "d007": true,
+    "summary": "Q36 asks the owner to approve design §10 as the written D-007 plan for §3.3's panel and to choose where the panel goes; the agent recommends approving it, docked above the control stack, and building it after the headless packages.",
+    "question": "Design §10 (from ui.md) is a written plan for §3.3: an ImGui panel that reads a timeline document and its ladder report, with its loading and math in ImGui-free files tested in ctest. By the agent's reading none of it touches the render or decode path (ui.md §3), and approving it is the approval D-007 asks for. Does the owner approve it, and where does the panel go?",
+    "options": [
+      {
+        "label": "(a) Approve, docked above the control stack",
+        "description": "Full width beside the seek bar, lowest in the bottom stack so that it doesn't move when the filmstrip shows; it covers the lower video."
+      },
+      {
+        "label": "(b) Approve, as a tab of the network sidebar",
+        "description": "Docking, resizing and focus handling for free; narrow; tied to N."
+      },
+      {
+        "label": "(c) Approve, as a floating window",
+        "description": "The simplest; it can cover the seek bar, and its position isn't kept."
+      },
+      {
+        "label": "(d) Not in Phase 3",
+        "description": "The headless parts only; §3.3 reported as deferred."
+      }
+    ],
+    "agent_recommendation": "(a), built after the headless packages",
+    "why": "A timeline belongs beside the seek bar it shares a clock with (ui.md §2.6), and the headless packages carry the paper's claim first.",
+    "blocks": [
+      "WP00c",
+      "WP12",
+      "WP13"
+    ]
+  },
+  {
+    "id": "Q37",
+    "title": "Clicking a low point inside an ad whose timestamps restart",
+    "round": 3,
+    "d007": true,
+    "summary": "Q37 decides what the panel does when the user clicks inside an ad that no seek can reach; the agent recommends saying the frame isn't reachable and offering a seek to the segment before the discontinuity, which changes no render or decode code.",
+    "question": "With FFmpeg 8.1.1's hls demuxer, no seek reached the frames of an ad whose timestamps restart at 0.040 s: by PTS the seek fails and the player's clamp sends it to the stream's start, and by playlist position the ad is skipped (ui.md §2.4, measured). An ad that restarts at the main content's origin, as D-069's does, was not probed (MEASUREMENT PENDING). What does the panel do on such a click? Options (b) and (c) change the render loop or Demuxer, each needing a written plan under D-007.",
+    "options": [
+      {
+        "label": "(a) It says the frame isn't reachable by a seek",
+        "description": "And offers a seek to the start of the segment before the discontinuity, from which playing reaches the frame; no render or decode change; a difference from §3.3, reported."
+      },
+      {
+        "label": "(b) Play to the frame, then pause",
+        "description": "A new kind of request in the render loop (src/main.cpp)."
+      },
+      {
+        "label": "(c) Another way to position the hls demuxer",
+        "description": "A change of src/Demuxer.cpp."
+      }
+    ],
+    "agent_recommendation": "(a) for Phase 3",
+    "why": "It touches no render or decode path; (b) or (c) can follow with their own plan.",
+    "blocks": [
+      "WP12",
+      "WP13"
+    ]
+  },
+  {
+    "id": "Q38",
+    "title": "The timeline panel's toggle key",
+    "round": 3,
+    "d007": false,
+    "summary": "Q38 decides which key, if any, toggles the timeline panel; the agent leaves it to the owner's preference and suggests L if a key is wanted.",
+    "question": "The letters bound to nothing are B, E, J, L, P, R, S, U, X, Y and Z (ui.md §1.5). Which, if any, toggles the timeline panel?",
+    "options": [
+      {
+        "label": "(a) L",
+        "description": "Reads as line, the timeline."
+      },
+      {
+        "label": "(b) E",
+        "description": "Reads as events."
+      },
+      {
+        "label": "(c) No key",
+        "description": "The View menu, the overlays popover and --ui-overlays only."
+      }
+    ],
+    "agent_recommendation": "The owner's preference; L if a key is wanted",
+    "why": "A key binding is a matter of taste; L is the mnemonic one.",
+    "blocks": [
+      "WP13"
+    ]
+  },
+  {
+    "id": "Q39",
+    "title": "The panel's settings, and what a click outside a drop queries",
+    "round": 3,
+    "d007": false,
+    "summary": "Q39 decides what the panel lets the user configure and which interval it queries for a click outside a detected drop; the agent recommends only the document to load, with prefs.txt as the player's config file, and the clicked frame's segment as the interval.",
+    "question": "The work order wants each setting on the command line and in a config file; the player's settings file is prefs.txt, key=value, written by the app and ignored in snapshot runs (ui.md §2.6, D9). Item (a) is what the panel lets the user configure; item (b) is which interval a click outside a detected drop queries (design §10).",
+    "options": [],
+    "items": [
+      {
+        "id": "a",
+        "title": "The panel's settings and the config-file rule",
+        "options": [
+          {
+            "label": "1. Only the document to load, prefs.txt counting as the player's config file",
+            "description": "`--timeline <document>` and a prefs.txt line; the panel shows the document's drops, so it never disagrees with the CLI."
+          },
+          {
+            "label": "2. A D-030-style `--config` for the player",
+            "description": "A second settings mechanism in the player."
+          },
+          {
+            "label": "3. The panel re-detects with settings of its own",
+            "description": "Threshold, window and N in the panel, each a player flag and a config line; its drops can differ from the document's."
+          }
+        ],
+        "agent_recommendation": "1",
+        "why": "It adds the least new mechanism, and the panel and the CLI can't disagree."
+      },
+      {
+        "id": "b",
+        "title": "The interval a click outside a detected drop queries",
+        "options": [
+          {
+            "label": "1. The clicked frame alone, [f, f + 1)",
+            "description": "Lists the spans covering it (a segment, a break, a request) and the points exactly at it; misses a tag at the segment's start unless f is that frame."
+          },
+          {
+            "label": "2. The clicked frame's segment of the clicked curve's variant",
+            "description": "Lists everything in that segment, its tags and keyframe included; the frame alone where the variant has no segment map."
+          },
+          {
+            "label": "3. A window of ±K frames around it",
+            "description": "One more setting, which needs a player flag and a config line."
+          }
+        ],
+        "agent_recommendation": "2",
+        "why": "A segment is the unit in which playlist, SCTE-35 and network events occur, and it needs no setting."
+      }
+    ],
+    "agent_recommendation": "(a) 1; (b) 2",
+    "why": "It adds the least new mechanism, the panel and the CLI can't disagree, and a click needs no setting.",
+    "blocks": [
+      "WP12",
+      "WP13"
+    ]
+  },
+  {
+    "id": "Q40",
+    "title": "The player's tag ruler and ManifestParser's cue defects",
+    "round": 3,
+    "d007": false,
+    "summary": "Q40 decides what happens to the player's GL tag ruler and ManifestParser's cue defects; the agent recommends leaving them unchanged and reported now, and retiring the ruler for the panel's playlist lane with the UI package.",
+    "question": "The player's GL tag ruler takes its tags from ManifestParser, which takes EXT-X-CUE-OUT-CONT for a cue-out, drops #EXT-OATCLS-SCTE35, leaves DATERANGE unparsed and doesn't count discontinuity sequences (sources.md §4.2). By reading, the ruler's click never fires and its ticks sit off by the stream's start time (ui.md §1.8, F1 and F2). What happens to them in Phase 3?",
+    "options": [
+      {
+        "label": "(a) Left as they are, and reported",
+        "description": "Phase 3's headless work uses a parser of its own; nothing of the player's tag display changes."
+      },
+      {
+        "label": "(b) Fix ManifestParser",
+        "description": "Changes a tested behaviour (tests/test_manifest_parser.cpp:95) and the player's display; WP13 would make it."
+      },
+      {
+        "label": "(c) Retire the GL ruler for the panel's playlist lane",
+        "description": "Once the panel exists: one tag display, on the new parser; changes src/DebugHUD.{h,cpp}."
+      }
+    ],
+    "agent_recommendation": "(a) now, (c) with the UI package",
+    "why": "The headless work doesn't need them, and the panel's lane replaces the ruler without editing a tested parser.",
+    "blocks": [
+      "WP13"
+    ]
+  },
+  {
+    "id": "Q41",
+    "title": "The component's name: the work order's NetworkDebugger against the code's NetworkLogger",
+    "round": 2,
+    "d007": true,
+    "summary": "Q41 decides how the difference between the work order's name NetworkDebugger and the code's NetworkLogger is handled, linking NetworkLogger into mirage_vmaf being Q10 (a)'s; the agent recommends keeping the code's name and reporting the difference.",
+    "question": "§3.1 names the network source NetworkDebugger, an av_log interceptor, while the code's component is NetworkLogger, which also hooks io_open and io_close2 and is built into the player and mirage_tests only (sources.md §10, item 1). Whether mirage_vmaf links it for the session fetch is Q10 (a); this question is the name only, and where Q10's answer isn't (a) only option (a)'s report applies. How is the difference handled? Option (b) edits src/Demuxer.cpp and src/main.cpp, the decode and render path, so choosing it includes the owner's ruling under D-007 that a rename is outside it, or the approval of a written plan.",
+    "options": [
+      {
+        "label": "(a) Keep the code's name and report the difference",
+        "description": "NetworkLogger keeps its name and its tests, and design §11, item 1 reports the difference in this design's words."
+      },
+      {
+        "label": "(b) Rename it throughout",
+        "description": "Matches the work order's word, but edits the 21 files that name it, CMakeLists.txt, src/Demuxer.cpp and src/main.cpp among them (design/runs/networklogger-users.txt), and the documents, for a name; WP00b would make it a commit of its own before WP07."
+      },
+      {
+        "label": "(c) A headless wrapper named after the work order",
+        "description": "The session fetch calls a NetworkDebugger wrapper around NetworkLogger: two names for one component."
+      }
+    ],
+    "agent_recommendation": "(a)",
+    "why": "The component exists and is tested under its name, and the work order's rule is to report a difference, not to hide it.",
+    "blocks": [
+      "WP00b",
+      "WP07",
+      "WP15b"
+    ]
+  },
+  {
+    "id": "Q42",
+    "title": "Differences from the work order with no alternative in Phase 3",
+    "round": 3,
+    "d007": false,
+    "summary": "Q42 asks how the differences from the work order that no option of Phase 3 removes are handled; the agent recommends acknowledging them as stated in the pending-decisions document and in Phase 3's PR, with no document edited to match.",
+    "question": "Design §11 lists 14 differences; those no option removes are marked Q42: Mirage has no ABR (item 2), the offline decode drops no frame of its own (item 3), the top rung has no score in top-rung mode (item 11), and FFmpeg 8.1.1 exports no HTTP status (item 12). A repository document is also wrong: docs/VMAF_GAP_REPORT.md:230-231 says the Decoder has a dropped-frame counter, which is the render loop's total_dropped (src/main.cpp:1751). How are they handled?",
+    "options": [
+      {
+        "label": "(a) Acknowledged as stated",
+        "description": "Reported in docs/PHASE3_DECISIONS_PENDING.md and Phase 3's PR; no document edited to match."
+      },
+      {
+        "label": "(b) Acknowledged, and the gap report corrected",
+        "description": "As (a), plus a dated correction line in docs/VMAF_GAP_REPORT.md for its factual error, written by WP15b."
+      },
+      {
+        "label": "(c) Some reopened",
+        "description": "The owner names which, and the agent writes options for each."
+      }
+    ],
+    "agent_recommendation": "(a)",
+    "why": "Each follows from decided items or facts of the code, and reporting them is the work order's rule; correcting a Phase 0 document is a separate call the owner can make with (b).",
+    "blocks": [
+      "WP15b"
+    ]
+  },
+  {
+    "id": "Q43",
+    "title": "The ladder timeline's defaults: eight choices that change its output",
+    "round": 1,
+    "d007": false,
+    "summary": "Q43 decides eight defaults of the ladder timeline that change its output, and the agent recommends each as follows: live media playlists refused, only 75cf6e0's report layout read, a variant's segment map dropped on any PTS mismatch, an unpaired frame placed at the next paired frame, a rung ranked by the highest BANDWIDTH of its entries, each rung's copy of a tag kept, a drop ending at the next point of its curve, and a corrupt packet placed at its own frame with the next segment boundary named.",
+    "question": "The first version of this design made seven of these choices as process choices (P-E, P-X, P-G, P-H, P-AA, P-AB, P-AE), and (h) answers the first review's case of a corrupt packet at a splice; each changes what the timeline outputs by default, so each is the owner's. Each item has its options and the agent's recommendation and can be accepted or changed on its own; design §5.1, §5.2 and §6.3 give the context.",
+    "options": [],
+    "items": [
+      {
+        "id": "a",
+        "title": "A live media playlist (formerly P-E)",
+        "options": [
+          {
+            "label": "1. Refused",
+            "description": "A media playlist without EXT-X-ENDLIST that isn't PLAYLIST-TYPE:VOD (hls::MediaTimeline::live(), src/HlsAlign.h:69) fails the build, naming it."
+          },
+          {
+            "label": "2. A warning only",
+            "description": "The build goes on with what the playlist held when it was read."
+          }
+        ],
+        "agent_recommendation": "1",
+        "why": "Live streams are outside the work order's scope, and a partial playlist would give a partial timeline without saying so in its events."
+      },
+      {
+        "id": "b",
+        "title": "Which ladder reports are read (formerly P-X)",
+        "options": [
+          {
+            "label": "1. The layout of 75cf6e0 on only",
+            "description": "Older layouts refused, naming the missing key; a pair report (--ref/--dis) refused; relative paths taken from the current directory, as mirage_vmaf takes its inputs."
+          },
+          {
+            "label": "2. Readers for the other layouts too",
+            "description": "mirage_vmaf's committed reports fall into 12 layouts, one of them 75cf6e0's (schema.md §1.8); the records of Phases 1 and 2 then get timelines, at the cost of a reader per layout."
+          },
+          {
+            "label": "3. 1, and a pair report read as a ladder of one pair",
+            "description": "A pair gets a timeline, without master or playlist events."
+          },
+          {
+            "label": "4. 1, with relative paths taken from the report's directory",
+            "description": "A report moved together with its media still resolves, unlike mirage_vmaf, which takes its inputs from the current directory."
+          }
+        ],
+        "agent_recommendation": "1",
+        "why": "D-057 added the discontinuity sequences the media key needs, 75cf6e0's layout has every key (8 committed files, schema.md §1.8), and the acceptance tests make new reports."
+      },
+      {
+        "id": "c",
+        "title": "A variant whose frames don't all match the demux pass (formerly the end of P-G)",
+        "options": [
+          {
+            "label": "1. No segment map for the variant",
+            "description": "Its segment-bound events (segments, tags, cues, requests) are left out, with a warning: one PTS mismatch costs the whole variant."
+          },
+          {
+            "label": "2. The map kept for the frames that match",
+            "description": "More events survive, with a warning for each mismatch; a partly wrong map can place events off by the mismatch."
+          },
+          {
+            "label": "3. The variant's segments placed by PTS against EXTINF, flagged",
+            "description": "Every event placed, some wrongly: 145 and 193 of 200 packets right on testgen's ladders (design-library runs map-by-pos-*)."
+          }
+        ],
+        "agent_recommendation": "1",
+        "why": "No mismatch occurred on any probed playlist (design-evaluation run 04), and an event placed on a wrong frame would be a silently wrong attribution."
+      },
+      {
+        "id": "d",
+        "title": "Where an unpaired frame sits (formerly part of P-H)",
+        "options": [
+          {
+            "label": "1. At the next paired frame of its input, by index",
+            "description": "A reference frame that failed to pair sits at itself."
+          },
+          {
+            "label": "2. At the nearest reference frame by PTS",
+            "description": "Ambiguous where PTS repeat across a splice (design-evaluation run 09)."
+          }
+        ],
+        "agent_recommendation": "1",
+        "why": "Index order is unambiguous where PTS repeat."
+      },
+      {
+        "id": "e",
+        "title": "Which BANDWIDTH ranks a playlist that several master entries name (formerly P-AA)",
+        "options": [
+          {
+            "label": "1. The highest among its entries",
+            "description": "As the top rung is chosen (src/VMAFLadder.h:33-35), so the reference's rank from the top is 1."
+          },
+          {
+            "label": "2. Its first entry's",
+            "description": "Simpler, but the reference may then not rank first."
+          }
+        ],
+        "agent_recommendation": "1",
+        "why": "It ranks rungs by the rule that picks the reference."
+      },
+      {
+        "id": "f",
+        "title": "A tag that several rungs' playlists carry (formerly P-AB)",
+        "options": [
+          {
+            "label": "1. Kept once per variant",
+            "description": "An attribution lists the copies its scope admits (Q28), so a pair's answer shows the reference's and the distorted variant's copy."
+          },
+          {
+            "label": "2. One event across variants",
+            "description": "Shorter answers, but it loses which playlists carried the tag, and a tag in one rung only can't be told from one in all."
+          }
+        ],
+        "agent_recommendation": "1",
+        "why": "Which playlist carried a tag is a fact the evaluation may need, and Q28 already limits the copies listed."
+      },
+      {
+        "id": "g",
+        "title": "A drop's end, and intervals given in seconds (formerly P-AE)",
+        "options": [
+          {
+            "label": "1. To the next point's frame",
+            "description": "A drop runs from its first low point's reference frame to the frame of the curve's next point (the last point's frame plus one at the curve's end), half-open; an interval in seconds starts and ends at the first reference frames at or after its two ends on the axis."
+          },
+          {
+            "label": "2. To the last point's frame plus one, always",
+            "description": "On a coarser-grid curve the last low point then covers half the reference frames it stands for."
+          }
+        ],
+        "agent_recommendation": "1",
+        "why": "On a coarser grid a point stands for the reference frames up to the next point."
+      },
+      {
+        "id": "h",
+        "title": "A corrupt packet at a splice",
+        "options": [
+          {
+            "label": "1. At the flagged packet's frame, the next segment boundary in its payload",
+            "description": "FFmpeg's fact unaltered. On testgen's ladder with unmarked counters the flags fell on frames 74 and 122 (design §5.2), so the ad's drop [75, 125) lists only the second, unless a margin (Q29) is given."
+          },
+          {
+            "label": "2. At the first frame of the next segment, when a discontinuity precedes it",
+            "description": "The flag then sits at the boundary whose counter restart caused it; an inference from the stream's structure, wrong for a counter error inside a segment."
+          },
+          {
+            "label": "3. Both, as two events",
+            "description": "The fact and the inferred boundary each listed; two events for one flag."
+          }
+        ],
+        "agent_recommendation": "1",
+        "why": "It records what FFmpeg reported and names the boundary for the reader; D-069's acceptance ladders mark their counters (Q35) and have no such flags."
+      }
+    ],
+    "agent_recommendation": "(a) 1; (b) 1; (c) 1; (d) 1; (e) 1; (f) 1; (g) 1; (h) 1",
+    "why": "Each recommended default keeps what the data shows, places nothing it can't place exactly, and says in the document what it left out.",
+    "blocks": [
+      "WP00a",
+      "WP01",
+      "WP02",
+      "WP03",
+      "WP04",
+      "WP06",
+      "WP09a"
+    ]
+  },
+  {
+    "id": "Q44",
+    "title": "Sessions, the fetch and decoded messages: seven choices that change their output",
+    "round": 2,
+    "d007": false,
+    "summary": "Q44 decides seven defaults of sessions, the session fetch and decoded SCTE-35 messages that change their output, and the agent recommends each as follows: plans with gaps or overlaps refused, requests placed on their segment's media span or at the first span that plays their playlist, no retries in the fetch, one event per fetched file with its redirect chain in the payload, one cue for a message in an EXT-X-CUE-OUT's segment, a fetch one file at a time without pacing, and each played variant's playlist fetched once.",
+    "question": "Earlier versions of this design made six of these choices as process choices (P-P, P-H, P-K, and three parts of P-N: its retries, its pacing and its playlist fetches), and (d) answers the first review's case of a redirected fetch; each changes what a session's timeline or a cue outputs, so each is the owner's. Each item has its options and the agent's recommendation and can be accepted or changed on its own; design §5.5, §5.6 and §5.7 give the context.",
+    "options": [],
+    "items": [
+      {
+        "id": "a",
+        "title": "A plan whose spans leave gaps or overlap (formerly P-P)",
+        "options": [
+          {
+            "label": "1. Refused, naming the frames",
+            "description": "Each span must start where the previous one ended on the reference's frames."
+          },
+          {
+            "label": "2. Allowed and shown",
+            "description": "Gaps unscored and overlaps kept as given, which a player's log with seeks will need later."
+          }
+        ],
+        "agent_recommendation": "1",
+        "why": "In a scripted plan a gap or an overlap is a mistake, and the player's log, which may have seeks, isn't in Phase 3 (Q13)."
+      },
+      {
+        "id": "b",
+        "title": "Where requests sit (formerly part of P-H)",
+        "options": [
+          {
+            "label": "1. On the media axis",
+            "description": "A segment request on its segment's media span; a playlist request at the first frame of the first span that plays its variant; the master's at the session's first frame."
+          },
+          {
+            "label": "2. Playlist and master requests with no media position",
+            "description": "Kept in the document, but never listed by an overlap."
+          }
+        ],
+        "agent_recommendation": "1",
+        "why": "A request off the axis can never be listed."
+      },
+      {
+        "id": "c",
+        "title": "Retries in the session fetch (formerly part of P-N)",
+        "options": [
+          {
+            "label": "1. None",
+            "description": "One try per file; a transient failure is recorded as a failed request, even for a segment the scoring read without trouble."
+          },
+          {
+            "label": "2. As the scorer's demuxer retries",
+            "description": "Up to kSegMaxRetry = 10 more tries (src/VMAFSegments.h:28), each try its own row in the event's payload."
+          },
+          {
+            "label": "3. An option, default none",
+            "description": "One more option to record and test."
+          }
+        ],
+        "agent_recommendation": "1",
+        "why": "The fetch records what one sequential client got at the time, and its events carry origin fetch, so a failure there says nothing about the scores."
+      },
+      {
+        "id": "d",
+        "title": "A fetch that is redirected",
+        "options": [
+          {
+            "label": "1. One event per fetched file",
+            "description": "NetworkLogger starts a row at each request line, a redirect's included (src/NetworkLogger.cpp:601, by reading, not run); the event's times run from the first row's start to the last row's end, its status is the last row's, and the chain is in its payload."
+          },
+          {
+            "label": "2. One event per row",
+            "description": "Each request of the chain listed on its own."
+          }
+        ],
+        "agent_recommendation": "1",
+        "why": "A player waits for the whole chain, and the example's duration is a segment's, not a request's."
+      },
+      {
+        "id": "e",
+        "title": "A message in the same segment as an EXT-X-CUE-OUT (formerly P-K)",
+        "options": [
+          {
+            "label": "1. That cue's message",
+            "description": "The two make one cue_out event, with the decoded message in its payload."
+          },
+          {
+            "label": "2. Each its own cue",
+            "description": "Two cue_out events for AWS-style pairs of OATCLS and CUE-OUT (scte35.md §2.4)."
+          }
+        ],
+        "agent_recommendation": "1",
+        "why": "They are one signal written twice; two cue-outs would claim two breaks."
+      },
+      {
+        "id": "f",
+        "title": "The fetch's pacing (formerly part of P-N)",
+        "options": [
+          {
+            "label": "1. One file at a time, unpaced",
+            "description": "Each request starts once the file before it has been read; the fetch is as quick as the server, and an event's wall clock says when the fetch, not a player, made the request."
+          },
+          {
+            "label": "2. One file at a time, paced to the plan's media time",
+            "description": "Each segment requested when its span reaches it on a clock started with the session, as a player without a buffer would: wall clocks then follow playback, but a build with a session lasts at least the session's media length, 8 s for a session over a whole D-069 ladder (testgen.md §2.3)."
+          },
+          {
+            "label": "3. A buffer like a player's",
+            "description": "Requests run ahead of playback up to a buffer length: a model of a player, whose length and rules would be one more choice for the paper to defend."
+          }
+        ],
+        "agent_recommendation": "1",
+        "why": "A request's duration runs from its request to its last byte under every option, and the events carry origin fetch; pacing would only add the session's media length to every build, and a buffer is a player model."
+      },
+      {
+        "id": "g",
+        "title": "A variant's media playlist in the fetch (formerly part of P-N)",
+        "options": [
+          {
+            "label": "1. Once, the first time a span plays it",
+            "description": "One playlist_request per played variant, at that span's first frame (item (b))."
+          },
+          {
+            "label": "2. At the start of every span that plays it",
+            "description": "A switch back to a variant fetches its playlist again: one playlist_request per span."
+          }
+        ],
+        "agent_recommendation": "1",
+        "why": "A VOD playlist (Q43 (a)) doesn't change during a session, so one fetch per variant shows its request without repeating it."
+      }
+    ],
+    "agent_recommendation": "(a) 1; (b) 1; (c) 1; (d) 1; (e) 1; (f) 1; (g) 1",
+    "why": "Each recommended default records what was planned or observed without inferring more, one signal stays one event, and the fetch is as quick as its server allows.",
+    "blocks": [
+      "WP00b",
+      "WP05",
+      "WP07",
+      "WP09b",
+      "WP11b"
+    ]
+  }
+]

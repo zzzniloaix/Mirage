@@ -1,0 +1,12 @@
+$ sh tools/build.sh
+(in <out>/design-evaluation)
+started 2026-11-01T04:31:42.521667Z, ended 2026-11-01T04:31:43.820186Z, exit status 0, wall 1.298 s
+--- stdout ---
+62.12.101
+62.28.101
+60.26.101
+Apple clang version 21.0.0 (clang-2100.1.1.101)
+--- stderr ---
++ clang++ -std=c++20 -O1 -Wall -Wextra -o <out>/design-evaluation/bin/segmap <out>/design-evaluation/tools/segmap.cpp -I<homebrew>/Cellar/ffmpeg-full/8.1.1/include -L<homebrew>/Cellar/ffmpeg-full/8.1.1/lib -lavformat -lavcodec -lavutil
++ clang++ -std=c++20 -O1 -Wall -Wextra -o <out>/design-evaluation/bin/fetch <out>/design-evaluation/tools/fetch.cpp -I<homebrew>/Cellar/ffmpeg-full/8.1.1/include -L<homebrew>/Cellar/ffmpeg-full/8.1.1/lib -lavformat -lavcodec -lavutil
+--- end ---

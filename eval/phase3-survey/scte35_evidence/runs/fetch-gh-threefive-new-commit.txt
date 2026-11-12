@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/gh-threefive-new-commit/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://api.github.com/repos/superkabuki/threefive_is_scte35/commits/main'
+date_utc: 2026-11-01T03:44:57Z
+http_code=200
+url_effective=https://api.github.com/repos/superkabuki/threefive_is_scte35/commits/main
+size_download=7022
+content_type=application/json; charset=utf-8
+curl_exit=0
+sha256=da70b4cf6d0fc2c9337586841406230dac37ba72ce85c7a7004564b891ff1650

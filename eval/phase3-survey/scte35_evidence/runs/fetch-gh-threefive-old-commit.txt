@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/gh-threefive-old-commit/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://api.github.com/repos/futzu/threefive/commits/master'
+date_utc: 2026-11-01T03:44:58Z
+http_code=200
+url_effective=https://api.github.com/repos/futzu/threefive/commits/master
+size_download=5648
+content_type=application/json; charset=utf-8
+curl_exit=0
+sha256=0dbbdeef4bc2c25d84e4a1eafc06ef0328b4bb57f98118b2ae2eac409759e1e5

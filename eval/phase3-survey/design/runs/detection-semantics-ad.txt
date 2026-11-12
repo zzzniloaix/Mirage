@@ -1,0 +1,29 @@
+# cwd: <out>/testgen
+# command: 'python3' '-I' '-B' '<out>/design/tools/detection_semantics.py' 'reports/ad-x264.json' 'reports/ad-x264-a.layout.json'
+# started: 2026-11-01T05:15:44Z, ended: 2026-11-01T05:15:44Z (UTC)
+# stdout and stderr, in order:
+report reports/ad-x264.json; layout reports/ad-x264-a.layout.json; detector T = 6, W = 50, N = 12 (the prototype's parameters)
+EXT-X-CUE-OUT precedes reference frame 75; EXT-X-CUE-IN precedes 125
+
+## 1. First pairs of libvmaf contexts
+v270/index.m3u8: context-first pairs at reference frames [0, 75]
+  A (no special case): no drop
+  B (left out of the curve): no drop
+  C (left out of the baseline only): no drop
+v180/index.m3u8: context-first pairs at reference frames [0, 75]
+  A (no special case): drop at reference frames 75-124, half-open [75, 125); baseline 91.692, min 22.237, mean 27.395, magnitude 69.455; cue-out frame 75: inside; cue-in frame 125: at the end (not inside)
+  B (left out of the curve): drop at reference frames 76-124, half-open [76, 125); baseline 91.692, min 22.237, mean 27.357, magnitude 69.455; cue-out frame 75: before; cue-in frame 125: at the end (not inside)
+  C (left out of the baseline only): drop at reference frames 75-124, half-open [75, 125); baseline 91.692, min 22.237, mean 27.395, magnitude 69.455; cue-out frame 75: inside; cue-in frame 125: at the end (not inside)
+
+## 2. A session's drops
+
+plan ad-switch (design-evaluation run 10's plan): [(1, 0, 2), (2, 3, 4), (1, 5, 7)]
+  switches at reference frames [75, 125]
+  (b) session curve, own baseline: drop at reference frames 75-124; baseline 97.681, min 22.237, mean 27.395, magnitude 75.445; switches in it [75]
+  (c) pair drops clipped to the played spans: v180/index.m3u8 at reference frames 75-124; the pair's baseline 91.692, min 22.237, mean 27.395, magnitude 69.455; switches in it [75]
+
+plan switch-down (entry 1, then entry 2 from segment 5): [(1, 0, 4), (2, 5, 7)]
+  switches at reference frames [125]
+  (b) session curve, own baseline: no drop
+  (c) pair drops clipped to the played spans: no drop
+# exit status: 0

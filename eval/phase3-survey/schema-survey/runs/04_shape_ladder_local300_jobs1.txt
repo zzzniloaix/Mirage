@@ -1,0 +1,180 @@
+# One command of the schema survey, run in <repo> by tools/run.py, started 2026-11-01T03:44:05Z, ended 2026-11-01T03:44:05Z (UTC).
+# <repo>: the worktree of vmaf/phase-3 at 75cf6e0; <out>: the survey's output directory; <scratch>: the scratch directory.
+# The command, then its standard output and standard error as they came, then its exit status.
+
+$ python3 -I <out>/schema-survey/tools/report_shape.py eval/ladder/acceptance-c673738/advanced-local-300/jobs-1/report.json.xz
+file: eval/ladder/acceptance-c673738/advanced-local-300/jobs-1/report.json.xz
+  bytes as committed: 22960; JSON text: 308925 bytes; lines: 2332; sha256 of the file: 8497800ec9290eb6435afb69e9279574af242032eb35395e5a99ca3915e38770
+
+key order:
+  (top level) (22 keys): status, error, pool, tool, reference_mode, libvmaf_version, libvmaf_package_version, ffmpeg_libraries, config_file, model, model_source, model_sha256, scaler, n_threads, n_subsample, frame_limit, ladder, reference, skipped, warnings, pairs, not_scored
+  pairs[] (14 keys): index, entries, started_s, ended_s, scored_as, dis_conversion, ref_conversion, warnings, frames_scored, pooled, alignment, ref, dis, frames
+  pairs[].frames[] (6 keys): index, ref_index, dis_index, ref_pts, dis_pts, vmaf
+  pairs[].alignment (22 keys): rule, timestamp_origin, grid, tolerance, reference, distorted, paired, failed, failure_rate, threshold, exceeded, unmatched_reference, extra_distorted, duplicate_distorted, no_timestamp, after_discontinuity, discontinuities, discontinuity_jump, off_grid_reference, off_grid_distorted, vmaf_contexts, failures
+  pool (7 keys): jobs, memory_limit, baseline, max_running, pair_memory, peak_resident, warnings
+  ladder (4 keys): url, location, sha256, entries
+  ladder.entries[] (10 keys): index, line, uri, url, bandwidth, average_bandwidth, resolution, codecs, frame_rate, video
+
+paths (types with counts; occurrences; list sizes; an example):
+  status: string 1; e.g. "complete"
+  error: null 1; e.g. null
+  pool: object 1
+  pool.jobs: integer 1; e.g. 1
+  pool.memory_limit: null 1; e.g. null
+  pool.baseline: null 1; e.g. null
+  pool.max_running: integer 1; e.g. 1
+  pool.pair_memory: array 1; list size 0
+  pool.peak_resident: integer 1; e.g. 305266688
+  pool.warnings: array 1; list size 0
+  tool: string 1; e.g. "mirage_vmaf"
+  reference_mode: string 1; e.g. "top-rung"
+  libvmaf_version: string 1; e.g. "3.0.0"
+  libvmaf_package_version: string 1; e.g. "3.1.0"
+  ffmpeg_libraries: object 1
+  ffmpeg_libraries.libavutil: string 1; e.g. "60.26.101"
+  ffmpeg_libraries.libavcodec: string 1; e.g. "62.28.101"
+  ffmpeg_libraries.libavformat: string 1; e.g. "62.12.101"
+  ffmpeg_libraries.libswscale: string 1; e.g. "9.5.101"
+  ffmpeg_libraries.libavfilter: string 1; e.g. "11.14.101"
+  config_file: null 1; e.g. null
+  model: string 1; e.g. "vmaf_v0.6.1"
+  model_source: string 1; e.g. "built-in"
+  model_sha256: null 1; e.g. null
+  scaler: string 1; e.g. "bicubic"
+  n_threads: integer 1; e.g. 4
+  n_subsample: integer 1; e.g. 1
+  frame_limit: integer 1; e.g. 300
+  ladder: object 1
+  ladder.url: string 1; e.g. "<ladder>"
+  ladder.location: string 1; e.g. "<ladder>"
+  ladder.sha256: string 1; e.g. "f2177c1350130e087f9d81af82f092ababfcfb34e5b01e52ff146a08...
+  ladder.entries: array 1; list size 24
+  ladder.entries[]: object 24
+  ladder.entries[].index: integer 24; e.g. 0
+  ladder.entries[].line: integer 24; e.g. 5
+  ladder.entries[].uri: string 24; e.g. "v5/prog_index.m3u8"
+  ladder.entries[].url: string 24; e.g. "<ladder_dir>/v5/prog_index.m3u8"
+  ladder.entries[].bandwidth: integer 24; e.g. 2227464
+  ladder.entries[].average_bandwidth: string 24; e.g. "2218327"
+  ladder.entries[].resolution: string 24; e.g. "960x540"
+  ladder.entries[].codecs: string 24; e.g. "avc1.640020,mp4a.40.2"
+  ladder.entries[].frame_rate: string 24; e.g. "60.000"
+  ladder.entries[].video: boolean 24; e.g. true
+  reference: object 1
+  reference.url: string 1; e.g. "<ladder_dir>/v9/prog_index.m3u8"
+  reference.entries: array 1; list size 3
+  reference.entries[]: integer 3; e.g. 1
+  skipped: array 1; list size 0
+  warnings: array 1; list size 0
+  pairs: array 1; list size 7
+  pairs[]: object 7
+  pairs[].index: integer 7; e.g. 0
+  pairs[].entries: array 7; list size 3 (in each of 7)
+  pairs[].entries[]: integer 21; e.g. 0
+  pairs[].started_s: number 7; e.g. 1.1792e-05
+  pairs[].ended_s: number 7; e.g. 3.32632025
+  pairs[].scored_as: object 7
+  pairs[].scored_as.width: integer 7; e.g. 1920
+  pairs[].scored_as.height: integer 7; e.g. 1080
+  pairs[].scored_as.pix_fmt: string 7; e.g. "yuv420p"
+  pairs[].scored_as.bit_depth: integer 7; e.g. 8
+  pairs[].dis_conversion: array 7; list size 1 (in each of 7)
+  pairs[].dis_conversion[]: object 7
+  pairs[].dis_conversion[].from: object 7
+  pairs[].dis_conversion[].from.color_space: string 7; e.g. "unknown"
+  pairs[].dis_conversion[].from.color_range: string 7; e.g. "unknown"
+  pairs[].dis_conversion[].to: object 7
+  pairs[].dis_conversion[].to.color_space: string 7; e.g. "unknown"
+  pairs[].dis_conversion[].to.color_range: string 7; e.g. "unknown"
+  pairs[].dis_conversion[].matrix_changed: boolean 7; e.g. false
+  pairs[].dis_conversion[].range_changed: boolean 7; e.g. false
+  pairs[].dis_conversion[].first_index: integer 7; e.g. 0
+  pairs[].dis_conversion[].pairs: integer 7; e.g. 300
+  pairs[].ref_conversion: array 7; list size 0 (in each of 7)
+  pairs[].warnings: array 7; list size 0 (in each of 7)
+  pairs[].frames_scored: integer 7; e.g. 300
+  pairs[].pooled: object 7
+  pairs[].pooled.mean: number 7; e.g. 85.68515497915618
+  pairs[].pooled.harmonic_mean: number 7; e.g. 85.6275914043694
+  pairs[].pooled.min: number 7; e.g. 79.62283295538757
+  pairs[].pooled.min_without_first_frame: number 7; e.g. 79.62283295538757
+  pairs[].pooled.min_without_context_first_frames: number 7; e.g. 79.62283295538757
+  pairs[].pooled.p1: number 7; e.g. 80.03281143023172
+  pairs[].pooled.p5: number 7; e.g. 82.03887963763322
+  pairs[].pooled.p10: number 7; e.g. 82.8854457340968
+  pairs[].pooled.p25: number 7; e.g. 84.2096830579232
+  pairs[].pooled.p50: integer 2, number 5; e.g. 85.62746634630827
+  pairs[].alignment: object 7
+  pairs[].alignment.rule: string 7; e.g. "reference-timeline"
+  pairs[].alignment.timestamp_origin: string 7; e.g. "input-start"
+  pairs[].alignment.grid: string 7; e.g. "reference"
+  pairs[].alignment.tolerance: number 7; e.g. 0.008333333333333333
+  pairs[].alignment.reference: object 7
+  pairs[].alignment.reference.frame_rate: string 7; e.g. "60/1"
+  pairs[].alignment.reference.start: number 7; e.g. 10.016666666666667
+  pairs[].alignment.reference.start_from: string 7; e.g. "container"
+  pairs[].alignment.reference.sequences: array 7; list size 1 (in each of 7)
+  pairs[].alignment.reference.sequences[]: object 7
+  pairs[].alignment.reference.sequences[].first_index: integer 7; e.g. 0
+  pairs[].alignment.reference.sequences[].first_pts: number 7; e.g. 10.016666666666667
+  pairs[].alignment.reference.sequences[].frames: integer 7; e.g. 300
+  pairs[].alignment.distorted: object 7
+  pairs[].alignment.distorted.frame_rate: string 7; e.g. "60/1"
+  pairs[].alignment.distorted.start: number 7; e.g. 10.016666666666667
+  pairs[].alignment.distorted.start_from: string 7; e.g. "container"
+  pairs[].alignment.distorted.sequences: array 7; list size 1 (in each of 7)
+  pairs[].alignment.distorted.sequences[]: object 7
+  pairs[].alignment.distorted.sequences[].first_index: integer 7; e.g. 0
+  pairs[].alignment.distorted.sequences[].first_pts: number 7; e.g. 10.016666666666667
+  pairs[].alignment.distorted.sequences[].frames: integer 7; e.g. 300
+  pairs[].alignment.paired: integer 7; e.g. 300
+  pairs[].alignment.failed: integer 7; e.g. 0
+  pairs[].alignment.failure_rate: integer 7; e.g. 0
+  pairs[].alignment.threshold: number 7; e.g. 0.01
+  pairs[].alignment.exceeded: boolean 7; e.g. false
+  pairs[].alignment.unmatched_reference: integer 7; e.g. 0
+  pairs[].alignment.extra_distorted: integer 7; e.g. 0
+  pairs[].alignment.duplicate_distorted: integer 7; e.g. 0
+  pairs[].alignment.no_timestamp: integer 7; e.g. 0
+  pairs[].alignment.after_discontinuity: integer 7; e.g. 0
+  pairs[].alignment.discontinuities: integer 7; e.g. 0
+  pairs[].alignment.discontinuity_jump: integer 7; e.g. 10
+  pairs[].alignment.off_grid_reference: integer 7; e.g. 0
+  pairs[].alignment.off_grid_distorted: integer 7; e.g. 0
+  pairs[].alignment.vmaf_contexts: array 7; list size 1 (in each of 7)
+  pairs[].alignment.vmaf_contexts[]: object 7
+  pairs[].alignment.vmaf_contexts[].first_index: integer 7; e.g. 0
+  pairs[].alignment.vmaf_contexts[].pairs: integer 7; e.g. 300
+  pairs[].alignment.failures: array 7; list size 0 (in each of 7)
+  pairs[].ref: object 7
+  pairs[].ref.url: string 7; e.g. "<ladder_dir>/v9/prog_index.m3u8"
+  pairs[].ref.width: integer 7; e.g. 1920
+  pairs[].ref.height: integer 7; e.g. 1080
+  pairs[].ref.pix_fmt: string 7; e.g. "yuv420p"
+  pairs[].ref.color_space: string 7; e.g. "unknown"
+  pairs[].ref.color_range: string 7; e.g. "unknown"
+  pairs[].ref.color_primaries: string 7; e.g. "unknown"
+  pairs[].ref.color_trc: string 7; e.g. "unknown"
+  pairs[].ref.time_base: string 7; e.g. "1/90000"
+  pairs[].ref.ended: boolean 7; e.g. false
+  pairs[].dis: object 7
+  pairs[].dis.url: string 7; e.g. "<ladder_dir>/v5/prog_index.m3u8"
+  pairs[].dis.width: integer 7; e.g. 960
+  pairs[].dis.height: integer 7; e.g. 540
+  pairs[].dis.pix_fmt: string 7; e.g. "yuv420p"
+  pairs[].dis.color_space: string 7; e.g. "unknown"
+  pairs[].dis.color_range: string 7; e.g. "unknown"
+  pairs[].dis.color_primaries: string 7; e.g. "unknown"
+  pairs[].dis.color_trc: string 7; e.g. "unknown"
+  pairs[].dis.time_base: string 7; e.g. "1/90000"
+  pairs[].dis.ended: boolean 7; e.g. false
+  pairs[].frames: array 7; list size 300 (in each of 7)
+  pairs[].frames[]: object 2100
+  pairs[].frames[].index: integer 2100; e.g. 0
+  pairs[].frames[].ref_index: integer 2100; e.g. 0
+  pairs[].frames[].dis_index: integer 2100; e.g. 0
+  pairs[].frames[].ref_pts: integer 20, number 2080; e.g. 10.016666666666667
+  pairs[].frames[].dis_pts: integer 50, number 2050; e.g. 10.016666666666667
+  pairs[].frames[].vmaf: integer 425, number 1675; e.g. 81.01754998075987
+  not_scored: array 1; list size 0
+(exit status 0)

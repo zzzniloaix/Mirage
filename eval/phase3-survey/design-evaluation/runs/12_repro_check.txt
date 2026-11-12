@@ -1,0 +1,10 @@
+$ sh tools/repro_check.sh <out>/design-evaluation
+(in <out>/design-evaluation)
+started 2026-11-01T04:56:53.703196Z, ended 2026-11-01T04:56:55.690322Z, exit status 0, wall 1.987 s
+--- stdout ---
+07_attribute_seconds_as_doubles: stdout reproduced
+08_attribute_ticks: stdout reproduced
+10_attribute_final: stdout reproduced
+--- stderr ---
+
+--- end ---

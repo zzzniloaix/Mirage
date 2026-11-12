@@ -1,0 +1,17 @@
+$ sh -c 'python3 -I report_summary.py reports/*.json'
+(in <out>/testgen)
+--- stdout ---
+reports/ad-mpeg2.json: complete, top-rung, jobs 11, max_running 2, peak_resident 100646912 bytes; v270/index.m3u8 0.351 s (200 frames), v180/index.m3u8 0.351 s (200 frames)
+reports/ad-x264-busy-control.json: complete, top-rung, jobs 11, max_running 2, peak_resident 110641152 bytes; v270/index.m3u8 0.430 s (200 frames), v180/index.m3u8 0.384 s (200 frames)
+reports/ad-x264-busy.json: complete, top-rung, jobs 11, max_running 2, peak_resident 107102208 bytes; v270/index.m3u8 0.430 s (200 frames), v180/index.m3u8 0.367 s (200 frames)
+reports/ad-x264-control.json: complete, top-rung, jobs 11, max_running 2, peak_resident 106348544 bytes; v270/index.m3u8 0.386 s (200 frames), v180/index.m3u8 0.359 s (200 frames)
+reports/ad-x264-mezzanine.json: complete, mezzanine, jobs 11, max_running 3, peak_resident 90652672 bytes; v360/index.m3u8 0.972 s (75 frames), v270/index.m3u8 0.956 s (75 frames), v180/index.m3u8 0.927 s (75 frames)
+reports/ad-x264-nodisc.json: complete, top-rung, jobs 11, max_running 2, peak_resident 110100480 bytes; v270/index.m3u8 0.398 s (200 frames), v180/index.m3u8 0.368 s (200 frames)
+reports/ad-x264-origin1.json: complete, top-rung, jobs 11, max_running 2, peak_resident 108494848 bytes; v270/index.m3u8 0.389 s (200 frames), v180/index.m3u8 0.359 s (200 frames)
+reports/ad-x264.json: complete, top-rung, jobs 11, max_running 2, peak_resident 112410624 bytes; v270/index.m3u8 0.392 s (200 frames), v180/index.m3u8 0.353 s (200 frames)
+reports/degraded-mpeg2.json: complete, top-rung, jobs 11, max_running 2, peak_resident 92618752 bytes; v270/index.m3u8 0.352 s (200 frames), v180/index.m3u8 0.350 s (200 frames)
+reports/degraded-x264-mezzanine.json: complete, mezzanine, jobs 11, max_running 3, peak_resident 88489984 bytes; v360/index.m3u8 0.973 s (200 frames), v270/index.m3u8 0.965 s (200 frames), v180/index.m3u8 0.939 s (200 frames)
+reports/degraded-x264-ramp.json: complete, top-rung, jobs 11, max_running 2, peak_resident 103383040 bytes; v270/index.m3u8 0.364 s (200 frames), v180/index.m3u8 0.353 s (200 frames)
+reports/degraded-x264.json: complete, top-rung, jobs 11, max_running 2, peak_resident 103104512 bytes; v270/index.m3u8 0.386 s (200 frames), v180/index.m3u8 0.359 s (200 frames)
+--- stderr ---
+--- exit status 0, wall time 0.057 s (time.monotonic) ---

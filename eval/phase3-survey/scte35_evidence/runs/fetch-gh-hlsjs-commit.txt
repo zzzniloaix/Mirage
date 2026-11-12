@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/gh-hlsjs-commit/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://api.github.com/repos/video-dev/hls.js/commits/master'
+date_utc: 2026-11-01T03:47:23Z
+http_code=200
+url_effective=https://api.github.com/repos/video-dev/hls.js/commits/master
+size_download=9792
+content_type=application/json; charset=utf-8
+curl_exit=0
+sha256=e7631362ac79ba56b61b2caa122192fdc6c386e54e5b0f16b1cf952903cec0ad
