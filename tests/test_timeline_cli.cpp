@@ -397,11 +397,11 @@ TEST_CASE("timelinecli::parse_timeline: a session's options, their default, thei
     REQUIRE(parse_t({ "--config", "base.conf", "--report", "r", "--out", "o" }, f, files).empty());
     CHECK(f.fetch_base == "http://127.0.0.1:9");
 
-    // The fetch's options go with a session, the fetch base with its fetch,
-    // whether the command line or the file gives them; a fetch base is an
-    // http or https URL, so that a session's network events come from
-    // network requests alone (D-108 (a)'s reason): rules pending the owner
-    // (src/TimelineCli.h).
+    // The fetch's options go with a session, a rule pending the owner
+    // (src/TimelineCli.h), and the fetch base with its fetch, whether the
+    // command line or the file gives them; a fetch base is an http or https
+    // URL, so that a session's network events come from network requests
+    // alone (D-108 (a)'s reason): the fetch base's rules are D-111 (d)'s.
     TimelineArgs g;
     g.report = "kept";
     const auto refused = [&g, &files](const std::vector<std::string_view>& argv) { return parse_t(argv, g, files); };
@@ -927,9 +927,10 @@ TEST_CASE("timelinecli::timeline_options and attribute_options: every option wit
 
     // --cue-types and --bad-crc each where it is given, after the margins, so
     // that a document built without them is as it was (a choice pending the
-    // owner, src/TimelineCli.h): the set as ranges of consecutive types, the
-    // policy as its word. Their place alone: which options come before them
-    // without a session is the session part's choice, pending the owner too.
+    // owner, Q75; src/TimelineCli.h): the set as ranges of consecutive types,
+    // the policy as its word (pending the owner too, Q77). Their place alone:
+    // which options come before them without a session is the session part's
+    // choice, which the owner kept (D-111 (e)).
     TimelineArgs m;
     REQUIRE(timelinecli::parse_timeline({ "--report", "r", "--out", "o", "--cue-types", "0x31,0x30,0x44-0x47",
                                           "--bad-crc", "drop" }, m).empty());
@@ -2030,7 +2031,7 @@ TEST_CASE("mirage_vmaf timeline and attribute: run as programs on a synthetic ad
 
         // A plan that can't be read, isn't a plan this reads, or doesn't fit
         // the ladder: a bad argument, as a config file's errors are, a choice
-        // pending the owner (src/TimelineCli.h).
+        // the owner kept (D-111 (c)).
         const std::string missing = (dir / "no-such.plan.json").string();
         const ToolRun gone = run_tool({ "timeline", "--report", report, "--out", never, "--session", missing,
                                         "--fetch", "off" });
@@ -2054,9 +2055,9 @@ TEST_CASE("mirage_vmaf timeline and attribute: run as programs on a synthetic ad
                                        "segment 8 of variant 1 ("));
         CHECK_FALSE(fs::exists(never));
 
-        // The fetch's options without a session, and a fetch base that isn't
-        // a server's: bad arguments, rules pending the owner
-        // (src/TimelineCli.h).
+        // Bad arguments: the fetch's options without a session, a rule
+        // pending the owner (src/TimelineCli.h), and a fetch base that isn't
+        // a server's (D-111 (d)).
         const ToolRun lone_fetch = run_tool({ "timeline", "--report", report, "--out", never, "--fetch", "off" });
         CHECK(lone_fetch.status == 2);
         CHECK(lone_fetch.err.starts_with("mirage_vmaf timeline: --fetch goes with --session, which isn't given\n"));
@@ -2072,12 +2073,13 @@ TEST_CASE("mirage_vmaf timeline and attribute: run as programs on a synthetic ad
     {
         // A master in a directory beside the ladder's, naming its rungs by
         // ../ad-main-origin/<rung>/index.m3u8, scored as it is: the rungs'
-        // segments, resolved against their playlists, are outside the
-        // master's directory, so a server of that directory has no path for
-        // them, and the whole fetch is refused (D-108 (c)) with exit status
-        // 2, a status pending the owner (src/TimelineCli.h). The ladder's own
-        // directory, which other test cases of the process read whole, is
-        // left as it is.
+        // media playlists are outside the master's directory once their dot
+        // segments are resolved (fetch_url(), src/SessionPlan.h), so a server
+        // of that directory has no path for them, and the whole fetch is
+        // refused (D-108 (c)) at the first of them, not at their segments,
+        // before anything is fetched, with exit status 2 (D-111 (c)). The
+        // ladder's own directory, which other test cases of the process read
+        // whole, is left as it is.
         write_text(plan, kPlan);
         const fs::path beside = dir / "ad-beside";
         fs::create_directories(beside);
@@ -2116,7 +2118,7 @@ TEST_CASE("mirage_vmaf timeline and attribute: run as programs on a synthetic ad
         // answer, so that the fetch waits there for the signal. Either signal
         // stops the build as it stops mirage_vmaf --ladder (D-047), with the
         // exit status --ladder gives a cancelled run, and no document, a
-        // choice pending the owner (src/TimelineCli.h).
+        // choice the owner kept (D-111 (h)).
         write_text(plan, kPlan);
         const std::string held = file_of(2, 3);
         for (const int sig : { SIGINT, SIGTERM }) {

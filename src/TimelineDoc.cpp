@@ -105,8 +105,8 @@ std::string_view run_test_name(AxisRun::Test test)
 // (session_drops(), src/SessionPlan.h). Each value names the rule taken
 // where the design names another: every piece kept, a drop merged across
 // the switch, spans clipped one by one. Design §8 names the key alone: this
-// form, an object of five named rules, and its names are WP09b's, pending
-// the owner (src/TimelineDoc.h).
+// form, an object of five named rules, and its names are WP09b's, which
+// the owner kept (D-111 (b)).
 Payload session_rules_record()
 {
     const auto text = [](std::string_view s) { return Value{ std::string(s) }; };
@@ -795,7 +795,7 @@ std::string detection_json(const std::optional<Detection>& d, const Timeline& t)
     // null where none of them is a session's, as WP08 wrote a ladder's and
     // D-092 (d) keeps it (src/TimelineDoc.h), and otherwise the rules that
     // make a session's drops of its pairs' (session_rules_record(), a form
-    // pending the owner).
+    // D-111 (b) keeps).
     out += "\"curves\": [";
     bool session = false;
     for (std::size_t i = 0; i < d->curves.size(); ++i) {
@@ -1324,8 +1324,8 @@ private:
     // files weren't fetched or RFC 3339 UTC to the microsecond with Z (D-108
     // (c)), and its spans in play order, one at least, each starting where
     // the one before it ended, as make_session() places them (D-105 (a)).
-    // Refusing anything else is WP09b's choice, pending the owner
-    // (src/TimelineDoc.h).
+    // Refusing anything else is WP09b's choice, which the owner kept (D-111
+    // (i); src/TimelineDoc.h).
     bool session_list(const json::Value& v, const Path& at, bool has_plan, Timeline& t)
     {
         const json::Value::Array* list = nullptr;
@@ -1386,7 +1386,7 @@ private:
     // frames it spans, half-open and on the axis; and scored exactly when it
     // plays a pair's distorted variant, the reference in top-rung mode having
     // no score (D-105 (b)). These checks, like those of session_list(), are
-    // WP09b's, pending the owner (src/TimelineDoc.h).
+    // WP09b's, which the owner kept (D-111 (i); src/TimelineDoc.h).
     bool span(const json::Value& v, const Path& at, const Timeline& t, Span& p)
     {
         std::int64_t entry = 0;
@@ -1858,7 +1858,8 @@ private:
             // which a session whose files weren't fetched hasn't got (D-108
             // (c)). The refusals of an offline event with a session, of a
             // request without a wall clock and of a wall clock without an
-            // anchor are WP09b's, pending the owner (src/TimelineDoc.h).
+            // anchor are WP09b's, which the owner kept (D-111 (i);
+            // src/TimelineDoc.h).
             const bool observed = e.source == Source::Network || e.source == Source::Player;
             if (observed && e.session < 0)
                 return fail(std::format("{} is a {} event without a session: the {} source's events "
@@ -1995,7 +1996,8 @@ private:
         // The rules that make a session's drops of its pairs', exactly where
         // detection ran on a session's curve (session_rules_record()): a
         // document that names others wasn't made with them. Their form and
-        // this check are WP09b's, pending the owner (src/TimelineDoc.h).
+        // this check are WP09b's, which the owner kept (D-111 (b), (i);
+        // src/TimelineDoc.h).
         const json::Value& rules    = m(v, "session_rules");
         const Path         rules_at = at.member("session_rules");
         if (!session) {

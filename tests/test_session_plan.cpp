@@ -7,8 +7,8 @@
 // its drops under design §6.3's three rules (D-077); and its fetch's files
 // in their order (D-104 (a)), on a fetch base at their paths from the
 // master's directory (D-108 (c)), their dot segments resolved (pending the
-// owner), and their events on the media axis (D-105 (c)), on rows the test
-// builds by hand (the fetch itself is tests/test_session_fetch.cpp's).
+// owner, Q78), and their events on the media axis (D-105 (c)), on rows the
+// test builds by hand (the fetch itself is tests/test_session_fetch.cpp's).
 // Mostly on a five-rung version of testgen's ad ladder
 // (eval/phase3-survey/testgen.md §2.3), built by hand and merged by
 // timeline::build() as tests/test_timeline_build.cpp merges its three-rung
@@ -1288,7 +1288,7 @@ TEST_CASE("session plan: fetch_url compares a URL with the master's directory on
                  "http://127.0.0.1:8080 (design §5.7)");
     // One that leaves and comes back, or names a directory by ".": under it,
     // fetched at its path from it with its dot segments resolved, pending
-    // the owner (fetch_url(), src/SessionPlan.cpp).
+    // the owner (Q78; fetch_url(), src/SessionPlan.cpp).
     CHECK(timeline::fetch_url("/data/ladder/v270/../v180/./index.m3u8", "/data/ladder/master.m3u8", base, err) ==
           "http://127.0.0.1:8080/v180/index.m3u8");
     CHECK(err.empty());

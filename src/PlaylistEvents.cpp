@@ -545,8 +545,9 @@ std::optional<AVRational> tick_seconds(std::int64_t ticks)
 // answer to Q46 (D-087)). A cue_out that holds its cue_in in its tag
 // (kHeldCueInLine) ends at its declared duration even where `in` is given,
 // that cue_in ending nothing (D-109 (b)); one that declares no duration
-// pairs as any cue_out (D-110 (a)). A break that can't be made is a
-// warning, and so is a break of no frames, which is made (D-110 (c)).
+// pairs as any cue_out, as D-110 (a) pairs a tag that declares none: a
+// choice pending the owner, Q81. A break that can't be made is a warning,
+// and so is a break of no frames, which is made (D-110 (c)).
 void make_break(const Event& o, const std::vector<const Event*>& conts, const Event* in,
                 const Event* next_out, const FrameAfter& frame_after, Breaks& out)
 {
@@ -583,12 +584,13 @@ void make_break(const Event& o, const std::vector<const Event*>& conts, const Ev
     }
     // A cue_out holds its cue_in only where it declares a duration: the
     // decoder holds one only where its EXT-X-DATERANGE declares DURATION or
-    // END-DATE, and one that declares none pairs as any cue_out does, the
-    // next cue_in ending it (D-110 (a)). A duration that no AVRational
-    // holds exactly counts as declared, here and in the decoder
-    // (src/Scte35Events.cpp's declares()): such a cue_out holds its cue_in
-    // all the same, `in` ending nothing, and makes no break, with the
-    // warning below. As built, pending the owner.
+    // END-DATE (D-110 (a)), and one that declares none pairs as any cue_out
+    // does, the next cue_in ending it, as D-110 (a) pairs a tag that
+    // declares no duration: a choice pending the owner, Q81. A duration that
+    // no AVRational holds exactly counts as declared, here and in the
+    // decoder (src/Scte35Events.cpp's declares()): such a cue_out holds its
+    // cue_in all the same, `in` ending nothing, and makes no break, with the
+    // warning below. As built, pending the owner, Q80.
     const std::optional<std::int64_t> held =
         declared ? int_member(o.payload, kHeldCueInLine) : std::optional<std::int64_t>{};
 
@@ -610,7 +612,7 @@ void make_break(const Event& o, const std::vector<const Event*>& conts, const Ev
         // FrameAfter is given a positive, exact duration only: a zero one
         // ends where the break starts, and one that no AVRational holds
         // exactly makes no break, a held cue_out's too, whose `in`, if one
-        // came, then ends nothing (above; as built, pending the owner).
+        // came, then ends nothing (above; as built, pending the owner, Q80).
         const std::optional<AVRational> q =
             declared->ticks ? tick_seconds(*declared->ticks) : exact_seconds(*declared->seconds);
         if (!q)

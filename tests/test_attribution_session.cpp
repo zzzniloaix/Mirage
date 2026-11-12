@@ -53,12 +53,12 @@
 // event types, tag lines, a status, a measured duration against the delay,
 // and offsets in frames; never seconds on the axis, scores, ids, a wall
 // clock's value (only that the session has its anchor, D-108 (c)) or
-// warnings (the design's P-R). Nor does it depend on how WP09b's choices
-// that are still the owner's fall (Q74, docs/PHASE3_DECISIONS_PENDING.md):
-// attribute's --curve session:<id> names the session's curve by the id the
-// timeline document gives the session, whatever its form (Q74 (a)), and
-// nothing here depends on which other curves detection runs on, in which
-// order, or on detection.session_rules (Q74 (b), (f)).
+// warnings (the design's P-R). Nor does it depend on WP09b's choices,
+// which the owner kept as built (D-111): attribute's --curve session:<id>
+// names the session's curve by the id the timeline document gives the
+// session, whatever its form (D-111 (a)), and nothing here depends on
+// which other curves detection runs on, in which order, or on
+// detection.session_rules (D-111 (b), (f)).
 //
 // A test case of its own, so that ctest runs it in a process of its own,
 // which makes its ladder once (the design's P-Q). With MIRAGE_KEEP_MEDIA=<dir>
@@ -122,8 +122,8 @@ constexpr std::chrono::milliseconds kDelay{ 1000 };
 
 // The session's curve as --curve names it (design §7; D-079): this, then the
 // session's id, the document's sessions[].id, which the test reads from the
-// timeline document rather than writes, since its form is still the
-// owner's (Q74 (a); src/TimelineBuild.h).
+// timeline document rather than writes, whatever its form, which the owner
+// kept as built (D-111 (a); src/TimelineBuild.h).
 constexpr std::string_view kSessionCurvePrefix = "session:";
 
 // The session's place among the document's sessions, which an event's
@@ -602,7 +602,7 @@ TEST_CASE("attribution acceptance: test 3, the work order's example on a scripte
     REQUIRE(built.timeline.sessions.size() == 1);
     {
         // The session's curve by the id the timeline document gives the
-        // session, whatever its form (Q74 (a)).
+        // session, whatever its form (D-111 (a)).
         const std::string curve = std::string(kSessionCurvePrefix) + built.timeline.sessions[kSession].id;
         const ToolRun r = run_tool(with_detection({ "attribute", "--timeline", doc, "--report", report, "--auto",
                                                     "--curve", curve, "--format", "json", "--out", answer }));

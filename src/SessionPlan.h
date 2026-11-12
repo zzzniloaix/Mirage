@@ -277,13 +277,18 @@ std::vector<Event> session_events(const Timeline& timeline, const std::vector<Ma
 // `master_url` (up to its last '/' before any '?' or '#') added to
 // `fetch_base`, with a '/' between them: with the master at /data/ladder/
 // master.m3u8 and the base http://127.0.0.1:8080, /data/ladder/v180/
-// ad_000.ts is fetched from http://127.0.0.1:8080/v180/ad_000.ts. A URL that
-// isn't under that directory can't be rebased: `err` says so, and the result
-// is empty; otherwise `err` is empty. This rule is WP07's reading of design
-// §5.7's paths rebased onto --fetch-base, which the owner kept (D-108 (c)):
-// a ladder whose segments are on another host, or beside the master's
-// directory, can't be fetched from a base, fetch_files() refusing its whole
-// fetch.
+// ad_000.ts is fetched from http://127.0.0.1:8080/v180/ad_000.ts. Both URLs
+// are taken with their dot segments resolved (RFC 3986 §5.2.4), a relative
+// path keeping a leading '..', so that a URL that leaves the master's
+// directory through '../' isn't under it whatever its text starts with. A
+// URL that isn't under that directory can't be rebased: `err` says so, and
+// the result is empty; otherwise `err` is empty. This rule is WP07's
+// reading of design §5.7's paths rebased onto --fetch-base, which the owner
+// kept (D-108 (c)): a ladder whose segments are on another host, or beside
+// the master's directory, can't be fetched from a base, fetch_files()
+// refusing its whole fetch. The path rebased is the resolved one, and a
+// refusal's text gives the resolved URL beside the URL where the two
+// differ: both pending the owner (Q78; src/SessionPlan.cpp).
 std::string fetch_url(const std::string& url, const std::string& master_url,
                       const std::string& fetch_base, std::string& err);
 

@@ -20,23 +20,23 @@
 // - The session part (design §8, "Who writes what"; D-068, D-104, D-105):
 //   session_plan, the scripted session's plan by its path and SHA-256
 //   (D-105 (a)); sessions, the session with its id (as the build gives it,
-//   "0", a form pending the owner, below), its plan's name, the UTC anchor
-//   of its wall clock, RFC 3339 to the microsecond with Z or null where its
-//   files weren't fetched (D-108 (c)), and its spans, each with its variant,
-//   its plan's entry and segments, its reference frames and whether it is
-//   scored (D-105 (b)); its own events, of the player and network sources,
-//   each with its session's index, the network ones with their wall clock,
+//   "0", a form D-111 (a) keeps), its plan's name, the UTC anchor of its
+//   wall clock, RFC 3339 to the microsecond with Z or null where its files
+//   weren't fetched (D-108 (c)), and its spans, each with its variant, its
+//   plan's entry and segments, its reference frames and whether it is scored
+//   (D-105 (b)); its own events, of the player and network sources, each
+//   with its session's index, the network ones with their wall clock,
 //   seconds from the session's start (D-073), and no other event with a
-//   session; its curve, {"kind": "session", "index"}, by its place among
-//   the sessions; and detection.session_rules where detection ran on its
-//   curve, a form pending the owner (below). The events' payloads are
-//   src/SessionPlan.h's, as the owner kept them (D-108 (c)), and the schema
-//   file types them. A ladder alone has session_plan null and sessions
-//   empty, so that an event of its document has no session, none is of the
-//   network or player source, whose events are a session's (D-068), and
-//   none has a wall clock, which only observed events have (D-073): its
-//   document is the same bytes as before the session part came, and version
-//   1 has one layout before and after.
+//   session; its curve, {"kind": "session", "index"}, by its place among the
+//   sessions; and detection.session_rules where detection ran on its curve,
+//   a form D-111 (b) keeps. The events' payloads are src/SessionPlan.h's, as
+//   the owner kept them (D-108 (c)), and the schema file types them. A
+//   ladder alone has session_plan null and sessions empty, so that an event
+//   of its document has no session, none is of the network or player source,
+//   whose events are a session's (D-068), and none has a wall clock, which
+//   only observed events have (D-073): its document is the same bytes as
+//   before the session part came, and version 1 has one layout before and
+//   after.
 // - Additions to §8's layout, each needed to read a document back without
 //   its media (design §3.5): the axis's seconds and media keys, one of each
 //   per reference frame (axis.tick_den, axis.ticks, axis.keys); every run of
@@ -161,7 +161,7 @@
 //   wall clock on an event of another source (D-073); and a detected
 //   attribution where detection is null (D-077). Of the session part it
 //   refuses, beyond its keys and their kinds, what the writer never writes,
-//   these refusals being WP09b's choices, pending the owner (below): a plan
+//   these refusals being WP09b's choices, which D-111 (i) keeps: a plan
 //   without a session or a session without a plan, and more than one
 //   session, where D-072 gives a build one at most; a session without an id
 //   or without a span; an anchor in another form than the fetch writes, the
@@ -298,24 +298,21 @@
 // the session's events are src/SessionPlan.h's, which the schema file now
 // types.
 //
-// Pending the owner: the session part's forms that neither the design nor
-// the decisions settle, WP09b's, each built as described above and marked
-// where it is made; docs/TIMELINE_FORMAT.md lists them with the CLI's.
-// - sessions[].id, which design §8 names without a form: the session's
+// The owner's choices (D-111, of 2026-11-11), on the session part's forms
+// that neither the design nor the decisions settled, WP09b's, as built,
+// each cited where it is made; docs/TIMELINE_FORMAT.md lists them with the
+// CLI's:
+// - (a) sessions[].id, which design §8 names without a form: the session's
 //   place among the sessions as text, "0", as add_session() gives it
 //   (src/TimelineBuild.h), by which --curve session:<id> names it, while an
-//   event's session and a session's curve reference count by place; or the
-//   plan's name, which may be empty or repeat, the plan file's name, or an
-//   integer, as a variant's id is.
-// - detection.session_rules, which design §8 names without a form: an
+//   event's session and a session's curve reference count by place.
+// - (b) detection.session_rules, which design §8 names without a form: an
 //   object of five named rules (session_rules_record(),
 //   src/TimelineDoc.cpp), there exactly where detection ran on a session's
-//   curve; or one string naming D-077's rules, a list of their names, or
-//   null always, as for a ladder.
-// - The reader's refusals of the session part (above), which a later
-//   change would take a new schema_version to relax once documents are
-//   kept, as D-092 (d) has the reader strict; or reading such documents
-//   and leaving the checks to the writer.
+//   curve, and null otherwise, as for a ladder.
+// - (i) the reader's refusals of the session part (above), as strict as
+//   D-092 (d) has the reader, which a later change would take a new
+//   schema_version to relax once documents are kept.
 //
 // Core code (design §3.1): plain structs and text in and out, and libavutil's
 // rationals only. Nothing here reads a file; write_document() alone writes

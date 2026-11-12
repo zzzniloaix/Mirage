@@ -45,7 +45,10 @@
 //   stop mirage_vmaf --ladder's run; a stopped build exits with status 1, as
 //   --ladder's does (D-047), and writes no document, where D-047 has
 //   --ladder write a report of its complete pairs. Each choice the design
-//   and the decisions leave open here is listed below, pending the owner.
+//   and the decisions left open here is listed below: the owner kept them as
+//   built (D-111), but for one, which is pending the owner. The path rebased
+//   for a URL with dot segments, and the resolved URL that a refusal's text
+//   gives, pending the owner, Q78, are src/SessionPlan.h's (fetch_url()).
 // - attribute (design §3.5) reads a timeline document and the ladder report
 //   it names, checks the report's SHA-256, or for a redacted copy its
 //   scores digest (D-072), takes the pairs' curves from it, and answers one
@@ -69,67 +72,62 @@
 // are left out when the command line gives another query, as vmafcli
 // leaves out a file's settings of the other form of its inputs. --auto,
 // which takes no value on the command line, is `auto = on` in a file.
-// timeline's --fetch and --fetch-base go with --session only, and
-// --fetch-base with --fetch on only: given otherwise, on the command line or
-// in the file, they are refused, as attribute refuses --threshold with
-// another query than --auto, a rule pending the owner (below). The plan
-// itself is a file of its own, since D-030's file holds each setting once
-// and a plan is a list of spans (design §7; D-105 (a)). --cue-types takes
-// segmentation_type_ids in hex, each alone or a range, comma-separated
-// without blanks (parse_cue_types()), so that the default as design §7
-// writes it, "0x22-0x23, 0x30-0x37, 0x44-0x47", a blank after each comma as
-// in Q15 (a), which D-106 (b) adopts, is refused: a rule pending the owner
-// (below). A value in a config file is checked on its line as one on the
-// command line is, a type that is neither a Start nor an End type included.
+// timeline's --fetch and --fetch-base go with --session only, a rule
+// pending the owner (below), and --fetch-base with --fetch on only (D-111
+// (d)): given otherwise, on the command line or in the file, they are
+// refused, as attribute refuses --threshold with another query than --auto.
+// The plan itself is a file of its own, since D-030's file holds each
+// setting once and a plan is a list of spans (design §7; D-105 (a)).
+// --cue-types takes segmentation_type_ids in hex, each alone or a range,
+// comma-separated without blanks (parse_cue_types()), so that the default
+// as design §7 writes it, "0x22-0x23, 0x30-0x37, 0x44-0x47", a blank after
+// each comma as in Q15 (a), which D-106 (b) adopts, is refused: a rule
+// pending the owner, Q76 (below). A value in a config file is checked on
+// its line as one on the command line is, a type that is neither a Start
+// nor an End type included.
 //
 // Defaults are the decisions' only: T = 6, W and N none (D-077), margins
 // none (D-078), text (D-079), --fetch on with a session (design §7),
 // --cue-types D-106 (b)'s and --bad-crc keep (D-106 (c)).
 //
-// Pending the owner: the choices the session part made where the design
-// and the decisions say nothing, each built as written here (the session's
-// id and the document's forms are src/TimelineBuild.h's and
-// src/TimelineDoc.h's; docs/TIMELINE_FORMAT.md lists them all):
-// - a session plan that can't be read, isn't one or doesn't fit the ladder
-//   is a bad argument, exit status 2, as the list-valued setting it is
-//   (design §7), its message naming it; or an input refused, status 1;
-// - with --fetch-base, a fetch of a URL outside the master's directory,
-//   which D-108 (c) refuses without naming a status, exits with status 2,
-//   an argument the fetch can't honour, like D-108 (a)'s refusal; or
-//   status 1;
-// - a --fetch-base that isn't an http or https URL, a local directory or a
-//   file:// URL among them, is refused at the parse, exit status 2, so that
-//   network events come from network requests alone, D-108 (a)'s reason;
-//   or taken, the fetch reading local files from it, or taken with a
-//   warning;
-// - --fetch or --fetch-base without --session, and --fetch-base with
-//   --fetch off, are refused, exit status 2; or taken and left unused;
-// - the session options are recorded with the others only when --session
-//   is given, so that a ladder's document is what it was before them; or
-//   always, null or "off" without a session, which changes every ladder's
-//   document;
-// - with a session, detection runs on every pair's curve, then on the
+// The owner's choices (D-111, of 2026-11-11), on what the session part
+// chose where the design and the decisions say nothing, as built, each
+// cited where it is made (the session's id and the document's forms, D-111
+// (a), (b) and (i), are src/TimelineBuild.h's and src/TimelineDoc.h's;
+// docs/TIMELINE_FORMAT.md lists them all):
+// - (c) a session plan that can't be read, isn't one or doesn't fit the
+//   ladder is a bad argument, exit status 2, as the list-valued setting it
+//   is (design §7), its message naming it; and with --fetch-base, a fetch
+//   of a URL outside the master's directory, which D-108 (c) refuses
+//   without naming a status, exits with status 2, an argument the fetch
+//   can't honour, like D-108 (a)'s refusal;
+// - (d) a --fetch-base that isn't an http or https URL, a local directory
+//   or a file:// URL among them, is refused at the parse, exit status 2, so
+//   that network events come from network requests alone, D-108 (a)'s
+//   reason, and so is --fetch-base with --fetch off;
+// - (e) the session options are recorded with the others only when
+//   --session is given, so that a ladder's document is what it was before
+//   them;
+// - (f) with a session, detection runs on every pair's curve, then on the
 //   session's, so that the ladder's attributions are the same with or
-//   without one; or on the session's curve alone;
-// - without --curve, attribute answers every curve, each pair's and then
-//   the session's, and --drop K counts the drops in that order; or every
-//   pair's alone, as D-099 (c) words it, the session's only through
-//   --curve session:<id>;
-// - a build that SIGINT or SIGTERM stopped exits with status 1 and writes
-//   no document; or status 1 with a document of what was fetched, as D-047
-//   has --ladder write a report of its complete pairs; or 128 plus the
-//   signal's number;
-// - the text of an answer on a session's curve (answer_text()), the
+//   without one;
+// - (g) without --curve, attribute answers every curve, each pair's and
+//   then the session's, and --drop K counts the drops in that order;
+// - (h) a build that SIGINT or SIGTERM stopped exits with status 1 and
+//   writes no document;
+// - (j) the text of an answer on a session's curve (answer_text()), the
 //   design's P-AD extended: its header with the spans, a switch's two
-//   rungs, a request's URL, times, bytes and status; or the payload as
-//   JSON, as for a type answer_text() doesn't know.
+//   rungs, a request's URL, times, bytes and status.
+//
+// Pending the owner: --fetch or --fetch-base without --session is refused,
+// exit status 2; or taken and left unused.
 //
 // Pending the owner too, the choices the decoded messages' options and
 // lines made where the design and the decisions say nothing, each built as
 // written here (the order of the decoded events' ids and of their warnings
-// is src/TimelineBuild.h's):
-// - --cue-types and --bad-crc are recorded with the other options only
-//   where each is given, on the command line or in the config file, so that
+// is src/TimelineBuild.h's, Q77):
+// - --cue-types and --bad-crc are recorded with the other options only where
+//   each is given (Q75), on the command line or in the config file, so that
 //   a document built without them is what it was before them; then a
 //   document of playlists that carry messages, built without them, doesn't
 //   name the cue types and the CRC policy, D-106's defaults, by which its
@@ -139,19 +137,19 @@
 //   carries a message, so that a document of D-069's ladders, which carry
 //   none, keeps its bytes and every other names them; or always, which
 //   changes every document;
-// - --cue-types' value: segmentation_type_ids in hex with 0x, one or two
-//   digits each, alone or as a range first-last, comma-separated, without
-//   blanks, the set not empty, so that the default as design §7 writes it,
-//   "0x22-0x23, 0x30-0x37, 0x44-0x47", is refused, exit status 2, a config
-//   file's value too, which no shell quotes; or decimal ids too, blanks
-//   after the commas, or a word for no type at all, splice_insert alone
-//   making cues (Q15 (b)'s alternative);
-// - its record, the set as ranges in that form, ascending, each run of
-//   consecutive types one range ("0x22-0x23,0x30-0x37,0x44-0x47"); or the
-//   list of the ids as integers, or the value as given; --bad-crc's,
+// - --cue-types' value (Q76): segmentation_type_ids in hex with 0x, one or
+//   two digits each, alone or as a range first-last, comma-separated,
+//   without blanks, the set not empty, so that the default as design §7
+//   writes it, "0x22-0x23, 0x30-0x37, 0x44-0x47", is refused, exit status 2,
+//   a config file's value too, which no shell quotes; or decimal ids too,
+//   blanks after the commas, or a word for no type at all, splice_insert
+//   alone making cues (Q15 (b)'s alternative);
+// - its record (Q77), the set as ranges in that form, ascending, each run
+//   of consecutive types one range ("0x22-0x23,0x30-0x37,0x44-0x47"); or
+//   the list of the ids as integers, or the value as given; --bad-crc's,
 //   "keep" or "drop";
-// - the text of a decoded message's events (answer_text()): the line of a
-//   splice_point, a message, a cancel or a cue of a message's own starts
+// - the text of a decoded message's events (answer_text(); Q77): the line of
+//   a splice_point, a message, a cancel or a cue of a message's own starts
 //   with the line and form of the tag that carried it, the form alone for
 //   another carrier, a cue_in that joins a cue_out naming that cue's line
 //   ("line 16, OATCLS, joining the cue_out at line 15"; D-109 (e)); then its
@@ -162,24 +160,26 @@
 //   CRC_32 (D-106 (c), (d), D-109 (a)); or the payload as JSON, as for a
 //   type answer_text() doesn't know, a decoded cue's tag as written, as a
 //   plain cue's, or no mark on a cue's line;
-// - the help's row of an option wider than its column, --cue-types with
-//   design §7's placeholder: its help in the column on the next line, every
-//   other row as it was (option_rows()); or a wider column for timeline's
-//   table, which moves every row, or a shorter placeholder than design §7's.
+// - the help's row of an option wider than its column (Q77), --cue-types
+//   with design §7's placeholder: its help in the column on the next line,
+//   every other row as it was (option_rows()); or a wider column for
+//   timeline's table, which moves every row, or a shorter placeholder than
+//   design §7's.
 //
 // Choices the design left open, which the owner's D-099 (c) keeps as they
 // are here, and stated in the help: attribute's --report defaults to the
 // path the document names, taken from the current directory as mirage_vmaf
-// takes its inputs (D-081 (b)); without --curve a query answers every
-// pair's curve, and with a session the session's after them (above); drops
-// are numbered from 1 in the order they are listed, the curves in turn, or
-// with --curve that curve's alone, which is what --drop counts; --auto
-// takes W and N from its own options, not from the document, and needs
-// both (D-077); arguments that don't fit the document (a curve, a drop,
-// frames or an interval it doesn't have) are bad arguments, exit status 2.
-// --frames can't go past the axis's last frame, and so an --interval can't
-// hold time past the axis: a frame has to start at or after its t0, and its
-// t1 can't be after the axis's end, where the last frame ends.
+// takes its inputs (D-081 (b)); without --curve a query answers every pair's
+// curve, and with a session the session's after them (D-111 (g), above);
+// drops are numbered from 1 in the order they are listed, the curves in
+// turn, or with --curve that curve's alone, which is what --drop counts;
+// --auto takes W and N from its own options, not from the document, and
+// needs both (D-077); arguments that don't fit the document (a curve, a
+// drop, frames or an interval it doesn't have) are bad arguments, exit
+// status 2. --frames can't go past the axis's last frame, and so an
+// --interval can't hold time past the axis: a frame has to start at or after
+// its t0, and its t1 can't be after the axis's end, where the last frame
+// ends.
 //
 // A pair's number (D-092 (b)). --curve pair:<k>, the answers' text and every
 // error name a pair as the document does, by the ladder report's own
@@ -205,20 +205,20 @@
 // read back, a write that fails, a session fetch that can't run, as while
 // another NetworkLogger is installed, or a build that SIGINT or SIGTERM
 // stopped, with the status mirage_vmaf --ladder gives a cancelled run
-// (D-047) but no document (pending the owner, above), and then no new
-// document at --out; 2 bad arguments or a config file that can't be read or
-// has an error, for timeline a --cue-types or a --bad-crc it can't take, on
-// the command line or in the config file, a cue type that is neither a
-// Start nor an End type among them (check_message_options()), a session
-// fetch of local files without --fetch-base (D-108 (a)) and, pending the
-// owner (above), a session plan that can't be read, has an error or
-// doesn't fit the ladder, a --fetch-base that isn't an http or https URL,
-// the fetch's options where they can't apply, and with --fetch-base a fetch
-// of a URL outside the master's directory, which D-108 (c) refuses without
-// naming a status, and for attribute the arguments above that don't fit
-// the document. A file the fetch fails to read, a 404 or a body cut short,
-// is no failure of the build: it is a failed request, recorded as such
-// (D-104 (a)).
+// (D-047) but no document (D-111 (h)), and then no new document at --out;
+// 2 bad arguments or a config file that can't be read or has an error, for
+// timeline a --cue-types or a --bad-crc it can't take, on the command line
+// or in the config file, a cue type that is neither a Start nor an End type
+// among them (check_message_options()), a session fetch of local files
+// without --fetch-base (D-108 (a)), a session plan that can't be read, has
+// an error or doesn't fit the ladder, a --fetch-base that isn't an http or
+// https URL or is given with --fetch off, and with --fetch-base a fetch of
+// a URL outside the master's directory, which D-108 (c) refuses without
+// naming a status (D-111 (c), (d)), and, pending the owner (above),
+// --fetch or --fetch-base without --session; and for attribute the
+// arguments above that don't fit the document. A file the fetch fails to
+// read, a 404 or a body cut short, is no failure of the build: it is a
+// failed request, recorded as such (D-104 (a)).
 // Before anything is read, each sets FFmpeg's log level to warnings and
 // initializes its network, as mirage_vmaf does after its own parse (the
 // design's P-N).
@@ -268,7 +268,7 @@ struct TimelineArgs {
     std::optional<bool> fetch;
     // --fetch-base: the server the session's files are fetched from, each at
     // its path from the master's directory (D-108 (c)), an http or https URL
-    // (a rule pending the owner, above); empty: the report's URLs.
+    // (D-111 (d)); empty: the report's URLs.
     std::string fetch_base;
     // --cue-types: the segmentation_type_ids that make a time_signal a cue
     // (D-106 (b)), ascending, each once, each a Start or an End type;
@@ -344,8 +344,8 @@ std::optional<AVRational> parse_seconds(std::string_view text);
 // --cue-types' value as the set it names (D-106 (b); design §7): items
 // separated by ',', each a segmentation_type_id written 0x or 0X and one or
 // two hex digits, or a range of them, first-last with first at or before
-// last, without blanks ("0x22-0x23,0x30-0x37,0x44-0x47"), a rule pending
-// the owner (above); ascending, each type once. nullopt, with `err` saying
+// last, without blanks ("0x22-0x23,0x30-0x37,0x44-0x47"), a rule pending the
+// owner, Q76 (above); ascending, each type once. nullopt, with `err` saying
 // which item is wrong and why, for any other text, the empty one included.
 // Whether each type is a Start or an End type is
 // timeline::check_message_options()'s, not this.
@@ -354,7 +354,7 @@ std::optional<std::vector<std::uint8_t>> parse_cue_types(std::string_view text, 
 // The set `types`, ascending and each once, as parse_cue_types() takes it:
 // each run of consecutive types a range, a type alone by itself, with two
 // upper-case hex digits after 0x; what the options record writes, a choice
-// pending the owner (above). D-106 (b)'s set is
+// pending the owner, Q77 (above). D-106 (b)'s set is
 // "0x22-0x23,0x30-0x37,0x44-0x47".
 std::string cue_types_text(const std::vector<std::uint8_t>& types);
 
@@ -380,12 +380,11 @@ std::string check_interval(const timeline::Axis& axis, AVRational from, AVRation
 // given, T a number, W and N integers or null, margins exact as "num/den"
 // as the overlap record writes them. timeline's session options, session,
 // fetch ("on" or "off") and fetch-base (null when not given), are recorded
-// only with a session, so that a ladder's record is as it was before them:
-// a choice pending the owner (above); cue-types (cue_types_text()) and
-// bad-crc ("keep" or "drop") each only where it is given, after the
-// margins, a choice pending the owner too. attribute's also name its query,
-// its curve, "pair:<k>" or "session:<id>", or null, its format and the
-// report it read.
+// only with a session, so that a ladder's record is as it was before them
+// (D-111 (e)); cue-types (cue_types_text()) and bad-crc ("keep" or "drop")
+// each only where it is given, after the margins, a choice pending the
+// owner, Q75 (above). attribute's also name its query, its curve,
+// "pair:<k>" or "session:<id>", or null, its format and the report it read.
 timeline::Payload timeline_options(const TimelineArgs& args);
 timeline::Payload attribute_options(const AttributeArgs& args, const std::string& report);
 
@@ -425,9 +424,9 @@ std::string no_detection_note(const timeline::DetectOptions& detect);
 // the cue_out a cue_in joins, and each a mark where the message's CRC_32
 // fails (D-106 (c)), as a cue that holds a message whose CRC_32 fails gets
 // one. Segments and frames are ranges first-last, both included. The
-// wording of a session's lines and of a decoded message's is pending the
-// owner (above). A curve with no answer, which only detection leaves, says
-// "no drop".
+// wording of a session's lines is the one the owner kept (D-111 (j)), and
+// that of a decoded message's is pending the owner, Q77 (above). A curve
+// with no answer, which only detection leaves, says "no drop".
 std::string answer_text(const timeline::Timeline& timeline, const std::vector<timeline::CurveRef>& curves,
                         const std::vector<timeline::Attribution>& answers,
                         const std::vector<std::int64_t>& numbers);

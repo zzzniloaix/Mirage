@@ -73,7 +73,8 @@
 //   unpaired frames after their input's last paired frame, one warning for
 //   each kind and input; a libvmaf context that starts at no scored frame of
 //   its pair or off the axis, one warning each; and a cue_out that makes no
-//   ad break (pair_breaks()'s warnings). This granularity is the owner's
+//   ad break, and an ad_break of no frames, which is kept (D-110 (c)), each
+//   with a warning of pair_breaks()'s. This granularity is the owner's
 //   D-099 (c). A warning about a pair names it by its number, the report's
 //   pairs[].index, as the axis's warnings do. A variant the demux pass refused
 //   keeps none of its segment-bound events, keyframes or corrupt packets
@@ -96,8 +97,8 @@
 //   what can't be decoded or placed is a warning of scte35_events(). Its
 //   warnings, of every variant, come after the variants' and the pairs',
 //   and before pair_breaks()': a choice of this package's that sets a
-//   document's bytes, pending the owner (docs/TIMELINE_FORMAT.md); or each
-//   variant's after its own warnings. A ladder whose playlists carry no
+//   document's bytes, pending the owner, Q77 (docs/TIMELINE_FORMAT.md); or
+//   each variant's after its own warnings. A ladder whose playlists carry no
 //   message, as D-069's carry plain cue tags only
 //   (eval/phase3-survey/testgen.md §2.3), has the events and the warnings it
 //   had before messages were decoded, whatever options
@@ -113,7 +114,7 @@
 //   one share a frame, a type and a variant, as an EXT-X-CUE-IN and a cue-in
 //   message of its segment do (D-109 (e)), assign_ids() numbers the plain
 //   one first, whatever their lines: a choice of this package's that sets a
-//   document's ids, pending the owner (docs/TIMELINE_FORMAT.md); or the
+//   document's ids, pending the owner, Q77 (docs/TIMELINE_FORMAT.md); or the
 //   decoded one first, or the one of the earlier line.
 // - Order: the events get their ids from assign_ids() and are put in
 //   canonical order with the overlap index built (Timeline::build_index()),
@@ -275,7 +276,7 @@ std::vector<CurveRef> pair_curve_refs(const Timeline& timeline);
 // Every curve of `timeline`: each pair's, in order (pair_curve_refs()), then
 // each session's, by its place in Timeline::sessions: what mirage_vmaf
 // timeline runs detection on, and attribute answers without --curve, for a
-// ladder with a session, choices pending the owner (src/TimelineCli.h).
+// ladder with a session, as the owner kept them (D-111 (f), (g)).
 std::vector<CurveRef> curve_refs(const Timeline& timeline);
 
 // The drops of each of `curves`, each with the events attribute() finds for
@@ -307,16 +308,17 @@ std::vector<Attribution> attribute_drops(const Timeline& timeline, const std::ve
 // "0", by which --curve session:<id> names it (design §7), while an event's
 // session and the document's curve references count sessions by place
 // (src/TimelineDoc.h): design §8 gives the id no form, so this one is
-// WP09b's, pending the owner; no wall clock anchor until add_requests()
-// gives it one; and its player events, a variant_span over each span and a
-// variant_switch where the entry played changes (session_events(); design
-// §5.6, D-108 (b)). Then every event gets its id again (assign_ids(), which
-// leaves the ladder's events' ids as they were) and the index is built
-// again. A timeline holds one session at most (D-072). Returns false, with
-// `err` saying why and `timeline` unchanged, for a plan that make_session()
-// refuses (an entry the ladder doesn't have or whose variant isn't scored
-// or has no segment map, a segment the timeline doesn't have, a gap or an
-// overlap, each named) or for a second session; otherwise `err` is empty.
+// WP09b's, which the owner kept (D-111 (a)); no wall clock anchor until
+// add_requests() gives it one; and its player events, a variant_span over
+// each span and a variant_switch where the entry played changes
+// (session_events(); design §5.6, D-108 (b)). Then every event gets its id
+// again (assign_ids(), which leaves the ladder's events' ids as they were)
+// and the index is built again. A timeline holds one session at most
+// (D-072). Returns false, with `err` saying why and `timeline` unchanged,
+// for a plan that make_session() refuses (an entry the ladder doesn't have
+// or whose variant isn't scored or has no segment map, a segment the
+// timeline doesn't have, a gap or an overlap, each named) or for a second
+// session; otherwise `err` is empty.
 // The session's files aren't fetched here: fetch_files() lists them,
 // src/SessionFetch.h fetches them and add_requests() adds what it returns.
 bool add_session(Timeline& timeline, const std::vector<MasterEntry>& entries, const SessionPlan& plan,

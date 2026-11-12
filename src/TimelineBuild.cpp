@@ -212,7 +212,7 @@ public:
         // into it there, the others make cues, splice points, messages and
         // cancellations of their own (src/Scte35Events.h). Their warnings
         // come after the variants' and the pairs', before the pairing's
-        // (pending the owner, TimelineBuild.h).
+        // (pending the owner, Q77; TimelineBuild.h).
         const MessagePlacement placement = message_placement();
         MessageEvents decoded =
             scte35_events(playlist_messages(placement.variants), cues_, placement, in_.messages);
@@ -227,9 +227,10 @@ public:
         });
         // The cues that are placed, the plain ones first, which assign_ids()
         // then numbers first where a plain and a decoded cue share a frame,
-        // a type and a variant (pending the owner, TimelineBuild.h); one that
-        // isn't placed only took its turn in the pairing, and a warning names
-        // it. The splice points, messages and cancellations come placed.
+        // a type and a variant (pending the owner, Q77; TimelineBuild.h);
+        // one that isn't placed only took its turn in the pairing, and a
+        // warning names it. The splice points, messages and cancellations
+        // come placed.
         for (Event& c : cues_)
             if (c.ref_index != kUnplaced) events_.push_back(std::move(c));
         for (Event& c : decoded.cues)
@@ -774,9 +775,9 @@ bool add_session(Timeline& timeline, const std::vector<MasterEntry>& entries, co
     Session s = make_session(timeline, entries, plan, err);
     if (!err.empty()) return false;
     // Its id, by which --curve session:<id> names it (design §7), is its
-    // place among the timeline's sessions as text, a form of WP09b's,
-    // pending the owner (TimelineBuild.h): a session's own name is its
-    // plan's, which may be empty or repeat another's.
+    // place among the timeline's sessions as text, a form of WP09b's, which
+    // the owner kept (D-111 (a)): a session's own name is its plan's, which
+    // may be empty or repeat another's.
     const int index = static_cast<int>(timeline.sessions.size());
     s.id = std::format("{}", index);
     timeline.sessions.push_back(std::move(s));

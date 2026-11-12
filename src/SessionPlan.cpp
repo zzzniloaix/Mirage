@@ -571,10 +571,10 @@ std::string fetch_url(const std::string& url, const std::string& master_url, con
     // A URL under the directory is fetched at its resolved path from it, so
     // that one that leaves it and comes back is fetched without its dot
     // segments, and a refusal's message gives the URL resolved beside it
-    // where the two differ: a choice pending the owner, the others being its
-    // text after the directory, for the server to resolve, which names the
-    // same file only where its dot segments stay inside the directory, or a
-    // refusal of any URL that has them.
+    // where the two differ: a choice pending the owner, Q78, the others
+    // being its text after the directory, for the server to resolve, which
+    // names the same file only where its dot segments stay inside the
+    // directory, or a refusal of any URL that has them.
     const std::string resolved = without_dot_segments(url);
     const std::string master   = without_dot_segments(master_url);
     // The master's directory: its URL up to its last '/' before any query
@@ -591,7 +591,8 @@ std::string fetch_url(const std::string& url, const std::string& master_url, con
     if (!resolved.starts_with(dir) || (dir.empty() && !relative) || rest.empty() || rest.starts_with("../")) {
         // The URL, then, where resolving its dot segments changes it, the
         // URL resolved, or "the current directory" where that leaves
-        // nothing, as of "a/..": a form pending the owner with the rebasing.
+        // nothing, as of "a/..": a form pending the owner with the rebasing
+        // (Q78).
         err = std::format("{}{} isn't under the master's directory {}, so it has no path to fetch from {} "
                           "(design §5.7)",
                           url,
@@ -603,7 +604,7 @@ std::string fetch_url(const std::string& url, const std::string& master_url, con
         return {};
     }
     // At its path from the directory, its dot segments resolved: the choice
-    // pending the owner above.
+    // pending the owner above (Q78).
     std::string out = fetch_base;
     if (!out.ends_with('/')) out += '/';
     return out + std::string(rest);

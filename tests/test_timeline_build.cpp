@@ -1411,8 +1411,8 @@ TEST_CASE("timeline::build: a plain cue numbered before a decoded one of its fra
           "messages' warnings between the variants' and the pairing's, as built", "[timeline][timeline_build]")
 {
     // Two choices of the build's that set a document's bytes where a
-    // playlist carries a message, pending the owner (src/TimelineBuild.h,
-    // docs/TIMELINE_FORMAT.md), as they are built.
+    // playlist carries a message, pending the owner (Q77;
+    // src/TimelineBuild.h, docs/TIMELINE_FORMAT.md), as they are built.
     //
     // v180's EXT-X-CUE-IN and, before it in segment 5, an OATCLS of a
     // splice_insert in, which makes a cue_in of its own at the same frame
@@ -1741,7 +1741,7 @@ TEST_CASE("timeline::add_session and add_requests: a session merged into a ladde
     CHECK(err.empty());
 
     // The session: its id its place as text, "0", by which --curve session:0
-    // names it (design §7; a form pending the owner); its plan's name; no
+    // names it (design §7; a form D-111 (a) keeps); its plan's name; no
     // anchor before its fetch; its spans on the reference's frames through
     // the segments build() placed (design §5.1), each starting where the one
     // before it ended (D-105 (a)).

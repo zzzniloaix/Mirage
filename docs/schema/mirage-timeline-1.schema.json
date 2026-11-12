@@ -218,7 +218,7 @@
         "required": ["id", "name", "wallclock_anchor_utc", "spans"],
         "additionalProperties": false,
         "properties": {
-          "id": { "description": "What --curve session:<id> names it by: its place among the sessions as text, a form pending the owner (docs/TIMELINE_FORMAT.md).", "type": "string" },
+          "id": { "description": "What --curve session:<id> names it by: its place among the sessions as text, the form the owner kept (DECISIONS.md D-111 (a)).", "type": "string" },
           "name": { "description": "Its plan's name, which may be empty.", "type": "string" },
           "wallclock_anchor_utc": {
             "description": "The UTC time its fetch started, from which its requests' wall clocks count, RFC 3339 to the microsecond with the zone Z, YYYY-MM-DDTHH:MM:SS.ffffffZ; null when its files weren't fetched (DECISIONS.md D-073, D-108 (c)).",
@@ -297,7 +297,7 @@
                   ],
                   "additionalProperties": false,
                   "properties": {
-                    "url": { "description": "As fetched: the report's, or the same path on --fetch-base's server.", "type": "string" },
+                    "url": { "description": "As fetched: the report's, or its path from the master's directory on --fetch-base's server, its dot segments resolved (pending the owner, Q78; docs/TIMELINE_FORMAT.md).", "type": "string" },
                     "range": {
                       "description": "The segment's EXT-X-BYTERANGE, all that was read of its file; null for the whole file.",
                       "type": ["object", "null"],
@@ -456,7 +456,7 @@
           }
         },
         "session_rules": {
-          "description": "The rules by which a session's drops are its pairs' drops clipped to the spans that played them (DECISIONS.md D-077; design section 6.3), where detection ran on a session's curve; null where it ran on no session's. This form, an object of five named rules, is pending the owner (docs/TIMELINE_FORMAT.md).",
+          "description": "The rules by which a session's drops are its pairs' drops clipped to the spans that played them (DECISIONS.md D-077; design section 6.3), where detection ran on a session's curve; null where it ran on no session's. This form, an object of five named rules, is the one the owner kept (D-111 (b)).",
           "type": ["object", "null"],
           "required": ["drops", "pieces", "at_switch", "baseline", "spans_of_one_variant"],
           "additionalProperties": false,

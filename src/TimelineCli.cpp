@@ -229,7 +229,7 @@ std::string set_fetch(TimelineArgs& a, std::string_view v)
 // --fetch-base: an http or https URL, so that a session's network events
 // come from network requests alone, D-108 (a)'s reason for refusing a fetch
 // of local files: a local directory as the base would be such a fetch. The
-// rule is WP09b's, pending the owner (TimelineCli.h).
+// rule is WP09b's, which the owner kept (D-111 (d)).
 std::string set_fetch_base(TimelineArgs& a, std::string_view v)
 {
     if (!is_http(v))
@@ -654,7 +654,7 @@ std::string synopsis(std::string_view word, const std::array<Option<Args>, N>& t
 // option it fits, attribute's --curve pair:<k>|session:<id>; an option wider
 // than that, timeline's --cue-types with design §7's placeholder, has its
 // help in the column on the next line, so that every other row is as it was:
-// a choice pending the owner (TimelineCli.h).
+// a choice pending the owner, Q77 (TimelineCli.h).
 template <class Args, std::size_t N>
 std::string option_rows(const std::array<Option<Args>, N>& table)
 {
@@ -828,7 +828,9 @@ std::optional<std::string> carrier_line(const Payload& p)
 // tag that carried it and its form, "line 16, OATCLS", or the form alone for
 // another carrier, never "line null"; and for a cue_in that joins a cue_out,
 // whose `line` is that cue's where its own is later or null (D-109 (e)),
-// that cue named, "line 16, OATCLS, joining the cue_out at line 15".
+// that cue named, "line 16, OATCLS, joining the cue_out at line 15". This
+// wording of a decoded message's lines, here, in crc_text() and in
+// event_detail(), is pending the owner, Q77 (TimelineCli.h).
 std::string message_head(const Payload& p)
 {
     const std::string                form = member_text(p, "form");
@@ -1065,7 +1067,7 @@ std::string frames_text(Interval i);
 // segments and its reference frames, one that plays the reference in
 // top-rung mode marked unscored (D-105 (b)); then the reference its pairs
 // are scored against. This wording of a session's lines, here and in
-// event_detail(), is pending the owner (TimelineCli.h).
+// event_detail(), is WP09b's, which the owner kept (D-111 (j)).
 std::string session_header(const Timeline& t, CurveRef c)
 {
     const timeline::Session& s = t.sessions[static_cast<std::size_t>(c.index)];
@@ -1228,7 +1230,7 @@ extern "C" void on_timeline_signal(int sig) { g_timeline_signal.store(sig, std::
 // default ones again once it is gone. tools/mirage_vmaf.cpp dispatches the
 // subcommands before it installs any handler, so the build keeps its own.
 // A build stopped so exits with status 1 and writes no document, a choice
-// pending the owner (TimelineCli.h).
+// of WP09b's that the owner kept (D-111 (h)).
 class SignalStop {
 public:
     SignalStop()
@@ -1287,10 +1289,10 @@ std::string parse_timeline(const std::vector<std::string_view>& argv, TimelineAr
     TimelineArgs args;
     if (std::string err = Parser(kTimelineOptions).parse(argv, args, load); !err.empty()) return err;
     if (std::string err = timeline::check_options(args.detect); !err.empty()) return err;
-    // The fetch's options go with a session, and the fetch base with its
-    // fetch, on the command line or in the config file alike, as attribute
-    // refuses --threshold with another query than --auto: a rule pending the
-    // owner (TimelineCli.h).
+    // The fetch's options go with a session, a rule pending the owner
+    // (TimelineCli.h), and the fetch base with its fetch (D-111 (d)), on the
+    // command line or in the config file alike, as attribute refuses
+    // --threshold with another query than --auto.
     if (args.session.empty()) {
         if (args.fetch) return "--fetch goes with --session, which isn't given";
         if (!args.fetch_base.empty()) return "--fetch-base goes with --session, which isn't given";
@@ -1596,8 +1598,8 @@ Payload timeline_options(const TimelineArgs& a)
         { "out", Value{ a.out } },
     };
     // A session's options, in the table's order, only with a session, so that
-    // a ladder's record is as it was before them: a choice pending the owner
-    // (TimelineCli.h).
+    // a ladder's record is as it was before them: a choice of WP09b's that
+    // the owner kept (D-111 (e)).
     if (!a.session.empty()) {
         out.emplace_back("session", Value{ a.session });
         out.emplace_back("fetch", Value{ std::string(a.fetch.value_or(true) ? "on" : "off") });
@@ -1614,7 +1616,7 @@ Payload timeline_options(const TimelineArgs& a)
     // playlists that carry messages, built without them, then doesn't name
     // D-106's defaults, by which its cues, messages and ad breaks were made,
     // where threshold and the margins are recorded at theirs: a choice
-    // pending the owner (TimelineCli.h).
+    // pending the owner, Q75 (TimelineCli.h).
     if (a.cue_types) out.emplace_back("cue-types", Value{ cue_types_text(*a.cue_types) });
     if (a.bad_crc)
         out.emplace_back("bad-crc",
@@ -1820,8 +1822,8 @@ std::optional<Failure> answer_query(const AttributeArgs& args, const Timeline& t
         }
         out.curves = { *asked };
     } else {
-        // Every curve: each pair's, then the session's, a choice pending the
-        // owner (TimelineCli.h).
+        // Every curve: each pair's, then the session's, a choice of WP09b's
+        // that the owner kept (D-111 (g)).
         out.curves = timeline::curve_refs(t);
     }
     const std::string on_curve =
@@ -1946,7 +1948,8 @@ int run_timeline(const std::vector<std::string_view>& argv)
     // The session's plan (D-105 (a)), read before the media so that a plan
     // with an error is refused at once: a list-valued setting in a file of
     // its own (design §7), whose errors are bad arguments, exit status 2, as
-    // a config file's are, a choice pending the owner (TimelineCli.h).
+    // a config file's are, a choice of WP09b's that the owner kept (D-111
+    // (c)).
     std::optional<timeline::SessionPlan> plan;
     std::string                          plan_sha256;
     const bool fetch = !args.session.empty() && args.fetch.value_or(true);
@@ -1979,7 +1982,7 @@ int run_timeline(const std::vector<std::string_view>& argv)
     // its fetch, after the demux passes, with nothing else reading (design
     // §5.7), and its requests as network events (D-104, D-105). A plan that
     // doesn't fit the ladder is a bad argument, exit status 2, as one that
-    // can't be read is, a choice pending the owner (TimelineCli.h).
+    // can't be read is, a choice of WP09b's that the owner kept (D-111 (c)).
     if (plan) {
         if (!timeline::add_session(t, scores.entries, *plan, err))
             return failed(tool, std::format("the session plan {} doesn't fit the ladder report {}: {}",
@@ -1997,7 +2000,7 @@ int run_timeline(const std::vector<std::string_view>& argv)
             // With --fetch-base, a URL outside the master's directory refuses
             // the whole fetch (fetch_url(); D-108 (c)), before anything is
             // fetched: exit status 2, as an argument the fetch can't honour,
-            // a status pending the owner (TimelineCli.h).
+            // a status the owner kept (D-111 (c)).
             std::vector<timeline::Request> files =
                 timeline::fetch_files(t, 0, scores.master_url, args.fetch_base, err);
             if (!err.empty())
@@ -2027,8 +2030,8 @@ int run_timeline(const std::vector<std::string_view>& argv)
 
     // Detection, only with W and N (D-077): each pair's curve, then the
     // session's, whose drops are its pairs' clipped to its spans; the
-    // session's beside the pairs' is a choice pending the owner
-    // (TimelineCli.h).
+    // session's beside the pairs' is a choice of WP09b's that the owner kept
+    // (D-111 (f)).
     const std::vector<CurveRef> curves = timeline::curve_refs(t);
     std::vector<Attribution>    attributions;
     if (args.detect.given()) {
@@ -2054,7 +2057,7 @@ int run_timeline(const std::vector<std::string_view>& argv)
 
     // A stop requested once the reads were done, during detection, say,
     // still writes no document, as one during a read doesn't: exit status 1
-    // and no document, a choice pending the owner (TimelineCli.h).
+    // and no document, a choice of WP09b's that the owner kept (D-111 (h)).
     if (cancel.stop_requested())
         return failed(tool, "a stop was requested (SIGINT or SIGTERM): no document is written");
     const std::string text = timeline::to_json(t, attributions, info);
