@@ -6,7 +6,7 @@ What is open for the owner on `vmaf/phase-3`, §3 of the VMAF work order (the un
 
 44 questions, Q01 to Q44, in three rounds: 27 in round 1, the answers the work packages on the path to §3.2's two acceptance tests need before they start; 9 in round 2, those of sessions, the session fetch, the decoded SCTE-35 messages and the composite example; 8 in round 3, those of the UI, the conditional and later packages, and the differences to report. A question's round is the earliest round of the packages it blocks, and a round's packages start once all of its questions are answered (`eval/phase3-survey/design.md` §12, §14). Q26, Q39, Q43 and Q44 are answered item by item, an item's options numbered: "Q43 (c) 2". The questions marked D-007 (Q01, Q08, Q09, Q10, Q13, Q36, Q37 and Q41) have an answer that is, or includes, an approval or a ruling under D-007. "Blocks" names the work packages that wait for the answer; the packages are listed at the end. After the questions come the differences from the work order to report, and the agent's proposed process choices, to be recorded from P-082 on.
 
-The questions are the design's (`eval/phase3-survey/design/owner_questions.json`), rendered by `eval/phase3-survey/tools/render_pending.py` with the design's paths written as the repository has them and nothing else changed. They are as the design's revision 3 left them, after the third review's seven minor issues (`eval/phase3-survey/review-3/review.md`; `eval/phase3-survey/design/revision-3.md`). The owner's answers are marked here as each round's come in. Round 1's 27 questions were answered on 2026-11-02, every one as the agent recommends (D-071 to D-081); each is marked below. Round 2's 9 were answered on 2026-11-06, every one as the agent recommends, with Q47 (D-103 to D-107); each is marked below. Round 3 is answered: Q09 and Q13 on 2026-11-11, by the owner's leaving WP16 and WP17 out of Phase 3 (D-112 (b)), and the other six on 2026-11-12, each as the agent recommends, Q36's answer being the owner's approval under D-007 of the panel's plan (D-114); each is marked below. Building round 1's first packages raised three more questions, Q45 to Q47, after round 3 below: the owner answered Q45 and Q46 on 2026-11-04 as the agent recommends (D-086, D-087), and Q47 joins round 2. Building WP08, WP08b and WP09a raised Q48 to Q57, which the owner answered on 2026-11-05 and 2026-11-06, each as the agent recommends (D-092, D-099, D-100), and WP08c two more, Q58 and Q59, which the owner answered on 2026-11-06 as the agent recommends (D-101). Building round 2's first packages, WP00b, WP05 and WP07, raised eight more, Q60 to Q67, answered on 2026-11-10, each as the agent recommends (D-108, D-109): WP09b puts in the answers to Q60 to Q62, and WP05b, a follow-up of WP05's, those to Q63 to Q67, as WP08b and WP08c put in the answers on WP08. Building WP05b and WP09b raised seven more, Q68 to Q74, answered on 2026-11-11, each as the agent recommends (D-110, D-111): a follow-up of WP05b's, WP05c, puts in the answers to Q68 to Q72. The owner also left WP16 and WP17 out of Phase 3, which answers Q09 and Q13 of round 3, and had round 3's other questions asked before round 2 ends (D-112). Building WP09c, WP11b, WP05c and WP09d raised eight more, Q75 to Q82, answered on 2026-11-12, each as the agent recommends (D-113): a follow-up package, WP09e, puts in the answers to Q75, Q76 and Q80. Building round 3's first packages raised three more, Q83 to Q85, on WP15b's fMP4 segments and two readings that WP09e took of D-113 (a) and (b), answered on 2026-11-13, each as the agent recommends (D-120): a follow-up of WP09e's, WP09f, puts in the answer to Q84.
+The questions are the design's (`eval/phase3-survey/design/owner_questions.json`), rendered by `eval/phase3-survey/tools/render_pending.py` with the design's paths written as the repository has them and nothing else changed. They are as the design's revision 3 left them, after the third review's seven minor issues (`eval/phase3-survey/review-3/review.md`; `eval/phase3-survey/design/revision-3.md`). The owner's answers are marked here as each round's come in. Round 1's 27 questions were answered on 2026-11-02, every one as the agent recommends (D-071 to D-081); each is marked below. Round 2's 9 were answered on 2026-11-06, every one as the agent recommends, with Q47 (D-103 to D-107); each is marked below. Round 3 is answered: Q09 and Q13 on 2026-11-11, by the owner's leaving WP16 and WP17 out of Phase 3 (D-112 (b)), and the other six on 2026-11-12, each as the agent recommends, Q36's answer being the owner's approval under D-007 of the panel's plan (D-114); each is marked below. Building round 1's first packages raised three more questions, Q45 to Q47, after round 3 below: the owner answered Q45 and Q46 on 2026-11-04 as the agent recommends (D-086, D-087), and Q47 joins round 2. Building WP08, WP08b and WP09a raised Q48 to Q57, which the owner answered on 2026-11-05 and 2026-11-06, each as the agent recommends (D-092, D-099, D-100), and WP08c two more, Q58 and Q59, which the owner answered on 2026-11-06 as the agent recommends (D-101). Building round 2's first packages, WP00b, WP05 and WP07, raised eight more, Q60 to Q67, answered on 2026-11-10, each as the agent recommends (D-108, D-109): WP09b puts in the answers to Q60 to Q62, and WP05b, a follow-up of WP05's, those to Q63 to Q67, as WP08b and WP08c put in the answers on WP08. Building WP05b and WP09b raised seven more, Q68 to Q74, answered on 2026-11-11, each as the agent recommends (D-110, D-111): a follow-up of WP05b's, WP05c, puts in the answers to Q68 to Q72. The owner also left WP16 and WP17 out of Phase 3, which answers Q09 and Q13 of round 3, and had round 3's other questions asked before round 2 ends (D-112). Building WP09c, WP11b, WP05c and WP09d raised eight more, Q75 to Q82, answered on 2026-11-12, each as the agent recommends (D-113): a follow-up package, WP09e, puts in the answers to Q75, Q76 and Q80. Building round 3's first packages raised three more, Q83 to Q85, on WP15b's fMP4 segments and two readings that WP09e took of D-113 (a) and (b), answered on 2026-11-13, each as the agent recommends (D-120): a follow-up of WP09e's, WP09f, puts in the answer to Q84. Building WP12 raised five more, Q86 to Q90, on the panel's loading, its clicks, its seeks and its axis, not answered yet.
 
 ### Round 1: the path to §3.2's two acceptance tests (27 questions)
 
@@ -1780,6 +1780,74 @@ Are they kept?
 **Answered** on 2026-11-13: 1, as the agent recommends (`docs/DECISIONS.md` D-120 (c)).
 
 **Blocks.** Under 2 or 3, a follow-up of WP09e's.
+
+#### Q86. A relative ladder report path, for the panel
+
+*Round 3.* Raised by WP12 and its review.
+
+**Question.** `mirage_vmaf timeline` writes the ladder report's path as its command line gives it (`src/TimelineCli.cpp`), so a document built with a relative `--report` names a relative path. WP12's loader reads it from the current directory, as `mirage_vmaf attribute` does without `--report` (D-081 (b); `src/TimelineLoad.cpp`); a player started in another directory, from the Finder or a script, then says that it cannot read the ladder report. Where is a relative path read from?
+
+- **(a) The current directory**, as built.
+- **(b) The document's directory.**
+- **(c) The first of the two that holds the file**, the current directory first.
+
+**Agent's recommendation.** (c): it keeps attribute's rule where the current directory holds the file, and finds the report beside its document where the player was started elsewhere.
+
+**Blocks.** Under (b) or (c), a change to `src/TimelineLoad.cpp` and a test.
+
+#### Q87. The margins of a click's query outside a detected drop
+
+*Round 3.* Raised by WP12 and its review.
+
+**Question.** A click outside a detected drop queries the clicked frame's segment (D-114 (d)). WP12 queries it with the margins the document's attributions were made with (`click_answer()`, `src/TimelineMatch.cpp`). The answers differ only for a document built with `--margin-before` or `--margin-after`: with the document's margins they agree with its own drops, and with none they agree with `mirage_vmaf attribute --interval`'s default (Q29). Which margins?
+
+- **(a) The document's**, as built.
+- **(b) None**, Q29's default.
+
+**Agent's recommendation.** (a): the panel's answers then agree with the drops it shows from the same document.
+
+**Blocks.** Under (b), a change to `src/TimelineMatch.cpp`.
+
+#### Q88. A segment's last frames, which a seek to their PTS doesn't show
+
+*Round 3.* Raised by WP12 and its review.
+
+**Question.** A seek lands on the keyframe whose packets come first in decode order, so the frames that a segment's decode-order lead carries past its end aren't shown by a seek to their PTS: the last frame of each segment on the tests' MPEG-2 segments, the last two on D-069's libx264 ladders (`tests/test_hls_seek_behaviour.cpp`). WP12 treats them as D-114 (b) treats an ad's frames: the panel says that the frame isn't reachable by a seek and offers its own segment's start, from which playing reaches it (`decide_seek()`, `src/TimelineMatch.cpp`). Which?
+
+- **(a) Offered their segment's start**, as built, extending D-114 (b); the differences' item 14 then names these frames too.
+- **(b) Sought by their PTS anyway**: the player then shows the next segment's first frame.
+- **(c) Neither**: the panel only says why.
+
+**Agent's recommendation.** (a): the user still reaches the frame, as D-114 (b) has it for an ad, and the panel never shows a frame other than the one clicked.
+
+**Blocks.** Under (b) or (c), a change to `src/TimelineMatch.cpp`; WP15c's item 14.
+
+#### Q89. A variant's media playlist opened alone
+
+*Round 3.* Raised by WP12 and its review.
+
+**Question.** Where the player opens a variant's media playlist alone, not its master, WP12 matches it to its variant by its address, else by the playlist's SHA-256, taking the first variant whose playlist has those bytes (`match_stream()`, `src/TimelineMatch.cpp`). D-069's three rungs share one playlist text, so a rung's playlist opened from another address is matched to the first, the reference, with a warning, and the panel then follows the reference's clock. How is it matched?
+
+- **(a) As built.**
+- **(b) As built, preferring among equal bytes the variant whose URL ends with the same path**, so that a rung's `v270/index.m3u8` matches the rung whose URL ends so.
+- **(c) Not matched**: the document counts as another stream's, shown only on the user's word.
+
+**Agent's recommendation.** (b): it keeps the match where the bytes say the playlist is the ladder's, and takes the rung that the path names where the bytes can't tell.
+
+**Blocks.** Under (b) or (c), a change to `src/TimelineMatch.cpp` and its tests.
+
+#### Q90. An axis without seconds
+
+*Round 3.* Raised by WP12 and its review.
+
+**Question.** A document's axis can have no seconds (D-073). WP12 then places the panel's x in reference frames, its span limits in frames (`src/TimelineView.h`); the tick labels' helpers, `nice_step()` and `axis_label()`, are for seconds, so the panel labels frame numbers itself. Which?
+
+- **(a) Frames**, as built, the panel labelling frame numbers.
+- **(b) No plot**: the panel says that the document's axis has no seconds.
+
+**Agent's recommendation.** (a): the curves, the events and the drops are still shown, each where it belongs.
+
+**Blocks.** WP13, which draws the labels.
 
 ## Differences from the work order, to report
 
