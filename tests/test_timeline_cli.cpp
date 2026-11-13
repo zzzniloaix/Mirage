@@ -3,13 +3,15 @@
 // P-V), a session's options and the decoded messages' --cue-types and
 // --bad-crc (D-106 (b), (c)) among them, the seconds and the cue types the
 // options take exactly (P-A), the cue types with blanks after their commas
-// (D-113 (b)), the help, the records a document keeps of the options, the
-// decoded messages' at their defaults wherever a playlist carries a message
-// (D-113 (a)), the line timeline prints when it doesn't detect, the refusal
-// of a session fetch of local files (D-108 (a)), the text of an answer (the
-// design's P-AD) on timelines the test builds by hand, a session's curve's
-// and a decoded message's events among them, and on the decoded cues of a
-// build, mirage_vmaf's own help, and runs of each subcommand as mirage_vmaf
+// (D-113 (b), D-120 (c)), the help, the records a document keeps of the
+// options, the decoded messages' at their defaults wherever a playlist
+// carries a message that the build decodes (D-113 (a), D-120 (b)), set
+// against what the build's decoder made of each message, the line timeline
+// prints when it doesn't detect, the refusal of a session fetch of local
+// files (D-108 (a)), the text of an answer (the design's P-AD) on
+// timelines the test builds by hand, a session's curve's and a decoded
+// message's events among them, and on the decoded cues of a build,
+// mirage_vmaf's own help, and runs of each subcommand as mirage_vmaf
 // runs them (the design's P-T), on a synthetic ad ladder
 // (tests/SyntheticLadder.h) scored by mirage_vmaf --ladder: their outputs
 // and exit statuses (P-W), intervals and frames past the axis, a lone
@@ -46,12 +48,14 @@
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <functional>
 #include <iterator>
 #include <map>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <thread>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -522,8 +526,9 @@ TEST_CASE("timelinecli::parse_timeline: --cue-types and --bad-crc, their default
     CHECK(refused({ "--config", "types.conf", "--report", "r", "--out", "o" }) ==
           "config file types.conf, line 2: cue-types takes Start and End types only, not '0x22-0x28': " +
               timeline::check_message_options(reserved));
-    // A blank before a comma, which D-113 (b) doesn't take (the next test
-    // case has those after one).
+    // A blank before a comma, which --cue-types refuses, as WP09e built it
+    // and the owner kept (D-120 (c); the next test case has those after
+    // one).
     CHECK(refused({ "--config", "syntax.conf", "--report", "r", "--out", "o" }) ==
           "config file syntax.conf, line 1: cue-types wants segmentation_type_ids in hex, each alone or a range, "
           "comma-separated, such as 0x22-0x23,0x30-0x37, not '0x22 ,0x23': its item 1, '0x22 ', is neither a type "
@@ -585,16 +590,15 @@ TEST_CASE("timelinecli::parse_cue_types and parse_timeline: blanks after --cue-t
     const std::string spelled   = "0x22-0x23, 0x30-0x37, 0x44-0x47";   // design §7's, and Q15 (a)'s
 
     // After a comma, any number of blanks, spaces and tabs, the set the same
-    // as without them.
+    // as without them: WP09e's blanks, which the owner kept (D-120 (c)).
     CHECK(types(spelled) == defaults);
     CHECK(err.empty());
     CHECK(types("0x22-0x23,\t0x30-0x37,  \t 0x44-0x47") == defaults);
     CHECK(types("0x31, 0x30") == std::vector<std::uint8_t>{ 0x30, 0x31 });
 
     // Anywhere else, a blank is refused, naming its item: before a comma, at
-    // either end of the value, within an item. A reading of D-113 (b),
-    // pending the owner, the narrowest as to where a blank goes
-    // (src/TimelineCli.h).
+    // either end of the value, within an item, as WP09e built it, which the
+    // owner kept (D-120 (c); src/TimelineCli.h).
     const std::vector<std::pair<std::string_view, std::string_view>> elsewhere = {
         { "0x22 ,0x23", "its item 1, '0x22 '" },
         { " 0x22,0x23", "its item 1, ' 0x22'" },
@@ -924,10 +928,12 @@ TEST_CASE("timelinecli: each subcommand's help lists its options; mirage_vmaf's 
     CHECK(contains(t, "Config file: "));
     // What the document records of the options: a session's with a session,
     // and the decoded messages' where they are given or a playlist carries
-    // a message (D-113 (a); src/TimelineCli.h).
+    // a message that the build decodes, whatever --bad-crc does with it
+    // (D-113 (a), D-120 (b); src/TimelineCli.h).
     CHECK(contains(t, "The document records\nthe file by its path and SHA-256 and every option with its value, but a\n"
                       "session's options only with --session, and --cue-types and --bad-crc only\n"
-                      "where they are given or a playlist carries an SCTE-35 message. Relative\n"));
+                      "where they are given or a playlist carries an SCTE-35 message that decodes,\n"
+                      "whatever --bad-crc does with it. Relative paths, the report's own among\n"));
     CHECK(contains(t, "Exit status: "));
     // Both of a fetch's refusals with exit status 2: local files without
     // --fetch-base (D-108 (a)), and with it a file outside the master's
@@ -1127,7 +1133,9 @@ TEST_CASE("timelinecli::timeline_options and carries_messages: --cue-types and -
 
     // Which builds carry a message: a playlist read, the reference's or a
     // pair's distorted one, with a tag in a form the build decodes
-    // (src/Scte35Events.h), whatever else its playlists hold.
+    // (src/Scte35Events.h) that hands on a message the build decodes,
+    // whatever else its playlists hold (D-120 (b); the next test case has
+    // the decoder's other outcomes).
     const auto inputs = [](const std::vector<std::optional<std::string>>& playlists) {
         timeline::BuildInputs in;
         for (std::size_t v = 0; v < playlists.size(); ++v) {
@@ -1186,19 +1194,222 @@ TEST_CASE("timelinecli::timeline_options and carries_messages: --cue-types and -
     REQUIRE(daterange != malformed.events.end());
     CHECK(option(daterange->payload, "error"));
 
-    // Every message a tag hands on counts, whatever its text holds and
-    // whatever becomes of it, a reading of D-113 (a) pending the owner
-    // (src/TimelineCli.h): an OATCLS whose value is no section's base64, a
-    // bare one and one whose value is empty, which carry no message, and
-    // the messages of a variant whose segment map was refused, which make
-    // no event (D-081 (c), D-086).
+    // Only a message that the build decodes counts, the owner's answer to
+    // Q84 (D-120 (b); src/TimelineCli.h): an OATCLS whose value is no
+    // section's base64, a bare one and one whose value is empty, which the
+    // parse still hands on, carry none, and the record of a build whose
+    // playlists hold only such tags is that of a build whose playlists carry
+    // none, each option where it is given, so that its document keeps its
+    // bytes (D-113 (a)).
     for (const char* tag : { "#EXT-OATCLS-SCTE35:not base64\n", "#EXT-OATCLS-SCTE35\n", "#EXT-OATCLS-SCTE35:\n" }) {
         INFO(tag);
-        CHECK(timelinecli::carries_messages(inputs({ plain, scte35test::ad_playlist({ { 3, tag } }) })));
+        const timeline::BuildInputs in = inputs({ plain, scte35test::ad_playlist({ { 3, tag } }) });
+        REQUIRE(in.variants[1].playlist->messages.size() == 1);
+        CHECK_FALSE(timelinecli::carries_messages(in));
+        for (const TimelineArgs* given : { &a, &c, &d, &f, &s })
+            CHECK(record_text(timelinecli::timeline_options(*given, timelinecli::carries_messages(in))) ==
+                  record_text(timelinecli::timeline_options(*given)));
     }
+    // The messages of a variant whose segment map was refused, which the
+    // build doesn't decode (D-081 (c), D-086; src/Scte35Events.h), carry
+    // none either, though their sections would decode; another variant's
+    // message that decodes still counts beside them.
     timeline::BuildInputs refused = inputs({ plain, scte35test::ad_playlist({ { 3, tags[0].first } }) });
     refused.variants[1].media.refused = "the test refuses it";
-    CHECK(timelinecli::carries_messages(refused));
+    CHECK_FALSE(timelinecli::carries_messages(refused));
+    CHECK(record_text(timelinecli::timeline_options(a, timelinecli::carries_messages(refused))) ==
+          record_text(timelinecli::timeline_options(a)));
+    const std::string decoding = scte35test::ad_playlist({ { 3, tags[0].first } });
+    timeline::BuildInputs beside = inputs({ decoding, decoding });
+    beside.variants[1].media.refused = "the test refuses it";
+    CHECK(timelinecli::carries_messages(beside));
+}
+
+TEST_CASE("timelinecli::carries_messages: a playlist carries an SCTE-35 message only where the build decodes one, "
+          "its CRC_32 failing or not, kept or dropped, as the build's own decoding shows (D-120 (b))",
+          "[timeline][timeline_cli]")
+{
+    const auto names_of = [](const timeline::Payload& p) {
+        std::vector<std::string> out;
+        for (const auto& [n, v] : p) out.push_back(n);
+        return out;
+    };
+    const std::vector<std::string> both = { "report", "out", "threshold", "window", "min-points",
+                                            "margin-before", "margin-after", "cue-types", "bad-crc" };
+    // testgen's ad ladder built by hand (tests/Scte35TestSections.h), its
+    // plain cue tags on every rung, v180's playlist with one tag more,
+    // before its segment 1 or after its last URI; its build, which decodes
+    // the playlists' messages itself (WP09c), under the message options of
+    // the command line, as run_timeline() gives them; and the warning the
+    // message adds to the build's, which says what the decoder made of it
+    // (src/Scte35Events.h), set against carries_messages() and the record.
+    const std::string plain = scte35test::ad_playlist({});
+    // A time_signal of a Program Start, immediate, whose type no cue type
+    // is: a message event where it decodes, is kept and is placed.
+    const scte35test::Section message =
+        scte35test::time_signal(std::nullopt, { scte35test::Segmentation{ .event_id = 2, .type = 0x10 } });
+    const auto changed = [&message](const std::function<void(scte35test::Section&)>& change) {
+        scte35test::Section s = message;
+        change(s);
+        return scte35test::oatcls(s);
+    };
+    const std::string bad = changed([](scte35test::Section& s) { s.bad_crc = true; });
+    const std::string date = "#EXT-X-DATERANGE:ID=\"x\",START-DATE=\"2026-03-01T12:00:01.000Z\",";
+    struct Case {
+        std::string_view              what;
+        std::string                   tag;        // before v180's segment 1
+        std::string                   tail;       // after its last URI
+        std::vector<std::string_view> options;    // the command line's, after --report and --out
+        bool                          refused;    // v180's demux pass refused a segment map
+        bool                          carries;
+        std::string_view              warning;    // what the warning it adds says; empty: none
+        std::size_t                   events;     // the build's message events
+    };
+    const std::vector<Case> cases = {
+        // Decoded, and counted: its CRC_32 valid, or failing and kept, by
+        // default or by --bad-crc keep, or dropped by --bad-crc drop, which
+        // leaves no event of it (D-106 (c)); an OATCLS in hex after 0x
+        // (D-109 (e)); one that follows the last URI, decoded, then not
+        // placed (design §5.1).
+        { "decoded", scte35test::oatcls(message), "", {}, false, true, "", 1 },
+        { "its CRC_32 failing, kept by default", bad, "", {}, false, true,
+          ": it is kept, marked crc_valid false (D-106 (c))", 1 },
+        { "its CRC_32 failing, --bad-crc keep", bad, "", { "--bad-crc", "keep" }, false, true,
+          ": it is kept, marked crc_valid false (D-106 (c))", 1 },
+        { "its CRC_32 failing, --bad-crc drop", bad, "", { "--bad-crc", "drop" }, false, true,
+          ": it is dropped, as the bad-CRC policy drop says (D-106 (c))", 0 },
+        { "in hex after 0x", "#EXT-OATCLS-SCTE35:" + scte35test::hex(scte35test::section(message)) + "\n", "", {},
+          false, true, "", 1 },
+        { "after the last URI", "", scte35test::oatcls(message), {}, false, true,
+          ": it follows the last segment's URI, and no segment holds it, so its message isn't placed (design §5.1)",
+          0 },
+        // Not decoded, and not counted (design §5.5): text that isn't
+        // base64, a bare and an empty OATCLS among them, and hex digits
+        // without 0x, which the decoder reads as an OATCLS's base64; a
+        // section that doesn't decode, of another table_id, encrypted, of a
+        // later protocol_version, or too short, as a DATERANGE's hex gives
+        // it.
+        { "not base64", "#EXT-OATCLS-SCTE35:not base64\n", "", {}, false, false, ": its text isn't base64, ", 0 },
+        { "bare", "#EXT-OATCLS-SCTE35\n", "", {}, false, false,
+          ": its text isn't base64, it is empty: it makes no event (design §5.5)", 0 },
+        { "empty", "#EXT-OATCLS-SCTE35:\n", "", {}, false, false,
+          ": its text isn't base64, it is empty: it makes no event (design §5.5)", 0 },
+        { "hex digits without 0x", "#EXT-OATCLS-SCTE35:" + scte35test::hex(scte35test::section(message), "") + "\n",
+          "", {}, false, false, ": it makes no event (design §5.5)", 0 },
+        { "another table_id", changed([](scte35test::Section& s) { s.table_id = 0xFD; }), "", {}, false, false,
+          ": it doesn't decode, its table_id is 0xFD, not a splice_info_section's 0xFC (Table 5): it makes no event",
+          0 },
+        { "encrypted", changed([](scte35test::Section& s) { s.encrypted = true; }), "", {}, false, false,
+          ": it doesn't decode, it is encrypted (encrypted_packet 1, encryption_algorithm 0): ", 0 },
+        { "protocol_version 1", changed([](scte35test::Section& s) { s.protocol_version = 1; }), "", {}, false,
+          false, ": it doesn't decode, its protocol_version is 1, ", 0 },
+        { "a DATERANGE's two bytes", date + "SCTE35-OUT=0xABCD\n", "", {}, false, false,
+          ": it doesn't decode, its 2 bytes are fewer than a section header's 3: it makes no event", 0 },
+        // Of a variant refused a segment map, not decoded, though it would
+        // decode, and not counted (D-081 (c), D-086).
+        { "a refused variant's", scte35test::oatcls(message), "", {}, true, false,
+          ": no segment map, the test refuses it: its 1 SCTE-35 message is left out (D-081 (c), D-086)", 0 },
+    };
+    for (const Case& c : cases) {
+        INFO(c.what);
+        std::vector<std::string_view> argv = { "--report", "r", "--out", "o" };
+        argv.insert(argv.end(), c.options.begin(), c.options.end());
+        TimelineArgs args;
+        REQUIRE(parse_t(argv, args).empty());
+        const std::string carrying = scte35test::ad_playlist({ { 1, c.tag } }, {}, true, "", c.tail);
+        scte35test::Ladder lad({ plain, plain, carrying }, [&c](timeline::BuildInputs& in) {
+            if (c.refused) in.variants[2].media.refused = "the test refuses it";
+        });
+        REQUIRE(lad.in.variants[2].playlist->messages.size() == 1);   // handed on, whatever it holds
+        lad.in.messages = timelinecli::message_options(args);
+        std::string err;
+        const timeline::Timeline t = timeline::build(lad.in, err);
+        INFO(err);
+        REQUIRE(err.empty());
+        // What the decoder made of it: the warning it adds to those of the
+        // same build without messages, and its event.
+        std::vector<std::string> added;
+        for (const std::string& w : t.warnings)
+            if (std::find(lad.t.warnings.begin(), lad.t.warnings.end(), w) == lad.t.warnings.end())
+                added.push_back(w);
+        if (c.warning.empty()) {
+            CHECK(added.empty());
+        } else {
+            REQUIRE(added.size() == 1);
+            CHECK(contains(added[0], c.warning));
+        }
+        CHECK(count_type(t, timeline::kTypeMessage) == c.events);
+        // Counted where it decodes: the record then names both options,
+        // the policy as given, at D-106's defaults otherwise; where it
+        // doesn't, the record is a message-free build's, each option where
+        // it is given (D-113 (a)).
+        const bool carries = timelinecli::carries_messages(lad.in);
+        CHECK(carries == c.carries);
+        const timeline::Payload record = timelinecli::timeline_options(args, carries);
+        // The record is checked by what carries_messages() answered, not by
+        // what the row expects, so that a row answered wrong fails the
+        // check above alone and the rows after it still run; a member the
+        // record lacks stops the case before it is read.
+        if (carries) {
+            CHECK(names_of(record) == both);
+            const Value* types  = option(record, "cue-types");
+            const Value* policy = option(record, "bad-crc");
+            REQUIRE(types);
+            REQUIRE(policy);
+            CHECK(std::get<std::string>(types->v) == "0x22-0x23,0x30-0x37,0x44-0x47");
+            CHECK(std::get<std::string>(policy->v) == (args.bad_crc == timeline::BadCrc::Drop ? "drop" : "keep"));
+        } else {
+            CHECK(record_text(record) == record_text(timelinecli::timeline_options(args)));
+        }
+    }
+
+    // CueInputs that no parse hands on, built by hand into v180's playlist,
+    // at segment 1 and the line of its URI, which holds no tag: the
+    // decoder's rules that the playlists above don't reach, which
+    // carries_messages() reads as the decoder does (src/Scte35Events.h). A
+    // DATERANGE's SCTE35-* is hex whatever its text starts with, so its hex
+    // digits without 0x decode where an OATCLS's don't (a parse hands on a
+    // DATERANGE's only as a hexadecimal-sequence, 0x first); a message of
+    // a variant the build doesn't have, or at a DASH period's time, isn't
+    // decoded; another carrier's bytes, at a media PTS, are the section's.
+    const scte35test::Bytes section = scte35test::section(message);
+    const std::string hex_digits = scte35test::hex(section, "");
+    const auto uri_line = static_cast<int>(scte35test::line_with(plain, "main_001.ts"));
+    const auto by_hand = [&](std::string form, std::string_view text, int variant) {
+        timeline::CueInput m;
+        m.anchor = timeline::PlaylistAnchor{ .variant = variant, .segment = 1, .line = uri_line };
+        m.form   = std::move(form);
+        m.bytes.assign(text.begin(), text.end());
+        return m;
+    };
+    timeline::CueInput period = by_hand("DASH EventStream", "", 2);
+    period.carrier = timeline::CueCarrier::DashEventStream;
+    period.anchor  = timeline::PeriodAnchor{ .period = "p0", .presentation_time = 0, .timescale = 1 };
+    period.bytes   = section;
+    timeline::CueInput media = period;
+    media.carrier = timeline::CueCarrier::TsSection;
+    media.form    = "TS section";
+    media.anchor  = timeline::MediaPtsAnchor{ .variant = 2, .pts = scte35test::ref_pts(25),
+                                              .time_base = scte35test::kTs, .segment = 1 };
+    const std::vector<std::tuple<std::string_view, timeline::CueInput, bool>> made = {
+        { "a DATERANGE's hex digits without 0x", by_hand("DATERANGE SCTE35-CMD", hex_digits, 2), true },
+        { "an OATCLS's hex digits without 0x", by_hand("OATCLS", hex_digits, 2), false },
+        { "of a variant the build doesn't have", by_hand("OATCLS", scte35test::base64(section), 7), false },
+        { "at a DASH period's time", period, false },
+        { "a section's bytes at a media PTS", media, true },
+    };
+    for (const auto& [what, m, decoded] : made) {
+        INFO(what);
+        scte35test::Ladder lad({ plain, plain, plain }, [&m](timeline::BuildInputs& in) {
+            in.variants[2].playlist->messages.push_back(m);
+        });
+        std::string err;
+        const timeline::Timeline t = timeline::build(lad.in, err);
+        INFO(err);
+        REQUIRE(err.empty());
+        CHECK(count_type(t, timeline::kTypeMessage) == (decoded ? 1u : 0u));
+        CHECK(timelinecli::carries_messages(lad.in) == decoded);
+    }
 }
 
 TEST_CASE("timelinecli::no_detection_note: which of W and N is missing (D-077)", "[timeline][timeline_cli]")
@@ -1817,7 +2028,8 @@ TEST_CASE("mirage_vmaf timeline and attribute: run as programs on a synthetic ad
         // and D-069's ladder, whose playlists carry plain cue tags and no
         // SCTE-35 message, has neither --cue-types nor --bad-crc, so that its
         // record, and its document, are what they were before the decoded
-        // messages' options came (D-113 (a)).
+        // messages' options came (D-113 (a)): its playlists hand on no
+        // message, so none decodes (D-120 (b)).
         std::vector<std::string> recorded;
         for (const auto& [n, v] : d.info.options) recorded.push_back(n);
         CHECK(recorded == std::vector<std::string>{ "report", "out", "threshold", "window", "min-points",
@@ -2586,9 +2798,11 @@ TEST_CASE("mirage_vmaf timeline and attribute: run as programs on a synthetic ad
         CHECK(count_type(d.timeline, "splice_point") == 2);
         for (const Event& e : d.timeline.events)
             if (e.type == "ad_break") CHECK((e.ref_index == 75 && e.ref_end == 125));
-        // A playlist of the ladder carries messages: both options are
-        // recorded, after the margins, at D-106's defaults, which shaped its
-        // cues, messages and ad breaks, though neither was given (D-113 (a)).
+        // A playlist of the ladder carries messages that the build decodes,
+        // one whose CRC_32 fails among them: both options are recorded,
+        // after the margins, at D-106's defaults, which shaped its cues,
+        // messages and ad breaks, though neither was given (D-113 (a), D-120
+        // (b)).
         std::vector<std::string> recorded;
         for (const auto& [n, v] : d.info.options) recorded.push_back(n);
         CHECK(recorded == std::vector<std::string>{ "report", "out", "threshold", "window", "min-points",

@@ -1386,10 +1386,9 @@ std::optional<std::vector<std::uint8_t>> parse_cue_types(std::string_view text, 
         if (comma == std::string_view::npos) break;
         // The blanks after a comma are passed over, so that the default set
         // as design §7 writes it, "0x22-0x23, 0x30-0x37, 0x44-0x47", is taken
-        // (D-113 (b)); one anywhere else is refused with its item: which
-        // blanks, and that they go after a comma only, are this package's
-        // reading of D-113 (b), which names neither, pending the owner
-        // (TimelineCli.h).
+        // (D-113 (b)); one anywhere else is refused with its item: spaces
+        // and tabs, any number of them, after a comma only, as WP09e built
+        // them, which the owner kept (D-120 (c); TimelineCli.h).
         from = comma + 1;
         while (from < text.size() && blank(text[from])) ++from;
     }
@@ -1525,8 +1524,9 @@ std::string timeline_usage()
         "on the command line, which replaces the file's setting. The document records\n"
         "the file by its path and SHA-256 and every option with its value, but a\n"
         "session's options only with --session, and --cue-types and --bad-crc only\n"
-        "where they are given or a playlist carries an SCTE-35 message. Relative\n"
-        "paths, the report's own among them, are taken from the current directory.\n"
+        "where they are given or a playlist carries an SCTE-35 message that decodes,\n"
+        "whatever --bad-crc does with it. Relative paths, the report's own among\n"
+        "them, are taken from the current directory.\n"
         "\n"
         "Exit status: 0 the document was written; 1 an input couldn't be read or was\n"
         "refused (a live playlist, a report of another layout or of a pair), the\n"
@@ -1603,15 +1603,72 @@ std::string attribute_usage()
 
 // ── Records and text ─────────────────────────────────────────────────────────
 
+namespace {
+
+// The start of the form of each of an EXT-X-DATERANGE's SCTE35-* attributes
+// ("DATERANGE SCTE35-OUT"), as src/PlaylistEvents.cpp writes it: its text is
+// hex (RFC 8216 §4.3.2.7), as the decoder reads it (src/Scte35Events.h).
+constexpr std::string_view kRangeForm = "DATERANGE ";
+
+// Whether the build decodes `m`, a message that a playlist of `in` hands on,
+// as scte35_events() reads one before it classes it (src/Scte35Events.h;
+// read() and decode() in src/Scte35Events.cpp), so that carries_messages()
+// counts what the decoder decodes: a message anchored on a variant the build
+// has, by its tag or by a media PTS, whose demux pass wasn't refused a
+// segment map; its text read by the decoder's rule, hex for an
+// EXT-X-DATERANGE's SCTE35-* and for a value that starts with 0x or 0X,
+// base64 for the others (D-109 (e)), or the bytes another carrier gives;
+// and those bytes a splice_info_section that scte35::decode() decodes
+// (SpliceInfo::decoded(), src/Scte35.h), its CRC_32 valid or not. In inputs
+// that build() takes, one VariantRead per variant (src/TimelineBuild.h),
+// the variants the build has are those of `in`.
+bool decodes(const timeline::BuildInputs& in, const timeline::CueInput& m)
+{
+    // A period-time anchor names no variant: no DASH timeline is scored.
+    int v = -1;
+    if (const auto* tag = std::get_if<timeline::PlaylistAnchor>(&m.anchor)) v = tag->variant;
+    else if (const auto* pts = std::get_if<timeline::MediaPtsAnchor>(&m.anchor)) v = pts->variant;
+    // A refused variant's messages are counted for one warning, not decoded
+    // (D-081 (c), D-086).
+    if (v < 0 || static_cast<std::size_t>(v) >= in.variants.size() ||
+        !in.variants[static_cast<std::size_t>(v)].media.refused.empty())
+        return false;
+    std::optional<std::vector<std::uint8_t>> bytes = m.bytes;
+    if (m.carrier == timeline::CueCarrier::PlaylistTag) {
+        const std::string text(m.bytes.begin(), m.bytes.end());
+        const bool hex = m.form.starts_with(kRangeForm) || text.starts_with("0x") || text.starts_with("0X");
+        std::string err;
+        bytes = hex ? scte35::from_hex(text, err) : scte35::from_base64(text, err);
+    }
+    return bytes && scte35::decode(*bytes).decoded();
+}
+
+} // namespace
+
 bool carries_messages(const timeline::BuildInputs& in)
 {
-    // Every message a tag hands on counts, whatever its text holds and
-    // whatever becomes of it, an empty one and a refused variant's among
-    // them, which make no event: this package's reading of D-113 (a),
-    // pending the owner (TimelineCli.h).
-    return std::any_of(in.variants.begin(), in.variants.end(), [](const timeline::VariantRead& r) {
-        return r.playlist && !r.playlist->messages.empty();
-    });
+    // Only a message that the build decodes counts, whatever --bad-crc then
+    // does with it (D-120 (b), Q84 option 2; TimelineCli.h): of the
+    // decoder's outcomes for a message (src/Scte35Events.cpp), one whose
+    // section decodes, its CRC_32 valid, or failing and then kept, marked,
+    // or dropped by --bad-crc drop, since the two options act on such a
+    // message alone, --cue-types on the segmentation types it is classed by
+    // and --bad-crc on its CRC_32, which the decoder checks only once the
+    // section has decoded. It counts wherever it is then placed or not
+    // placed, its tag after the last URI or its segment unplaced, since it
+    // is classed and its CRC_32 checked before it is placed. Not one whose
+    // text isn't base64 or hex, a bare or empty #EXT-OATCLS-SCTE35 among
+    // them, or whose bytes don't decode as a section, an encrypted one, a
+    // table_id other than 0xFC or a protocol_version other than 0 among them
+    // (src/Scte35.h), each of which makes no event, with a warning, whatever
+    // the options; nor a message of a variant whose segment map was
+    // refused, which the decoder counts for its warning and doesn't decode
+    // (D-081 (c), D-086).
+    for (const timeline::VariantRead& r : in.variants)
+        if (r.playlist)
+            for (const timeline::CueInput& m : r.playlist->messages)
+                if (decodes(in, m)) return true;
+    return false;
 }
 
 Payload timeline_options(const TimelineArgs& a) { return timeline_options(a, false); }
@@ -1637,13 +1694,14 @@ Payload timeline_options(const TimelineArgs& a, bool messages)
     out.emplace_back("margin-after", Value{ rational_text(a.overlap.margin_after) });
     // The decoded messages' options, in the table's order, after the
     // margins: both, their defaults included, where a playlist carries an
-    // SCTE-35 message, so that every document whose cues, messages and ad
-    // breaks they shaped names them, as threshold and the margins are
-    // recorded at theirs (design §6.3, §8); otherwise each where it is
-    // given, on the command line or in the config file, so that a document
-    // whose playlists carry no message, as D-069's carry plain cue tags
-    // only, keeps its bytes (D-113 (a)). The set as canonical ranges, the
-    // policy as its word (D-113 (c)).
+    // SCTE-35 message that the build decodes (carries_messages(); D-120
+    // (b)), so that every document whose cues, messages and ad breaks they
+    // shaped names them, as threshold and the margins are recorded at
+    // theirs (design §6.3, §8); otherwise each where it is given, on the
+    // command line or in the config file, so that a document whose
+    // playlists carry no message, as D-069's carry plain cue tags only,
+    // keeps its bytes (D-113 (a)). The set as canonical ranges, the policy
+    // as its word (D-113 (c)).
     const timeline::MessageOptions m = message_options(a);
     if (messages || a.cue_types) out.emplace_back("cue-types", Value{ cue_types_text(m.cue_types) });
     if (messages || a.bad_crc)
@@ -2072,7 +2130,7 @@ int run_timeline(const std::vector<std::string_view>& argv)
     info.command          = "timeline";
     info.ffmpeg_libraries = ffmpeg_libraries();
     // --cue-types and --bad-crc at their defaults too where a playlist read
-    // carries a message (D-113 (a)).
+    // carries a message that the build decodes (D-113 (a), D-120 (b)).
     info.options          = timeline_options(args, carries_messages(in));
     if (!args.config.empty()) info.config_file = timeline::FileRef{ args.config, config_sha256 };
     info.report               = timeline::report_info(scores);

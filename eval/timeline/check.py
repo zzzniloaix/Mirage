@@ -33,11 +33,13 @@ check   Reads every record directory of <out>, a directory with layout.json and 
         - the options record of each document and answer against the command line that wrote
           it, as cmd.txt has it: every member, with its value and in its order, the paths
           relative to <out> as given, the margins at "0/1" and an answer's interval, frames and
-          drop null, and no other member but the cue-types and bad-crc that Q75 asks about,
-          after a document's margins, whose values are left out; the report's and the plan's
-          paths, the ones given; and each command line against the record: its files, the
-          parameters given to this check, the report beside the ladder of the master its
-          document names, and --fetch-base slow_server.py's, the port of server.port;
+          drop null, and no other member, neither cue-types nor bad-crc, which a document names
+          only where a playlist carries an SCTE-35 message that the build decodes or where they
+          are given (D-113 (a) to (c), D-120 (b)): D-069's ladders carry plain cue tags only,
+          and run_all.sh gives neither; the report's and the plan's paths, the ones given; and
+          each command line against the record: its files, the parameters given to this check,
+          the report beside the ladder of the master its document names, and --fetch-base
+          slow_server.py's, the port of server.port;
         - the detection and overlap records, the parameters given to them, and every drop of
           every answer: on which curve, over which reference frames, with how many points, and
           each event it lists in each of the six groups, with its offsets in frames and seconds,
@@ -60,14 +62,14 @@ check   Reads every record directory of <out>, a directory with layout.json and 
         a local thing: hashes but their form, the plan's and that the rungs' media playlists,
         one text in the layout, have one; the absolute paths and URLs the programs wrote, but
         their last parts; the libraries' versions and the ladder report's libvmaf, which each
-        answer must have as its document has them; the values of Q75's two options; and the
-        text answers, answer.*.txt, which are kept for reading. Pending the owner (WP14's open
-        question 3), it leaves out two more that decisions settle: the ladder report's model,
-        model_source, model_sha256 and scaler, which each answer must have as its document has
-        them and mirage_vmaf's defaults would give (D-025, D-024), and the numbers that name
-        pairs, which it resolves rather than compares and the report's plan would give
-        (D-092 (b)). It prints each difference with its kind, record, file and place, then a
-        summary line; --json writes the same as JSON.
+        answer must have as its document has them; and the text answers, answer.*.txt, which
+        are kept for reading. Pending the owner (WP14's open question 3), it leaves out two
+        more that decisions settle: the ladder report's model, model_source, model_sha256 and
+        scaler, which each answer must have as its document has them and mirage_vmaf's
+        defaults would give (D-025, D-024), and the numbers that name pairs, which it resolves
+        rather than compares and the report's plan would give (D-092 (b)). It prints each
+        difference with its kind, record, file and place, then a summary line; --json writes
+        the same as JSON.
 curves  Prints the --curve of each curve of a timeline document, one to a line: each pair's,
         pair:<k> in the order of the pairs' numbers (D-092 (b)), then each session's,
         session:<id> (D-111 (a)).
@@ -172,11 +174,14 @@ HARNESS_OPTIONS = {
 SESSION_OPTIONS = ("--session", "--fetch", "--fetch-base")
 FLAGS = ("--auto",)
 
-# The members a timeline document's options record may add after its margins, each only where
-# it is given as built: Q75 asks how --cue-types and --bad-crc are recorded, and Q76 and Q77
-# (a) their values' form (docs/TIMELINE_FORMAT.md, "Decoded SCTE-35 messages"). Their values
-# are left out, so that nothing compared depends on how those questions fall.
-Q75_MEMBERS = ("cue-types", "bad-crc")
+# The members of --cue-types and --bad-crc, the decoded SCTE-35 messages' options (D-106 (b),
+# (c)), which a timeline document's options record has after its margins, both, their defaults
+# included, wherever a playlist the build reads carries a message that the build decodes, and
+# otherwise each only where it is given, as canonical ranges and keep or drop (D-113 (a) to
+# (c), D-120 (b); docs/TIMELINE_FORMAT.md, "Decoded SCTE-35 messages"). D-069's ladders'
+# playlists carry plain cue tags only, so a playlist of theirs hands on no message, and
+# run_all.sh gives neither option: the record of each case names neither (check_options()).
+MESSAGE_OPTIONS = ("cue-types", "bad-crc")
 
 # slow_server.py's address, on the port it writes to server.port.
 SERVER_HOST = "127.0.0.1"
@@ -1171,13 +1176,21 @@ class Document:
         compare_value(self.diffs, "options", self.at("config_file"), self.doc["config_file"],
                       None)
 
-    def check_options(self, expected, extra=()):
+    def check_options(self, expected, messages=False):
         """The options record against `expected`, the one its command line gives: every member
-        and no other, in their order, each with its value; `extra` names members that may follow
-        them, each once and in that order, whose values are left out (Q75_MEMBERS)."""
+        and no other, in their order, each with its value; with `messages`, for a timeline
+        document, each of MESSAGE_OPTIONS that the record has named apart, with why, and the
+        other members compared as without it."""
         opts = self.doc["options"]
-        keys = tuple(expected) + tuple(k for k in extra if k in opts)
-        check_keys(self.diffs, "options", self.at("options"), opts, keys)
+        named = [k for k in MESSAGE_OPTIONS if messages and k in opts]
+        if named:
+            self.add("options", "options",
+                     f"{' and '.join(named)}: recorded, though its command line gives neither "
+                     "option and D-069's ladders' playlists carry no SCTE-35 message: a record "
+                     "names them only where a playlist carries one that the build decodes, or "
+                     "where they are given (D-113 (a), D-120 (b))")
+        check_keys(self.diffs, "options", self.at("options"),
+                   {k: v for k, v in opts.items() if k not in named}, tuple(expected))
         for k, want in expected.items():
             if k in opts:
                 compare_value(self.diffs, "options", self.at(f"options.{k}"), opts[k], want)
@@ -1426,7 +1439,9 @@ def check_command(doc, commands, out, sub, want, params, diffs, rec_name):
     """The command line of cmd.txt that wrote `out`, against what the record has it give,
     `want`, {option: value}, and the parameters given to this check (D-077; the design's
     P-R); then the options record of `doc`, the file it wrote, against the one that command
-    line gives, Q75_MEMBERS allowed after a timeline document's margins. Returns the command
+    line gives, a timeline document's without MESSAGE_OPTIONS: run_all.sh's command lines give
+    neither option, a command line that gives one not being one of theirs (options_record()),
+    and D-069's ladders carry no SCTE-35 message (D-113 (a), D-120 (b)). Returns the command
     line's options, or None where cmd.txt has none."""
     where = f"{rec_name}/cmd.txt"
     c = commands.get(out)
@@ -1452,7 +1467,7 @@ def check_command(doc, commands, out, sub, want, params, diffs, rec_name):
     if problem:
         diffs.add("options", at, problem)
     else:
-        doc.check_options(record, Q75_MEMBERS if sub == "timeline" else ())
+        doc.check_options(record, messages=sub == "timeline")
     return opts
 
 

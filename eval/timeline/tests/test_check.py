@@ -846,17 +846,40 @@ class Check(unittest.TestCase):
         self.assertEqual(status, 0, text)
         self.assertEqual(result["differences"], [])
 
-    def test_the_options_q75_asks_about_pass_after_the_margins(self):
-        # However Q75 to Q77 fall: either member, or both in their order, with any value.
+    def test_the_decoded_messages_options_where_no_case_gave_them_fail(self):
+        # D-069's ladders' playlists carry plain cue tags only, and run_all.sh gives neither
+        # --cue-types nor --bad-crc, so that a document names neither (D-113 (a), D-120 (b)):
+        # either member, or both in their order, after the margins, at their defaults or not,
+        # is one difference in each record's document, which names them, and no other.
         for n, members in enumerate(({"cue-types": "0x22-0x23,0x30-0x37,0x44-0x47"},
                                      {"bad-crc": "keep"},
                                      {"cue-types": "0x30-0x37", "bad-crc": "drop"})):
             with self.subTest(members=members):
-                out = self.copy(f"q75-{n}")
+                out = self.copy(f"messages-{n}")
                 for rec in RECORDS:
                     edit(out, rec, "doc", lambda d: d["options"].update(members))
                 status, text, result = run_check(out)
-                self.assertEqual(status, 0, text)
+                self.assertEqual(status, 1, text)
+                self.assertEqual(set(result["kinds"]), {"options"}, text)
+                said = (f"{' and '.join(members)}: recorded, though its command line gives "
+                        "neither option and D-069's ladders' playlists carry no SCTE-35 "
+                        "message: a record names them only where a playlist carries one that "
+                        "the build decodes, or where they are given (D-113 (a), D-120 (b))")
+                self.assertEqual(sorted((x["where"], x["text"]) for x in result["differences"]),
+                                 sorted((f"{rec}/timeline.json: options", said)
+                                        for rec in RECORDS), text)
+
+    def test_the_decoded_messages_options_in_an_answer_fail(self):
+        # An answer's record has neither, whatever its document's, attribute recording options
+        # of its own (src/TimelineCli.cpp): either member is one not in the format, as before.
+        out = self.copy("answer-messages")
+        edit(out, "degraded", "answer.pair-0.json",
+             lambda d: d["options"].update({"bad-crc": "keep"}))
+        status, text, result = run_check(out)
+        self.assertEqual(status, 1, text)
+        self.assertEqual([(x["kind"], x["where"], x["text"]) for x in result["differences"]],
+                         [("options", "degraded/answer.pair-0.json: options",
+                           "bad-crc: not in the format")], text)
 
     def test_records_whose_paths_were_replaced_pass(self):
         # As check.py redact leaves them: every path under <out> replaced but its last parts.

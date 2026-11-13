@@ -23,8 +23,9 @@
 //   (timeline::kDefaultCueTypes), each a Start or an End type
 //   (timeline::check_message_options()); --bad-crc keep|drop what becomes
 //   of a message whose CRC_32 fails, kept and marked by default, with a
-//   warning either way (D-106 (c)). Where a playlist carries a message, the
-//   document records both, their defaults included (D-113 (a)).
+//   warning either way (D-106 (c)). Where a playlist carries a message that
+//   the build decodes, the document records both, their defaults included
+//   (D-113 (a), D-120 (b)).
 // - timeline --session <plan.json> (design §3.4, step 6; D-068) also reads a
 //   scripted session's plan (src/SessionPlan.h; D-105 (a)), which the
 //   document records by its path and SHA-256, places the session's spans
@@ -83,9 +84,9 @@
 // with blanks after a comma (parse_cue_types()), so that the default as
 // design §7 writes it, "0x22-0x23, 0x30-0x37, 0x44-0x47", a blank after
 // each comma as in Q15 (a), which D-106 (b) adopts, is taken, on the
-// command line and in a config file (D-113 (b), below). A value in a
-// config file is checked on its line as one on the command line is, a type
-// that is neither a Start nor an End type included.
+// command line and in a config file (D-113 (b), D-120 (c), below). A value
+// in a config file is checked on its line as one on the command line is, a
+// type that is neither a Start nor an End type included.
 //
 // Defaults are the decisions' only: T = 6, W and N none (D-077), margins
 // none (D-078), text (D-079), --fetch on with a session (design §7),
@@ -128,9 +129,10 @@
 //
 // The owner's answers (D-113, of 2026-11-12) on what the decoded messages'
 // options and lines chose where the design and the decisions said nothing
-// (Q75 to Q77), each built as written here (the order of the decoded
-// events' ids and of their warnings, which D-113 (c) keeps as built, is
-// src/TimelineBuild.h's):
+// (Q75 to Q77), and of 2026-11-13 on the two readings WP09e took of (a) and
+// (b) (D-120 (b), (c)), each built as written here (the order of the
+// decoded events' ids and of their warnings, which D-113 (c) keeps as
+// built, is src/TimelineBuild.h's):
 // - (a) --cue-types and --bad-crc are recorded with the other options,
 //   after the margins: both, their defaults included, wherever a playlist
 //   the build reads carries an SCTE-35 message (carries_messages()), so
@@ -139,30 +141,27 @@
 //   defaults (design §6.3, §8); otherwise each where it is given, on the
 //   command line or in the config file, so that a document whose playlists
 //   carry none, as D-069's carry plain cue tags only, keeps its bytes (Q75,
-//   option 2). Which playlists carry one, D-113 (a) doesn't say. Here a
-//   playlist counts wherever a tag of a form the build decodes hands on a
-//   message, whatever its text holds and whatever becomes of it: a bare
-//   #EXT-OATCLS-SCTE35, one whose text is empty or isn't base64, and the
-//   messages of a variant whose segment map was refused, which make no
-//   event (D-081 (c), D-086), count as a message that decodes does, so
-//   that a document whose events the two options didn't shape names them
-//   too. Of the readings that ask only the playlists the build reads, it
-//   is the widest, naming them in the most documents, where the others
-//   count a playlist only where a message decodes, or only where one makes
-//   an event: this package's reading, pending the owner;
+//   option 2). A playlist carries one only where the build decodes at least
+//   one, whatever --bad-crc then does with it (D-120 (b), Q84 option 2):
+//   the two options act on decoded messages alone, --cue-types on their
+//   segmentation types and --bad-crc on their CRC_32. A tag whose text
+//   isn't base64 or hex, a bare or empty #EXT-OATCLS-SCTE35 among them, and
+//   one whose bytes aren't a splice_info_section that decodes carry none,
+//   and so do the messages of a variant whose segment map was refused,
+//   which the build doesn't decode (D-081 (c), D-086); a message whose
+//   CRC_32 fails counts, under --bad-crc keep and under drop, which drops
+//   it, so that a document of such messages alone names both options too;
 // - (b) --cue-types' value: segmentation_type_ids in hex with 0x, one or
 //   two digits each, alone or as a range first-last, comma-separated, the
 //   set not empty, with blanks after a comma, so that the default as
 //   design §7 writes it, "0x22-0x23, 0x30-0x37, 0x44-0x47", is taken, a
-//   config file's value too, which no shell quotes (Q76, option 2). Which
-//   characters are blanks, a space or a tab as parse_attributes() and a
-//   config file's lines take them, any number of them after a comma, and
-//   that a blank anywhere else, before a comma, at either end of a
-//   command-line value (a config file's value loses its end blanks first,
-//   as every setting's does) or within an item, is refused, D-113 (b)
-//   doesn't say: this package's reading, pending the owner, the narrowest
-//   as to where a blank goes but not as to which blanks or how many, a
-//   space alone, or exactly one blank after a comma, being narrower;
+//   config file's value too, which no shell quotes (Q76, option 2). The
+//   blanks are a space or a tab, as parse_attributes() and a config file's
+//   lines take them, any number of them after a comma, and a blank anywhere
+//   else, before a comma, at either end of a command-line value (a config
+//   file's value loses its end blanks first, as every setting's does) or
+//   within an item, is refused with its item: WP09e's reading of D-113 (b),
+//   which the owner kept as built (D-120 (c), Q85 option 1);
 // - (c) the record of --cue-types, the set as ranges in that form without
 //   blanks, ascending, each run of consecutive types one range
 //   ("0x22-0x23,0x30-0x37,0x44-0x47"), and of --bad-crc, "keep" or "drop"
@@ -363,13 +362,12 @@ std::optional<AVRational> parse_seconds(std::string_view text);
 // --cue-types' value as the set it names (D-106 (b); design §7): items
 // separated by ',', each a segmentation_type_id written 0x or 0X and one or
 // two hex digits, or a range of them, first-last with first at or before
-// last ("0x22-0x23,0x30-0x37,0x44-0x47"); blanks, spaces and tabs, may
-// follow a comma, as design §7 writes the default, "0x22-0x23, 0x30-0x37,
-// 0x44-0x47", the same set (D-113 (b)), and are refused anywhere else,
-// before a comma, at either end of the value or within an item: a reading
-// of D-113 (b), which names neither the blanks nor where else one goes,
-// pending the owner, the narrowest as to where a blank goes (above);
-// ascending, each type once. nullopt, with `err` saying which item is
+// last ("0x22-0x23,0x30-0x37,0x44-0x47"); blanks, spaces and tabs, any
+// number of them, may follow a comma, as design §7 writes the default,
+// "0x22-0x23, 0x30-0x37, 0x44-0x47", the same set (D-113 (b)), and are
+// refused anywhere else, before a comma, at either end of the value or
+// within an item, as WP09e built it, which the owner kept (D-120 (c),
+// above); ascending, each type once. nullopt, with `err` saying which item is
 // wrong and why, for any other text, the empty one included. Whether each
 // type is a Start or an End type is timeline::check_message_options()'s,
 // not this.
@@ -408,35 +406,39 @@ std::string check_interval(const timeline::Axis& axis, AVRational from, AVRation
 // only with a session, so that a ladder's record is as it was before them
 // (D-111 (e)); cue-types (cue_types_text()) and bad-crc ("keep" or "drop")
 // after the margins, each where it is given, and both, their defaults
-// included, where a playlist carries an SCTE-35 message (D-113 (a),
-// above), which the overload below takes: this one gives the record of a
-// build whose playlists carry none. attribute's also name its query, its
-// curve, "pair:<k>" or "session:<id>", or null, its format and the report
-// it read.
+// included, where a playlist carries an SCTE-35 message that the build
+// decodes (D-113 (a), D-120 (b), above), which the overload below takes:
+// this one gives the record of a build whose playlists carry none.
+// attribute's also name its query, its curve, "pair:<k>" or
+// "session:<id>", or null, its format and the report it read.
 timeline::Payload timeline_options(const TimelineArgs& args);
 timeline::Payload attribute_options(const AttributeArgs& args, const std::string& report);
 
 // Whether a media playlist that the build of `in` reads, the reference's
-// or a complete pair's distorted one, carries an SCTE-35 message in a form
-// the build decodes: an #EXT-OATCLS-SCTE35, an EXT-X-DATERANGE's
-// SCTE35-CMD, SCTE35-OUT or SCTE35-IN, a malformed one's where the
-// attribute is a well-formed hexadecimal-sequence (D-106 (e)), or the
-// SCTE35= of a plain EXT-X-CUE-OUT, EXT-X-CUE-OUT-CONT or EXT-X-CUE-IN
-// (src/Scte35Events.h), each of which parse_playlist_events() hands on as
-// a CueInput (PlaylistEvents::messages). Every CueInput counts, whatever
-// its text holds and whatever becomes of it, so that a bare
-// #EXT-OATCLS-SCTE35 or one whose text is empty, which carry no message,
-// one whose text isn't base64, and a message of a variant whose segment
-// map was refused count as a message that decodes does, though none of
-// them makes an event: a reading pending the owner (above). A playlist of
-// the ladder that no complete pair scored isn't read, and so isn't asked.
+// or a complete pair's distorted one, carries an SCTE-35 message that the
+// build decodes, whatever --bad-crc then does with it (D-113 (a), D-120
+// (b), above): of the messages its tags hand on as CueInputs
+// (PlaylistEvents::messages), an #EXT-OATCLS-SCTE35's, an
+// EXT-X-DATERANGE's SCTE35-CMD, SCTE35-OUT or SCTE35-IN, a malformed one's
+// where the attribute is a well-formed hexadecimal-sequence (D-106 (e)),
+// or the SCTE35= of a plain EXT-X-CUE-OUT, EXT-X-CUE-OUT-CONT or
+// EXT-X-CUE-IN, one that scte35_events() decodes as the build reads it
+// (src/Scte35Events.h): of a variant whose demux pass gave a segment map,
+// its text read as base64 or hex by the decoder's rule, its bytes a
+// splice_info_section that scte35::decode() decodes (src/Scte35.h), its
+// CRC_32 valid or not. A bare or empty #EXT-OATCLS-SCTE35, text that isn't
+// base64, a section that doesn't decode, an encrypted one among them, and
+// the messages of a variant whose segment map was refused carry none; a
+// message that decodes counts wherever it is then placed or not placed. A
+// playlist of the ladder that no complete pair scored isn't read, and so
+// isn't asked.
 bool carries_messages(const timeline::BuildInputs& in);
 
 // timeline_options() of a build whose playlists carry an SCTE-35 message
-// where `messages` is true (carries_messages()): cue-types and bad-crc are
-// then both recorded, their defaults included, whether they are given or
-// not, as D-113 (a) has it; otherwise each where it is given, as
-// timeline_options(args) records them.
+// that the build decodes where `messages` is true (carries_messages()):
+// cue-types and bad-crc are then both recorded, their defaults included,
+// whether they are given or not, as D-113 (a) has it; otherwise each where
+// it is given, as timeline_options(args) records them.
 timeline::Payload timeline_options(const TimelineArgs& args, bool messages);
 
 // What is wrong with a session fetch of `files`, as fetch_files() lists
