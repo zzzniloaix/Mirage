@@ -1,0 +1,29 @@
+Timeline panel (--timeline-report)
+document: ad-main-origin/timeline.json
+load: loaded: 68 events on 200 reference frames, 2 curves, 1 attributions
+ladder report: media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin.json: its SHA-256 is the one the document names
+axis: 200 reference frames, seconds on the reference's playlist time, checked by segment-map
+match: master SHA-256, entries by their order
+  player entry 0 (media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v360/index.m3u8): entry 0 (<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v360/index.m3u8; variant 0, the reference, not scored in top-rung mode)
+  player entry 1 (media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v270/index.m3u8): entry 1 (<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v270/index.m3u8; variant 1, pair 0)
+  player entry 2 (media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/index.m3u8): entry 2 (<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/index.m3u8; variant 2, pair 1)
+variant on screen: player entry 2: entry 2 (<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/index.m3u8; variant 2, pair 1)
+playhead: reference frame 130 at 5.200 s, the variant's frame 130 (its input's frame 130), sequence 1; the frame on screen at PTS 15.200000 s, +0.000000 s from the report's PTS of that frame
+view: 2.000 s to 6.000 s
+curves shown: pair:1 (entry 2 · 320x180)
+attributions: 1
+  0: a detected drop of pair:1, reference frames 75-124 (50 frames), 3.000-5.000 s, min 22.237
+pick: --ui-timeline pick=5.22@3.5 at 3.51 s after the first frame
+card:
+  Curve pair:1 (entry 2): reference frame 130 at 5.200 s, sequence 1, PTS 15.200 s; VMAF 92.277
+  Outside the document's drops: the query of the clicked frame's segment (D-114 (d)):
+  reference frames 125-149 (25 frames), 5.000-6.000 s; 25 points, min 89.379, mean 91.685
+    playlist discontinuity    entry 0, segment 5 at +0.000 s (+0 frames): line 20, discontinuity sequence 2
+    playlist discontinuity    entry 2, segment 5 at +0.000 s (+0 frames): line 20, discontinuity sequence 2
+    playlist segment          entry 0, segment 5 at +0.000 s to +1.000 s (+0 to +25 frames): main_005.ts, EXTINF 1 s
+    playlist segment          entry 2, segment 5 at +0.000 s to +1.000 s (+0 to +25 frames): main_005.ts, EXTINF 1 s
+    scte35   cue_in           entry 0, segment 5 at +0.000 s (+0 frames): line 21, #EXT-X-CUE-IN
+    scte35   cue_in           entry 2, segment 5 at +0.000 s (+0 frames): line 21, #EXT-X-CUE-IN
+    decoder  keyframe         entry 0, segment 5 at +0.000 s (+0 frames): frame 125 of its input
+    decoder  keyframe         entry 2, segment 5 at +0.000 s (+0 frames): frame 125 of its input
+Seek: to PTS 15.200 s, the frame at reference frame 130 on entry 2 (<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/index.m3u8; variant 2, pair 1), the variant on screen: sent and made

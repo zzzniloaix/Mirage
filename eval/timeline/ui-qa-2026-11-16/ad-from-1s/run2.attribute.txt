@@ -1,0 +1,16 @@
+Timeline ad-from-1s/timeline.json: 70 events on 200 reference frames, offsets in seconds on the reference's playlist time
+Ladder report media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-from-1s.json: its SHA-256 is the one the document names
+Query: reference frames 125-149 (25 frames) (--frames)
+Overlap: half-open on reference frames, margins 0 s before and 0 s after
+
+Curve pair:1: entry 2 (<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-from-1s/v180/index.m3u8, 320x180, BANDWIDTH 345920; rank 3 from the top, 1 from the bottom), scored against entry 0 (<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-from-1s/v360/index.m3u8, 640x360, BANDWIDTH 613632; rank 1 from the top, 3 from the bottom)
+Interval: reference frames 125-149 (25 frames), 5.000-6.000 s; 25 points, min 86.785, mean 91.385
+  vmaf     context_start    entry 2 at +0.000 s (+0 frames): libvmaf context 2, from frame pair 125
+  playlist discontinuity    entry 0, segment 5 at +0.000 s (+0 frames): line 20, discontinuity sequence 2
+  playlist discontinuity    entry 2, segment 5 at +0.000 s (+0 frames): line 20, discontinuity sequence 2
+  playlist segment          entry 0, segment 5 at +0.000 s to +1.000 s (+0 to +25 frames): main_005.ts, EXTINF 1 s
+  playlist segment          entry 2, segment 5 at +0.000 s to +1.000 s (+0 to +25 frames): main_005.ts, EXTINF 1 s
+  scte35   cue_in           entry 0, segment 5 at +0.000 s (+0 frames): line 21, #EXT-X-CUE-IN
+  scte35   cue_in           entry 2, segment 5 at +0.000 s (+0 frames): line 21, #EXT-X-CUE-IN
+  decoder  keyframe         entry 0, segment 5 at +0.000 s (+0 frames): frame 125 of its input
+  decoder  keyframe         entry 2, segment 5 at +0.000 s (+0 frames): frame 125 of its input

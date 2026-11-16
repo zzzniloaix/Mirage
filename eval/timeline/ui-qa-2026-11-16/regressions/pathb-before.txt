@@ -1,0 +1,8 @@
+── generating synthetic solid-color H.264 clip ──
+── HW snapshot ──
+[INFO]  VideoRenderer: HW zero-copy path ready: '420v' bound as R8 / RG8, 8-bit samples (BT.601 matrix, limited-range)
+[INFO]  --snapshot: wrote <tmp>/pathb.XXXXXX.GS6uFpgldC/hw.png (1920×1440, frame 30)
+── SW snapshot (--no-hw) ──
+[INFO]  --snapshot: wrote <tmp>/pathb.XXXXXX.GS6uFpgldC/sw.png (1920×1440, frame 30)
+── pixel diff ──
+snapshot_diff: 1920x1440, max=1, mean=0.667, pixels>20=0 (budget 100)

@@ -1,0 +1,41 @@
+# The commands of regressions.sh's run, from <out>, each with its exit status.
+$ caffeinate -i bash <repo>/tests/engineer_tools_snapshots.sh <before> <out>.eng/before-1 > regressions/engineer-before-1.txt 2>&1
+# exit status 0
+$ caffeinate -i bash <repo>/tests/engineer_tools_snapshots.sh <before> <out>.eng/before-2 > regressions/engineer-before-2.txt 2>&1
+# exit status 0
+$ caffeinate -i bash <repo>/tests/engineer_tools_snapshots.sh <build> <out>.eng/after > regressions/engineer-after.txt 2>&1
+# exit status 0
+$ caffeinate -i env HOME=<out>.home perl -e 'alarm 60; exec @ARGV' <before>/mirage --qa-no-focus --window 1600x1000 --ui-overlays L --ui-snapshot <out>.loud/before-419-1.png 419 <out>.eng/before-1/surround51.mkv > regressions/loudness-before-419-1.log 2>&1
+# exit status 0
+$ caffeinate -i env HOME=<out>.home perl -e 'alarm 60; exec @ARGV' <before>/mirage --qa-no-focus --window 1600x1000 --ui-overlays L --ui-snapshot <out>.loud/before-419-2.png 419 <out>.eng/before-1/surround51.mkv > regressions/loudness-before-419-2.log 2>&1
+# exit status 0
+$ caffeinate -i env HOME=<out>.home perl -e 'alarm 60; exec @ARGV' <before>/mirage --qa-no-focus --window 1600x1000 --ui-overlays L --ui-snapshot <out>.loud/before-420-1.png 420 <out>.eng/before-1/surround51.mkv > regressions/loudness-before-420-1.log 2>&1
+# exit status 0
+$ caffeinate -i env HOME=<out>.home perl -e 'alarm 60; exec @ARGV' <before>/mirage --qa-no-focus --window 1600x1000 --ui-overlays L --ui-snapshot <out>.loud/before-420-2.png 420 <out>.eng/before-1/surround51.mkv > regressions/loudness-before-420-2.log 2>&1
+# exit status 0
+$ caffeinate -i env HOME=<out>.home perl -e 'alarm 60; exec @ARGV' <before>/mirage --qa-no-focus --window 1600x1000 --ui-overlays L --ui-snapshot <out>.loud/before-421-1.png 421 <out>.eng/before-1/surround51.mkv > regressions/loudness-before-421-1.log 2>&1
+# exit status 0
+$ caffeinate -i env HOME=<out>.home perl -e 'alarm 60; exec @ARGV' <before>/mirage --qa-no-focus --window 1600x1000 --ui-overlays L --ui-snapshot <out>.loud/before-421-2.png 421 <out>.eng/before-1/surround51.mkv > regressions/loudness-before-421-2.log 2>&1
+# exit status 0
+$ caffeinate -i env HOME=<out>.home perl -e 'alarm 60; exec @ARGV' <build>/mirage --qa-no-focus --window 1600x1000 --ui-overlays L --ui-snapshot <out>.loud/after-419-1.png 419 <out>.eng/before-1/surround51.mkv > regressions/loudness-after-419-1.log 2>&1
+# exit status 0
+$ caffeinate -i env HOME=<out>.home perl -e 'alarm 60; exec @ARGV' <build>/mirage --qa-no-focus --window 1600x1000 --ui-overlays L --ui-snapshot <out>.loud/after-419-2.png 419 <out>.eng/before-1/surround51.mkv > regressions/loudness-after-419-2.log 2>&1
+# exit status 0
+$ caffeinate -i env HOME=<out>.home perl -e 'alarm 60; exec @ARGV' <build>/mirage --qa-no-focus --window 1600x1000 --ui-overlays L --ui-snapshot <out>.loud/after-420-1.png 420 <out>.eng/before-1/surround51.mkv > regressions/loudness-after-420-1.log 2>&1
+# exit status 0
+$ caffeinate -i env HOME=<out>.home perl -e 'alarm 60; exec @ARGV' <build>/mirage --qa-no-focus --window 1600x1000 --ui-overlays L --ui-snapshot <out>.loud/after-420-2.png 420 <out>.eng/before-1/surround51.mkv > regressions/loudness-after-420-2.log 2>&1
+# exit status 0
+$ caffeinate -i env HOME=<out>.home perl -e 'alarm 60; exec @ARGV' <build>/mirage --qa-no-focus --window 1600x1000 --ui-overlays L --ui-snapshot <out>.loud/after-421-1.png 421 <out>.eng/before-1/surround51.mkv > regressions/loudness-after-421-1.log 2>&1
+# exit status 0
+$ caffeinate -i env HOME=<out>.home perl -e 'alarm 60; exec @ARGV' <build>/mirage --qa-no-focus --window 1600x1000 --ui-overlays L --ui-snapshot <out>.loud/after-421-2.png 421 <out>.eng/before-1/surround51.mkv > regressions/loudness-after-421-2.log 2>&1
+# exit status 0
+# <out>.wrap/before/mirage runs <before>/mirage with --qa-no-focus --window 1280x720, HOME at <out>.home, under caffeinate -i and perl's alarm 60, and keeps its --snapshot in <out>.wrap/before/kept
+$ bash <repo>/tests/pathb_snapshot_regression.sh <out>.wrap/before > regressions/pathb-before.txt 2>&1
+# exit status 0
+# <out>.wrap/after/mirage runs <build>/mirage with --qa-no-focus --window 1280x720, HOME at <out>.home, under caffeinate -i and perl's alarm 60, and keeps its --snapshot in <out>.wrap/after/kept
+$ bash <repo>/tests/pathb_snapshot_regression.sh <out>.wrap/after > regressions/pathb-after.txt 2>&1
+# exit status 0
+$ python3 -I -B <repo>/eval/timeline/check.py redact <out> --build <build> --repo <repo> > regressions/redact.txt 2>&1
+# exit status 0
+$ python3 -I -B <repo>/eval/timeline/check.py redact <out> --search-only --build <build> --repo <repo> > regressions/search.txt 2>&1
+# exit status 0 (the last line of this file: the search ran before it was written)

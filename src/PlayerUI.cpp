@@ -564,6 +564,8 @@ void PlayerUI::build_menu_popup(const PlayerUIInputs& in, PlayerUIState& out)
         v = in.show_probe;     if (ImGui::MenuItem("Pixel Probe",        "X", &v)) out.toggle_probe     = true;
         v = in.show_frames;    if (ImGui::MenuItem("Frame Sizes / GOP",  "B", &v)) out.toggle_frames    = true;
         v = in.show_loudness;  if (ImGui::MenuItem("Loudness Meters",    "L", &v)) out.toggle_loudness  = true;
+        // E, pending the owner: D-114 (c)'s L is the loudness meters' (main.cpp's s_show_timeline).
+        v = in.show_timeline;  if (ImGui::MenuItem("Timeline",           "E", &v)) out.toggle_timeline  = true;
         ImGui::Separator();
         v = in.fullscreen;     if (ImGui::MenuItem("Fullscreen",         "F", &v)) out.toggle_fullscreen = true;
         ImGui::EndMenu();
@@ -756,7 +758,8 @@ void PlayerUI::build_controls(const PlayerUIInputs& in, PlayerUIState& out,
     }
 
     const bool any_overlay = in.show_hud || in.show_inspector || in.show_drift || in.show_tracks
-                          || in.show_waveform || in.show_network || in.show_vmaf || in.show_filmstrip;
+                          || in.show_waveform || in.show_network || in.show_vmaf || in.show_filmstrip
+                          || in.show_timeline;
     x += 2.0f; place(th::kBtn);
     auto ob = ui::icon_button("##overlays", "Engineer overlays");
     icons::hud(dl, ob.c, th::kIconSz, ob.col, any_overlay);
@@ -960,6 +963,8 @@ void PlayerUI::build_overlays_popup(const PlayerUIInputs& in, PlayerUIState& out
         { "##ov_x", "Pixel probe",       "X", in.show_probe,     &out.toggle_probe },
         { "##ov_b", "Frame sizes / GOP", "B", in.show_frames,    &out.toggle_frames },
         { "##ov_l", "Loudness",          "L", in.show_loudness,  &out.toggle_loudness },
+        // E, pending the owner: D-114 (c)'s L is the loudness meters' (main.cpp's s_show_timeline).
+        { "##ov_e", "Timeline",          "E", in.show_timeline,  &out.toggle_timeline },
     };
     for (const auto& it : items)
         if (menu_row(it.id, it.label, { .value = it.key, .tail = RowTail::Toggle, .on = it.on }))
@@ -999,6 +1004,8 @@ void PlayerUI::build_help_card(PlayerUIState& out, float win_w, float win_h)
         { "X",            "Pixel probe (code values)" },
         { "B",            "Frame sizes / GOP" },
         { "L",            "Loudness meters" },
+        // E, pending the owner: D-114 (c)'s L is the loudness meters' (main.cpp's s_show_timeline).
+        { "E",            "Timeline panel" },
         { "H  ?",         "This help" },
         { "Esc",          "Close the last panel / exit fullscreen" },
         { "Q",            "Quit" },

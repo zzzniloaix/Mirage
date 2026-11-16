@@ -110,17 +110,9 @@ public:
                              double cur_pts,
                              int fb_w, int fb_h, float scale = 1.0f);
 
-    // Draw a thin timeline strip above the scrub bar with coloured tick marks.
-    // The strip spans [0, duration] and tag times are positions on it, as on
-    // the seek bar (UiFormat.h). Returns the position clicked if a click lands
-    // in the strip, or -1.
-    static constexpr int kTimelinePx = 10;  // strip height in framebuffer pixels
-
-    double draw_timeline_ticks(const std::vector<TagEntry>& tags,
-                                double duration,
-                                int fb_w, int fb_h, float scale,
-                                float bottom_offset_px,
-                                float click_x = -1.0f, float click_y = -1.0f);
+    // (The thin GL strip of the manifest's tags above the seek bar is
+    // retired for the timeline panel's playlist lane, src/TimelinePanel.h:
+    // DECISIONS.md D-114 (e).)
 
     // ── Help overlay (H key) ──────────────────────────────────────────────────
 

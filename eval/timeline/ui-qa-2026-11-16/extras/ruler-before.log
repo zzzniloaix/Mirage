@@ -1,0 +1,60 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  Opening <out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/index.m3u8 (t=0.224)
+[INFO]  ManifestParser: parsed HLS — 6 tags, 0 variants from <out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/index.m3u8
+[hls @ 0x7ac014a00] Opening '<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_000.ts' for reading
+[INFO]  Demuxer: avformat_open_input 3 ms (1 streams, 1 programs) (t=0.227)
+[INFO]  Demuxer: avformat_find_stream_info 2 ms (t=0.228)
+[WARN]  No audio stream found
+[INFO]  Container: Apple HTTP Live Streaming
+[INFO]  Duration:  00:00:08
+[INFO]  Video:     h264 320×180 @ 25.000 fps  pixel_fmt=yuv420p
+[INFO]  Selected HW-capable decoder: h264 (default was h264)
+[INFO]  Decoder opened: h264 (320×180)  [HW: VideoToolbox requested]
+[INFO]  Opened <out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/index.m3u8 in 21 ms (t=0.245)
+[INFO]  VideoRenderer: 320×180 SDR (yuv420p → RGB24 sRGB)  matrix=BT.709  limited-range
+[INFO]  Keyframes: stream 0 — <out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/index.m3u8: it has discontinuities, segment starts are not predicted
+[hls @ 0x7ac014a00] Opening '<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_001.ts' for reading
+[hls @ 0x7ac014f00] Opening '<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_000.ts' for reading
+[hls @ 0x7ac015180] Opening '<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_000.ts' for reading
+[hls @ 0x7ac014a00] Opening '<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_002.ts' for reading
+[INFO]  Subtitles: 0 choice(s); initial off (none available)
+[INFO]  ThumbnailStrip: open 1 ms, probe 2 ms (t=0.249)
+[INFO]  ThumbnailStrip: 0 keyframes in index for stream 0 — seek-sampling 9 points (stride 0.89 s)
+[hls @ 0x7ac014f00] Opening '<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_000.ts' for reading
+[INFO]  ScrubDecoder: ready (open 1 ms, probe 2 ms) (t=0.249)
+[hls @ 0x7ac014f00] Opening '<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_007.ts' for reading
+[INFO]  ThumbnailStrip: coarse pass done (2 thumbnails)
+[hls @ 0x7ac014f00] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ac014f00] Opening '<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_000.ts' for reading
+[hls @ 0x7ac014f00] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ac014f00] Opening '<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_001.ts' for reading
+[hls @ 0x7ac014f00] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ac014f00] Opening '<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_002.ts' for reading
+[hls @ 0x7ac014f00] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ac014f00] Opening '<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/ad_000.ts' for reading
+[hls @ 0x7ac014f00] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ac014f00] Opening '<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/ad_001.ts' for reading
+[hls @ 0x7ac014f00] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ac014f00] Opening '<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_005.ts' for reading
+[hls @ 0x7ac014f00] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ac014f00] Opening '<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/ad_001.ts' for reading
+[hls @ 0x7ac014f00] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ac014f00] Opening '<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_005.ts' for reading
+[hls @ 0x7ac014f00] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ac014f00] Opening '<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_005.ts' for reading
+[hls @ 0x7ac014f00] The m3u8 list sequence may have been wrapped.
+[hls @ 0x7ac014f00] Opening '<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_006.ts' for reading
+[INFO]  ThumbnailStrip: decode complete (6 thumbnails)
+[INFO]  Decoder: VideoToolbox HW decode active (zero-copy IOSurface path)
+[hls @ 0x7ac014a00] Opening '<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/ad_000.ts' for reading
+[INFO]  first-frame: pts=10.000 320x180 VideoToolbox, 110 ms after open (t=0.357)
+[INFO]  VideoRenderer: HW zero-copy path ready: '420v' bound as R8 / RG8, 8-bit samples (BT.709 matrix, limited-range)
+[hls @ 0x7ac014a00] Opening '<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/ad_001.ts' for reading
+[hls @ 0x7ac014a00] Opening '<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_005.ts' for reading
+[INFO]  --speed-seq: t=2.00 event 1 0
+[INFO]  playback paused (t=2.397)
+[INFO]  --speed-seq: t=3.04 event 10 0
+[INFO]  ui-snapshot: wrote extras/ruler-before.png (2560×1440) — pts=12.000 320x180 (paused)
+[INFO]  MediaSession: closing <out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/index.m3u8
+[INFO]  MediaSession: threads stopped (0 ms)
+[INFO]  ScrubDecoder: stopped (0 requests decoded from a keyframe read, 0 from a seek)

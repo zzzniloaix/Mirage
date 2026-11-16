@@ -1,0 +1,100 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  Opening media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/master.m3u8 (t=0.229)
+[INFO]  ManifestParser: parsed HLS — 0 tags, 3 variants from media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/master.m3u8
+[hls @ 0x91bc50500] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v360/index.m3u8' for reading
+[hls @ 0x91bc50500] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v270/index.m3u8' for reading
+[hls @ 0x91bc50500] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/index.m3u8' for reading
+[hls @ 0x91bc50500] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v360/main_000.ts' for reading
+[hls @ 0x91bc50500] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v270/main_000.ts' for reading
+[hls @ 0x91bc50500] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_000.ts' for reading
+[INFO]  Demuxer: avformat_open_input 3 ms (3 streams, 3 programs) (t=0.233)
+[INFO]  Demuxer: avformat_find_stream_info 6 ms (t=0.239)
+[WARN]  No audio stream found
+[INFO]  Container: Apple HTTP Live Streaming
+[INFO]  Duration:  00:00:08
+[INFO]  Video:     h264 640×360 @ 25.000 fps  pixel_fmt=yuv420p
+[INFO]  Selected HW-capable decoder: h264 (default was h264)
+[INFO]  Decoder opened: h264 (640×360)  [HW: VideoToolbox requested]
+[INFO]  Opened media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/master.m3u8 in 28 ms (t=0.258)
+[INFO]  VideoRenderer: 640×360 SDR (yuv420p → RGB24 sRGB)  matrix=BT.709  limited-range
+[INFO]  MediaSession: helpers open variant playlists — scrub media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v360/index.m3u8, thumbnails media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/index.m3u8 (stream 2)
+[INFO]  Keyframes: stream 0 — media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v360/index.m3u8: it has discontinuities, segment starts are not predicted
+[hls @ 0x91bc51680] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v360/main_000.ts' for reading
+[hls @ 0x91bc52080] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_000.ts' for reading
+[hls @ 0x91bc50500] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v360/main_001.ts' for reading
+[hls @ 0x91bc50500] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v360/main_002.ts' for reading
+[INFO]  Subtitles: 0 choice(s); initial off (none available)
+[INFO]  timeline: loading ad-main-origin/timeline.json
+[INFO]  ThumbnailStrip: sampling variant playlist media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/index.m3u8 (180p), open + probe 3 ms (t=0.262)
+[INFO]  ThumbnailStrip: 0 keyframes in index for stream 0 — seek-sampling 9 points (stride 0.89 s)
+[hls @ 0x91bc52080] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_000.ts' for reading
+[INFO]  ScrubDecoder: ready — variant playlist media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v360/index.m3u8 (open + probe 4 ms) (t=0.263)
+[hls @ 0x91bc52080] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_007.ts' for reading
+[INFO]  ThumbnailStrip: coarse pass done (2 thumbnails)
+[hls @ 0x91bc52080] The m3u8 list sequence may have been wrapped.
+[hls @ 0x91bc52080] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_000.ts' for reading
+[hls @ 0x91bc52080] The m3u8 list sequence may have been wrapped.
+[hls @ 0x91bc52080] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_001.ts' for reading
+[hls @ 0x91bc52080] The m3u8 list sequence may have been wrapped.
+[hls @ 0x91bc52080] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_002.ts' for reading
+[INFO]  timeline: loaded ad-main-origin/timeline.json: 68 events on 200 reference frames, 2 curves, 1 attributions; the ladder report media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin.json: its SHA-256 is the one the document names
+[INFO]  timeline: matched to media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/master.m3u8 by master SHA-256
+[hls @ 0x91bc52080] The m3u8 list sequence may have been wrapped.
+[hls @ 0x91bc52080] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/ad_000.ts' for reading
+[hls @ 0x91bc52080] The m3u8 list sequence may have been wrapped.
+[hls @ 0x91bc52080] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/ad_001.ts' for reading
+[hls @ 0x91bc52080] The m3u8 list sequence may have been wrapped.
+[hls @ 0x91bc52080] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_005.ts' for reading
+[hls @ 0x91bc52080] The m3u8 list sequence may have been wrapped.
+[hls @ 0x91bc52080] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/ad_001.ts' for reading
+[hls @ 0x91bc52080] The m3u8 list sequence may have been wrapped.
+[hls @ 0x91bc52080] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_005.ts' for reading
+[hls @ 0x91bc52080] The m3u8 list sequence may have been wrapped.
+[hls @ 0x91bc52080] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_005.ts' for reading
+[hls @ 0x91bc52080] The m3u8 list sequence may have been wrapped.
+[hls @ 0x91bc52080] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_006.ts' for reading
+[INFO]  ThumbnailStrip: decode complete (6 thumbnails)
+[INFO]  Decoder: VideoToolbox HW decode active (zero-copy IOSurface path)
+[hls @ 0x91bc50500] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v360/ad_000.ts' for reading
+[INFO]  first-frame: pts=10.000 640x360 VideoToolbox, 116 ms after open (t=0.375)
+[INFO]  VideoRenderer: HW zero-copy path ready: '420v' bound as R8 / RG8, 8-bit samples (BT.709 matrix, limited-range)
+[INFO]  --qa-switch: t=0.52 v180
+[INFO]  switch-trace: request video -> stream 2 at pts 10.480 (t=0.895)
+[INFO]  Video stream switched to index 2 (seamless, resume at 10.680) (t=0.895)
+[INFO]  Keyframes: stream 2 — media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/index.m3u8: it has discontinuities, segment starts are not predicted
+[INFO]  switch-trace: repositioned to 10.680 (t=0.896)
+[hls @ 0x91bc50500] Now receiving playlist 2, segment 0
+[hls @ 0x91bc50500] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_000.ts' for reading
+[INFO]  switch-trace: first video packet pts=10.000 key (t=0.896)
+[INFO]  switch-trace: first video keyframe pts=10.000 (t=0.896)
+[hls @ 0x91bc50500] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_001.ts' for reading
+[hls @ 0x91bc50500] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_002.ts' for reading
+[INFO]  loading-indicator: "Switching to 320×180 · 25 fps" (t=1.055)
+[INFO]  Selected HW-capable decoder: h264 (default was h264)
+[INFO]  Decoder opened: h264 (320×180)  [HW: VideoToolbox requested]
+[INFO]  switch-trace: video decoder reopened, new frames from 10.680 (t=1.577)
+[INFO]  Decoder: VideoToolbox HW decode active (zero-copy IOSurface path)
+[hls @ 0x91bc50500] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/ad_000.ts' for reading
+[INFO]  switch-trace: first decoded frame pts=10.680 320x180 (t=1.591)
+[INFO]  switch-trace: first new frame presented pts=10.680 320x180 — video switch took 1159 ms (t=2.055)
+[INFO]  switch-trace: scrubbing and keyframe steps follow stream 2 (320x180, 0.040 s frames) (t=2.055)
+[INFO]  loading-indicator: hidden (t=2.055)
+[hls @ 0x91bc53c00] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_000.ts' for reading
+[INFO]  ScrubDecoder: following stream 2 (320x180) — variant playlist media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/index.m3u8 (5 ms) (t=2.059)
+[hls @ 0x91bc50500] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/ad_001.ts' for reading
+[INFO]  --speed-seq: t=2.52 event 1 0
+[INFO]  playback paused (t=2.935)
+[INFO]  timeline: --ui-timeline pick=5.22@3.5 at 3.51 s after the first frame picked pair:1 at reference frame 130 (VMAF 92.277), outside the document's drops; seek decision: seek to PTS 15.200
+[hls @ 0x91bc50500] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_005.ts' for reading
+[INFO]  timeline: the seek to PTS 15.200 made
+[hls @ 0x91bc50500] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_006.ts' for reading
+[hls @ 0x91bc50500] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/main_007.ts' for reading
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=3.944)
+[INFO]  switch-trace: first frame after seek pts=15.200 — took 14 ms
+[INFO]  --speed-seq: seek landed at pts 15.200 320x180
+[INFO]  --timeline-report: wrote ad-main-origin/run2.txt (t=7.155)
+[INFO]  --speed-seq: t=8.04 event 10 0
+[INFO]  ui-snapshot: wrote ad-main-origin/run2.png (2560×1440) — pts=15.200 320x180 (paused)
+[INFO]  MediaSession: closing media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/master.m3u8
+[INFO]  MediaSession: threads stopped (6 ms)
+[INFO]  ScrubDecoder: stopped (0 requests decoded from a keyframe read, 0 from a seek)

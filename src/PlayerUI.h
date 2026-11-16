@@ -49,6 +49,7 @@ struct PlayerUIState {
     bool toggle_probe     = false;   // X key: pixel probe
     bool toggle_frames    = false;   // B key: frame sizes / GOP
     bool toggle_loudness  = false;   // L key: loudness meters
+    bool toggle_timeline  = false;   // E key: the timeline panel (D-114)
 
     // VMAF analysis triggers (set to true for exactly one frame)
     bool vmaf_pick_ref         = false;  // open file picker to choose reference
@@ -70,7 +71,7 @@ struct PlayerUIInputs {
     bool   show_hud = false, show_inspector = false, show_drift = false, show_tracks = false,
            show_waveform = false, show_network = false, show_help = false, show_vmaf = false,
            show_filmstrip = false, show_frameinfo = false, show_scopes = false, show_probe = false,
-           show_frames = false, show_loudness = false;
+           show_frames = false, show_loudness = false, show_timeline = false;
     bool   has_manifest_variants = false, fullscreen = false;
 
     struct Info {
@@ -91,8 +92,8 @@ struct PlayerUIInputs {
     float  video_aspect = 16.0f / 9.0f;            // display w/h after SAR + rotation
     ImVec4 video_rect   = {};                      // logical px: x, y_top, w, h
 
-    // Logical px of engineer strips stacked above the controls (timeline,
-    // waveform, filmstrip) — the hover card and subtitles sit above them.
+    // Logical px of engineer strips stacked above the controls (the timeline
+    // panel, waveform, filmstrip) — the hover card and subtitles sit above them.
     float  extra_bottom_logical = 0.0f;
     // Logical px docked on the right (network inspector sidebar): the chrome
     // lays itself out in the remaining width.

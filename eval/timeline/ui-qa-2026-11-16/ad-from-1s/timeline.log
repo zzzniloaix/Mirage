@@ -1,0 +1,4 @@
+mirage_vmaf timeline: variant 0 (1 of 3), <out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-from-1s/v360/index.m3u8: 200 frames in 8 segments
+mirage_vmaf timeline: variant 1 (2 of 3), <out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-from-1s/v270/index.m3u8: 200 frames in 8 segments
+mirage_vmaf timeline: variant 2 (3 of 3), <out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-from-1s/v180/index.m3u8: 200 frames in 8 segments
+mirage_vmaf timeline: 70 events on 200 reference frames, offsets in seconds on the reference's playlist time; 1 drop on 2 curves; 0 warnings; document written to ad-from-1s/timeline.json
