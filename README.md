@@ -1,5 +1,7 @@
 # Mirage
 
+This is an illusion don't feed her...
+
 A C++20 video player built for video engineers. Supports local files and adaptive streams (HLS/DASH) with a live debug HUD, scrub-bar thumbnail preview, VMAF analysis, and network request inspection.
 
 **Stack:** FFmpeg 8 · OpenGL 4.1 · GLFW 3 · miniaudio · Dear ImGui · libvmaf 3 · macOS
