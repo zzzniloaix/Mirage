@@ -6,7 +6,7 @@ What is open for the owner on `vmaf/phase-3`, §3 of the VMAF work order (the un
 
 44 questions, Q01 to Q44, in three rounds: 27 in round 1, the answers the work packages on the path to §3.2's two acceptance tests need before they start; 9 in round 2, those of sessions, the session fetch, the decoded SCTE-35 messages and the composite example; 8 in round 3, those of the UI, the conditional and later packages, and the differences to report. A question's round is the earliest round of the packages it blocks, and a round's packages start once all of its questions are answered (`eval/phase3-survey/design.md` §12, §14). Q26, Q39, Q43 and Q44 are answered item by item, an item's options numbered: "Q43 (c) 2". The questions marked D-007 (Q01, Q08, Q09, Q10, Q13, Q36, Q37 and Q41) have an answer that is, or includes, an approval or a ruling under D-007. "Blocks" names the work packages that wait for the answer; the packages are listed at the end. After the questions come the differences from the work order to report, and the agent's proposed process choices, to be recorded from P-082 on.
 
-The questions are the design's (`eval/phase3-survey/design/owner_questions.json`), rendered by `eval/phase3-survey/tools/render_pending.py` with the design's paths written as the repository has them and nothing else changed. They are as the design's revision 3 left them, after the third review's seven minor issues (`eval/phase3-survey/review-3/review.md`; `eval/phase3-survey/design/revision-3.md`). The owner's answers are marked here as each round's come in. Round 1's 27 questions were answered on 2026-11-02, every one as the agent recommends (D-071 to D-081); each is marked below. Round 2's 9 were answered on 2026-11-06, every one as the agent recommends, with Q47 (D-103 to D-107); each is marked below. Round 3 is answered: Q09 and Q13 on 2026-11-11, by the owner's leaving WP16 and WP17 out of Phase 3 (D-112 (b)), and the other six on 2026-11-12, each as the agent recommends, Q36's answer being the owner's approval under D-007 of the panel's plan (D-114); each is marked below. Building round 1's first packages raised three more questions, Q45 to Q47, after round 3 below: the owner answered Q45 and Q46 on 2026-11-04 as the agent recommends (D-086, D-087), and Q47 joins round 2. Building WP08, WP08b and WP09a raised Q48 to Q57, which the owner answered on 2026-11-05 and 2026-11-06, each as the agent recommends (D-092, D-099, D-100), and WP08c two more, Q58 and Q59, which the owner answered on 2026-11-06 as the agent recommends (D-101). Building round 2's first packages, WP00b, WP05 and WP07, raised eight more, Q60 to Q67, answered on 2026-11-10, each as the agent recommends (D-108, D-109): WP09b puts in the answers to Q60 to Q62, and WP05b, a follow-up of WP05's, those to Q63 to Q67, as WP08b and WP08c put in the answers on WP08. Building WP05b and WP09b raised seven more, Q68 to Q74, answered on 2026-11-11, each as the agent recommends (D-110, D-111): a follow-up of WP05b's, WP05c, puts in the answers to Q68 to Q72. The owner also left WP16 and WP17 out of Phase 3, which answers Q09 and Q13 of round 3, and had round 3's other questions asked before round 2 ends (D-112). Building WP09c, WP11b, WP05c and WP09d raised eight more, Q75 to Q82, answered on 2026-11-12, each as the agent recommends (D-113): a follow-up package, WP09e, puts in the answers to Q75, Q76 and Q80. Building round 3's first packages raised three more, Q83 to Q85, on WP15b's fMP4 segments and two readings that WP09e took of D-113 (a) and (b), answered on 2026-11-13, each as the agent recommends (D-120): a follow-up of WP09e's, WP09f, puts in the answer to Q84. Building WP12 raised five more, Q86 to Q90, on the panel's loading, its clicks, its seeks and its axis, answered on 2026-11-16, each as the agent recommends (D-121): a follow-up of WP12's, WP12b, puts in the answers to Q86 and Q89. A sixth reading of WP12's, Q91, on a session's span that isn't scored, is open.
+The questions are the design's (`eval/phase3-survey/design/owner_questions.json`), rendered by `eval/phase3-survey/tools/render_pending.py` with the design's paths written as the repository has them and nothing else changed. They are as the design's revision 3 left them, after the third review's seven minor issues (`eval/phase3-survey/review-3/review.md`; `eval/phase3-survey/design/revision-3.md`). The owner's answers are marked here as each round's come in. Round 1's 27 questions were answered on 2026-11-02, every one as the agent recommends (D-071 to D-081); each is marked below. Round 2's 9 were answered on 2026-11-06, every one as the agent recommends, with Q47 (D-103 to D-107); each is marked below. Round 3 is answered: Q09 and Q13 on 2026-11-11, by the owner's leaving WP16 and WP17 out of Phase 3 (D-112 (b)), and the other six on 2026-11-12, each as the agent recommends, Q36's answer being the owner's approval under D-007 of the panel's plan (D-114); each is marked below. Building round 1's first packages raised three more questions, Q45 to Q47, after round 3 below: the owner answered Q45 and Q46 on 2026-11-04 as the agent recommends (D-086, D-087), and Q47 joins round 2. Building WP08, WP08b and WP09a raised Q48 to Q57, which the owner answered on 2026-11-05 and 2026-11-06, each as the agent recommends (D-092, D-099, D-100), and WP08c two more, Q58 and Q59, which the owner answered on 2026-11-06 as the agent recommends (D-101). Building round 2's first packages, WP00b, WP05 and WP07, raised eight more, Q60 to Q67, answered on 2026-11-10, each as the agent recommends (D-108, D-109): WP09b puts in the answers to Q60 to Q62, and WP05b, a follow-up of WP05's, those to Q63 to Q67, as WP08b and WP08c put in the answers on WP08. Building WP05b and WP09b raised seven more, Q68 to Q74, answered on 2026-11-11, each as the agent recommends (D-110, D-111): a follow-up of WP05b's, WP05c, puts in the answers to Q68 to Q72. The owner also left WP16 and WP17 out of Phase 3, which answers Q09 and Q13 of round 3, and had round 3's other questions asked before round 2 ends (D-112). Building WP09c, WP11b, WP05c and WP09d raised eight more, Q75 to Q82, answered on 2026-11-12, each as the agent recommends (D-113): a follow-up package, WP09e, puts in the answers to Q75, Q76 and Q80. Building round 3's first packages raised three more, Q83 to Q85, on WP15b's fMP4 segments and two readings that WP09e took of D-113 (a) and (b), answered on 2026-11-13, each as the agent recommends (D-120): a follow-up of WP09e's, WP09f, puts in the answer to Q84. Building WP12 raised five more, Q86 to Q90, on the panel's loading, its clicks, its seeks and its axis, answered on 2026-11-16, each as the agent recommends (D-121): a follow-up of WP12's, WP12b, puts in the answers to Q86 and Q89. A sixth reading of WP12's, Q91, on a session's span that isn't scored, is open. Building WP13, the panel in the player, and WP12b raised six more, Q92 to Q97, on the panel's key, its playhead, its remembered document, a switch inside an ad, WP13's other choices, and three readings of D-121 with `attribute`'s report path, not answered yet.
 
 ### Round 1: the path to §3.2's two acceptance tests (27 questions)
 
@@ -1871,6 +1871,99 @@ Are they kept?
 **Agent's recommendation.** (b): the panel then shows no score over a span that wasn't scored, as D-105 (b) has the document claim nothing that wasn't measured.
 
 **Blocks.** Under (b), a change to `src/TimelineView.{h,cpp}` and to the loader's snapshot (`src/TimelineLoad.cpp`), with their tests, and to the panel's drawing where it draws a curve's envelope (WP13).
+
+#### Q92. The panel's key, L being the loudness meters'
+
+*Round 3.* Raised by WP13 and its review.
+
+**Question.** D-114 (c) has L toggle the timeline panel, from Q38's list of the letters bound to nothing (`eval/phase3-survey/ui.md` §1.5, at `75cf6e0`). The list predates `main`'s engineer tools, which bound B, L, P, S and X, L to the loudness meters, which the owner kept as built (D-083; `src/main.cpp:303`; `tests/engineer_tools_snapshots.sh` opens them with `--ui-overlays L`). WP13 binds the panel to E, Q38's option (b), so that nothing the player does today changes, and its comments say that this is pending the owner (`src/main.cpp`, `src/PlayerUI.cpp`). Which key toggles the panel?
+
+- **(a) E**, as built.
+- **(b) L**, the loudness meters moved to a key the owner names: a change of a key the player has today.
+- **(c) Shift+L**: today Shift+L toggles the loudness meters too, the key handler not reading Shift for L, so this also changes a key the player has.
+- **(d) No key**: the View menu, the overlays popover and `--ui-overlays` only (Q38 (c)).
+
+**Agent's recommendation.** (a): E reads as events, no key changes, and J, R, U, Y and Z of Q38's list are still free besides it.
+
+**Blocks.** Under (b), (c) or (d), a follow-up of WP13's, with the help card, the View menu, the overlays popover, `--ui-overlays`, `--speed-seq panel:` and, under (b), the loudness cases of `tests/engineer_tools_snapshots.sh`.
+
+#### Q93. The playhead on a panel opened inside a stretch whose timestamps repeat an earlier one's
+
+*Round 3.* Raised by WP13's review.
+
+**Question.** The panel follows the playhead frame by frame, through the discontinuity sequences as the PTS jump back, and after a seek or a switch takes the sequence the seek lands in (`TimelinePanel::follow_playhead()`, `src/TimelinePanel.cpp`). Closed, it isn't fed. When it first sees the player's frames, on opening, on a new document or on a new match, it doesn't know the sequence and takes the first with a frame at the PTS on screen. Inside an ad whose timestamps restart at the main content's origin, as D-069's does, that is the main content's: the playhead marks the main content's frame of that PTS, and after the ad it stays on that sequence's last frame until a seek, a switch or a jump back of the PTS sets it again (the review's probes, outside the repository). Which?
+
+- **(a) As built.**
+- **(b) The panel fed while closed**: `src/main.cpp` hands the playhead's tracker each frame's serial and PTS and the seek serial while a document is loaded, a few comparisons a frame on the render thread with the panel closed; a panel opened for the first time inside such an ad still doesn't know the sequence.
+- **(c) The playhead marked unknown**: where the PTS on screen lies in more than one sequence and nothing has told the panel which since it first saw the frames, it draws no playhead and says why, until a seek, a switch or a jump of the PTS tells it, or the PTS on screen lies in one sequence only.
+
+**Agent's recommendation.** (c): the panel then never marks a frame other than the one on screen, and the render loop does nothing for it while it is closed.
+
+**Blocks.** Under (b) or (c), a follow-up of WP13's, with a run of its scripted QA that opens the panel inside the ad.
+
+#### Q94. Whether the remembered document opens the panel
+
+*Round 3.* Raised by WP13's review.
+
+**Question.** The panel's one setting is its document (D-114 (d)): `--timeline <document>`, else prefs.txt's `timeline=` line, which the panel's Open... writes. WP13 opens the panel when `--timeline` gives the document, as `--ui-net` opens the network sidebar, and not when the document comes from prefs.txt, so that a player started with a remembered document opens as it did before; E, the View menu, the overlays popover, `--ui-overlays` and `--ui-timeline` open it in either case (`src/main.cpp`). Which?
+
+- **(a) As built.**
+- **(b) `--timeline` sets the document alone**, the panel opened only as it is without it.
+
+**Agent's recommendation.** (a): a document given on the command line asks to be shown, and a remembered one doesn't open the panel at every start.
+
+**Blocks.** Under (b), a change to `src/main.cpp`.
+
+#### Q95. A variant switch inside an ad whose timestamps restart at the main content's origin
+
+*Round 3.* Raised by WP13's review.
+
+**Question.** The player repositions a variant switch with a seek by PTS on the position playing (`av_seek_frame`, `src/Demuxer.cpp:555-566`), and the hls demuxer finds a PTS target by playlist time counted from the first DTS, as `tests/test_hls_seek_behaviour.cpp` pins for seeks. Inside an ad whose timestamps restart at the main content's origin, as D-069's does, the target lands in the main content, which the player then plays again from there. WP13's review found it, and WP13's record shows such a reposition, the panel's playhead following it to the main content's frame on screen (`eval/timeline/ui-qa-2026-11-16/`, `ad-main-origin/run3`). The switch's reposition predates Phase 3 and isn't the panel's; positioning the hls demuxer another way would need a written plan under D-007, as Q37's other options would. Which?
+
+- **(a) Reported** in Phase 3's PR, beside the differences' item 14 and Q40's defects, the Demuxer unchanged.
+- **(b) A written plan** for a switch positioned by the playlist instead, for the owner's approval under D-007 before any code.
+
+**Agent's recommendation.** (a): the panel is right about the frame on screen after such a switch, the defect is the player's own, and a change of how the hls demuxer is positioned, like Q37's other options, can follow with a plan of its own.
+
+**Blocks.** WP15c's PR description; under (b), a plan, then a package of its own.
+
+#### Q96. WP13's other choices
+
+*Round 3.* Raised by WP13.
+
+**Question.** Choices that change what the panel shows or does, which neither the design nor the decisions settle:
+
+- (a) a click picks within 4 px of a curve and a marker is hovered within 5 px, as the Alignment tab's markers are, and markers closer than 6 px are drawn as one, with their count; or half a framebuffer column, so that a click picks only what is drawn under it; or other values;
+- (b) prefs.txt's `timeline=` line is written only by the panel's Open..., `--timeline` replacing it for the run without writing it, as D-030 has the command line replace the config file, and a snapshot run neither reads nor writes it; or `--timeline` writes it too; or it is written by hand only;
+- (c) the lanes show the reference's events, those of no variant, each shown curve's variant's, the variant on screen's and a shown session's own, so that hiding a curve hides its rung's copies of the tags; or every variant's always; or only the variant on screen's and the reference's;
+- (d) the score axis is VMAF's 0 to 100, fixed; or fitted to the curves in view;
+- (e) `--timeline-report <txt> <secs>` counts its seconds from the launch, as `--align-report` does, while `--ui-timeline`'s picks and `--speed-seq`'s snaps count from the first frame; or from the first frame too;
+- (f) a click picks once ImGui's double-click time (0.30 s by default) has passed without a second click, so that a double-click fits the view without seeking; or on its release, as the Alignment tab selects, a double-click then seeking first;
+- (g) the panel's height can be changed for the run and isn't kept, the document being its one setting (D-114 (d)); or it is kept in prefs.txt, as the network sidebar's width is (`eval/phase3-survey/ui.md` §2.5).
+
+Are they kept?
+
+- **1. All as built.**
+- **2. Each asked on its own.**
+
+**Agent's recommendation.** 1.
+
+**Blocks.** Under 2, a follow-up of WP13's for the items changed.
+
+#### Q97. Three readings of D-121 (a) and (d), and `attribute`'s report path
+
+*Round 3.* Raised by WP12b and its review.
+
+**Question.** WP12b put in D-121 (a) and (d) (`src/TimelineLoad.cpp`, `src/TimelineMatch.cpp`); three readings of them change what the panel shows, and the fourth item is `mirage_vmaf attribute`'s rule, which D-121 left as it was. Each item's options are lettered:
+
+1. **Which directory holds the report** (D-121 (a)): (a) one with anything at the path (`std::filesystem::exists()`), as built, so that a file there that can't be read, or a directory of the report's name, is refused there, as `mirage_vmaf attribute` refuses it; (b) one with a regular file at the path; (c) the first of the two from which the file can be read.
+2. **A rung's playlist opened by a path relative to its own directory** (D-121 (d)), `index.m3u8` or `./index.m3u8` given to a player started in the rung's directory: (a) as built, the open path compared as it was given, so that it shares only its file name with every rung and the first variant is taken, on D-069's ladders the reference, with WP12's warning; (b) the open path made absolute against the current directory before its components are compared, so that it names its rung.
+3. **The warning where the path picks the variant** (D-121 (d)): (a) as built, a warning that names the variant and the path it ends with, as a warning is given wherever several variants have the playlist's bytes, so that the panel's match chip shows a warning even where the path named the rung; (b) no warning there.
+4. **`mirage_vmaf attribute`'s relative report path**, read from the current directory only (D-081 (b)), so that `attribute` run from where a player was started can refuse a document the panel loads: (a) as it is; (b) read as D-121 (a) has the panel read it, from the current directory where the file is there, else from the document's directory (`src/TimelineCli.cpp`).
+
+**Agent's recommendation.** 1 (a), 2 (b), 3 (a), 4 (b): 1 keeps attribute's rule wherever something is in the current directory, as D-121 (a)'s rationale keeps it; 2 takes the rung the opened file's path names; 3 says so wherever the bytes can't tell the rungs apart; and 4 has one document find its report the same way in both programs, a different report in the current directory being refused by its hashes in either (D-072).
+
+**Blocks.** Under 1 (b) or (c), 2 (b) or 3 (b), a follow-up of WP12b's in `src/TimelineLoad.cpp` or `src/TimelineMatch.cpp`, with their tests; under 4 (b), a change to `src/TimelineCli.cpp`, its help and its tests.
 
 ## Differences from the work order, to report
 

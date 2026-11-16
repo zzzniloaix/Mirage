@@ -9,6 +9,8 @@ Phase 3's three end-to-end results, reproduced from one command (`eval/phase3-su
 | `slow_server.py` | the composite example's local HTTP server, which holds one segment's response head for a set time |
 | `tests/test_check.py` | unit tests of `check.py` on fake records, of its helpers, of `slow_server.py`, and of `run_all.sh`'s refusals |
 
+Records: `run-f7d5ed8/`, `run_all.sh`'s run at `f7d5ed8` (WP14); and `ui-qa-2026-11-16/`, a record of another kind, the timeline panel's scripted QA run (`eval/phase3-survey/ui.md` §5.3) and the player's GUI regressions outside ctest, made for WP13 by the scripts it holds, with a `README.md` of its own. That one was made in a worktree of `83beea8` with WP13, before WP12b changed the loader's report path and the variant match (D-121 (a), (d)), and before the owner kept the reading its README calls Q88's question (D-121 (c)).
+
 ## Running it
 
 ```
