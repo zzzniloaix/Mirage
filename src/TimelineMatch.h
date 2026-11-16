@@ -2,7 +2,7 @@
 
 // The timeline panel's document matched to the open master, its playhead, its seek decision and
 // the interval a click queries, ImGui-free (eval/phase3-survey/design.md §10; DECISIONS.md
-// D-114 (b), (d)): written by WP12.
+// D-114 (b), (d)): written by WP12, the path among a playlist's equal bytes by WP12b (D-121 (d)).
 //
 // What the panel (src/TimelinePanel.h, WP13) needs between a loaded document
 // (src/TimelineLoad.h) and the stream the player has open, as pure functions
@@ -28,13 +28,31 @@
 //   parser, VMAFLadder's in the report and ManifestParser's in the player:
 //   where the two resolve one URI apart, the entry matches nothing, and a
 //   warning names it. Otherwise the stream may be one variant's own input
-//   opened alone, as ui.md §2.3 matches a pair's report to a local file: the
-//   variant whose URL or playlist location is the open path, else whose media
-//   playlist has the bytes the player read, by the SHA-256 the document gives
-//   it, the first of several that share them; matching a variant opened
-//   alone at all is pending the owner, whose alternative is no match.
-//   Otherwise the document is another stream's, which the panel shows only on
-//   the user's word.
+//   opened alone, as ui.md §2.3 matches a pair's report to a local file
+//   (D-121 (d), Q89 (b)): the variant whose URL or playlist location is the
+//   open path, else whose media playlist has the bytes the player read, by
+//   the SHA-256 the document gives it. Where several have those bytes, as
+//   D-069's rungs share one playlist text, the one is taken whose URL or
+//   playlist location ends with the longest run of path components that the
+//   open path or its final URL ends with, the first of the longest, so that
+//   a rung's v270/index.m3u8 opened from another address matches the v270
+//   rung; and where none shares more than its file name, the first of them
+//   all, with WP12's warning. A URL's path components are its path's alone,
+//   without its scheme, authority, query or fragment (RFC 3986 §3), a local
+//   path's lexically normalized, and nothing is looked up on disk. The open
+//   path is the text the player was given, and a local file's final URL the
+//   same text (src/ManifestParser.cpp), so that a rung's playlist opened by
+//   a path relative to its own directory, index.m3u8 or ./index.m3u8,
+//   shares only its file name, and the first of them all is taken: a
+//   reading pending the owner, whose alternative is the opened file's path
+//   from the current directory. Where the path picks the variant, a warning
+//   says which and by what path, as one is given wherever several variants
+//   have those bytes, so that the match carries a warning for the panel's
+//   chip even where the path named the rung, a local file that the document
+//   names by a relative path and the player by an absolute one, which the
+//   address match doesn't take, among them: a reading pending the owner,
+//   whose alternative is no warning there. Otherwise the document is
+//   another stream's, which the panel shows only on the user's word.
 // - A variant's clock (VariantClock): the frames of the variant on screen with
 //   their PTS and reference frames, from the report (a pair's distorted
 //   frames; the reference's own through the axis's media keys), and its
@@ -68,8 +86,9 @@
 //   segment, at or before the frame's, whose start a seek reaches, from which
 //   playing reaches the frame: for an ad whose timestamps restart, the
 //   segment before its discontinuity, as D-114 (b) has it; for a frame the
-//   lead carries into the next segment, its own segment's start, pending the
-//   owner (decide_seek()).
+//   lead carries into the next segment, its own segment's start, D-114 (b)
+//   extended beyond ads as built, which the owner kept (D-121 (c), Q88 (a);
+//   decide_seek()).
 //   The simulation takes each segment's first frame for its only keyframe.
 //   Where a segment holds more, as bipbop's do (src/MediaSession.cpp), the
 //   demuxer can start at a later keyframe of a segment whose first one it
@@ -315,9 +334,10 @@ struct SeekDecision {
 // segment, that a seek reaches so: the segment before the discontinuity for
 // an ad whose timestamps restart (D-114 (b)), and the frame's own segment's
 // start for a frame the lead carries into the next segment, a segment's last
-// frame, or its last two on libx264's segments, an extension of D-114 (b)
-// beyond ads pending the owner. A first DTS further ahead than that, which
-// the test's encoders don't write, can make a Seek miss.
+// frame, or its last two on libx264's segments, D-114 (b) extended beyond
+// ads as built, which the owner kept (D-121 (c), Q88 (a)). A first DTS
+// further ahead than that, which the test's encoders don't write, can make a
+// Seek miss.
 SeekDecision decide_seek(const VariantClock& clock, const SeekClock& seek, std::int64_t ref_index);
 
 // ── A click (design §10; D-114 (d)) ──────────────────────────────────────────
@@ -341,10 +361,10 @@ struct ClickAnswer {
 // Inside a detected drop of `curve`, the document's attribution of it, as
 // the document gives it; elsewhere attribute() for click_interval(), with
 // the margins the document's attributions were made with (DocInfo::overlap),
-// so that it agrees with the document's drops. Querying with none, as
-// mirage_vmaf attribute --interval does without --margin-before or
-// --margin-after (Q29's default), is the alternative, pending the owner; the
-// two differ only for a document built with margins.
+// so that it agrees with the document's drops, as built, which the owner
+// kept (D-121 (b), Q87 (a)). mirage_vmaf attribute --interval queries with
+// none without --margin-before or --margin-after (Q29's default): the two
+// differ only for a document built with margins.
 ClickAnswer click_answer(const Snapshot& snapshot, CurveRef curve, std::int64_t ref_index);
 
 } // namespace timeline

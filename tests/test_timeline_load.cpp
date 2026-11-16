@@ -1,4 +1,5 @@
-// Unit tests of src/TimelineLoad.h (eval/phase3-survey/design.md §9.1): written by WP12.
+// Unit tests of src/TimelineLoad.h (eval/phase3-survey/design.md §9.1): written by WP12, a
+// relative report path's by WP12b.
 //
 // The panel's loader on documents and reports the test writes: the ad ladder
 // of tests/test_timeline_build.cpp (testgen's shape,
@@ -14,6 +15,14 @@
 //   digest and said to be a redacted copy (P-Z); a changed report refused,
 //   both hashes named; an unknown schema_version refused (Q05 (a)); a
 //   document or report that can't be read, isn't one, or doesn't fit;
+// - a relative report path (D-121 (a), Q86 (c)), the current directory set
+//   by the test: from the document's directory, a directory of its own,
+//   where the current directory, another one, doesn't hold the file; from
+//   the current directory where both hold one, its hashes checked there,
+//   and where something there can't be read; refused, both paths named,
+//   where neither holds it; tried once where the document's directory is
+//   the current one, lexically normalized; an absolute path, an empty one
+//   and the caller's, read as they are;
 // - a load stopped through its stop token; the snapshot handed over once; a
 //   second load stopping the first, whose result is never handed over; a
 //   cancel; a result not taken dropped by the next load.
@@ -31,9 +40,11 @@
 #include "TimelineView.h"
 #include "VMAFReport.h"
 
+#include <cerrno>
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
+#include <filesystem>
 #include <format>
 #include <fstream>
 #include <mutex>
@@ -41,6 +52,7 @@
 #include <stop_token>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <thread>
 #include <utility>
 #include <vector>
@@ -217,16 +229,18 @@ struct Written {
     std::size_t drops = 0;
 };
 
-// The document of the report `report_text`, written at `name`.json and naming
-// the report at `name`-report.json, by the hashes of `named_text` (the
-// report's own by default); with a session (design §9.3's plan) when asked.
-Written write_pair(const std::string& name, const std::string& report_text, bool session = false,
-                   const std::string& named_text = {})
+// The document of the report `report_text`, written at `doc_path` with the
+// report at `report_path`, naming it by the path `named_path`, as
+// mirage_vmaf timeline names its --report, and by the hashes of
+// `named_text` (the report's own by default); with a session (design §9.3's
+// plan) when asked.
+Written write_doc(const std::string& report_path, const std::string& doc_path, const std::string& named_path,
+                  const std::string& report_text, bool session = false, const std::string& named_text = {})
 {
     Written w;
     w.report_text = report_text;
-    w.report_path = testtemp::path(name + "-report.json").string();
-    w.doc_path    = testtemp::path(name + ".json").string();
+    w.report_path = report_path;
+    w.doc_path    = doc_path;
     write(w.report_path, report_text);
 
     std::string err;
@@ -264,7 +278,7 @@ Written write_pair(const std::string& name, const std::string& report_text, bool
 
     info.ffmpeg_libraries     = { { "libavutil", "60.26.101" } };
     info.report               = timeline::report_info(scores);
-    info.report.path          = w.report_path;
+    info.report.path          = named_path;
     info.report.sha256        = filehash::sha256_hex(named);
     info.report.scores_sha256 = filehash::sha256_hex(timeline::scores_text(
         timeline::read_ladder_report(named, err)));
@@ -280,6 +294,44 @@ Written write_pair(const std::string& name, const std::string& report_text, bool
     }
     write(w.doc_path, w.doc_text);
     return w;
+}
+
+// The document of the report `report_text`, written at `name`.json and naming
+// the report at `name`-report.json by that path, by the hashes of
+// `named_text` (the report's own by default); with a session when asked.
+Written write_pair(const std::string& name, const std::string& report_text, bool session = false,
+                   const std::string& named_text = {})
+{
+    const std::string report_path = testtemp::path(name + "-report.json").string();
+    return write_doc(report_path, testtemp::path(name + ".json").string(), report_path, report_text, session,
+                     named_text);
+}
+
+// The current directory set to `dir` while the guard lives, as a player
+// started there has it, and set back when it goes, a failed REQUIRE's
+// exception included.
+class InDirectory {
+public:
+    explicit InDirectory(const std::filesystem::path& dir) { std::filesystem::current_path(dir); }
+    ~InDirectory()
+    {
+        std::error_code ec;
+        std::filesystem::current_path(before_, ec);
+    }
+    InDirectory(const InDirectory&)            = delete;
+    InDirectory& operator=(const InDirectory&) = delete;
+
+private:
+    std::filesystem::path before_ = std::filesystem::current_path();
+};
+
+// A directory of its own under the test's directory, made empty.
+std::filesystem::path fresh_dir(const std::string& name)
+{
+    const std::filesystem::path d = testtemp::path(name);
+    std::filesystem::remove_all(d);
+    std::filesystem::create_directories(d);
+    return d;
 }
 
 // The eval scripts' redaction (eval/ladder/pool_check.py,
@@ -489,6 +541,160 @@ TEST_CASE("timeline::load_snapshot: an unknown schema_version refused, and what 
     r = timeline::load_snapshot({ .document = f.doc_path });
     CHECK_FALSE(r.snapshot);
     CHECK(contains(r.error, "don't fit"));
+}
+
+// ── A relative report path (D-121 (a), Q86 (c)) ──────────────────────────────
+
+TEST_CASE("timeline::load_snapshot: a relative report path, from the document's directory where the "
+          "current directory doesn't hold the file",
+          "[timeline][timeline_load]")
+{
+    // The document and its report in a directory of their own, the document
+    // naming the report by its file name, as mirage_vmaf timeline names a
+    // --report given so; the player started in another, empty directory.
+    const std::filesystem::path doc_dir   = fresh_dir("q86-doc");
+    const std::filesystem::path elsewhere = fresh_dir("q86-elsewhere");
+    const std::string report = vmafreport::ladder_to_json(ad_ladder(), kRun);
+    const Written w = write_doc((doc_dir / "report.json").string(), (doc_dir / "timeline.json").string(),
+                                "report.json", report);
+    const InDirectory cwd(elsewhere);
+
+    LoadResult r = timeline::load_snapshot({ .document = w.doc_path });
+    INFO(r.error);
+    REQUIRE(r.snapshot);
+    CHECK(r.snapshot->info.report.path == "report.json");   // as the document names it
+    CHECK(r.snapshot->report_path == (doc_dir / "report.json").string());
+    CHECK(r.snapshot->report_check == "its SHA-256 is the one the document names");
+    CHECK_FALSE(r.snapshot->report_redacted);
+    CHECK(r.snapshot->curves.size() == 2);
+
+    // The document by a path relative to the current directory: its
+    // directory as that path names it.
+    r = timeline::load_snapshot({ .document = "../q86-doc/timeline.json" });
+    INFO(r.error);
+    REQUIRE(r.snapshot);
+    CHECK(r.snapshot->report_path == "../q86-doc/report.json");
+
+    // A path of more than a file name, from the document's directory too.
+    std::filesystem::create_directories(doc_dir / "ladder");
+    const Written nested = write_doc((doc_dir / "ladder" / "report.json").string(),
+                                     (doc_dir / "nested.json").string(), "ladder/report.json", report);
+    r = timeline::load_snapshot({ .document = nested.doc_path });
+    INFO(r.error);
+    REQUIRE(r.snapshot);
+    CHECK(r.snapshot->report_path == (doc_dir / "ladder/report.json").string());
+}
+
+TEST_CASE("timeline::load_snapshot: a relative report path that both directories hold, from the current "
+          "directory, its hashes checked; neither, both paths named; the document's directory the "
+          "current one",
+          "[timeline][timeline_load]")
+{
+    const std::filesystem::path doc_dir = fresh_dir("q86-both-doc");
+    const std::filesystem::path here    = fresh_dir("q86-both-here");
+    const std::string report = vmafreport::ladder_to_json(ad_ladder(), kRun);
+    const Written w = write_doc((doc_dir / "report.json").string(), (doc_dir / "timeline.json").string(),
+                                "report.json", report);
+
+    {
+        // The same report in the current directory: read there.
+        write((here / "report.json").string(), report);
+        const InDirectory cwd(here);
+        LoadResult r = timeline::load_snapshot({ .document = w.doc_path });
+        INFO(r.error);
+        REQUIRE(r.snapshot);
+        CHECK(r.snapshot->report_path == "report.json");
+
+        // Another report there: read there and refused by its hashes, the
+        // document's directory's never read.
+        const std::string changed = vmafreport::ladder_to_json(ad_ladder(true), kRun);
+        write((here / "report.json").string(), changed);
+        r = timeline::load_snapshot({ .document = w.doc_path });
+        CHECK_FALSE(r.snapshot);
+        CHECK(r.error.starts_with("report.json isn't the ladder report the document was built from"));
+        CHECK(contains(r.error, filehash::sha256_hex(changed)));
+
+        // Something at the path that can't be read is the current
+        // directory's, refused there as mirage_vmaf attribute refuses it (a
+        // reading pending the owner: src/TimelineLoad.h, step 2).
+        std::filesystem::remove(here / "report.json");
+        std::filesystem::create_directories(here / "report.json");
+        r = timeline::load_snapshot({ .document = w.doc_path });
+        CHECK_FALSE(r.snapshot);
+        CHECK(r.error == "cannot read the ladder report report.json: it is a directory");
+    }
+
+    // Neither holds it: the refusal names both paths, each with why.
+    const std::filesystem::path empty = fresh_dir("q86-both-empty");
+    const Written missing = write_doc((doc_dir / "other-report.json").string(),
+                                      (doc_dir / "missing-doc.json").string(), "missing.json", report);
+    const std::string no_file = std::generic_category().message(ENOENT);
+    {
+        const InDirectory cwd(empty);
+        const LoadResult r = timeline::load_snapshot({ .document = missing.doc_path });
+        CHECK_FALSE(r.snapshot);
+        CHECK_FALSE(r.stopped);
+        CHECK(r.error == std::format("cannot read the ladder report missing.json, from the current directory or "
+                                     "from the document's: missing.json: {}; {}: {}",
+                                     no_file, (doc_dir / "missing.json").string(), no_file));
+    }
+
+    // The document named by its file name alone, in the current directory:
+    // its directory is the current one, tried once, as before.
+    const InDirectory cwd(doc_dir);
+    LoadResult r = timeline::load_snapshot({ .document = "timeline.json" });
+    INFO(r.error);
+    REQUIRE(r.snapshot);
+    CHECK(r.snapshot->report_path == "report.json");
+    r = timeline::load_snapshot({ .document = "missing-doc.json" });
+    CHECK_FALSE(r.snapshot);
+    CHECK(r.error == std::format("cannot read the ladder report missing.json: {}", no_file));
+    r = timeline::load_snapshot({ .document = "./missing-doc.json" });
+    CHECK(r.error == std::format("cannot read the ladder report missing.json: {}", no_file));
+    // A directory that is the current one once lexically normalized.
+    std::filesystem::create_directories(doc_dir / "a");
+    r = timeline::load_snapshot({ .document = "a/../missing-doc.json" });
+    CHECK_FALSE(r.snapshot);
+    CHECK(r.error == std::format("cannot read the ladder report missing.json: {}", no_file));
+}
+
+TEST_CASE("timeline::load_snapshot: an absolute report path, an empty one, and the path the caller gives, "
+          "read as they are",
+          "[timeline][timeline_load]")
+{
+    const std::filesystem::path doc_dir   = fresh_dir("q86-as-is-doc");
+    const std::filesystem::path elsewhere = fresh_dir("q86-as-is-elsewhere");
+    const std::string report = vmafreport::ladder_to_json(ad_ladder(), kRun);
+    const std::string no_file = std::generic_category().message(ENOENT);
+    const InDirectory cwd(elsewhere);
+
+    // An absolute path with no file, though the document's directory holds
+    // one of its name: refused, that path alone named.
+    const std::string gone = (testtemp::path("q86-as-is-gone") / "report.json").string();
+    const Written by_absolute = write_doc((doc_dir / "report.json").string(), (doc_dir / "absolute.json").string(),
+                                          gone, report);
+    LoadResult r = timeline::load_snapshot({ .document = by_absolute.doc_path });
+    CHECK_FALSE(r.snapshot);
+    CHECK(r.error == std::format("cannot read the ladder report {}: {}", gone, no_file));
+
+    // An empty path, which names no file: read as it is, not joined to the
+    // document's directory, which would name the directory itself.
+    const Written by_empty = write_doc((doc_dir / "report.json").string(), (doc_dir / "empty.json").string(), "",
+                                       report);
+    r = timeline::load_snapshot({ .document = by_empty.doc_path });
+    CHECK_FALSE(r.snapshot);
+    CHECK(r.error == std::format("cannot read the ladder report : {}", no_file));
+
+    // The caller's path, relative, which the current directory doesn't hold:
+    // refused, the document's directory not looked in.
+    const Written by_relative = write_doc((doc_dir / "report.json").string(), (doc_dir / "relative.json").string(),
+                                          "report.json", report);
+    r = timeline::load_snapshot({ .document = by_relative.doc_path });
+    INFO(r.error);
+    REQUIRE(r.snapshot);   // the document's own path, from its directory
+    r = timeline::load_snapshot({ .document = by_relative.doc_path, .report = "report.json" });
+    CHECK_FALSE(r.snapshot);
+    CHECK(r.error == std::format("cannot read the ladder report report.json: {}", no_file));
 }
 
 TEST_CASE("timeline::load_snapshot: a load stopped through its stop token gives no snapshot",

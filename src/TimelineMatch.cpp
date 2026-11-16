@@ -1,5 +1,5 @@
 // The timeline panel's matching, playhead and seek decision (eval/phase3-survey/design.md §10):
-// written by WP12.
+// written by WP12, the path among a playlist's equal bytes by WP12b (D-121 (d)).
 
 #include "TimelineMatch.h"
 
@@ -36,6 +36,50 @@ bool same_address(const std::string& a, const std::string& b)
     if (a == b) return true;
     if (is_url(a) || is_url(b)) return false;
     return std::filesystem::path(a).lexically_normal() == std::filesystem::path(b).lexically_normal();
+}
+
+// The path components of an address, to compare where two addresses end
+// (D-121 (d)): of a URL its path alone, after its scheme and authority and
+// before its query or fragment (RFC 3986 §3), of a local path all of it;
+// lexically normalized, as same_address() compares local paths, empty
+// components left out.
+std::vector<std::string> path_components(std::string_view address)
+{
+    std::string_view p = address;
+    if (const std::size_t scheme = p.find("://"); scheme != std::string_view::npos) {
+        const std::size_t start = p.find_first_of("/?#", scheme + 3);
+        p = start == std::string_view::npos || p[start] != '/' ? std::string_view() : p.substr(start);
+        p = p.substr(0, p.find_first_of("?#"));
+    }
+    const std::string normal = std::filesystem::path(p).lexically_normal().string();
+    std::vector<std::string> out;
+    for (std::size_t at = 0; at < normal.size();) {
+        const std::size_t end = std::min(normal.find('/', at), normal.size());
+        if (end > at) out.push_back(normal.substr(at, end - at));
+        at = end + 1;
+    }
+    return out;
+}
+
+// How many trailing path components two addresses share: 1 where only their
+// file names are the same; 0 for an empty address.
+std::size_t shared_tail(const std::string& a, const std::string& b)
+{
+    if (a.empty() || b.empty()) return 0;
+    const std::vector<std::string> x = path_components(a), y = path_components(b);
+    std::size_t n = 0;
+    while (n < x.size() && n < y.size() && x[x.size() - 1 - n] == y[y.size() - 1 - n]) ++n;
+    return n;
+}
+
+// The last `n` path components of `address`, joined by '/'.
+std::string tail_text(const std::string& address, std::size_t n)
+{
+    const std::vector<std::string> c = path_components(address);
+    std::string out;
+    for (std::size_t k = c.size() - std::min(n, c.size()); k < c.size(); ++k)
+        out += (out.empty() ? "" : "/") + c[k];
+    return out;
 }
 
 // What the player's own parser makes of the EXT-X-STREAM-INF URI `uri` in a
@@ -397,12 +441,9 @@ StreamMatch match_stream(const Timeline& timeline, const LadderScores& scores, c
         return m;
     }
 
-    // One variant's own input opened alone: the variant by its address, the
-    // URL the report gives it or where the build read its playlist; else its
-    // media playlist by its bytes, the first of the variants that share them.
-    // Matching such an input at all is pending the owner, whose alternative
-    // is no match, the document then counting as another stream's and shown
-    // only on the user's word.
+    // One variant's own input opened alone (D-121 (d), Q89 (b)): the variant
+    // by its address, the URL the report gives it or where the build read its
+    // playlist; else its media playlist by its bytes.
     for (std::size_t v = 0; v < timeline.variants.size(); ++v) {
         const Variant& var = timeline.variants[v];
         if (!same_address(var.url, open.path) && !same_address(var.url, open.final_url) &&
@@ -418,20 +459,59 @@ StreamMatch match_stream(const Timeline& timeline, const LadderScores& scores, c
         return m;
     }
     // By its bytes. The rungs of one ladder can share their playlist's text,
-    // as D-069's do (eval/phase3-survey/testgen.md §2.3): a rung's playlist
-    // opened from another address then matches the first of them, on
-    // D-069's ladders the reference, with a warning, and the playhead and
-    // the seek take that variant's clock.
+    // as D-069's do (eval/phase3-survey/testgen.md §2.3), so among the
+    // variants whose playlists have those bytes the one is taken whose URL,
+    // or playlist location, ends with the longest run of path components
+    // that the open path or its final URL ends with, the first of the
+    // longest (D-121 (d), Q89 (b)): a rung's v270/index.m3u8 opened from
+    // another address matches the v270 rung. Where none shares more than its
+    // file name, the first of them all is taken, as WP12 built it, on
+    // D-069's ladders the reference. The open path is compared as the player
+    // was given it, and a local file's final URL is the same text
+    // (src/ManifestParser.cpp), so that a rung's playlist opened by a path
+    // relative to its own directory, index.m3u8 or ./index.m3u8, shares only
+    // its file name, and the first of them all is taken: a reading pending
+    // the owner, whose alternative is the opened file's path from the
+    // current directory (src/TimelineMatch.h). A warning says which was
+    // taken, and the playhead and the seek take that variant's clock.
     std::vector<std::size_t> same_bytes;
     for (std::size_t v = 0; v < timeline.variants.size(); ++v)
         if (!sha256.empty() && sha256 == timeline.variants[v].playlist_sha256) same_bytes.push_back(v);
     if (!same_bytes.empty()) {
         m.by             = StreamMatch::By::Variant;
         m.opened_variant = static_cast<int>(same_bytes.front());
-        if (same_bytes.size() > 1)
+        if (same_bytes.size() == 1) return m;
+        std::size_t best = same_bytes.front(), run = 0;
+        bool        by_location = false;
+        std::string tail;
+        for (const std::size_t v : same_bytes) {
+            const Variant& var = timeline.variants[v];
+            for (const std::string* side : { &var.url, &var.playlist_location })
+                for (const std::string* opened_at : { &open.path, &open.final_url }) {
+                    const std::size_t n = shared_tail(*side, *opened_at);
+                    if (n <= run) continue;
+                    best        = v;
+                    run         = n;
+                    by_location = side == &var.playlist_location;
+                    tail        = tail_text(*opened_at, n);
+                }
+        }
+        // Where the path picks, a warning names the variant and the path, as
+        // one is given wherever several variants have those bytes, so that
+        // the match warns even where the path named the rung: a reading
+        // pending the owner, whose alternative is no warning there
+        // (src/TimelineMatch.h).
+        if (run > 1) {
+            m.opened_variant = static_cast<int>(best);
+            m.warnings.push_back(std::format("the open playlist's bytes are those of {} of the document's "
+                                             "variants: variant {}, whose {} ends with the open "
+                                             "playlist's {}, is taken", same_bytes.size(), best,
+                                             by_location ? "playlist location" : "URL", tail));
+        } else {
             m.warnings.push_back(std::format("the open playlist's bytes are those of {} of the document's "
                                              "variants: the first, variant {}, is taken",
                                              same_bytes.size(), same_bytes.front()));
+        }
         return m;
     }
     m.warnings.push_back(std::format("the document's master is {} (SHA-256 {}), which the open stream "
@@ -631,10 +711,9 @@ SeekDecision decide_seek(const VariantClock& clock, const SeekClock& seek, std::
     // timestamps restart, the segment before its discontinuity, as D-114 (b)
     // has it. For a frame that the first DTS's lead carries into the next
     // segment, a segment's last frame on MPEG-2 and its last two on libx264
-    // (tests/test_hls_seek_behaviour.cpp), its own segment's start: an
-    // extension of D-114 (b) beyond ads, pending the owner, whose
-    // alternatives are a seek by its PTS anyway, which shows the next
-    // segment's first frame, or neither, the card only saying why.
+    // (tests/test_hls_seek_behaviour.cpp), its own segment's start, since a
+    // seek by its PTS shows the next segment's first frame: D-114 (b)
+    // extended beyond ads as built, which the owner kept (D-121 (c), Q88 (a)).
     const std::optional<std::size_t> own = segment_of(clock, i);
     for (std::size_t j = own ? *own + 1 : 0; j-- > 0;) {
         const ClockSegment& s = clock.segments[j];
@@ -686,9 +765,9 @@ ClickAnswer click_answer(const Snapshot& snapshot, CurveRef curve, std::int64_t 
     }
     // Elsewhere the query of the clicked frame's segment (D-114 (d)), with the
     // margins the document's attributions were made with, so that it agrees
-    // with the document's drops; with none, as mirage_vmaf attribute
-    // --interval queries without --margin-before or --margin-after (Q29's
-    // default), is the alternative, pending the owner.
+    // with the document's drops, as built, which the owner kept (D-121 (b),
+    // Q87 (a)); mirage_vmaf attribute --interval queries with none without
+    // --margin-before or --margin-after (Q29's default).
     out.attribution = attribute(snapshot.timeline, curve, click_interval(snapshot.timeline, curve, ref_index),
                                 snapshot.info.overlap);
     return out;

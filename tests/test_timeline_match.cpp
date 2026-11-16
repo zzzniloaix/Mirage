@@ -1,4 +1,5 @@
-// Unit tests of src/TimelineMatch.h (eval/phase3-survey/design.md §9.1): written by WP12.
+// Unit tests of src/TimelineMatch.h (eval/phase3-survey/design.md §9.1): written by WP12, a
+// playlist opened alone among equal bytes by WP12b.
 //
 // eval/phase3-survey/ui.md §5.1's matching, mapping, seek decision and the
 // click's interval, on the ad ladder that tests/test_timeline_build.cpp
@@ -15,6 +16,14 @@
 //   variant's playlist opened alone; another stream's master. The report's
 //   entries are VMAFLadder's own reading of the master
 //   (vmafladder::parse_master), the player's ManifestParser's;
+// - a variant's playlist opened alone from another address among variants
+//   whose playlists have its bytes (D-121 (d), Q89 (b)): each of D-069's
+//   three rungs, which share one playlist text, by the path its URL ends
+//   with, from another host, a local copy, a URL with a query, the final URL
+//   after a redirect; a variant's playlist location; the longest run of path
+//   components, the first of two as long; the first of them all, with
+//   WP12's warning, where none shares more than its file name, a playlist
+//   opened by a path relative to its own directory among them;
 // - the playhead: the player's PTS to the frame of the sequence played,
 //   across the ad's restart of its timestamps, after a seek, at a forward
 //   jump of more than 10 s, and on a coarser grid;
@@ -478,6 +487,127 @@ TEST_CASE("timeline::match_stream: a mezzanine reference, a variant's playlist o
     CHECK(m.variant_of == std::vector<int>{ -1 });
     CHECK(any_warning(m, kMasterUrl));
     CHECK(timeline::match_name(m.by) == "none");
+}
+
+TEST_CASE("timeline::match_stream: a rung's playlist opened alone from another address, among rungs of one "
+          "playlist text, by the path its URL ends with; under another name, the first (D-121 (d))",
+          "[timeline][timeline_match]")
+{
+    // D-069's shape: the three rungs' playlists have one text, so that their
+    // bytes can't tell them apart. The warning where the path picks the rung
+    // is a reading pending the owner (src/TimelineMatch.h).
+    const timeline::Timeline     t      = built(ad_inputs());
+    const timeline::LadderScores scores = with_master(ad_report(), kMaster, kMasterUrl);
+    REQUIRE(t.variants.size() == 3);
+    for (int k = 0; k < 3; ++k) {
+        INFO("rung " << kRungs[k]);
+        const timeline::Variant& v = t.variants[static_cast<std::size_t>(k)];
+        REQUIRE(v.url == url_of(k));
+        REQUIRE(v.playlist_sha256 == filehash::sha256_hex(kAdPlaylist));
+        const std::string warning =
+            std::format("the open playlist's bytes are those of 3 of the document's variants: variant {}, "
+                        "whose URL ends with the open playlist's {}/index.m3u8, is taken", k, kRungs[k]);
+
+        // From another host and directory.
+        const std::string copy = std::format("http://cdn.invalid/copy/{}/index.m3u8", kRungs[k]);
+        StreamMatch m = timeline::match_stream(t, scores, opened(copy, kAdPlaylist, copy));
+        INFO(warnings_of(m));
+        CHECK(m.by == StreamMatch::By::Variant);
+        CHECK(m.entries == StreamMatch::Entries::None);
+        CHECK(m.opened_variant == k);
+        CHECK(m.warnings == std::vector<std::string>{ warning });
+
+        // A local copy, by its path; a URL's query and fragment aren't its
+        // path's (RFC 3986 §3).
+        const std::string local = std::format("/data/copy/{}/./index.m3u8", kRungs[k]);
+        m = timeline::match_stream(t, scores, opened(local, kAdPlaylist, local));
+        CHECK(m.opened_variant == k);
+        const std::string signed_url = copy + "?token=a/b#t=1";
+        m = timeline::match_stream(t, scores, opened(signed_url, kAdPlaylist, signed_url));
+        CHECK(m.opened_variant == k);
+        CHECK(m.warnings == std::vector<std::string>{ warning });
+
+        // The path the player was given names no rung, but its final URL,
+        // after a redirect, does; and the reverse.
+        m = timeline::match_stream(t, scores, opened("http://short.invalid/p?id=7", kAdPlaylist, copy));
+        CHECK(m.opened_variant == k);
+        m = timeline::match_stream(t, scores, opened(copy, kAdPlaylist, "http://store.invalid/obj/7"));
+        CHECK(m.opened_variant == k);
+    }
+
+    // Under another name, sharing only the file name, or a rung's directory
+    // without its file name: none shares more than its file name, so the
+    // first of them all, the reference, with the warning as WP12 built it.
+    // The last two are what a player started in a rung's own directory is
+    // given for its playlist, compared as given, the current directory not
+    // taken into account: a reading pending the owner (src/TimelineMatch.h).
+    for (const std::string other : { "http://cdn.invalid/v.m3u8", "http://cdn.invalid/copy/index.m3u8",
+                                     "http://cdn.invalid/v270/other.m3u8", "index.m3u8", "./index.m3u8" }) {
+        INFO(other);
+        const StreamMatch m = timeline::match_stream(t, scores, opened(other, kAdPlaylist, other));
+        CHECK(m.by == StreamMatch::By::Variant);
+        CHECK(m.opened_variant == 0);
+        CHECK(m.warnings == std::vector<std::string>{ "the open playlist's bytes are those of 3 of the document's "
+                                                      "variants: the first, variant 0, is taken" });
+    }
+
+    // Bytes that no variant's playlist has: another stream's, whatever the path.
+    const std::string edited = kAdPlaylist + "#EXT-X-INDEPENDENT-SEGMENTS\n";
+    const std::string copy   = "http://cdn.invalid/copy/v270/index.m3u8";
+    const StreamMatch none   = timeline::match_stream(t, scores, opened(copy, edited, copy));
+    CHECK(none.by == StreamMatch::By::None);
+    CHECK(none.opened_variant == -1);
+}
+
+TEST_CASE("timeline::match_stream: among equal bytes, a variant's playlist location, the longest run of "
+          "path components, and the first of the longest (D-121 (d))",
+          "[timeline][timeline_match]")
+{
+    // Four variants of one playlist text: the first two named in the report
+    // by a redirector's URLs and read by the build from their rungs'
+    // directories, the last two copies of v180 at two addresses.
+    const std::string sha256 = filehash::sha256_hex(kAdPlaylist);
+    timeline::Timeline t;
+    t.variants.push_back({ .index = 0, .pair = -1, .url = "http://redirect.invalid/r?rung=0",
+                           .playlist_location = "http://origin.invalid/ladder/v360/index.m3u8",
+                           .playlist_sha256 = sha256 });
+    t.variants.push_back({ .index = 1, .pair = 0, .url = "http://redirect.invalid/r?rung=1",
+                           .playlist_location = "http://origin.invalid/ladder/v270/index.m3u8",
+                           .playlist_sha256 = sha256 });
+    t.variants.push_back({ .index = 2, .pair = 1, .url = "http://a.invalid/x/v180/index.m3u8",
+                           .playlist_sha256 = sha256 });
+    t.variants.push_back({ .index = 3, .pair = 2, .url = "http://b.invalid/ladder/v180/index.m3u8",
+                           .playlist_sha256 = sha256 });
+    const timeline::LadderScores scores = with_master(ad_report(), kMaster, kMasterUrl);
+    auto match_at = [&](const std::string& path) {
+        return timeline::match_stream(t, scores, opened(path, kAdPlaylist, path));
+    };
+
+    // By the playlist location, the URL ending otherwise.
+    StreamMatch m = match_at("http://cdn.invalid/copy/v270/index.m3u8");
+    CHECK(m.opened_variant == 1);
+    CHECK(m.warnings == std::vector<std::string>{ "the open playlist's bytes are those of 4 of the document's "
+                                                  "variants: variant 1, whose playlist location ends with the "
+                                                  "open playlist's v270/index.m3u8, is taken" });
+    // The longest run: three components, though variant 2 shares two first.
+    m = match_at("http://cdn.invalid/ladder/v180/index.m3u8");
+    CHECK(m.opened_variant == 3);
+    CHECK(contains(warnings_of(m), "variant 3, whose URL ends with the open playlist's ladder/v180/index.m3u8"));
+    // Two of the longest: the first of them.
+    m = match_at("http://cdn.invalid/copy/v180/index.m3u8");
+    CHECK(m.opened_variant == 2);
+    CHECK(contains(warnings_of(m), "variant 2, whose URL ends with the open playlist's v180/index.m3u8"));
+    // Nothing more than the file name: the first of all.
+    m = match_at("http://cdn.invalid/copy/v540/index.m3u8");
+    CHECK(m.opened_variant == 0);
+    CHECK(contains(warnings_of(m), "the first, variant 0, is taken"));
+
+    // One variant of those bytes alone: it, with no warning, whatever its path.
+    t.variants.resize(1);
+    m = match_at("http://cdn.invalid/copy/v540/index.m3u8");
+    CHECK(m.by == StreamMatch::By::Variant);
+    CHECK(m.opened_variant == 0);
+    CHECK(m.warnings.empty());
 }
 
 // ── The playhead (ui.md §2.4) ────────────────────────────────────────────────

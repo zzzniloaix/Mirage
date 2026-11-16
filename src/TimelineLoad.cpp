@@ -1,4 +1,5 @@
-// The timeline panel's loader (eval/phase3-survey/design.md §10): written by WP12.
+// The timeline panel's loader (eval/phase3-survey/design.md §10): written by WP12, a relative
+// report path from the document's directory by WP12b (D-121 (a)).
 
 #include "TimelineLoad.h"
 
@@ -32,6 +33,38 @@ LoadResult stopped()
     r.error   = "the load was stopped";
     r.stopped = true;
     return r;
+}
+
+// Where the document's ladder_report.path `path` is looked for (D-121 (a),
+// Q86 (c)): an absolute path as it is; a relative one from the current
+// directory, as mirage_vmaf attribute takes it (D-081 (b)), then from the
+// document's directory, unless the document's path names no directory but
+// the current one, lexically normalized ("timeline.json", "./timeline.json",
+// "a/../timeline.json"). Another path to the current directory, an absolute
+// one among them, isn't told apart without a look on disk: its one file is
+// then looked for at both paths, and named twice where it isn't there. An
+// empty path names no file and is read as it is.
+std::vector<std::string> report_paths(const std::string& document, const std::string& path)
+{
+    std::vector<std::string> out{ path };
+    const std::filesystem::path p(path);
+    if (path.empty() || p.is_absolute()) return out;
+    const std::filesystem::path dir = std::filesystem::path(document).parent_path();
+    if (!dir.empty() && dir.lexically_normal() != ".") out.push_back((dir / p).string());
+    return out;
+}
+
+// Whether a directory holds the file at `path`: something is there, as
+// std::filesystem::exists() tells it on disk, whatever LoadInput::read reads
+// the file with, a reading pending the owner (src/TimelineLoad.h, step 2);
+// otherwise `why` says why not, in a phrase without the path.
+bool is_there(const std::string& path, std::string& why)
+{
+    std::error_code ec;
+    if (std::filesystem::exists(path, ec)) return true;
+    // std::generic_category(), not std::strerror(): this runs on a worker.
+    why = ec ? ec.message() : std::generic_category().message(ENOENT);
+    return false;
 }
 
 } // namespace
@@ -88,15 +121,29 @@ LoadResult load_snapshot(const LoadInput& input, std::stop_token stop)
     doc_text = {};
     if (stop.stop_requested()) return stopped();
 
-    // 2. The ladder report it names, unless the caller names another. A
-    // relative path is taken from the current directory, as mirage_vmaf
-    // attribute takes it without --report (D-081 (b)). mirage_vmaf timeline
-    // writes ladder_report.path as its --report was given
-    // (src/TimelineCli.cpp), so that a document built with a relative one
-    // loads only in a player started from that directory. Taking it from the
-    // document's directory instead, or from the first of the two that holds
-    // the file, is pending the owner.
+    // 2. The ladder report it names, unless the caller names another, whose
+    // path is read as it is. mirage_vmaf timeline writes ladder_report.path
+    // as its --report was given (src/TimelineCli.cpp), so a relative one is
+    // read from the current directory where the file is there, as
+    // mirage_vmaf attribute reads it without --report (D-081 (b)), else from
+    // the document's directory, for a player started elsewhere (D-121 (a),
+    // Q86 (c)); an absolute one as it is. Where neither directory holds the
+    // file, the refusal names both paths. Which of the two holds it is
+    // decided on disk (is_there()), whatever `read` is, so that an injected
+    // reader is asked only for one that exists there. The hashes are checked
+    // below on whichever file was read.
     snap->report_path = input.report.empty() ? snap->info.report.path : input.report;
+    if (input.report.empty()) {
+        const std::vector<std::string> paths = report_paths(input.document, snap->info.report.path);
+        std::string here, beside;
+        if (paths.size() > 1 && !is_there(paths[0], here)) {
+            if (!is_there(paths[1], beside))
+                return refused(std::format("cannot read the ladder report {}, from the current directory "
+                                           "or from the document's: {}: {}; {}: {}",
+                                           snap->info.report.path, paths[0], here, paths[1], beside));
+            snap->report_path = paths[1];
+        }
+    }
     std::string report_text;
     if (!read(snap->report_path, stop, report_text, err)) {
         if (stop.stop_requested()) return stopped();

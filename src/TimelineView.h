@@ -10,12 +10,12 @@
 //   frame, the axis's (D-073: the reference's playlist time, or the frame grid
 //   where the reference has no segment map), so that the panel's x and the
 //   offsets the document and the CLI print are one clock; on an axis without
-//   seconds, a frame's index (AxisScale), drawing such an axis in frames
-//   being pending the owner, whose alternative is no plot. Positions go to
-//   frames as the axis turns seconds into frames, the first frame in index
-//   order at or after them (D-081 (g)), which is monotonic: the frames
-//   between two positions are one run of frames even where the playlist time
-//   steps back (src/TimelineAxis.h).
+//   seconds, a frame's index (AxisScale), the panel drawing such an axis in
+//   frames and labelling frame numbers, as built, which the owner kept
+//   (D-121 (e), Q90 (a)). Positions go to frames as the axis turns seconds
+//   into frames, the first frame in index order at or after them (D-081
+//   (g)), which is monotonic: the frames between two positions are one run
+//   of frames even where the playlist time steps back (src/TimelineAxis.h).
 // - The view: the positions at the plot's two edges, fitting the extent until
 //   the user zooms or pans; the wheel zooms about the cursor by 0.8 or 1.25,
 //   the span clamped to [0.5, 1.5 x extent + 1], a drag pans, a double-click
@@ -29,9 +29,9 @@
 //   frames between two points are the earlier one's. Its span on x runs from
 //   its frame's position to the next point's. A session's curve has no point
 //   over a span that isn't scored (D-105 (b)), so the point before such a
-//   span stands for that span's frames here too: pending the owner, whose
-//   alternative is such a span outside the data, which would need the
-//   session's spans here.
+//   span stands for that span's frames here too, as built: Q91, still
+//   pending the owner, whose alternative is such a span outside the data,
+//   which would need the session's spans here.
 // - Envelopes. Each curve's scores as a min/max pyramid, built once when a
 //   document is loaded (src/TimelineLoad.h; ui.md §4.2), so that a column's
 //   minimum and maximum cost O(log n), and a redraw, each column's edges
@@ -74,11 +74,11 @@ namespace timeline {
 // The axis's positions, for drawing: each reference frame's seconds on the
 // document's axis (Axis::ticks over Axis::tick_den, D-073), or, on an axis
 // without seconds (Axis::frame_duration 0/1, every frame at 0 s), the frame's
-// index, so that the frames can still be told apart; such an axis drawn in
-// frames, the span limits counted in frames (kMinSpan), is pending the
-// owner, whose alternative is no plot, the panel saying that the document's
-// axis has no seconds. The axis's ticks are copied with their running
-// maximum, so that a position goes to its frame by a binary search.
+// index, so that the frames can still be told apart; such an axis is drawn
+// in frames, the span limits counted in frames (kMinSpan), as built, which
+// the owner kept (D-121 (e), Q90 (a)). The axis's ticks are copied with
+// their running maximum, so that a position goes to its frame by a binary
+// search.
 struct AxisScale {
     bool seconds = false;                    // positions are seconds; false: frame indices
     std::int64_t frames = 0;                 // the reference's frames
