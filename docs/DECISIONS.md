@@ -1230,6 +1230,20 @@ D-115 to D-119 are on a branch not yet merged; whoever merges later puts the ent
 - **Who**: owner, adopting the agent's recommendation
 - **Date**: 2026-11-13
 
+### D-121 The panel's loading, clicks, seeks and axis: a relative report path from the current directory, else the document's; a click's margins the document's; a segment's last frames offered its start; a variant's playlist opened alone matched by its path among equal bytes; an axis without seconds in frames
+
+- **Decision**: the owner's answers to the five questions that building WP12 raised (Q86 to Q90; `docs/PHASE3_DECISIONS_PENDING.md`):
+  - (a) A timeline document's relative ladder report path is read from the current directory where the file is there, else from the document's directory (Q86, option (c)). A follow-up of WP12's, WP12b, puts it in.
+  - (b) A click outside a detected drop queries its segment with the margins the document's attributions were made with, as WP12 built it (Q87, option (a)).
+  - (c) A segment's last frames, which a seek to their PTS doesn't show (the last on the tests' MPEG-2 segments, the last two on D-069's libx264 ladders), are offered their segment's start, as D-114 (b) has it for an ad's frames, as WP12 built it; the differences' item 14 names them too (Q88, option (a)).
+  - (d) A variant's media playlist opened alone is matched by its address, else by its playlist's SHA-256, preferring among the variants whose playlists have those bytes the one whose URL ends with the same path (Q89, option (b)). WP12b puts it in.
+  - (e) A document's axis without seconds is placed in reference frames, the panel labelling frame numbers, as WP12 built it (Q90, option (a)).
+- **Owner's words**, translated by the agent: "All as recommended", in answer to Q86 to Q90 and to Phase 4's P4-Q27 to P4-Q32, which the agent had asked with their options and its recommendations.
+- **Alternatives**: (a) the current directory alone; the document's directory alone (Q86). (b) No margins, Q29's default (Q87). (c) Sought by their PTS anyway; the panel only saying why (Q88). (d) As built, the first variant with those bytes; not matched, the document then counted as another stream's (Q89). (e) No plot (Q90).
+- **Rationale**: as the agent recommended: (a) attribute's rule is kept where the current directory holds the file, and the report is found beside its document where the player was started elsewhere. (b) The panel's answers agree with the drops it shows from the same document. (c) The user still reaches the frame, and the panel never shows a frame other than the one clicked. (d) The match is kept where the bytes say the playlist is the ladder's, and the rung the path names is taken where the bytes can't tell. (e) The curves, the events and the drops are still shown, each where it belongs.
+- **Who**: owner, adopting the agent's recommendation
+- **Date**: 2026-11-16
+
 ---
 
 ## Measurement / process choices (proposed by the agent, confirmed by the owner)
