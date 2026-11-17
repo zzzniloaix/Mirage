@@ -1870,6 +1870,8 @@ Are they kept?
 
 **Agent's recommendation.** (b): the panel then shows no score over a span that wasn't scored, as D-105 (b) has the document claim nothing that wasn't measured.
 
+**Answered** on 2026-11-17: (b), as the agent recommends (`docs/DECISIONS.md` D-124 (a)); WP12c puts it in.
+
 **Blocks.** Under (b), a change to `src/TimelineView.{h,cpp}` and to the loader's snapshot (`src/TimelineLoad.cpp`), with their tests, and to the panel's drawing where it draws a curve's envelope (WP13).
 
 #### Q92. The panel's key, L being the loudness meters'
@@ -1885,6 +1887,8 @@ Are they kept?
 
 **Agent's recommendation.** (a): E reads as events, no key changes, and J, R, U, Y and Z of Q38's list are still free besides it.
 
+**Answered** on 2026-11-17: (a), as the agent recommends (`docs/DECISIONS.md` D-124 (b)).
+
 **Blocks.** Under (b), (c) or (d), a follow-up of WP13's, with the help card, the View menu, the overlays popover, `--ui-overlays`, `--speed-seq panel:` and, under (b), the loudness cases of `tests/engineer_tools_snapshots.sh`.
 
 #### Q93. The playhead on a panel opened inside a stretch whose timestamps repeat an earlier one's
@@ -1899,6 +1903,8 @@ Are they kept?
 
 **Agent's recommendation.** (c): the panel then never marks a frame other than the one on screen, and the render loop does nothing for it while it is closed.
 
+**Answered** on 2026-11-17: (c), as the agent recommends (`docs/DECISIONS.md` D-124 (c)); WP13b puts it in, with a case of the panel's scripted QA that opens it inside the ad.
+
 **Blocks.** Under (b) or (c), a follow-up of WP13's, with a run of its scripted QA that opens the panel inside the ad.
 
 #### Q94. Whether the remembered document opens the panel
@@ -1912,6 +1918,8 @@ Are they kept?
 
 **Agent's recommendation.** (a): a document given on the command line asks to be shown, and a remembered one doesn't open the panel at every start.
 
+**Answered** on 2026-11-17: (a), as the agent recommends (`docs/DECISIONS.md` D-124 (d)).
+
 **Blocks.** Under (b), a change to `src/main.cpp`.
 
 #### Q95. A variant switch inside an ad whose timestamps restart at the main content's origin
@@ -1924,6 +1932,8 @@ Are they kept?
 - **(b) A written plan** for a switch positioned by the playlist instead, for the owner's approval under D-007 before any code.
 
 **Agent's recommendation.** (a): the panel is right about the frame on screen after such a switch, the defect is the player's own, and a change of how the hls demuxer is positioned, like Q37's other options, can follow with a plan of its own.
+
+**Answered** on 2026-11-17: (a), as the agent recommends (`docs/DECISIONS.md` D-124 (e)); Phase 3's PR reports it (WP15c).
 
 **Blocks.** WP15c's PR description; under (b), a plan, then a package of its own.
 
@@ -1948,6 +1958,8 @@ Are they kept?
 
 **Agent's recommendation.** 1.
 
+**Answered** on 2026-11-17: 1, as the agent recommends (`docs/DECISIONS.md` D-124 (f)).
+
 **Blocks.** Under 2, a follow-up of WP13's for the items changed.
 
 #### Q97. Three readings of D-121 (a) and (d), and `attribute`'s report path
@@ -1962,6 +1974,8 @@ Are they kept?
 4. **`mirage_vmaf attribute`'s relative report path**, read from the current directory only (D-081 (b)), so that `attribute` run from where a player was started can refuse a document the panel loads: (a) as it is; (b) read as D-121 (a) has the panel read it, from the current directory where the file is there, else from the document's directory (`src/TimelineCli.cpp`).
 
 **Agent's recommendation.** 1 (a), 2 (b), 3 (a), 4 (b): 1 keeps attribute's rule wherever something is in the current directory, as D-121 (a)'s rationale keeps it; 2 takes the rung the opened file's path names; 3 says so wherever the bytes can't tell the rungs apart; and 4 has one document find its report the same way in both programs, a different report in the current directory being refused by its hashes in either (D-072).
+
+**Answered** on 2026-11-17: 1 (a), 2 (b), 3 (a) and 4 (b), as the agent recommends (`docs/DECISIONS.md` D-124 (g)); WP12c puts in 2 and 4.
 
 **Blocks.** Under 1 (b) or (c), 2 (b) or 3 (b), a follow-up of WP12b's in `src/TimelineLoad.cpp` or `src/TimelineMatch.cpp`, with their tests; under 4 (b), a change to `src/TimelineCli.cpp`, its help and its tests.
 
