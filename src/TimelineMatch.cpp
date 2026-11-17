@@ -1,6 +1,7 @@
 // The timeline panel's matching, playhead and seek decision (eval/phase3-survey/design.md §10):
 // written by WP12, the path among a playlist's equal bytes by WP12b (D-121 (d)), a relative
-// open path made absolute there by WP12c (D-124 (g) 2).
+// open path made absolute there by WP12c (D-124 (g) 2), the playhead not known where its
+// sequence isn't by WP13b (D-124 (c)).
 
 #include "TimelineMatch.h"
 
@@ -208,6 +209,16 @@ double distance_ticks(const ClockFrame& f, std::int64_t t)
     return std::fabs(static_cast<double>(f.pts) - static_cast<double>(t));
 }
 
+// The sequence a jump of the PTS leads from sequence `sequence` to (D-046):
+// the next one the clock has frames of, or `sequence` itself where it has
+// none after it.
+int next_sequence(const VariantClock& c, int sequence)
+{
+    const auto next = std::partition_point(c.frames.begin(), c.frames.end(),
+                                           [&](const ClockFrame& f) { return f.sequence <= sequence; });
+    return next != c.frames.end() ? next->sequence : sequence;
+}
+
 // ── The seek ─────────────────────────────────────────────────────────────────
 
 constexpr std::int64_t kUs = 1000000;   // AV_TIME_BASE, the unit the hls demuxer seeks in
@@ -366,14 +377,13 @@ std::string miss_text(const VariantClock& c, const SeekClock& seek, double targe
                        l.segment < c.segments.size() ? c.segments[l.segment].media_sequence : 0);
 }
 
-// Whether a seek to `target` shows frame `i` for every lead of the first
-// packet's DTS from 0 to the largest of one frame, seek.video_delay frames
-// and seek.dts_lead: the lead moves the position the demuxer looks the
-// segment up by, so one seek is simulated with no lead and one at each
-// segment end the lead reaches, from which on the next segment is found; the
-// rest of the seek doesn't depend on the lead. `why` says how the first miss
-// misses.
-bool reaches(const VariantClock& c, const SeekClock& seek, double target, std::size_t i, std::string& why)
+// The leads of the first packet's DTS, in microseconds, that a seek to
+// `target` is simulated with for every lead from 0 to the largest of one
+// frame, seek.video_delay frames and seek.dts_lead: the lead moves the
+// position the demuxer looks the segment up by, so one seek is simulated
+// with no lead and one at each segment end the lead reaches, from which on
+// the next segment is found; the rest of the seek doesn't depend on the lead.
+std::vector<std::int64_t> seek_leads(const VariantClock& c, const SeekClock& seek, double target)
 {
     // The decoder's reorder delay, and at least one frame (ui.md §2.4): the
     // Demuxer doesn't know the first packet's DTS, which precedes the first
@@ -388,13 +398,52 @@ bool reaches(const VariantClock& c, const SeekClock& seek, double target, std::s
         const std::int64_t end = starts[j] + us_truncated(c.segments[j].extinf);
         if (end > p0 && end - p0 <= lead_us) leads.push_back(end - p0);
     }
-    for (const std::int64_t lead : leads) {
+    return leads;
+}
+
+// Whether a seek to `target` shows frame `i` for every lead of the first
+// packet's DTS that seek_leads() stands for. `why` says how the first miss
+// misses.
+bool reaches(const VariantClock& c, const SeekClock& seek, double target, std::size_t i, std::string& why)
+{
+    for (const std::int64_t lead : seek_leads(c, seek, target)) {
         const SeekLanding l = simulate_us(c, seek, target, lead);
         if (l.kind == SeekLanding::Kind::Shown && l.frame == i) continue;
         why = miss_text(c, seek, target, l, lead);
         return false;
     }
     return true;
+}
+
+// The discontinuity sequence of the frame that a seek by PTS to `target`
+// shows, the first packet's DTS `lead_us` before the start; nullopt where
+// it shows none.
+std::optional<int> shown_sequence(const VariantClock& c, const SeekClock& seek, double target, std::int64_t lead_us)
+{
+    const SeekLanding l = simulate_us(c, seek, target, lead_us);
+    if (l.kind != SeekLanding::Kind::Shown || l.frame >= c.frames.size()) return std::nullopt;
+    return c.frames[l.frame].sequence;
+}
+
+// The sequence that a seek by PTS to `target` lands the playhead in
+// (D-124 (c)): that of the frame it shows, where it shows a frame of one
+// sequence for every lead of the first packet's DTS that the seek decision
+// allows (seek_leads()). nullopt where it shows none for one of them, or
+// frames of two sequences for two: the Demuxer doesn't know the lead, so
+// that such a seek can't tell the sequence. So a seek to one of a libx264
+// segment's last two frames before an ad whose timestamps restart at the
+// main content's origin, which shows that frame with no lead and, with the
+// lead of two frames that libx264's segments have, the first frame after
+// the ad (D-121 (c); tests/test_timeline_match.cpp), tells nothing.
+std::optional<int> landing_sequence(const VariantClock& c, const SeekClock& seek, double target)
+{
+    std::optional<int> out;
+    for (const std::int64_t lead : seek_leads(c, seek, target)) {
+        const std::optional<int> s = shown_sequence(c, seek, target, lead);
+        if (!s || (out && *out != *s)) return std::nullopt;
+        out = s;
+    }
+    return out;
 }
 
 } // namespace
@@ -657,49 +706,80 @@ VariantClock variant_clock(const Timeline& timeline, const LadderScores& scores,
 
 std::optional<PlayheadFrame> track_playhead(const VariantClock& clock, PlayheadState& state, double pts)
 {
-    if (clock.frames.empty() || clock.time_base.num <= 0 || clock.time_base.den <= 0) return std::nullopt;
+    if (clock.frames.empty() || clock.time_base.num <= 0 || clock.time_base.den <= 0) {
+        state.unknown.clear();
+        return std::nullopt;
+    }
     const double tb = av_q2d(clock.time_base);
     const auto   t  = static_cast<std::int64_t>(std::llround(pts / tb));
+    // A jump as the aligner defines a discontinuity (D-046): back, or
+    // forward by more than vmafalign::kForwardJump.
+    const bool jumped = state.last_pts && (t < *state.last_pts ||
+                                           static_cast<double>(t - *state.last_pts) >
+                                               av_q2d(vmafalign::kForwardJump) / tb);
 
-    // A jump as the aligner defines a discontinuity (D-046): the next
-    // sequence the clock has, if any.
-    if (state.sequence >= 0 && state.last_pts) {
-        const double jump = av_q2d(vmafalign::kForwardJump) / tb;
-        if (t < *state.last_pts || static_cast<double>(t - *state.last_pts) > jump) {
-            const auto next =
-                std::partition_point(clock.frames.begin(), clock.frames.end(),
-                                     [&](const ClockFrame& f) { return f.sequence <= state.sequence; });
-            if (next != clock.frames.end()) state.sequence = next->sequence;
-        }
-    }
+    // A known sequence: the next one the clock has, if any, at a jump.
+    if (state.sequence >= 0 && jumped) state.sequence = next_sequence(clock, state.sequence);
     bool known = state.sequence >= 0;
     if (known) {
         const auto [first, last] = sequence_range(clock, state.sequence);
         known = first < last;
     }
     if (!known) {
-        // Not known, or a sequence the clock has no frame of: the first
-        // sequence with a frame within half a frame of the PTS, else the
-        // nearest frame's.
+        // Not known, or a sequence the clock has no frame of (D-124 (c),
+        // Q93 (c)): the sequences the PTS lies in, those with a frame within
+        // half a frame of it, and the nearest frame.
         const double half = clock.frame_rate.num > 0 && clock.frame_rate.den > 0
                           ? 0.5 / av_q2d(clock.frame_rate) / tb : 0.0;
-        std::optional<int> within;
+        std::vector<int> lies;
         std::size_t best = 0;
         double best_d = std::numeric_limits<double>::infinity();
-        for (std::size_t a = 0; a < clock.frames.size() && !within;) {
+        for (std::size_t a = 0; a < clock.frames.size();) {
             const int s = clock.frames[a].sequence;
             const auto [first, last] = sequence_range(clock, s);
             const std::size_t i = nearest_in(clock, first, last, t);
             const double d = distance_ticks(clock.frames[i], t);
-            if (d <= half) within = s;
+            if (d <= half) lies.push_back(s);
             if (d < best_d) {
                 best_d = d;
                 best   = i;
             }
             a = last;
         }
-        state.sequence = within ? *within : clock.frames[best].sequence;
+        // One sequence only: that one. None, the PTS further than half a
+        // frame from every sequence's frames, as where the report lacks the
+        // frame on screen in each sequence it would lie in, an unpaired
+        // frame: the nearest frame's, the earlier of two as near, as WP12
+        // built it, at first sight and where the playhead wasn't known
+        // alike, so that such a PTS ends a playhead not known though
+        // D-124 (c) names no such teller: a reading pending the owner, whose
+        // alternative is no playhead there either. Two or more: where a jump
+        // leads the sequences the last PTS lay in, each to its next one, to
+        // exactly one of them, that one; else the playhead isn't known.
+        std::optional<int> told;
+        if (lies.size() == 1) {
+            told = lies.front();
+        } else if (lies.empty()) {
+            told = clock.frames[best].sequence;
+        } else if (jumped && !state.unknown.empty()) {
+            std::vector<int> led;
+            for (const int s : state.unknown) {
+                const int n = next_sequence(clock, s);
+                if (std::find(lies.begin(), lies.end(), n) != lies.end() &&
+                    std::find(led.begin(), led.end(), n) == led.end())
+                    led.push_back(n);
+            }
+            if (led.size() == 1) told = led.front();
+        }
+        if (!told) {
+            state.sequence = -1;
+            state.last_pts = t;
+            state.unknown  = std::move(lies);
+            return std::nullopt;
+        }
+        state.sequence = *told;
     }
+    state.unknown.clear();
 
     const auto [first, last] = sequence_range(clock, state.sequence);
     const std::size_t i = nearest_in(clock, first, last, t);
@@ -713,6 +793,20 @@ void playhead_seeked(PlayheadState& state, int sequence)
 {
     state.sequence = sequence;
     state.last_pts.reset();
+    state.unknown.clear();
+}
+
+void playhead_sought(PlayheadState& state, const VariantClock& clock, const SeekClock& seek, double target)
+{
+    playhead_seeked(state, landing_sequence(clock, seek, target).value_or(-1));
+}
+
+void playhead_switched(PlayheadState& state, const VariantClock& clock, const SeekClock& seek, double pts)
+{
+    // With no lead: `pts` is the PTS of the frame the switch put on screen,
+    // and a lead that lands the simulation elsewhere carries it on to a
+    // later segment's first frame, whose PTS is later (simulate_us()).
+    playhead_seeked(state, shown_sequence(clock, seek, pts, 0).value_or(state.sequence));
 }
 
 // ── The seek decision ────────────────────────────────────────────────────────

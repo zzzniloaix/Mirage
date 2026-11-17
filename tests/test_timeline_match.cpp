@@ -1,5 +1,6 @@
 // Unit tests of src/TimelineMatch.h (eval/phase3-survey/design.md §9.1): written by WP12, a
-// playlist opened alone among equal bytes by WP12b, one opened by a relative path by WP12c.
+// playlist opened alone among equal bytes by WP12b, one opened by a relative path by WP12c, the
+// playhead not known where its sequence isn't by WP13b.
 //
 // eval/phase3-survey/ui.md §5.1's matching, mapping, seek decision and the
 // click's interval, on the ad ladder that tests/test_timeline_build.cpp
@@ -37,7 +38,24 @@
 //   matches by its address;
 // - the playhead: the player's PTS to the frame of the sequence played,
 //   across the ad's restart of its timestamps, after a seek, at a forward
-//   jump of more than 10 s, and on a coarser grid;
+//   jump of more than 10 s, and on a coarser grid; and where the PTS on
+//   screen lies in two or more sequences that nothing has told apart, none
+//   (D-124 (c), Q93 (c)): at first sight inside the ad, whose PTS repeat the
+//   main content's first 2 s, and in those 2 s, until a seek (the panel's
+//   own, and another by where it lands), a switch (by where the Demuxer's
+//   reposition lands, in the main content, D-124 (e)), a jump of the PTS
+//   (back, and forward by more than 10 s, on a clock of five sequences, and
+//   back where two of the sequences it leads from lead to one) or a PTS in
+//   one sequence only tells it; a seek or a switch whose landing can't be
+//   told telling nothing, among them a seek to one of a libx264 segment's
+//   last two frames before the ad, whose landing depends on the first
+//   packet's DTS lead (D-121 (c)), and one that shows no frame for a lead;
+//   a jump that leads to two sequences the PTS lies in, telling neither;
+//   then tracked as before; at first sight in one sequence only, at once; a
+//   PTS between frames lying in each sequence with a frame within half a
+//   frame of it, half a frame itself included; and a PTS that lies in no
+//   sequence taking the nearest frame's, at first sight and where the
+//   playhead wasn't known alike, a reading pending the owner;
 // - the seek decision (D-114 (b), Q37 (a)): the main content by its PTS, a
 //   segment's last frame by its own segment's start, the first DTS's lead
 //   being at least a frame, and the frame before it too for a lead of two
@@ -809,7 +827,11 @@ TEST_CASE("timeline::track_playhead: the player's PTS to the frame of the sequen
             REQUIRE(f);
             return *f;
         };
-        CHECK(at(10.0).ref_index == 0);     // not known yet: the first sequence within half a frame
+        // The main content from its start, its sequence told by a seek there:
+        // at first sight its first 2 s, whose PTS the ad's frames repeat,
+        // give no playhead (D-124 (c); the next test case).
+        timeline::playhead_seeked(st, 0);
+        CHECK(at(10.0).ref_index == 0);
         CHECK(at(10.04).ref_index == 1);
         CHECK(at(12.96).ref_index == 74);
         CHECK(at(10.0).ref_index == 75);    // the ad's step back: the next sequence
@@ -827,9 +849,294 @@ TEST_CASE("timeline::track_playhead: the player's PTS to the frame of the sequen
         const std::optional<timeline::PlayheadFrame> ad = timeline::track_playhead(c, other, 10.48);
         REQUIRE(ad);
         CHECK(ad->ref_index == 87);          // a step back with no sequence after it: it stays
-        timeline::PlayheadState fresh;
-        CHECK(timeline::track_playhead(c, fresh, 10.48)->ref_index == 12);
+        CHECK(other.unknown.empty());
     }
+}
+
+TEST_CASE("timeline::track_playhead: no playhead where the PTS on screen lies in two sequences that nothing "
+          "has told apart, until a seek, a switch or the PTS in one sequence only tells it; at once at first "
+          "sight in one sequence only (D-124 (c))",
+          "[timeline][timeline_match]")
+{
+    const timeline::BuildInputs in = ad_inputs();
+    const timeline::Timeline    t  = built(in);
+    const timeline::SeekClock   seek{ .start = 10.0, .duration = 8.0, .dts_lead = 0.04 };
+    const std::vector<int>      both{ 0, 1 };
+    for (const int variant : { 0, 2 }) {   // the reference, and v180's distorted input
+        INFO("variant " << variant);
+        const timeline::VariantClock c = timeline::variant_clock(t, in.scores, variant);
+        REQUIRE(c.frames.size() == 200);
+        auto frame_at = [](const timeline::VariantClock& clock, timeline::PlayheadState& st, double pts) {
+            const std::optional<timeline::PlayheadFrame> f = timeline::track_playhead(clock, st, pts);
+            REQUIRE(f);
+            CHECK(st.unknown.empty());
+            return *f;
+        };
+
+        // First sight inside the ad, at its frame 87, PTS 10.48 s, which the
+        // main content's frame 12 has too (Q93's case): no playhead, both
+        // sequences named; and so frame by frame while the ad plays on.
+        timeline::PlayheadState st;
+        CHECK_FALSE(timeline::track_playhead(c, st, 10.48));
+        CHECK(st.unknown == both);
+        CHECK(st.sequence == -1);
+        CHECK_FALSE(timeline::track_playhead(c, st, 10.52));
+        CHECK(st.unknown == both);
+        const timeline::PlayheadState inside = st;
+
+        // A seek tells it. The panel's own, to a frame of the ad's sequence:
+        // the ad's frames from there, then the main content after the ad in
+        // the same sequence, the aligner's (D-046), as tracked before.
+        timeline::PlayheadState s = inside;
+        timeline::playhead_seeked(s, 1);
+        CHECK(s.unknown.empty());
+        CHECK(frame_at(c, s, 10.56).ref_index == 89);
+        CHECK(frame_at(c, s, 11.96).ref_index == 124);
+        CHECK(frame_at(c, s, 15.0).ref_index == 125);
+        // Another seek, by where it lands: by its PTS, 10.48 s, the main
+        // content's frame of that PTS (as decide_seek()'s case above has it),
+        // sequence 0; the ad's step back after it is the next sequence's.
+        s = inside;
+        timeline::playhead_sought(s, c, seek, 10.48);
+        CHECK(s.sequence == 0);
+        CHECK(frame_at(c, s, 10.48).ref_index == 12);
+        CHECK(frame_at(c, s, 12.96).ref_index == 74);
+        CHECK(frame_at(c, s, 10.0).ref_index == 75);
+        CHECK(s.sequence == 1);
+        // A seek whose landing depends on the first packet's DTS lead, which
+        // the Demuxer doesn't know, tells nothing. On libx264's segments, a
+        // reorder delay of two frames (SeekClock::video_delay), a seek to the
+        // main content's last frame before the ad, PTS 12.96 s, or to the one
+        // before it, shows that frame with no lead, and with a lead of two
+        // frames the first frame after the ad, PTS 15.0 s, of the ad's
+        // sequence, as decide_seek() says, offering the segment's start
+        // (D-121 (c)). The sequence isn't known after it, whatever it was
+        // before, and the frame on screen then tells it, the main content's
+        // last frames lying in sequence 0 only, the frame after the ad in
+        // sequence 1 only. Two frames before the segment's end, at 12.88 s,
+        // every lead shows that frame, and the seek tells sequence 0.
+        const timeline::SeekClock x264{ .start = 10.0, .duration = 8.0, .video_delay = 2 };
+        CHECK(contains(timeline::decide_seek(c, x264, 74).why,
+                       "would show the frame of PTS 15.000 s in segment 5 instead"));
+        for (const auto& [target, ref] : { std::pair<double, std::int64_t>{ 12.92, 73 },
+                                           std::pair<double, std::int64_t>{ 12.96, 74 } }) {
+            INFO("target " << target);
+            CHECK(c.frames[timeline::simulate_seek(c, x264, target, 0.0).frame].ref_index == ref);
+            CHECK(c.frames[timeline::simulate_seek(c, x264, target, 0.08).frame].ref_index == 125);
+            // From the main content, the lead carrying the seek past the ad.
+            timeline::PlayheadState carried{ .sequence = 0 };
+            timeline::playhead_sought(carried, c, x264, target);
+            CHECK(carried.sequence == -1);
+            CHECK(frame_at(c, carried, 15.0).ref_index == 125);
+            CHECK(frame_at(c, carried, 15.04).ref_index == 126);
+            // From the ad, with no lead: the frame sought on screen.
+            timeline::PlayheadState stayed{ .sequence = 1 };
+            timeline::playhead_sought(stayed, c, x264, target);
+            CHECK(stayed.sequence == -1);
+            CHECK(frame_at(c, stayed, target).ref_index == ref);
+        }
+        s = inside;
+        timeline::playhead_sought(s, c, x264, 12.88);
+        CHECK(s.sequence == 0);
+        // A seek whose landing can't be told, on a clock without segments,
+        // tells nothing: still no playhead.
+        timeline::VariantClock unmapped = c;
+        unmapped.segments.clear();
+        s = inside;
+        timeline::playhead_sought(s, unmapped, seek, 10.48);
+        CHECK(s.sequence == -1);
+        CHECK_FALSE(timeline::track_playhead(unmapped, s, 10.48));
+        CHECK(s.unknown == both);
+
+        // A switch tells it: to the other rung, its first frame at 10.56 s.
+        // The Demuxer's reposition by PTS lands in the main content
+        // (D-124 (e)), its frame 14, sequence 0, which the player shows.
+        const timeline::VariantClock other = timeline::variant_clock(t, in.scores, variant == 0 ? 2 : 0);
+        REQUIRE(other.frames.size() == 200);
+        s = inside;
+        timeline::playhead_switched(s, other, seek, 10.56);
+        CHECK(s.sequence == 0);
+        CHECK(frame_at(other, s, 10.56).ref_index == 14);
+        // One whose landing can't be told keeps the sequence the state held:
+        // none, so still no playhead; a known one stays known.
+        timeline::VariantClock other_unmapped = other;
+        other_unmapped.segments.clear();
+        s = inside;
+        timeline::playhead_switched(s, other_unmapped, seek, 10.56);
+        CHECK(s.sequence == -1);
+        CHECK_FALSE(timeline::track_playhead(other_unmapped, s, 10.56));
+        CHECK(s.unknown == both);
+        timeline::PlayheadState known{ .sequence = 1 };
+        timeline::playhead_switched(known, other_unmapped, seek, 10.56);
+        CHECK(known.sequence == 1);
+        CHECK(frame_at(other_unmapped, known, 10.56).ref_index == 89);
+
+        // The PTS in one sequence only tells it: the ad played to its end,
+        // then the main content after it from 15 s, sequence 1's alone, the
+        // aligner's step of 3.04 s forward being no discontinuity (D-046);
+        // then tracked as before.
+        s = inside;
+        CHECK_FALSE(timeline::track_playhead(c, s, 11.96));   // the ad's frame 124, the main content's 49
+        CHECK(s.unknown == both);
+        const timeline::PlayheadFrame after = frame_at(c, s, 15.0);
+        CHECK(after.ref_index == 125);
+        CHECK(after.sequence == 1);
+        CHECK(s.sequence == 1);
+        CHECK(frame_at(c, s, 15.04).ref_index == 126);
+        CHECK(frame_at(c, s, 17.96).ref_index == 199);
+        // First sight in the main content's first 2 s, whose PTS the ad
+        // repeats: none until 12 s, sequence 0's alone; then the ad's step
+        // back is the next sequence's, as before.
+        timeline::PlayheadState start;
+        CHECK_FALSE(timeline::track_playhead(c, start, 10.0));
+        CHECK(start.unknown == both);
+        CHECK_FALSE(timeline::track_playhead(c, start, 11.96));
+        CHECK(frame_at(c, start, 12.0).ref_index == 50);
+        CHECK(frame_at(c, start, 12.96).ref_index == 74);
+        CHECK(frame_at(c, start, 10.0).ref_index == 75);
+        CHECK(start.sequence == 1);
+
+        // First sight at a PTS in one sequence only: the playhead at once.
+        for (const auto& [pts, ref] : { std::pair{ 12.48, 62 }, std::pair{ 16.0, 150 } }) {
+            INFO("PTS " << pts);
+            timeline::PlayheadState fresh;
+            const timeline::PlayheadFrame f = frame_at(c, fresh, pts);
+            CHECK(f.ref_index == ref);
+            CHECK(f.sequence == fresh.sequence);
+        }
+
+        // A PTS between frames lies in each sequence with a frame within
+        // half a frame of it, half a frame itself included: first sight at
+        // 10.50 s, half a frame from the main content's frame 12 and from the
+        // ad's frame 87, lies in both, no playhead; at 12.02 s, half a frame
+        // from the main content's frame 50, in sequence 0 alone, the ad's
+        // nearest frame, at 11.96 s, being three half frames away.
+        timeline::PlayheadState between;
+        CHECK_FALSE(timeline::track_playhead(c, between, 10.50));
+        CHECK(between.unknown == both);
+        timeline::PlayheadState beside;
+        CHECK(frame_at(c, beside, 12.02).ref_index == 50);
+
+        // A PTS that lies in no sequence, further than half a frame from
+        // every frame: the nearest frame's sequence, the earlier of two as
+        // near, as WP12 built it, at first sight and where the playhead
+        // wasn't known alike, a reading pending the owner
+        // (src/TimelineMatch.cpp). At first sight at 14.0 s, between the
+        // main content's last frame before the ad, at 12.96 s, and its first
+        // after it, at 15.0 s, the nearer: sequence 1's frame 125.
+        timeline::PlayheadState gap;
+        const timeline::PlayheadFrame g = frame_at(c, gap, 14.0);
+        CHECK(g.ref_index == 125);
+        CHECK(g.sequence == 1);
+        // The report lacking the frames of PTS 10.52 s in both sequences, as
+        // it lacks an unpaired frame: no playhead at 10.48 s, which the ad
+        // and the main content share, and at 10.52 s the nearest frames, at
+        // 10.48 s and 10.56 s in each sequence, all as near, the first of
+        // them: sequence 0's frame 12, which ends the playhead not known; the
+        // same at first sight. The clock's segments go with the frames, the
+        // tracker not using them.
+        timeline::VariantClock holed = c;
+        std::erase_if(holed.frames,
+                      [](const timeline::ClockFrame& fr) { return fr.ref_index == 13 || fr.ref_index == 88; });
+        holed.segments.clear();
+        REQUIRE(holed.frames.size() == 198);
+        timeline::PlayheadState hole;
+        CHECK_FALSE(timeline::track_playhead(holed, hole, 10.48));
+        CHECK(hole.unknown == both);
+        const timeline::PlayheadFrame h = frame_at(holed, hole, 10.52);
+        CHECK(h.ref_index == 12);
+        CHECK(h.sequence == 0);
+        timeline::PlayheadState hole_first;
+        CHECK(frame_at(holed, hole_first, 10.52).ref_index == 12);
+    }
+
+    // A seek that shows no frame for one of the leads tells nothing either:
+    // on the probe's shape of an ad whose timestamps restart at 1 s
+    // (tests/test_hls_seek_behaviour.cpp), a seek to the stream's last frame
+    // shows it with no lead, and with a lead of a frame nothing, the demuxer
+    // dropping every packet to the stream's end, as decide_seek() says of it
+    // below.
+    constexpr double kReset[3] = { 10.0, 1.0, 12.0 };
+    const timeline::VariantClock reset = probe_clock(kReset);
+    const timeline::SeekClock    probe_seek{ .start = 10.0, .duration = 6.0, .dts_lead = 0.04 };
+    CHECK(timeline::simulate_seek(reset, probe_seek, 13.96, 0.0).frame == 149);
+    CHECK(timeline::simulate_seek(reset, probe_seek, 13.96, 0.04).kind == timeline::SeekLanding::Kind::Nothing);
+    timeline::PlayheadState dropped{ .sequence = 2 };
+    timeline::playhead_sought(dropped, reset, probe_seek, 13.96);
+    CHECK(dropped.sequence == -1);
+}
+
+TEST_CASE("timeline::track_playhead: a jump of the PTS tells the sequence where it leads to one the PTS lies "
+          "in (D-124 (c))",
+          "[timeline][timeline_match]")
+{
+    // Five sequences of 50 frames at 25 fps, as the aligner splits them
+    // (D-046): 0 from 10 s; 1 from 10 s again, a step back; 2 from 30 s, a
+    // step forward of more than 10 s; 3 and 4 from 30 s again, steps back.
+    timeline::VariantClock c;
+    c.time_base  = kTs;
+    c.frame_rate = { 25, 1 };
+    for (int s = 0; s < 5; ++s)
+        for (int i = 0; i < 50; ++i)
+            c.frames.push_back({ .index = s * 50 + i, .ref_index = s * 50 + i,
+                                 .pts = (s < 2 ? 10 : 30) * 90000 + i * kFrame25, .sequence = s });
+    auto frame_at = [&](timeline::PlayheadState& st, double pts) {
+        const std::optional<timeline::PlayheadFrame> f = timeline::track_playhead(c, st, pts);
+        REQUIRE(f);
+        CHECK(st.unknown.empty());
+        return *f;
+    };
+    // First sight at 10.48 s, in 0 and 1; still both at 11.96 s, with no
+    // jump in between.
+    timeline::PlayheadState st;
+    CHECK_FALSE(timeline::track_playhead(c, st, 10.48));
+    CHECK_FALSE(timeline::track_playhead(c, st, 11.96));
+    CHECK(st.unknown == std::vector<int>{ 0, 1 });
+    const timeline::PlayheadState lying = st;
+    // A step back to 10 s, which both have a frame at: it leads 0 to 1 and 1
+    // to 2, and of those 1 alone has a frame there, its first.
+    timeline::PlayheadState back = lying;
+    const timeline::PlayheadFrame b = frame_at(back, 10.0);
+    CHECK(b.ref_index == 50);
+    CHECK(back.sequence == 1);
+    // Then tracked as before: frame by frame, and at the next jump, forward
+    // to 30 s, the next sequence.
+    CHECK(frame_at(back, 10.04).ref_index == 51);
+    CHECK(frame_at(back, 11.96).ref_index == 99);
+    CHECK(frame_at(back, 30.0).ref_index == 100);
+    CHECK(back.sequence == 2);
+    // A step forward of more than 10 s to 30 s, in 2, 3 and 4: of the
+    // sequences it leads 0 and 1 to, 1 and 2, the PTS lies in 2 alone.
+    timeline::PlayheadState forward = lying;
+    const timeline::PlayheadFrame f = frame_at(forward, 30.0);
+    CHECK(f.ref_index == 100);
+    CHECK(forward.sequence == 2);
+
+    // First sight at 30.48 s, in 2, 3 and 4; a step back to 30 s leads them
+    // to 3, 4 and 4, the last staying, and the PTS lies in both 3 and 4:
+    // that jump tells nothing, and a seek then does.
+    timeline::PlayheadState three;
+    CHECK_FALSE(timeline::track_playhead(c, three, 30.48));
+    CHECK_FALSE(timeline::track_playhead(c, three, 31.96));
+    CHECK_FALSE(timeline::track_playhead(c, three, 30.0));
+    CHECK(three.unknown == std::vector<int>{ 2, 3, 4 });
+    CHECK(three.sequence == -1);
+    timeline::playhead_seeked(three, 4);
+    CHECK(frame_at(three, 30.0).ref_index == 200);
+
+    // A jump that leads two of the sequences the last PTS lay in to one
+    // tells that one: from a state naming 3 and 4 at 31.96 s, made by hand as
+    // the first playhead case makes `other`, a step back to 30 s leads 3 to 4
+    // and 4 to itself, the last staying, though the PTS lies in 2, 3 and 4.
+    timeline::PlayheadState onto_one{ .last_pts = 2876400, .unknown = { 3, 4 } };   // 31.96 s
+    const timeline::PlayheadFrame one = frame_at(onto_one, 30.0);
+    CHECK(one.ref_index == 200);
+    CHECK(onto_one.sequence == 4);
+
+    // No frames, or no time base: no playhead, and nothing named.
+    timeline::PlayheadState none = lying;
+    CHECK_FALSE(timeline::track_playhead(timeline::VariantClock{}, none, 10.0));
+    CHECK(none.unknown.empty());
 }
 
 TEST_CASE("timeline::track_playhead: a forward jump of more than 10 s, and a coarser grid",

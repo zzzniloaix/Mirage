@@ -3,7 +3,8 @@
 // The timeline panel's document matched to the open master, its playhead, its seek decision and
 // the interval a click queries, ImGui-free (eval/phase3-survey/design.md §10; DECISIONS.md
 // D-114 (b), (d)): written by WP12, the path among a playlist's equal bytes by WP12b (D-121 (d)),
-// a relative open path made absolute there by WP12c (D-124 (g) 2).
+// a relative open path made absolute there by WP12c (D-124 (g) 2), the playhead not known where
+// its sequence isn't by WP13b (D-124 (c)).
 //
 // What the panel (src/TimelinePanel.h, WP13) needs between a loaded document
 // (src/TimelineLoad.h) and the stream the player has open, as pure functions
@@ -80,7 +81,16 @@
 //   played, and that frame's reference frame on the axis. The sequence moves
 //   to the next one when the PTS jumps as the aligner defines a
 //   discontinuity, back, or forward by more than 10 s (src/VMAFAlign.h), and
-//   is set from the target on a seek.
+//   is set from where a seek or a variant switch lands, a seek's where it
+//   lands in one sequence for every lead of the first packet's DTS that the
+//   seek decision allows (playhead_sought()). Where it isn't known, as when
+//   the panel first sees the player's frames or after a seek whose landing
+//   can't be told, and the PTS on screen lies in more than one sequence, as
+//   inside an ad whose timestamps restart at the main content's origin, the
+//   playhead isn't known either: none is given, and the sequences it may be
+//   in are, until a seek, a switch or a jump of the PTS tells which, or the
+//   PTS lies in one sequence only, so that the panel never marks a frame
+//   other than the one on screen (D-124 (c), Q93 (c); track_playhead()).
 // - The seek decision (ui.md §2.4; D-114 (b), Q37 (a)): whether the player's
 //   seek to a frame's PTS shows that frame, by the seek as ui.md §1.6 reads
 //   FFmpeg 8.1.1's hls.c and tests/test_hls_seek_behaviour.cpp pins it. The
@@ -256,11 +266,18 @@ inline VariantClock variant_clock(const Snapshot& s, int variant)
 
 // ── The playhead (ui.md §2.4) ────────────────────────────────────────────────
 
+struct SeekClock;   // the stream as the player's seek sees it (below, the seek decision)
+
 // The playhead's state between frames: the sequence being played and the
-// last PTS tracked.
+// last PTS tracked; while the sequence isn't known, the sequences the last
+// PTS tracked lay in, which nothing has told apart (D-124 (c)).
 struct PlayheadState {
-    int sequence = -1;                       // -1: not known yet
+    int sequence = -1;                       // -1: not known
     std::optional<std::int64_t> last_pts;    // ticks of the clock's time base
+    // The playhead not known (D-124 (c), Q93 (c)): the two or more sequences
+    // with a frame at the last PTS tracked, ascending, which is why
+    // track_playhead() gave no frame for it; empty otherwise.
+    std::vector<int> unknown;
 };
 
 // Where the playhead is: a frame of the variant's clock and its reference frame.
@@ -276,15 +293,64 @@ struct PlayheadFrame {
 // sequence `state` holds, the earlier of two as near, and `state` moved on.
 // The sequence moves to the next one when `pts` is lower than the last PTS
 // tracked, or higher by more than vmafalign::kForwardJump (D-046), and
-// stays at the last one; where it isn't known yet, it is the first sequence
-// with a frame within half a frame of `pts`, else the nearest frame's.
-// nullopt for a clock without frames or without a time base.
+// stays at the last one. Where it isn't known, as at first sight (a state
+// as made) and after a seek or a switch whose landing isn't known
+// (playhead_seeked() with -1), `pts` tells it where it lies (D-124 (c),
+// Q93 (c)): it lies in each sequence with a frame within half a frame of
+// it, and where that is one sequence only, that one; where it is none, the
+// nearest frame's, as WP12 built it, which ends a playhead not known too,
+// though D-124 (c) names no such teller: a reading pending the owner
+// (src/TimelineMatch.cpp); and where it is two or more, the playhead isn't
+// known: nullopt, `state.unknown` naming them, until a seek or a switch
+// (playhead_seeked(), playhead_sought(), playhead_switched()), a jump of
+// the PTS or a PTS that lies in one sequence only tells it. A jump tells it
+// where, of the sequences that it leads those the last PTS lay in to, each
+// to its next one as above, exactly one has a frame within half a frame of
+// `pts`. nullopt too for a clock without frames or without a time base,
+// `state.unknown` then empty.
 std::optional<PlayheadFrame> track_playhead(const VariantClock& clock, PlayheadState& state, double pts);
 
 // A seek the player made, to a frame of sequence `sequence` (as the seek
 // decision's target or a landing gives it; -1: not known): the playhead
-// follows from there.
+// follows from there, and where the sequence isn't known, track_playhead()
+// is told it as it is at first sight (D-124 (c)).
 void playhead_seeked(PlayheadState& state, int sequence);
+
+// A seek the player made to `target` (PTS seconds) on the variant of
+// `clock`, one the panel didn't ask for (the seek bar's, a key's, a
+// keyframe step's): the playhead follows from the sequence of the frames
+// simulate_seek() lands `target` on, which tells the panel the sequence
+// (D-124 (c)), where they are of one sequence for every lead of the first
+// packet's DTS that decide_seek() allows, from 0 to the largest of one
+// frame, `seek.video_delay` frames and `seek.dts_lead`. Where the
+// simulation shows no frame for one of them, or frames of two sequences
+// for two, the seek tells nothing, the Demuxer not knowing the lead: the
+// playhead follows from a sequence not known, as at first sight, so that
+// the frame on screen tells it where its PTS lies in one sequence only
+// (track_playhead()). So a seek to one of a libx264 segment's last two
+// frames before an ad whose timestamps restart at the main content's
+// origin, which with no lead shows that frame and with libx264's lead of
+// two frames the first frame after the ad (D-121 (c)), tells nothing.
+void playhead_sought(PlayheadState& state, const VariantClock& clock, const SeekClock& seek, double target);
+
+// A variant switch that put the variant of `clock` on screen, its first
+// frame at `pts` (seconds). The Demuxer repositions a switch with a seek by
+// PTS on the position playing (av_seek_frame, src/Demuxer.cpp), so that
+// the new variant's frames go on from where that seek lands: the playhead
+// follows from the sequence of the frame simulate_seek() lands `pts` on,
+// with no lead of the first packet's DTS, which tells the panel the
+// sequence (D-124 (c)). No other lead is needed, unlike for a seek's
+// target: `pts` is the PTS of the frame the switch put on screen, and a
+// lead that lands the simulation elsewhere carries it on to a later
+// segment's first frame, whose PTS is later, not the frame on screen.
+// Where the simulation shows no frame, the playhead follows from the
+// sequence `state` holds, which isn't known where it holds none. Inside an
+// ad whose timestamps restart at the main content's origin, as D-069's
+// does, that seek lands in the main content, which the player then plays
+// again from there, and the playhead follows the main content's frame on
+// screen: the Demuxer's doing, reported in Phase 3's PR, the Demuxer
+// unchanged, which the owner chose (D-124 (e), Q95 (a)).
+void playhead_switched(PlayheadState& state, const VariantClock& clock, const SeekClock& seek, double pts);
 
 // ── The seek decision (ui.md §2.4; D-114 (b)) ────────────────────────────────
 

@@ -97,9 +97,9 @@ static std::atomic<int>    s_scope_cycle{ 0 };          // Shift+S requests: nex
 static std::atomic<bool>   s_show_probe{ false };       // X: pixel probe
 static std::atomic<bool>   s_show_frames{ false };      // B: frame sizes / GOP
 static std::atomic<bool>   s_show_loudness{ false };    // L: loudness meters
-// E toggles the timeline panel (D-114). D-114 (c) names L, which the
-// loudness meters have had since the engineer tools (D-083): E, Q38's option
-// (b), pending the owner.
+// E toggles the timeline panel (D-114), L staying the loudness meters', which
+// they have had since the engineer tools (D-083), as built, which the owner
+// kept (D-124 (b), Q92 (a)), where D-114 (c) had named L.
 static std::atomic<bool>   s_show_timeline{ false };
 static std::atomic<double> s_cursor_x{ -1.0 };   // window-space cursor, always updated
 static std::atomic<double> s_cursor_y{ -1.0 };
@@ -301,8 +301,8 @@ static void on_key(GLFWwindow* window, int key, int /*scancode*/, int action, in
     else if (key == GLFW_KEY_X) s_show_probe.store(!s_show_probe.load());
     else if (key == GLFW_KEY_B) s_show_frames.store(!s_show_frames.load());
     else if (key == GLFW_KEY_L) s_show_loudness.store(!s_show_loudness.load());
-    // E: the timeline panel, pending the owner, D-114 (c)'s L being the
-    // loudness meters' above (s_show_timeline).
+    // E: the timeline panel, L staying the loudness meters' above, which the
+    // owner kept (D-124 (b); s_show_timeline).
     else if (key == GLFW_KEY_E) s_show_timeline.store(!s_show_timeline.load());
     else if (key == GLFW_KEY_O) s_open_dialog.fetch_add(1);
     // Shift+. / Shift+, → single-frame advance / step-back (frame-accurate).
@@ -1074,8 +1074,8 @@ int main(int argc, char* argv[])
     app.net_inspector.set_user_width(app.prefs.net_width);
     // The timeline panel's document (D-114 (d)): --timeline's, which opens
     // the panel, as --ui-net opens the sidebar; else prefs.txt's, which is
-    // loaded when the panel is first opened and doesn't open it: whether it
-    // should is pending the owner.
+    // loaded when the panel is first opened and doesn't open it, as built,
+    // which the owner kept (D-124 (d), Q94 (a)).
     app.timeline_panel.set_document(cli.timeline_doc.empty() ? app.prefs.timeline : cli.timeline_doc);
     if (!cli.timeline_doc.empty() || !cli.ui_timeline.empty()) s_show_timeline.store(true);
     app.sub_pref = app.prefs.sub;

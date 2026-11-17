@@ -1,25 +1,32 @@
 #pragma once
 
 // The timeline panel, the player's ImGui window over a timeline document
-// (eval/phase3-survey/design.md §10; DECISIONS.md D-114): written by WP13.
+// (eval/phase3-survey/design.md §10; DECISIONS.md D-114): written by WP13,
+// the owner's answers to its questions put in by WP13b (D-124).
 //
 // Docked above the control stack, full width left of the network sidebar,
 // lowest in the bottom stack (D-114 (a)): one curve per scored variant and
 // per session as min/max envelopes per framebuffer column, so that a
-// one-frame dip stays visible (eval/phase3-survey/ui.md §1.8, F4); the
-// document's detected drops shaded; one event lane per source, in §3.1's
-// order; the playhead, the frame on screen on the reference's axis. Wheel
-// zoom, drag pan and double-click fit as the Alignment tab has them
-// (src/NetInspectorAlign.cpp). A click, a release that moved less than 3 px
-// and that no second click makes a double-click, picks the lowest frame near
-// the cursor on the curve under it, shows its attribution card
-// (click_answer(), D-114 (d)) and seeks through the player's s_seek_to only
-// where decide_seek() says that a seek shows the frame (D-114 (b));
-// otherwise the card says why, and offers the segment start the decision
-// gives, which the user takes with its button. One seek per click, never
-// while the view or the seek bar is dragged; the card says whether the player
-// made it, and a decision whose seek wasn't made is made again when another
-// variant comes on screen, whose seek a click asks for anew.
+// one-frame dip stays visible (eval/phase3-survey/ui.md §1.8, F4), and none
+// over a session's span that isn't scored, where no point is picked either
+// (D-124 (a), Q91 (b)); the document's detected drops shaded; one event
+// lane per source, in §3.1's order; the playhead, the frame on screen on the
+// reference's axis, or, where its PTS lies in more than one discontinuity
+// sequence that nothing has told apart since the panel first saw the
+// player's frames, or since a seek, a switch or a step whose landing it
+// can't tell, none, and a line that says why (D-124 (c), Q93 (c);
+// timeline::track_playhead()). Wheel zoom, drag pan and double-click fit as
+// the Alignment tab has them (src/NetInspectorAlign.cpp). A click, a release
+// that moved less than 3 px and that no second click makes a double-click,
+// picks the lowest frame near the cursor on the curve under it, shows its
+// attribution card (click_answer(), D-114 (d)) and seeks through the
+// player's s_seek_to only where decide_seek() says that a seek shows the
+// frame (D-114 (b)); otherwise the card says why, and offers the segment
+// start the decision gives, which the user takes with its button. One seek
+// per click, never while the view or the seek bar is dragged; the card says
+// whether the player made it, and a decision whose seek wasn't made is made
+// again when another variant comes on screen, whose seek a click asks for
+// anew.
 //
 // What decides an attribution, a match or a seek is WP12's, ImGui-free and
 // tested in mirage_tests (src/TimelineLoad.h, src/TimelineView.h,
@@ -37,6 +44,12 @@
 // Its one setting is the document (D-114 (d)): --timeline's, else
 // prefs.txt's timeline= line, which the panel's Open… sets. Draw between
 // PlayerUI's begin_frame() and end_frame().
+//
+// WP13's choices that neither the design nor the decisions settled are as
+// built, which the owner kept (D-124 (f), Q96 1): the hit radii and the
+// markers' spacing, prefs.txt's line written by Open… alone, the lanes'
+// events, the fixed score axis, --timeline-report's seconds from the launch,
+// a click that waits out the double-click time, and the height not kept.
 
 #include "TimelineLoad.h"
 #include "TimelineMatch.h"
@@ -115,6 +128,9 @@ public:
     // QA (--ui-timeline): comma-separated "fit=1", "zoom=<t0>:<t1>",
     // "variants=all|<entry>,<entry>..." (the curves of the variants those
     // master entries name; the bare items after it continue its list),
+    // "curves=all|<curve>,<curve>..." (those curves alone, named as --curve
+    // names them, "pair:1" or "session:0", whatever variants= says; the bare
+    // items after it continue its list),
     // "pick=<position>" (the lowest point of the shown curves near that
     // position on the axis, as a click there picks it, the curve under the
     // cursor aside) or "pick=attribution:<n>" (the lowest point of the
@@ -126,8 +142,10 @@ public:
 
     // QA (--timeline-report): the panel's state as text: the document and
     // its load, how it matched the open stream, the variant on screen, the
-    // playhead, the view, the drops, the pick with its attribution card and
-    // its seek, or why there is none (eval/phase3-survey/ui.md §5.3).
+    // playhead, or why there is none, the view, where each shown curve was
+    // drawn at the last draw and a session's spans that aren't scored, the
+    // drops, the pick with its attribution card and its seek, or why there
+    // is none (eval/phase3-survey/ui.md §5.3).
     std::string report_text() const;
 
 private:
@@ -162,6 +180,7 @@ private:
         std::string  note;                // Refused: why
         double        asked_target = 0.0;  // Asked: the PTS asked for
         std::uint64_t asked_serial = 0;    // Asked: the player's seek serial then
+        int           asked_sequence = -1; // Asked: the sequence of the frame asked for; -1: not known
     };
     // A scripted pick (--ui-timeline).
     struct QaPick {
@@ -208,6 +227,7 @@ private:
 
     void take_load();
     void on_snapshot();
+    void apply_qa_shown();
     void ensure_match(const Inputs& in);
     int  screen_variant(const Inputs& in) const;
     const timeline::VariantClock& clock_of(int variant);
@@ -224,6 +244,7 @@ private:
     void build_lanes(float width);
     bool lane_shows(const timeline::Event& e) const;
     std::string variant_text(int variant) const;
+    std::string unknown_line() const;
     std::vector<std::string> card_lines(const Pick& p) const;
     std::string seek_line(const Pick& p) const;
     void draw_card(const Inputs& in, Out& out, float w, float h);
@@ -248,6 +269,10 @@ private:
     int                                    play_variant_ = -1;
     timeline::PlayheadState                play_state_;
     std::optional<timeline::PlayheadFrame> playhead_;
+    // No playhead_ because its sequence isn't known (D-124 (c)): the
+    // sequences the PTS on screen lies in, as the tracker gave them; empty
+    // otherwise.
+    std::vector<int>                       playhead_unknown_;
     double                                 playhead_pts_ = 0.0;   // the frame on screen it was found for
     std::uint64_t          seen_frame_ = 0, seen_seek_ = 0;
     std::int64_t           seen_step_  = 0;
@@ -257,6 +282,11 @@ private:
     // The view and what it shows.
     timeline::View                           view_;
     std::vector<Envelope>                    env_;   // per line
+    // Per line, the runs of positions over which its curve was drawn at the
+    // last draw, within the view, for --timeline-report; empty for a hidden
+    // line. drawn_valid_: the curves have been drawn since the snapshot.
+    std::vector<std::vector<std::pair<double, double>>> drawn_;
+    bool                                                drawn_valid_ = false;
     std::array<Lane, timeline::kSourceCount> lanes_;
     double lanes_t0_ = 0.0, lanes_t1_ = -1.0;
     float  lanes_w_  = 0.0f;
@@ -270,6 +300,7 @@ private:
     bool                                     qa_fit_ = false;
     std::optional<std::pair<double, double>> qa_zoom_;
     std::optional<std::vector<std::size_t>>  qa_entries_;   // variants=<entry>,...; nullopt: all
+    std::optional<std::vector<std::string>>  qa_curves_;    // curves=<curve>,...; nullopt: by variants=
     std::vector<QaPick>                      qa_picks_;
     bool                                     qa_view_due_ = false;   // fit= or zoom= not applied yet
 };
