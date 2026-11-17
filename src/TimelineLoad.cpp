@@ -106,11 +106,11 @@ LoadResult load_snapshot(const LoadInput& input, std::stop_token stop)
     // read from the current directory where the file is there, else from
     // the document's directory, for a player started elsewhere (D-121 (a),
     // Q86 (c)), as mirage_vmaf attribute reads it without --report
-    // (D-124 (g) 4): find_report(), which both programs compile. Where
-    // neither directory holds the file, the refusal names both paths. Which
-    // of the two holds it is decided on disk, whatever `read` is, so that an
-    // injected reader is asked only for one that exists there. The hashes
-    // are checked below on whichever file was read.
+    // (D-124 (g) 4): find_report() (src/TimelineDoc.h), which both programs
+    // compile. Where neither directory holds the file, the refusal names
+    // both paths. Which of the two holds it is decided on disk, whatever
+    // `read` is, so that an injected reader is asked only for one that
+    // exists there. The hashes are checked below on whichever file was read.
     snap->report_path = input.report;
     if (input.report.empty()) {
         const std::optional<std::string> found = find_report(input.document, snap->info.report.path, err);

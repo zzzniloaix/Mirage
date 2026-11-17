@@ -35,9 +35,10 @@
 //    directory that can't be read, or a directory of the file's name, is
 //    refused there, as built, which the owner kept (D-124 (g) 1, Q97 1 (a)).
 //    mirage_vmaf attribute without --report finds the report by the same
-//    rule (D-124 (g) 4, Q97 4 (b)), find_report() below, which both
-//    programs compile. The report is read by read_ladder_report(), which
-//    refuses a layout or a report the timeline doesn't read (D-081 (b)).
+//    rule (D-124 (g) 4, Q97 4 (b)), timeline::find_report()
+//    (src/TimelineDoc.h), which both programs compile. The report is read
+//    by read_ladder_report(), which refuses a layout or a report the
+//    timeline doesn't read (D-081 (b)).
 // 3. The hashes (D-072, Q06 (c)), of whichever file step 2 read: the report
 //    is the document's when the SHA-256 of its bytes is the one the document
 //    names; otherwise when the SHA-256 of its scores digest (scores_text())
@@ -59,12 +60,10 @@
 // PENDING.
 //
 // It calls only what the player compiles (CMakeLists.txt's mirage target):
-// the core, FileHash; nothing of ImGui, GL or GLFW (D-031). find_report(),
-// step 2's rule, is defined here inline, since mirage_vmaf compiles
-// src/TimelineCli.cpp, which includes this header for it, and not
-// src/TimelineLoad.cpp. Unit-tested in tests/test_timeline_load.cpp, and
-// find_report() through mirage_vmaf attribute in tests/test_timeline_cli.cpp
-// too.
+// the core, FileHash; nothing of ImGui, GL or GLFW (D-031). Unit-tested in
+// tests/test_timeline_load.cpp, and step 2's rule, find_report()
+// (src/TimelineDoc.h), through mirage_vmaf attribute in
+// tests/test_timeline_cli.cpp too.
 
 #include "LadderReportRead.h"
 #include "TimelineDoc.h"
@@ -73,17 +72,13 @@
 #include "TimelineView.h"
 
 #include <atomic>
-#include <cerrno>
 #include <cstdint>
-#include <filesystem>
-#include <format>
 #include <functional>
 #include <memory>
 #include <mutex>
 #include <optional>
 #include <stop_token>
 #include <string>
-#include <system_error>
 #include <thread>
 #include <vector>
 
@@ -139,52 +134,6 @@ using ReadFile = std::function<bool(const std::string& path, std::stop_token sto
 
 // A file from disk, as ReadFile: read in chunks, `stop` checked between them.
 bool read_file(const std::string& path, std::stop_token stop, std::string& text, std::string& err);
-
-// Where the ladder report that the timeline document at `document` names by
-// `path`, its ladder_report.path, is read: step 2's rule (D-121 (a),
-// Q86 (c)), by which mirage_vmaf attribute without --report finds it too
-// (D-124 (g) 4, Q97 4 (b); src/TimelineCli.cpp), so that one document finds
-// its report the same way in both programs, another report at the path in
-// the current directory being refused by its hashes in either (D-072). An
-// absolute path, and an empty one, which names no file, are taken as they
-// are, and so is a relative one where the document's path names no
-// directory but the current one, lexically normalized ("timeline.json",
-// "./timeline.json", "a/../timeline.json"). Otherwise a relative path is
-// taken from the current directory where something is at it there, else
-// from the document's directory where something is at it there; another
-// path to the current directory, an absolute one among them, isn't told
-// apart without a look on disk, its one file then looked for at both paths,
-// and named twice where it isn't there. Something is at a path where
-// std::filesystem::exists() says so: a file there that can't be read, or a
-// directory of the file's name, is that directory's, and its read fails
-// there, as built, which the owner kept (D-124 (g) 1, Q97 1 (a)). The path
-// to read; nullopt where neither directory holds the file, `err` then the
-// refusal, which names both paths, each with why, for the caller to show as
-// it is.
-inline std::optional<std::string> find_report(const std::string& document, const std::string& path,
-                                              std::string& err)
-{
-    const std::filesystem::path p(path);
-    if (path.empty() || p.is_absolute()) return path;
-    const std::filesystem::path dir = std::filesystem::path(document).parent_path();
-    if (dir.empty() || dir.lexically_normal() == ".") return path;
-    const std::string beside = (dir / p).string();
-    // Whether something is at `at`, else why not, in a phrase without the
-    // path: std::generic_category(), not std::strerror(), since the loader
-    // runs this on a worker.
-    const auto there = [](const std::string& at, std::string& why) {
-        std::error_code ec;
-        if (std::filesystem::exists(at, ec)) return true;
-        why = ec ? ec.message() : std::generic_category().message(ENOENT);
-        return false;
-    };
-    std::string here_why, beside_why;
-    if (there(path, here_why)) return path;
-    if (there(beside, beside_why)) return beside;
-    err = std::format("cannot read the ladder report {}, from the current directory or from the "
-                      "document's: {}: {}; {}: {}", path, path, here_why, beside, beside_why);
-    return std::nullopt;
-}
 
 // What to load.
 struct LoadInput {

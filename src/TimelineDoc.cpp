@@ -2182,6 +2182,31 @@ ReportInfo report_info(const LadderScores& scores)
     return r;
 }
 
+std::optional<std::string> find_report(const std::string& document, const std::string& path,
+                                       std::string& err)
+{
+    const std::filesystem::path p(path);
+    if (path.empty() || p.is_absolute()) return path;
+    const std::filesystem::path dir = std::filesystem::path(document).parent_path();
+    if (dir.empty() || dir.lexically_normal() == ".") return path;
+    const std::string beside = (dir / p).string();
+    // Whether something is at `at`, else why not, in a phrase without the
+    // path: std::generic_category(), not std::strerror(), since the loader
+    // runs this on a worker.
+    const auto there = [](const std::string& at, std::string& why) {
+        std::error_code ec;
+        if (std::filesystem::exists(at, ec)) return true;
+        why = ec ? ec.message() : std::generic_category().message(ENOENT);
+        return false;
+    };
+    std::string here_why, beside_why;
+    if (there(path, here_why)) return path;
+    if (there(beside, beside_why)) return beside;
+    err = std::format("cannot read the ladder report {}, from the current directory or from the "
+                      "document's: {}: {}; {}: {}", path, path, here_why, beside, beside_why);
+    return std::nullopt;
+}
+
 std::optional<double> number_of(const Value& value)
 {
     if (const auto* d = std::get_if<double>(&value.v)) return *d;

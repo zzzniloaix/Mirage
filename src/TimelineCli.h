@@ -182,18 +182,20 @@
 //
 // Choices the design left open, which the owner's D-099 (c) keeps as they
 // are here, and stated in the help: attribute's --report defaults to the
-// path the document names, taken from the current directory as mirage_vmaf
-// takes its inputs (D-081 (b)); without --curve a query answers every pair's
-// curve, and with a session the session's after them (D-111 (g), above);
-// drops are numbered from 1 in the order they are listed, the curves in
-// turn, or with --curve that curve's alone, which is what --drop counts;
-// --auto takes W and N from its own options, not from the document, and
-// needs both (D-077); arguments that don't fit the document (a curve, a
-// drop, frames or an interval it doesn't have) are bad arguments, exit
-// status 2. --frames can't go past the axis's last frame, and so an
-// --interval can't hold time past the axis: a frame has to start at or after
-// its t0, and its t1 can't be after the axis's end, where the last frame
-// ends.
+// path the document names, a relative one read as the player's timeline
+// panel reads it, from the current directory where something is at that path
+// there, else from the document's directory (D-124 (g) 4, D-081 (b)
+// overtaken in part; timeline::find_report(), src/TimelineDoc.h); without
+// --curve a query answers every pair's curve, and with a session the
+// session's after them (D-111 (g), above); drops are numbered from 1 in the
+// order they are listed, the curves in turn, or with --curve that curve's
+// alone, which is what --drop counts; --auto takes W and N from its own
+// options, not from the document, and needs both (D-077); arguments that
+// don't fit the document (a curve, a drop, frames or an interval it doesn't
+// have) are bad arguments, exit status 2. --frames can't go past the axis's
+// last frame, and so an --interval can't hold time past the axis: a frame
+// has to start at or after its t0, and its t1 can't be after the axis's end,
+// where the last frame ends.
 //
 // A pair's number (D-092 (b)). --curve pair:<k>, the answers' text and every
 // error name a pair as the document does, by the ladder report's own

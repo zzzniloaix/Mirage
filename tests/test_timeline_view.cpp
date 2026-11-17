@@ -21,9 +21,9 @@
 // over D-069's ad: the point before it standing for the frames up to its
 // start only, no point meeting its frames, its columns holding no score, the
 // first column's among them, and no point picked in it, across it and at
-// its two ends, with the overloads that WP13's panel calls kept as they
-// were; and each against brute force on random curves with random such
-// spans, empty ones and adjacent ones among them.
+// its two ends, with the overloads without the spans, a curve's with no
+// such span, kept as they were; and each against brute force on random
+// curves with random such spans, empty ones and adjacent ones among them.
 
 #include <catch2/catch_test_macros.hpp>
 

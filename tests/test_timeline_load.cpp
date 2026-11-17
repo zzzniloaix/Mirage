@@ -578,7 +578,7 @@ TEST_CASE("timeline::load_snapshot: a session's span that isn't scored, carried 
     got = pick(498.0f, 4.0f);   // a reach forward over its end
     REQUIRE(got);
     CHECK(got->ref_index == 125);
-    // The overload without the spans, which WP13's panel calls until WP13b
+    // The overload without the spans, a curve's with no such span
     // (src/TimelineView.h), picks frame 74's point there, as WP12 built it.
     got = timeline::pick_lowest(c.points, c.envelope, s.scale, fit, 400.0f, 0.0f, 800.0f, 0.0f);
     REQUIRE(got);

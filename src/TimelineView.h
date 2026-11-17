@@ -36,9 +36,9 @@
 //   and the envelope's columns hold no score over it, so that the panel can
 //   draw no curve there. The view takes those spans as the loader hands them
 //   over from the document (PanelCurve::unscored, src/TimelineLoad.h), by
-//   the overloads below that take `unscored`; the ones without it are those
-//   of a curve with no such span, a pair's, and are what WP13's panel calls
-//   (below, "For the panel").
+//   the overloads below that take `unscored`, which the panel calls for
+//   every curve (below, "For the panel"); the ones without it are those of a
+//   curve with no such span, as a pair's.
 // - Envelopes. Each curve's scores as a min/max pyramid, built once when a
 //   document is loaded (src/TimelineLoad.h; ui.md §4.2), so that a column's
 //   minimum and maximum cost O(log n), and a redraw, each column's edges
@@ -62,32 +62,23 @@
 //   seconds: on an axis without seconds the panel chooses and labels its
 //   ticks itself, as frame indices.
 //
-// For the panel (src/TimelinePanel.cpp), whose drawing of a session's span
-// that isn't scored WP13b changes after WP12c (D-124 (a)). WP12c kept every
-// declaration that WP13's panel calls as it was, so that the panel builds
-// unchanged and, until WP13b, still draws and picks as WP12's view had it,
-// the point before such a span standing for its frames: it calls
-// envelope(), pick_lowest() and points_meeting() without `unscored`, and
-// draws a point's step, where the view holds fewer points than columns, to
-// the next point's frame, or its own plus one, which it works out itself.
-// What WP13b needs, each from the curve's PanelCurve, whose `unscored` is
-// empty for a pair's curve, so that a pair's is drawn as before:
-// - envelope(points, envelope, unscored, ...) for the columns, which then
-//   hold no score over the span: the panel already breaks its line at a
-//   column without one;
+// For the panel (src/TimelinePanel.cpp), which draws a session's span that
+// isn't scored as outside the data (D-124 (a)), by WP13b. It calls, for
+// every curve, the overloads that take its PanelCurve's `unscored`, empty
+// for a pair's curve, so that a pair's is drawn as before:
+// - envelope(points, envelope, unscored, ...) for the columns, which hold no
+//   score over the span, the panel breaking its line at a column without
+//   one;
 // - pick_lowest(points, envelope, unscored, ...) for a click and a QA pick,
-//   which then picks no point in the span;
+//   which pick no point in the span;
 // - points_meeting(points, unscored, ...) for the points in view and for the
-//   hover's frame, which then meets no point in the span, and point_end()
-//   for where each point's step ends, the span's start for the point before
-//   it, in place of the panel's own end; and where that end comes before
-//   the next point's frame, the line is to end there too, by the panel's
-//   flush() as at a point without a score: its step loop joins each point's
-//   step to the next point's in one line, which would otherwise cross the
-//   span from the point before it to the point after it;
-// - PanelCurve::unscored itself, the reference frames to mark as not
-//   scored, should the panel mark them, as its event lines already say of
-//   a variant_span that isn't scored (D-105 (b)).
+//   hover's frame, which meet no point in the span, and point_end() for
+//   where each point's step ends, the span's start for the point before it;
+//   where that end comes before the next point's frame, the line ends there
+//   too, by the panel's flush() as at a point without a score, since its
+//   step loop joins each point's step to the next point's in one line, which
+//   would otherwise cross the span from the point before it to the point
+//   after it.
 //
 // Plain structs and functions; nothing here reads a clock, a file or the
 // player's state. Unit-tested in tests/test_timeline_view.cpp.
@@ -252,9 +243,9 @@ std::int64_t point_end(const Curve& curve, const std::vector<Interval>& unscored
 // Empty for an empty run of frames.
 PointRange points_meeting(const Curve& curve, const std::vector<Interval>& unscored,
                           std::int64_t first_frame, std::int64_t end_frame);
-// The same for a curve with no span outside its data, a pair's: a point's
-// span running to the next point's frame, the last point's to its frame plus
-// one. What WP13's panel calls (this file's head, "For the panel").
+// The same for a curve with no span outside its data, as a pair's: a
+// point's span running to the next point's frame, the last point's to its
+// frame plus one.
 PointRange points_meeting(const Curve& curve, std::int64_t first_frame, std::int64_t end_frame);
 
 // The envelope of `curve` over `columns` columns of the view: column c holds
@@ -269,8 +260,7 @@ PointRange points_meeting(const Curve& curve, std::int64_t first_frame, std::int
 std::vector<MinMax> envelope(const Curve& curve, const Pyramid& pyramid,
                              const std::vector<Interval>& unscored, const AxisScale& scale,
                              const View& view, int columns);
-// The same for a curve with no span outside its data, a pair's. What WP13's
-// panel calls (this file's head, "For the panel").
+// The same for a curve with no span outside its data, as a pair's.
 std::vector<MinMax> envelope(const Curve& curve, const Pyramid& pyramid, const AxisScale& scale,
                              const View& view, int columns);
 
@@ -297,8 +287,7 @@ std::optional<PickedPoint> pick_lowest(const Curve& curve, const Pyramid& pyrami
                                        const std::vector<Interval>& unscored,
                                        const AxisScale& scale, const View& view, float x,
                                        float x0, float width, float radius);
-// The same for a curve with no span outside its data, a pair's. What WP13's
-// panel calls (this file's head, "For the panel").
+// The same for a curve with no span outside its data, as a pair's.
 std::optional<PickedPoint> pick_lowest(const Curve& curve, const Pyramid& pyramid,
                                        const AxisScale& scale, const View& view, float x,
                                        float x0, float width, float radius);

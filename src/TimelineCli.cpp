@@ -10,7 +10,6 @@
 #include "SessionPlan.h"
 #include "TimelineAxis.h"
 #include "TimelineBuild.h"
-#include "TimelineLoad.h"   // find_report(), inline: the panel's loader's rule (D-124 (g) 4)
 #include "TimelineMedia.h"
 #include "VMAFAnalyzer.h"
 
@@ -2209,8 +2208,8 @@ int run_attribute(const std::vector<std::string_view>& argv)
     // without it the document's, a relative one from the current directory
     // where the file is there, else from the document's directory, as the
     // panel's loader reads it (D-124 (g) 4, Q97 4 (b); D-121 (a)), by the
-    // loader's own rule (timeline::find_report(), src/TimelineLoad.h), the
-    // refusal naming both paths where neither holds it.
+    // rule the loader takes (timeline::find_report(), src/TimelineDoc.h),
+    // the refusal naming both paths where neither holds it.
     std::string report_path = args.report;
     if (report_path.empty()) {
         const std::optional<std::string> found = timeline::find_report(args.timeline, info.report.path, err);

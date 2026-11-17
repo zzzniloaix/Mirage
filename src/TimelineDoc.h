@@ -401,6 +401,31 @@ struct ReportInfo {
 // hashes (the design's P-Z).
 ReportInfo report_info(const LadderScores& scores);
 
+// Where the ladder report that the timeline document at `document` names by
+// `path`, its ladder_report.path, is read (D-121 (a), Q86 (c)): the rule by
+// which the player's timeline panel loads it (src/TimelineLoad.h, step 2)
+// and mirage_vmaf attribute without --report finds it (D-124 (g) 4,
+// Q97 4 (b); src/TimelineCli.cpp), so that one document finds its report the
+// same way in both programs, another report at the path in the current
+// directory being refused by its hashes in either (D-072). An absolute
+// path, and an empty one, which names no file, are taken as they are, and
+// so is a relative one where the document's path names no directory but
+// the current one, lexically normalized ("timeline.json", "./timeline.json",
+// "a/../timeline.json"). Otherwise a relative path is taken from the
+// current directory where something is at it there, else from the
+// document's directory where something is at it there; another path to the
+// current directory, an absolute one among them, isn't told apart without a
+// look on disk, its one file then looked for at both paths, and named twice
+// where it isn't there. Something is at a path where
+// std::filesystem::exists() says so: a file there that can't be read, or a
+// directory of the file's name, is that directory's, and its read fails
+// there, as built, which the owner kept (D-124 (g) 1, Q97 1 (a)). The path
+// to read; nullopt where neither directory holds the file, `err` then the
+// refusal, which names both paths, each with why, for the caller to show as
+// it is.
+std::optional<std::string> find_report(const std::string& document, const std::string& path,
+                                       std::string& err);
+
 // The reference the axis is built on, as axis.reference gives it: its URL,
 // and the frame rate and the discontinuity sequences (D-057) of the pair
 // whose reference build_axis() takes, the one whose reference sequences
