@@ -1,5 +1,5 @@
 // Unit tests of src/TimelineMatch.h (eval/phase3-survey/design.md §9.1): written by WP12, a
-// playlist opened alone among equal bytes by WP12b.
+// playlist opened alone among equal bytes by WP12b, one opened by a relative path by WP12c.
 //
 // eval/phase3-survey/ui.md §5.1's matching, mapping, seek decision and the
 // click's interval, on the ad ladder that tests/test_timeline_build.cpp
@@ -22,8 +22,19 @@
 //   with, from another host, a local copy, a URL with a query, the final URL
 //   after a redirect; a variant's playlist location; the longest run of path
 //   components, the first of two as long; the first of them all, with
-//   WP12's warning, where none shares more than its file name, a playlist
-//   opened by a path relative to its own directory among them;
+//   WP12's warning, where none shares more than its file name; and a rung's
+//   playlist opened by a path relative to its own directory, index.m3u8 or
+//   ./index.m3u8 with the current directory the rung's, which the test sets,
+//   matched to the rung by that path made absolute (D-124 (g) 2, Q97 2 (b)),
+//   another rung's through .., a URL and an absolute path compared as they
+//   were given, and from a directory that names no rung the first of all;
+//   with the rungs named by absolute local paths, as a document names them
+//   whose ladder was scored from its master's absolute path, the two
+//   relative paths matched to the rung, the warning naming its whole path
+//   from its root, and the address match comparing a relative path as it
+//   was given, a reading pending the owner: once the playlist's or the
+//   master's bytes have changed, another stream's, where the absolute path
+//   matches by its address;
 // - the playhead: the player's PTS to the frame of the sequence played,
 //   across the ad's restart of its timestamps, after a seek, at a forward
 //   jump of more than 10 s, and on a coarser grid;
@@ -47,6 +58,7 @@
 #include "ManifestParser.h"
 #include "PlaylistEvents.h"
 #include "SessionPlan.h"
+#include "TestTemp.h"
 #include "TimelineBuild.h"
 #include "TimelineLoad.h"
 #include "TimelineMatch.h"
@@ -57,10 +69,12 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <filesystem>
 #include <format>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <vector>
 
 using timeline::CurveRef;
@@ -293,6 +307,24 @@ timeline::VariantClock probe_clock(const double (&starts)[3])
 
 bool near(double a, double b) { return std::abs(a - b) < 1e-9; }
 
+// The current directory set to `dir` while the guard lives, as a player
+// started there has it, and set back when it goes, a failed REQUIRE's
+// exception included (as tests/test_timeline_load.cpp's).
+class InDirectory {
+public:
+    explicit InDirectory(const std::filesystem::path& dir) { std::filesystem::current_path(dir); }
+    ~InDirectory()
+    {
+        std::error_code ec;
+        std::filesystem::current_path(before_, ec);
+    }
+    InDirectory(const InDirectory&)            = delete;
+    InDirectory& operator=(const InDirectory&) = delete;
+
+private:
+    std::filesystem::path before_ = std::filesystem::current_path();
+};
+
 } // namespace
 
 // ── The match (ui.md §2.3) ───────────────────────────────────────────────────
@@ -495,7 +527,8 @@ TEST_CASE("timeline::match_stream: a rung's playlist opened alone from another a
 {
     // D-069's shape: the three rungs' playlists have one text, so that their
     // bytes can't tell them apart. The warning where the path picks the rung
-    // is a reading pending the owner (src/TimelineMatch.h).
+    // is as built, which the owner kept (D-124 (g) 3, Q97 3 (a);
+    // src/TimelineMatch.h).
     const timeline::Timeline     t      = built(ad_inputs());
     const timeline::LadderScores scores = with_master(ad_report(), kMaster, kMasterUrl);
     REQUIRE(t.variants.size() == 3);
@@ -538,11 +571,11 @@ TEST_CASE("timeline::match_stream: a rung's playlist opened alone from another a
     // Under another name, sharing only the file name, or a rung's directory
     // without its file name: none shares more than its file name, so the
     // first of them all, the reference, with the warning as WP12 built it.
-    // The last two are what a player started in a rung's own directory is
-    // given for its playlist, compared as given, the current directory not
-    // taken into account: a reading pending the owner (src/TimelineMatch.h).
+    // What a player started in a rung's own directory is given for its
+    // playlist, index.m3u8 or ./index.m3u8, is made absolute against the
+    // current directory first (D-124 (g) 2): the next test case.
     for (const std::string other : { "http://cdn.invalid/v.m3u8", "http://cdn.invalid/copy/index.m3u8",
-                                     "http://cdn.invalid/v270/other.m3u8", "index.m3u8", "./index.m3u8" }) {
+                                     "http://cdn.invalid/v270/other.m3u8", "/data/copy/index.m3u8" }) {
         INFO(other);
         const StreamMatch m = timeline::match_stream(t, scores, opened(other, kAdPlaylist, other));
         CHECK(m.by == StreamMatch::By::Variant);
@@ -557,6 +590,154 @@ TEST_CASE("timeline::match_stream: a rung's playlist opened alone from another a
     const StreamMatch none   = timeline::match_stream(t, scores, opened(copy, edited, copy));
     CHECK(none.by == StreamMatch::By::None);
     CHECK(none.opened_variant == -1);
+}
+
+TEST_CASE("timeline::match_stream: a rung's playlist opened by a path relative to its own directory, "
+          "index.m3u8 or ./index.m3u8 with the current directory the rung's, named by that path made "
+          "absolute (D-124 (g) 2)",
+          "[timeline][timeline_match]")
+{
+    // D-069's shape, its three rungs of one playlist text, and a copy of the
+    // ladder's directories, ladder/v360, ladder/v270 and ladder/v180, with no
+    // file in them: nothing but the current directory is asked for, nothing
+    // looked up on disk. The player started in a rung's directory is given
+    // its playlist by its file name, compared once made absolute against the
+    // current directory, lexically, so that its path ends with the rung's
+    // ladder/<rung>/index.m3u8, as the rung's URL does.
+    const timeline::Timeline     t      = built(ad_inputs());
+    const timeline::LadderScores scores = with_master(ad_report(), kMaster, kMasterUrl);
+    REQUIRE(t.variants.size() == 3);
+    const std::filesystem::path root = testtemp::path("q97-cwd");
+    std::filesystem::remove_all(root);
+    for (const char* rung : kRungs) std::filesystem::create_directories(root / "ladder" / rung);
+    std::filesystem::create_directories(root / "elsewhere");
+    const std::string first_of_all =
+        "the open playlist's bytes are those of 3 of the document's variants: the first, variant 0, is taken";
+
+    for (int k = 0; k < 3; ++k) {
+        INFO("rung " << kRungs[k]);
+        const InDirectory cwd(root / "ladder" / kRungs[k]);
+        const std::string warning =
+            std::format("the open playlist's bytes are those of 3 of the document's variants: variant {}, "
+                        "whose URL ends with the open playlist's ladder/{}/index.m3u8, is taken", k, kRungs[k]);
+        for (const std::string path : { "index.m3u8", "./index.m3u8" }) {
+            INFO(path);
+            const StreamMatch m = timeline::match_stream(t, scores, opened(path, kAdPlaylist, path));
+            INFO(warnings_of(m));
+            CHECK(m.by == StreamMatch::By::Variant);
+            CHECK(m.entries == StreamMatch::Entries::None);
+            CHECK(m.opened_variant == k);
+            CHECK(m.warnings == std::vector<std::string>{ warning });
+        }
+        // Another rung's, from this one's directory: that rung.
+        const int other = (k + 1) % 3;
+        const std::string sibling = std::format("../{}/index.m3u8", kRungs[other]);
+        CHECK(timeline::match_stream(t, scores, opened(sibling, kAdPlaylist, sibling)).opened_variant == other);
+        // A URL is compared as it was given, and an absolute path as it is:
+        // sharing only the file name, the first of them all.
+        for (const std::string as_given : { "http://cdn.invalid/copy/index.m3u8", "/data/copy/index.m3u8" }) {
+            INFO(as_given);
+            const StreamMatch m = timeline::match_stream(t, scores, opened(as_given, kAdPlaylist, as_given));
+            CHECK(m.opened_variant == 0);
+            CHECK(m.warnings == std::vector<std::string>{ first_of_all });
+        }
+    }
+
+    // From a directory that names no rung: the first of them all, with
+    // WP12's warning, as before.
+    const InDirectory cwd(root / "elsewhere");
+    for (const std::string path : { "index.m3u8", "./index.m3u8" }) {
+        INFO(path);
+        const StreamMatch m = timeline::match_stream(t, scores, opened(path, kAdPlaylist, path));
+        CHECK(m.by == StreamMatch::By::Variant);
+        CHECK(m.opened_variant == 0);
+        CHECK(m.warnings == std::vector<std::string>{ first_of_all });
+    }
+}
+
+TEST_CASE("timeline::match_stream: rungs named by absolute local paths, a rung's playlist opened by a path "
+          "relative to its own directory named whole in the warning, its address compared as given "
+          "(D-124 (g) 2)",
+          "[timeline][timeline_match]")
+{
+    // D-069's shape as a document names it whose ladder was scored from its
+    // master's absolute path: its master and its three rungs of one playlist
+    // text by their absolute paths, <ladder>/master.m3u8 and
+    // <ladder>/<rung>/index.m3u8, the report's entries resolved against the
+    // master's path, as VMAFLadder resolves them. The ladder's directories
+    // are made, with no file in them, and named by their canonical path, as
+    // the current directory gives it back once set there, so that the open
+    // path made absolute shares every component with its rung's.
+    const std::filesystem::path root = testtemp::path("q97-abs");
+    std::filesystem::remove_all(root);
+    for (const char* rung : kRungs) std::filesystem::create_directories(root / "ladder" / rung);
+    const std::filesystem::path ladder = std::filesystem::canonical(root / "ladder");
+    auto local = [&](int k) { return (ladder / kRungs[k] / "index.m3u8").string(); };
+    const std::string sha256 = filehash::sha256_hex(kAdPlaylist);
+    timeline::Timeline t;
+    for (int k = 0; k < 3; ++k)
+        t.variants.push_back({ .index = k, .pair = k - 1, .entries = { static_cast<std::size_t>(k) },
+                               .url = local(k), .playlist_location = local(k), .playlist_sha256 = sha256 });
+    const std::string            master = (ladder / "master.m3u8").string();
+    const timeline::LadderScores scores = with_master(ad_report(), kMaster, master);
+    REQUIRE(scores.entries.size() == 3);
+    for (int k = 0; k < 3; ++k) REQUIRE(scores.entries[static_cast<std::size_t>(k)].url == local(k));
+    const std::string edited = kAdPlaylist + "#EXT-X-INDEPENDENT-SEGMENTS\n";
+
+    for (int k = 0; k < 3; ++k) {
+        INFO("rung " << kRungs[k]);
+        const InDirectory cwd(ladder / kRungs[k]);
+        REQUIRE(std::filesystem::current_path() == ladder / kRungs[k]);
+        // index.m3u8 and ./index.m3u8: the rung, by its bytes and its path,
+        // the warning naming the path whole, from its root.
+        REQUIRE(local(k).starts_with('/'));
+        const std::string warning =
+            std::format("the open playlist's bytes are those of 3 of the document's variants: variant {}, "
+                        "whose URL ends with the open playlist's {}, is taken", k, local(k));
+        for (const std::string path : { "index.m3u8", "./index.m3u8" }) {
+            INFO(path);
+            StreamMatch m = timeline::match_stream(t, scores, opened(path, kAdPlaylist, path));
+            INFO(warnings_of(m));
+            CHECK(m.by == StreamMatch::By::Variant);
+            CHECK(m.entries == StreamMatch::Entries::None);
+            CHECK(m.opened_variant == k);
+            CHECK(m.warnings == std::vector<std::string>{ warning });
+            // Its bytes changed since the build: the address match compares
+            // the relative path as it was given, as WP12 built it, a reading
+            // pending the owner (src/TimelineMatch.h), so that the document
+            // counts as another stream's.
+            m = timeline::match_stream(t, scores, opened(path, edited, path));
+            CHECK(m.by == StreamMatch::By::None);
+            CHECK(m.opened_variant == -1);
+        }
+        // By its absolute path: by its address, with no warning, and once
+        // its bytes have changed, with the warning that says so.
+        StreamMatch m = timeline::match_stream(t, scores, opened(local(k), kAdPlaylist, local(k)));
+        CHECK(m.by == StreamMatch::By::Variant);
+        CHECK(m.opened_variant == k);
+        CHECK(m.warnings.empty());
+        m = timeline::match_stream(t, scores, opened(local(k), edited, local(k)));
+        const std::string changed_since =
+            std::format("{} has changed since the document was built: its SHA-256 is {}, the document's {}",
+                        local(k), filehash::sha256_hex(edited), sha256);
+        CHECK(m.by == StreamMatch::By::Variant);
+        CHECK(m.opened_variant == k);
+        CHECK(m.warnings == std::vector<std::string>{ changed_since });
+    }
+
+    // The master likewise, changed since it was scored: by its absolute
+    // path, by its address, its entries by URL; by a path relative to the
+    // current directory, compared as it was given, a reading pending the
+    // owner, another stream's.
+    const InDirectory cwd(ladder);
+    const std::string changed  = kMaster + "#EXT-X-INDEPENDENT-SEGMENTS\n";
+    const StreamMatch absolute = timeline::match_stream(t, scores, opened(master, changed, master));
+    CHECK(absolute.by == StreamMatch::By::Address);
+    CHECK(absolute.entries == StreamMatch::Entries::Url);
+    CHECK(absolute.variant_of == std::vector<int>{ 0, 1, 2 });
+    const StreamMatch relative = timeline::match_stream(t, scores, opened("master.m3u8", changed, "master.m3u8"));
+    CHECK(relative.by == StreamMatch::By::None);
+    CHECK(relative.variant_of == std::vector<int>{ -1, -1, -1 });
 }
 
 TEST_CASE("timeline::match_stream: among equal bytes, a variant's playlist location, the longest run of "

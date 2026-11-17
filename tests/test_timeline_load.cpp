@@ -1,5 +1,6 @@
 // Unit tests of src/TimelineLoad.h (eval/phase3-survey/design.md §9.1): written by WP12, a
-// relative report path's by WP12b.
+// relative report path's by WP12b, a session's span that isn't scored and find_report() by
+// WP12c.
 //
 // The panel's loader on documents and reports the test writes: the ad ladder
 // of tests/test_timeline_build.cpp (testgen's shape,
@@ -11,6 +12,10 @@
 // - matching hashes accepted: the timeline with the report's curves, every
 //   pair's and the session's (curve_points()), each with its pyramid, the
 //   document's drops and the axis's scale;
+// - a session whose span over the ad plays the reference, in top-rung mode
+//   not scored (D-105 (b)): the span carried with the session's curve, and
+//   in the view outside the curve's data, its columns holding no score and
+//   no point picked in it, across it and at its two ends (D-124 (a));
 // - a report redacted as the eval scripts redact one, accepted by its scores
 //   digest and said to be a redacted copy (P-Z); a changed report refused,
 //   both hashes named; an unknown schema_version refused (Q05 (a)); a
@@ -22,7 +27,8 @@
 //   and where something there can't be read; refused, both paths named,
 //   where neither holds it; tried once where the document's directory is
 //   the current one, lexically normalized; an absolute path, an empty one
-//   and the caller's, read as they are;
+//   and the caller's, read as they are; find_report(), the rule that
+//   mirage_vmaf attribute shares (D-124 (g) 4), on the same cases;
 // - a load stopped through its stop token; the snapshot handed over once; a
 //   second load stopping the first, whose result is never handed over; a
 //   cancel; a result not taken dropped by the next load.
@@ -229,13 +235,29 @@ struct Written {
     std::size_t drops = 0;
 };
 
+// Design §9.3's session plan: entry 1 (v270) for segments 0 to 2, entry 2
+// (v180) for 3 and 4, the ad, and entry 1 for 5 to 7.
+const timeline::SessionPlan kDownAtTheAd{ .name  = "down at the ad",
+                                          .spans = { { .entry = 1, .first_seq = 0, .last_seq = 2 },
+                                                     { .entry = 2, .first_seq = 3, .last_seq = 4 },
+                                                     { .entry = 1, .first_seq = 5, .last_seq = 7 } } };
+
+// A plan whose span over the ad plays entry 0, v360, the reference in
+// top-rung mode, which has no score (D-105 (b)): v270 for segments 0 to 2,
+// the reference for 3 and 4, v180 for 5 to 7.
+const timeline::SessionPlan kReferenceAtTheAd{ .name  = "the reference at the ad",
+                                               .spans = { { .entry = 1, .first_seq = 0, .last_seq = 2 },
+                                                          { .entry = 0, .first_seq = 3, .last_seq = 4 },
+                                                          { .entry = 2, .first_seq = 5, .last_seq = 7 } } };
+
 // The document of the report `report_text`, written at `doc_path` with the
 // report at `report_path`, naming it by the path `named_path`, as
 // mirage_vmaf timeline names its --report, and by the hashes of
-// `named_text` (the report's own by default); with a session (design §9.3's
-// plan) when asked.
+// `named_text` (the report's own by default); with a session of the plan
+// `session` holds, when it holds one.
 Written write_doc(const std::string& report_path, const std::string& doc_path, const std::string& named_path,
-                  const std::string& report_text, bool session = false, const std::string& named_text = {})
+                  const std::string& report_text, const std::optional<timeline::SessionPlan>& session = {},
+                  const std::string& named_text = {})
 {
     Written w;
     w.report_text = report_text;
@@ -263,11 +285,8 @@ Written write_doc(const std::string& report_path, const std::string& doc_path, c
     REQUIRE(err.empty());
     timeline::DocInfo info;
     if (session) {
-        const timeline::SessionPlan plan{ .name  = "down at the ad",
-                                          .spans = { { .entry = 1, .first_seq = 0, .last_seq = 2 },
-                                                     { .entry = 2, .first_seq = 3, .last_seq = 4 },
-                                                     { .entry = 1, .first_seq = 5, .last_seq = 7 } } };
-        REQUIRE(timeline::add_session(w.timeline, scores.entries, plan, err));
+        INFO(err);
+        REQUIRE(timeline::add_session(w.timeline, scores.entries, *session, err));
         info.session_plan = timeline::FileRef{ .path = "plan.json", .sha256 = filehash::sha256_hex("plan") };
     }
     const std::vector<timeline::CurveRef> curves = timeline::curve_refs(w.timeline);
@@ -298,9 +317,9 @@ Written write_doc(const std::string& report_path, const std::string& doc_path, c
 
 // The document of the report `report_text`, written at `name`.json and naming
 // the report at `name`-report.json by that path, by the hashes of
-// `named_text` (the report's own by default); with a session when asked.
-Written write_pair(const std::string& name, const std::string& report_text, bool session = false,
-                   const std::string& named_text = {})
+// `named_text` (the report's own by default); with a session when given one.
+Written write_pair(const std::string& name, const std::string& report_text,
+                   const std::optional<timeline::SessionPlan>& session = {}, const std::string& named_text = {})
 {
     const std::string report_path = testtemp::path(name + "-report.json").string();
     return write_doc(report_path, testtemp::path(name + ".json").string(), report_path, report_text, session,
@@ -446,7 +465,7 @@ TEST_CASE("timeline::load_snapshot: a document and the report it names, by the r
 TEST_CASE("timeline::load_snapshot: a session's curve, derived from its pairs' by curve_points()",
           "[timeline][timeline_load]")
 {
-    const Written w = write_pair("load-session", vmafreport::ladder_to_json(ad_ladder(), kRun), true);
+    const Written w = write_pair("load-session", vmafreport::ladder_to_json(ad_ladder(), kRun), kDownAtTheAd);
     const LoadResult r = timeline::load_snapshot({ .document = w.doc_path });
     INFO(r.error);
     REQUIRE(r.snapshot);
@@ -460,12 +479,110 @@ TEST_CASE("timeline::load_snapshot: a session's curve, derived from its pairs' b
     CHECK(c.points.ref_index == want.ref_index);
     CHECK(c.points.vmaf == want.vmaf);
     REQUIRE(c.points.ref_index.size() == 200);   // every span plays a pair's variant
+    CHECK(c.unscored.empty());                   // and is scored
+    CHECK(s.curves[0].unscored.empty());         // a pair's curve
+    CHECK(s.curves[1].unscored.empty());
     // v270 over segments 0 to 2 and 5 to 7, v180 over 3 and 4.
     CHECK(c.points.vmaf[30] == score(0, 30));
     CHECK(c.points.vmaf[80] == score(1, 80));
     CHECK(timeline::range_min_max(c.envelope, 0, 200).min == 25.0);
     // The drops: v180's, and the session's, its pair's clipped to its spans.
     CHECK(s.attributions.size() == 2);
+}
+
+TEST_CASE("timeline::load_snapshot: a session's span that isn't scored, carried with its curve, and outside "
+          "the curve's data in the view: no score in its columns, no point picked in it (D-124 (a))",
+          "[timeline][timeline_load]")
+{
+    // In top-rung mode a span that plays the reference has no score, the
+    // document marking it scored: false (D-105 (b)): v270 over segments 0
+    // to 2, the reference, v360, over 3 and 4, the ad, v180 over 5 to 7.
+    const Written w =
+        write_pair("load-unscored", vmafreport::ladder_to_json(ad_ladder(), kRun), kReferenceAtTheAd);
+    REQUIRE(contains(w.doc_text, "\"scored\": false"));
+    const LoadResult r = timeline::load_snapshot({ .document = w.doc_path });
+    INFO(r.error);
+    REQUIRE(r.snapshot);
+    const timeline::Snapshot& s = *r.snapshot;
+    REQUIRE(s.timeline.sessions.size() == 1);
+    const std::vector<timeline::Span>& spans = s.timeline.sessions[0].spans;
+    REQUIRE(spans.size() == 3);
+    CHECK(spans[0].scored);
+    CHECK_FALSE(spans[1].scored);
+    CHECK(spans[2].scored);
+
+    // The snapshot carries the span with the session's curve, from the
+    // document; the pairs' curves have none.
+    REQUIRE(s.curves.size() == 3);
+    CHECK(s.curves[0].unscored.empty());
+    CHECK(s.curves[1].unscored.empty());
+    const timeline::PanelCurve& c = s.curves[2];
+    CHECK(c.ref.kind == timeline::CurveRef::Kind::Session);
+    REQUIRE(c.unscored.size() == 1);
+    CHECK(c.unscored[0].ref_index == 75);
+    CHECK(c.unscored[0].ref_end == 125);
+    // The curve, curve_points()'s, has no point over the span: v270's 75
+    // points, then v180's from frame 125.
+    const timeline::Curve want = timeline::curve_points(w.timeline, c.ref);
+    CHECK(c.points.ref_index == want.ref_index);
+    REQUIRE(c.points.ref_index.size() == 150);
+    CHECK(c.points.ref_index[74] == 74);
+    CHECK(c.points.ref_index[75] == 125);
+    CHECK(c.points.vmaf[74] == score(0, 74));
+    CHECK(c.points.vmaf[75] == score(1, 125));
+    // The drops: v180's alone, the session playing the reference over it.
+    CHECK(s.attributions.size() == 1);
+
+    // In the view, the point before the span stands for its own frame alone.
+    CHECK(timeline::point_end(c.points, c.unscored, 74) == 75);
+    REQUIRE(s.scale.position(75) == 3.0);
+    REQUIRE(s.scale.position(125) == 5.0);
+    // The envelope, a column a frame: no score over the span's 50 frames,
+    // the points beside it in the columns at its two ends.
+    const timeline::View one{ .t0 = -0.02, .t1 = 7.98, .fit = false };
+    const std::vector<timeline::MinMax> env = timeline::envelope(c.points, c.envelope, c.unscored, s.scale, one, 200);
+    REQUIRE(env.size() == 200);
+    for (std::size_t j = 75; j < 125; ++j) {
+        INFO("column " << j);
+        CHECK_FALSE(env[j].any());
+    }
+    REQUIRE(env[74].any());
+    CHECK(env[74].min_at == 74);
+    REQUIRE(env[125].any());
+    CHECK(env[125].min_at == 75);
+    // A view from inside the span: its first column holds no score.
+    const timeline::View inside{ .t0 = 3.5, .t1 = 7.5, .fit = false };
+    CHECK_FALSE(timeline::envelope(c.points, c.envelope, c.unscored, s.scale, inside, 100).front().any());
+
+    // The hit tests on the fitted view over 800 px, 4 px a frame, the span
+    // from x 300 to 500: across it nothing, at its two ends the points
+    // beside it.
+    timeline::View fit;
+    timeline::fit_view(fit, s.scale);
+    const auto pick = [&](float x, float radius) {
+        return timeline::pick_lowest(c.points, c.envelope, c.unscored, s.scale, fit, x, 0.0f, 800.0f, radius);
+    };
+    for (int px = 300; px < 500; ++px) {
+        INFO("x " << px);
+        CHECK_FALSE(pick(static_cast<float>(px), 0.0f));
+    }
+    std::optional<timeline::PickedPoint> got = pick(299.0f, 0.0f);
+    REQUIRE(got);
+    CHECK(got->ref_index == 74);
+    got = pick(302.0f, 4.0f);   // a reach back over the span's start
+    REQUIRE(got);
+    CHECK(got->ref_index == 74);
+    got = pick(500.0f, 0.0f);
+    REQUIRE(got);
+    CHECK(got->ref_index == 125);
+    got = pick(498.0f, 4.0f);   // a reach forward over its end
+    REQUIRE(got);
+    CHECK(got->ref_index == 125);
+    // The overload without the spans, which WP13's panel calls until WP13b
+    // (src/TimelineView.h), picks frame 74's point there, as WP12 built it.
+    got = timeline::pick_lowest(c.points, c.envelope, s.scale, fit, 400.0f, 0.0f, 800.0f, 0.0f);
+    REQUIRE(got);
+    CHECK(got->ref_index == 74);
 }
 
 TEST_CASE("timeline::load_snapshot: a redacted copy of the report accepted by its scores digest; a "
@@ -536,7 +653,7 @@ TEST_CASE("timeline::load_snapshot: an unknown schema_version refused, and what 
     // A report whose hashes the document names but whose complete pairs
     // aren't the document's: v180's pair failed in it.
     const std::string one_pair = vmafreport::ladder_to_json(ad_ladder(false, true), kRun);
-    const Written f = write_pair("load-unfit", report, false, one_pair);
+    const Written f = write_pair("load-unfit", report, std::nullopt, one_pair);
     write(f.report_path, one_pair);
     r = timeline::load_snapshot({ .document = f.doc_path });
     CHECK_FALSE(r.snapshot);
@@ -615,8 +732,9 @@ TEST_CASE("timeline::load_snapshot: a relative report path that both directories
         CHECK(contains(r.error, filehash::sha256_hex(changed)));
 
         // Something at the path that can't be read is the current
-        // directory's, refused there as mirage_vmaf attribute refuses it (a
-        // reading pending the owner: src/TimelineLoad.h, step 2).
+        // directory's, refused there as mirage_vmaf attribute refuses it, as
+        // built, which the owner kept (D-124 (g) 1, Q97 1 (a);
+        // src/TimelineLoad.h, step 2).
         std::filesystem::remove(here / "report.json");
         std::filesystem::create_directories(here / "report.json");
         r = timeline::load_snapshot({ .document = w.doc_path });
@@ -695,6 +813,56 @@ TEST_CASE("timeline::load_snapshot: an absolute report path, an empty one, and t
     r = timeline::load_snapshot({ .document = by_relative.doc_path, .report = "report.json" });
     CHECK_FALSE(r.snapshot);
     CHECK(r.error == std::format("cannot read the ladder report report.json: {}", no_file));
+}
+
+TEST_CASE("timeline::find_report: step 2's rule, which mirage_vmaf attribute finds a document's report by "
+          "too (D-124 (g) 4): each directory, both, neither, and the paths taken as they are",
+          "[timeline][timeline_load]")
+{
+    const std::filesystem::path doc_dir   = fresh_dir("q97-find-doc");
+    const std::filesystem::path here      = fresh_dir("q97-find-here");
+    const std::filesystem::path elsewhere = fresh_dir("q97-find-elsewhere");
+    const std::string doc     = (doc_dir / "timeline.json").string();
+    const std::string beside  = (doc_dir / "report.json").string();
+    const std::string no_file = std::generic_category().message(ENOENT);
+    write(beside, "the document's directory's");
+    write((here / "report.json").string(), "the current directory's");
+    std::string err;
+    {
+        // The current directory holds it: there, whether the document's
+        // directory holds it too or not.
+        const InDirectory cwd(here);
+        CHECK(timeline::find_report(doc, "report.json", err) == std::optional<std::string>{ "report.json" });
+        CHECK(timeline::find_report((elsewhere / "timeline.json").string(), "report.json", err) ==
+              std::optional<std::string>{ "report.json" });
+        // A directory of the file's name holds it there too (D-124 (g) 1).
+        std::filesystem::create_directories(here / "sub" / "report.json");
+        CHECK(timeline::find_report(doc, "sub/report.json", err) == std::optional<std::string>{ "sub/report.json" });
+    }
+    {
+        // Only the document's directory holds it: from there.
+        const InDirectory cwd(elsewhere);
+        CHECK(timeline::find_report(doc, "report.json", err) == std::optional<std::string>{ beside });
+        CHECK(timeline::find_report("../q97-find-doc/timeline.json", "report.json", err) ==
+              std::optional<std::string>{ "../q97-find-doc/report.json" });
+        // Neither: nothing, the refusal naming both paths, each with why.
+        err.clear();
+        CHECK_FALSE(timeline::find_report(doc, "none.json", err));
+        CHECK(err == std::format("cannot read the ladder report none.json, from the current directory or from "
+                                 "the document's: none.json: {}; {}: {}",
+                                 no_file, (doc_dir / "none.json").string(), no_file));
+        // Taken as they are, neither directory looked in: an absolute path,
+        // an empty one, and any path where the document's directory is the
+        // current one.
+        const std::string gone = (testtemp::path("q97-find-gone") / "report.json").string();
+        CHECK(timeline::find_report(doc, gone, err) == std::optional<std::string>{ gone });
+        CHECK(timeline::find_report(doc, "", err) == std::optional<std::string>{ "" });
+        CHECK(timeline::find_report("timeline.json", "none.json", err) == std::optional<std::string>{ "none.json" });
+        CHECK(timeline::find_report("./timeline.json", "none.json", err) ==
+              std::optional<std::string>{ "none.json" });
+        CHECK(timeline::find_report("a/../timeline.json", "none.json", err) ==
+              std::optional<std::string>{ "none.json" });
+    }
 }
 
 TEST_CASE("timeline::load_snapshot: a load stopped through its stop token gives no snapshot",

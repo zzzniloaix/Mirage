@@ -1,5 +1,6 @@
 // The timeline panel's loader (eval/phase3-survey/design.md §10): written by WP12, a relative
-// report path from the document's directory by WP12b (D-121 (a)).
+// report path from the document's directory by WP12b (D-121 (a)), a session's spans that
+// aren't scored by WP12c (D-124 (a)).
 
 #include "TimelineLoad.h"
 
@@ -35,36 +36,14 @@ LoadResult stopped()
     return r;
 }
 
-// Where the document's ladder_report.path `path` is looked for (D-121 (a),
-// Q86 (c)): an absolute path as it is; a relative one from the current
-// directory, as mirage_vmaf attribute takes it (D-081 (b)), then from the
-// document's directory, unless the document's path names no directory but
-// the current one, lexically normalized ("timeline.json", "./timeline.json",
-// "a/../timeline.json"). Another path to the current directory, an absolute
-// one among them, isn't told apart without a look on disk: its one file is
-// then looked for at both paths, and named twice where it isn't there. An
-// empty path names no file and is read as it is.
-std::vector<std::string> report_paths(const std::string& document, const std::string& path)
+// A session's spans that aren't scored (D-105 (b)), the frames outside its
+// curve's data (D-124 (a)), from the document's spans, in play order.
+std::vector<Interval> unscored_spans(const Session& session)
 {
-    std::vector<std::string> out{ path };
-    const std::filesystem::path p(path);
-    if (path.empty() || p.is_absolute()) return out;
-    const std::filesystem::path dir = std::filesystem::path(document).parent_path();
-    if (!dir.empty() && dir.lexically_normal() != ".") out.push_back((dir / p).string());
+    std::vector<Interval> out;
+    for (const Span& s : session.spans)
+        if (!s.scored) out.push_back({ .ref_index = s.ref_index, .ref_end = s.ref_end });
     return out;
-}
-
-// Whether a directory holds the file at `path`: something is there, as
-// std::filesystem::exists() tells it on disk, whatever LoadInput::read reads
-// the file with, a reading pending the owner (src/TimelineLoad.h, step 2);
-// otherwise `why` says why not, in a phrase without the path.
-bool is_there(const std::string& path, std::string& why)
-{
-    std::error_code ec;
-    if (std::filesystem::exists(path, ec)) return true;
-    // std::generic_category(), not std::strerror(): this runs on a worker.
-    why = ec ? ec.message() : std::generic_category().message(ENOENT);
-    return false;
 }
 
 } // namespace
@@ -124,25 +103,19 @@ LoadResult load_snapshot(const LoadInput& input, std::stop_token stop)
     // 2. The ladder report it names, unless the caller names another, whose
     // path is read as it is. mirage_vmaf timeline writes ladder_report.path
     // as its --report was given (src/TimelineCli.cpp), so a relative one is
-    // read from the current directory where the file is there, as
-    // mirage_vmaf attribute reads it without --report (D-081 (b)), else from
+    // read from the current directory where the file is there, else from
     // the document's directory, for a player started elsewhere (D-121 (a),
-    // Q86 (c)); an absolute one as it is. Where neither directory holds the
-    // file, the refusal names both paths. Which of the two holds it is
-    // decided on disk (is_there()), whatever `read` is, so that an injected
-    // reader is asked only for one that exists there. The hashes are checked
-    // below on whichever file was read.
-    snap->report_path = input.report.empty() ? snap->info.report.path : input.report;
+    // Q86 (c)), as mirage_vmaf attribute reads it without --report
+    // (D-124 (g) 4): find_report(), which both programs compile. Where
+    // neither directory holds the file, the refusal names both paths. Which
+    // of the two holds it is decided on disk, whatever `read` is, so that an
+    // injected reader is asked only for one that exists there. The hashes
+    // are checked below on whichever file was read.
+    snap->report_path = input.report;
     if (input.report.empty()) {
-        const std::vector<std::string> paths = report_paths(input.document, snap->info.report.path);
-        std::string here, beside;
-        if (paths.size() > 1 && !is_there(paths[0], here)) {
-            if (!is_there(paths[1], beside))
-                return refused(std::format("cannot read the ladder report {}, from the current directory "
-                                           "or from the document's: {}: {}; {}: {}",
-                                           snap->info.report.path, paths[0], here, paths[1], beside));
-            snap->report_path = paths[1];
-        }
+        const std::optional<std::string> found = find_report(input.document, snap->info.report.path, err);
+        if (!found) return refused(err);
+        snap->report_path = *found;
     }
     std::string report_text;
     if (!read(snap->report_path, stop, report_text, err)) {
@@ -182,7 +155,9 @@ LoadResult load_snapshot(const LoadInput& input, std::stop_token stop)
     if (stop.stop_requested()) return stopped();
 
     // 5. What the panel draws: every pair's curve, then every session's
-    // through curve_points() (design §4.4), each with its pyramid.
+    // through curve_points() (design §4.4), each with its pyramid, a
+    // session's with its spans that aren't scored, which the view takes as
+    // outside its data (D-124 (a)).
     const Timeline& t = snap->timeline;
     for (std::size_t k = 0; k < t.curves.size(); ++k) {
         PanelCurve c;
@@ -197,6 +172,7 @@ LoadResult load_snapshot(const LoadInput& input, std::stop_token stop)
         c.ref      = { .kind = CurveRef::Kind::Session, .index = static_cast<int>(s) };
         c.points   = curve_points(t, c.ref);
         c.envelope = build_pyramid(c.points.vmaf);
+        c.unscored = unscored_spans(t.sessions[s]);
         snap->curves.push_back(std::move(c));
         if (stop.stop_requested()) return stopped();
     }

@@ -17,13 +17,17 @@
 // and exit statuses (P-W), intervals and frames past the axis, a lone
 // --window, a report whose pairs' numbers skip a failed pair with --curve by
 // those numbers (D-092 (b)), a redacted copy of the report and one that
-// changed; a scripted session over that ladder (D-068), its files fetched
-// from tests/HttpFileServer.h's server of the ladder (D-104), or not
-// fetched, the plans and fetches refused, a fetch of local files and one of
-// files outside the master's directory among them, a fetch stopped by SIGINT
-// or SIGTERM, and attribute on the session's curve; and a copy of the ladder
-// whose media playlist carries SCTE-35 messages that
-// tests/Scte35TestSections.h builds (D-107), decoded by the build.
+// changed, a document's relative report path read from the current
+// directory where the file is there, else from the document's directory, as
+// the player's panel reads it, and --report's as it is (D-124 (g) 4), with
+// the current directory set by the test; a scripted session over that
+// ladder (D-068), its files fetched from tests/HttpFileServer.h's server of
+// the ladder (D-104), or not fetched, the plans and fetches refused, a
+// fetch of local files and one of files outside the master's directory
+// among them, a fetch stopped by SIGINT or SIGTERM, and attribute on the
+// session's curve; and a copy of the ladder whose media playlist carries
+// SCTE-35 messages that tests/Scte35TestSections.h builds (D-107), decoded
+// by the build.
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -42,6 +46,7 @@
 #include "VMAFCli.h"
 
 #include <algorithm>
+#include <cerrno>
 #include <chrono>
 #include <csignal>
 #include <cstdint>
@@ -54,6 +59,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <thread>
 #include <tuple>
 #include <utility>
@@ -135,6 +141,24 @@ void write_text(const fs::path& path, const std::string& text)
     std::ofstream f(path, std::ios::binary | std::ios::trunc);
     f << text;
 }
+
+// The current directory set to `dir` while the guard lives, so that the
+// mirage_vmaf the test runs starts there, and set back when it goes, a
+// failed REQUIRE's exception included (as tests/test_timeline_load.cpp's).
+class InDirectory {
+public:
+    explicit InDirectory(const fs::path& dir) { fs::current_path(dir); }
+    ~InDirectory()
+    {
+        std::error_code ec;
+        fs::current_path(before_, ec);
+    }
+    InDirectory(const InDirectory&)            = delete;
+    InDirectory& operator=(const InDirectory&) = delete;
+
+private:
+    fs::path before_ = fs::current_path();
+};
 
 // What a run of the built mirage_vmaf did.
 struct ToolRun {
@@ -958,6 +982,17 @@ TEST_CASE("timelinecli: each subcommand's help lists its options; mirage_vmaf's 
     }
     CHECK(contains(a, "Drops are numbered from 1"));
     CHECK(contains(a, "--auto is auto = on"));
+    // The report's path in the document, found as the player's panel finds
+    // it (D-124 (g) 4).
+    CHECK(contains(a, "\n  --report <report.json>         the ladder report the document names (default: the path "
+                      "the document gives; see Report below)\n"));
+    CHECK(contains(a, " Relative paths\nare taken from the current directory, but for the report's path in the\n"
+                      "document (see Report below).\n\n"
+                      "Report: the ladder report read is --report's, at its path as given, or else\n"
+                      "the one the document names: at its path where that is absolute, and where it\n"
+                      "is relative, from the current directory where something is at that path\n"
+                      "there, else from the document's directory, as the player's timeline panel\n"
+                      "finds it; where neither directory holds it, the error names both paths.\n\n"));
     CHECK(contains(a, "\nAn --interval t0:t1 is the reference frames from the first whose seconds are\n"));
     CHECK(contains(a, "frames or an interval that the\ndocument doesn't have."));
     check_width(a);
@@ -2297,6 +2332,113 @@ TEST_CASE("mirage_vmaf timeline and attribute: run as programs on a synthetic ad
         CHECK(contains(c.err, other + " isn't the ladder report the document was built from: neither its "
                               "SHA-256, "));
         CHECK(c.out.empty());
+    }
+
+    SECTION("attribute reads a relative report path as the panel's loader does: from the current directory "
+            "where the file is there, else from the document's, both named where neither holds it; --report's "
+            "as it is (D-124 (g) 4)")
+    {
+        // A document whose report path is relative, as mirage_vmaf timeline
+        // writes a --report given so, in a directory of its own with a copy
+        // of the ladder's report; attribute run from other directories, as
+        // a player started elsewhere loads the document (D-121 (a)).
+        const fs::path root      = testtemp::path("q97-attribute");
+        const fs::path doc_dir   = root / "doc";
+        const fs::path here      = root / "here";
+        const fs::path elsewhere = root / "elsewhere";
+        fs::remove_all(root);
+        for (const fs::path& d : { doc_dir, here, elsewhere }) fs::create_directories(d);
+        const std::string text = read_text(report);
+        write_text(doc_dir / "report.json", text);
+        const std::string doc = (doc_dir / "timeline.json").string();
+        {
+            const InDirectory cwd(doc_dir);
+            const ToolRun built = run_tool({ "timeline", "--report", "report.json", "--out", "timeline.json",
+                                             "--window", "50", "--min-points", "12" });
+            INFO(built.err);
+            REQUIRE(built.status == 0);
+        }
+        REQUIRE(read_doc(read_text(doc)).info.report.path == "report.json");
+        const std::string beside  = (doc_dir / "report.json").string();
+        const std::string no_file = std::generic_category().message(ENOENT);
+        const std::string read_beside =
+            "Ladder report " + beside + ": its SHA-256 is the one the document names\n";
+        const std::string read_here = "Ladder report report.json: its SHA-256 is the one the document names\n";
+        const auto attribute = [&](std::vector<std::string> more) {
+            std::vector<std::string> args{ "attribute", "--timeline", doc, "--drop", "1" };
+            args.insert(args.end(), more.begin(), more.end());
+            return run_tool(std::move(args));
+        };
+
+        {
+            // The document's directory alone holds the file: read there.
+            const InDirectory cwd(elsewhere);
+            ToolRun r = attribute({});
+            INFO(r.err);
+            REQUIRE(r.status == 0);
+            CHECK(contains(r.out, read_beside));
+            CHECK(contains(r.out, "\nDrop 1: reference frames 75-124"));
+            // The document by a path relative to the current directory: its
+            // directory as that path names it.
+            r = run_tool({ "attribute", "--timeline", "../doc/timeline.json", "--drop", "1" });
+            INFO(r.err);
+            REQUIRE(r.status == 0);
+            CHECK(contains(r.out, "Ladder report ../doc/report.json: its SHA-256 is the one the document names\n"));
+            // An answer as a document names the report it read.
+            r = attribute({ "--format", "json" });
+            REQUIRE(r.status == 0);
+            const Doc d = read_doc(r.out);
+            INFO(d.err);
+            REQUIRE(d.ok);
+            CHECK(d.info.report.path == beside);
+            CHECK(std::get<std::string>(option(d.info.options, "report")->v) == beside);
+            // --report's path is read as it is: a relative one from the
+            // current directory alone, the document's directory not looked in.
+            r = attribute({ "--report", "report.json" });
+            CHECK(r.status == 1);
+            CHECK(r.err == "mirage_vmaf attribute: cannot read the ladder report report.json: " + no_file + "\n");
+            r = attribute({ "--report", beside });
+            INFO(r.err);
+            CHECK(r.status == 0);
+            CHECK(contains(r.out, read_beside));
+        }
+        write_text(here / "report.json", text);
+        {
+            // Both hold it: the current directory's.
+            const InDirectory cwd(here);
+            ToolRun r = attribute({});
+            INFO(r.err);
+            REQUIRE(r.status == 0);
+            CHECK(contains(r.out, read_here));
+            // Another report there: read there and refused by its hashes,
+            // the document's directory's not read (D-072).
+            std::string changed = text;
+            const std::size_t score = changed.find("\"vmaf\": ");
+            REQUIRE(score != std::string::npos);
+            changed.insert(score + 8, "1");
+            write_text(here / "report.json", changed);
+            r = attribute({});
+            CHECK(r.status == 1);
+            CHECK(r.err.starts_with("mirage_vmaf attribute: report.json isn't the ladder report the document was "
+                                    "built from"));
+            write_text(here / "report.json", text);
+            // The current directory alone holds it: read there.
+            fs::remove(doc_dir / "report.json");
+            r = attribute({});
+            INFO(r.err);
+            REQUIRE(r.status == 0);
+            CHECK(contains(r.out, read_here));
+        }
+        {
+            // Neither holds it: refused, both paths named, each with why.
+            const InDirectory cwd(elsewhere);
+            const ToolRun r = attribute({});
+            CHECK(r.status == 1);
+            CHECK(r.err == std::format("mirage_vmaf attribute: cannot read the ladder report report.json, from the "
+                                       "current directory or from the document's: report.json: {}; {}: {}\n",
+                                       no_file, beside, no_file));
+            CHECK(r.out.empty());
+        }
     }
 
     SECTION("exit statuses: 2 for bad arguments and arguments the document doesn't fit, 1 for inputs "

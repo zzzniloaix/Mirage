@@ -2,12 +2,13 @@
 
 // The timeline panel's document matched to the open master, its playhead, its seek decision and
 // the interval a click queries, ImGui-free (eval/phase3-survey/design.md §10; DECISIONS.md
-// D-114 (b), (d)): written by WP12, the path among a playlist's equal bytes by WP12b (D-121 (d)).
+// D-114 (b), (d)): written by WP12, the path among a playlist's equal bytes by WP12b (D-121 (d)),
+// a relative open path made absolute there by WP12c (D-124 (g) 2).
 //
 // What the panel (src/TimelinePanel.h, WP13) needs between a loaded document
 // (src/TimelineLoad.h) and the stream the player has open, as pure functions
-// of what the player and the document give, so that mirage_tests tests them
-// (D-031):
+// of what the player and the document give, and for the match of a relative
+// open path the current directory, so that mirage_tests tests them (D-031):
 //
 // - The match (eval/phase3-survey/ui.md §2.3). The document's master is the
 //   open one when the SHA-256 of the bytes the player's ManifestParser read
@@ -39,20 +40,35 @@
 //   rung; and where none shares more than its file name, the first of them
 //   all, with WP12's warning. A URL's path components are its path's alone,
 //   without its scheme, authority, query or fragment (RFC 3986 §3), a local
-//   path's lexically normalized, and nothing is looked up on disk. The open
-//   path is the text the player was given, and a local file's final URL the
-//   same text (src/ManifestParser.cpp), so that a rung's playlist opened by
-//   a path relative to its own directory, index.m3u8 or ./index.m3u8,
-//   shares only its file name, and the first of them all is taken: a
-//   reading pending the owner, whose alternative is the opened file's path
-//   from the current directory. Where the path picks the variant, a warning
-//   says which and by what path, as one is given wherever several variants
-//   have those bytes, so that the match carries a warning for the panel's
-//   chip even where the path named the rung, a local file that the document
-//   names by a relative path and the player by an absolute one, which the
-//   address match doesn't take, among them: a reading pending the owner,
-//   whose alternative is no warning there. Otherwise the document is
-//   another stream's, which the panel shows only on the user's word.
+//   path's lexically normalized. The open path is the text the player was
+//   given, and a local file's final URL the same text
+//   (src/ManifestParser.cpp); where that is a local path relative to the
+//   current directory, it is made absolute against the current directory,
+//   lexically, before its components are compared, so that a rung's
+//   playlist opened by a path relative to its own directory, index.m3u8 or
+//   ./index.m3u8 given to a player started there, names its rung
+//   (D-124 (g) 2, Q97 2 (b)). The current directory is all the match asks
+//   of the system: nothing is looked up on disk, and a URL is compared as it
+//   was given. The address matches above, the master's and the variant's,
+//   compare the open path and its final URL as they were given, as WP12
+//   built them: a reading pending the owner, whose alternative is a
+//   relative open path made absolute against the current directory there
+//   too. So a rung that the document names by an absolute local path, as it
+//   does where the ladder was scored from its master's absolute path,
+//   opened by a path relative to its own directory, is matched by its bytes
+//   and its path, with the warning below, where by its absolute path it is
+//   matched by its address without one; and once its bytes have changed
+//   since the build, by neither, the document then counting as another
+//   stream's, where by its absolute path it is matched by its address with
+//   the warning that says so. Where the path picks the variant, a warning
+//   says which and by what path, the whole of an absolute one from its
+//   root, as one is given wherever several variants have those bytes, so
+//   that the match carries a warning for the panel's chip even where the
+//   path named the rung, a local file that the document names by a relative
+//   path and the player by an absolute one, which the address match doesn't
+//   take, among them, as built, which the owner kept
+//   (D-124 (g) 3, Q97 3 (a)). Otherwise the document is another stream's,
+//   which the panel shows only on the user's word.
 // - A variant's clock (VariantClock): the frames of the variant on screen with
 //   their PTS and reference frames, from the report (a pair's distorted
 //   frames; the reference's own through the axis's media keys), and its
@@ -116,7 +132,9 @@
 //
 // Nothing here opens media, the network or a file, and nothing of ImGui, GL
 // or GLFW (D-031); ManifestParser is called only to resolve a URI as the
-// player does. Unit-tested in tests/test_timeline_match.cpp.
+// player does, and match_stream() asks for the current directory only to
+// make a relative open path absolute (D-124 (g) 2). Unit-tested in
+// tests/test_timeline_match.cpp.
 
 #include "LadderReportRead.h"
 #include "ManifestParser.h"
@@ -141,7 +159,11 @@ namespace timeline {
 
 // What the player has open, as the panel sees it.
 struct OpenStream {
-    std::string path;        // what the player was given to open: a URL or a local path
+    // What the player was given to open: a URL or a local path, a relative
+    // one being relative to the current directory, which the match takes it
+    // from where it compares path components (D-124 (g) 2), and not where
+    // it compares addresses, a reading pending the owner (this file's head).
+    std::string path;
     // What its ManifestParser read (src/ManifestParser.h): where the master was
     // read from, after HTTP redirects, its bytes, and its EXT-X-STREAM-INF
     // entries in the parser's order, which MediaSession::playing_hls_variant()

@@ -2,7 +2,9 @@
 
 // The timeline panel's loader, ImGui-free: a timeline document and its ladder report, checked
 // by their hashes (eval/phase3-survey/design.md §10; DECISIONS.md D-114 (a)): written by WP12,
-// a relative report path from the document's directory by WP12b (D-121 (a)).
+// a relative report path from the document's directory by WP12b (D-121 (a)), a session's
+// spans that aren't scored and the report path's rule shared with mirage_vmaf attribute by
+// WP12c (D-124 (a), (g) 4).
 //
 // What the panel (src/TimelinePanel.h, WP13) draws comes from here, as design
 // §10 plans it: a worker thread reads the timeline document (src/TimelineDoc.h)
@@ -21,8 +23,7 @@
 // 2. The ladder report: at the path the caller gives, read as it is, or at
 //    the path the document's ladder_report.path gives. mirage_vmaf timeline
 //    writes that path as its --report was given, so a relative one is read
-//    from the current directory where the file is there, as mirage_vmaf
-//    attribute reads it without --report (D-081 (b)), else from the
+//    from the current directory where the file is there, else from the
 //    document's directory, where a player started elsewhere finds the
 //    report beside its document (D-121 (a), Q86 (c)); an absolute one, and
 //    an empty one, which names no file, are read as they are. Where neither
@@ -32,11 +33,11 @@
 //    path there on disk (std::filesystem::exists()), whatever
 //    LoadInput::read reads files with, so that a file in the current
 //    directory that can't be read, or a directory of the file's name, is
-//    refused there, as mirage_vmaf attribute refuses it: a reading pending
-//    the owner, whose alternatives are a regular file alone holding it, and
-//    the first of the two paths that can be read. The report is read by
-//    read_ladder_report(), which refuses a layout or a report the timeline
-//    doesn't read (D-081 (b)).
+//    refused there, as built, which the owner kept (D-124 (g) 1, Q97 1 (a)).
+//    mirage_vmaf attribute without --report finds the report by the same
+//    rule (D-124 (g) 4, Q97 4 (b)), find_report() below, which both
+//    programs compile. The report is read by read_ladder_report(), which
+//    refuses a layout or a report the timeline doesn't read (D-081 (b)).
 // 3. The hashes (D-072, Q06 (c)), of whichever file step 2 read: the report
 //    is the document's when the SHA-256 of its bytes is the one the document
 //    names; otherwise when the SHA-256 of its scores digest (scores_text())
@@ -47,8 +48,9 @@
 //    the document's variants don't name each other one for one.
 // 5. The curves the panel draws: every pair's, in the report's order, then
 //    every session's, derived from its pairs' by curve_points() (WP07's;
-//    design §4.4), each with its min/max pyramid (src/TimelineView.h), and
-//    the axis's scale for x.
+//    design §4.4), each with its min/max pyramid (src/TimelineView.h), a
+//    session's with its spans that aren't scored, outside its data
+//    (PanelCurve::unscored; D-124 (a)), and the axis's scale for x.
 //
 // The stop token is checked between the steps and between a file's chunks,
 // so a stopped load ends at the next of them; a parse already running isn't
@@ -57,8 +59,12 @@
 // PENDING.
 //
 // It calls only what the player compiles (CMakeLists.txt's mirage target):
-// the core, FileHash; nothing of ImGui, GL or GLFW (D-031). Unit-tested in
-// tests/test_timeline_load.cpp.
+// the core, FileHash; nothing of ImGui, GL or GLFW (D-031). find_report(),
+// step 2's rule, is defined here inline, since mirage_vmaf compiles
+// src/TimelineCli.cpp, which includes this header for it, and not
+// src/TimelineLoad.cpp. Unit-tested in tests/test_timeline_load.cpp, and
+// find_report() through mirage_vmaf attribute in tests/test_timeline_cli.cpp
+// too.
 
 #include "LadderReportRead.h"
 #include "TimelineDoc.h"
@@ -67,13 +73,17 @@
 #include "TimelineView.h"
 
 #include <atomic>
+#include <cerrno>
 #include <cstdint>
+#include <filesystem>
+#include <format>
 #include <functional>
 #include <memory>
 #include <mutex>
 #include <optional>
 #include <stop_token>
 #include <string>
+#include <system_error>
 #include <thread>
 #include <vector>
 
@@ -86,6 +96,13 @@ struct PanelCurve {
     CurveRef ref;
     Curve    points;
     Pyramid  envelope;
+    // A session's spans that aren't scored, as the document gives them
+    // (Span::scored false: in top-rung mode the spans that play the
+    // reference, D-105 (b)), in play order, each its reference frames
+    // [ref_index, ref_end): the frames outside the curve's data, which the
+    // view takes as `unscored` (src/TimelineView.h; D-124 (a)). Empty for a
+    // pair's curve, and for a session whose spans are all scored.
+    std::vector<Interval> unscored;
 };
 
 // What a load hands the main thread once; the panel only reads it.
@@ -122,6 +139,52 @@ using ReadFile = std::function<bool(const std::string& path, std::stop_token sto
 
 // A file from disk, as ReadFile: read in chunks, `stop` checked between them.
 bool read_file(const std::string& path, std::stop_token stop, std::string& text, std::string& err);
+
+// Where the ladder report that the timeline document at `document` names by
+// `path`, its ladder_report.path, is read: step 2's rule (D-121 (a),
+// Q86 (c)), by which mirage_vmaf attribute without --report finds it too
+// (D-124 (g) 4, Q97 4 (b); src/TimelineCli.cpp), so that one document finds
+// its report the same way in both programs, another report at the path in
+// the current directory being refused by its hashes in either (D-072). An
+// absolute path, and an empty one, which names no file, are taken as they
+// are, and so is a relative one where the document's path names no
+// directory but the current one, lexically normalized ("timeline.json",
+// "./timeline.json", "a/../timeline.json"). Otherwise a relative path is
+// taken from the current directory where something is at it there, else
+// from the document's directory where something is at it there; another
+// path to the current directory, an absolute one among them, isn't told
+// apart without a look on disk, its one file then looked for at both paths,
+// and named twice where it isn't there. Something is at a path where
+// std::filesystem::exists() says so: a file there that can't be read, or a
+// directory of the file's name, is that directory's, and its read fails
+// there, as built, which the owner kept (D-124 (g) 1, Q97 1 (a)). The path
+// to read; nullopt where neither directory holds the file, `err` then the
+// refusal, which names both paths, each with why, for the caller to show as
+// it is.
+inline std::optional<std::string> find_report(const std::string& document, const std::string& path,
+                                              std::string& err)
+{
+    const std::filesystem::path p(path);
+    if (path.empty() || p.is_absolute()) return path;
+    const std::filesystem::path dir = std::filesystem::path(document).parent_path();
+    if (dir.empty() || dir.lexically_normal() == ".") return path;
+    const std::string beside = (dir / p).string();
+    // Whether something is at `at`, else why not, in a phrase without the
+    // path: std::generic_category(), not std::strerror(), since the loader
+    // runs this on a worker.
+    const auto there = [](const std::string& at, std::string& why) {
+        std::error_code ec;
+        if (std::filesystem::exists(at, ec)) return true;
+        why = ec ? ec.message() : std::generic_category().message(ENOENT);
+        return false;
+    };
+    std::string here_why, beside_why;
+    if (there(path, here_why)) return path;
+    if (there(beside, beside_why)) return beside;
+    err = std::format("cannot read the ladder report {}, from the current directory or from the "
+                      "document's: {}: {}; {}: {}", path, path, here_why, beside, beside_why);
+    return std::nullopt;
+}
 
 // What to load.
 struct LoadInput {

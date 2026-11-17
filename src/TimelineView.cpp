@@ -1,4 +1,5 @@
-// The timeline panel's view math (eval/phase3-survey/design.md §10): written by WP12.
+// The timeline panel's view math (eval/phase3-survey/design.md §10): written by WP12, a
+// session's span that isn't scored outside the data by WP12c (D-124 (a)).
 
 #include "TimelineView.h"
 
@@ -230,21 +231,47 @@ PointRange points_in(const Curve& curve, std::int64_t first_frame, std::int64_t 
     return r;
 }
 
-PointRange points_meeting(const Curve& curve, std::int64_t first_frame, std::int64_t end_frame)
+std::int64_t point_end(const Curve& curve, const std::vector<Interval>& unscored, std::size_t point)
+{
+    const std::size_t n = std::min(curve.ref_index.size(), curve.vmaf.size());
+    if (point >= n) return 0;
+    const std::int64_t f = curve.ref_index[point];
+    std::int64_t end = point + 1 < n ? curve.ref_index[point + 1] : f + 1;
+    // A span outside the data that starts after the point's frame, before
+    // that end, ends it there (D-124 (a)): the spans are few, a session's.
+    for (const Interval& u : unscored)
+        if (u.ref_end > u.ref_index && u.ref_index > f && u.ref_index < end) end = u.ref_index;
+    return end;
+}
+
+PointRange points_meeting(const Curve& curve, const std::vector<Interval>& unscored, std::int64_t first_frame,
+                          std::int64_t end_frame)
 {
     if (first_frame >= end_frame) return {};
     PointRange r = points_in(curve, first_frame, end_frame);
-    // The point before the run stands for the frames up to the run's first
-    // point, or up to the next point after the frames where the run is
-    // empty: it meets them when that point comes after first_frame. Past the
-    // last point, which stands for its own frame alone, nothing does.
-    const std::size_t n = std::min(curve.ref_index.size(), curve.vmaf.size());
-    if (r.first > 0 && r.first < n && curve.ref_index[r.first] > first_frame) --r.first;
+    // The point before the run stands for the frames up to point_end(): up
+    // to the run's first point, or up to the next point after the frames
+    // where the run is empty, or up to the start of a span outside the data
+    // before either. It meets the frames when that end comes after
+    // first_frame. Past the last point, which stands for its own frame
+    // alone, nothing does: its end is at or before first_frame there.
+    if (r.first > 0 && point_end(curve, unscored, r.first - 1) > first_frame) --r.first;
     return r;
+}
+
+PointRange points_meeting(const Curve& curve, std::int64_t first_frame, std::int64_t end_frame)
+{
+    return points_meeting(curve, {}, first_frame, end_frame);
 }
 
 std::vector<MinMax> envelope(const Curve& curve, const Pyramid& pyramid, const AxisScale& scale,
                              const View& view, int columns)
+{
+    return envelope(curve, pyramid, {}, scale, view, columns);
+}
+
+std::vector<MinMax> envelope(const Curve& curve, const Pyramid& pyramid, const std::vector<Interval>& unscored,
+                             const AxisScale& scale, const View& view, int columns)
 {
     std::vector<MinMax> out;
     if (columns <= 0 || !(view.span() > 0.0)) return out;
@@ -258,9 +285,11 @@ std::vector<MinMax> envelope(const Curve& curve, const Pyramid& pyramid, const A
     for (std::size_t c = 0; c < out.size(); ++c) {
         // The first column from the frame under the view's left edge, with
         // the point whose span reaches it, so that a frame partly in view is
-        // drawn; frame_ending_after(t0) is at or before edge[0].
+        // drawn; frame_ending_after(t0) is at or before edge[0]. A span
+        // outside the data ends the span of the point before it (D-124 (a)),
+        // and holds no point: a column over it holds no score.
         const PointRange pr =
-            c == 0 ? points_meeting(curve, std::min(scale.frame_ending_after(view.t0), edge[0]),
+            c == 0 ? points_meeting(curve, unscored, std::min(scale.frame_ending_after(view.t0), edge[0]),
                                     std::max(edge[0], edge[1]))
                    : points_in(curve, edge[c], std::max(edge[c], edge[c + 1]));
         out[c] = range_min_max(pyramid, pr.first, pr.last);
@@ -274,12 +303,21 @@ std::optional<PickedPoint> pick_lowest(const Curve& curve, const Pyramid& pyrami
                                        const AxisScale& scale, const View& view, float x,
                                        float x0, float width, float radius)
 {
+    return pick_lowest(curve, pyramid, {}, scale, view, x, x0, width, radius);
+}
+
+std::optional<PickedPoint> pick_lowest(const Curve& curve, const Pyramid& pyramid,
+                                       const std::vector<Interval>& unscored, const AxisScale& scale,
+                                       const View& view, float x, float x0, float width, float radius)
+{
     if (!(width > 0.0f) || !(view.span() > 0.0)) return std::nullopt;
     const double lo = position_at(view, x - std::max(radius, 0.0f), x0, width);
     const double hi = position_at(view, x + std::max(radius, 0.0f), x0, width);
     // The frames from the one under lo to the last that starts at or before
-    // hi, and the points whose spans meet them.
-    const PointRange pr = points_meeting(curve, scale.frame_ending_after(lo), scale.frame_after(hi));
+    // hi, and the points whose spans meet them, a span outside the data
+    // meeting none (D-124 (a)).
+    const PointRange pr =
+        points_meeting(curve, unscored, scale.frame_ending_after(lo), scale.frame_after(hi));
     const MinMax m = range_min_max(pyramid, pr.first, pr.last);
     if (!m.any() || m.min_at >= curve.ref_index.size()) return std::nullopt;
     return PickedPoint{ .point = m.min_at, .ref_index = curve.ref_index[m.min_at], .vmaf = m.min };

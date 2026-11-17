@@ -10,6 +10,7 @@
 #include "SessionPlan.h"
 #include "TimelineAxis.h"
 #include "TimelineBuild.h"
+#include "TimelineLoad.h"   // find_report(), inline: the panel's loader's rule (D-124 (g) 4)
 #include "TimelineMedia.h"
 #include "VMAFAnalyzer.h"
 
@@ -368,7 +369,7 @@ const std::array kAttributeOptions = {
     AOption{ "--auto", "", "detect the drops again, with --window and --min-points", Form::Auto, true,
              false, set_auto },
     AOption{ "--report", "<report.json>", "the ladder report the document names (default: the path "
-             "the document gives)", Form::Any, false, false, set_report<AttributeArgs> },
+             "the document gives; see Report below)", Form::Any, false, false, set_report<AttributeArgs> },
     AOption{ "--curve", "pair:<k>|session:<id>", "the curve of the report's pair k, by its pairs[].index, "
              "or of the document's session <id> (default: every curve)", Form::Any, false, false,
              set_curve },
@@ -1589,9 +1590,15 @@ std::string attribute_usage()
         "starting with # are skipped. Every option but --config can be set there,\n"
         "once, and is checked as on the command line, which replaces the file's\n"
         "setting: a query on the command line replaces the file's, and leaves out its\n"
-        "threshold, window and min-points unless the query is --auto. Relative paths,\n"
-        "the report's path in the document among them, are taken from the current\n"
-        "directory.\n"
+        "threshold, window and min-points unless the query is --auto. Relative paths\n"
+        "are taken from the current directory, but for the report's path in the\n"
+        "document (see Report below).\n"
+        "\n"
+        "Report: the ladder report read is --report's, at its path as given, or else\n"
+        "the one the document names: at its path where that is absolute, and where it\n"
+        "is relative, from the current directory where something is at that path\n"
+        "there, else from the document's directory, as the player's timeline panel\n"
+        "finds it; where neither directory holds it, the error names both paths.\n"
         "\n"
         "Exit status: 0 the answer was written, a drop or none; 1 the document or the\n"
         "report couldn't be read, or the report isn't the one the document names, or\n"
@@ -2198,10 +2205,19 @@ int run_attribute(const std::vector<std::string_view>& argv)
                                         err));
 
     // The ladder report the document names, by its bytes or, for a redacted
-    // copy, by its scores digest (D-072); its path taken from the current
-    // directory unless --report gives another (D-081 (b)).
-    const std::string report_path = args.report.empty() ? info.report.path : args.report;
-    const FileText    report      = read_file(report_path);
+    // copy, by its scores digest (D-072): --report's path read as it is;
+    // without it the document's, a relative one from the current directory
+    // where the file is there, else from the document's directory, as the
+    // panel's loader reads it (D-124 (g) 4, Q97 4 (b); D-121 (a)), by the
+    // loader's own rule (timeline::find_report(), src/TimelineLoad.h), the
+    // refusal naming both paths where neither holds it.
+    std::string report_path = args.report;
+    if (report_path.empty()) {
+        const std::optional<std::string> found = timeline::find_report(args.timeline, info.report.path, err);
+        if (!found) return failed(tool, err);
+        report_path = *found;
+    }
+    const FileText report = read_file(report_path);
     if (!report.error.empty())
         return failed(tool, std::format("cannot read the ladder report {}: {}", report_path,
                                         report.error));

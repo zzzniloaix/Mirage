@@ -1,7 +1,8 @@
 #pragma once
 
 // The timeline panel's view math, ImGui-free: zoom, pan and fit, the curves' min/max envelopes
-// and hit testing (eval/phase3-survey/design.md §10; DECISIONS.md D-114 (a)): written by WP12.
+// and hit testing (eval/phase3-survey/design.md §10; DECISIONS.md D-114 (a)): written by WP12,
+// a session's span that isn't scored outside the data by WP12c (D-124 (a)).
 //
 // eval/phase3-survey/ui.md §2.5's view math, which the panel (src/TimelinePanel.h,
 // WP13) draws with and which mirage_tests tests without ImGui or GL (D-031):
@@ -28,10 +29,16 @@
 //   drop's interval reads the points (D-081 (g)): on a coarser grid the
 //   frames between two points are the earlier one's. Its span on x runs from
 //   its frame's position to the next point's. A session's curve has no point
-//   over a span that isn't scored (D-105 (b)), so the point before such a
-//   span stands for that span's frames here too, as built: Q91, still
-//   pending the owner, whose alternative is such a span outside the data,
-//   which would need the session's spans here.
+//   over a span that isn't scored (D-105 (b)), in top-rung mode a span that
+//   plays the reference, and such a span is outside the data (D-124 (a),
+//   Q91 (b)): the point before it stands for the frames up to its start
+//   only, no point stands for its frames, a hit test in it picks no point,
+//   and the envelope's columns hold no score over it, so that the panel can
+//   draw no curve there. The view takes those spans as the loader hands them
+//   over from the document (PanelCurve::unscored, src/TimelineLoad.h), by
+//   the overloads below that take `unscored`; the ones without it are those
+//   of a curve with no such span, a pair's, and are what WP13's panel calls
+//   (below, "For the panel").
 // - Envelopes. Each curve's scores as a min/max pyramid, built once when a
 //   document is loaded (src/TimelineLoad.h; ui.md §4.2), so that a column's
 //   minimum and maximum cost O(log n), and a redraw, each column's edges
@@ -54,6 +61,33 @@
 //   namespace), which stays unchanged (the design's P-AJ). Both are for
 //   seconds: on an axis without seconds the panel chooses and labels its
 //   ticks itself, as frame indices.
+//
+// For the panel (src/TimelinePanel.cpp), whose drawing of a session's span
+// that isn't scored WP13b changes after WP12c (D-124 (a)). WP12c kept every
+// declaration that WP13's panel calls as it was, so that the panel builds
+// unchanged and, until WP13b, still draws and picks as WP12's view had it,
+// the point before such a span standing for its frames: it calls
+// envelope(), pick_lowest() and points_meeting() without `unscored`, and
+// draws a point's step, where the view holds fewer points than columns, to
+// the next point's frame, or its own plus one, which it works out itself.
+// What WP13b needs, each from the curve's PanelCurve, whose `unscored` is
+// empty for a pair's curve, so that a pair's is drawn as before:
+// - envelope(points, envelope, unscored, ...) for the columns, which then
+//   hold no score over the span: the panel already breaks its line at a
+//   column without one;
+// - pick_lowest(points, envelope, unscored, ...) for a click and a QA pick,
+//   which then picks no point in the span;
+// - points_meeting(points, unscored, ...) for the points in view and for the
+//   hover's frame, which then meets no point in the span, and point_end()
+//   for where each point's step ends, the span's start for the point before
+//   it, in place of the panel's own end; and where that end comes before
+//   the next point's frame, the line is to end there too, by the panel's
+//   flush() as at a point without a score: its step loop joins each point's
+//   step to the next point's in one line, which would otherwise cross the
+//   span from the point before it to the point after it;
+// - PanelCurve::unscored itself, the reference frames to mark as not
+//   scored, should the panel mark them, as its event lines already say of
+//   a variant_span that isn't scored (D-105 (b)).
 //
 // Plain structs and functions; nothing here reads a clock, a file or the
 // player's state. Unit-tested in tests/test_timeline_view.cpp.
@@ -197,11 +231,30 @@ struct PointRange {
 };
 PointRange points_in(const Curve& curve, std::int64_t first_frame, std::int64_t end_frame);
 
+// Where the span of point `point` of `curve` ends, exclusive: at the next
+// point's frame, the last point's at its own frame plus one (this file's
+// head; D-081 (g)), and at the start of a span of `unscored` that starts
+// after the point's frame and before that, so that the point before a
+// session's span that isn't scored stands for the frames up to its start
+// only (D-124 (a)). `unscored`: the reference frames outside the curve's
+// data, half-open spans (D-078), as PanelCurve::unscored gives them
+// (src/TimelineLoad.h); an empty span cuts nothing, and a span that holds
+// the point's own frame, which a session's never does (curve_points(),
+// src/TimelineModel.h), doesn't cut its point. 0 for a point the curve
+// hasn't.
+std::int64_t point_end(const Curve& curve, const std::vector<Interval>& unscored,
+                       std::size_t point);
+
 // The points of `curve` whose spans meet the reference frames [first_frame,
-// end_frame), a point's span running from its frame to the next point's,
-// the last point's to its frame plus one (this file's head; D-081 (g)):
+// end_frame), a point's span running from its frame to point_end():
 // points_in()'s run, and the point before it when that point's span reaches
-// first_frame. Empty for an empty run of frames.
+// first_frame, so that frames inside a span of `unscored` meet no point.
+// Empty for an empty run of frames.
+PointRange points_meeting(const Curve& curve, const std::vector<Interval>& unscored,
+                          std::int64_t first_frame, std::int64_t end_frame);
+// The same for a curve with no span outside its data, a pair's: a point's
+// span running to the next point's frame, the last point's to its frame plus
+// one. What WP13's panel calls (this file's head, "For the panel").
 PointRange points_meeting(const Curve& curve, std::int64_t first_frame, std::int64_t end_frame);
 
 // The envelope of `curve` over `columns` columns of the view: column c holds
@@ -210,8 +263,14 @@ PointRange points_meeting(const Curve& curve, std::int64_t first_frame, std::int
 // the frames from frame_ending_after(t0) instead, with the points whose
 // spans meet them (points_meeting()), so that a frame partly in view at the
 // left edge is drawn. The columns share out every point whose span meets
-// the view, each in one of them. None for a view whose span isn't positive,
-// or no column.
+// the view, each in one of them; a column whose frames all lie in a span of
+// `unscored` holds none, so no score (D-124 (a)), a span that isn't scored
+// having no point. None for a view whose span isn't positive, or no column.
+std::vector<MinMax> envelope(const Curve& curve, const Pyramid& pyramid,
+                             const std::vector<Interval>& unscored, const AxisScale& scale,
+                             const View& view, int columns);
+// The same for a curve with no span outside its data, a pair's. What WP13's
+// panel calls (this file's head, "For the panel").
 std::vector<MinMax> envelope(const Curve& curve, const Pyramid& pyramid, const AxisScale& scale,
                              const View& view, int columns);
 
@@ -230,7 +289,16 @@ struct PickedPoint {
 // radius (points_meeting()), so that a click anywhere over a point's span
 // picks it, however wide the zoom draws it. The earliest of equal minima
 // (ui.md §2.1); nullopt where no point with a score has its span there,
-// outside the data among them.
+// outside the data among them: before the first point, past the last
+// point's frame, and inside a span of `unscored` (D-124 (a)). A reach that
+// lies partly over such a span picks among the points whose spans it meets
+// outside it, as a reach past either end of the data does.
+std::optional<PickedPoint> pick_lowest(const Curve& curve, const Pyramid& pyramid,
+                                       const std::vector<Interval>& unscored,
+                                       const AxisScale& scale, const View& view, float x,
+                                       float x0, float width, float radius);
+// The same for a curve with no span outside its data, a pair's. What WP13's
+// panel calls (this file's head, "For the panel").
 std::optional<PickedPoint> pick_lowest(const Curve& curve, const Pyramid& pyramid,
                                        const AxisScale& scale, const View& view, float x,
                                        float x0, float width, float radius);

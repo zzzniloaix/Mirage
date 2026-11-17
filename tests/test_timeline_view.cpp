@@ -1,4 +1,5 @@
-// Unit tests of src/TimelineView.h (eval/phase3-survey/design.md §9.1): written by WP12.
+// Unit tests of src/TimelineView.h (eval/phase3-survey/design.md §9.1): written by WP12, a
+// session's span that isn't scored by WP12c.
 //
 // eval/phase3-survey/ui.md §5.1's view math, without ImGui or GL (D-031): the
 // axis's positions, the axis's own seconds and their frames, on a frame grid
@@ -15,7 +16,14 @@
 // random views, the earliest of equal minima, nothing outside the data, a
 // click inside a zoomed-in frame, every x of a fitted curve, and between two
 // points of a coarser grid; markers clustered with their counts, and the
-// nearest.
+// nearest. A span outside the data, a session's span that isn't scored
+// (D-124 (a)), on a curve shaped as a session's that plays the reference
+// over D-069's ad: the point before it standing for the frames up to its
+// start only, no point meeting its frames, its columns holding no score, the
+// first column's among them, and no point picked in it, across it and at
+// its two ends, with the overloads that WP13's panel calls kept as they
+// were; and each against brute force on random curves with random such
+// spans, empty ones and adjacent ones among them.
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -120,17 +128,78 @@ std::int64_t first_ending_after(const AxisScale& s, double p)
     return s.frames;
 }
 
+// The frame a point's span ends at where `unscored` holds spans outside the
+// data (D-124 (a)): span_end(), or the start of the first of those spans,
+// none empty, that starts after the point's frame and before that, by brute
+// force over every frame.
+std::int64_t span_end(const Curve& c, const std::vector<timeline::Interval>& unscored, std::size_t k)
+{
+    const std::int64_t end = span_end(c, k);
+    for (std::int64_t f = c.ref_index[k] + 1; f < end; ++f)
+        for (const timeline::Interval& u : unscored)
+            if (u.ref_end > u.ref_index && u.ref_index == f) return f;
+    return end;
+}
+
 // The lowest point whose span on the axis, from its frame's position to its
 // span end's, meets [lo, hi], the earliest of equal minima, by brute force.
-std::optional<std::size_t> brute_pick(const Curve& c, const AxisScale& s, double lo, double hi)
+std::optional<std::size_t> brute_pick(const Curve& c, const AxisScale& s, double lo, double hi,
+                                      const std::vector<timeline::Interval>& unscored = {})
 {
     std::optional<std::size_t> best;
     for (std::size_t k = 0; k < c.ref_index.size(); ++k) {
-        if (!(s.position(c.ref_index[k]) <= hi && s.position(span_end(c, k)) > lo)) continue;
+        if (!(s.position(c.ref_index[k]) <= hi && s.position(span_end(c, unscored, k)) > lo)) continue;
         if (!std::isfinite(c.vmaf[k])) continue;
         if (!best || c.vmaf[k] < c.vmaf[*best]) best = k;
     }
     return best;
+}
+
+// A curve shaped as a session's whose middle span plays the reference over
+// D-069's ad in top-rung mode, as tests/test_timeline_load.cpp's document
+// has it: points at frames 0 to 74 and 125 to 199, 90 but for 60 at frame 74
+// and 70 at frame 125, and none over [75, 125), its span that isn't scored.
+const std::vector<timeline::Interval> kAdUnscored = { { .ref_index = 75, .ref_end = 125 } };
+
+Curve ad_session_curve()
+{
+    Curve c;
+    for (std::int64_t f = 0; f < 200; ++f) {
+        if (f >= 75 && f < 125) continue;
+        c.ref_index.push_back(f);
+        c.vmaf.push_back(f == 74 ? 60.0 : f == 125 ? 70.0 : 90.0);
+    }
+    return c;
+}
+
+// Random spans outside the data on frames [0, frames): up to three, ordered,
+// apart, adjacent or empty, and `c` without its points inside them, as
+// curve_points() leaves a session's curve (src/TimelineModel.h).
+std::vector<timeline::Interval> random_unscored(std::mt19937& rng, std::int64_t frames, Curve& c)
+{
+    std::uniform_int_distribution<int> count(0, 3), shape(0, 5);
+    std::uniform_int_distribution<std::int64_t> at(0, frames - 1), length(1, 120);
+    std::vector<timeline::Interval> out;
+    std::int64_t from = at(rng) / 2;
+    for (int n = count(rng); n > 0 && from < frames; --n) {
+        const int k = shape(rng);
+        const std::int64_t start = k == 0 && !out.empty() ? out.back().ref_end : from;   // adjacent
+        const std::int64_t end   = k == 1 ? start : std::min(frames, start + length(rng));  // empty
+        out.push_back({ .ref_index = start, .ref_end = end });
+        from = end + at(rng) / 4;
+    }
+    Curve kept;
+    kept.variant = c.variant;
+    for (std::size_t k = 0; k < c.ref_index.size(); ++k) {
+        const std::int64_t f = c.ref_index[k];
+        if (std::any_of(out.begin(), out.end(),
+                        [f](const timeline::Interval& u) { return f >= u.ref_index && f < u.ref_end; }))
+            continue;
+        kept.ref_index.push_back(f);
+        kept.vmaf.push_back(c.vmaf[k]);
+    }
+    c = std::move(kept);
+    return out;
 }
 
 } // namespace
@@ -493,6 +562,197 @@ TEST_CASE("timeline::envelope: a one-frame dip is its column's minimum at every 
     CHECK(std::abs(v.span() - timeline::kMinSpan) < 1e-9);
 }
 
+// ── A span outside the data (D-124 (a)) ──────────────────────────────────────
+
+TEST_CASE("timeline::point_end and points_meeting: a session's span that isn't scored ends the span of the "
+          "point before it at its start, and meets no point; against brute force with random such spans "
+          "(D-124 (a))",
+          "[timeline][timeline_view]")
+{
+    const Curve c = ad_session_curve();
+    REQUIRE(c.ref_index.size() == 150);
+    REQUIRE(c.ref_index[74] == 74);
+    REQUIRE(c.ref_index[75] == 125);
+    // Frame 74's point, the one before the span, stands for its own frame
+    // alone: its span ends at the span's start, where without the span it
+    // would run to the next point's frame, 125.
+    CHECK(timeline::point_end(c, kAdUnscored, 74) == 75);
+    CHECK(timeline::point_end(c, {}, 74) == 125);
+    CHECK(timeline::point_end(c, kAdUnscored, 73) == 74);
+    CHECK(timeline::point_end(c, kAdUnscored, 75) == 126);    // frame 125's, the first after it
+    CHECK(timeline::point_end(c, kAdUnscored, 149) == 200);   // the last point: its own frame
+    CHECK(timeline::point_end(c, kAdUnscored, 150) == 0);     // a point the curve hasn't
+    // An empty span cuts nothing, nor does one that holds the point's own
+    // frame, which a session's span never does.
+    CHECK(timeline::point_end(c, { { .ref_index = 100, .ref_end = 100 } }, 74) == 125);
+    CHECK(timeline::point_end(c, { { .ref_index = 70, .ref_end = 80 } }, 74) == 125);
+
+    // Each of the span's frames meets no point; as WP12's view had it, which
+    // the overload without the spans keeps for WP13's panel, frame 74's.
+    for (std::int64_t f = 75; f < 125; ++f) {
+        INFO(f);
+        const timeline::PointRange r = timeline::points_meeting(c, kAdUnscored, f, f + 1);
+        CHECK(r.first == r.last);
+        const timeline::PointRange before = timeline::points_meeting(c, f, f + 1);
+        CHECK((before.first == 74 && before.last == 75));
+    }
+    // At its two ends, the points beside it; across it, the points on
+    // either side; from inside it, those after it alone.
+    timeline::PointRange r = timeline::points_meeting(c, kAdUnscored, 74, 75);
+    CHECK((r.first == 74 && r.last == 75));
+    r = timeline::points_meeting(c, kAdUnscored, 74, 76);
+    CHECK((r.first == 74 && r.last == 75));
+    r = timeline::points_meeting(c, kAdUnscored, 124, 126);
+    CHECK((r.first == 75 && r.last == 76));
+    r = timeline::points_meeting(c, kAdUnscored, 70, 130);
+    CHECK((r.first == 70 && r.last == 80));
+    r = timeline::points_meeting(c, kAdUnscored, 100, 130);
+    CHECK((r.first == 75 && r.last == 80));
+    r = timeline::points_meeting(c, 100, 130);
+    CHECK((r.first == 74 && r.last == 80));
+
+    // Random curves, every frame or a coarser grid, with random spans outside
+    // their data: each point's end, and the points meeting random runs of
+    // frames, against brute force.
+    std::mt19937 rng(57);
+    std::uniform_real_distribution<double> u(0.0, 1.0);
+    for (int trial = 0; trial < 500; ++trial) {
+        INFO(trial);
+        const std::int64_t stride = 1 + static_cast<std::int64_t>(u(rng) * 3.0);
+        const std::int64_t first  = static_cast<std::int64_t>(u(rng) * 20.0);
+        const std::size_t  n      = static_cast<std::size_t>((400 - first + stride - 1) / stride);
+        Curve rc = curve_of(random_scores(rng, n), first, stride);
+        const std::vector<timeline::Interval> gaps = random_unscored(rng, 400, rc);
+        std::size_t wrong_ends = 0;
+        for (std::size_t k = 0; k < rc.ref_index.size(); ++k)
+            wrong_ends += timeline::point_end(rc, gaps, k) != span_end(rc, gaps, k);
+        CHECK(wrong_ends == 0);
+        for (int run = 0; run < 20; ++run) {
+            const std::int64_t a = static_cast<std::int64_t>(u(rng) * 430.0) - 15;
+            const std::int64_t b = a + static_cast<std::int64_t>(u(rng) * 80.0) - 5;
+            INFO("frames " << a << " to " << b);
+            std::size_t lo = 0, hi = 0, count = 0;
+            for (std::size_t k = 0; k < rc.ref_index.size(); ++k) {
+                if (!(a < b && rc.ref_index[k] < b && span_end(rc, gaps, k) > a)) continue;
+                if (count++ == 0) lo = k;
+                hi = k + 1;
+            }
+            const timeline::PointRange got = timeline::points_meeting(rc, gaps, a, b);
+            if (count == 0) {
+                CHECK(got.first == got.last);
+            } else {
+                CHECK(got.first == lo);
+                CHECK(got.last == hi);
+                CHECK(hi - lo == count);
+            }
+        }
+    }
+}
+
+TEST_CASE("timeline::envelope: no score in the columns over a session's span that isn't scored, the first "
+          "column's among them, and the points beside it at its two ends; against brute force with random "
+          "such spans (D-124 (a))",
+          "[timeline][timeline_view]")
+{
+    const AxisScale s = timeline::axis_scale(grid_axis(200));   // 8 s, frame f from 0.04 f s
+    const Curve c = ad_session_curve();
+    const timeline::Pyramid p = timeline::build_pyramid(c.vmaf);
+    // A column a frame, each column's left edge half a frame before its
+    // frame, so that column j holds frame j: the span's 50 columns hold no
+    // score, and its two neighbours the points beside it.
+    const View one{ .t0 = -0.02, .t1 = 7.98, .fit = false };
+    const std::vector<MinMax> env = timeline::envelope(c, p, kAdUnscored, s, one, 200);
+    REQUIRE(env.size() == 200);
+    for (std::size_t j = 0; j < 200; ++j) {
+        INFO("column " << j);
+        if (j >= 75 && j < 125) {
+            CHECK_FALSE(env[j].any());
+            continue;
+        }
+        REQUIRE(env[j].any());
+        CHECK(env[j].points == 1);
+        CHECK(env[j].min_at == (j < 75 ? j : j - 50));
+    }
+    CHECK(env[74].min == 60.0);
+    CHECK(env[125].min == 70.0);
+    // Columns past the first are those of the frames they hold, which the
+    // span has no point at: the overload without the spans gives the same.
+    const std::vector<MinMax> as_before = timeline::envelope(c, p, s, one, 200);
+    for (std::size_t j = 0; j < 200; ++j) CHECK(same(env[j], as_before[j]));
+
+    // A view whose left edge lies inside the span, at frame 87's middle, a
+    // column a frame: its first column, frames 87 and 88, and the next 36,
+    // frames 89 to 124, hold no score, and column 37 frame 125's point; the
+    // overload without the spans, as WP12's view had it, holds frame 74's
+    // point in the first column.
+    const View inside{ .t0 = 3.5, .t1 = 7.5, .fit = false };
+    std::vector<MinMax> e = timeline::envelope(c, p, kAdUnscored, s, inside, 100);
+    REQUIRE(e.size() == 100);
+    for (std::size_t j = 0; j < 37; ++j) {
+        INFO("column " << j);
+        CHECK_FALSE(e[j].any());
+    }
+    REQUIRE(e[37].any());
+    CHECK(e[37].min_at == 75);
+    CHECK(e[37].min == 70.0);
+    e = timeline::envelope(c, p, s, inside, 100);
+    REQUIRE(e.front().any());
+    CHECK(e.front().min_at == 74);
+    CHECK(e.front().min == 60.0);
+    // A view whose left edge lies inside frame 74, partly in view: its point,
+    // as before, alone in the first column, frames 74 and 75; the next
+    // column, frame 76, none.
+    e = timeline::envelope(c, p, kAdUnscored, s, View{ .t0 = 2.98, .t1 = 4.98, .fit = false }, 50);
+    REQUIRE(e.front().any());
+    CHECK(e.front().min_at == 74);
+    CHECK(e.front().points == 1);
+    CHECK_FALSE(e[1].any());
+
+    // Random curves with random spans outside their data, random views:
+    // each column against brute force, the first column holding the points
+    // whose spans, to their ends at a span's start, meet its frames.
+    const AxisScale s2 = timeline::axis_scale(grid_axis(1000));
+    std::mt19937 rng(64);
+    std::uniform_real_distribution<double> u(0.0, 1.0);
+    for (int trial = 0; trial < 300; ++trial) {
+        INFO(trial);
+        const std::int64_t stride = 1 + static_cast<std::int64_t>(u(rng) * 2.0);
+        const std::int64_t first  = static_cast<std::int64_t>(u(rng) * 50.0);
+        const std::size_t  n      = static_cast<std::size_t>((1000 - first + stride - 1) / stride);
+        Curve rc = curve_of(random_scores(rng, n), first, stride);
+        const std::vector<timeline::Interval> gaps = random_unscored(rng, 1000, rc);
+        const timeline::Pyramid rp = timeline::build_pyramid(rc.vmaf);
+        View v;
+        v.t0 = -5.0 + 45.0 * u(rng);
+        v.t1 = v.t0 + 0.5 + 40.0 * u(rng);
+        const int columns = 1 + static_cast<int>(u(rng) * 400.0);
+        const std::vector<MinMax> got = timeline::envelope(rc, rp, gaps, s2, v, columns);
+        REQUIRE(got.size() == static_cast<std::size_t>(columns));
+        const std::int64_t under = first_ending_after(s2, v.t0);
+        std::size_t wrong = 0;
+        for (int col = 0; col < columns; ++col) {
+            const std::int64_t f0 = s2.frame_at_or_after(v.t0 + v.span() * col / columns);
+            const std::int64_t f1 =
+                s2.frame_at_or_after(col + 1 == columns ? v.t1 : v.t0 + v.span() * (col + 1) / columns);
+            MinMax want;
+            for (std::size_t k = 0; k < rc.vmaf.size(); ++k) {
+                const bool in = col == 0 ? under < f1 && rc.ref_index[k] < f1 && span_end(rc, gaps, k) > under
+                                         : rc.ref_index[k] >= f0 && rc.ref_index[k] < f1;
+                const double x = rc.vmaf[k];
+                if (!in || !std::isfinite(x)) continue;
+                if (want.points == 0 || x < want.min) {
+                    want.min    = x;
+                    want.min_at = k;
+                }
+                if (want.points == 0 || x > want.max) want.max = x;
+                ++want.points;
+            }
+            wrong += !same(got[static_cast<std::size_t>(col)], want);
+        }
+        CHECK(wrong == 0);
+    }
+}
+
 // ── Hit testing ──────────────────────────────────────────────────────────────
 
 TEST_CASE("timeline::pick_lowest: the lowest point within the radius, the earliest of equal minima, "
@@ -642,6 +902,94 @@ TEST_CASE("timeline::pick_lowest: a click anywhere over a point's span picks it,
         const std::optional<std::size_t> want = brute_pick(r, s3, lo, hi);
         REQUIRE(got.has_value() == want.has_value());
         if (want) CHECK(got->point == *want);
+    }
+}
+
+TEST_CASE("timeline::pick_lowest: no point picked in a session's span that isn't scored, across it and at "
+          "its two ends; against brute force with random such spans (D-124 (a))",
+          "[timeline][timeline_view]")
+{
+    // The fitted view over 800 px, 4 px a frame: frame f from x 4f to 4f + 4,
+    // the span from x 300 to 500.
+    const AxisScale s = timeline::axis_scale(grid_axis(200));   // 8 s
+    const Curve c = ad_session_curve();
+    const timeline::Pyramid p = timeline::build_pyramid(c.vmaf);
+    View fit;
+    timeline::fit_view(fit, s);
+    const auto pick = [&](float x, float radius) {
+        return timeline::pick_lowest(c, p, kAdUnscored, s, fit, x, 0.0f, 800.0f, radius);
+    };
+
+    // Across it: no point, at every x of its frames, nor with a reach of
+    // 4 px that stays inside it; as WP12's view had it, which the overload
+    // without the spans keeps for WP13's panel, frame 74's point.
+    for (int px = 300; px < 500; ++px) {
+        INFO("x " << px);
+        const float x = static_cast<float>(px);
+        CHECK_FALSE(pick(x, 0.0f));
+        if (px >= 304 && px < 496) CHECK_FALSE(pick(x, 4.0f));
+        const std::optional<timeline::PickedPoint> before = timeline::pick_lowest(c, p, s, fit, x, 0.0f, 800.0f, 0.0f);
+        REQUIRE(before);
+        CHECK(before->ref_index == 74);
+    }
+    // At its start: inside frame 74 its point, from frame 75's start on
+    // nothing; a reach back over the start, the point before it.
+    std::optional<timeline::PickedPoint> got = pick(298.0f, 0.0f);
+    REQUIRE(got);
+    CHECK(got->ref_index == 74);
+    CHECK(got->vmaf == 60.0);
+    got = pick(299.5f, 0.0f);
+    REQUIRE(got);
+    CHECK(got->ref_index == 74);
+    CHECK_FALSE(pick(300.0f, 0.0f));
+    got = pick(302.0f, 4.0f);
+    REQUIRE(got);
+    CHECK(got->ref_index == 74);
+    // At its end: frame 124 nothing, frame 125's start its point; a reach
+    // forward over the end, that point.
+    CHECK_FALSE(pick(499.5f, 0.0f));
+    got = pick(500.0f, 0.0f);
+    REQUIRE(got);
+    CHECK(got->point == 75);
+    CHECK(got->ref_index == 125);
+    CHECK(got->vmaf == 70.0);
+    got = pick(498.0f, 4.0f);
+    REQUIRE(got);
+    CHECK(got->ref_index == 125);
+    // A reach over the whole span and either side of it: the lower of the
+    // points beside it.
+    got = pick(400.0f, 120.0f);
+    REQUIRE(got);
+    CHECK(got->ref_index == 74);
+
+    // Random curves with random spans outside their data, random views,
+    // cursors and radii: the pick is the brute force's.
+    const AxisScale s3 = timeline::axis_scale(grid_axis(1000));   // 40 s
+    std::mt19937 rng(91);
+    std::uniform_real_distribution<double> u(0.0, 1.0);
+    for (int trial = 0; trial < 2000; ++trial) {
+        INFO(trial);
+        const std::int64_t stride = 1 + static_cast<std::int64_t>(u(rng) * 2.0);
+        const std::int64_t first  = static_cast<std::int64_t>(u(rng) * 50.0);
+        const std::size_t  n      = static_cast<std::size_t>((900 - first + stride - 1) / stride);
+        Curve r = curve_of(random_scores(rng, n), first, stride);
+        const std::vector<timeline::Interval> gaps = random_unscored(rng, 900, r);
+        const timeline::Pyramid rp = timeline::build_pyramid(r.vmaf);
+        View rv;
+        rv.t0 = -2.0 + 40.0 * u(rng);
+        rv.t1 = rv.t0 + 0.5 + 10.0 * u(rng);
+        rv.fit = false;
+        const float x0     = static_cast<float>(20.0 * u(rng));
+        const float width  = static_cast<float>(200.0 + 1800.0 * u(rng));
+        const float x      = x0 - 20.0f + static_cast<float>(u(rng)) * (width + 40.0f);
+        const float radius = static_cast<float>(12.0 * u(rng));
+        const double lo = timeline::position_at(rv, x - radius, x0, width);
+        const double hi = timeline::position_at(rv, x + radius, x0, width);
+        const std::optional<timeline::PickedPoint> picked =
+            timeline::pick_lowest(r, rp, gaps, s3, rv, x, x0, width, radius);
+        const std::optional<std::size_t> want = brute_pick(r, s3, lo, hi, gaps);
+        REQUIRE(picked.has_value() == want.has_value());
+        if (want) CHECK(picked->point == *want);
     }
 }
 
