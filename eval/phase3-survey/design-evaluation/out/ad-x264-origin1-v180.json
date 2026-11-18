@@ -1,0 +1,850 @@
+{
+ "schema_version": "PROTOTYPE (not a decision: the owner sets the version and its form)",
+ "made_by": "design-evaluation/tools/attribute.py",
+ "ladder_report": "ad-x264-origin1.json",
+ "reference": {
+  "variant": "v360",
+  "mode": "top-rung"
+ },
+ "axis": "reference playlist time, seconds (raw PTS and continuous PTS printed for comparison)",
+ "pts": "ticks of the reference time base, from the report's seconds",
+ "parameters": {
+  "detector": "trailing median of non-low scores",
+  "threshold": 6.0,
+  "window": 50,
+  "min_frames_exclusive": 12
+ },
+ "curve": "pair 1 (v180)",
+ "timeline": [
+  {
+   "id": 0,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v360",
+   "segment": 0,
+   "t": 0.0,
+   "t_end": 1.0,
+   "ref_index": 0,
+   "wallclock": null,
+   "payload": {
+    "uri": "main_000.ts",
+    "seq": 0,
+    "extinf_s": 1.0,
+    "disc_seq": 0
+   }
+  },
+  {
+   "id": 1,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v360",
+   "segment": 0,
+   "t": 0.0,
+   "t_end": null,
+   "ref_index": 0,
+   "wallclock": null,
+   "payload": {
+    "frame": 0
+   }
+  },
+  {
+   "id": 2,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v360",
+   "segment": 1,
+   "t": 1.0,
+   "t_end": 2.0,
+   "ref_index": 25,
+   "wallclock": null,
+   "payload": {
+    "uri": "main_001.ts",
+    "seq": 1,
+    "extinf_s": 1.0,
+    "disc_seq": 0
+   }
+  },
+  {
+   "id": 3,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v360",
+   "segment": 1,
+   "t": 1.0,
+   "t_end": null,
+   "ref_index": 25,
+   "wallclock": null,
+   "payload": {
+    "frame": 25
+   }
+  },
+  {
+   "id": 4,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v360",
+   "segment": 2,
+   "t": 2.0,
+   "t_end": 3.0,
+   "ref_index": 50,
+   "wallclock": null,
+   "payload": {
+    "uri": "main_002.ts",
+    "seq": 2,
+    "extinf_s": 1.0,
+    "disc_seq": 0
+   }
+  },
+  {
+   "id": 5,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v360",
+   "segment": 2,
+   "t": 2.0,
+   "t_end": null,
+   "ref_index": 50,
+   "wallclock": null,
+   "payload": {
+    "frame": 50
+   }
+  },
+  {
+   "id": 6,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v360",
+   "segment": 3,
+   "t": 3.0,
+   "t_end": 4.0,
+   "ref_index": 75,
+   "wallclock": null,
+   "payload": {
+    "uri": "ad_000.ts",
+    "seq": 3,
+    "extinf_s": 1.0,
+    "disc_seq": 1
+   }
+  },
+  {
+   "id": 7,
+   "source": "playlist",
+   "type": "discontinuity",
+   "variant": "v360",
+   "segment": 3,
+   "t": 3.0,
+   "t_end": null,
+   "ref_index": 75,
+   "wallclock": null,
+   "payload": {
+    "line": 13
+   }
+  },
+  {
+   "id": 8,
+   "source": "scte35",
+   "type": "cue_out",
+   "variant": "v360",
+   "segment": 3,
+   "t": 3.0,
+   "t_end": null,
+   "ref_index": 75,
+   "wallclock": null,
+   "payload": {
+    "value": "2.000",
+    "duration_s": 2.0,
+    "line": 14
+   }
+  },
+  {
+   "id": 9,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v360",
+   "segment": 3,
+   "t": 3.0,
+   "t_end": null,
+   "ref_index": 75,
+   "wallclock": null,
+   "payload": {
+    "frame": 75
+   }
+  },
+  {
+   "id": 10,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v360",
+   "segment": 4,
+   "t": 4.0,
+   "t_end": 5.0,
+   "ref_index": 100,
+   "wallclock": null,
+   "payload": {
+    "uri": "ad_001.ts",
+    "seq": 4,
+    "extinf_s": 1.0,
+    "disc_seq": 1
+   }
+  },
+  {
+   "id": 11,
+   "source": "scte35",
+   "type": "cue_out_cont",
+   "variant": "v360",
+   "segment": 4,
+   "t": 4.0,
+   "t_end": null,
+   "ref_index": 100,
+   "wallclock": null,
+   "payload": {
+    "value": "1.000/2.000",
+    "elapsed_s": 1.0,
+    "duration_s": 2.0,
+    "line": 17
+   }
+  },
+  {
+   "id": 12,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v360",
+   "segment": 4,
+   "t": 4.0,
+   "t_end": null,
+   "ref_index": 100,
+   "wallclock": null,
+   "payload": {
+    "frame": 100
+   }
+  },
+  {
+   "id": 13,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v360",
+   "segment": 5,
+   "t": 5.0,
+   "t_end": 6.0,
+   "ref_index": 125,
+   "wallclock": null,
+   "payload": {
+    "uri": "main_005.ts",
+    "seq": 5,
+    "extinf_s": 1.0,
+    "disc_seq": 2
+   }
+  },
+  {
+   "id": 14,
+   "source": "playlist",
+   "type": "discontinuity",
+   "variant": "v360",
+   "segment": 5,
+   "t": 5.0,
+   "t_end": null,
+   "ref_index": 125,
+   "wallclock": null,
+   "payload": {
+    "line": 20
+   }
+  },
+  {
+   "id": 15,
+   "source": "scte35",
+   "type": "cue_in",
+   "variant": "v360",
+   "segment": 5,
+   "t": 5.0,
+   "t_end": null,
+   "ref_index": 125,
+   "wallclock": null,
+   "payload": {
+    "value": "",
+    "line": 21
+   }
+  },
+  {
+   "id": 16,
+   "source": "scte35",
+   "type": "ad_break",
+   "variant": "v360",
+   "segment": null,
+   "t": 3.0,
+   "t_end": 5.0,
+   "ref_index": 75,
+   "wallclock": null,
+   "payload": {
+    "declared_duration_s": 2.0,
+    "anchor": "tag position",
+    "end": "cue_in"
+   }
+  },
+  {
+   "id": 17,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v360",
+   "segment": 5,
+   "t": 5.0,
+   "t_end": null,
+   "ref_index": 125,
+   "wallclock": null,
+   "payload": {
+    "frame": 125
+   }
+  },
+  {
+   "id": 18,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v360",
+   "segment": 6,
+   "t": 6.0,
+   "t_end": 7.0,
+   "ref_index": 150,
+   "wallclock": null,
+   "payload": {
+    "uri": "main_006.ts",
+    "seq": 6,
+    "extinf_s": 1.0,
+    "disc_seq": 2
+   }
+  },
+  {
+   "id": 19,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v360",
+   "segment": 6,
+   "t": 6.0,
+   "t_end": null,
+   "ref_index": 150,
+   "wallclock": null,
+   "payload": {
+    "frame": 150
+   }
+  },
+  {
+   "id": 20,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v360",
+   "segment": 7,
+   "t": 7.0,
+   "t_end": 8.0,
+   "ref_index": 175,
+   "wallclock": null,
+   "payload": {
+    "uri": "main_007.ts",
+    "seq": 7,
+    "extinf_s": 1.0,
+    "disc_seq": 2
+   }
+  },
+  {
+   "id": 21,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v360",
+   "segment": 7,
+   "t": 7.0,
+   "t_end": null,
+   "ref_index": 175,
+   "wallclock": null,
+   "payload": {
+    "frame": 175
+   }
+  },
+  {
+   "id": 22,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v180",
+   "segment": 0,
+   "t": 0.0,
+   "t_end": 1.0,
+   "ref_index": 0,
+   "wallclock": null,
+   "payload": {
+    "uri": "main_000.ts",
+    "seq": 0,
+    "extinf_s": 1.0,
+    "disc_seq": 0
+   }
+  },
+  {
+   "id": 23,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v180",
+   "segment": 0,
+   "t": 0.0,
+   "t_end": null,
+   "ref_index": 0,
+   "wallclock": null,
+   "payload": {
+    "frame": 0
+   }
+  },
+  {
+   "id": 24,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v180",
+   "segment": 1,
+   "t": 1.0,
+   "t_end": 2.0,
+   "ref_index": 25,
+   "wallclock": null,
+   "payload": {
+    "uri": "main_001.ts",
+    "seq": 1,
+    "extinf_s": 1.0,
+    "disc_seq": 0
+   }
+  },
+  {
+   "id": 25,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v180",
+   "segment": 1,
+   "t": 1.0,
+   "t_end": null,
+   "ref_index": 25,
+   "wallclock": null,
+   "payload": {
+    "frame": 25
+   }
+  },
+  {
+   "id": 26,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v180",
+   "segment": 2,
+   "t": 2.0,
+   "t_end": 3.0,
+   "ref_index": 50,
+   "wallclock": null,
+   "payload": {
+    "uri": "main_002.ts",
+    "seq": 2,
+    "extinf_s": 1.0,
+    "disc_seq": 0
+   }
+  },
+  {
+   "id": 27,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v180",
+   "segment": 2,
+   "t": 2.0,
+   "t_end": null,
+   "ref_index": 50,
+   "wallclock": null,
+   "payload": {
+    "frame": 50
+   }
+  },
+  {
+   "id": 28,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v180",
+   "segment": 3,
+   "t": 3.0,
+   "t_end": 4.0,
+   "ref_index": 75,
+   "wallclock": null,
+   "payload": {
+    "uri": "ad_000.ts",
+    "seq": 3,
+    "extinf_s": 1.0,
+    "disc_seq": 1
+   }
+  },
+  {
+   "id": 29,
+   "source": "playlist",
+   "type": "discontinuity",
+   "variant": "v180",
+   "segment": 3,
+   "t": 3.0,
+   "t_end": null,
+   "ref_index": 75,
+   "wallclock": null,
+   "payload": {
+    "line": 13
+   }
+  },
+  {
+   "id": 30,
+   "source": "scte35",
+   "type": "cue_out",
+   "variant": "v180",
+   "segment": 3,
+   "t": 3.0,
+   "t_end": null,
+   "ref_index": 75,
+   "wallclock": null,
+   "payload": {
+    "value": "2.000",
+    "duration_s": 2.0,
+    "line": 14
+   }
+  },
+  {
+   "id": 31,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v180",
+   "segment": 3,
+   "t": 3.0,
+   "t_end": null,
+   "ref_index": 75,
+   "wallclock": null,
+   "payload": {
+    "frame": 75
+   }
+  },
+  {
+   "id": 32,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v180",
+   "segment": 4,
+   "t": 4.0,
+   "t_end": 5.0,
+   "ref_index": 100,
+   "wallclock": null,
+   "payload": {
+    "uri": "ad_001.ts",
+    "seq": 4,
+    "extinf_s": 1.0,
+    "disc_seq": 1
+   }
+  },
+  {
+   "id": 33,
+   "source": "scte35",
+   "type": "cue_out_cont",
+   "variant": "v180",
+   "segment": 4,
+   "t": 4.0,
+   "t_end": null,
+   "ref_index": 100,
+   "wallclock": null,
+   "payload": {
+    "value": "1.000/2.000",
+    "elapsed_s": 1.0,
+    "duration_s": 2.0,
+    "line": 17
+   }
+  },
+  {
+   "id": 34,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v180",
+   "segment": 4,
+   "t": 4.0,
+   "t_end": null,
+   "ref_index": 100,
+   "wallclock": null,
+   "payload": {
+    "frame": 100
+   }
+  },
+  {
+   "id": 35,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v180",
+   "segment": 5,
+   "t": 5.0,
+   "t_end": 6.0,
+   "ref_index": 125,
+   "wallclock": null,
+   "payload": {
+    "uri": "main_005.ts",
+    "seq": 5,
+    "extinf_s": 1.0,
+    "disc_seq": 2
+   }
+  },
+  {
+   "id": 36,
+   "source": "playlist",
+   "type": "discontinuity",
+   "variant": "v180",
+   "segment": 5,
+   "t": 5.0,
+   "t_end": null,
+   "ref_index": 125,
+   "wallclock": null,
+   "payload": {
+    "line": 20
+   }
+  },
+  {
+   "id": 37,
+   "source": "scte35",
+   "type": "cue_in",
+   "variant": "v180",
+   "segment": 5,
+   "t": 5.0,
+   "t_end": null,
+   "ref_index": 125,
+   "wallclock": null,
+   "payload": {
+    "value": "",
+    "line": 21
+   }
+  },
+  {
+   "id": 38,
+   "source": "scte35",
+   "type": "ad_break",
+   "variant": "v180",
+   "segment": null,
+   "t": 3.0,
+   "t_end": 5.0,
+   "ref_index": 75,
+   "wallclock": null,
+   "payload": {
+    "declared_duration_s": 2.0,
+    "anchor": "tag position",
+    "end": "cue_in"
+   }
+  },
+  {
+   "id": 39,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v180",
+   "segment": 5,
+   "t": 5.0,
+   "t_end": null,
+   "ref_index": 125,
+   "wallclock": null,
+   "payload": {
+    "frame": 125
+   }
+  },
+  {
+   "id": 40,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v180",
+   "segment": 6,
+   "t": 6.0,
+   "t_end": 7.0,
+   "ref_index": 150,
+   "wallclock": null,
+   "payload": {
+    "uri": "main_006.ts",
+    "seq": 6,
+    "extinf_s": 1.0,
+    "disc_seq": 2
+   }
+  },
+  {
+   "id": 41,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v180",
+   "segment": 6,
+   "t": 6.0,
+   "t_end": null,
+   "ref_index": 150,
+   "wallclock": null,
+   "payload": {
+    "frame": 150
+   }
+  },
+  {
+   "id": 42,
+   "source": "playlist",
+   "type": "segment",
+   "variant": "v180",
+   "segment": 7,
+   "t": 7.0,
+   "t_end": 8.0,
+   "ref_index": 175,
+   "wallclock": null,
+   "payload": {
+    "uri": "main_007.ts",
+    "seq": 7,
+    "extinf_s": 1.0,
+    "disc_seq": 2
+   }
+  },
+  {
+   "id": 43,
+   "source": "decoder",
+   "type": "keyframe",
+   "variant": "v180",
+   "segment": 7,
+   "t": 7.0,
+   "t_end": null,
+   "ref_index": 175,
+   "wallclock": null,
+   "payload": {
+    "frame": 175
+   }
+  }
+ ],
+ "attributions": [
+  {
+   "curve": "pair 1 (v180)",
+   "first_ref_index": 75,
+   "last_ref_index": 124,
+   "frames": 50,
+   "t0": 3.0,
+   "t1": 5.0,
+   "baseline": 91.69165225263481,
+   "min": 22.236527095855454,
+   "mean": 27.394807270898895,
+   "drop_magnitude": 69.45512515677936,
+   "groups": {
+    "playlist": [
+     {
+      "event": 6,
+      "type": "segment",
+      "variant": "v360",
+      "segment": 3,
+      "offset_s": 0.0,
+      "offset_end_s": 1.0
+     },
+     {
+      "event": 7,
+      "type": "discontinuity",
+      "variant": "v360",
+      "segment": 3,
+      "offset_s": 0.0,
+      "offset_end_s": null
+     },
+     {
+      "event": 10,
+      "type": "segment",
+      "variant": "v360",
+      "segment": 4,
+      "offset_s": 1.0,
+      "offset_end_s": 2.0
+     },
+     {
+      "event": 28,
+      "type": "segment",
+      "variant": "v180",
+      "segment": 3,
+      "offset_s": 0.0,
+      "offset_end_s": 1.0
+     },
+     {
+      "event": 29,
+      "type": "discontinuity",
+      "variant": "v180",
+      "segment": 3,
+      "offset_s": 0.0,
+      "offset_end_s": null
+     },
+     {
+      "event": 32,
+      "type": "segment",
+      "variant": "v180",
+      "segment": 4,
+      "offset_s": 1.0,
+      "offset_end_s": 2.0
+     }
+    ],
+    "scte35": [
+     {
+      "event": 8,
+      "type": "cue_out",
+      "variant": "v360",
+      "segment": 3,
+      "offset_s": 0.0,
+      "offset_end_s": null
+     },
+     {
+      "event": 11,
+      "type": "cue_out_cont",
+      "variant": "v360",
+      "segment": 4,
+      "offset_s": 1.0,
+      "offset_end_s": null
+     },
+     {
+      "event": 16,
+      "type": "ad_break",
+      "variant": "v360",
+      "segment": null,
+      "offset_s": 0.0,
+      "offset_end_s": 2.0
+     },
+     {
+      "event": 30,
+      "type": "cue_out",
+      "variant": "v180",
+      "segment": 3,
+      "offset_s": 0.0,
+      "offset_end_s": null
+     },
+     {
+      "event": 33,
+      "type": "cue_out_cont",
+      "variant": "v180",
+      "segment": 4,
+      "offset_s": 1.0,
+      "offset_end_s": null
+     },
+     {
+      "event": 38,
+      "type": "ad_break",
+      "variant": "v180",
+      "segment": null,
+      "offset_s": 0.0,
+      "offset_end_s": 2.0
+     }
+    ],
+    "decoder": [
+     {
+      "event": 9,
+      "type": "keyframe",
+      "variant": "v360",
+      "segment": 3,
+      "offset_s": 0.0,
+      "offset_end_s": null
+     },
+     {
+      "event": 12,
+      "type": "keyframe",
+      "variant": "v360",
+      "segment": 4,
+      "offset_s": 1.0,
+      "offset_end_s": null
+     },
+     {
+      "event": 31,
+      "type": "keyframe",
+      "variant": "v180",
+      "segment": 3,
+      "offset_s": 0.0,
+      "offset_end_s": null
+     },
+     {
+      "event": 34,
+      "type": "keyframe",
+      "variant": "v180",
+      "segment": 4,
+      "offset_s": 1.0,
+      "offset_end_s": null
+     }
+    ]
+   }
+  }
+ ]
+}

@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/gh-repo-futzu_threefive/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://api.github.com/repos/futzu/threefive'
+date_utc: 2026-11-01T03:44:47Z
+http_code=200
+url_effective=https://api.github.com/repos/futzu/threefive
+size_download=5954
+content_type=application/json; charset=utf-8
+curl_exit=0
+sha256=7f73d5739e54aa83bf07b697e86a1ea0acbb640a1599c75ba532e15916a94fe0

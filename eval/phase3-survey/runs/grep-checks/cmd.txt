@@ -1,0 +1,2 @@
+cwd: <out>/runs
+command: '<out>/probe/grep_checks.sh'

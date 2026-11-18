@@ -1,0 +1,579 @@
+command (cwd: <drafts>): python3 -I -B <drafts>/verify/tools/code_refs.py <repo> <records> --show PHASE3_DECISIONS_PENDING.md
+date_utc: 2026-11-01T11:22:29Z
+output (stdout and stderr):
+== repository citations with lines: 39
+ok CMakeLists.txt:2 (372 lines; cited at PHASE3_DECISIONS_PENDING.md:133)
+        2  project(Mirage C CXX)
+ok docs/VMAF_GAP_REPORT.md:230-231 (339 lines; cited at PHASE3_DECISIONS_PENDING.md:1031, PHASE3_DECISIONS_PENDING.md:1064)
+      230  - **Decoder**
+      231    - Has a dropped-frame counter; `KeyframeIndex` records keyframe positions.
+ok eval/consistency/ladder_check.py:25-27 (521 lines; cited at PHASE3_DECISIONS_PENDING.md:1092)
+       25  Reports larger than 1 MiB are kept as mirage.json.xz. Local paths in all
+       26  of it are replaced by placeholders (<out_dir>, <repo>, <home>, <tmp>); the
+       27  program shows as <mirage_vmaf>. See eval/consistency/README.md. Python 3
+ok eval/ladder/pool_check.py:117-118 (227 lines; cited at PHASE3_DECISIONS_PENDING.md:1092)
+      117              with open(report + ".xz", "wb") as f:
+      118                  f.write(lzma.compress(shown(data.decode()).encode()))
+MISSING FILE eval/phase3-survey/design-evaluation/runs/05_detection_sweep.txt:45, 109, 173 (cited at PHASE3_DECISIONS_PENDING.md:329)
+MISSING FILE eval/phase3-survey/scte35_evidence/runs/check_vectors.txt:39, 40, 44, 47 (cited at PHASE3_DECISIONS_PENDING.md:772)
+ok src/HlsAlign.h:69 (200 lines; cited at PHASE3_DECISIONS_PENDING.md:592)
+       69      bool live() const { return !endlist && type != "VOD"; }
+ok src/JsonText.h:1-21 (22 lines; cited at PHASE3_DECISIONS_PENDING.md:506)
+        1  #pragma once
+        2  
+        3  // Pieces of JSON text for hand-written reports: strings and numbers. No
+        4  // FFmpeg / libvmaf here so they can be unit-tested in mirage_tests.
+        5  
+        6  #include <string>
+        7  #include <string_view>
+        8  
+        9  namespace json {
+       10  
+       11  // `s` as a quoted JSON string. '"' and '\' are escaped, control characters
+       12  // become \b \f \n \r \t or \u00XX, valid UTF-8 is copied as is, and each byte
+       13  // that does not start a valid UTF-8 sequence becomes �, so the result is
+       14  // always valid JSON.
+       15  std::string quote(std::string_view s);
+       16  
+       17  // The shortest text that reads back as exactly `v` (std::format's "{}"), or
+       18  // null for NaN and infinities, which JSON cannot represent.
+       19  std::string number(double v);
+       20  
+       21  } // namespace json
+ok src/NetInspectorAlign.cpp:69-107 (950 lines; cited at PHASE3_DECISIONS_PENDING.md:1098)
+       69  // Axis step (s) giving ticks at least `min_px` apart.
+       70  double nice_step(double span, float width, float min_px)
+       71  {
+       72      static constexpr double kSteps[] = { 0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600, 7200 };
+       73      for (double s : kSteps)
+       74          if (span / s * min_px <= width) return s;
+       75      return 14400;
+       76  }
+       77  
+       78  // Unix seconds as "2024-03-01 12:00:00.000 UTC".
+       79  std::string utc_text(double unix_s)
+       80  {
+       81      const auto whole = static_cast<std::time_t>(std::floor(unix_s));
+       82      std::tm tm{};
+       83      gmtime_r(&whole, &tm);
+       84      return std::format("{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:03} UTC", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+       85                         tm.tm_hour, tm.tm_min, tm.tm_sec, static_cast<int>((unix_s - std::floor(unix_s)) * 1000.0));
+       86  }
+       87  
+       88  // Unix seconds as the UTC time of day: "20:41:30", "20:41" (minute steps),
+       89  // "20:41:30.16" (sub-second steps), "20:41:30.160" (step 0.001).
+       90  std::string wall_label(double unix_s, double step)
+       91  {
+       92      const double day = std::fmod(unix_s, 86400.0);
+       93      const auto ms = static_cast<std::int64_t>(std::llround(day * 1000.0));
+       94      const std::int64_t h = ms / 3'600'000 % 24, m = ms / 60'000 % 60, sec = ms / 1000 % 60;
+       95      if (step <= 0.001) return std::format("{:02}:{:02}:{:02}.{:03}", h, m, sec, ms % 1000);
+       96      if (step < 1.0)    return std::format("{:02}:{:02}:{:02}.{:02}", h, m, sec, ms % 1000 / 10);
+       97      if (step >= 60.0)  return std::format("{:02}:{:02}", h, m);
+       98      return std::format("{:02}:{:02}:{:02}", h, m, sec);
+       99  }
+      100  
+      101  std::string axis_label(double t, double step)
+      102  {
+      103      if (step < 1.0) return std::format("{:.2f}", t);
+      104      const auto s = static_cast<std::int64_t>(std::llround(t));
+      105      if (s >= 3600) return std::format("{}:{:02}:{:02}", s / 3600, s / 60 % 60, s % 60);
+      106      return std::format("{}:{:02}", s / 60, s % 60);
+      107  }
+ok src/NetworkLogger.cpp:179-185 (1181 lines; cited at PHASE3_DECISIONS_PENDING.md:1082)
+      179  void NetworkLogger::uninstall()
+      180  {
+      181      if (installed_.exchange(false)) {
+      182          av_log_set_callback(av_log_default_callback);
+      183          NetworkLogger* self = this;
+      184          instance_.compare_exchange_strong(self, nullptr);
+      185      }
+ok src/NetworkLogger.cpp:601 (1181 lines; cited at PHASE3_DECISIONS_PENDING.md:841)
+      601      // A new request on a handle ends the previous one (keep-alive, redirect, seek).
+ok src/NetworkLogger.h:157-160 (264 lines; cited at PHASE3_DECISIONS_PENDING.md:1082)
+      157      void copy_changed_since(std::uint64_t since_seq, std::vector<NetRequest>& out,
+      158                              std::uint64_t& oldest_id) const;
+      159      std::size_t size() const;
+      160      void clear();
+ok src/NetworkLogger.h:189-192 (264 lines; cited at PHASE3_DECISIONS_PENDING.md:103)
+      189      // Steady clock, µs since process start. wall_ms() maps such a time to
+      190      // Unix epoch ms for display.
+      191      static std::int64_t now_us();
+      192      static std::int64_t wall_ms(std::int64_t t_us);
+ok src/NetworkLogger.h:194 (264 lines; cited at PHASE3_DECISIONS_PENDING.md:1082)
+      194      static constexpr std::size_t kMaxRequests = 4000;
+ok src/VMAFAlign.h:114 (286 lines; cited at PHASE3_DECISIONS_PENDING.md:75)
+      114  inline constexpr AVRational kForwardJump = { 10, 1 };
+ok src/VMAFAlign.h:9-11 (286 lines; cited at PHASE3_DECISIONS_PENDING.md:1072)
+        9  // the frame at the head of one queue. No FFmpeg here but AVRational and
+       10  // libavutil's rational arithmetic, so that it is unit-tested on timestamp
+       11  // sequences alone (tests/test_vmaf_align.cpp).
+ok src/VMAFAnalyzer.cpp:166-194 (949 lines; cited at PHASE3_DECISIONS_PENDING.md:1076)
+      166      [[nodiscard]] bool open(const std::string& url, const std::stop_token& st)
+      167      {
+      168          fmt_ctx = avformat_alloc_context();
+      169          if (!fmt_ctx) return false;
+      170          fmt_ctx->interrupt_callback.callback = vmafnet::stop_requested;
+      171          fmt_ctx->interrupt_callback.opaque   = const_cast<std::stop_token*>(&st);
+      172          segments.watch(fmt_ctx);
+      173          AVDictionary* opts = nullptr;
+      174          vmafnet::set_io_limits(&opts, url);
+      175          vmafsegments::set_hls_options(&opts);
+      176          // On failure avformat_open_input frees fmt_ctx and nulls the pointer.
+      177          const int r = avformat_open_input(&fmt_ctx, url.c_str(), nullptr, &opts);
+      178          av_dict_free(&opts);
+      179          if (r < 0) return false;
+      180          if (avformat_find_stream_info(fmt_ctx, nullptr) < 0) return false;
+      181  
+      182          const AVCodec* codec = nullptr;
+      183          vid_idx = av_find_best_stream(fmt_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, &codec, 0);
+      184          if (vid_idx < 0 || !codec) return false;
+      185  
+      186          codec_ctx = avcodec_alloc_context3(codec);
+      187          if (!codec_ctx) return false;
+      188          if (avcodec_parameters_to_context(
+      189                  codec_ctx, fmt_ctx->streams[vid_idx]->codecpar) < 0) return false;
+      190          if (avcodec_open2(codec_ctx, codec, nullptr) < 0) return false;
+      191  
+      192          pkt = av_packet_alloc();
+      193          return pkt != nullptr;
+      194      }
+ok src/VMAFAnalyzer.cpp:197-241 (949 lines; cited at PHASE3_DECISIONS_PENDING.md:887)
+      197      [[nodiscard]] AVFrame* next_video_frame()
+      198      {
+      199          if (state == DecodeState::Done) return nullptr;
+      200  
+      201          AVFrame* frame = av_frame_alloc();
+      202  
+      203          while (true) {
+      204              int r = avcodec_receive_frame(codec_ctx, frame);
+      205              if (r == 0)            return frame;
+      206              if (r == AVERROR_EOF)  { state = DecodeState::Done; break; }
+      207              if (r != AVERROR(EAGAIN)) { error = r; state = DecodeState::Done; break; }
+      208  
+      209              // Codec needs more input
+      210              if (state == DecodeState::Flushing) {
+      211                  // Already sent flush packet; keep trying to drain
+      212                  continue;
+      213              }
+      214  
+      215              // Read the next video packet and feed it. A file the hls demuxer
+      216              // went on without ends the input there, as a read error does
+      217              // (src/VMAFSegments.h, DECISIONS.md D-055).
+      218              while (true) {
+      219                  r = av_read_frame(fmt_ctx, pkt);
+      220                  if (r == AVERROR_EOF) segments.ended();
+      221                  if (r < 0 || !segments.lost().empty()) {
+      222                      if (r >= 0)
+      223                          av_packet_unref(pkt);   // read after the file gone without: not decoded
+      224                      else if (r != AVERROR_EOF)
+      225                          error = r;              // still drained like EOF
+      226                      avcodec_send_packet(codec_ctx, nullptr);
+      227                      state = DecodeState::Flushing;
+      228                      break;
+      229                  }
+      230                  if (pkt->stream_index == vid_idx) {
+      231                      avcodec_send_packet(codec_ctx, pkt);
+      232                      av_packet_unref(pkt);
+      233                      break;
+      234                  }
+      235                  av_packet_unref(pkt);
+      236              }
+      237          }
+      238  
+      239          av_frame_free(&frame);
+      240          return nullptr;
+      241      }
+ok src/VMAFCli.cpp:195-257, 273-344 (536 lines; cited at PHASE3_DECISIONS_PENDING.md:1089)
+      195  std::string read_settings(std::string_view text, std::vector<FileSetting>& out)
+      196  {
+      197      if (text.starts_with("\xEF\xBB\xBF")) text.remove_prefix(3);   // a UTF-8 byte order mark
+      198      std::array<std::size_t, kOptions.size()> line_of{};             // 0 = not set yet
+      199      std::size_t line = 0;
+      200      while (!text.empty()) {
+      201          const std::size_t eol = text.find('\n');
+      202          std::string_view raw = text.substr(0, eol);
+      203          text.remove_prefix(eol == std::string_view::npos ? text.size() : eol + 1);
+      204          ++line;
+      205          if (raw.ends_with('\r')) raw.remove_suffix(1);
+      206          const std::string_view entry = trimmed(raw);
+      207          if (entry.empty() || entry.starts_with('#')) continue;
+      208  
+      209          const std::size_t eq = entry.find('=');
+      210          if (eq == std::string_view::npos)
+      211              return std::format("line {}: expected name = value, not '{}'", line, entry);
+      212          const std::string_view name  = trimmed(entry.substr(0, eq));
+      213          const std::string_view value = trimmed(entry.substr(eq + 1));
+      214          if (name.empty()) return std::format("line {}: no name before '='", line);
+      215          if (name.starts_with('-'))
+      216              return std::format("line {}: unknown setting '{}' (names are written without --)",
+      217                                 line, name);
+      218          const Option* opt = find_option(std::format("--{}", name));
+      219          if (!opt) return std::format("line {}: unknown setting '{}'", line, name);
+      220          if (opt->name == kConfig)
+      221              return std::format("line {}: {} can't be set in a config file", line, name);
+      222          const std::size_t k = static_cast<std::size_t>(opt - kOptions.data());
+      223          if (line_of[k])
+      224              return std::format("line {}: {} is set more than once (first on line {})", line, name,
+      225                                 line_of[k]);
+      226          line_of[k] = line;
+      227          if (value.empty()) return std::format("line {}: {} needs a non-empty value", line, name);
+      228          Args check;
+      229          if (std::string err = opt->set(check, value); !err.empty())
+      230              return std::format("line {}: {} {}", line, name, err);
+      231          out.push_back({ k, value, line });
+      232      }
+      233      for (const auto& [a, b] : kExclusive)
+      234          if (line_of[index_of(a)] && line_of[index_of(b)])
+      235              return std::format("{} (line {}) and {} (line {}) can't both be set",
+      236                                 file_name(*find_option(a)), line_of[index_of(a)],
+      237                                 file_name(*find_option(b)), line_of[index_of(b)]);
+      238      // Inputs of both forms: the first setting of each form, by its line.
+      239      std::size_t first_pair = 0, first_ladder = 0;
+      240      for (std::size_t k = 0; k < kOptions.size(); ++k) {
+      241          if (!line_of[k] || kOptions[k].form == Form::Any) continue;
+      242          std::size_t& first = kOptions[k].form == Form::Pair ? first_pair : first_ladder;
+      243          if (!first || line_of[k] < first) first = line_of[k];
+      244      }
+      245      if (first_pair && first_ladder) {
+      246          const auto set_on = [&](std::size_t l) {
+      247              for (std::size_t k = 0; k < kOptions.size(); ++k)
+      248                  if (line_of[k] == l) return file_name(kOptions[k]);
+      249              return std::string_view();
+      250          };
+      251          const std::size_t a = std::min(first_pair, first_ladder);
+      252          const std::size_t b = std::max(first_pair, first_ladder);
+      253          return std::format("{} (line {}) and {} (line {}) can't both be set", set_on(a), a,
+      254                             set_on(b), b);
+      255      }
+      256      return {};
+      257  }
+      273  std::string parse(const std::vector<std::string_view>& argv, Args& out,
+      274                    const std::function<ConfigFile(const std::string&)>& load)
+      275  {
+      276      for (std::string_view a : argv) {
+      277          if (is_help(a)) {
+      278              out = Args{};
+      279              out.help = true;
+      280              return {};
+      281          }
+      282      }
+      283  
+      284      Args args;
+      285      std::array<bool, kOptions.size()> on_line{};   // given on the command line
+      286      for (std::size_t i = 0; i < argv.size(); ++i) {
+      287          const Option* opt = find_option(argv[i]);
+      288          if (!opt) return std::format("unknown argument '{}'", argv[i]);
+      289          const std::size_t k = static_cast<std::size_t>(opt - kOptions.data());
+      290          if (on_line[k]) return std::format("{} is given more than once", opt->name);
+      291          on_line[k] = true;
+      292          // A value that is itself an option means the real value is missing.
+      293          if (i + 1 >= argv.size() || find_option(argv[i + 1]))
+      294              return std::format("{} needs a value: {} {}", opt->name, opt->name, opt->value);
+      295          const std::string_view v = argv[++i];
+      296          if (v.empty()) return std::format("{} needs a non-empty value", opt->name);
+      297          if (std::string err = opt->set(args, v); !err.empty())
+      298              return std::format("{} {}", opt->name, err);
+      299      }
+      300  
+      301      // The inputs: a pair or a ladder, not both in one place.
+      302      const FormsGiven line_forms = forms_given(on_line);
+      303      if (line_forms.pair && line_forms.ladder)
+      304          return std::format("{} and {} can't be given together", line_forms.pair->name,
+      305                             line_forms.ladder->name);
+      306      const Form line_form = line_forms.ladder ? Form::Ladder
+      307                             : line_forms.pair ? Form::Pair
+      308                                               : Form::Any;
+      309  
+      310      // The config file's settings, but those the command line gives, and those
+      311      // of the other form of the inputs than the command line's.
+      312      std::array<bool, kOptions.size()> applied{};
+      313      if (on_line[index_of(kConfig)]) {
+      314          const ConfigFile file = load(args.config);
+      315          if (!file.error.empty())
+      316              return std::format("cannot read the config file {}: {}", args.config, file.error);
+      317          std::vector<FileSetting> settings;
+      318          if (std::string err = read_settings(file.text, settings); !err.empty())
+      319              return std::format("config file {}, {}", args.config, err);
+      320          for (const FileSetting& s : settings) {
+      321              const Form f = kOptions[s.option].form;
+      322              bool replaced = line_form != Form::Any && f != Form::Any && f != line_form;
+      323              for (std::size_t k : setting_of(s.option)) replaced = replaced || on_line[k];
+      324              if (replaced) continue;
+      325              kOptions[s.option].set(args, s.value);   // checked by read_settings
+      326              applied[s.option] = true;
+      327          }
+      328      }
+      329  
+      330      std::array<bool, kOptions.size()> given{};
+      331      for (std::size_t k = 0; k < kOptions.size(); ++k) given[k] = on_line[k] || applied[k];
+      332      const Form form = forms_given(given).ladder ? Form::Ladder : Form::Pair;
+      333      for (std::size_t k = 0; k < kOptions.size(); ++k) {
+      334          const Option& o = kOptions[k];
+      335          if (o.required && (o.form == Form::Any || o.form == form) && !given[k])
+      336              return std::format("missing {} {}", o.name, o.value);
+      337      }
+      338      for (const auto& [a, b] : kExclusive)
+      339          if (on_line[index_of(a)] && on_line[index_of(b)])
+      340              return std::format("{} and {} can't be given together", a, b);
+      341  
+      342      out = std::move(args);
+      343      return {};
+      344  }
+ok src/VMAFCli.cpp:224 (536 lines; cited at PHASE3_DECISIONS_PENDING.md:676)
+      224              return std::format("line {}: {} is set more than once (first on line {})", line, name,
+ok src/VMAFCli.cpp:26-35, 92-124 (536 lines; cited at PHASE3_DECISIONS_PENDING.md:1089)
+       26  struct Option {
+       27      std::string_view name;      // "--ref"; "ref" in a config file
+       28      std::string_view value;     // placeholder shown in the help, "<url|path>"
+       29      std::string_view help;
+       30      Form             form;
+       31      bool             required;  // in its form
+       32      // Stores `v` in `a`; returns what is wrong with it, or "", in words that
+       33      // follow the option's name ("wants a whole number ...").
+       34      std::string (*set)(Args& a, std::string_view v);
+       35  };
+       92  const std::array kOptions = {
+       93      Option{ "--ref", "<url|path>", "reference video: a file or any URL FFmpeg opens", Form::Pair,
+       94              true, [](Args& a, std::string_view v) { a.ref = v; return std::string(); } },
+       95      Option{ "--dis", "<url|path>", "distorted video, scored against the reference", Form::Pair,
+       96              true, [](Args& a, std::string_view v) { a.dis = v; return std::string(); } },
+       97      Option{ "--ladder", "<url|path>", "HLS master playlist: score each of its video playlists, "
+       98              "against the top rung (see Ladder below)", Form::Ladder, true,
+       99              [](Args& a, std::string_view v) { a.ladder = v; return std::string(); } },
+      100      Option{ "--mezzanine", "<url|path>", "with --ladder: score every video playlist against this "
+      101              "video instead", Form::Ladder, false,
+      102              [](Args& a, std::string_view v) { a.mezzanine = v; return std::string(); } },
+      103      Option{ "--jobs", "N", "with --ladder: score N pairs at a time (default: the physical cores "
+      104              "minus one, at least 1)", Form::Ladder, false, set_jobs },
+      105      Option{ "--memory-limit", "SIZE", "with --ladder: start a pair only while the memory the pool "
+      106              "counts for its pairs stays under SIZE (see The pool below); bytes, or K, M, G or T "
+      107              "for KiB, MiB, GiB or TiB (default: none)", Form::Ladder, false, set_memory_limit },
+      108      Option{ "--out", "<report.json>", "report to write; written when the run succeeds, and with "
+      109              "--ladder also when it is cancelled or a pair fails",
+      110              Form::Any, true, [](Args& a, std::string_view v) { a.out = v; return std::string(); } },
+      111      Option{ "--frames", "N", "score only the first N frame pairs (N >= 1), of each pair with "
+      112              "--ladder", Form::Any, false, set_frames },
+      113      Option{ "--scaler", "NAME", "scales the distorted frames: bilinear, bicubic (default) or lanczos",
+      114              Form::Any, false, set_scaler },
+      115      Option{ "--model", "NAME", "libvmaf built-in model: vmaf_v0.6.1 (default), vmaf_v0.6.1neg, "
+      116              "vmaf_4k_v0.6.1, ...", Form::Any, false,
+      117              [](Args& a, std::string_view v) { a.model.version = v; return std::string(); } },
+      118      Option{ "--model-file", "<model.json>", "libvmaf model file, instead of a built-in model",
+      119              Form::Any, false,
+      120              [](Args& a, std::string_view v) { a.model.path = v; return std::string(); } },
+      121      Option{ kConfig, "<file>", "read settings from a file of name = value lines first (see below)",
+      122              Form::Any, false,
+      123              [](Args& a, std::string_view v) { a.config = v; return std::string(); } },
+      124  };
+ok src/VMAFCli.cpp:288 (536 lines; cited at PHASE3_DECISIONS_PENDING.md:485)
+      288          if (!opt) return std::format("unknown argument '{}'", argv[i]);
+ok src/VMAFLadder.cpp:293-334 (570 lines; cited at PHASE3_DECISIONS_PENDING.md:1075)
+      293  Fetched read_master(const std::string& url, std::stop_token cancel)
+      294  {
+      295      Fetched f;
+      296      f.location = url;
+      297      AVIOContext* ctx = nullptr;
+      298      // A network read waits at most 5 s, as the analyzer's (D-036), and a
+      299      // cancel ends one that waits.
+      300      AVDictionary* opts = nullptr;
+      301      vmafnet::set_io_limits(&opts, url);
+      302      MasterRead read{ .cancel = cancel, .start = std::chrono::steady_clock::now() };
+      303      const AVIOInterruptCB interrupt{ master_read_interrupted, &read };
+      304      const int r = avio_open2(&ctx, url.c_str(), AVIO_FLAG_READ, &interrupt, &opts);
+      305      av_dict_free(&opts);
+      306      if (r < 0) {
+      307          f.error = av_error_text(r);
+      308          return f;
+      309      }
+      310      // HTTP: the URL the playlist came from after redirects, which FFmpeg's
+      311      // hls demuxer resolves the playlist's URIs against.
+      312      uint8_t* loc = nullptr;
+      313      if (av_opt_get(ctx, "location", AV_OPT_SEARCH_CHILDREN, &loc) >= 0 && loc) {
+      314          if (*loc) f.location = reinterpret_cast<const char*>(loc);
+      315          av_free(loc);
+      316      }
+      317      uint8_t buf[4096];
+      318      int n = 0;
+      319      while ((n = avio_read(ctx, buf, sizeof buf)) > 0) {
+      320          f.text.append(reinterpret_cast<const char*>(buf), static_cast<std::size_t>(n));
+      321          const std::size_t head = std::min(f.text.size(), kHeader.size());
+      322          if (std::string_view(f.text).substr(0, head) != kHeader.substr(0, head)) {
+      323              f.error = "it doesn't start with #EXTM3U, so it isn't an HLS playlist";
+      324              break;
+      325          }
+      326      }
+      327      // A text cut short is a failed read, not a shorter playlist.
+      328      const int err = ctx->error < 0 ? ctx->error : (n < 0 && n != AVERROR_EOF ? n : 0);
+      329      if (f.error.empty() && err < 0) f.error = av_error_text(err);
+      330      avio_closep(&ctx);
+      331      if (!f.error.empty()) f.text.clear();
+      332      else f.sha256 = filehash::sha256_hex(f.text);
+      333      return f;
+      334  }
+ok src/VMAFLadder.h:15-22 (277 lines; cited at PHASE3_DECISIONS_PENDING.md:275)
+       15  // - Entries. The master's EXT-X-STREAM-INF tags, each with the URI line that
+       16  //   follows it, blank lines, comments and other tags between them allowed,
+       17  //   as FFmpeg's hls demuxer pairs them; each line without the white space
+       18  //   around it, as eval/streams/fetch_streams.py reads it. The first line is
+       19  //   #EXTM3U, as FFmpeg's hls demuxer requires. I-frame playlists
+       20  //   (EXT-X-I-FRAME-STREAM-INF) and renditions (EXT-X-MEDIA) are no entries.
+       21  //   Every entry needs a BANDWIDTH, RFC 8216's decimal-integer, since the top
+       22  //   rung is chosen by it.
+ok src/VMAFLadder.h:33-35 (277 lines; cited at PHASE3_DECISIONS_PENDING.md:611)
+       33  // - The top rung is the playlist of the video entry with the highest
+       34  //   BANDWIDTH; of two or more such entries naming different playlists, the
+       35  //   first in the master's order, with a warning.
+ok src/VMAFLadder.h:36-38 (277 lines; cited at PHASE3_DECISIONS_PENDING.md:697)
+       36  // - The pairs, in the master's order of their first entry: in top-rung mode
+       37  //   every video playlist but the top rung's, against it; in mezzanine mode
+       38  //   every video playlist, the top rung's included, against the mezzanine.
+ok src/VMAFLadder.h:88 (277 lines; cited at PHASE3_DECISIONS_PENDING.md:174)
+       88      std::size_t index = 0;   // its position among the master's entries, from 0
+ok src/VMAFReport.h:149 (152 lines; cited at PHASE3_DECISIONS_PENDING.md:1090)
+      149  bool write_file(const std::string& path, std::string_view text, std::string& err);
+ok src/VMAFSegments.h:28 (160 lines; cited at PHASE3_DECISIONS_PENDING.md:837)
+       28  inline constexpr int kSegMaxRetry = 10;
+ok src/main.cpp:1751 (3524 lines; cited at PHASE3_DECISIONS_PENDING.md:1031, PHASE3_DECISIONS_PENDING.md:1064)
+     1751      int64_t             total_dropped = 0;       // late frames dropped (top-bar chip)
+ok src/main.cpp:553-556 (3524 lines; cited at PHASE3_DECISIONS_PENDING.md:683)
+      553      // QA track switching: `--qa-switch "v720@4,a2@10,s1@14,soff@16"` switches
+      554      // tracks at wall seconds since the first presented frame. v<height> /
+      555      // v#<stream>, a<n> / a#<stream> (n = 1-based panel order), s<n> / soff.
+      556      std::vector<std::pair<double, std::string>> qa_switch;
+ok tests/HttpFileServer.h:31-36 (172 lines; cited at PHASE3_DECISIONS_PENDING.md:1083)
+       31  // How an HttpFileServer answers the requests for one path.
+       32  struct HttpFileRule {
+       33      std::string path;                  // as requested, without the leading '/'
+       34      int         hold_first = 0;        // the first this many requests get no answer
+       35      std::size_t cut_after  = 0;        // > 0: send only this many bytes of the body, then close
+       36  };
+ok tests/test_manifest_parser.cpp:95 (420 lines; cited at PHASE3_DECISIONS_PENDING.md:1016)
+       95      CHECK(tags[1].disc_seq == 5);  // inherited from running disc_seq
+ok tests/test_vmaf_ladder.cpp:192-216 (1362 lines; cited at PHASE3_DECISIONS_PENDING.md:1084)
+      192  const Ladder& ladder()
+      193  {
+      194      static const Ladder l = [] {
+      195          Ladder x;
+      196          x.dir    = testtemp::path("mirage_test_ladder");
+      197          x.low    = make_rung(x.dir / "low", 96, 54);
+      198          x.mid    = make_rung(x.dir / "mid", 128, 72);
+      199          x.top    = make_rung(x.dir / "top", 192, 108);
+      200          x.master = (x.dir / "master.m3u8").string();
+      201          write_text(x.master,
+      202                     "#EXTM3U\n#EXT-X-VERSION:3\n"
+      203                     "#EXT-X-STREAM-INF:BANDWIDTH=300000,RESOLUTION=96x54,CODECS=\"mp2v,mp4a.40.2\"\n"
+      204                     "low/index.m3u8\n"
+      205                     "#EXT-X-STREAM-INF:BANDWIDTH=600000,RESOLUTION=128x72,AUDIO=\"a1\"\n"
+      206                     "mid/index.m3u8\n"
+      207                     "#EXT-X-STREAM-INF:BANDWIDTH=900000,RESOLUTION=192x108\n"
+      208                     "top/index.m3u8\n"
+      209                     "#EXT-X-STREAM-INF:BANDWIDTH=640000,RESOLUTION=128x72,AUDIO=\"a2\"\n"
+      210                     "mid/index.m3u8\n"
+      211                     "#EXT-X-STREAM-INF:BANDWIDTH=64000,CODECS=\"mp4a.40.2\"\n"
+      212                     "audio/index.m3u8\n");
+      213          return x;
+      214      }();
+      215      return l;
+      216  }
+ok tests/test_vmaf_ladder.cpp:286-310 (1362 lines; cited at PHASE3_DECISIONS_PENDING.md:1087)
+      286      posix_spawn_file_actions_t files;
+      287      posix_spawn_file_actions_init(&files);
+      288      posix_spawn_file_actions_adddup2(&files, out[1], STDOUT_FILENO);
+      289      posix_spawn_file_actions_addclose(&files, out[0]);
+      290      posix_spawn_file_actions_addclose(&files, out[1]);
+      291      posix_spawn_file_actions_addopen(&files, STDERR_FILENO, err_path.c_str(),
+      292                                       O_WRONLY | O_CREAT | O_TRUNC, 0644);
+      293      posix_spawnattr_t attr;
+      294      posix_spawnattr_init(&attr);
+      295      sigset_t none, defaults;
+      296      sigemptyset(&none);
+      297      sigemptyset(&defaults);
+      298      sigaddset(&defaults, SIGINT);
+      299      sigaddset(&defaults, SIGTERM);
+      300      posix_spawnattr_setsigmask(&attr, &none);
+      301      posix_spawnattr_setsigdefault(&attr, &defaults);
+      302      posix_spawnattr_setflags(&attr, POSIX_SPAWN_SETSIGMASK | POSIX_SPAWN_SETSIGDEF);
+      303      args.insert(args.begin(), MIRAGE_VMAF_PATH);
+      304      std::vector<char*> argv;
+      305      for (std::string& a : args) argv.push_back(a.data());
+      306      argv.push_back(nullptr);
+      307      pid_t pid = 0;
+      308      const int spawned = posix_spawn(&pid, argv[0], &files, &attr, argv.data(), environ);
+      309      posix_spawn_file_actions_destroy(&files);
+      310      posix_spawnattr_destroy(&attr);
+ok tests/test_vmaf_report.cpp:104 (980 lines; cited at PHASE3_DECISIONS_PENDING.md:1091)
+      104              if (v.obj.count(key)) return false;   // duplicate keys are not wanted in a report
+ok tests/test_vmaf_report.cpp:909 (980 lines; cited at PHASE3_DECISIONS_PENDING.md:56, PHASE3_DECISIONS_PENDING.md:200, PHASE3_DECISIONS_PENDING.md:1075)
+      909          CHECK(p.obj.size() == own.size() + 4);   // and index, entries, started_s, ended_s
+ok tools/mirage_vmaf.cpp:155-156 (194 lines; cited at PHASE3_DECISIONS_PENDING.md:1082)
+      155      av_log_set_level(AV_LOG_WARNING);
+      156      avformat_network_init();
+ok tools/mirage_vmaf.cpp:7-17 (194 lines; cited at PHASE3_DECISIONS_PENDING.md:1090)
+        7  // Exit codes:
+        8  //   0 — report written, also when more frames than the threshold allows
+        9  //       failed to pair by timestamp: that is a warning, on stderr and in the
+       10  //       report (DECISIONS.md D-028)
+       11  //   1 — the analysis failed or was incomplete, with --ladder the master
+       12  //       playlist couldn't be read or was refused (src/VMAFLadder.h), or the
+       13  //       report could not be written: no report is left at --out; or, with
+       14  //       --ladder, the run was cancelled (SIGINT, SIGTERM) or a pair's
+       15  //       analysis failed or was incomplete: the report of the complete pairs
+       16  //       says so (DECISIONS.md D-047)
+       17  //   2 — bad arguments, or a --config file that can't be read or has an error
+== survey-copy citations (eval/phase3-survey/...)
+ok eval/phase3-survey/design-evaluation/runs/03_segmap.txt (cited at PHASE3_DECISIONS_PENDING.md:199)
+ok eval/phase3-survey/design-evaluation/runs/04_join_check.txt (cited at PHASE3_DECISIONS_PENDING.md:605, PHASE3_DECISIONS_PENDING.md:1072)
+ok eval/phase3-survey/design-evaluation/runs/05_detection_sweep.txt (cited at PHASE3_DECISIONS_PENDING.md:320, PHASE3_DECISIONS_PENDING.md:321, PHASE3_DECISIONS_PENDING.md:322, PHASE3_DECISIONS_PENDING.md:383)
+ok eval/phase3-survey/design-evaluation/runs/06_session_fetch.txt (cited at PHASE3_DECISIONS_PENDING.md:658)
+ok eval/phase3-survey/design-evaluation/runs/07_attribute_seconds_as_doubles.txt (cited at PHASE3_DECISIONS_PENDING.md:81, PHASE3_DECISIONS_PENDING.md:1072)
+ok eval/phase3-survey/design-evaluation/runs/09_axes.txt (cited at PHASE3_DECISIONS_PENDING.md:70, PHASE3_DECISIONS_PENDING.md:74, PHASE3_DECISIONS_PENDING.md:75, PHASE3_DECISIONS_PENDING.md:424)
+ok eval/phase3-survey/design-evaluation/runs/10_attribute_final.txt (cited at PHASE3_DECISIONS_PENDING.md:123, PHASE3_DECISIONS_PENDING.md:181, PHASE3_DECISIONS_PENDING.md:219, PHASE3_DECISIONS_PENDING.md:265)
+ok eval/phase3-survey/design-evaluation/runs/11_doc_sizes.txt (cited at PHASE3_DECISIONS_PENDING.md:54, PHASE3_DECISIONS_PENDING.md:1079)
+ok eval/phase3-survey/design-library.md (cited at PHASE3_DECISIONS_PENDING.md:1072, PHASE3_DECISIONS_PENDING.md:1073, PHASE3_DECISIONS_PENDING.md:1074, PHASE3_DECISIONS_PENDING.md:1080)
+ok eval/phase3-survey/design-library/runs/axis-ad-float.txt (cited at PHASE3_DECISIONS_PENDING.md:1072)
+ok eval/phase3-survey/design-library/runs/axis-ad.txt (cited at PHASE3_DECISIONS_PENDING.md:74)
+ok eval/phase3-survey/design-library/runs/map-by-pos-*.txt (cited at PHASE3_DECISIONS_PENDING.md:201, PHASE3_DECISIONS_PENDING.md:604, PHASE3_DECISIONS_PENDING.md:1077)
+ok eval/phase3-survey/design.md (cited at PHASE3_DECISIONS_PENDING.md:3, PHASE3_DECISIONS_PENDING.md:7, PHASE3_DECISIONS_PENDING.md:16, PHASE3_DECISIONS_PENDING.md:27)
+ok eval/phase3-survey/design/owner_questions.json (cited at PHASE3_DECISIONS_PENDING.md:9)
+ok eval/phase3-survey/design/p_entries.json (cited at PHASE3_DECISIONS_PENDING.md:1068)
+ok eval/phase3-survey/design/runs/detection-semantics-ad.txt (cited at PHASE3_DECISIONS_PENDING.md:300, PHASE3_DECISIONS_PENDING.md:301, PHASE3_DECISIONS_PENDING.md:361, PHASE3_DECISIONS_PENDING.md:369)
+ok eval/phase3-survey/design/runs/log-callback-grep.txt (cited at PHASE3_DECISIONS_PENDING.md:1082)
+ok eval/phase3-survey/design/runs/networklogger-users.txt (cited at PHASE3_DECISIONS_PENDING.md:808)
+ok eval/phase3-survey/design/runs/quote-check.txt (cited at PHASE3_DECISIONS_PENDING.md:1099)
+ok eval/phase3-survey/design/runs/seconds-check.txt (cited at PHASE3_DECISIONS_PENDING.md:76, PHASE3_DECISIONS_PENDING.md:77)
+ok eval/phase3-survey/design/work_packages.json (cited at PHASE3_DECISIONS_PENDING.md:1115)
+ok eval/phase3-survey/experiments/hls-seek-probe/run-output.txt (cited at PHASE3_DECISIONS_PENDING.md:1062)
+ok eval/phase3-survey/review-3/review.md (cited at PHASE3_DECISIONS_PENDING.md:9)
+ok eval/phase3-survey/review-3/runs/seconds-check-sequence-start.txt (cited at PHASE3_DECISIONS_PENDING.md:83)
+ok eval/phase3-survey/review-3/runs/vector-status.txt (cited at PHASE3_DECISIONS_PENDING.md:760, PHASE3_DECISIONS_PENDING.md:772)
+ok eval/phase3-survey/review-adversarial/runs/ctest-registration.txt (cited at PHASE3_DECISIONS_PENDING.md:1084)
+ok eval/phase3-survey/review-adversarial/runs/switch-t-sweep.txt (cited at PHASE3_DECISIONS_PENDING.md:300)
+ok eval/phase3-survey/schema.md (cited at PHASE3_DECISIONS_PENDING.md:53, PHASE3_DECISIONS_PENDING.md:55, PHASE3_DECISIONS_PENDING.md:137, PHASE3_DECISIONS_PENDING.md:140)
+ok eval/phase3-survey/scte35.md (cited at PHASE3_DECISIONS_PENDING.md:220, PHASE3_DECISIONS_PENDING.md:235, PHASE3_DECISIONS_PENDING.md:718, PHASE3_DECISIONS_PENDING.md:722)
+ok eval/phase3-survey/scte35_evidence/runs/check_vectors.txt (cited at PHASE3_DECISIONS_PENDING.md:760)
+ok eval/phase3-survey/sources.md (cited at PHASE3_DECISIONS_PENDING.md:98, PHASE3_DECISIONS_PENDING.md:195, PHASE3_DECISIONS_PENDING.md:654, PHASE3_DECISIONS_PENDING.md:662)
+ok eval/phase3-survey/testgen.md (cited at PHASE3_DECISIONS_PENDING.md:255, PHASE3_DECISIONS_PENDING.md:320, PHASE3_DECISIONS_PENDING.md:357, PHASE3_DECISIONS_PENDING.md:530)
+ok eval/phase3-survey/testgen/src/testgen.cpp (cited at PHASE3_DECISIONS_PENDING.md:1084)
+ok eval/phase3-survey/ui.md (cited at PHASE3_DECISIONS_PENDING.md:552, PHASE3_DECISIONS_PENDING.md:552, PHASE3_DECISIONS_PENDING.md:923, PHASE3_DECISIONS_PENDING.md:923)
+== other repository paths cited without lines
+exists CMakeLists.txt
+exists docs/DECISIONS.md
+absent in <repo> docs/PHASE3_DECISIONS_PENDING.md
+absent in <repo> docs/PHASE3_STATUS.md
+absent in <repo> docs/PHASE3_SURVEY.md
+exists docs/VMAF_GAP_REPORT.md
+absent in <repo> docs/schema
+absent in <repo> docs/schema/mirage-timeline-1.schema.json
+absent in <repo> eval/phase3-survey
+absent in <repo> eval/timeline
+absent in <repo> src/DebugHUD.{h,cpp}
+exists src/Demuxer.cpp
+exists src/NetInspectorAlign.cpp
+exists src/NetworkLogger.h
+exists src/VMAFSegments.h
+exists src/main.cpp
+exists tests/HttpFileServer.h
+absent in <repo> tests/SyntheticLadder.{h,cpp}
+problems: 2
+exit=0

@@ -1,0 +1,18 @@
+command: grep -n -E 'av_strstart\(line, "#EXT|#EXT-X|DATERANGE|CUE|SCTE|DISCONTINUITY|PROGRAM-DATE|program_date|discontinuity|id3|ID3' downloads/ffmpeg-n8.1.1-hls.c/body
+861:        if (av_strstart(line, "#EXT-X-STREAM-INF:", &ptr)) {
+866:        } else if (av_strstart(line, "#EXT-X-KEY:", &ptr)) {
+881:        } else if (av_strstart(line, "#EXT-X-MEDIA:", &ptr)) {
+886:        } else if (av_strstart(line, "#EXT-X-TARGETDURATION:", &ptr)) {
+897:        } else if (av_strstart(line, "#EXT-X-MEDIA-SEQUENCE:", &ptr)) {
+909:        } else if (av_strstart(line, "#EXT-X-PLAYLIST-TYPE:", &ptr)) {
+917:        } else if (av_strstart(line, "#EXT-X-MAP:", &ptr)) {
+954:        } else if (av_strstart(line, "#EXT-X-START:", &ptr)) {
+965:                av_log(c->ctx, AV_LOG_WARNING, "#EXT-X-START value is"
+969:        } else if (av_strstart(line, "#EXT-X-ENDLIST", &ptr)) {
+972:        } else if (av_strstart(line, "#EXTINF:", &ptr)) {
+980:        } else if (av_strstart(line, "#EXT-X-BYTERANGE:", &ptr)) {
+1982:        /* If #EXT-X-START in playlist, need to recalculate */
+2769:    if (strstr(p->buf, "#EXT-X-STREAM-INF:")     ||
+2770:        strstr(p->buf, "#EXT-X-TARGETDURATION:") ||
+2771:        strstr(p->buf, "#EXT-X-MEDIA-SEQUENCE:")) {
+2803:    {"prefer_x_start", "prefer to use #EXT-X-START if it's in playlist instead of live_start_index",

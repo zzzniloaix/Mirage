@@ -1,0 +1,104 @@
+$ python3 -I tables.py media/ad-x264-busy-control/layout.json reports/ad-x264-busy-control.json
+(in <out>/testgen)
+--- stdout ---
+# reports/ad-x264-busy-control.json: ad ladder, codec libx264, source noise, reference mode top-rung, reference v360/index.m3u8, status complete
+
+## Pair 0: v270/index.m3u8 (rung v270) against v360/index.m3u8
+
+- frames paired 200, failed 0, failure rate 0, discontinuities 2, after_discontinuity 0, unmatched_reference 0, extra_distorted 0
+- reference sequences [{"first_index": 0, "first_pts": 10, "frames": 75}, {"first_index": 75, "first_pts": 10, "frames": 125}]
+- distorted sequences [{"first_index": 0, "first_pts": 10, "frames": 75}, {"first_index": 75, "first_pts": 10, "frames": 125}]
+- libvmaf contexts [{"first_index": 0, "pairs": 75}, {"first_index": 75, "pairs": 125}]
+- pooled mean 97.707, min 89.213
+- pairs whose reference PTS isn't the layout's for their reference frame: 0
+
+| segment | file | period | reference frames | pairs | mean VMAF | min VMAF | quantizer | tags before it |
+|---|---|---|---|---|---|---|---|---|
+| 0 | main_000.ts | main | 0-24 | 25 | 97.867 | 91.957 | 22 | - |
+| 1 | main_001.ts | main | 25-49 | 25 | 97.226 | 95.854 | 22 | - |
+| 2 | main_002.ts | main | 50-74 | 25 | 98.231 | 96.664 | 22 | - |
+| 3 | ad_000.ts | ad | 75-99 | 25 | 97.633 | 89.213 | 22 | EXT-X-DISCONTINUITY, #EXT-X-CUE-OUT:2.000 |
+| 4 | ad_001.ts | ad | 100-124 | 25 | 98.222 | 94.798 | 22 | #EXT-X-CUE-OUT-CONT:1.000/2.000 |
+| 5 | main_005.ts | main | 125-149 | 25 | 98.045 | 96.606 | 22 | EXT-X-DISCONTINUITY, #EXT-X-CUE-IN |
+| 6 | main_006.ts | main | 150-174 | 25 | 97.134 | 94.397 | 22 | - |
+| 7 | main_007.ts | main | 175-199 | 25 | 97.296 | 95.638 | 22 | - |
+
+Scores more than 6 points below the pair's median (97.876): 1 frames
+- pairs 75-75 (1 frames): first frame 75: segment 3 (ad_000.ts, ad), its frame 0 of 25; last frame 75: segment 3 (ad_000.ts, ad), its frame 0 of 25
+
+Trailing-median prototype (threshold 6, window 50, more than 12 frames): 1 low frames, 0 drops
+- pairs 75-75 (1 frames, too short): first frame 75: segment 3 (ad_000.ts, ad), its frame 0 of 25; last frame 75: segment 3 (ad_000.ts, ad), its frame 0 of 25; baseline at the first 97.681, lowest score 89.213
+
+## Pair 1: v180/index.m3u8 (rung v180) against v360/index.m3u8
+
+- frames paired 200, failed 0, failure rate 0, discontinuities 2, after_discontinuity 0, unmatched_reference 0, extra_distorted 0
+- reference sequences [{"first_index": 0, "first_pts": 10, "frames": 75}, {"first_index": 75, "first_pts": 10, "frames": 125}]
+- distorted sequences [{"first_index": 0, "first_pts": 10, "frames": 75}, {"first_index": 75, "first_pts": 10, "frames": 125}]
+- libvmaf contexts [{"first_index": 0, "pairs": 75}, {"first_index": 75, "pairs": 125}]
+- pooled mean 89.900, min 77.502
+- pairs whose reference PTS isn't the layout's for their reference frame: 0
+
+| segment | file | period | reference frames | pairs | mean VMAF | min VMAF | quantizer | tags before it |
+|---|---|---|---|---|---|---|---|---|
+| 0 | main_000.ts | main | 0-24 | 25 | 91.622 | 84.557 | 22 | - |
+| 1 | main_001.ts | main | 25-49 | 25 | 90.966 | 88.095 | 22 | - |
+| 2 | main_002.ts | main | 50-74 | 25 | 91.978 | 90.275 | 22 | - |
+| 3 | ad_000.ts | ad | 75-99 | 25 | 84.814 | 77.502 | 22 | EXT-X-DISCONTINUITY, #EXT-X-CUE-OUT:2.000 |
+| 4 | ad_001.ts | ad | 100-124 | 25 | 85.635 | 78.896 | 22 | #EXT-X-CUE-OUT-CONT:1.000/2.000 |
+| 5 | main_005.ts | main | 125-149 | 25 | 91.685 | 89.379 | 22 | EXT-X-DISCONTINUITY, #EXT-X-CUE-IN |
+| 6 | main_006.ts | main | 150-174 | 25 | 91.494 | 88.929 | 22 | - |
+| 7 | main_007.ts | main | 175-199 | 25 | 91.009 | 87.963 | 22 | - |
+
+Scores more than 6 points below the pair's median (91.311): 27 frames
+- pairs 0-0 (1 frames): first frame 0: segment 0 (main_000.ts, main), its frame 0 of 25; last frame 0: segment 0 (main_000.ts, main), its frame 0 of 25
+- pairs 75-76 (2 frames): first frame 75: segment 3 (ad_000.ts, ad), its frame 0 of 25; last frame 76: segment 3 (ad_000.ts, ad), its frame 1 of 25
+- pairs 78-78 (1 frames): first frame 78: segment 3 (ad_000.ts, ad), its frame 3 of 25; last frame 78: segment 3 (ad_000.ts, ad), its frame 3 of 25
+- pairs 80-80 (1 frames): first frame 80: segment 3 (ad_000.ts, ad), its frame 5 of 25; last frame 80: segment 3 (ad_000.ts, ad), its frame 5 of 25
+- pairs 82-82 (1 frames): first frame 82: segment 3 (ad_000.ts, ad), its frame 7 of 25; last frame 82: segment 3 (ad_000.ts, ad), its frame 7 of 25
+- pairs 84-84 (1 frames): first frame 84: segment 3 (ad_000.ts, ad), its frame 9 of 25; last frame 84: segment 3 (ad_000.ts, ad), its frame 9 of 25
+- pairs 86-86 (1 frames): first frame 86: segment 3 (ad_000.ts, ad), its frame 11 of 25; last frame 86: segment 3 (ad_000.ts, ad), its frame 11 of 25
+- pairs 88-90 (3 frames): first frame 88: segment 3 (ad_000.ts, ad), its frame 13 of 25; last frame 90: segment 3 (ad_000.ts, ad), its frame 15 of 25
+- pairs 92-92 (1 frames): first frame 92: segment 3 (ad_000.ts, ad), its frame 17 of 25; last frame 92: segment 3 (ad_000.ts, ad), its frame 17 of 25
+- pairs 94-94 (1 frames): first frame 94: segment 3 (ad_000.ts, ad), its frame 19 of 25; last frame 94: segment 3 (ad_000.ts, ad), its frame 19 of 25
+- pairs 96-96 (1 frames): first frame 96: segment 3 (ad_000.ts, ad), its frame 21 of 25; last frame 96: segment 3 (ad_000.ts, ad), its frame 21 of 25
+- pairs 98-98 (1 frames): first frame 98: segment 3 (ad_000.ts, ad), its frame 23 of 25; last frame 98: segment 3 (ad_000.ts, ad), its frame 23 of 25
+- pairs 102-102 (1 frames): first frame 102: segment 4 (ad_001.ts, ad), its frame 2 of 25; last frame 102: segment 4 (ad_001.ts, ad), its frame 2 of 25
+- pairs 104-104 (1 frames): first frame 104: segment 4 (ad_001.ts, ad), its frame 4 of 25; last frame 104: segment 4 (ad_001.ts, ad), its frame 4 of 25
+- pairs 106-106 (1 frames): first frame 106: segment 4 (ad_001.ts, ad), its frame 6 of 25; last frame 106: segment 4 (ad_001.ts, ad), its frame 6 of 25
+- pairs 108-108 (1 frames): first frame 108: segment 4 (ad_001.ts, ad), its frame 8 of 25; last frame 108: segment 4 (ad_001.ts, ad), its frame 8 of 25
+- pairs 110-110 (1 frames): first frame 110: segment 4 (ad_001.ts, ad), its frame 10 of 25; last frame 110: segment 4 (ad_001.ts, ad), its frame 10 of 25
+- pairs 112-112 (1 frames): first frame 112: segment 4 (ad_001.ts, ad), its frame 12 of 25; last frame 112: segment 4 (ad_001.ts, ad), its frame 12 of 25
+- pairs 114-114 (1 frames): first frame 114: segment 4 (ad_001.ts, ad), its frame 14 of 25; last frame 114: segment 4 (ad_001.ts, ad), its frame 14 of 25
+- pairs 116-116 (1 frames): first frame 116: segment 4 (ad_001.ts, ad), its frame 16 of 25; last frame 116: segment 4 (ad_001.ts, ad), its frame 16 of 25
+- pairs 118-118 (1 frames): first frame 118: segment 4 (ad_001.ts, ad), its frame 18 of 25; last frame 118: segment 4 (ad_001.ts, ad), its frame 18 of 25
+- pairs 120-120 (1 frames): first frame 120: segment 4 (ad_001.ts, ad), its frame 20 of 25; last frame 120: segment 4 (ad_001.ts, ad), its frame 20 of 25
+- pairs 122-122 (1 frames): first frame 122: segment 4 (ad_001.ts, ad), its frame 22 of 25; last frame 122: segment 4 (ad_001.ts, ad), its frame 22 of 25
+- pairs 124-124 (1 frames): first frame 124: segment 4 (ad_001.ts, ad), its frame 24 of 25; last frame 124: segment 4 (ad_001.ts, ad), its frame 24 of 25
+
+Trailing-median prototype (threshold 6, window 50, more than 12 frames): 26 low frames, 0 drops
+- pairs 75-76 (2 frames, too short): first frame 75: segment 3 (ad_000.ts, ad), its frame 0 of 25; last frame 76: segment 3 (ad_000.ts, ad), its frame 1 of 25; baseline at the first 91.692, lowest score 77.502
+- pairs 78-78 (1 frames, too short): first frame 78: segment 3 (ad_000.ts, ad), its frame 3 of 25; last frame 78: segment 3 (ad_000.ts, ad), its frame 3 of 25; baseline at the first 91.692, lowest score 80.491
+- pairs 80-80 (1 frames, too short): first frame 80: segment 3 (ad_000.ts, ad), its frame 5 of 25; last frame 80: segment 3 (ad_000.ts, ad), its frame 5 of 25; baseline at the first 91.783, lowest score 80.580
+- pairs 82-82 (1 frames, too short): first frame 82: segment 3 (ad_000.ts, ad), its frame 7 of 25; last frame 82: segment 3 (ad_000.ts, ad), its frame 7 of 25; baseline at the first 91.692, lowest score 83.679
+- pairs 84-84 (1 frames, too short): first frame 84: segment 3 (ad_000.ts, ad), its frame 9 of 25; last frame 84: segment 3 (ad_000.ts, ad), its frame 9 of 25; baseline at the first 91.692, lowest score 83.795
+- pairs 86-86 (1 frames, too short): first frame 86: segment 3 (ad_000.ts, ad), its frame 11 of 25; last frame 86: segment 3 (ad_000.ts, ad), its frame 11 of 25; baseline at the first 91.692, lowest score 80.435
+- pairs 88-90 (3 frames, too short): first frame 88: segment 3 (ad_000.ts, ad), its frame 13 of 25; last frame 90: segment 3 (ad_000.ts, ad), its frame 15 of 25; baseline at the first 91.751, lowest score 79.188
+- pairs 92-92 (1 frames, too short): first frame 92: segment 3 (ad_000.ts, ad), its frame 17 of 25; last frame 92: segment 3 (ad_000.ts, ad), its frame 17 of 25; baseline at the first 91.751, lowest score 82.527
+- pairs 94-94 (1 frames, too short): first frame 94: segment 3 (ad_000.ts, ad), its frame 19 of 25; last frame 94: segment 3 (ad_000.ts, ad), its frame 19 of 25; baseline at the first 91.751, lowest score 78.613
+- pairs 96-96 (1 frames, too short): first frame 96: segment 3 (ad_000.ts, ad), its frame 21 of 25; last frame 96: segment 3 (ad_000.ts, ad), its frame 21 of 25; baseline at the first 91.751, lowest score 78.502
+- pairs 98-98 (1 frames, too short): first frame 98: segment 3 (ad_000.ts, ad), its frame 23 of 25; last frame 98: segment 3 (ad_000.ts, ad), its frame 23 of 25; baseline at the first 91.751, lowest score 82.950
+- pairs 102-102 (1 frames, too short): first frame 102: segment 4 (ad_001.ts, ad), its frame 2 of 25; last frame 102: segment 4 (ad_001.ts, ad), its frame 2 of 25; baseline at the first 91.741, lowest score 80.691
+- pairs 104-104 (1 frames, too short): first frame 104: segment 4 (ad_001.ts, ad), its frame 4 of 25; last frame 104: segment 4 (ad_001.ts, ad), its frame 4 of 25; baseline at the first 91.832, lowest score 81.034
+- pairs 106-106 (1 frames, too short): first frame 106: segment 4 (ad_001.ts, ad), its frame 6 of 25; last frame 106: segment 4 (ad_001.ts, ad), its frame 6 of 25; baseline at the first 91.741, lowest score 84.728
+- pairs 108-108 (1 frames, too short): first frame 108: segment 4 (ad_001.ts, ad), its frame 8 of 25; last frame 108: segment 4 (ad_001.ts, ad), its frame 8 of 25; baseline at the first 91.741, lowest score 84.425
+- pairs 110-110 (1 frames, too short): first frame 110: segment 4 (ad_001.ts, ad), its frame 10 of 25; last frame 110: segment 4 (ad_001.ts, ad), its frame 10 of 25; baseline at the first 91.665, lowest score 80.463
+- pairs 112-112 (1 frames, too short): first frame 112: segment 4 (ad_001.ts, ad), its frame 12 of 25; last frame 112: segment 4 (ad_001.ts, ad), its frame 12 of 25; baseline at the first 91.665, lowest score 80.283
+- pairs 114-114 (1 frames, too short): first frame 114: segment 4 (ad_001.ts, ad), its frame 14 of 25; last frame 114: segment 4 (ad_001.ts, ad), its frame 14 of 25; baseline at the first 91.598, lowest score 83.048
+- pairs 116-116 (1 frames, too short): first frame 116: segment 4 (ad_001.ts, ad), its frame 16 of 25; last frame 116: segment 4 (ad_001.ts, ad), its frame 16 of 25; baseline at the first 91.598, lowest score 82.680
+- pairs 118-118 (1 frames, too short): first frame 118: segment 4 (ad_001.ts, ad), its frame 18 of 25; last frame 118: segment 4 (ad_001.ts, ad), its frame 18 of 25; baseline at the first 91.548, lowest score 78.896
+- pairs 120-120 (1 frames, too short): first frame 120: segment 4 (ad_001.ts, ad), its frame 20 of 25; last frame 120: segment 4 (ad_001.ts, ad), its frame 20 of 25; baseline at the first 91.598, lowest score 80.159
+- pairs 122-122 (1 frames, too short): first frame 122: segment 4 (ad_001.ts, ad), its frame 22 of 25; last frame 122: segment 4 (ad_001.ts, ad), its frame 22 of 25; baseline at the first 91.548, lowest score 83.679
+- pairs 124-124 (1 frames, too short): first frame 124: segment 4 (ad_001.ts, ad), its frame 24 of 25; last frame 124: segment 4 (ad_001.ts, ad), its frame 24 of 25; baseline at the first 91.548, lowest score 84.218
+
+--- stderr ---
+--- exit status 0, wall time 0.052 s (time.monotonic) ---

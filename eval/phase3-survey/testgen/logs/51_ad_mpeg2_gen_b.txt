@@ -1,0 +1,14 @@
+$ ./testgen ad media/ad-mpeg2-b --codec mpeg2video
+(in <out>/testgen)
+--- stdout ---
+ad ladder written: 8 segments of 25 frames at 25 fps, 3 rungs, codec mpeg2video, source noise
+source SI/TI (ITU-T P.910, luma at 640x360): main SI 56.624 TI 21.325, ad SI 61.405 TI 22.440
+rung v360 640x360: 1028172 bytes, BANDWIDTH 1069344, AVERAGE-BANDWIDTH 1028172, CODECS (none)
+  segment bytes: 125584 133668 133292 127652 128592 127652 130472 121260
+rung v270 480x270: 918380 bytes, BANDWIDTH 971584, AVERAGE-BANDWIDTH 918380, CODECS (none)
+  segment bytes: 118064 117500 111484 113552 108476 121448 115432 112424
+rung v180 320x180: 463984 bytes, BANDWIDTH 585056, AVERAGE-BANDWIDTH 463984, CODECS (none)
+  segment bytes: 68996 71064 66176 21996 21996 73132 71440 69184
+wall time: 1.974 s (source 1.602 s, scaling, encoding and muxing 0.371 s)
+--- stderr ---
+--- exit status 0, wall time 2.017 s (time.monotonic) ---

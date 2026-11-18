@@ -1,0 +1,9 @@
+# eval/timeline/run_all.sh's run, then the replacement of the local directories
+# in its files, the check of its records and the last search of its files, from <out>.
+$ <repo>/eval/timeline/run_all.sh <build> <out>
+$ python3 -I -B <repo>/eval/timeline/check.py redact . --build <build> --repo <repo>
+# exit status 0
+$ python3 -I -B <repo>/eval/timeline/check.py check . --threshold 6 --window 50 --min-points 12 --delay 2.3 --json check.json
+# exit status 0
+$ python3 -I -B <repo>/eval/timeline/check.py redact . --search-only --build <build> --repo <repo>
+# exit status 0

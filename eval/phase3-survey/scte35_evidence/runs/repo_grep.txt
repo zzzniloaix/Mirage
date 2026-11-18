@@ -1,0 +1,85 @@
+command (cwd <out>/scte35_evidence): sh tools/repo_grep.sh <scratch>/phase3-wt
+date_utc: 2026-11-01T04:18:42Z
+tool sha256: 6d1da7f8a2082658fb47d7c5001a4a0c960f0247704757470f41642e1102ce28  tools/build_vectors.py
+tool sha256: 43553cf5f9b59689d1e576b7c3e155390e518dafcb162443170f0e126ec5982c  tools/check_vectors.py
+tool sha256: 12ca135799c24d24a217a97c7173b233e459c4b74454b11af90cf011b7e9042e  tools/cue_positions.py
+tool sha256: ea5b756f6aebcef51a2bb5bbed43413a24ddaf34f5827273353d162b5888ecbd  tools/hls_tags.py
+tool sha256: 1198bc8093385554dc76dbf33b39eba1e268e04bd41029204eb515a9a2bad424  tools/html2text.py
+tool sha256: 2d0d1cf92518bfdaae87df6074f2f5cba87094ce6370a9f93692e68b442623ed  tools/pdftext.py
+tool sha256: bb4cef1ddae32dc390b419725a8dd855db5b29cf09393ac13075346bb7d0429b  tools/scte35_decode.py
+tool sha256: 68725f0ab733b49592947589b2c1487c2860e90d2139648bd01962a844586a33  tools/ts_pid_payload.py
+tool sha256: a6776bd3814f82dda3a9f23c742e8b44b19ff14219a75815705ed5b85f1d6b69  tools/ts_probe.py
+tool sha256: 31eaa39d0407aef0b730c3040c99c60547baa671bc42bdac69f17039fe79fe4a  tools/build_parser_probe.sh
+tool sha256: d5c54a09eac63794dc001f0aa52d4fe3cda311723f0d47ba1b1675e47848b04a  tools/cue_positions_all.sh
+tool sha256: 7cbb2161e7335376fcd6f6bd2f96281787bdb449b7e82494dc4a78ebb143f39d  tools/derive_all.sh
+tool sha256: d76a774d051045faf19a109b5d8f79bb79e384f26477b2e82b0137b9a108529f  tools/fetch.sh
+tool sha256: 05f5b16a93a29786124d69d7e5f6bbd233fd2661416449381e8e50e599f90c76  tools/pipeline.sh
+tool sha256: df159afaa73c1c23ecc8bf5ea69cf75e4d668b19f36e6658e8539d19173ebe5f  tools/repo_grep.sh
+tool sha256: bfbac2ffbe328635c262072da72d6fd3923bfcc5e70f44b8c0b2507a818fee8e  tools/run.sh
+tool sha256: f50c6568c519b76f507c5c20a8fc22a1856af0244678962334cf41a0cc61da74  tools/same_daterange.sh
+output (stdout and stderr):
+git: vmaf/phase-3 75cf6e0
+-- grep -rn -i -E 'scte|splice|oatcls|daterange|cue-out|cue-in|CueOut|CueIn' src (excluding nothing)
+src/ManifestParser.cpp:320:        } else if (line.starts_with("#EXT-X-CUE-OUT")) {
+src/ManifestParser.cpp:322:                              ManifestTagKind::CueOut, line, extract_value(line) });
+src/ManifestParser.cpp:324:        } else if (line == "#EXT-X-CUE-IN") {
+src/ManifestParser.cpp:326:                              ManifestTagKind::CueIn, line, "" });
+src/HlsAlign.cpp:1427:                std::format("{}: {}. {}: {}. Each EXT-X-DISCONTINUITY starts a new timeline (an ad, a splice); "
+src/DebugHUD.h:104:        std::string label;   // short display string, e.g. "DISCONTINUITY", "CUE-OUT 30s"
+src/main.cpp:2898:                        case ManifestTagKind::CueOut:
+src/main.cpp:2899:                            r=0.9f; g=0.65f; b=0.10f; lbl = "CUE-OUT " + t.value; break;
+src/main.cpp:2900:                        case ManifestTagKind::CueIn:
+src/main.cpp:2901:                            r=0.20f; g=0.80f; b=0.30f; lbl = "CUE-IN"; break;
+src/ManifestParser.h:13:    CueOut,                  // #EXT-X-CUE-OUT  (ad break start)
+src/ManifestParser.h:14:    CueIn,                   // #EXT-X-CUE-IN   (ad break end)
+-- grep -rn -i -E 'scte|splice|oatcls|daterange|cue' tests
+tests/test_hls_align.cpp:598:    t.local_zero = 0.0;        // no X-TIMESTAMP-MAP: cues 10 s early
+tests/test_thumb_plan.cpp:82:TEST_CASE("index_too_sparse: lazy MKV cues / HLS need a fallback", "[thumbs]")
+tests/test_thumb_plan.cpp:85:    CHECK(index_too_sparse(1, 311.0));     // MKV before Cues are read
+tests/test_demuxer_switch.cpp:109:// cue "cue N" from N to N+0.5 s every second (stream 3).
+tests/test_demuxer_switch.cpp:142:    const int cues    = static_cast<int>(kSecs);
+tests/test_demuxer_switch.cpp:144:    while (vi < vframes || ai < aframes || ci < cues) {
+tests/test_demuxer_switch.cpp:147:        const double tc = ci < cues ? static_cast<double>(ci) : 1e9;
+tests/test_demuxer_switch.cpp:150:            const std::string text = "cue " + std::to_string(ci);
+tests/test_demuxer_switch.cpp:876:        // The next cue after pos, not the first one past the read position.
+tests/test_demuxer_switch.cpp:903:TEST_CASE("Demuxer: a subtitle track preselected before reading starts from the first cue", "[demux][switch]")
+tests/test_demuxer_switch.cpp:945:    // re-read stops (no room for video) before it caught up on the cues.
+tests/test_subtitle_decoder.cpp:129:    void cue(int64_t start_ms, int64_t dur_ms, const std::string& text)
+tests/test_subtitle_decoder.cpp:148:        f.cue(i * 1000, 500, "cue " + std::to_string(i));
+tests/test_subtitle_decoder.cpp:152:    CHECK(f.dec.at(0.2) == "cue 0");
+tests/test_subtitle_decoder.cpp:153:    CHECK(f.dec.at(250.25) == "cue 250");
+tests/test_subtitle_decoder.cpp:154:    CHECK(f.dec.at(250.75).empty());     // gap between cues (duration from pkt)
+tests/test_subtitle_decoder.cpp:158:        capped.cue(i * 1000, 500, "cue " + std::to_string(i));
+tests/test_subtitle_decoder.cpp:164:TEST_CASE("SubtitleDecoder — at() joins overlapping cues in start order",
+tests/test_subtitle_decoder.cpp:168:    f.cue(5000, 1000, "late");             // out-of-order arrival
+tests/test_subtitle_decoder.cpp:169:    f.cue(0, 10000, "long");
+tests/test_subtitle_decoder.cpp:170:    f.cue(4000, 3000, "middle");
+tests/test_subtitle_decoder.cpp:181:    // (DECISIONS.md D-032): three cues, one in italics over two lines, one
+tests/test_subtitle_decoder.cpp:186:           "2\n00:00:05,000 --> 00:00:08,000\nSecond cue with <i>italics</i>\nand a line break\n\n"
+tests/test_subtitle_decoder.cpp:195:    CHECK(dec.at(4.5).empty());                      // cue 1 ends at 4.000
+tests/test_subtitle_decoder.cpp:196:    CHECK(dec.at(6.0) == "Second cue with italics\nand a line break");
+tests/test_manifest_parser.cpp:54:TEST_CASE("HLS — CUE-OUT and CUE-IN captured", "[manifest][hls]")
+tests/test_manifest_parser.cpp:59:#EXT-X-CUE-OUT:DURATION=30
+tests/test_manifest_parser.cpp:62:#EXT-X-CUE-IN
+tests/test_manifest_parser.cpp:70:    CHECK(tags[0].kind == ManifestTagKind::CueOut);
+tests/test_manifest_parser.cpp:73:    CHECK(tags[1].kind == ManifestTagKind::CueIn);
+tests/test_manifest_parser.cpp:248:    <EventStream schemeIdUri="urn:scte:scte35:2014:xml+bin" timescale="90000">
+tests/test_manifest_parser.cpp:262:    CHECK_THAT(tags[0].raw, ContainsSubstring("scte35"));
+-- the tags HlsAlign's parse_media_timeline reads
+521:            if (tag == "#EXT-X-STREAM-INF" || tag == "#EXT-X-I-FRAME-STREAM-INF" || tag == "#EXT-X-MEDIA") {
+526:            if (tag == "#EXTINF") {
+530:            } else if (tag == "#EXT-X-TARGETDURATION") {
+532:            } else if (tag == "#EXT-X-MEDIA-SEQUENCE") {
+534:            } else if (tag == "#EXT-X-DISCONTINUITY-SEQUENCE") {
+536:            } else if (tag == "#EXT-X-VERSION") {
+538:            } else if (tag == "#EXT-X-PLAYLIST-TYPE") {
+540:            } else if (tag == "#EXT-X-ENDLIST") {
+542:            } else if (tag == "#EXT-X-INDEPENDENT-SEGMENTS") {
+544:            } else if (tag == "#EXT-X-DISCONTINUITY") {
+546:            } else if (tag == "#EXT-X-GAP") {
+548:            } else if (tag == "#EXT-X-PROGRAM-DATE-TIME") {
+552:            } else if (tag == "#EXT-X-BYTERANGE") {
+554:            } else if (tag == "#EXT-X-MAP") {
+563:            } else if (tag == "#EXT-X-KEY") {
+566:            } else if (tag == "#EXT-X-SKIP") {
+exit=0

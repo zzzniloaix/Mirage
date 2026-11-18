@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/ffmpeg-n8.1.1-mpegts.c/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://raw.githubusercontent.com/FFmpeg/FFmpeg/n8.1.1/libavformat/mpegts.c'
+date_utc: 2026-11-01T03:27:08Z
+http_code=200
+url_effective=https://raw.githubusercontent.com/FFmpeg/FFmpeg/n8.1.1/libavformat/mpegts.c
+size_download=129497
+content_type=text/plain; charset=utf-8
+curl_exit=0
+sha256=88e3b699bb8ef7520ba252967d68d45725a80b960f3598a81f64b5f32886c887

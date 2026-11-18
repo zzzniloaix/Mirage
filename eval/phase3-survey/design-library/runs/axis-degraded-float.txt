@@ -1,0 +1,31 @@
+# cwd: <out>/testgen
+# command: 'python3' '-I' '<out>/design-library/tools/axis_probe.py' '--float' 'reports/degraded-x264.json' 'reports/degraded-x264-a.layout.json' 'media/degraded-x264-a/v360/index.m3u8' 'v270/index.m3u8' '100:124'
+# started: 2026-11-01T04:30:09Z, ended: 2026-11-01T04:30:09Z (UTC)
+# stdout and stderr, in order:
+report: reports/degraded-x264.json; pair: v270/index.m3u8; arithmetic: doubles; reference frames scored: 200; frame duration: 0.04 s
+reference sequences (first_index, first_pts, frames): [(0, 10, 200)]
+distinct ref_pts: 200 ; distinct (sequence, ref_pts): 200
+ref_pts shared by two or more frames (first 3): []
+
+== axis pts ==
+rising at every frame: True; largest step 0.0400000000000027 s (frames 197->198); smallest step 0.03999999999999915 s (frames 0->1)
+interval: frames 100-124 -> [14.0, 15.0) s, 1.0 s long; the frame after it, 125, at 15.0
+  overlaps: segment 4 seg_004.ts [14.0, 15.0), offset 0.0 s
+
+== axis seq_pts ==
+rising at every frame: True; largest step 0.0400000000000027 s (frames 197->198); smallest step 0.03999999999999915 s (frames 0->1)
+interval: frames 100-124 -> [4.0, 5.000000000000001) s, 1.0000000000000009 s long; the frame after it, 125, at 5.0
+  overlaps: segment 4 seg_004.ts [4.0, 5.0), offset 0.0 s
+  overlaps: segment 5 seg_005.ts [5.0, 6.0), offset 1.0 s
+
+== axis playlist ==
+rising at every frame: True; largest step 0.0400000000000027 s (frames 197->198); smallest step 0.03999999999999915 s (frames 0->1)
+interval: frames 100-124 -> [4.0, 5.000000000000001) s, 1.0000000000000009 s long; the frame after it, 125, at 5.0
+  overlaps: segment 4 seg_004.ts [4.0, 5.0), offset 0.0 s
+  overlaps: segment 5 seg_005.ts [5.0, 6.0), offset 1.0 s
+
+== axis index ==
+rising at every frame: True; largest step 0.040000000000000036 s (frames 198->199); smallest step 0.03999999999999915 s (frames 115->116)
+interval: frames 100-124 -> [4.0, 5.0) s, 1.0 s long; the frame after it, 125, at 5.0
+  overlaps: segment 4 seg_004.ts [4.0, 5.0), offset 0.0 s
+# exit status: 0

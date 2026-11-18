@@ -1,0 +1,23 @@
+$ ./testgen encoders
+(in <out>/testgen)
+--- stdout ---
+FFmpeg 8.1.1; libavcodec 62.28.101, libavformat 62.12.101, libavutil 60.26.101, libswscale 9.5.101
+libavcodec's license: GPL version 3 or later
+libx264            found: libx264 H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10
+libx265            found: libx265 H.265 / HEVC
+libopenh264        not found
+h264_videotoolbox  found: VideoToolbox H.264 Encoder
+hevc_videotoolbox  found: VideoToolbox H.265 Encoder [hardware]
+mpeg2video         found: MPEG-2 video
+mpeg4              found: MPEG-4 part 2
+mpeg1video         found: MPEG-1 video
+libxvid            found: libxvidcore MPEG-4 part 2
+ffv1               found: FFmpeg video codec #1
+rawvideo           found: raw video
+libvpx             found: libvpx VP8
+libvpx-vp9         found: libvpx VP9
+libaom-av1         found: libaom AV1
+libsvtav1          found: SVT-AV1(Scalable Video Technology for AV1) encoder
+librav1e           found: librav1e AV1
+--- stderr ---
+--- exit status 0, wall time 0.289 s (time.monotonic) ---

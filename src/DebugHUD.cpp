@@ -631,68 +631,6 @@ void DebugHUD::draw_manifest_tags(const std::vector<TagEntry>& tags,
     }
 }
 
-// ── Timeline tick strip ───────────────────────────────────────────────────────
-
-double DebugHUD::draw_timeline_ticks(const std::vector<TagEntry>& tags,
-                                      double duration,
-                                      int fb_w, int fb_h, float scale,
-                                      float bottom_offset_px,
-                                      float click_x, float click_y)
-{
-    if (duration <= 0.0) return -1.0;
-
-    const float strip_h = static_cast<float>(kTimelinePx) * scale;
-    const float y0      = static_cast<float>(fb_h) - bottom_offset_px - strip_h;
-    const float y1      = y0 + strip_h;
-    const float fw      = static_cast<float>(fb_w);
-
-    auto px2ndcx = [&](float px) { return px / fw * 2.0f - 1.0f; };
-    auto px2ndcy = [&](float py) { return 1.0f - py / static_cast<float>(fb_h) * 2.0f; };
-
-    // Dark backing
-    draw_bg(px2ndcx(0), px2ndcx(fw), px2ndcy(y1), px2ndcy(y0),
-            0.08f, 0.08f, 0.08f, 0.75f);
-
-    // Tick marks
-    std::vector<float> tick_verts;
-    tick_verts.reserve(tags.size() * 4);
-    for (const auto& t : tags) {
-        float x = static_cast<float>(t.pts / duration) * fw;
-        tick_verts.push_back(x);  tick_verts.push_back(y0);
-        tick_verts.push_back(x);  tick_verts.push_back(y1);
-    }
-
-    if (!tick_verts.empty()) {
-        // Draw all ticks (we use white; colour could be per-tick but needs per-vertex colour)
-        // For simplicity, draw by colour group
-        // Group 1: red (discontinuities) — indices where r > g
-        for (int pass = 0; pass < (int)tags.size(); ++pass) {
-            const auto& t = tags[pass];
-            glUseProgram(text_program_);
-            glUniform2f(u_fb_size_, fw, static_cast<float>(fb_h));
-            glUniform4f(u_text_color_, t.r, t.g, t.b, 0.90f);
-            float lv[] = {
-                static_cast<float>(t.pts / duration) * fw, y0,
-                static_cast<float>(t.pts / duration) * fw, y1
-            };
-            glBindVertexArray(text_vao_);
-            glBindBuffer(GL_ARRAY_BUFFER, text_vbo_);
-            glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)sizeof(lv), lv, GL_DYNAMIC_DRAW);
-            glLineWidth(std::max(1.0f, scale * 1.5f));
-            glDrawArrays(GL_LINES, 0, 2);
-        }
-        glLineWidth(1.0f);
-    }
-
-    // Hit test: click in the strip → seek to clicked position
-    if (click_x >= 0.0f && click_y >= 0.0f &&
-        click_y >= y0 && click_y <= y1 &&
-        click_x >= 0.0f && click_x <= fw) {
-        return (click_x / fw) * duration;
-    }
-    return -1.0;
-}
-
 // ── Help overlay ─────────────────────────────────────────────────────────────
 
 void DebugHUD::draw_help(int fb_w, int fb_h, float scale)

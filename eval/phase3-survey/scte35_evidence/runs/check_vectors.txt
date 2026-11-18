@@ -1,0 +1,101 @@
+command (cwd <out>/scte35_evidence): python3 -I tools/check_vectors.py vectors_src.json ../scte35_vectors.json
+date_utc: 2026-11-01T04:18:38Z
+tool sha256: 6d1da7f8a2082658fb47d7c5001a4a0c960f0247704757470f41642e1102ce28  tools/build_vectors.py
+tool sha256: 43553cf5f9b59689d1e576b7c3e155390e518dafcb162443170f0e126ec5982c  tools/check_vectors.py
+tool sha256: 12ca135799c24d24a217a97c7173b233e459c4b74454b11af90cf011b7e9042e  tools/cue_positions.py
+tool sha256: ea5b756f6aebcef51a2bb5bbed43413a24ddaf34f5827273353d162b5888ecbd  tools/hls_tags.py
+tool sha256: 1198bc8093385554dc76dbf33b39eba1e268e04bd41029204eb515a9a2bad424  tools/html2text.py
+tool sha256: 2d0d1cf92518bfdaae87df6074f2f5cba87094ce6370a9f93692e68b442623ed  tools/pdftext.py
+tool sha256: bb4cef1ddae32dc390b419725a8dd855db5b29cf09393ac13075346bb7d0429b  tools/scte35_decode.py
+tool sha256: 68725f0ab733b49592947589b2c1487c2860e90d2139648bd01962a844586a33  tools/ts_pid_payload.py
+tool sha256: a6776bd3814f82dda3a9f23c742e8b44b19ff14219a75815705ed5b85f1d6b69  tools/ts_probe.py
+tool sha256: 31eaa39d0407aef0b730c3040c99c60547baa671bc42bdac69f17039fe79fe4a  tools/build_parser_probe.sh
+tool sha256: d5c54a09eac63794dc001f0aa52d4fe3cda311723f0d47ba1b1675e47848b04a  tools/cue_positions_all.sh
+tool sha256: 7cbb2161e7335376fcd6f6bd2f96281787bdb449b7e82494dc4a78ebb143f39d  tools/derive_all.sh
+tool sha256: d76a774d051045faf19a109b5d8f79bb79e384f26477b2e82b0137b9a108529f  tools/fetch.sh
+tool sha256: 05f5b16a93a29786124d69d7e5f6bbd233fd2661416449381e8e50e599f90c76  tools/pipeline.sh
+tool sha256: df159afaa73c1c23ecc8bf5ea69cf75e4d668b19f36e6658e8539d19173ebe5f  tools/repo_grep.sh
+tool sha256: bfbac2ffbe328635c262072da72d6fd3923bfcc5e70f44b8c0b2507a818fee8e  tools/run.sh
+tool sha256: f50c6568c519b76f507c5c20a8fc22a1856af0244678962334cf41a0cc61da74  tools/same_daterange.sh
+output (stdout and stderr):
+scte35-2023r1-14.1 | decoded | crc ok | encodings agree | 26 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 26 of 26>
+scte35-2023r1-14.2 | decoded | crc ok | encodings agree | 22 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 22 of 22>
+scte35-2023r1-14.3 | decoded | crc ok | encodings agree | 25 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 25 of 25>
+scte35-2023r1-14.4 | decoded | crc ok | encodings agree | 40 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 40 of 40>
+scte35-2023r1-14.5 | decoded | crc ok | encodings agree | 25 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 25 of 25>
+scte35-2023r1-14.6 | decoded | crc ok | encodings agree | 40 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 40 of 40>
+scte35-2023r1-14.7 | decoded | crc ok | encodings agree | 25 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 25 of 25>
+scte35-2023r1-14.8 | decoded | crc ok | encodings agree | 55 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 55 of 55>
+scte35-go:Sample 14.1 time_signal - Placement Opportunity Start | decoded | crc ok | encodings agree | 2 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 2 of 2>
+scte35-go:Sample 14.2 splice_insert | decoded | crc ok | encodings agree | 2 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 2 of 2>
+scte35-go:Sample 14.3 time_signal - Placement Opportunity End | decoded | crc ok | encodings agree | 2 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 2 of 2>
+scte35-go:Sample 14.4 time_signal - Program Start/End | decoded | crc ok | encodings agree | 2 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 2 of 2>
+scte35-go:Sample 14.5 time_signal - Program Overlap Start | decoded | crc ok | encodings agree | 2 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 2 of 2>
+scte35-go:Sample 14.6 time_signal - Program Blackout Override / Program End | decoded | crc ok | encodings agree | 2 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 2 of 2>
+scte35-go:Sample 14.7 time_signal - Program End | decoded | crc ok | encodings agree | 2 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 2 of 2>
+scte35-go:Sample 14.8 time_signal - Program Start/End - Placement Opportunity End | decoded | crc ok | encodings agree | 2 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 2 of 2>
+scte35-go:SpliceInsert With DTMF | decoded | crc ok | encodings agree | 17 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 17 of 17>
+scte35-go:Time Signal with Segmentation Descriptors | decoded | crc ok | encodings agree | 23 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 23 of 23; checked: its pts_time is above 2^32>
+scte35-go:Empty Data | NOT DECODED: shorter than a section header | 1 fields compared | source expects scte35.ErrBufferOverflow
+scte35-go:Invalid Encoding | NOT DECODED: not base64: Only base64 data is allowed | 1 fields compared | source expects scte35.ErrUnsupportedEncoding
+scte35-go:Splice Insert with Avail Descriptor | decoded | crc ok | encodings agree | 10 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 10 of 10>
+scte35-go:Multiple SegmentationUPIDs | decoded | crc ok | encodings agree | 14 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 14 of 14; checked: its UPID is a MID (type 0x0D), as the source states>
+scte35-go:Legacy splice_command_length: 0xFFF | decoded | crc ok | encodings agree | 14 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 14 of 14>
+scte35-go:SpliceInsert Time Specified With Invalid Component Count | NOT DECODED: read of 1 bits at bit 1440 past the end (bit 1440) | 1 fields compared | source expects scte35.ErrBufferOverflow
+scte35-go:Signal with non-CUEI descriptor | decoded | crc ok | encodings agree | 16 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 16 of 16; checked: a private (non-CUEI) descriptor comes before the segmentation_descriptor>
+scte35-go:Splice Null - Heartbeat | decoded | crc ok | encodings agree | 4 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 4 of 4>
+scte35-go:Invalid CRC_32 | decoded | CRC BAD (the CRC_32 field is not the CRC of the preceding bytes) | 1 fields compared | source expects scte35.ErrCRC32Invalid | decode: <decoded field values removed (Q21); fields agree with the source: 1 of 1>
+scte35-go:Alignment Stuffing without Encryption | decoded | crc ok | encodings agree | 6 fields compared | alignment_stuffing_bytes=3 | decode: <decoded field values removed (Q21); fields agree with the source: 6 of 6>
+scte35-go:Unused Subsegments Included | decoded | crc ok | encodings agree | 22 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 22 of 22; checked: sub_segment_num and sub_segments_expected are present after the Provider Advertisement Start, as the source states>
+scte35-go:UPID with Valid ASCII Invalid UTF8 | decoded | crc ok | encodings agree | 31 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 31 of 31>
+scte35-go:AudioDescriptor Underflow | decoded | crc ok | encodings agree | 11 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 11 of 11>
+threefive:cue.md:time_signal-immediate | decoded | crc ok | 8 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 8 of 8>
+threefive:cue.md:splice_insert-immediate | decoded | crc ok | encodings agree | 20 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 20 of 20>
+threefive:README.md:time_signal-pts_adjustment | decoded | crc ok | encodings agree | 11 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 11 of 11; checked: a nonzero pts_adjustment, much larger than its pts_time>
+threefive-2024:examples/hls/scte35.m3u8:8 | decoded | crc ok | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare>
+threefive-2024:examples/hls/scte35.m3u8:21 | decoded | crc ok | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare>
+threefive-2024:examples/hls/scte35.m3u8:31 | decoded | crc ok | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare>
+threefive-2024:examples/hls/scte35.m3u8:41 | decoded | crc ok | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare>
+threefive-2024:examples/hls/simple-scte35.m3u8:5 | decoded | crc ok | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare>
+threefive-2024:smoketest.py:Hex String | decoded | crc ok | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare>
+rfc8216-8.10-SCTE35-OUT | NOT DECODED: section_length 47 needs 50 bytes, the data has 49 | 0 fields compared
+rfc8216-8.10-SCTE35-IN | NOT DECODED: section_length 42 needs 45 bytes, the data has 44 | 0 fields compared
+rfc8216bis-22-9.10-SCTE35-OUT | decoded | CRC BAD (the CRC_32 field is 0x00000000, not the CRC of the preceding bytes) | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare; checked: a splice_insert out; its splice_event_id is the event the tag's ID names (splice-6FFFFFF0); its descriptor's identifier is not CUEI>
+rfc8216bis-22-9.10-SCTE35-IN | decoded | CRC BAD (the CRC_32 field is 0x00000000, not the CRC of the preceding bytes) | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare; checked: a splice_insert in; its splice_event_id is the event the tag's ID names (splice-6FFFFFF0); its descriptor's identifier is not CUEI>
+aws-medialive:126:EXT-OATCLS-SCTE35 | decoded | crc ok | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare>
+aws-mediatailor:98:EXT-X-SPLICEPOINT-SCTE35 | decoded | crc ok | 1 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 1 of 1; checked: the segmentation type the page states; its segmentation_event_id differs from aws-mediatailor:100's and its splice time is later than that message's>
+aws-mediatailor:100:EXT-X-SPLICEPOINT-SCTE35 | decoded | crc ok | 1 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 1 of 1; checked: the segmentation type the page states; its segmentation_event_id differs from aws-mediatailor:98's and its splice time is earlier than that message's>
+aws-mediapackage-v1:124:SCTE35-OUT | decoded | crc ok | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare; checked: a nonzero pts_adjustment, the same in the three MediaPackage messages>
+aws-mediapackage-v1:125:SCTE35-CMD | decoded | crc ok | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare; checked: a nonzero pts_adjustment, the same in the three MediaPackage messages>
+aws-mediapackage-v1:144:SCTE35-CMD | decoded | crc ok | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare; checked: a nonzero pts_adjustment, the same in the three MediaPackage messages>
+unified-origin:1524:SCTE35-OUT | decoded | crc ok | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare; checked: a splice_insert with splice_immediate_flag 0 and no splice time (time_specified_flag 0)>
+unified-origin:1564:SCTE35-OUT | decoded | CRC BAD (the CRC_32 field, the same in unified-origin:1564:SCTE35-OUT and unified-origin:1627:SCTE35-OUT, is not the CRC of the preceding bytes) | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare; checked: a splice_insert with splice_immediate_flag 0 and no splice time (time_specified_flag 0); its splice_event_id differs from unified-origin:1627:SCTE35-OUT's>
+unified-origin:1590:SCTE35-OUT | NOT DECODED: odd number of hex digits | 0 fields compared
+unified-origin:1627:SCTE35-OUT | decoded | CRC BAD (the CRC_32 field, the same in unified-origin:1564:SCTE35-OUT and unified-origin:1627:SCTE35-OUT, is not the CRC of the preceding bytes) | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare; checked: a splice_insert with splice_immediate_flag 0 and no splice time (time_specified_flag 0); its splice_event_id differs from unified-origin:1564:SCTE35-OUT's>
+unified-origin:1646:SCTE35-OUT | decoded | crc ok | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare; checked: a splice_insert with splice_immediate_flag 0 and no splice time (time_specified_flag 0)>
+wowza:1804:SCTE35-OUT | NOT DECODED: section_length 47 needs 50 bytes, the data has 47 | 0 fields compared
+wowza:1817:SCTE35-IN | NOT DECODED: section_length 42 needs 45 bytes, the data has 42 | 0 fields compared
+wowza:1846:EXT-OATCLS-SCTE35 | decoded | crc ok | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare>
+broadpeak:434:SCTE35-OUT | decoded | crc ok | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare; checked: the same bytes as google-admanager:209:SCTE35-OUT; pts_time + pts_adjustment wraps past 2^33>
+broadpeak:459:EXT-OATCLS-SCTE35 | decoded | crc ok | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare; checked: splice_immediate_flag 1: no splice time>
+google-admanager:173:SCTE35-OUT | NOT DECODED: section_length 27 needs 30 bytes, the data has 23 | 0 fields compared
+google-admanager:179:SCTE35-IN | decoded | CRC BAD (the CRC_32 field is not the CRC of the preceding bytes) | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare>
+google-admanager:185:SCTE35-OUT | decoded | crc ok | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare>
+google-admanager:191:SCTE35-IN | decoded | crc ok | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare>
+google-admanager:197:SCTE35-OUT | decoded | crc ok | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare>
+google-admanager:203:SCTE35-IN | decoded | crc ok | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare>
+google-admanager:209:SCTE35-OUT | decoded | crc ok | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare; checked: the same bytes as broadpeak:434:SCTE35-OUT; pts_time + pts_adjustment wraps past 2^33>
+google-admanager:223:EXT-OATCLS-SCTE35 | decoded | crc ok | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare>
+google-admanager:227:EXT-OATCLS-SCTE35 | decoded | crc ok | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare>
+google-admanager:237:binary | decoded | crc ok | 2 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 2 of 2; checked: a nonzero pts_adjustment, the same as google-admanager:257's>
+google-admanager:257:binary | decoded | crc ok | 2 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 2 of 2; checked: a nonzero pts_adjustment, the same as google-admanager:237's>
+google-admanager:267:binary | decoded | crc ok | 2 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 2 of 2>
+google-admanager:287:binary | decoded | crc ok | 2 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 2 of 2>
+google-admanager:297:binary | decoded | crc ok | 2 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 2 of 2>
+google-admanager:317:binary | decoded | crc ok | 2 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 2 of 2>
+google-video-stitcher:412:SCTE35-OUT | decoded | CRC BAD (the CRC_32 field is not the CRC of the preceding bytes) | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare; checked: splice_immediate_flag 1: no splice time>
+google-video-stitcher:414:SCTE35-IN | decoded | CRC BAD (the CRC_32 field is not the CRC of the preceding bytes) | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare; checked: splice_immediate_flag 1: no splice time>
+google-video-stitcher:432:EXT-OATCLS-SCTE35 | decoded | CRC BAD (the CRC_32 field is not the CRC of the preceding bytes) | 0 fields compared | decode: <decoded field values removed (Q21); the source states no decoded field to compare>
+unified-avod-demo:21:SCTE35-OUT | decoded | crc ok | 1 fields compared | decode: <decoded field values removed (Q21); fields agree with the source: 1 of 1; checked: a splice_insert out with splice_immediate_flag 1 (no splice time) and auto_return 1, its break_duration equal to the tag's PLANNED-DURATION>
+{"vectors": 79, "decoded_crc_ok_no_mismatch": 61, "decoded_crc_bad": 9, "not_decoded": 9, "with_mismatches": 0, "record": "scte35_evidence/runs/check_vectors.txt"}
+exit=0

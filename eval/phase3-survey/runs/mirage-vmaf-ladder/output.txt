@@ -1,0 +1,3 @@
+[INFO]  VMAFAnalyzer: 40 frames  mean=54.28  min=48.84  p5=49.79  [Analysis]
+mirage_vmaf: pair 1 of 1, dis/index.m3u8: 40 frame pairs scored
+mirage_vmaf: 1 of 1 pair of the ladder scored against ref/index.m3u8 (top-rung), 0 entries skipped, 11 at a time; the run is complete; report written to ../mirage-vmaf-ladder/report.json

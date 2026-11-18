@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/aws-mediapackage-v1-daterange.md/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://docs.aws.amazon.com/mediapackage/latest/ug/scte-35-ad-marker-ext-x-daterange.md'
+date_utc: 2026-11-01T03:40:47Z
+http_code=404
+url_effective=https://docs.aws.amazon.com/mediapackage/latest/ug/scte-35-ad-marker-ext-x-daterange.md
+size_download=1711
+content_type=text/html
+curl_exit=0
+sha256=aece9064640095b2937f3ab389788405a0dfe3d276d5d74338c8674fc242ddb9

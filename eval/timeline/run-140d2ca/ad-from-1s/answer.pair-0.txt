@@ -1,0 +1,8 @@
+Timeline ad-from-1s/timeline.json: 70 events on 200 reference frames, offsets in seconds on the reference's playlist time
+Ladder report media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-from-1s.json: its SHA-256 is the one the document names
+Query: the drops detection finds again, T 6, W 50, N 12 (--auto)
+Overlap: half-open on reference frames, margins 0 s before and 0 s after
+Detection: T 6, W 50, N 12; the first 25 points of a curve can't be low
+
+Curve pair:0: entry 1 (<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-from-1s/v270/index.m3u8, 480x270, BANDWIDTH 565504; rank 2 from the top, 2 from the bottom), scored against entry 0 (<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-from-1s/v360/index.m3u8, 640x360, BANDWIDTH 613632; rank 1 from the top, 3 from the bottom)
+  no drop

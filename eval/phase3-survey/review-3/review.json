@@ -1,0 +1,174 @@
+{
+  "verdict": "Ready for round 1's questions once seven minor corrections are made; no blocker and no major issue. Of the second review's 15 issues (N1 to N15), 14 are resolved and N7 is partly resolved; the two items it had marked partly, the first review's issues 0 and 6, are resolved with N1 and N2; of the lead's items, L1 to L7 are resolved and L8 is partly resolved. What was checked and holds: `design.md` is byte-identical to the render of a copy of `design/`, and the renderer leaves the copy's JSON unchanged (`review-3/runs/render.txt`, `render-cmp.txt`, `render-json-unchanged.txt`); the quote checker finds 0 prose runs and 0 runs of names in `design.md` and in each of the 24 files under `design/` (`quote-check-design.txt`), and the privacy check no local path, e-mail address or identity word (`privacy-check-design.txt`); the 44 questions are in rounds of 27, 9 and 8, each with its round, its D-007 mark and a one-sentence summary that states its recommendation exactly, with 2 to 4 sentences of question and 1 to 3 per option (`question-lengths.txt`); each question's Blocks equals the packages whose Blocked-by names it, and its round is the earliest of theirs; the acceptance path is WP00a, WP01, WP02, WP03, WP04, WP06, WP08, WP09a, WP10 and WP11a, blocked by round-1 questions only, and the composite example's path adds WP00b, WP07, WP09b and WP11b; every file two packages name is owned in turn (`package-check.txt`); every cited line of `<repo>` says what the design says (`code-lines.txt`), and NetworkLogger's object needs nothing beyond FFmpeg and the C and C++ runtimes (`networklogger-link.txt`); the revised check's record reproduces exactly (`seconds-check-compare.txt`); D-002, D-007, D-046, D-050, D-068, D-069 and D-070 are respected; `<repo>` is at `75cf6e0` and clean (`repo-state-start.txt`, `repo-state-end.txt`). The seven minor issues: the check's PTS test (2) misses a reference frame missing at the start of a playlist discontinuity sequence, which §4.2 says it shows (`seconds-check-sequence-start.txt`); WP00b declares `Request` in `src/TimelineBuild.h`, a round-1 package's file that WP00b neither lists nor follows; Blocked-by lists still miss answers that change eight packages (N7); Q16 counts 3 intended negative tests among the 9 messages with a bad CRC_32, where the survey's record has 1 (`vector-status.txt`); §4.2 reads RFC 8216 as allowing whole-second EXTINF only below compatibility version 3; WP00a's New files and P-C contradict WP00a's own list of the files it creates; WP15b depends on WP15a alone although its status document and PR text come last. The records are in `<out>/review-3/runs/`, made with `<out>/review-3/tools/run.sh`, a byte-identical copy of `design/tools/run.sh`; line numbers are `design.md`'s.",
+  "items": [
+    {
+      "id": "N1",
+      "status": "resolved",
+      "evidence": "§4.2's check compares (d)'s seconds with (c)'s at every scored reference frame and each PTS with the frame grid of its playlist discontinuity sequence (lines 257, 259). With the design's tool it warns in each simulated case of its record, the ad re-timed at 24, 30, 50 and 60 fps included, and on none of the four ladders (`design/runs/seconds-check.txt`, reproduced exactly: `review-3/runs/seconds-check-compare.txt`). §4.2, K2, Q02 (c) and (d) and their Why, R11 and WP01's test were corrected (lines 51, 758-763, 2026, 1733), and the recommendation moved to (c) on that evidence, labelled the agent's. A remaining blind spot of the check is issue 1."
+    },
+    {
+      "id": "N2",
+      "status": "resolved",
+      "evidence": "WP07 owns a session's curve in `src/TimelineModel.cpp` and a session's scope in `src/TimelineQuery.cpp` after WP01 has merged (line 1867), depends on WP00b and WP01 (line 1869) and is blocked by Q28 (line 1870); WP01 builds and tests a pair's curve and scope only (lines 1724, 1734, 592); WP07's tests of both are in `tests/test_session_plan.cpp` (lines 599, 1873); Appendix B says `curve_points()` is declared by WP00a and defined in `src/TimelineModel.cpp` (lines 2136-2138); §3.2 and §6.1 agree (lines 147, 149, 454). Where WP00b puts the session types is issue 2."
+    },
+    {
+      "id": "N3",
+      "status": "resolved",
+      "evidence": "WP09b, the session part, depends on WP09a and WP07 (line 1884); WP09c, the decoded messages, on WP09b and WP05, blocked by Q15 and Q16 (lines 1895-1896); WP11b on WP09b and WP10 (line 1906). render.py asserts that WP05 and WP09c are on neither path, and the render passed (`review-3/runs/render.txt`); the composite path adds WP00b, WP07, WP09b and WP11b, all of round 2 (line 2006)."
+    },
+    {
+      "id": "N4",
+      "status": "resolved",
+      "evidence": "WP00c depends on WP00a and WP00b (line 1918); P-C has the lead's wiring commit for a conditional package made while no wiring package is open (line 1626); WP12 depends on WP07 and WP09b (line 1929), WP13 on WP12; 0 unordered pairs among the 110 files named (`review-3/runs/package-check.txt`)."
+    },
+    {
+      "id": "N5",
+      "status": "resolved",
+      "evidence": "WP16 changes `src/TimelineBuild.cpp` and its test after WP09c (lines 1976, 1978), turns what the scorer records into events (line 1973), and is blocked by Q01, Q08, Q09, Q10 and Q12 (line 1979); §3.6's table names the package of every conditional change (lines 201-215)."
+    },
+    {
+      "id": "N6",
+      "status": "resolved",
+      "evidence": "§14 says the path assumes the agent's recommendations for Q01 and Q08, and what moves under Q08 (b), Q01 (C) and Q01 (A) (line 2008); Q01 (C), Q08 (b), WP06 and WP16 say so (lines 740, 868, 1776, 1973)."
+    },
+    {
+      "id": "N7",
+      "status": "partly",
+      "evidence": "Done as suggested: WP00a writes only the declarations parallel packages share, `QueryOptions` and `DetectOptions` being WP01's and WP02's (line 1712; lines 2248-2255); §14 defines both lists (line 1669); render.py refuses a package whose text names a question that doesn't block it (`design/tools/render.py:102-105`). Not complete: Q43 (c) changes WP00a's `Variant` and `VariantMedia` (Appendix B annotates both with it, lines 2114, 2234), Q44 (d) WP00b's `Request` (line 2237), Q20 (b) WP09a's inputs (line 940), Q01 and Q05 WP09b's session part and schema file (lines 737, 739), Q23 WP11a's and WP11b's pinned W (`design-evaluation/runs/05_detection_sweep.txt:45, 109, 173`), Q25 WP11b's composite drop (`design/runs/detection-semantics-ad.txt`), Q05 WP12's version test (line 1932), and Q23 and Q25 WP14's checks, none of which they block (issue 3)."
+    },
+    {
+      "id": "N8",
+      "status": "resolved",
+      "evidence": "Q44 gains (f), the fetch's pacing, and (g), the playlist fetches, each with its options, trade-offs and the agent's recommendation (lines 1446-1454); P-N keeps only how the fetch is implemented (line 1634); §5.7, R6 and §16 follow (lines 387, 2021, 2044)."
+    },
+    {
+      "id": "N9",
+      "status": "resolved",
+      "evidence": "Q10 (a) alone compiles NetworkLogger into `mirage_vmaf` (line 1274); Q41 is the name only (lines 1403-1409) and carries the D-007 mark, since (b) edits `src/Demuxer.cpp` and `src/main.cpp` (line 1405; `src/Demuxer.cpp:5`, `src/main.cpp:17`, `review-3/runs/code-lines.txt`); K25 says so (line 74)."
+    },
+    {
+      "id": "N10",
+      "status": "resolved",
+      "evidence": "P-AK covers Phase 3's PR description and any other posted text, the checker's output kept as the record (line 1651); §11 and WP15a's and WP15b's tests say so (lines 643, 1708, 1969)."
+    },
+    {
+      "id": "N11",
+      "status": "resolved",
+      "evidence": "Q21 names superkabuki/threefive_is_scte35's GPL-2.0 documentation and futzu/threefive's MIT examples and smoke test, each by GitHub's detection (line 1386), and option (b) adds futzu/threefive's 6 messages with the trade-off that their source decodes none (line 1389), as scte35.md §1 and §5 state."
+    },
+    {
+      "id": "N12",
+      "status": "resolved",
+      "evidence": "'Round 1' names only the first round of questions: Q43 and Q44 say 'the first version of this design' and 'earlier versions of this design' (lines 1219, 1423); §4.2, K2, §2 and Appendix A say 'the first version' or 'revision 1' (lines 259, 51, 100, 2059), and the record's own label is explained (line 2059). A search of `design.md` finds no other use."
+    },
+    {
+      "id": "N13",
+      "status": "resolved",
+      "evidence": "WP15a is of round 0, blocked by nothing (lines 1673, 1698-1708), the one package that can start now (line 2010); WP15b, of round 3, after WP15a and blocked by Q41 and Q42, owns `docs/VMAF_GAP_REPORT.md` under Q42 (b) (line 1964). WP15b's own dependencies are issue 7."
+    },
+    {
+      "id": "N14",
+      "status": "resolved",
+      "evidence": "§3.3 says `src/HlsAlign.cpp` needs nothing beyond the C++ standard library (line 178), as `src/HlsAlign.h:12` says and `src/HlsAlign.cpp:1-9` shows (`review-3/runs/code-lines.txt`)."
+    },
+    {
+      "id": "N15",
+      "status": "resolved",
+      "evidence": "`design/tools/run.sh:23-24` now words the sanitizer's comment as the public copy words `design-library/tools/run.sh:24` and `probe/sanitize.sh:7` (read in `<scratch>/phase3/records/phase3-survey/`); the privacy check finds no local path in it or in any file under `design/` (`review-3/runs/privacy-check-design.txt`)."
+    },
+    {
+      "id": "issue 0 (first review, partly in review-2)",
+      "status": "resolved",
+      "evidence": "The safeguard now covers both failures it names, missing frames and changes of rate (see N1)."
+    },
+    {
+      "id": "issue 6 (first review, partly in review-2)",
+      "status": "resolved",
+      "evidence": "The session half of the API has a feasible owner, WP07, after WP00b's declarations and WP01's merge (see N2)."
+    },
+    {
+      "id": "L1",
+      "status": "resolved",
+      "evidence": "The checker on `design.md` and each of the 24 files under `design/` (sources, data, revision logs, tools, records) gives 0 prose runs and 0 runs of names, K = 6, in every file (`review-3/runs/quote-check-design.txt`). `design/runs/quote-check.txt` is the design's record, made through `design/tools/run.sh`, over `design.md` and every file under `design/` but itself."
+    },
+    {
+      "id": "L2",
+      "status": "resolved",
+      "evidence": "Every question has `round` and `d007` (render.py asserts both); §12 groups its tables (lines 666-725) and its full texts (from line 727) by round, 27, 9 and 8, and 'Where Phase 3 stands' (line 20), the Conventions (line 10) and §0 (line 32) give the counts; each question's round is the earliest of the packages it blocks, and round 1's packages are exactly L2's (`design/tools/render.py:262-263`); `d007` is true for Q01, Q08, Q09, Q10, Q13, Q36, Q37 and Q41, each text saying which answer is the ruling or the approval (for example lines 735, 865, 1405), and, with ui.md §3's reading that the overlay is outside the render path, no other question has an option that changes the analyzer's decoding, the render loop or `Demuxer`; Q01 to Q42 keep their numbers, Q43 and Q44 are the new ones."
+    },
+    {
+      "id": "L3",
+      "status": "resolved",
+      "evidence": "All 44 summaries are one sentence (`review-3/runs/question-lengths.txt`) and, read against each recommendation and each item's, state them exactly, Q02's (c) with its fallback, Q41's name-only scope and Q44's seven items included."
+    },
+    {
+      "id": "L4",
+      "status": "resolved",
+      "evidence": "44 questions and 185 options, 0 counts outside 2 to 4 sentences per question and 1 to 3 per option (`review-3/runs/question-lengths.txt`); the detail is in the sections each question names (§4.2, §5.1 to §5.7, §6.3, §7, §10); what Q41 (a) and Q02 (d) said before is in Q10 (a), §3.3 and §4.2. The one number that disagrees with its record is under L8."
+    },
+    {
+      "id": "L5",
+      "status": "resolved",
+      "evidence": "The former P-entries form two questions of items, Q43 (eight) and Q44 (seven), each item with its options and the agent's recommendation (lines 1213-1262, 1417-1460); P-N's pacing and playlist fetches are Q44 (f) and (g); the 28 kept entries are choices of how something is built, tested or measured."
+    },
+    {
+      "id": "L6",
+      "status": "resolved",
+      "evidence": "`design.md` and `design/` cite no generated media, binaries, FFmpeg copies, downloads, extracts, `rfc/`, `testgen/refs/`, `scte35_vectors.json` or `vectors_src.json` for a fact (searched); FFmpeg and RFC 8216 are cited by URL; the new citations are to records the public copy keeps (`testgen/reports/*.json` and `*.layout.json`, `design/runs/`, `review-2/runs/`), to survey sections (testgen.md §2.3, scte35.md §5) and to the RFC's URL."
+    },
+    {
+      "id": "L7",
+      "status": "resolved",
+      "evidence": "'Where Phase 3 stands', §0 item 9, the Conventions and §12 to §15 agree: 44 questions (27, 9, 8), 14 differences (§11 has 14 items), 28 P-entries (9 moved), 24 packages, 22 risks; render.py refuses other counts, and it rendered (`review-3/runs/render.txt`). The design is dated 2026-10-31 (line 16); its records' UTC times fall on 2026-11-01."
+    },
+    {
+      "id": "L8",
+      "status": "partly",
+      "evidence": "The new numbers carry their records (the check's seconds, `design/runs/seconds-check.txt`, reproduced; the 21 files, `design/runs/networklogger-users.txt`; the 8 s session, testgen.md §2.3; the 6 MIT messages, scte35.md §5), what wasn't run says so (a paced fetch, line 2044), and nothing is presented as decided. Not kept: Q16 says 3 of the 9 bad-CRC messages are a library's intended negative tests (line 1368), where the record has 1 (`review-3/runs/vector-status.txt`; issue 4); and §4.2's statement that the PTS test (2) shows a missing frame fails for the first frame of a sequence (`review-3/runs/seconds-check-sequence-start.txt`; issue 1)."
+    }
+  ],
+  "issues": [
+    {
+      "severity": "minor",
+      "where": "§4.2, the check and what it did (lines 257, 259); §0 item 3 (line 26); Q02 (c) and its Why (lines 758, 763); R11 (line 2026); WP01's test of the check (line 1733) and §9.1's test_timeline_axis.cpp (line 591).",
+      "issue": "The PTS test of §4.2's check can't see a reference frame missing at the start of a playlist discontinuity sequence. §4.2 says that test (2) tells whether the frames themselves leave the frame grid, a missing frame or a change of rate, so that a run of (1) without one comes from the playlist's EXTINF disagreeing with the frames. Test (2) starts each sequence's grid at the sequence's first scored frame, so when that frame is the one missing, every later PTS of the sequence is on the grid. With the design's own tool and the first frame of each of the ad ladder's three playlist discontinuity sequences removed in turn (frames 0, 75 and 125, simulated), (2) flags nothing, and (1) flags only from the next segment's first frame on: frames 24, 99 and 149 to 198, at −0.040 s (`review-3/runs/seconds-check-sequence-start.txt`). Within the segment that lost its first frame neither test warns, since (c), too, starts that segment at its first remaining frame. The run of (1) without (2) then points the user at the playlist when the frames are what is missing, and the claim of §4.2 and Q02 (c) that (c) is off only where an EXTINF departs from its frames holds here only from the next segment on. A reference that lacks the first frames of a sequence is the case D-057 describes for inputs in general, and R1 lists open GOPs and decoders that output fewer frames than packets as unmeasured. The recommendation still stands: (c) follows the frames again from the next segment, while (d) stays a frame early.",
+      "suggestion": "Say in §4.2, R11 and Q02 (c) that a frame missing at the start of a playlist discontinuity sequence is seen only by (1), from the next segment on, where it can't be told from an EXTINF one frame too long, and qualify the sentence that attributes a run of (1) alone to the EXTINF accordingly; add the case (a sequence's first frame removed, in the shapes of `review-3/runs/seconds-check-sequence-start.txt`) to WP01's tests and §9.1."
+    },
+    {
+      "severity": "minor",
+      "where": "WP00b (lines 1837, 1840, 1842); Appendix B, src/SessionPlan.h (lines 2219-2225) and src/TimelineBuild.h (lines 2227-2244); WP09a's New files (line 1803); §3.2's rule of one owner at a time (line 174).",
+      "issue": "WP00b writes the session types into headers it doesn't list, one of them a round-1 package's. WP00b adds the session declarations to the shared headers through the lead, PlanSpan and Request among them (line 1837), and Appendix B puts PlanSpan in src/SessionPlan.h (types declared by WP00b, line 2219) and RequestRow and Request in src/TimelineBuild.h (lines 2236-2237). WP00b's file list names only src/TimelineModel.h among the headers (line 1840). src/TimelineBuild.h is a new file of WP09a, a round-1 package (line 1803), and WP00b depends only on WP00a and WP01 (line 1842), so if round 2's answers come while WP09a is open, WP00b's commit edits WP09a's header, against §3.2's rule; render.py and package_check.py can't see it, since the file isn't named (`review-3/runs/package-check.txt`). src/SessionPlan.h is in order, WP07 depending on WP00b, but unlisted too.",
+      "suggestion": "Declare RequestRow and Request in a header WP00b already owns in turn, such as src/TimelineModel.h, or make WP00b depend on WP09a; list src/SessionPlan.h, and any other header WP00b writes, among its changed files, so that render.py checks them."
+    },
+    {
+      "severity": "minor",
+      "where": "§14's Blocked-by of WP00a, WP00b, WP09a, WP09b, WP11a, WP11b, WP12 and WP14 (lines 1674, 1684, 1681, 1687, 1683, 1689, 1691, 1693); the Blocks of Q01, Q05, Q20, Q23, Q25, Q43 and Q44 in §12.",
+      "issue": "Blocked-by lists still miss answers that change the package (N7). §14 defines Blocked-by as the questions whose answers change a package's code, tests or form of output (line 1669), and revision 2 says every list was checked and completed; render.py checks only the questions a package's text names. Q43 (c) changes WP00a's Variant and VariantMedia, which Appendix B annotates with it (lines 2114, 2234): under (c) 2 the map is kept for the frames that match, which those declarations can't say. Q44 (d) changes WP00b's Request, annotated with it (line 2237). Q20 (b) gives the build an MPD to read, which needs an input of WP09a's CLI and builder, not only WP04's parser (line 940). Q01 changes WP09b's session part: into the ladder report under (A), with the session's curve copied under (B') (lines 737, 739). Q05 changes WP09b, which extends the schema file that (c) and (d) leave out of Phase 3, and WP12, whose loader test refuses an unknown schema_version (line 1932), which (d) doesn't write. Q23 changes WP11a and WP11b: their pinned W = 50 (P-R) finds the drops exactly under (a) and (b), but under (c) the acceptance curves' grid at T = 6 and W = 50 is a hit that isn't exact (`design-evaluation/runs/05_detection_sweep.txt:45, 109, 173`). Q25 changes WP11b as it changes WP11a: under (b) the ad's drop starts at frame 76 (`design/runs/detection-semantics-ad.txt`), so the composite drop no longer lists the cue-out and the switch at frame 75 that §9.3 asserts. Q23 and Q25 change what WP14's check.py finds against the generator's layout, for the same reasons. No round changes, since each of these questions is of the package's round or earlier, but the Blocks columns the owner reads understate what these answers affect.",
+      "suggestion": "Add Q43 to WP00a, Q44 to WP00b, Q20 to WP09a, Q01 and Q05 to WP09b, Q23 to WP11a, Q23 and Q25 to WP11b and WP14, and Q05 to WP12 (render.py then updates the Blocks columns), or say in §14 that Blocked-by lists only the answers the package's text names."
+    },
+    {
+      "severity": "minor",
+      "where": "Q16's question (line 1368; design/owner_questions.json, Q16).",
+      "issue": "Q16 counts three intended negative tests where the record has one. Q16 says that of the 9 published messages with a bad CRC_32, 3 are a library's intended negative tests, citing scte35.md §5. The survey's record has 1: among the 9 with a bad CRC only scte35-go's 'Invalid CRC_32' is expected to fail by its source, and scte35-go's three other negative cases are among the 9 that don't decode (`review-3/runs/vector-status.txt`, from `scte35_evidence/runs/check_vectors.txt:39, 40, 44, 47`). scte35.md §5's table doesn't give the 3; the survey's summary (§0, item 5) gives three of each kind, which the same record contradicts. Q16's recommendation doesn't rest on the number, and with 8 of the 9 bad-CRC messages published as plain examples its reason holds more strongly, but the owner reads the number in the question.",
+      "suggestion": "Write that 9 have a bad CRC_32, 1 of them a library's intended negative test (and that 3 of the 9 that don't decode are), citing scte35_evidence/runs/check_vectors.txt, which the public copy keeps without the messages; note the survey summary's count as an erratum."
+    },
+    {
+      "severity": "minor",
+      "where": "§4.2's third bullet (line 254).",
+      "issue": "§4.2 narrows RFC 8216's rule on whole-second EXTINF. §4.2 says RFC 8216 allows whole-second EXTINF only below compatibility version 3, and concludes that whole-second EXTINF are to be expected in playlists of an older version. RFC 8216 §4.3.2.1 (https://www.rfc-editor.org/rfc/rfc8216#section-4.3.2.1) allows a decimal-integer duration at every version: decimal-floating-point is what it recommends, integers are what it requires below version 3, and integer durations are to be rounded to the nearest integer. Whole-second EXTINF are therefore legal in current playlists too, which is the case in which the agent's recommendation makes (d) the better choice. §2 (line 102) and Q02 put it correctly; only §4.2's wording narrows it.",
+      "suggestion": "Write that RFC 8216 asks for EXTINF accurate enough that their sums don't drift, requires whole seconds below compatibility version 3 and allows them at every version, and drop 'of an older version' from the conclusion."
+    },
+    {
+      "severity": "minor",
+      "where": "WP00a's New files (line 1714) against its description (line 1712); P-C (line 1626); WP05's dependencies (line 1854).",
+      "issue": "WP00a's New files and P-C contradict the files WP00a's description creates. WP00a's description creates, as empty compiling files with their CMake lines, every file of §3.2 whose existence the owner's decisions or round 1's answers settle: the core with SessionPlan and Scte35, and both attribution test files; §3.3 agrees, round 2's wiring adding only SessionFetch and NetworkLogger (line 178), and WP05 relies on it, depending on WP00a and WP04 only (line 1854). But WP00a's New files say the empty files of round 1's packages, their contents then owned by WP01 to WP11a, and P-C says each wiring package adds that round's files. src/SessionPlan.* (WP07), src/Scte35* (WP05) and tests/test_attribution_session.cpp (WP11b) belong to round-2 packages. An implementer of WP00a following its file list would leave WP05's files unwired.",
+      "suggestion": "Make WP00a's New files say what its description says (round 1's files and the round-2 files whose existence D-068 and D-070 settle, contents then owned by WP01 to WP11b), and P-C 'the files whose existence that round's answers or the owner's decisions settle'."
+    },
+    {
+      "severity": "minor",
+      "where": "WP15b (lines 1961, 1966); the order's item 8 (line 2004).",
+      "issue": "WP15b's dependencies don't show that its documents come last. WP15b writes Phase 3's PR description, the Phase 3 rows of docs/AI_CONTRIBUTIONS.md, docs/PAPER_METHOD_NOTES.md once something is measured, and docs/PHASE3_STATUS.md last, item by item with the output that shows it (line 1961), so it can only finish after every package that is built; yet it depends on WP15a alone (line 1966), and the order starts it once Q41 and Q42 are answered (line 2004). Read as §14 defines dependencies, WP15b could merge in round 3 before WP12, WP13, WP14, WP16 or WP17 have produced what its status document reports.",
+      "suggestion": "Split the status document, the AI rows and the PR description into a last package that depends on every package built, or give WP15b those dependencies; keep the differences' wording and the gap report's correction, which wait only for Q41 and Q42, where they are."
+    }
+  ]
+}

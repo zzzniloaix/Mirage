@@ -1,0 +1,15 @@
+command (cwd: <records>): python3 -I -B <drafts>/verify/tools/long_quotes.py --k 25 $(find . -name '*.md' | LC_ALL=C sort) $(find scte35_evidence/runs runs -name '*.txt' | LC_ALL=C sort)
+date_utc: 2026-11-01T10:32:39Z
+output (stdout and stderr):
+./scte35.md:56: quotation of 26 words
+./scte35.md:89: quotation of 43 words
+./scte35.md:111: quotation of 29 words
+./scte35.md:180: quotation of 53 words
+./scte35.md:194: quotation of 40 words
+./scte35.md:240: quotation of 56 words
+./scte35.md:244: quotation of 38 words
+./scte35.md:275: quotation of 43 words
+./testgen.md:88: quotation of 132 words
+./testgen.md:181: quotation of 70 words
+quotations of 25 words or more: 10; longest: 132 words
+exit=0

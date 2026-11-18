@@ -1,0 +1,262 @@
+== events: t_us, thread, kind, fields ==
+1255	t1	avformat_open_input	dis_corrupt/index.m3u8
+1335	t1	open_begin	ctx#1	url=dis_corrupt/index.m3u8	offset=-	end_offset=-
+1338	t1	log	cbA	DEBUG	AVFormatContext#1	Opening 'dis_corrupt/index.m3u8' for reading\n
+1349	t1	log	cbA	DEBUG	URLContext#2	Setting default whitelist 'file,crypto,data'\n
+1410	t1	open_end	ctx#1	ret=0	pb#3
+1632	t1	log	cbA	TRACE	-#0	Probing hls score:100 size:217\n
+1706	t1	log	cbA	DEBUG	AVFormatContext#1	Format hls probed with size=2048 and score=100\n
+1725	t1	log	cbA	VERBOSE	AVFormatContext#1	Skip ('#EXT-X-VERSION:3')\n
+1737	t1	log	cbA	TRACE	AVFormatContext#1	new_program: id=0x0000\n
+1742	t1	log	cbA	VERBOSE	AVFormatContext#1	HLS request for url 'dis_corrupt/seg0.ts', offset 0, playlist 0\n
+1744	t1	open_begin	ctx#1	url=dis_corrupt/seg0.ts	offset=-	end_offset=-
+1746	t1	log	cbA	INFO	AVFormatContext#1	Opening 'dis_corrupt/seg0.ts' for reading\n
+1798	t1	open_end	ctx#1	ret=0	pb#4
+2007	t1	log	cbA	TRACE	-#0	Probing mp3 score:1 size:2048\n
+2014	t1	log	cbA	TRACE	-#0	Probing mpegts score:50 size:2048\n
+2016	t1	log	cbA	TRACE	-#0	Probing mpegvideo score:12 size:2048\n
+2036	t1	log	cbA	DEBUG	-#0	Format mpegts probed with size=2048 and score=50\n
+2075	t1	log	cbA	TRACE	AVFormatContext#5	Probe: 8192, score: 44, dvhs_score: -2, fec_score: -2 \n
+2077	t1	log	cbA	TRACE	AVFormatContext#5	Filter: pid=0x11 type=1\n
+2078	t1	log	cbA	TRACE	AVFormatContext#5	Filter: pid=0x0 type=1\n
+2079	t1	log	cbA	TRACE	AVFormatContext#5	Filter: pid=0x12 type=1\n
+2083	t1	log	cbA	TRACE	AVFormatContext#5	SDT:\n
+2084	t1	log	cbA	TRACE	AVFormatContext#5	tag: 0x48 len=18\n
+3352	t1	log	cbA	TRACE	AVFormatContext#5	new_program: id=0x0001\n
+3355	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+3356	t1	log	cbA	TRACE	AVFormatContext#5	sid=0x1 pid=0x1000\n
+3356	t1	log	cbA	TRACE	AVFormatContext#5	new_program: id=0x0001\n
+3358	t1	log	cbA	TRACE	AVFormatContext#5	Filter: pid=0x1000 type=1\n
+3359	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+3360	t1	log	cbA	TRACE	AVFormatContext#5	sid=0x1 sec_num=0/0 version=0 tid=2\n
+3361	t1	log	cbA	TRACE	AVFormatContext#5	pcr_pid=0x100\n
+3364	t1	log	cbA	TRACE	AVFormatContext#5	Filter: pid=0x100 type=0\n
+3399	t1	log	cbA	DEBUG	AVFormatContext#5	stream=0 stream_type=2 pid=100 prog_reg_desc=\n
+3402	t1	log	cbA	TRACE	AVFormatContext#5	tuning done\n
+3418	t1	avformat_find_stream_info
+3421	t1	log	cbA	DEBUG	AVFormatContext#1	Before avformat_find_stream_info() pos: 217 bytes read:217 seeks:0 nb_streams:1\n
+3630	t1	log	cbA	TRACE	AVFormatContext#5	Skipping after seek\n
+3636	t1	log	cbA	TRACE	AVFormatContext#5	SDT:\n
+3641	t1	log	cbA	TRACE	AVFormatContext#5	tag: 0x48 len=18\n
+3787	t1	log	cbA	TRACE	AVFormatContext#5	new_program: id=0x0001\n
+3788	t1	log	cbA	DEBUG	AVFormatContext#5	All programs have pmt, headers found\n
+3789	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+3790	t1	log	cbA	TRACE	AVFormatContext#5	sid=0x1 pid=0x1000\n
+3790	t1	log	cbA	TRACE	AVFormatContext#5	new_program: id=0x0001\n
+3791	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+3792	t1	log	cbA	TRACE	AVFormatContext#5	sid=0x1 sec_num=0/0 version=0 tid=2\n
+3794	t1	log	cbA	TRACE	AVFormatContext#5	pcr_pid=0x100\n
+3796	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+3801	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+3808	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+3832	t1	log	cbA	DEBUG	AVCodecContext#6	Format yuv420p chosen by get_format().\n
+3846	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+3852	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+3856	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+3859	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+3863	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+3867	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+3871	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+3875	t1	close	ctx#1	pb#4	bytes_read=15604	error=0
+3878	t1	log	cbA	VERBOSE	AVIOContext#4	Statistics: 15604 bytes read, 0 seeks\n
+3886	t1	log	cbA	VERBOSE	AVFormatContext#1	HLS request for url 'dis_corrupt/seg1.ts', offset 0, playlist 0\n
+3922	t1	open_begin	ctx#1	url=dis_corrupt/seg1.ts	offset=-	end_offset=-
+3923	t1	log	cbA	INFO	AVFormatContext#1	Opening 'dis_corrupt/seg1.ts' for reading\n
+3966	t1	open_end	ctx#1	ret=0	pb#4
+4157	t1	log	cbA	TRACE	AVFormatContext#5	SDT:\n
+4158	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+4159	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+4160	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+4164	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+4167	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+4171	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+4174	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+4176	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+4179	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+4181	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+4185	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+4187	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+4191	t1	close	ctx#1	pb#4	bytes_read=15604	error=0
+4192	t1	log	cbA	VERBOSE	AVIOContext#4	Statistics: 15604 bytes read, 0 seeks\n
+4198	t1	log	cbA	VERBOSE	AVFormatContext#1	HLS request for url 'dis_corrupt/seg2.ts', offset 0, playlist 0\n
+4199	t1	open_begin	ctx#1	url=dis_corrupt/seg2.ts	offset=-	end_offset=-
+4200	t1	log	cbA	INFO	AVFormatContext#1	Opening 'dis_corrupt/seg2.ts' for reading\n
+4234	t1	open_end	ctx#1	ret=0	pb#4
+4385	t1	log	cbA	TRACE	AVFormatContext#5	SDT:\n
+4385	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+4386	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+4387	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+4390	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+4392	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+4395	t1	log	cbA	DEBUG	AVFormatContext#1	All info found\n
+4404	t1	log	cbA	TRACE	AVFormatContext#1	stream 0: start_time: 0.04 duration: NOPTS\n
+4406	t1	log	cbA	TRACE	AVFormatContext#1	format: start_time: 0.04 duration: 1.56 (estimate from stream) bitrate=1 kb/s\n
+4417	t1	log	cbA	DEBUG	AVFormatContext#1	After avformat_find_stream_info() pos: 217 bytes read:217 seeks:0 frames:21\n
+4423	t1	opened	format=hls	video_stream=0	time_base=1/90000	stream_start=0.040000	container_start_us=40000	duration_us=1560000	nb_programs=1	opens_so_far=4
+4424	t1	packet	pts=0.040000	dts=0.000000	duration=3600	key=1	corrupt=0	size=1366	pos=564	opens_so_far=4	last_open=dis_corrupt/seg2.ts
+4427	t1	log	cbA	DEBUG	AVCodecContext#6	Format yuv420p chosen by get_format().\n
+4459	t1	packet	pts=0.080000	dts=0.040000	duration=3600	key=1	corrupt=0	size=1348	pos=2068	opens_so_far=4	last_open=dis_corrupt/seg2.ts
+4476	t1	frame	pts=0.040000	best_effort=0.040000	pkt_dts=0.040000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+4479	t1	packet	pts=0.120000	dts=0.080000	duration=3600	key=1	corrupt=0	size=1320	pos=3572	opens_so_far=4	last_open=dis_corrupt/seg2.ts
+4494	t1	frame	pts=0.080000	best_effort=0.080000	pkt_dts=0.080000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+4495	t1	packet	pts=0.160000	dts=0.120000	duration=3600	key=1	corrupt=0	size=1306	pos=5076	opens_so_far=4	last_open=dis_corrupt/seg2.ts
+4508	t1	frame	pts=0.120000	best_effort=0.120000	pkt_dts=0.120000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+4509	t1	packet	pts=0.200000	dts=0.160000	duration=3600	key=1	corrupt=0	size=1300	pos=6580	opens_so_far=4	last_open=dis_corrupt/seg2.ts
+4521	t1	frame	pts=0.160000	best_effort=0.160000	pkt_dts=0.160000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+4522	t1	packet	pts=0.240000	dts=0.200000	duration=3600	key=1	corrupt=0	size=1292	pos=8084	opens_so_far=4	last_open=dis_corrupt/seg2.ts
+4534	t1	frame	pts=0.200000	best_effort=0.200000	pkt_dts=0.200000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+4535	t1	packet	pts=0.280000	dts=0.240000	duration=3600	key=1	corrupt=0	size=1378	pos=9588	opens_so_far=4	last_open=dis_corrupt/seg2.ts
+4547	t1	frame	pts=0.240000	best_effort=0.240000	pkt_dts=0.240000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+4548	t1	packet	pts=0.320000	dts=0.280000	duration=3600	key=1	corrupt=0	size=1418	pos=11092	opens_so_far=4	last_open=dis_corrupt/seg2.ts
+4577	t1	frame	pts=0.280000	best_effort=0.280000	pkt_dts=0.280000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+4577	t1	packet	pts=0.360000	dts=0.320000	duration=3600	key=1	corrupt=0	size=1368	pos=12596	opens_so_far=4	last_open=dis_corrupt/seg2.ts
+4590	t1	frame	pts=0.320000	best_effort=0.320000	pkt_dts=0.320000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+4591	t1	packet	pts=0.400000	dts=0.360000	duration=3600	key=1	corrupt=0	size=1325	pos=14100	opens_so_far=4	last_open=dis_corrupt/seg2.ts
+4603	t1	frame	pts=0.360000	best_effort=0.360000	pkt_dts=0.360000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+4604	t1	packet	pts=0.440000	dts=0.400000	duration=3600	key=1	corrupt=0	size=1311	pos=16168	opens_so_far=4	last_open=dis_corrupt/seg2.ts
+4616	t1	frame	pts=0.400000	best_effort=0.400000	pkt_dts=0.400000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+4616	t1	packet	pts=0.480000	dts=0.440000	duration=3600	key=1	corrupt=0	size=1316	pos=17672	opens_so_far=4	last_open=dis_corrupt/seg2.ts
+4628	t1	frame	pts=0.440000	best_effort=0.440000	pkt_dts=0.440000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+4629	t1	packet	pts=0.520000	dts=0.480000	duration=3600	key=1	corrupt=0	size=1284	pos=19176	opens_so_far=4	last_open=dis_corrupt/seg2.ts
+4640	t1	frame	pts=0.480000	best_effort=0.480000	pkt_dts=0.480000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+4641	t1	packet	pts=0.560000	dts=0.520000	duration=3600	key=1	corrupt=0	size=1362	pos=20680	opens_so_far=4	last_open=dis_corrupt/seg2.ts
+4653	t1	frame	pts=0.520000	best_effort=0.520000	pkt_dts=0.520000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+4654	t1	packet	pts=0.600000	dts=0.560000	duration=3600	key=1	corrupt=0	size=1416	pos=22184	opens_so_far=4	last_open=dis_corrupt/seg2.ts
+4664	t1	log	cbA	ERROR	AVCodecContext#6	ac-tex damaged at 3 2\n
+4667	t1	log	cbA	ERROR	AVCodecContext#6	Warning MVs not available\n
+4669	t1	log	cbA	INFO	AVCodecContext#6	concealing 6 DC, 6 AC, 6 MV errors in I frame\n
+4685	t1	frame	pts=0.560000	best_effort=0.560000	pkt_dts=0.560000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+4686	t1	packet	pts=0.640000	dts=0.600000	duration=3600	key=1	corrupt=0	size=1368	pos=23688	opens_so_far=4	last_open=dis_corrupt/seg2.ts
+4690	t1	log	cbA	ERROR	AVCodecContext#6	ac-tex damaged at 4 0\n
+4693	t1	log	cbA	ERROR	AVCodecContext#6	ac-tex damaged at 3 2\n
+4696	t1	log	cbA	ERROR	AVCodecContext#6	Warning MVs not available\n
+4697	t1	log	cbA	INFO	AVCodecContext#6	concealing 18 DC, 18 AC, 18 MV errors in I frame\n
+4709	t1	frame	pts=0.600000	best_effort=0.600000	pkt_dts=0.600000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=4
+4710	t1	packet	pts=0.680000	dts=0.640000	duration=3600	key=1	corrupt=0	size=1287	pos=25192	opens_so_far=4	last_open=dis_corrupt/seg2.ts
+4714	t1	log	cbA	ERROR	AVCodecContext#6	ac-tex damaged at 0 1\n
+4718	t1	log	cbA	ERROR	AVCodecContext#6	ac-tex damaged at 5 2\n
+4719	t1	log	cbA	ERROR	AVCodecContext#6	Warning MVs not available\n
+4720	t1	log	cbA	INFO	AVCodecContext#6	concealing 18 DC, 18 AC, 18 MV errors in I frame\n
+4731	t1	frame	pts=0.640000	best_effort=0.640000	pkt_dts=0.640000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=4
+4732	t1	packet	pts=0.720000	dts=0.680000	duration=3600	key=1	corrupt=0	size=1324	pos=26696	opens_so_far=4	last_open=dis_corrupt/seg2.ts
+4736	t1	log	cbA	ERROR	AVCodecContext#6	ac-tex damaged at 4 0\n
+4742	t1	log	cbA	ERROR	AVCodecContext#6	ac-tex damaged at 0 3\n
+4743	t1	log	cbA	ERROR	AVCodecContext#6	Warning MVs not available\n
+4744	t1	log	cbA	INFO	AVCodecContext#6	concealing 12 DC, 12 AC, 12 MV errors in I frame\n
+4755	t1	frame	pts=0.680000	best_effort=0.680000	pkt_dts=0.680000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=4
+4756	t1	packet	pts=0.760000	dts=0.720000	duration=3600	key=1	corrupt=0	size=1313	pos=28200	opens_so_far=4	last_open=dis_corrupt/seg2.ts
+4770	t1	log	cbA	ERROR	AVCodecContext#6	ac-tex damaged at 4 0\n
+4776	t1	log	cbA	ERROR	AVCodecContext#6	ac-tex damaged at 0 3\n
+4777	t1	log	cbA	ERROR	AVCodecContext#6	Warning MVs not available\n
+4778	t1	log	cbA	INFO	AVCodecContext#6	concealing 12 DC, 12 AC, 12 MV errors in I frame\n
+4788	t1	frame	pts=0.720000	best_effort=0.720000	pkt_dts=0.720000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=4
+4789	t1	packet	pts=0.800000	dts=0.760000	duration=3600	key=1	corrupt=0	size=1306	pos=29704	opens_so_far=4	last_open=dis_corrupt/seg2.ts
+4793	t1	log	cbA	ERROR	AVCodecContext#6	ac-tex damaged at 4 0\n
+4798	t1	log	cbA	ERROR	AVCodecContext#6	ac-tex damaged at 0 3\n
+4799	t1	log	cbA	ERROR	AVCodecContext#6	Warning MVs not available\n
+4800	t1	log	cbA	INFO	AVCodecContext#6	concealing 12 DC, 12 AC, 12 MV errors in I frame\n
+4809	t1	frame	pts=0.760000	best_effort=0.760000	pkt_dts=0.760000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=4
+4810	t1	packet	pts=0.840000	dts=0.800000	duration=3600	key=1	corrupt=0	size=1353	pos=31772	opens_so_far=4	last_open=dis_corrupt/seg2.ts
+4822	t1	frame	pts=0.800000	best_effort=0.800000	pkt_dts=0.800000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=4
+4823	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+4826	t1	packet	pts=0.880000	dts=0.840000	duration=3600	key=1	corrupt=0	size=1419	pos=33276	opens_so_far=4	last_open=dis_corrupt/seg2.ts
+4838	t1	frame	pts=0.840000	best_effort=0.840000	pkt_dts=0.840000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+4839	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+4841	t1	packet	pts=0.920000	dts=0.880000	duration=3600	key=1	corrupt=0	size=1378	pos=34780	opens_so_far=4	last_open=dis_corrupt/seg2.ts
+4853	t1	frame	pts=0.880000	best_effort=0.880000	pkt_dts=0.880000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+4855	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+4856	t1	packet	pts=0.960000	dts=0.920000	duration=3600	key=1	corrupt=0	size=1279	pos=36284	opens_so_far=4	last_open=dis_corrupt/seg2.ts
+4868	t1	frame	pts=0.920000	best_effort=0.920000	pkt_dts=0.920000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+4869	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+4871	t1	packet	pts=1.000000	dts=0.960000	duration=3600	key=1	corrupt=0	size=1305	pos=37788	opens_so_far=4	last_open=dis_corrupt/seg2.ts
+4884	t1	frame	pts=0.960000	best_effort=0.960000	pkt_dts=0.960000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+4885	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+4887	t1	packet	pts=1.040000	dts=1.000000	duration=3600	key=1	corrupt=0	size=1310	pos=39292	opens_so_far=4	last_open=dis_corrupt/seg2.ts
+4899	t1	frame	pts=1.000000	best_effort=1.000000	pkt_dts=1.000000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+4900	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+4902	t1	packet	pts=1.080000	dts=1.040000	duration=3600	key=1	corrupt=0	size=1319	pos=40796	opens_so_far=4	last_open=dis_corrupt/seg2.ts
+4914	t1	frame	pts=1.040000	best_effort=1.040000	pkt_dts=1.040000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+4915	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+4917	t1	packet	pts=1.120000	dts=1.080000	duration=3600	key=1	corrupt=0	size=1306	pos=42300	opens_so_far=4	last_open=dis_corrupt/seg2.ts
+4928	t1	frame	pts=1.080000	best_effort=1.080000	pkt_dts=1.080000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+4930	t1	close	ctx#1	pb#4	bytes_read=15604	error=0
+4931	t1	log	cbA	VERBOSE	AVIOContext#4	Statistics: 15604 bytes read, 0 seeks\n
+4937	t1	log	cbA	VERBOSE	AVFormatContext#1	HLS request for url 'dis_corrupt/seg3.ts', offset 0, playlist 0\n
+4940	t1	open_begin	ctx#1	url=dis_corrupt/seg3.ts	offset=-	end_offset=-
+4941	t1	log	cbA	INFO	AVFormatContext#1	Opening 'dis_corrupt/seg3.ts' for reading\n
+4974	t1	open_end	ctx#1	ret=0	pb#4
+5152	t1	log	cbA	TRACE	AVFormatContext#5	SDT:\n
+5153	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+5154	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+5162	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+5164	t1	packet	pts=1.160000	dts=1.120000	duration=3600	key=1	corrupt=0	size=1404	pos=43804	opens_so_far=5	last_open=dis_corrupt/seg3.ts
+5178	t1	frame	pts=1.120000	best_effort=1.120000	pkt_dts=1.120000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+5180	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+5181	t1	packet	pts=1.200000	dts=1.160000	duration=3600	key=1	corrupt=0	size=1378	pos=45308	opens_so_far=5	last_open=dis_corrupt/seg3.ts
+5194	t1	frame	pts=1.160000	best_effort=1.160000	pkt_dts=1.160000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+5195	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+5197	t1	packet	pts=1.240000	dts=1.200000	duration=3600	key=1	corrupt=0	size=1299	pos=47376	opens_so_far=5	last_open=dis_corrupt/seg3.ts
+5208	t1	frame	pts=1.200000	best_effort=1.200000	pkt_dts=1.200000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+5210	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+5211	t1	packet	pts=1.280000	dts=1.240000	duration=3600	key=1	corrupt=0	size=1269	pos=48880	opens_so_far=5	last_open=dis_corrupt/seg3.ts
+5222	t1	frame	pts=1.240000	best_effort=1.240000	pkt_dts=1.240000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+5224	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+5225	t1	packet	pts=1.320000	dts=1.280000	duration=3600	key=1	corrupt=0	size=1321	pos=50384	opens_so_far=5	last_open=dis_corrupt/seg3.ts
+5237	t1	frame	pts=1.280000	best_effort=1.280000	pkt_dts=1.280000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+5239	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+5240	t1	packet	pts=1.360000	dts=1.320000	duration=3600	key=1	corrupt=0	size=1306	pos=51888	opens_so_far=5	last_open=dis_corrupt/seg3.ts
+5252	t1	frame	pts=1.320000	best_effort=1.320000	pkt_dts=1.320000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+5253	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+5255	t1	packet	pts=1.400000	dts=1.360000	duration=3600	key=1	corrupt=0	size=1324	pos=53392	opens_so_far=5	last_open=dis_corrupt/seg3.ts
+5267	t1	frame	pts=1.360000	best_effort=1.360000	pkt_dts=1.360000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+5268	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+5269	t1	packet	pts=1.440000	dts=1.400000	duration=3600	key=1	corrupt=0	size=1403	pos=54896	opens_so_far=5	last_open=dis_corrupt/seg3.ts
+5282	t1	frame	pts=1.400000	best_effort=1.400000	pkt_dts=1.400000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+5283	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+5285	t1	packet	pts=1.480000	dts=1.440000	duration=3600	key=1	corrupt=0	size=1376	pos=56400	opens_so_far=5	last_open=dis_corrupt/seg3.ts
+5296	t1	frame	pts=1.440000	best_effort=1.440000	pkt_dts=1.440000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+5298	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+5300	t1	packet	pts=1.520000	dts=1.480000	duration=3600	key=1	corrupt=0	size=1302	pos=57904	opens_so_far=5	last_open=dis_corrupt/seg3.ts
+5311	t1	frame	pts=1.480000	best_effort=1.480000	pkt_dts=1.480000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+5313	t1	close	ctx#1	pb#4	bytes_read=15604	error=0
+5314	t1	log	cbA	VERBOSE	AVIOContext#4	Statistics: 15604 bytes read, 0 seeks\n
+5324	t1	packet	pts=1.560000	dts=1.520000	duration=3600	key=1	corrupt=0	size=1292	pos=59408	opens_so_far=5	last_open=dis_corrupt/seg3.ts
+5336	t1	frame	pts=1.520000	best_effort=1.520000	pkt_dts=1.520000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+5343	t1	packet	pts=1.600000	dts=1.560000	duration=3600	key=1	corrupt=0	size=1290	pos=60912	opens_so_far=5	last_open=dis_corrupt/seg3.ts
+5354	t1	frame	pts=1.560000	best_effort=1.560000	pkt_dts=1.560000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+5361	t1	frame	pts=1.600000	best_effort=1.600000	pkt_dts=-1.000000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+5362	t1	end	read=-541478725	frames=40	opens=5	segment_watch_lost=(none)
+5389	t1	close	ctx#1	pb#3	bytes_read=217	error=0
+5390	t1	log	cbA	VERBOSE	AVIOContext#3	Statistics: 217 bytes read, 0 seeks\n
+== av_log calls by callback, thread, level, AVClass and first word of the format ==
+     1  cbA thread=1 DEBUG - 'Format'
+     2  cbA thread=1 DEBUG AVCodecContext 'Format'
+     1  cbA thread=1 DEBUG AVFormatContext 'After'
+     2  cbA thread=1 DEBUG AVFormatContext 'All'
+     1  cbA thread=1 DEBUG AVFormatContext 'Before'
+     1  cbA thread=1 DEBUG AVFormatContext 'Format'
+     1  cbA thread=1 DEBUG AVFormatContext 'Opening'
+     1  cbA thread=1 DEBUG AVFormatContext 'stream'
+     1  cbA thread=1 DEBUG URLContext 'Setting'
+     6  cbA thread=1 ERROR AVCodecContext 'Warning'
+    11  cbA thread=1 ERROR AVCodecContext 'ac-tex'
+     6  cbA thread=1 INFO AVCodecContext 'concealing'
+     4  cbA thread=1 INFO AVFormatContext 'Opening'
+     4  cbA thread=1 TRACE - 'Probing'
+     5  cbA thread=1 TRACE AVFormatContext 'Filter'
+     5  cbA thread=1 TRACE AVFormatContext 'PAT'
+     5  cbA thread=1 TRACE AVFormatContext 'PMT'
+     1  cbA thread=1 TRACE AVFormatContext 'Probe'
+     5  cbA thread=1 TRACE AVFormatContext 'SDT'
+     1  cbA thread=1 TRACE AVFormatContext 'Skipping'
+     1  cbA thread=1 TRACE AVFormatContext 'format'
+     5  cbA thread=1 TRACE AVFormatContext 'new_program'
+     2  cbA thread=1 TRACE AVFormatContext 'pcr_pid'
+    40  cbA thread=1 TRACE AVFormatContext 'pid'
+     4  cbA thread=1 TRACE AVFormatContext 'sid'
+     1  cbA thread=1 TRACE AVFormatContext 'stream'
+     2  cbA thread=1 TRACE AVFormatContext 'tag'
+     1  cbA thread=1 TRACE AVFormatContext 'tuning'
+     4  cbA thread=1 VERBOSE AVFormatContext 'HLS'
+     1  cbA thread=1 VERBOSE AVFormatContext 'Skip'
+     5  cbA thread=1 VERBOSE AVIOContext 'Statistics'

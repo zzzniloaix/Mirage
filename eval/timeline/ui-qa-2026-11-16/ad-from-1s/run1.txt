@@ -1,0 +1,38 @@
+Timeline panel (--timeline-report)
+document: ad-from-1s/timeline.json
+load: loaded: 70 events on 200 reference frames, 2 curves, 1 attributions
+ladder report: media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-from-1s.json: its SHA-256 is the one the document names
+axis: 200 reference frames, seconds on the reference's playlist time, checked by segment-map
+match: master SHA-256, entries by their order
+  player entry 0 (media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-from-1s/v360/index.m3u8): entry 0 (<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-from-1s/v360/index.m3u8; variant 0, the reference, not scored in top-rung mode)
+  player entry 1 (media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-from-1s/v270/index.m3u8): entry 1 (<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-from-1s/v270/index.m3u8; variant 1, pair 0)
+  player entry 2 (media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-from-1s/v180/index.m3u8): entry 2 (<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-from-1s/v180/index.m3u8; variant 2, pair 1)
+variant on screen: player entry 0: entry 0 (<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-from-1s/v360/index.m3u8; variant 0, the reference, not scored in top-rung mode)
+playhead: reference frame 51 at 2.040 s, the variant's frame 51 (its input's frame 51), sequence 0; the frame on screen at PTS 12.040000 s, +0.000000 s from the report's PTS of that frame
+view: 0.000 s to 8.000 s, fitted
+curves shown: pair:0 (entry 1 · 480x270), pair:1 (entry 2 · 320x180)
+attributions: 1
+  0: a detected drop of pair:1, reference frames 75-124 (50 frames), 3.000-5.000 s, min 22.237
+pick: --ui-timeline pick=attribution:0@3 at 3.02 s after the first frame
+card:
+  Curve pair:1 (entry 2): reference frame 84 at 3.360 s, sequence 1, PTS 1.360 s; VMAF 22.237
+  In the document's attribution 0, a detected drop:
+  reference frames 75-124 (50 frames), 3.000-5.000 s; 50 points, baseline 91.692, min 22.237, mean 27.395, drop_magnitude 69.455, mean_drop 64.297
+    vmaf     context_start    entry 2 at +0.000 s (+0 frames): libvmaf context 1, from frame pair 75
+    playlist discontinuity    entry 0, segment 3 at +0.000 s (+0 frames): line 13, discontinuity sequence 1
+    playlist discontinuity    entry 2, segment 3 at +0.000 s (+0 frames): line 13, discontinuity sequence 1
+    playlist segment          entry 0, segment 3 at +0.000 s to +1.000 s (+0 to +25 frames): ad_000.ts, EXTINF 1 s
+    playlist segment          entry 2, segment 3 at +0.000 s to +1.000 s (+0 to +25 frames): ad_000.ts, EXTINF 1 s
+    playlist segment          entry 0, segment 4 at +1.000 s to +2.000 s (+25 to +50 frames): ad_001.ts, EXTINF 1 s
+    playlist segment          entry 2, segment 4 at +1.000 s to +2.000 s (+25 to +50 frames): ad_001.ts, EXTINF 1 s
+    scte35   cue_out          entry 0, segment 3 at +0.000 s (+0 frames): line 14, #EXT-X-CUE-OUT:2.000
+    scte35   cue_out          entry 2, segment 3 at +0.000 s (+0 frames): line 14, #EXT-X-CUE-OUT:2.000
+    scte35   ad_break         entry 0, segment 3 at +0.000 s to +2.000 s (+0 to +50 frames): from the cue_out at line 14 to the cue_in at line 21
+    scte35   ad_break         entry 2, segment 3 at +0.000 s to +2.000 s (+0 to +50 frames): from the cue_out at line 14 to the cue_in at line 21
+    scte35   cue_out_cont     entry 0, segment 4 at +1.000 s (+25 frames): line 17, #EXT-X-CUE-OUT-CONT:1.000/2.000
+    scte35   cue_out_cont     entry 2, segment 4 at +1.000 s (+25 frames): line 17, #EXT-X-CUE-OUT-CONT:1.000/2.000
+    decoder  keyframe         entry 0, segment 3 at +0.000 s (+0 frames): frame 75 of its input
+    decoder  keyframe         entry 2, segment 3 at +0.000 s (+0 frames): frame 75 of its input
+    decoder  keyframe         entry 0, segment 4 at +1.000 s (+25 frames): frame 100 of its input
+    decoder  keyframe         entry 2, segment 4 at +1.000 s (+25 frames): frame 100 of its input
+Seek: the frame isn't reachable by a seek: its PTS, 1.360 s, is before the stream's start, 10.000 s: the player would start the stream over. Offered: PTS 12.000 s, the start of segment 2 of entry 0 (<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-from-1s/v360/index.m3u8; variant 0, the reference, not scored in top-rung mode), the variant on screen, from which playing reaches the frame (D-114 (b)); not taken

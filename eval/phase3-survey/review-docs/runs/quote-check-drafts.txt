@@ -1,0 +1,5 @@
+command (cwd: <drafts>): python3 -I <scratch>/phase3/tools/quote_check.py <scratch>/phase3/private/work_order_p3.txt PHASE3_SURVEY.md PHASE3_DECISIONS_PENDING.md PHASE3_STATUS.md
+date_utc: 2026-11-01T10:07:24Z
+output (stdout and stderr):
+in all: 0 prose runs, 0 runs of names, K = 6
+exit=0

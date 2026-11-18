@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/scte35-go-NOTICE.md/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://raw.githubusercontent.com/Comcast/scte35-go/06d0ba5099d939c89a276629701b42221d3ecf30/NOTICE.md'
+date_utc: 2026-11-01T03:30:44Z
+http_code=200
+url_effective=https://raw.githubusercontent.com/Comcast/scte35-go/06d0ba5099d939c89a276629701b42221d3ecf30/NOTICE.md
+size_download=877
+content_type=text/plain; charset=utf-8
+curl_exit=0
+sha256=52fe0d83a50843f3d6347b3e5defb53fa511d7dfcf92fc32e4c47498582913ea

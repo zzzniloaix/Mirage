@@ -1,0 +1,2 @@
+cwd: <out>/runs
+command: '<repo>/build/macos-debug/mirage_vmaf' '--help'

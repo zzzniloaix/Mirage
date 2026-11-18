@@ -28,6 +28,7 @@
 #include "SpeedPresets.h"
 #include "SubtitleSelect.h"
 #include "SidecarSubtitles.h"
+#include "TimelinePanel.h"
 #include "FfOpen.h"
 #include "UiFormat.h"
 #include "UiTheme.h"
@@ -96,6 +97,10 @@ static std::atomic<int>    s_scope_cycle{ 0 };          // Shift+S requests: nex
 static std::atomic<bool>   s_show_probe{ false };       // X: pixel probe
 static std::atomic<bool>   s_show_frames{ false };      // B: frame sizes / GOP
 static std::atomic<bool>   s_show_loudness{ false };    // L: loudness meters
+// E toggles the timeline panel (D-114), L staying the loudness meters', which
+// they have had since the engineer tools (D-083), as built, which the owner
+// kept (D-124 (b), Q92 (a)), where D-114 (c) had named L.
+static std::atomic<bool>   s_show_timeline{ false };
 static std::atomic<double> s_cursor_x{ -1.0 };   // window-space cursor, always updated
 static std::atomic<double> s_cursor_y{ -1.0 };
 static std::atomic<double> s_click_x{ -1.0 };    // window-space left-click (consumed once)
@@ -129,7 +134,8 @@ static constexpr double kLateFrameDrop = 0.15;
 // (Shift+, / Shift+.). "scrub:<secs>@t" holds a seek-bar drag at <secs> (the
 // scrub preview), "release@t" lets go of it (seeks there), and "snap@t"
 // writes a window capture to the --ui-snapshot path. "esc@t" presses Esc;
-// "panel:<key>@t" toggles a panel as its key does (D I G T W N H V).
+// "panel:<key>@t" toggles a panel as its key does (D I G T W N H V P S X B
+// L E).
 struct SpeedStep {
     enum Kind { Speed, Pause, Play, Seek, KfNext, KfPrev, Scrub, Release, Back, Fwd, Snap, Esc, Panel } kind = Speed;
     double at_sec;
@@ -160,7 +166,7 @@ static bool parse_speed_seq(const std::string& spec, std::vector<SpeedStep>& out
         } else if (what == "esc") {
             step.kind = SpeedStep::Esc;
         } else if (what.starts_with("panel:") && what.size() == 7
-                   && std::string_view("DIGTWNHVPSXBL").find(static_cast<char>(std::toupper(
+                   && std::string_view("DIGTWNHVPSXBLE").find(static_cast<char>(std::toupper(
                           static_cast<unsigned char>(what[6])))) != std::string_view::npos) {
             step.kind  = SpeedStep::Panel;
             step.speed = std::toupper(static_cast<unsigned char>(what[6]));
@@ -295,6 +301,9 @@ static void on_key(GLFWwindow* window, int key, int /*scancode*/, int action, in
     else if (key == GLFW_KEY_X) s_show_probe.store(!s_show_probe.load());
     else if (key == GLFW_KEY_B) s_show_frames.store(!s_show_frames.load());
     else if (key == GLFW_KEY_L) s_show_loudness.store(!s_show_loudness.load());
+    // E: the timeline panel, L staying the loudness meters' above, which the
+    // owner kept (D-124 (b); s_show_timeline).
+    else if (key == GLFW_KEY_E) s_show_timeline.store(!s_show_timeline.load());
     else if (key == GLFW_KEY_O) s_open_dialog.fetch_add(1);
     // Shift+. / Shift+, → single-frame advance / step-back (frame-accurate).
     // Plain . / , = keyframe step.
@@ -416,6 +425,10 @@ struct Prefs {
     SubPref  sub;
     SubStyle sub_style;
     float    net_width = -1.0f;   // network sidebar width the user dragged to; < 0 automatic
+    // The timeline panel's document, its one setting (D-114 (d)), prefs.txt
+    // counting as the player's config file; set by the panel's Open…;
+    // --timeline replaces it for a run. Empty: none, and no line written.
+    std::string timeline;
 };
 
 static std::string prefs_file_path()
@@ -449,6 +462,8 @@ static Prefs load_prefs()
             pr.sub_style.box_opacity = std::clamp(std::atoi(v.c_str()), 0, 100);
         } else if (k == "net_width") {
             pr.net_width = std::strtof(v.c_str(), nullptr);
+        } else if (k == "timeline") {
+            pr.timeline = v;
         }
     }
     if (pr.sub.mode == SubPref::Lang && pr.sub.lang.empty()) pr.sub.mode = SubPref::Auto;
@@ -469,6 +484,7 @@ static void save_prefs(const Prefs& pr)
       << "sub_edge=" << kEdge[std::clamp(static_cast<int>(pr.sub_style.edge), 0, 3)] << "\n"
       << "sub_box=" << pr.sub_style.box_opacity << "\n"
       << "net_width=" << pr.net_width << "\n";
+    if (!pr.timeline.empty()) f << "timeline=" << pr.timeline << "\n";
 }
 
 // ── UI helpers ────────────────────────────────────────────────────────────────
@@ -582,6 +598,16 @@ struct CliOptions {
     // must be open: --ui-net tab=alignment[,scope=all,probe=1]).
     std::string align_report_path;
     double      align_report_secs = 20.0;
+    // The timeline panel (D-114): `--timeline <document>` loads that
+    // document, in place of prefs.txt's, and opens the panel (D-114 (d));
+    // QA (eval/phase3-survey/ui.md §5.3): `--ui-timeline <spec>` stages it,
+    // as --ui-net stages the sidebar (TimelinePanel::qa_apply), and opens
+    // it; `--timeline-report <out.txt> <secs>` writes its state <secs> after
+    // launch, as --align-report writes its report.
+    std::string timeline_doc;
+    std::string ui_timeline;
+    std::string timeline_report_path;
+    double      timeline_report_secs = 20.0;
 };
 
 struct App {
@@ -601,6 +627,9 @@ struct App {
     int            sessions_played = 0;
     std::size_t    qa_open_next    = 0;       // next --qa-open-after event
     NetInspector   net_inspector;             // N: network sidebar (width kept across media)
+    // E: the timeline panel, so that a loaded document survives a source
+    // change; matched again at each session (eval/phase3-survey/ui.md §2.2).
+    TimelinePanel  timeline_panel;
 
     // A source being opened on a worker thread (MediaSession::open_media) while
     // the window keeps rendering — the launcher's loading screen, or the
@@ -1001,6 +1030,13 @@ int main(int argc, char* argv[])
         } else if (arg == "--align-report" && i + 2 < argc) {
             cli.align_report_path = argv[++i];
             cli.align_report_secs = std::max(0.0, std::atof(argv[++i]));
+        } else if (arg == "--timeline" && i + 1 < argc) {
+            cli.timeline_doc = argv[++i];
+        } else if (arg == "--ui-timeline" && i + 1 < argc) {
+            cli.ui_timeline = argv[++i];
+        } else if (arg == "--timeline-report" && i + 2 < argc) {
+            cli.timeline_report_path = argv[++i];
+            cli.timeline_report_secs = std::max(0.0, std::atof(argv[++i]));
         } else if (arg == "--qa-open-after" && i + 2 < argc) {
             const double secs = std::max(0.0, std::atof(argv[++i]));
             cli.qa_open.emplace_back(secs, argv[++i]);
@@ -1036,6 +1072,12 @@ int main(int argc, char* argv[])
     app.prefs    = app.prefs_enabled ? load_prefs() : Prefs{};
     player_ui.set_sub_style(app.prefs.sub_style);
     app.net_inspector.set_user_width(app.prefs.net_width);
+    // The timeline panel's document (D-114 (d)): --timeline's, which opens
+    // the panel, as --ui-net opens the sidebar; else prefs.txt's, which is
+    // loaded when the panel is first opened and doesn't open it, as built,
+    // which the owner kept (D-124 (d), Q94 (a)).
+    app.timeline_panel.set_document(cli.timeline_doc.empty() ? app.prefs.timeline : cli.timeline_doc);
+    if (!cli.timeline_doc.empty() || !cli.ui_timeline.empty()) s_show_timeline.store(true);
     app.sub_pref = app.prefs.sub;
     if (cli.no_auto_subs) app.sub_pref.mode = SubPref::Off;
 
@@ -1492,13 +1534,13 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         bool               was_open  = false;
         std::uint64_t      opened_at = 0;
     };
-    std::array<EscPanel, 13> esc_panels{ { { &s_show_hud, "HUD" },          { &s_show_inspector, "stream inspector" },
+    std::array<EscPanel, 14> esc_panels{ { { &s_show_hud, "HUD" },          { &s_show_inspector, "stream inspector" },
                                           { &s_show_drift, "A/V drift graph" }, { &s_show_waveform, "waveform" },
                                           { &s_show_vmaf, "VMAF" },         { &s_show_network, "network inspector" },
                                           { &s_show_tracks, "tracks" },     { &s_show_help, "help" },
                                           { &s_show_frameinfo, "frame inspector" }, { &s_show_scopes, "scopes" },
                                           { &s_show_probe, "pixel probe" }, { &s_show_frames, "frame sizes" },
-                                          { &s_show_loudness, "loudness" } } };
+                                          { &s_show_loudness, "loudness" }, { &s_show_timeline, "timeline" } } };
     std::uint64_t esc_seq = 0;
 
     // Navigating while paused without a seek (frame steps, a track switch)
@@ -1886,6 +1928,26 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
     double              pre_scrub_pts = 0.0;     // restored when a drag is cancelled (Esc)
     PlayerUIInputs::Info ui_info;
     int playing_variant = -1;                    // HLS variant being played (network sidebar)
+    // The timeline panel's view of this session (TimelineMatch.h), made the
+    // first time the panel is drawn: the stream open, the entry of the frame
+    // on screen, from its stream (eval/phase3-survey/ui.md §2.3: not
+    // playing_variant, which follows the routed stream before its first
+    // frame shows), and the seek as the Demuxer makes it.
+    std::optional<timeline::OpenStream> tl_open;
+    int                 tl_entry = -1, tl_entry_video = -2, tl_entry_audio = -2;
+    timeline::SeekClock tl_seek;
+    int                 tl_delay_stream = -2;    // the stream tl_seek.video_delay was read from
+    // What last moved last_any_seek_at, a seek, a step back or a keyframe
+    // step, and the PTS it sought, for the panel's playhead: a step back or a
+    // keyframe step tells it as a seek it didn't ask for, by where it lands
+    // (TimelinePanel::Inputs::step; D-125 (b) 6). And the latest seek's own
+    // target (TimelinePanel::Inputs::seek_target): a step back's frame sets
+    // last_seek_pos, the thumbnail's, to its own PTS, and it can land in the
+    // iteration of a seek, after it. Set beside last_any_seek_at alone: how
+    // the player steps and seeks is unchanged.
+    TimelinePanel::Step tl_step        = TimelinePanel::Step::Seek;
+    double              tl_step_pts    = -1.0;
+    double              tl_seek_target = -1.0;
     ui_info.title      = media_title(open_path);
     ui_info.title_full = open_path;
     const float  video_aspect = (vid_h > 0) ? static_cast<float>(vid_w) / static_cast<float>(vid_h) : 16.0f / 9.0f;
@@ -1906,6 +1968,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             case 'X': s_show_probe.store(true);     break;
             case 'B': s_show_frames.store(true);    break;
             case 'L': s_show_loudness.store(true);  break;
+            case 'E': s_show_timeline.store(true);  break;
             default: break;
         }
     }
@@ -1914,6 +1977,14 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
     if (!cli.ui_net.empty()) {      // QA: every session, so --qa-open-after captures it too
         s_show_network.store(true);
         app.net_inspector.qa_apply(cli.ui_net);
+    }
+    // The timeline panel matches its document to this session's stream
+    // again (eval/phase3-survey/ui.md §2.2); QA: --ui-timeline every session,
+    // as --ui-net.
+    app.timeline_panel.reset();
+    if (!cli.ui_timeline.empty()) {
+        s_show_timeline.store(true);
+        app.timeline_panel.qa_apply(cli.ui_timeline);
     }
     // --ui-sub-at: seek there, play until the target is reached, then pause.
     // The target is a position, as the seek bar shows it (UiFormat.h).
@@ -1936,6 +2007,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         { &s_show_probe,     "Pixel probe",     false },
         { &s_show_frames,    "Frame sizes",     false },
         { &s_show_loudness,  "Loudness",        false },
+        { &s_show_timeline,  "Timeline",        false },
     };
     for (auto& f : overlay_flags) f.prev = f.flag->load();
 
@@ -2263,11 +2335,21 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 step_is_seek       = false;
                 last_any_seek_at   = now;
                 step_serial        = 0;   // no keyframe: the next frame; else its seek's (below)
+                // The timeline panel: a keyframe step, sought at its
+                // keyframe's PTS, which its seek below shows from; none found,
+                // it seeks nothing and shows the next frame (D-125 (b) 6).
+                tl_step     = TimelinePanel::Step::Keyframe;
+                tl_step_pts = kf ? kf->pts : -1.0;
             }
         }
 
         if (seek_target >= 0.0) {
             last_any_seek_at = now;
+            tl_seek_target   = seek_target;   // the timeline panel's: the seek's own target
+            if (!kf_seek) {   // the timeline panel: a seek, by its target (a keyframe step's: above)
+                tl_step     = TimelinePanel::Step::Seek;
+                tl_step_pts = seek_target;
+            }
             last_seek_pos    = seek_target;
             // Playback resumes at the target itself, not at the keyframe (HLS:
             // the segment start) the seek lands on (show_from).
@@ -2373,6 +2455,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                             case 'X': s_show_probe.store(!s_show_probe.load());         break;
                             case 'B': s_show_frames.store(!s_show_frames.load());       break;
                             case 'L': s_show_loudness.store(!s_show_loudness.load());   break;
+                            case 'E': s_show_timeline.store(!s_show_timeline.load());   break;
                             default: break;
                         }
                         break;
@@ -2727,6 +2810,10 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 last_pts          = pts;
                 last_seek_pos     = pts;         // freeze seek-pos for thumbnail
                 last_any_seek_at  = now;         // show thumb strip briefly
+                // The timeline panel: a step back, by where the scrub
+                // decoder's seek to its request lands (D-125 (b) 6).
+                tl_step           = TimelinePanel::Step::Back;
+                tl_step_pts       = back_step_target;
                 ++frame_count;
                 pending_back_step = false;
                 s_back_steps.fetch_sub(1);
@@ -2956,12 +3043,16 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
         // One base for every bottom-docked engineer strip/panel: the eased
         // control-stack height (or the mini-progress line when hidden).
         const float bottom_stack_base_fb = player_ui.visible_bar_height_logical() * global_ps;
-        const bool  show_timeline  = s_show_network.load() && !manifest.tags().empty() && duration > 0.0;
+        // The timeline panel (E), lowest in the stack (D-114 (a)): an ImGui
+        // window drawn below with the others, at the height it has now; it
+        // replaces the GL tag ruler, retired for its playlist lane (D-114 (e)).
+        const bool  show_timeline  = s_show_timeline.load();
+        const float timeline_fb    = show_timeline
+            ? app.timeline_panel.height(static_cast<float>(win_h_for_scale)) * global_ps : 0.0f;
         const bool  show_wave      = s_show_waveform.load() && has_audio;
         const bool  show_filmstrip = s_show_filmstrip.load() && duration > 0.0
             && (scrubbing || now - last_any_seek_at < std::chrono::milliseconds(1500));
-        float strips_fb = 0.0f;   // engineer strips stacked on top of the controls
-        if (show_timeline)  strips_fb += static_cast<float>(DebugHUD::kTimelinePx) * global_ps;
+        float strips_fb = timeline_fb;   // engineer strips stacked on top of the controls
         if (show_wave)      strips_fb += static_cast<float>(DebugHUD::kWaveformPx) * global_ps;
         if (show_filmstrip) strips_fb += static_cast<float>(ThumbnailStrip::kStripPx) + 10.0f * global_ps;
         debug_hud.set_insets(PlayerUI::top_inset_logical() * global_ps, bottom_stack_base_fb);
@@ -3071,64 +3162,12 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             thumb_pts = bar_pts;            // fallback: cursor pos or last seek
 
         // ── Bottom stack: engineer strips above the controls ──────────────
-        // Lowest → highest: timeline ticks → waveform → keyframe filmstrip.
+        // Lowest → highest: the timeline panel (drawn with the ImGui windows
+        // below) → waveform → keyframe filmstrip. The manifest's tags are
+        // listed in the network sidebar's Manifest tab.
         {
             const float ps = global_ps;
-            float bottom_off = bottom_stack_base_fb;
-
-            // ── Timeline ticks (N key, only when manifest has tags) ───────────
-            const auto& mtags = manifest.tags();
-            if (show_timeline) {
-                // Build TagEntry list from ManifestTag list
-                std::vector<DebugHUD::TagEntry> tag_entries;
-                for (const auto& t : mtags) {
-                    float r = 0.9f, g = 0.3f, b = 0.3f;  // red default
-                    std::string lbl = t.raw;
-                    switch (t.kind) {
-                        case ManifestTagKind::Discontinuity:
-                            r=0.9f; g=0.25f; b=0.25f; lbl = "DISCONTINUITY"; break;
-                        case ManifestTagKind::CueOut:
-                            r=0.9f; g=0.65f; b=0.10f; lbl = "CUE-OUT " + t.value; break;
-                        case ManifestTagKind::CueIn:
-                            r=0.20f; g=0.80f; b=0.30f; lbl = "CUE-IN"; break;
-                        case ManifestTagKind::Period:
-                            r=0.50f; g=0.50f; b=0.90f; lbl = t.value; break;
-                        case ManifestTagKind::Event:
-                            r=0.70f; g=0.70f; b=0.20f; lbl = t.value; break;
-                        case ManifestTagKind::Map:
-                            r=0.60f; g=0.60f; b=0.60f; lbl = "MAP"; break;
-                        case ManifestTagKind::ProgramDateTime:
-                            r=0.50f; g=0.70f; b=0.70f;
-                            lbl = "DATE-TIME " + t.value.substr(0, 16);
-                            break;
-                        default: r=0.55f; g=0.55f; b=0.55f; break;
-                    }
-                    tag_entries.push_back({ t.pts, lbl, r, g, b });
-                }
-
-                // Consume any pending click for the timeline zone
-                double raw_clk_x = s_click_x.load();
-                double raw_clk_y = s_click_y.load();
-                float  clk_x     = (raw_clk_x >= 0.0) ? static_cast<float>(raw_clk_x) * ps : -1.0f;
-                float  clk_y     = (raw_clk_y >= 0.0) ? static_cast<float>(raw_clk_y) * ps : -1.0f;
-
-                double tick_seek = debug_hud.draw_timeline_ticks(
-                    tag_entries, duration, fb_av_w, fb_h, ps,
-                    bottom_off, clk_x, clk_y);
-
-                if (tick_seek >= 0.0) {
-                    // Consume the click; the seek is made next iteration, as
-                    // a seek-bar click's is. The strip gives a position, as
-                    // its tag times are.
-                    s_click_x.store(-1.0);
-                    s_click_y.store(-1.0);
-                    s_seek_delta.store(0.0);
-                    s_seek_to.store(ui::pts_at(tick_seek, timeline_start_s));
-                }
-                bottom_off += static_cast<float>(DebugHUD::kTimelinePx) * ps;
-
-                // The tag list itself lives in the network sidebar's Manifest tab.
-            }
+            float bottom_off = bottom_stack_base_fb + timeline_fb;
 
             // ── Waveform strip (W key) ────────────────────────────────────────
             if (show_wave) {
@@ -3281,6 +3320,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             in.show_probe       = s_show_probe.load();
             in.show_frames      = s_show_frames.load();
             in.show_loudness    = s_show_loudness.load();
+            in.show_timeline    = show_timeline;
             in.has_manifest_variants = !manifest.variants().empty();
             in.fullscreen       = s_fullscreen.load();
             in.info             = ui_info;
@@ -3334,6 +3374,81 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                     logger::info("--align-report: wrote {}", app.cli.align_report_path);
                     app.cli.align_report_path.clear();
                 }
+            }
+
+            // ── Timeline panel (E), docked above the controls (D-114 (a)) ─────
+            // Drawn and fed only while open: closed, it costs nothing. It reads
+            // the player's state here and seeks only through s_seek_to, as the
+            // seek bar does; nothing of the render or decode path changes for
+            // it (D-114 (b)).
+            if (show_timeline) {
+                if (!tl_open) {
+                    tl_open = timeline::OpenStream{ .path = ms.path, .final_url = manifest.final_url(),
+                                                    .text = manifest.text(), .variants = manifest.variants() };
+                    const AVFormatContext* fc = demuxer.fmt_ctx();
+                    tl_seek.start    = fc && fc->start_time != AV_NOPTS_VALUE
+                                     ? static_cast<double>(fc->start_time) / AV_TIME_BASE : 0.0;
+                    tl_seek.duration = demuxer.duration();
+                }
+                if (shown_stream != tl_entry_video || cur_audio_stream != tl_entry_audio) {
+                    tl_entry_video = shown_stream;
+                    tl_entry_audio = cur_audio_stream;
+                    tl_entry = ms.playing_hls_variant(shown_stream, cur_audio_stream);
+                }
+                // The decoder's reorder delay of the stream on screen, which
+                // the seek decision needs (src/TimelineMatch.h, SeekClock).
+                if (shown_stream != tl_delay_stream) {
+                    tl_delay_stream = shown_stream;
+                    const AVFormatContext* fc = demuxer.fmt_ctx();
+                    tl_seek.video_delay = fc && shown_stream >= 0 && shown_stream < static_cast<int>(fc->nb_streams)
+                                        ? fc->streams[shown_stream]->codecpar->video_delay : 0;
+                }
+                TimelinePanel::Inputs ti;
+                ti.open         = &*tl_open;
+                ti.entry        = tl_entry;
+                ti.has_frame    = has_frame;
+                ti.frame_pts    = has_frame ? frame_pts_sec(shown_frame.get()) : last_pts;
+                ti.frame_serial = shown_serial;
+                ti.seek_serial  = latest_seek;
+                ti.seek_target  = tl_seek_target;
+                ti.step_mark    = static_cast<std::int64_t>(last_any_seek_at.time_since_epoch().count());
+                ti.step         = tl_step;
+                ti.step_pts     = tl_step_pts;
+                ti.scrubbing    = scrubbing;
+                ti.can_seek     = !scrubbing && !scrub_ended;   // the guard below
+                ti.seek         = tl_seek;
+                ti.qa_t         = qa_started ? std::chrono::duration<double>(now - qa_t0).count() : -1.0;
+                const ImVec2 disp = ImGui::GetIO().DisplaySize;
+                ti.win_w        = disp.x;
+                ti.win_h        = disp.y;
+                ti.bottom       = global_ps > 0.0f ? bottom_stack_base_fb / global_ps : 0.0f;
+                ti.right_inset  = net_side_logical;
+                ti.scale        = global_ps;
+                const auto tl_out = app.timeline_panel.draw(ti);
+                if (tl_out.close)   s_show_timeline.store(false);
+                if (tl_out.hovered) player_ui.notify_activity();   // the stack, and the panel on it, stay up
+                // One seek per click, never while scrubbing: the seek bar's guard
+                // below, which the panel knows of (can_seek) and so asks for none then.
+                if (tl_out.seek_to >= 0.0 && !scrubbing && !scrub_ended) s_seek_to.store(tl_out.seek_to);
+                if (tl_out.open_document) {
+                    nfdchar_t* doc = nullptr;
+                    nfdfilteritem_t filters[] = { { "Timeline documents", "json" } };
+                    if (NFD_OpenDialogU8(&doc, filters, 1, nullptr) == NFD_OKAY) {
+                        app.timeline_panel.set_document(doc);
+                        if (prefs_enabled) {   // kept as prefs.txt's timeline= line (D-114 (d))
+                            prefs.timeline = doc;
+                            persist_prefs();
+                        }
+                        NFD_FreePathU8(doc);
+                    }
+                }
+            }
+            // QA: --timeline-report, once, the panel open or not.
+            if (!app.cli.timeline_report_path.empty() && glfwGetTime() >= app.cli.timeline_report_secs) {
+                std::ofstream f(app.cli.timeline_report_path);
+                f << app.timeline_panel.report_text();
+                logger::info("--timeline-report: wrote {} (t={:.3f})", app.cli.timeline_report_path, logger::uptime());
+                app.cli.timeline_report_path.clear();
             }
 
             // ── Track selector card (T) ──────────────────────────────────────
@@ -3561,7 +3676,8 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 // on top of it: it is a window of its own).
                 const ImRect btn(pos, ImVec2(pos.x + kSz, pos.y + kSz));
                 for (const char* card : { "##helpcard", "##trackpanel", "VMAF Analysis", "##opencard",
-                                          "##net_inspector", "##loading", "##frameinspector", "##scopes", "##frames", "##loudness" }) {
+                                          "##net_inspector", "##loading", "##frameinspector", "##scopes", "##frames", "##loudness",
+                                          "##timeline" }) {
                     const ImGuiWindow* w = ImGui::FindWindowByName(card);
                     if (w && (w->Active || w->WasActive)
                         && ImRect(w->Pos, ImVec2(w->Pos.x + w->Size.x, w->Pos.y + w->Size.y)).Overlaps(btn))
@@ -3769,6 +3885,7 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
             if (ui.toggle_probe)     s_show_probe.store(!s_show_probe.load());
             if (ui.toggle_frames)    s_show_frames.store(!s_show_frames.load());
             if (ui.toggle_loudness)  s_show_loudness.store(!s_show_loudness.load());
+            if (ui.toggle_timeline)  s_show_timeline.store(!s_show_timeline.load());
 
             // VMAF triggers
             if (ui.vmaf_pick_ref && !vmaf_analyzer.running()) {

@@ -1,0 +1,44 @@
+Timeline panel (--timeline-report)
+document: media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin.session.timeline.json
+load: loaded: 84 events on 200 reference frames, 3 curves, 2 attributions
+ladder report: <out>/media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin.session.json: its SHA-256 is the one the document names
+axis: 200 reference frames, seconds on the reference's playlist time, checked by segment-map
+match: master SHA-256, entries by their order
+  player entry 0 (media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin/v360/index.m3u8): entry 0 (<out>/media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin/v360/index.m3u8; variant 0, the reference, not scored in top-rung mode)
+  player entry 1 (media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin/v270/index.m3u8): entry 1 (<out>/media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin/v270/index.m3u8; variant 1, pair 0)
+  player entry 2 (media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin/v180/index.m3u8): entry 2 (<out>/media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin/v180/index.m3u8; variant 2, pair 1)
+variant on screen: player entry 0: entry 0 (<out>/media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin/v360/index.m3u8; variant 0, the reference, not scored in top-rung mode)
+playhead: reference frame 50 at 2.000 s, the variant's frame 50 (its input's frame 50), sequence 0; the frame on screen at PTS 12.000000 s, +0.000000 s from the report's PTS of that frame
+view: 0.000 s to 8.000 s, fitted
+curves shown: pair:0 (entry 1 · 480x270), pair:1 (entry 2 · 320x180), session:0 (session:0)
+attributions: 2
+  0: a detected drop of pair:1, reference frames 75-124 (50 frames), 3.000-5.000 s, min 22.237
+  1: a detected drop of session:0, reference frames 75-124 (50 frames), 3.000-5.000 s, min 22.237
+pick: --ui-timeline pick=attribution:1@3 at 3.04 s after the first frame
+card:
+  Curve session:0 (a session): reference frame 84 at 3.360 s, sequence 1, PTS 10.360 s; VMAF 22.237
+  In the document's attribution 1, a detected drop:
+  reference frames 75-124 (50 frames), 3.000-5.000 s; 50 points, baseline 91.692, min 22.237, mean 27.395, drop_magnitude 69.455, mean_drop 64.297
+    vmaf     context_start    entry 2 at +0.000 s (+0 frames): libvmaf context 1, from frame pair 75
+    network  playlist_request entry 2 at +0.000 s (+0 frames): http://127.0.0.1:63143/v180/index.m3u8, requested at 0.010 s: 0.001 s from request to last byte (0.000 s to the response head), 490 bytes, 200 OK
+    network  segment_request  entry 2, segment 3 at +0.000 s to +1.000 s (+0 to +25 frames): http://127.0.0.1:63143/v180/ad_000.ts, requested at 0.011 s: 1.007 s from request to last byte (1.007 s to the response head), 12032 bytes, 200 OK
+    network  segment_request  entry 2, segment 4 at +1.000 s to +2.000 s (+25 to +50 frames): http://127.0.0.1:63143/v180/ad_001.ts, requested at 1.018 s: 0.001 s from request to last byte (0.001 s to the response head), 12408 bytes, 200 OK
+    playlist discontinuity    entry 0, segment 3 at +0.000 s (+0 frames): line 13, discontinuity sequence 1
+    playlist discontinuity    entry 2, segment 3 at +0.000 s (+0 frames): line 13, discontinuity sequence 1
+    playlist segment          entry 0, segment 3 at +0.000 s to +1.000 s (+0 to +25 frames): ad_000.ts, EXTINF 1 s
+    playlist segment          entry 2, segment 3 at +0.000 s to +1.000 s (+0 to +25 frames): ad_000.ts, EXTINF 1 s
+    playlist segment          entry 0, segment 4 at +1.000 s to +2.000 s (+25 to +50 frames): ad_001.ts, EXTINF 1 s
+    playlist segment          entry 2, segment 4 at +1.000 s to +2.000 s (+25 to +50 frames): ad_001.ts, EXTINF 1 s
+    scte35   cue_out          entry 0, segment 3 at +0.000 s (+0 frames): line 14, #EXT-X-CUE-OUT:2.000
+    scte35   cue_out          entry 2, segment 3 at +0.000 s (+0 frames): line 14, #EXT-X-CUE-OUT:2.000
+    scte35   ad_break         entry 0, segment 3 at +0.000 s to +2.000 s (+0 to +50 frames): from the cue_out at line 14 to the cue_in at line 21
+    scte35   ad_break         entry 2, segment 3 at +0.000 s to +2.000 s (+0 to +50 frames): from the cue_out at line 14 to the cue_in at line 21
+    scte35   cue_out_cont     entry 0, segment 4 at +1.000 s (+25 frames): line 17, #EXT-X-CUE-OUT-CONT:1.000/2.000
+    scte35   cue_out_cont     entry 2, segment 4 at +1.000 s (+25 frames): line 17, #EXT-X-CUE-OUT-CONT:1.000/2.000
+    player   variant_switch   entry 2 at +0.000 s (+0 frames): entry 1 (v270/index.m3u8, 480x270, BANDWIDTH 565504; rank 2 from the top, 2 from the bottom) -> entry 2 (v180/index.m3u8, 320x180, BANDWIDTH 345920; rank 3 from the top, 1 from the bottom)
+    player   variant_span     entry 2 at +0.000 s to +2.000 s (+0 to +50 frames): entry 2 (v180/index.m3u8, 320x180, BANDWIDTH 345920; rank 3 from the top, 1 from the bottom), segments 3-4
+    decoder  keyframe         entry 0, segment 3 at +0.000 s (+0 frames): frame 75 of its input
+    decoder  keyframe         entry 2, segment 3 at +0.000 s (+0 frames): frame 75 of its input
+    decoder  keyframe         entry 0, segment 4 at +1.000 s (+25 frames): frame 100 of its input
+    decoder  keyframe         entry 2, segment 4 at +1.000 s (+25 frames): frame 100 of its input
+Seek: the frame isn't reachable by a seek: a seek to its PTS, 10.360 s, would show the frame of PTS 10.360 s in segment 0 instead. Offered: PTS 12.000 s, the start of segment 2 of entry 0 (<out>/media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin/v360/index.m3u8; variant 0, the reference, not scored in top-rung mode), the variant on screen, from which playing reaches the frame (D-114 (b)); not taken

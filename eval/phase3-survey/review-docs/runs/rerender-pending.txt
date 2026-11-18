@@ -1,0 +1,8 @@
+command (cwd: <drafts>): python3 -I -B tools/render_pending.py <records> <drafts>/verify/rerender/PHASE3_DECISIONS_PENDING.md && cmp <drafts>/verify/rerender/PHASE3_DECISIONS_PENDING.md PHASE3_DECISIONS_PENDING.md && echo identical; shasum -a 256 PHASE3_DECISIONS_PENDING.md <drafts>/verify/rerender/PHASE3_DECISIONS_PENDING.md
+date_utc: 2026-11-01T10:12:43Z
+output (stdout and stderr):
+<drafts>/verify/rerender/PHASE3_DECISIONS_PENDING.md: 117188 bytes; 44 questions (27, 9 and 8), 14 differences, 28 process choices (9 moved), 24 packages
+identical
+f584f3efeafd7d0d71b1390b1ccbb266eee70fc510d63c84e9893a459906b8f4  PHASE3_DECISIONS_PENDING.md
+f584f3efeafd7d0d71b1390b1ccbb266eee70fc510d63c84e9893a459906b8f4  <drafts>/verify/rerender/PHASE3_DECISIONS_PENDING.md
+exit=0

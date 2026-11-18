@@ -1,0 +1,26 @@
+$ <scratch>/accept/wt/build/macos-release/mirage_vmaf --ladder master.m3u8 --out ../../reports/ad-x264-nodisc.json
+(in <out>/testgen/media/ad-x264-nodisc)
+--- stdout ---
+[INFO]  VMAFAnalyzer: 200 frames  mean=74.34  min=8.42  p5=17.89  [Analysis]
+mirage_vmaf: pair 2 of 2, v180/index.m3u8: 200 frame pairs scored
+[INFO]  VMAFAnalyzer: 200 frames  mean=97.71  min=89.21  p5=95.67  [Analysis]
+mirage_vmaf: pair 1 of 2, v270/index.m3u8: 200 frame pairs scored
+mirage_vmaf: 2 of 2 pairs of the ladder scored against v360/index.m3u8 (top-rung), 0 entries skipped, 11 at a time; the run is complete; report written to ../../reports/ad-x264-nodisc.json
+--- stderr ---
+[mpegts @ 0xa74c48780] Packet corrupt (stream = 0, dts = 1159200).
+[hls @ 0xa74c48280] Packet corrupt (stream = 0, dts = 1155600).
+[mpegts @ 0xa74c48f00] Packet corrupt (stream = 0, dts = 1159200).
+[hls @ 0xa74c48c80] Packet corrupt (stream = 0, dts = 1155600).
+[mpegts @ 0xa74c48500] Packet corrupt (stream = 0, dts = 1159200).
+[hls @ 0xa74c48000] Packet corrupt (stream = 0, dts = 1155600).
+[mpegts @ 0xa74c48a00] Packet corrupt (stream = 0, dts = 1159200).
+[hls @ 0xa74c49180] Packet corrupt (stream = 0, dts = 1155600).
+[mpegts @ 0xa74c48780] Packet corrupt (stream = 0, dts = 1069200).
+[hls @ 0xa74c48280] Packet corrupt (stream = 0, dts = 1065600).
+[mpegts @ 0xa74c48f00] Packet corrupt (stream = 0, dts = 1069200).
+[hls @ 0xa74c48c80] Packet corrupt (stream = 0, dts = 1065600).
+[mpegts @ 0xa74c48500] Packet corrupt (stream = 0, dts = 1069200).
+[hls @ 0xa74c48000] Packet corrupt (stream = 0, dts = 1065600).
+[mpegts @ 0xa74c48a00] Packet corrupt (stream = 0, dts = 1069200).
+[hls @ 0xa74c49180] Packet corrupt (stream = 0, dts = 1065600).
+--- exit status 0, wall time 0.510 s (time.monotonic) ---

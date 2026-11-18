@@ -1,0 +1,11 @@
+master	http://127.0.0.1:65406/master.m3u8
+playlist v270	http://127.0.0.1:65406/v270/index.m3u8
+v270 main_000	http://127.0.0.1:65406/v270/main_000.ts
+v270 main_001	http://127.0.0.1:65406/v270/main_001.ts
+v270 main_002	http://127.0.0.1:65406/v270/main_002.ts
+playlist v180	http://127.0.0.1:65406/v180/index.m3u8
+v180 ad_000	http://127.0.0.1:65406/v180/ad_000.ts
+v180 ad_001	http://127.0.0.1:65406/v180/ad_001.ts
+v270 main_005	http://127.0.0.1:65406/v270/main_005.ts
+v270 main_006	http://127.0.0.1:65406/v270/main_006.ts
+v270 main_007	http://127.0.0.1:65406/v270/main_007.ts

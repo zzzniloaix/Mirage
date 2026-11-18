@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/hlsjs-test-streams/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://raw.githubusercontent.com/video-dev/hls.js/master/tests/test-streams.js'
+date_utc: 2026-11-01T03:43:05Z
+http_code=200
+url_effective=https://raw.githubusercontent.com/video-dev/hls.js/master/tests/test-streams.js
+size_download=10366
+content_type=text/plain; charset=utf-8
+curl_exit=0
+sha256=956aaae702d27efd78bfcbbbb96a80b021d6e89514253d47830538fa1e5a40f4

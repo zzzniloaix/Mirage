@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/gh-repo-superkabuki_SCTE35_threefive/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://api.github.com/repos/superkabuki/SCTE35_threefive'
+date_utc: 2026-11-01T03:44:48Z
+http_code=200
+url_effective=https://api.github.com/repositories/948390549
+size_download=6666
+content_type=application/json; charset=utf-8
+curl_exit=0
+sha256=018aea3422821183941c11d25d711eac0da4201938c2a4066fe74761de774e84

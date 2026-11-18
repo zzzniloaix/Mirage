@@ -1,0 +1,81 @@
+$ python3 -I tables.py media/ad-x264-a/layout.json reports/ad-x264-mezzanine.json
+(in <out>/testgen)
+--- stdout ---
+# reports/ad-x264-mezzanine.json: ad ladder, codec libx264, source noise, reference mode mezzanine, reference ../mezzanine/ad.mkv, status complete
+
+## Pair 0: v360/index.m3u8 (rung v360) against ../mezzanine/ad.mkv
+
+- frames paired 75, failed 250, failure rate 0.7692307692307693, discontinuities 1, after_discontinuity 249, unmatched_reference 1, extra_distorted 0
+- reference sequences [{"first_index": 0, "first_pts": 10, "frames": 200}]
+- distorted sequences [{"first_index": 0, "first_pts": 10, "frames": 75}, {"first_index": 75, "first_pts": 10, "frames": 125}]
+- libvmaf contexts [{"first_index": 0, "pairs": 75}]
+- pooled mean 99.939, min 95.421
+- pairs whose reference PTS isn't the layout's for their reference frame: 0
+
+| segment | file | period | reference frames | pairs | mean VMAF | min VMAF | quantizer | tags before it |
+|---|---|---|---|---|---|---|---|---|
+| 0 | main_000.ts | main | 0-24 | 25 | 99.817 | 95.421 | 22 | - |
+| 1 | main_001.ts | main | 25-49 | 25 | 100.000 | 100.000 | 22 | - |
+| 2 | main_002.ts | main | 50-74 | 25 | 100.000 | 100.000 | 22 | - |
+| 3 | ad_000.ts | ad | 75-99 | 0 | - | - | 22 | EXT-X-DISCONTINUITY, #EXT-X-CUE-OUT:2.000 |
+| 4 | ad_001.ts | ad | 100-124 | 0 | - | - | 22 | #EXT-X-CUE-OUT-CONT:1.000/2.000 |
+| 5 | main_005.ts | main | 125-149 | 0 | - | - | 22 | EXT-X-DISCONTINUITY, #EXT-X-CUE-IN |
+| 6 | main_006.ts | main | 150-174 | 0 | - | - | 22 | - |
+| 7 | main_007.ts | main | 175-199 | 0 | - | - | 22 | - |
+
+Scores more than 6 points below the pair's median (100.000): 0 frames
+
+Trailing-median prototype (threshold 6, window 50, more than 12 frames): 0 low frames, 0 drops
+
+## Pair 1: v270/index.m3u8 (rung v270) against ../mezzanine/ad.mkv
+
+- frames paired 75, failed 250, failure rate 0.7692307692307693, discontinuities 1, after_discontinuity 249, unmatched_reference 1, extra_distorted 0
+- reference sequences [{"first_index": 0, "first_pts": 10, "frames": 200}]
+- distorted sequences [{"first_index": 0, "first_pts": 10, "frames": 75}, {"first_index": 75, "first_pts": 10, "frames": 125}]
+- libvmaf contexts [{"first_index": 0, "pairs": 75}]
+- pooled mean 97.597, min 91.202
+- pairs whose reference PTS isn't the layout's for their reference frame: 0
+
+| segment | file | period | reference frames | pairs | mean VMAF | min VMAF | quantizer | tags before it |
+|---|---|---|---|---|---|---|---|---|
+| 0 | main_000.ts | main | 0-24 | 25 | 97.621 | 91.202 | 22 | - |
+| 1 | main_001.ts | main | 25-49 | 25 | 97.051 | 95.653 | 22 | - |
+| 2 | main_002.ts | main | 50-74 | 25 | 98.118 | 96.355 | 22 | - |
+| 3 | ad_000.ts | ad | 75-99 | 0 | - | - | 22 | EXT-X-DISCONTINUITY, #EXT-X-CUE-OUT:2.000 |
+| 4 | ad_001.ts | ad | 100-124 | 0 | - | - | 22 | #EXT-X-CUE-OUT-CONT:1.000/2.000 |
+| 5 | main_005.ts | main | 125-149 | 0 | - | - | 22 | EXT-X-DISCONTINUITY, #EXT-X-CUE-IN |
+| 6 | main_006.ts | main | 150-174 | 0 | - | - | 22 | - |
+| 7 | main_007.ts | main | 175-199 | 0 | - | - | 22 | - |
+
+Scores more than 6 points below the pair's median (97.732): 1 frames
+- pairs 0-0 (1 frames): first frame 0: segment 0 (main_000.ts, main), its frame 0 of 25; last frame 0: segment 0 (main_000.ts, main), its frame 0 of 25
+
+Trailing-median prototype (threshold 6, window 50, more than 12 frames): 0 low frames, 0 drops
+
+## Pair 2: v180/index.m3u8 (rung v180) against ../mezzanine/ad.mkv
+
+- frames paired 75, failed 250, failure rate 0.7692307692307693, discontinuities 1, after_discontinuity 249, unmatched_reference 1, extra_distorted 0
+- reference sequences [{"first_index": 0, "first_pts": 10, "frames": 200}]
+- distorted sequences [{"first_index": 0, "first_pts": 10, "frames": 75}, {"first_index": 75, "first_pts": 10, "frames": 125}]
+- libvmaf contexts [{"first_index": 0, "pairs": 75}]
+- pooled mean 91.102, min 83.690
+- pairs whose reference PTS isn't the layout's for their reference frame: 0
+
+| segment | file | period | reference frames | pairs | mean VMAF | min VMAF | quantizer | tags before it |
+|---|---|---|---|---|---|---|---|---|
+| 0 | main_000.ts | main | 0-24 | 25 | 91.197 | 83.690 | 22 | - |
+| 1 | main_001.ts | main | 25-49 | 25 | 90.557 | 87.308 | 22 | - |
+| 2 | main_002.ts | main | 50-74 | 25 | 91.551 | 90.009 | 22 | - |
+| 3 | ad_000.ts | ad | 75-99 | 0 | - | - | 46 | EXT-X-DISCONTINUITY, #EXT-X-CUE-OUT:2.000 |
+| 4 | ad_001.ts | ad | 100-124 | 0 | - | - | 46 | #EXT-X-CUE-OUT-CONT:1.000/2.000 |
+| 5 | main_005.ts | main | 125-149 | 0 | - | - | 22 | EXT-X-DISCONTINUITY, #EXT-X-CUE-IN |
+| 6 | main_006.ts | main | 150-174 | 0 | - | - | 22 | - |
+| 7 | main_007.ts | main | 175-199 | 0 | - | - | 22 | - |
+
+Scores more than 6 points below the pair's median (91.429): 1 frames
+- pairs 0-0 (1 frames): first frame 0: segment 0 (main_000.ts, main), its frame 0 of 25; last frame 0: segment 0 (main_000.ts, main), its frame 0 of 25
+
+Trailing-median prototype (threshold 6, window 50, more than 12 frames): 0 low frames, 0 drops
+
+--- stderr ---
+--- exit status 0, wall time 0.052 s (time.monotonic) ---

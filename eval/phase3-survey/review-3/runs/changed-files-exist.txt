@@ -1,0 +1,55 @@
+# cwd: <repo>
+# command: 'ls' '-1' 'CMakeLists.txt' 'docs/AI_CONTRIBUTIONS.md' 'docs/DECISIONS.md' 'docs/PAPER_METHOD_NOTES.md' 'docs/TIMELINE_FORMAT.md' 'docs/VMAF_GAP_REPORT.md' 'docs/schema/mirage-timeline-1.schema.json' 'src/DebugHUD.cpp' 'src/DebugHUD.h' 'src/Demuxer.cpp' 'src/Demuxer.h' 'src/LadderReportRead.cpp' 'src/ManifestParser.cpp' 'src/ManifestParser.h' 'src/MediaSession.cpp' 'src/NetInspectorAlign.cpp' 'src/NetworkLogger.cpp' 'src/NetworkLogger.h' 'src/PlayerUI.cpp' 'src/PlayerUI.h' 'src/TimelineBuild.cpp' 'src/TimelineBuild.h' 'src/TimelineCli.cpp' 'src/TimelineCli.h' 'src/TimelineDoc.cpp' 'src/TimelineDoc.h' 'src/TimelineModel.cpp' 'src/TimelineModel.h' 'src/TimelineQuery.cpp' 'src/VMAFAnalyzer.cpp' 'src/VMAFAnalyzer.h' 'src/VMAFCli.cpp' 'src/VMAFLadder.cpp' 'src/VMAFLadder.h' 'src/VMAFNet.h' 'src/VMAFReport.cpp' 'src/VMAFReport.h' 'src/VMAFSegments.h' 'src/main.cpp' 'tests/HttpFileServer.h' 'tests/test_ladder_report_read.cpp' 'tests/test_manifest_parser.cpp' 'tests/test_timeline_build.cpp' 'tests/test_timeline_cli.cpp' 'tests/test_timeline_doc.cpp' 'tests/test_vmaf_analyzer.cpp' 'tests/test_vmaf_ladder.cpp' 'tests/test_vmaf_report.cpp' 'tests/test_vmaf_segments.cpp' 'tools/mirage_vmaf.cpp'
+# started: 2026-11-01T09:09:09Z, ended: 2026-11-01T09:09:09Z (UTC)
+# stdout and stderr, in order:
+ls: docs/schema/mirage-timeline-1.schema.json: No such file or directory
+ls: docs/TIMELINE_FORMAT.md: No such file or directory
+ls: src/LadderReportRead.cpp: No such file or directory
+ls: src/TimelineBuild.cpp: No such file or directory
+ls: src/TimelineBuild.h: No such file or directory
+ls: src/TimelineCli.cpp: No such file or directory
+ls: src/TimelineCli.h: No such file or directory
+ls: src/TimelineDoc.cpp: No such file or directory
+ls: src/TimelineDoc.h: No such file or directory
+ls: src/TimelineModel.cpp: No such file or directory
+ls: src/TimelineModel.h: No such file or directory
+ls: src/TimelineQuery.cpp: No such file or directory
+ls: tests/test_ladder_report_read.cpp: No such file or directory
+ls: tests/test_timeline_build.cpp: No such file or directory
+ls: tests/test_timeline_cli.cpp: No such file or directory
+ls: tests/test_timeline_doc.cpp: No such file or directory
+CMakeLists.txt
+docs/AI_CONTRIBUTIONS.md
+docs/DECISIONS.md
+docs/PAPER_METHOD_NOTES.md
+docs/VMAF_GAP_REPORT.md
+src/DebugHUD.cpp
+src/DebugHUD.h
+src/Demuxer.cpp
+src/Demuxer.h
+src/main.cpp
+src/ManifestParser.cpp
+src/ManifestParser.h
+src/MediaSession.cpp
+src/NetInspectorAlign.cpp
+src/NetworkLogger.cpp
+src/NetworkLogger.h
+src/PlayerUI.cpp
+src/PlayerUI.h
+src/VMAFAnalyzer.cpp
+src/VMAFAnalyzer.h
+src/VMAFCli.cpp
+src/VMAFLadder.cpp
+src/VMAFLadder.h
+src/VMAFNet.h
+src/VMAFReport.cpp
+src/VMAFReport.h
+src/VMAFSegments.h
+tests/HttpFileServer.h
+tests/test_manifest_parser.cpp
+tests/test_vmaf_analyzer.cpp
+tests/test_vmaf_ladder.cpp
+tests/test_vmaf_report.cpp
+tests/test_vmaf_segments.cpp
+tools/mirage_vmaf.cpp
+# exit status: 1

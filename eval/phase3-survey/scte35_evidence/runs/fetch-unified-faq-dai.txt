@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/unified-faq-dai/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://docs.unified-streaming.com/faqs/dynamic-ad-insertion/index.html'
+date_utc: 2026-11-01T03:42:22Z
+http_code=200
+url_effective=https://docs.unified-streaming.com/faqs/dynamic-ad-insertion/index.html
+size_download=95693
+content_type=text/html
+curl_exit=0
+sha256=b7f45fe5f08bb9836ee93a7c8bfc4ed7005f22fff7f595ab1817b9cba2d8149f

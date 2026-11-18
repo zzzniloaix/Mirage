@@ -1,0 +1,10 @@
+$ sh -c 'sysctl -n machdep.cpu.brand_string hw.physicalcpu hw.memsize; sw_vers -productVersion; uptime | sed "s/.*load/load/"'
+(in <out>/testgen)
+--- stdout ---
+Apple M3 Pro
+12
+38654705664
+26.6.2
+load averages: 2.92 3.74 4.00
+--- stderr ---
+--- exit status 0, wall time 0.032 s (time.monotonic) ---

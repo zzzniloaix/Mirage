@@ -1,0 +1,73 @@
+command (cwd: <records>): python3 -I -B <drafts>/verify/tools/privacy_scan.py .
+date_utc: 2026-11-01T10:19:59Z
+output (stdout and stderr):
+pattern: case-insensitive, SHA-256 of its text 943ca9161f562c6243e1887d71c169874aaa3c84828fc0a81fd15738730a047d
+./design-library.md:211:392: hint ipv4
+./design-library.md:211:448: hint ipv4
+./design-library.md:262:148: hint ipv4
+./design-library.md:844:480: hint ipv4
+./design.md:102:203: hint ipv4
+./design.md:102:259: hint ipv4
+./design.md:102:271: hint ipv4
+./design.md:102:327: hint ipv4
+./design.md:254:134: hint ipv4
+./design.md:254:190: hint ipv4
+./design.md:254:270: hint ipv4
+./design.md:254:326: hint ipv4
+./design.md:352:86: hint ipv4
+./design.md:758:426: hint ipv4
+./design.md:763:389: hint ipv4
+./design.md:1763:233: hint ipv4
+./scte35.md:98:25: hint ipv4
+./scte35.md:98:66: hint ipv4
+./scte35.md:102:4: hint ipv4
+./scte35.md:102:81: hint ipv4
+./scte35.md:112:177: hint ipv4
+./scte35.md:159:40: hint ipv4
+./scte35.md:182:244: hint ipv4
+./scte35.md:182:261: hint ipv4
+./scte35.md:189:206: hint ipv4
+./scte35.md:196:54: hint ipv4
+./scte35.md:234:133: hint ipv4
+./sources.md:323:265: hint ipv4
+./sources.md:323:321: hint ipv4
+./sources.md:397:71: hint ipv4
+./sources.md:397:127: hint ipv4
+./sources.md:397:240: hint ipv4
+./sources.md:397:296: hint ipv4
+./sources.md:415:154: hint ipv4
+./sources.md:415:212: hint ipv4
+./testgen.md:52:226: hint ipv4
+./design/owner_questions.json:57:380: hint ipv4
+./design/owner_questions.json:65:392: hint ipv4
+./design/revision-2.md:46:547: hint ipv4
+./design/revision-2.md:46:603: hint ipv4
+./design/revision-2.md:46:723: hint ipv4
+./design/revision-2.md:130:246: hint ipv4
+./design/revision-2.md:130:259: hint ipv4
+./design/work_packages.json:159:253: hint ipv4
+./design/src/part1.md:102:203: hint ipv4
+./design/src/part1.md:102:259: hint ipv4
+./design/src/part1.md:102:271: hint ipv4
+./design/src/part1.md:102:327: hint ipv4
+./design/src/part1.md:254:134: hint ipv4
+./design/src/part1.md:254:190: hint ipv4
+./design/src/part1.md:254:270: hint ipv4
+./design/src/part1.md:254:326: hint ipv4
+./design/src/part1.md:352:86: hint ipv4
+./design-library/owner_questions.json:7:505: hint ipv4
+./results/survey-scte35.json:21:220: hint ipv4
+./review-2/review.json:139:829: hint ipv4
+./review-2/review.json:139:885: hint ipv4
+./review-2/review.md:67:759: hint ipv4
+./review-2/review.md:67:815: hint ipv4
+./review-3/review.json:158:254: hint ipv4
+./review-3/review.json:158:310: hint ipv4
+./review-3/review.md:109:196: hint ipv4
+./review-3/review.md:109:252: hint ipv4
+./scte35_evidence/tools/scte35_decode.py:64:60: hint ipv4
+./testgen/src/testgen.cpp:695:37: hint ipv4
+checked: 1079 files (0 of them .xz, read decompressed), 153804 lines
+task pattern matches: 0; e-mail addresses: 0
+hints (not the task's check): opt-homebrew 0, usr-local 0, volumes 0, home-dir 0, tilde-path 0, tmp-path 0, var-path 0, dot-local-host 0, mac-host 0, ipv4 65
+exit=0

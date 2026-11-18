@@ -1,0 +1,42 @@
+# One command of the schema survey, run in <repo> by tools/run.py, started 2026-11-01T03:33:20Z, ended 2026-11-01T03:33:44Z (UTC).
+# <repo>: the worktree of vmaf/phase-3 at 75cf6e0; <out>: the survey's output directory; <scratch>: the scratch directory.
+# The command, then its standard output and standard error as they came, then its exit status.
+
+$ python3 -I <out>/schema-survey/tools/size_breakdown.py eval/ladder/acceptance-c673738/advanced-local-300/jobs-1/report.json.xz eval/ladder/acceptance-c673738/advanced-local-300-mem1g/jobs-1/report.json.xz eval/ladder/acceptance-c673738/advanced-cdn-full/jobs-default/report.json.xz eval/consistency/ladder-300/top-rung/ladder/mirage.json
+report: eval/ladder/acceptance-c673738/advanced-local-300/jobs-1/report.json.xz
+  as committed: 22960 bytes; JSON text: 308925 bytes; recompressed here: 22960 bytes
+  status: complete; frame_limit: 300; ladder entries: 24; pairs: 7; frames per pair: [300, 300, 300, 300, 300, 300, 300]; frames in all: 2100
+  per-frame lines: 2100 (the frames in all: the same), 285625 bytes, 92.46% of the text; bytes per line (newline included) from 101 to 150, 136.01 on average
+  the text without the per-frame lines: 23300 bytes, compressed 2544 bytes
+  per-frame scores written as integers: 425, values: [100]
+  candidate C1 (each per-frame score once more as a timeline entry): 2100 entries, 282780 bytes, compressed alone 18996 bytes; the report with C1 appended: 591705 bytes, compressed 33320 bytes
+  C1's first entry: {"pts": 10.016666666666667, "wallclock": null, "source": "vmaf", "type": "frame", "payload": {"pair": 0, "vmaf": 81.01754998075987}}
+
+report: eval/ladder/acceptance-c673738/advanced-local-300-mem1g/jobs-1/report.json.xz
+  as committed: 22936 bytes; JSON text: 308928 bytes; recompressed here: 22936 bytes
+  status: complete; frame_limit: 300; ladder entries: 24; pairs: 7; frames per pair: [300, 300, 300, 300, 300, 300, 300]; frames in all: 2100
+  per-frame lines: 2100 (the frames in all: the same), 285625 bytes, 92.46% of the text; bytes per line (newline included) from 101 to 150, 136.01 on average
+  the text without the per-frame lines: 23303 bytes, compressed 2556 bytes
+  per-frame scores written as integers: 425, values: [100]
+  candidate C1 (each per-frame score once more as a timeline entry): 2100 entries, 282780 bytes, compressed alone 18996 bytes; the report with C1 appended: 591708 bytes, compressed 33200 bytes
+  C1's first entry: {"pts": 10.016666666666667, "wallclock": null, "source": "vmaf", "type": "frame", "payload": {"pair": 0, "vmaf": 81.01754998075987}}
+
+report: eval/ladder/acceptance-c673738/advanced-cdn-full/jobs-default/report.json.xz
+  as committed: 1792136 bytes; JSON text: 27969051 bytes; recompressed here: 1792136 bytes
+  status: complete; frame_limit: None; ladder entries: 24; pairs: 7; frames per pair: [36000, 36000, 36000, 36000, 18000, 18000, 18000]; frames in all: 198000
+  per-frame lines: 198000 (the frames in all: the same), 27942596 bytes, 99.91% of the text; bytes per line (newline included) from 101 to 156, 141.12 on average
+  the text without the per-frame lines: 26455 bytes, compressed 2672 bytes
+  per-frame scores written as integers: 51265, values: [100]
+  candidate C1 (each per-frame score once more as a timeline entry): 198000 entries, 26493776 bytes, compressed alone 1715236 bytes; the report with C1 appended: 54462827 bytes, compressed 3498340 bytes
+  C1's first entry: {"pts": 10.016666666666667, "wallclock": null, "source": "vmaf", "type": "frame", "payload": {"pair": 0, "vmaf": 81.01754998075987}}
+
+report: eval/consistency/ladder-300/top-rung/ladder/mirage.json
+  as committed: 183200 bytes; JSON text: 183200 bytes; recompressed here: 16108 bytes
+  status: None; frame_limit: 300; ladder entries: 6; pairs: 4; frames per pair: [300, 300, 300, 300]; frames in all: 1200
+  per-frame lines: 1200 (the frames in all: the same), 171892 bytes, 93.83% of the text; bytes per line (newline included) from 95 to 150, 143.24 on average
+  the text without the per-frame lines: 11308 bytes, compressed 1744 bytes
+  per-frame scores written as integers: 10, values: [0]
+  candidate C1 (each per-frame score once more as a timeline entry): 1200 entries, 167511 bytes, compressed alone 13060 bytes; the report with C1 appended: 350711 bytes, compressed 23396 bytes
+  C1's first entry: {"pts": 10, "wallclock": null, "source": "vmaf", "type": "frame", "payload": {"pair": 0, "vmaf": 0}}
+
+(exit status 0)

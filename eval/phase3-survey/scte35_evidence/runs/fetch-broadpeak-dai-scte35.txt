@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/broadpeak-dai-scte35/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://developers.broadpeak.io/docs/dai-scte35'
+date_utc: 2026-11-01T03:48:20Z
+http_code=200
+url_effective=https://developers.broadpeak.io/docs/dai-scte35
+size_download=289735
+content_type=text/html; charset=utf-8
+curl_exit=0
+sha256=c1dfdbe08709fbb8466a7429ae03d16d0a63c884c1baa63973c14d0ee4fb15b7

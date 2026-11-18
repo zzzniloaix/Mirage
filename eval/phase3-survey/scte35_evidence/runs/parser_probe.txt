@@ -1,0 +1,189 @@
+command (cwd <out>/scte35_evidence): build/parser_probe downloads/threefive-old-examples_hls_scte35.m3u8/body derived/playlists/wowza-cue-example.m3u8 derived/playlists/google-video-stitcher-eabn-example.m3u8 downloads/stream-unified-avod-k8s-video4017000/body downloads/stream-mux-dai-deltatre-master/body
+date_utc: 2026-11-01T04:18:42Z
+tool sha256: 6d1da7f8a2082658fb47d7c5001a4a0c960f0247704757470f41642e1102ce28  tools/build_vectors.py
+tool sha256: 43553cf5f9b59689d1e576b7c3e155390e518dafcb162443170f0e126ec5982c  tools/check_vectors.py
+tool sha256: 12ca135799c24d24a217a97c7173b233e459c4b74454b11af90cf011b7e9042e  tools/cue_positions.py
+tool sha256: ea5b756f6aebcef51a2bb5bbed43413a24ddaf34f5827273353d162b5888ecbd  tools/hls_tags.py
+tool sha256: 1198bc8093385554dc76dbf33b39eba1e268e04bd41029204eb515a9a2bad424  tools/html2text.py
+tool sha256: 2d0d1cf92518bfdaae87df6074f2f5cba87094ce6370a9f93692e68b442623ed  tools/pdftext.py
+tool sha256: bb4cef1ddae32dc390b419725a8dd855db5b29cf09393ac13075346bb7d0429b  tools/scte35_decode.py
+tool sha256: 68725f0ab733b49592947589b2c1487c2860e90d2139648bd01962a844586a33  tools/ts_pid_payload.py
+tool sha256: a6776bd3814f82dda3a9f23c742e8b44b19ff14219a75815705ed5b85f1d6b69  tools/ts_probe.py
+tool sha256: 31eaa39d0407aef0b730c3040c99c60547baa671bc42bdac69f17039fe79fe4a  tools/build_parser_probe.sh
+tool sha256: d5c54a09eac63794dc001f0aa52d4fe3cda311723f0d47ba1b1675e47848b04a  tools/cue_positions_all.sh
+tool sha256: 7cbb2161e7335376fcd6f6bd2f96281787bdb449b7e82494dc4a78ebb143f39d  tools/derive_all.sh
+tool sha256: d76a774d051045faf19a109b5d8f79bb79e384f26477b2e82b0137b9a108529f  tools/fetch.sh
+tool sha256: 05f5b16a93a29786124d69d7e5f6bbd233fd2661416449381e8e50e599f90c76  tools/pipeline.sh
+tool sha256: df159afaa73c1c23ecc8bf5ea69cf75e4d668b19f36e6658e8539d19173ebe5f  tools/repo_grep.sh
+tool sha256: bfbac2ffbe328635c262072da72d6fd3923bfcc5e70f44b8c0b2507a818fee8e  tools/run.sh
+tool sha256: f50c6568c519b76f507c5c20a8fc22a1856af0244678962334cf41a0cc61da74  tools/same_daterange.sh
+output (stdout and stderr):
+== downloads/threefive-old-examples_hls_scte35.m3u8/body
+  ManifestParser::parse_hls_text: true, 9 tags
+    CueOut          pts    10.000  disc_seq 0  raw "#EXT-X-CUE-OUT:30.000"
+    CueOut          pts    12.000  disc_seq 0  raw "#EXT-X-CUE-OUT-CONT:ElapsedTime=2.000,Duration=30,SCTE35=<vector threefive-2024:examples/hls/scte35.m3u8:8>..."
+    CueOut          pts    24.000  disc_seq 0  raw "#EXT-X-CUE-OUT-CONT:ElapsedTime=14.000,Duration=30,SCTE35=<vector threefive-2024:examples/hls/scte35.m3u8:8>..."
+    CueOut          pts    36.000  disc_seq 0  raw "#EXT-X-CUE-OUT-CONT:ElapsedTime=26.000,Duration=30,SCTE35=<vector threefive-2024:examples/hls/scte35.m3u8:8>..."
+    CueIn           pts    40.000  disc_seq 0  raw "#EXT-X-CUE-IN"
+    CueOut          pts    75.000  disc_seq 0  raw "#EXT-X-CUE-OUT:30.000"
+    CueOut          pts    84.000  disc_seq 0  raw "#EXT-X-CUE-OUT-CONT:ElapsedTime=9.000,Duration=30,SCTE35=<vector threefive-2024:examples/hls/scte35.m3u8:31>..."
+    CueOut          pts    96.000  disc_seq 0  raw "#EXT-X-CUE-OUT-CONT:ElapsedTime=21.000,Duration=30,SCTE35=<vector threefive-2024:examples/hls/scte35.m3u8:31>..."
+    CueIn           pts   105.000  disc_seq 0  raw "#EXT-X-CUE-IN"
+  hls::parse_media_timeline: ok 1, 24 segments, total 226.067 s, discontinuities 0, endlist 1, type "VOD"
+    seq 1  start    0.000  dur  10.000  disc_seq 0  pdt -  line 7
+    seq 2  start   10.000  dur   2.000  disc_seq 0  pdt -  line 11
+    seq 3  start   12.000  dur  12.000  disc_seq 0  pdt -  line 14
+    seq 4  start   24.000  dur  12.000  disc_seq 0  pdt -  line 17
+    seq 5  start   36.000  dur   4.000  disc_seq 0  pdt -  line 20
+    seq 6  start   40.000  dur   8.000  disc_seq 0  pdt -  line 24
+    seq 7  start   48.000  dur  12.000  disc_seq 0  pdt -  line 26
+    seq 8  start   60.000  dur  12.000  disc_seq 0  pdt -  line 28
+    seq 9  start   72.000  dur   3.000  disc_seq 0  pdt -  line 30
+    seq 10  start   75.000  dur   9.000  disc_seq 0  pdt -  line 34
+    seq 11  start   84.000  dur  12.000  disc_seq 0  pdt -  line 37
+    seq 12  start   96.000  dur   9.000  disc_seq 0  pdt -  line 40
+    seq 13  start  105.000  dur   3.000  disc_seq 0  pdt -  line 44
+    seq 14  start  108.000  dur  12.000  disc_seq 0  pdt -  line 46
+    seq 15  start  120.000  dur  12.000  disc_seq 0  pdt -  line 48
+    seq 16  start  132.000  dur   3.000  disc_seq 0  pdt -  line 50
+    seq 17  start  135.000  dur   9.000  disc_seq 0  pdt -  line 52
+    seq 18  start  144.000  dur  12.000  disc_seq 0  pdt -  line 54
+    seq 19  start  156.000  dur  12.000  disc_seq 0  pdt -  line 56
+    seq 20  start  168.000  dur  12.000  disc_seq 0  pdt -  line 58
+    seq 21  start  180.000  dur  12.000  disc_seq 0  pdt -  line 60
+    seq 22  start  192.000  dur  12.000  disc_seq 0  pdt -  line 62
+    seq 23  start  204.000  dur  12.000  disc_seq 0  pdt -  line 64
+    seq 24  start  216.000  dur  10.067  disc_seq 0  pdt -  line 66
+== derived/playlists/wowza-cue-example.m3u8
+  ManifestParser::parse_hls_text: true, 10 tags
+    DiscontinuitySequence pts     0.000  disc_seq 0  raw "#EXT-X-DISCONTINUITY-SEQUENCE:0"
+    ProgramDateTime pts     0.000  disc_seq 0  raw "#EXT-X-PROGRAM-DATE-TIME:2023-11-29T11:57:29.815Z"
+    CueOut          pts    38.700  disc_seq 0  raw "#EXT-X-CUE-OUT:60.000"
+    CueOut          pts    48.567  disc_seq 0  raw "#EXT-X-CUE-OUT-CONT:ElapsedTime=3.700,Duration=60.000,SCTE35=<vector wowza:1846:EXT-OATCLS-SCTE35>..."
+    CueOut          pts    59.100  disc_seq 0  raw "#EXT-X-CUE-OUT-CONT:ElapsedTime=13.567,Duration=60.000,SCTE35=<vector wowza:1846:EXT-OATCLS-SCTE35>..."
+    CueOut          pts    69.133  disc_seq 0  raw "#EXT-X-CUE-OUT-CONT:ElapsedTime=24.100,Duration=60.000,SCTE35=<vector wowza:1846:EXT-OATCLS-SCTE35>..."
+    CueOut          pts    79.100  disc_seq 0  raw "#EXT-X-CUE-OUT-CONT:ElapsedTime=34.133,Duration=60.000,SCTE35=<vector wowza:1846:EXT-OATCLS-SCTE35>..."
+    CueOut          pts    89.367  disc_seq 0  raw "#EXT-X-CUE-OUT-CONT:ElapsedTime=44.100,Duration=60.000,SCTE35=<vector wowza:1846:EXT-OATCLS-SCTE35>..."
+    CueOut          pts    95.000  disc_seq 0  raw "#EXT-X-CUE-OUT-CONT:ElapsedTime=54.367,Duration=60.000,SCTE35=<vector wowza:1846:EXT-OATCLS-SCTE35>..."
+    CueIn           pts    99.000  disc_seq 0  raw "#EXT-X-CUE-IN"
+  hls::parse_media_timeline: ok 1, 13 segments, total 109.267 s, discontinuities 0, endlist 0, type ""
+    seq 1  start    0.000  dur   9.000  disc_seq 0  pdt 1701259049.815000  line 8
+    seq 2  start    9.000  dur  10.000  disc_seq 0  pdt 1701259058.815000  line 10
+    seq 3  start   19.000  dur  10.033  disc_seq 0  pdt 1701259068.815000  line 12
+    seq 4  start   29.033  dur   5.967  disc_seq 0  pdt 1701259078.848000  line 14
+    seq 5  start   35.000  dur   3.700  disc_seq 0  pdt 1701259084.815000  line 18
+    seq 6  start   38.700  dur   9.867  disc_seq 0  pdt 1701259088.515000  line 21
+    seq 7  start   48.567  dur  10.533  disc_seq 0  pdt 1701259098.382000  line 24
+    seq 8  start   59.100  dur  10.033  disc_seq 0  pdt 1701259108.915000  line 27
+    seq 9  start   69.133  dur   9.967  disc_seq 0  pdt 1701259118.948000  line 30
+    seq 10  start   79.100  dur  10.267  disc_seq 0  pdt 1701259128.915000  line 33
+    seq 11  start   89.367  dur   5.633  disc_seq 0  pdt 1701259139.182000  line 36
+    seq 12  start   95.000  dur   4.000  disc_seq 0  pdt 1701259144.815000  line 39
+    seq 13  start   99.000  dur  10.267  disc_seq 0  pdt 1701259148.815000  line 41
+== derived/playlists/google-video-stitcher-eabn-example.m3u8
+  ManifestParser::parse_hls_text: true, 5 tags
+    ProgramDateTime pts     0.000  disc_seq 0  raw "#EXT-X-PROGRAM-DATE-TIME:2020-11-08T21:11:20.976Z"
+    DiscontinuitySequence pts     0.000  disc_seq 2  raw "#EXT-X-DISCONTINUITY-SEQUENCE:2"
+    CueOut          pts     0.000  disc_seq 2  raw "#EXT-X-CUE-OUT:ID="2415919105",X-TYPE="EABN",DURATION=29.988"
+    CueOut          pts     8.000  disc_seq 2  raw "#EXT-X-CUE-OUT:ID="2415919105",DURATION=29.988"
+    Unknown         pts    20.000  disc_seq 2  raw "#EXT-X-CUE-IN:ID="2415919105""
+  hls::parse_media_timeline: ok 1, 6 segments, total 24.000 s, discontinuities 0, endlist 0, type ""
+    seq 239959  start    0.000  dur   4.000  disc_seq 2  pdt 1604869880.976000  line 10
+    seq 239960  start    4.000  dur   4.000  disc_seq 2  pdt 1604869884.976000  line 12
+    seq 239961  start    8.000  dur   4.000  disc_seq 2  pdt 1604869888.976000  line 16
+    seq 239962  start   12.000  dur   4.000  disc_seq 2  pdt 1604869892.976000  line 18
+    seq 239963  start   16.000  dur   4.000  disc_seq 2  pdt 1604869896.976000  line 20
+    seq 239964  start   20.000  dur   4.000  disc_seq 2  pdt 1604869900.976000  line 24
+    problem: line 21: a URI without EXTINF
+== downloads/stream-unified-avod-k8s-video4017000/body
+  ManifestParser::parse_hls_text: true, 6 tags
+    ProgramDateTime pts     0.000  disc_seq 0  raw "#EXT-X-PROGRAM-DATE-TIME:1970-01-01T00:00:00Z"
+    Unknown         pts    10.000  disc_seq 0  raw "#EXT-X-DATERANGE:ID="0-10",START-DATE="1970-01-01T00:00:10Z",PLANNED-DURATION=30,SCTE35-OUT=<vector unified-avod-demo:21:SCTE35-OUT>..."
+    CueOut          pts    10.000  disc_seq 0  raw "#EXT-X-CUE-OUT:30"
+    ProgramDateTime pts    10.000  disc_seq 0  raw "#EXT-X-PROGRAM-DATE-TIME:1970-01-01T00:00:10Z"
+    CueIn           pts    40.000  disc_seq 0  raw "#EXT-X-CUE-IN"
+    ProgramDateTime pts    40.000  disc_seq 0  raw "#EXT-X-PROGRAM-DATE-TIME:1970-01-01T00:00:40Z"
+  hls::parse_media_timeline: ok 1, 45 segments, total 90.000 s, discontinuities 0, endlist 1, type "VOD"
+    seq 1  start    0.000  dur   2.000  disc_seq 0  pdt 0.000000  line 11
+    seq 2  start    2.000  dur   2.000  disc_seq 0  pdt 2.000000  line 13
+    seq 3  start    4.000  dur   2.000  disc_seq 0  pdt 4.000000  line 15
+    seq 4  start    6.000  dur   2.000  disc_seq 0  pdt 6.000000  line 17
+    seq 5  start    8.000  dur   2.000  disc_seq 0  pdt 8.000000  line 19
+    seq 6  start   10.000  dur   2.000  disc_seq 0  pdt 10.000000  line 25
+    seq 7  start   12.000  dur   2.000  disc_seq 0  pdt 12.000000  line 27
+    seq 8  start   14.000  dur   2.000  disc_seq 0  pdt 14.000000  line 29
+    seq 9  start   16.000  dur   2.000  disc_seq 0  pdt 16.000000  line 31
+    seq 10  start   18.000  dur   2.000  disc_seq 0  pdt 18.000000  line 33
+    seq 11  start   20.000  dur   2.000  disc_seq 0  pdt 20.000000  line 35
+    seq 12  start   22.000  dur   2.000  disc_seq 0  pdt 22.000000  line 37
+    seq 13  start   24.000  dur   2.000  disc_seq 0  pdt 24.000000  line 39
+    seq 14  start   26.000  dur   2.000  disc_seq 0  pdt 26.000000  line 41
+    seq 15  start   28.000  dur   2.000  disc_seq 0  pdt 28.000000  line 43
+    seq 16  start   30.000  dur   2.000  disc_seq 0  pdt 30.000000  line 45
+    seq 17  start   32.000  dur   2.000  disc_seq 0  pdt 32.000000  line 47
+    seq 18  start   34.000  dur   2.000  disc_seq 0  pdt 34.000000  line 49
+    seq 19  start   36.000  dur   2.000  disc_seq 0  pdt 36.000000  line 51
+    seq 20  start   38.000  dur   2.000  disc_seq 0  pdt 38.000000  line 53
+    seq 21  start   40.000  dur   2.000  disc_seq 0  pdt 40.000000  line 58
+    seq 22  start   42.000  dur   2.000  disc_seq 0  pdt 42.000000  line 60
+    seq 23  start   44.000  dur   2.000  disc_seq 0  pdt 44.000000  line 62
+    seq 24  start   46.000  dur   2.000  disc_seq 0  pdt 46.000000  line 64
+    seq 25  start   48.000  dur   2.000  disc_seq 0  pdt 48.000000  line 66
+    seq 26  start   50.000  dur   2.000  disc_seq 0  pdt 50.000000  line 68
+    seq 27  start   52.000  dur   2.000  disc_seq 0  pdt 52.000000  line 70
+    seq 28  start   54.000  dur   2.000  disc_seq 0  pdt 54.000000  line 72
+    seq 29  start   56.000  dur   2.000  disc_seq 0  pdt 56.000000  line 74
+    seq 30  start   58.000  dur   2.000  disc_seq 0  pdt 58.000000  line 76
+    seq 31  start   60.000  dur   2.000  disc_seq 0  pdt 60.000000  line 78
+    seq 32  start   62.000  dur   2.000  disc_seq 0  pdt 62.000000  line 80
+    seq 33  start   64.000  dur   2.000  disc_seq 0  pdt 64.000000  line 82
+    seq 34  start   66.000  dur   2.000  disc_seq 0  pdt 66.000000  line 84
+    seq 35  start   68.000  dur   2.000  disc_seq 0  pdt 68.000000  line 86
+    seq 36  start   70.000  dur   2.000  disc_seq 0  pdt 70.000000  line 88
+    seq 37  start   72.000  dur   2.000  disc_seq 0  pdt 72.000000  line 90
+    seq 38  start   74.000  dur   2.000  disc_seq 0  pdt 74.000000  line 92
+    seq 39  start   76.000  dur   2.000  disc_seq 0  pdt 76.000000  line 94
+    seq 40  start   78.000  dur   2.000  disc_seq 0  pdt 78.000000  line 96
+    seq 41  start   80.000  dur   2.000  disc_seq 0  pdt 80.000000  line 98
+    seq 42  start   82.000  dur   2.000  disc_seq 0  pdt 82.000000  line 100
+    seq 43  start   84.000  dur   2.000  disc_seq 0  pdt 84.000000  line 102
+    seq 44  start   86.000  dur   2.000  disc_seq 0  pdt 86.000000  line 104
+    seq 45  start   88.000  dur   2.000  disc_seq 0  pdt 88.000000  line 106
+== downloads/stream-mux-dai-deltatre-master/body
+  ManifestParser::parse_hls_text: true, 5 tags
+    Unknown         pts     0.000  disc_seq 0  raw "#EXT-X-YOSPACE-ANALYTICS-URL:"https://csm-e-cebteurxaws416-2hjvnjz85og7.tls1.yospace.com/csm/analytics;jsessio..."
+    Discontinuity   pts    36.280  disc_seq 0  raw "#EXT-X-DISCONTINUITY"
+    Discontinuity   pts    66.280  disc_seq 0  raw "#EXT-X-DISCONTINUITY"
+    Discontinuity   pts   166.280  disc_seq 0  raw "#EXT-X-DISCONTINUITY"
+    Discontinuity   pts   216.280  disc_seq 0  raw "#EXT-X-DISCONTINUITY"
+  hls::parse_media_timeline: ok 1, 29 segments, total 266.000 s, discontinuities 4, endlist 1, type "EVENT"
+    seq 0  start    0.000  dur  10.000  disc_seq 0  pdt -  line 8
+    seq 1  start   10.000  dur  10.000  disc_seq 0  pdt -  line 11
+    seq 2  start   20.000  dur  10.000  disc_seq 0  pdt -  line 14
+    seq 3  start   30.000  dur   6.280  disc_seq 0  pdt -  line 17
+    seq 4  start   36.280  dur  10.000  disc_seq 1 (DISCONTINUITY)  pdt -  line 21
+    seq 5  start   46.280  dur  10.000  disc_seq 1  pdt -  line 23
+    seq 6  start   56.280  dur   7.200  disc_seq 1  pdt -  line 25
+    seq 7  start   63.480  dur   2.800  disc_seq 1  pdt -  line 27
+    seq 8  start   66.280  dur  10.000  disc_seq 2 (DISCONTINUITY)  pdt -  line 30
+    seq 9  start   76.280  dur  10.000  disc_seq 2  pdt -  line 32
+    seq 10  start   86.280  dur  10.000  disc_seq 2  pdt -  line 34
+    seq 11  start   96.280  dur  10.000  disc_seq 2  pdt -  line 36
+    seq 12  start  106.280  dur  10.000  disc_seq 2  pdt -  line 38
+    seq 13  start  116.280  dur  10.000  disc_seq 2  pdt -  line 40
+    seq 14  start  126.280  dur  10.000  disc_seq 2  pdt -  line 42
+    seq 15  start  136.280  dur  10.000  disc_seq 2  pdt -  line 44
+    seq 16  start  146.280  dur  10.000  disc_seq 2  pdt -  line 46
+    seq 17  start  156.280  dur   7.560  disc_seq 2  pdt -  line 48
+    seq 18  start  163.840  dur   2.440  disc_seq 2  pdt -  line 50
+    seq 19  start  166.280  dur  10.000  disc_seq 3 (DISCONTINUITY)  pdt -  line 53
+    seq 20  start  176.280  dur  10.000  disc_seq 3  pdt -  line 55
+    seq 21  start  186.280  dur  10.000  disc_seq 3  pdt -  line 57
+    seq 22  start  196.280  dur  10.000  disc_seq 3  pdt -  line 59
+    seq 23  start  206.280  dur  10.000  disc_seq 3  pdt -  line 61
+    seq 24  start  216.280  dur   9.720  disc_seq 4 (DISCONTINUITY)  pdt -  line 65
+    seq 25  start  226.000  dur  10.000  disc_seq 4  pdt -  line 68
+    seq 26  start  236.000  dur  10.000  disc_seq 4  pdt -  line 71
+    seq 27  start  246.000  dur  10.000  disc_seq 4  pdt -  line 74
+    seq 28  start  256.000  dur  10.000  disc_seq 4  pdt -  line 77
+exit=0

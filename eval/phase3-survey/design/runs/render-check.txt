@@ -1,0 +1,7 @@
+# cwd: <out>
+# command: 'bash' '-c' 'cmp design.md <(python3 -I -B design/tools/render.py design /dev/fd/3 3>&1 1>&2) && echo "design.md is byte-identical to its render from design/src and design/*.json"'
+# started: 2026-11-02T18:34:41Z, ended: 2026-11-02T18:34:41Z (UTC)
+# stdout and stderr, in order:
+/dev/fd/3: 279519 bytes; 44 questions (27, 9 and 8 in rounds 1 to 3), 25 packages, 28 P-entries (9 moved), 22 risks
+design.md is byte-identical to its render from design/src and design/*.json
+# exit status: 0

@@ -1,0 +1,17 @@
+# The commands of this record, as eval/timeline/run_all.sh ran them from
+# <out>, each with its exit status; <build> is the build directory environment.txt
+# names.
+$ cp -- media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/layout.json ad-continuous/layout.json
+# exit status 0
+$ <build>/mirage_vmaf timeline --report media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous.json --out ad-continuous/timeline.json --threshold 6 --window 50 --min-points 12
+# exit status 0
+$ python3 -I -B <repo>/eval/timeline/check.py curves ad-continuous/timeline.json
+# exit status 0
+$ <build>/mirage_vmaf attribute --timeline ad-continuous/timeline.json --report media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous.json --auto --curve pair:0 --threshold 6 --window 50 --min-points 12 --format json --out ad-continuous/answer.pair-0.json
+# exit status 0
+$ <build>/mirage_vmaf attribute --timeline ad-continuous/timeline.json --report media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous.json --auto --curve pair:0 --threshold 6 --window 50 --min-points 12 --format text --out ad-continuous/answer.pair-0.txt
+# exit status 0
+$ <build>/mirage_vmaf attribute --timeline ad-continuous/timeline.json --report media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous.json --auto --curve pair:1 --threshold 6 --window 50 --min-points 12 --format json --out ad-continuous/answer.pair-1.json
+# exit status 0
+$ <build>/mirage_vmaf attribute --timeline ad-continuous/timeline.json --report media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous.json --auto --curve pair:1 --threshold 6 --window 50 --min-points 12 --format text --out ad-continuous/answer.pair-1.txt
+# exit status 0

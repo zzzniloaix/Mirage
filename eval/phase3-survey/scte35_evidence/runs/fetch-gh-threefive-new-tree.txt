@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/gh-threefive-new-tree/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://api.github.com/repos/superkabuki/threefive_is_scte35/git/trees/cfc84da937eda48da7fa81046ea9a52632ee8ec0?recursive=1'
+date_utc: 2026-11-01T03:45:06Z
+http_code=200
+url_effective=https://api.github.com/repos/superkabuki/threefive_is_scte35/git/trees/cfc84da937eda48da7fa81046ea9a52632ee8ec0?recursive=1
+size_download=26314
+content_type=application/json; charset=utf-8
+curl_exit=0
+sha256=bb816137c4716965f2406f2ab31fc1b3b90985c950d89b1e9f039f3c108cb221

@@ -1,0 +1,61 @@
+$ python3 -I tables.py media/ad-mpeg2-a/layout.json reports/ad-mpeg2.json
+(in <out>/testgen)
+--- stdout ---
+# reports/ad-mpeg2.json: ad ladder, codec mpeg2video, source noise, reference mode top-rung, reference v360/index.m3u8, status complete
+
+## Pair 0: v270/index.m3u8 (rung v270) against v360/index.m3u8
+
+- frames paired 200, failed 0, failure rate 0, discontinuities 2, after_discontinuity 0, unmatched_reference 0, extra_distorted 0
+- reference sequences [{"first_index": 0, "first_pts": 10, "frames": 75}, {"first_index": 75, "first_pts": 10, "frames": 125}]
+- distorted sequences [{"first_index": 0, "first_pts": 10, "frames": 75}, {"first_index": 75, "first_pts": 10, "frames": 125}]
+- libvmaf contexts [{"first_index": 0, "pairs": 75}, {"first_index": 75, "pairs": 125}]
+- pooled mean 96.860, min 89.814
+- pairs whose reference PTS isn't the layout's for their reference frame: 0
+
+| segment | file | period | reference frames | pairs | mean VMAF | min VMAF | quantizer | tags before it |
+|---|---|---|---|---|---|---|---|---|
+| 0 | main_000.ts | main | 0-24 | 25 | 97.043 | 90.196 | 4 | - |
+| 1 | main_001.ts | main | 25-49 | 25 | 97.122 | 95.532 | 4 | - |
+| 2 | main_002.ts | main | 50-74 | 25 | 97.374 | 96.443 | 4 | - |
+| 3 | ad_000.ts | ad | 75-99 | 25 | 96.216 | 89.814 | 4 | EXT-X-DISCONTINUITY, #EXT-X-CUE-OUT:2.000 |
+| 4 | ad_001.ts | ad | 100-124 | 25 | 95.510 | 93.518 | 4 | #EXT-X-CUE-OUT-CONT:1.000/2.000 |
+| 5 | main_005.ts | main | 125-149 | 25 | 97.671 | 96.618 | 4 | EXT-X-DISCONTINUITY, #EXT-X-CUE-IN |
+| 6 | main_006.ts | main | 150-174 | 25 | 96.923 | 95.125 | 4 | - |
+| 7 | main_007.ts | main | 175-199 | 25 | 97.021 | 95.902 | 4 | - |
+
+Scores more than 6 points below the pair's median (97.124): 2 frames
+- pairs 0-0 (1 frames): first frame 0: segment 0 (main_000.ts, main), its frame 0 of 25; last frame 0: segment 0 (main_000.ts, main), its frame 0 of 25
+- pairs 75-75 (1 frames): first frame 75: segment 3 (ad_000.ts, ad), its frame 0 of 25; last frame 75: segment 3 (ad_000.ts, ad), its frame 0 of 25
+
+Trailing-median prototype (threshold 6, window 50, more than 12 frames): 1 low frames, 0 drops
+- pairs 75-75 (1 frames, too short): first frame 75: segment 3 (ad_000.ts, ad), its frame 0 of 25; last frame 75: segment 3 (ad_000.ts, ad), its frame 0 of 25; baseline at the first 97.316, lowest score 89.814
+
+## Pair 1: v180/index.m3u8 (rung v180) against v360/index.m3u8
+
+- frames paired 200, failed 0, failure rate 0, discontinuities 2, after_discontinuity 0, unmatched_reference 0, extra_distorted 0
+- reference sequences [{"first_index": 0, "first_pts": 10, "frames": 75}, {"first_index": 75, "first_pts": 10, "frames": 125}]
+- distorted sequences [{"first_index": 0, "first_pts": 10, "frames": 75}, {"first_index": 75, "first_pts": 10, "frames": 125}]
+- libvmaf contexts [{"first_index": 0, "pairs": 75}, {"first_index": 75, "pairs": 125}]
+- pooled mean 78.660, min 41.888
+- pairs whose reference PTS isn't the layout's for their reference frame: 0
+
+| segment | file | period | reference frames | pairs | mean VMAF | min VMAF | quantizer | tags before it |
+|---|---|---|---|---|---|---|---|---|
+| 0 | main_000.ts | main | 0-24 | 25 | 88.976 | 81.379 | 4 | - |
+| 1 | main_001.ts | main | 25-49 | 25 | 89.061 | 86.490 | 4 | - |
+| 2 | main_002.ts | main | 50-74 | 25 | 89.140 | 87.403 | 4 | - |
+| 3 | ad_000.ts | ad | 75-99 | 25 | 47.984 | 41.888 | 31 | EXT-X-DISCONTINUITY, #EXT-X-CUE-OUT:2.000 |
+| 4 | ad_001.ts | ad | 100-124 | 25 | 46.974 | 44.704 | 31 | #EXT-X-CUE-OUT-CONT:1.000/2.000 |
+| 5 | main_005.ts | main | 125-149 | 25 | 89.536 | 88.443 | 4 | EXT-X-DISCONTINUITY, #EXT-X-CUE-IN |
+| 6 | main_006.ts | main | 150-174 | 25 | 88.851 | 86.052 | 4 | - |
+| 7 | main_007.ts | main | 175-199 | 25 | 88.755 | 86.865 | 4 | - |
+
+Scores more than 6 points below the pair's median (88.815): 51 frames
+- pairs 0-0 (1 frames): first frame 0: segment 0 (main_000.ts, main), its frame 0 of 25; last frame 0: segment 0 (main_000.ts, main), its frame 0 of 25
+- pairs 75-124 (50 frames): first frame 75: segment 3 (ad_000.ts, ad), its frame 0 of 25; last frame 124: segment 4 (ad_001.ts, ad), its frame 24 of 25
+
+Trailing-median prototype (threshold 6, window 50, more than 12 frames): 50 low frames, 1 drops
+- pairs 75-124 (50 frames, drop): first frame 75: segment 3 (ad_000.ts, ad), its frame 0 of 25; last frame 124: segment 4 (ad_001.ts, ad), its frame 24 of 25; baseline at the first 89.301, lowest score 41.888
+
+--- stderr ---
+--- exit status 0, wall time 0.051 s (time.monotonic) ---

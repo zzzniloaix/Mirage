@@ -1,0 +1,182 @@
+command (cwd <out>/scte35_evidence): sh tools/cue_positions_all.sh
+date_utc: 2026-11-01T04:18:38Z
+tool sha256: 6d1da7f8a2082658fb47d7c5001a4a0c960f0247704757470f41642e1102ce28  tools/build_vectors.py
+tool sha256: 43553cf5f9b59689d1e576b7c3e155390e518dafcb162443170f0e126ec5982c  tools/check_vectors.py
+tool sha256: 12ca135799c24d24a217a97c7173b233e459c4b74454b11af90cf011b7e9042e  tools/cue_positions.py
+tool sha256: ea5b756f6aebcef51a2bb5bbed43413a24ddaf34f5827273353d162b5888ecbd  tools/hls_tags.py
+tool sha256: 1198bc8093385554dc76dbf33b39eba1e268e04bd41029204eb515a9a2bad424  tools/html2text.py
+tool sha256: 2d0d1cf92518bfdaae87df6074f2f5cba87094ce6370a9f93692e68b442623ed  tools/pdftext.py
+tool sha256: bb4cef1ddae32dc390b419725a8dd855db5b29cf09393ac13075346bb7d0429b  tools/scte35_decode.py
+tool sha256: 68725f0ab733b49592947589b2c1487c2860e90d2139648bd01962a844586a33  tools/ts_pid_payload.py
+tool sha256: a6776bd3814f82dda3a9f23c742e8b44b19ff14219a75815705ed5b85f1d6b69  tools/ts_probe.py
+tool sha256: 31eaa39d0407aef0b730c3040c99c60547baa671bc42bdac69f17039fe79fe4a  tools/build_parser_probe.sh
+tool sha256: d5c54a09eac63794dc001f0aa52d4fe3cda311723f0d47ba1b1675e47848b04a  tools/cue_positions_all.sh
+tool sha256: 7cbb2161e7335376fcd6f6bd2f96281787bdb449b7e82494dc4a78ebb143f39d  tools/derive_all.sh
+tool sha256: d76a774d051045faf19a109b5d8f79bb79e384f26477b2e82b0137b9a108529f  tools/fetch.sh
+tool sha256: 05f5b16a93a29786124d69d7e5f6bbd233fd2661416449381e8e50e599f90c76  tools/pipeline.sh
+tool sha256: df159afaa73c1c23ecc8bf5ea69cf75e4d668b19f36e6658e8539d19173ebe5f  tools/repo_grep.sh
+tool sha256: bfbac2ffbe328635c262072da72d6fd3923bfcc5e70f44b8c0b2507a818fee8e  tools/run.sh
+tool sha256: f50c6568c519b76f507c5c20a8fc22a1856af0244678962334cf41a0cc61da74  tools/same_daterange.sh
+output (stdout and stderr):
+== threefive-2024 examples/hls/scte35.m3u8 (MIT): lines 1-68 of downloads/threefive-old-examples_hls_scte35.m3u8/body
+   segments 24, playlist duration 226.067 s, EXT-X-PLAYLIST-TYPE VOD, EXT-X-ENDLIST yes
+ line 8: #EXT-OATCLS-SCTE35:<vector threefive-2024:examples/hls/scte35.m3u8:8>
+    position: applies to segment #1 (URI line 11): playlist time 10.0 s, no PDT
+    payload: time_signal, crc ok, type 0x34, <splice PTS removed (Q21); checked: equal to this tag's playlist time>
+ line 9: #EXT-X-CUE-OUT:30.000
+    position: applies to segment #1 (URI line 11): playlist time 10.0 s, no PDT
+ line 12: #EXT-X-CUE-OUT-CONT:ElapsedTime=2.000,Duration=30,SCTE35=<vector threefive-2024:examples/hls/scte35.m3u8:8>
+    position: applies to segment #2 (URI line 14): playlist time 12.0 s, no PDT
+    payload: time_signal, crc ok, type 0x34, <splice PTS removed (Q21); the same message as at line 8>
+ line 15: #EXT-X-CUE-OUT-CONT:ElapsedTime=14.000,Duration=30,SCTE35=<vector threefive-2024:examples/hls/scte35.m3u8:8>
+    position: applies to segment #3 (URI line 17): playlist time 24.0 s, no PDT
+    payload: time_signal, crc ok, type 0x34, <splice PTS removed (Q21); the same message as at line 8>
+ line 18: #EXT-X-CUE-OUT-CONT:ElapsedTime=26.000,Duration=30,SCTE35=<vector threefive-2024:examples/hls/scte35.m3u8:8>
+    position: applies to segment #4 (URI line 20): playlist time 36.0 s, no PDT
+    payload: time_signal, crc ok, type 0x34, <splice PTS removed (Q21); the same message as at line 8>
+ line 21: #EXT-OATCLS-SCTE35:<vector threefive-2024:examples/hls/scte35.m3u8:21>
+    position: applies to segment #5 (URI line 24): playlist time 40.0 s, no PDT
+    payload: time_signal, crc ok, type 0x35, <splice PTS removed (Q21); checked: equal to this tag's playlist time>
+ line 22: #EXT-X-CUE-IN
+    position: applies to segment #5 (URI line 24): playlist time 40.0 s, no PDT
+ line 31: #EXT-OATCLS-SCTE35:<vector threefive-2024:examples/hls/scte35.m3u8:31>
+    position: applies to segment #9 (URI line 34): playlist time 75.0 s, no PDT
+    payload: time_signal, crc ok, type 0x34, <splice PTS removed (Q21); checked: equal to this tag's playlist time>
+ line 32: #EXT-X-CUE-OUT:30.000
+    position: applies to segment #9 (URI line 34): playlist time 75.0 s, no PDT
+ line 35: #EXT-X-CUE-OUT-CONT:ElapsedTime=9.000,Duration=30,SCTE35=<vector threefive-2024:examples/hls/scte35.m3u8:31>
+    position: applies to segment #10 (URI line 37): playlist time 84.0 s, no PDT
+    payload: time_signal, crc ok, type 0x34, <splice PTS removed (Q21); the same message as at line 31>
+ line 38: #EXT-X-CUE-OUT-CONT:ElapsedTime=21.000,Duration=30,SCTE35=<vector threefive-2024:examples/hls/scte35.m3u8:31>
+    position: applies to segment #11 (URI line 40): playlist time 96.0 s, no PDT
+    payload: time_signal, crc ok, type 0x34, <splice PTS removed (Q21); the same message as at line 31>
+ line 41: #EXT-OATCLS-SCTE35:<vector threefive-2024:examples/hls/scte35.m3u8:41>
+    position: applies to segment #12 (URI line 44): playlist time 105.0 s, no PDT
+    payload: time_signal, crc ok, type 0x35, <splice PTS removed (Q21); checked: equal to this tag's playlist time>
+ line 42: #EXT-X-CUE-IN
+    position: applies to segment #12 (URI line 44): playlist time 105.0 s, no PDT
+
+== threefive-2024 examples/hls/simple-scte35.m3u8 (MIT): lines 1-16 of downloads/threefive-old-examples_hls_simple-scte35.m3u8/body
+   segments 4, playlist duration 19.0 s, EXT-X-PLAYLIST-TYPE None, EXT-X-ENDLIST no
+ line 5: #EXT-OATCLS-SCTE35:<vector threefive-2024:examples/hls/simple-scte35.m3u8:5>
+    position: applies to segment #0 (URI line 8): playlist time 0.0 s, no PDT
+    payload: splice_insert, crc ok, out, <break_duration and splice PTS removed (Q21); checked: the splice PTS is later than the playlist's end (19.0 s), so it is not a playlist time>
+ line 6: #EXT-X-CUE-OUT:15.000
+    position: applies to segment #0 (URI line 8): playlist time 0.0 s, no PDT
+ line 9: #EXT-X-CUE-OUT-CONT:ElapsedTime=8.844,Duration=15,SCTE35=<vector threefive-2024:examples/hls/simple-scte35.m3u8:5>
+    position: applies to segment #1 (URI line 11): playlist time 8.844 s, no PDT
+    payload: splice_insert, crc ok, out, <break_duration and splice PTS removed (Q21); the same message as at line 5>
+ line 12: #EXT-X-CUE-IN
+    position: applies to segment #2 (URI line 14): playlist time 15.0 s, no PDT
+
+== Unified Streaming Remix AVOD demo, 4017000 b/s video playlist (fetched): lines 1-108 of downloads/stream-unified-avod-k8s-video4017000/body
+   segments 45, playlist duration 90.0 s, EXT-X-PLAYLIST-TYPE VOD, EXT-X-ENDLIST yes, USP-X-TIMESTAMP-MAP MPEGTS=900000,LOCAL=1970-01-01T00:00:00Z
+ line 21: #EXT-X-DATERANGE:ID="0-10",START-DATE="1970-01-01T00:00:10Z",PLANNED-DURATION=30,SCTE35-OUT=<vector unified-avod-demo:21:SCTE35-OUT>
+    position: applies to segment #5 (URI line 25): playlist time 10.0 s, PDT 1970-01-01T00:00:10+00:00
+    START-DATE 1970-01-01T00:00:10+00:00: inside segment #5, playlist time 10.0 s (+0.0 s from the tag's position)
+    payload: splice_insert, crc ok, out, immediate, <break_duration removed (Q21); checked: equal to the tag's PLANNED-DURATION>, no splice PTS in the message
+ line 22: #EXT-X-CUE-OUT:30
+    position: applies to segment #5 (URI line 25): playlist time 10.0 s, PDT 1970-01-01T00:00:10+00:00
+ line 55: #EXT-X-CUE-IN
+    position: applies to segment #20 (URI line 58): playlist time 40.0 s, PDT 1970-01-01T00:00:40+00:00
+
+== AWS MediaPackage v1 example manifest: lines 120-153 of downloads/aws-mediapackage-v1-scte.md/body
+   segments 11, playlist duration 68.04 s, EXT-X-PLAYLIST-TYPE None, EXT-X-ENDLIST yes
+ line 124: #EXT-X-DATERANGE:ID="2415919105",START-DATE="2020-05-03T00:01:00.018Z",PLANNED-DURATION=29.988,SCTE35-OUT=<vector aws-mediapackage-v1:124:SCTE35-OUT>
+    position: applies to segment #0 (URI line 128): playlist time 0.0 s, PDT 2020-05-03T00:01:08.040000+00:00
+    START-DATE 2020-05-03T00:01:00.018000+00:00: in no segment's PDT range; extrapolated from segment #0: playlist time -8.022 s (-8.022 s from the tag's position)
+    payload: time_signal, crc ok, type 0x30, <segmentation_duration and splice PTS removed (Q21); checked: the splice PTS includes a nonzero pts_adjustment>
+    START-DATE minus the splice PTS: <removed (Q21); the same value as at lines 125 and 145, and as END-DATE minus the splice PTS at line 144>
+ line 125: #EXT-X-DATERANGE:ID="2147483649",START-DATE="2020-05-03T00:00:30.030Z",PLANNED-DURATION=90.006,SCTE35-CMD=<vector aws-mediapackage-v1:125:SCTE35-CMD>
+    position: applies to segment #0 (URI line 128): playlist time 0.0 s, PDT 2020-05-03T00:01:08.040000+00:00
+    START-DATE 2020-05-03T00:00:30.030000+00:00: in no segment's PDT range; extrapolated from segment #0: playlist time -38.01 s (-38.01 s from the tag's position)
+    payload: time_signal, crc ok, type 0x10, <segmentation_duration and splice PTS removed (Q21); checked: the splice PTS includes the same pts_adjustment as at line 124>
+    START-DATE minus the splice PTS: <removed (Q21); the same value as at lines 124 and 145>
+ line 133: #EXT-X-DATERANGE:ID="2415919105",START-DATE="2020-05-03T00:01:00.018Z",END-DATE="2020-05-03T00:01:30.006Z",DURATION=29.988
+    position: applies to segment #3 (URI line 135): playlist time 21.966 s, PDT 2020-05-03T00:01:30.006000+00:00
+    START-DATE 2020-05-03T00:01:00.018000+00:00: in no segment's PDT range; extrapolated from segment #0: playlist time -8.022 s (-29.988 s from the tag's position)
+ line 144: #EXT-X-DATERANGE:ID="2147483649",START-DATE="2020-05-03T00:00:30.030Z",END-DATE="2020-05-03T00:02:00.036Z",DURATION=90.006,SCTE35-CMD=<vector aws-mediapackage-v1:144:SCTE35-CMD>
+    position: applies to segment #8 (URI line 147): playlist time 51.996 s, PDT 2020-05-03T00:02:00.036000+00:00
+    START-DATE 2020-05-03T00:00:30.030000+00:00: in no segment's PDT range; extrapolated from segment #0: playlist time -38.01 s (-90.006 s from the tag's position)
+    payload: time_signal, crc ok, type 0x11, type 0x10, <segmentation_durations and splice PTS removed (Q21); checked: the splice PTS includes the same pts_adjustment as at line 124>
+    START-DATE minus the splice PTS: <removed (Q21); not the value of lines 124, 125 and 145>
+    END-DATE minus the splice PTS: <removed (Q21); the same value as START-DATE minus the splice PTS at lines 124, 125 and 145>
+ line 145: #EXT-X-DATERANGE:ID="2147483650",START-DATE="2020-05-03T00:02:00.036Z",PLANNED-DURATION=90.006,SCTE35-CMD=<vector aws-mediapackage-v1:144:SCTE35-CMD>
+    position: applies to segment #8 (URI line 147): playlist time 51.996 s, PDT 2020-05-03T00:02:00.036000+00:00
+    START-DATE 2020-05-03T00:02:00.036000+00:00: inside segment #8, playlist time 51.996 s (+0.0 s from the tag's position)
+    payload: time_signal, crc ok, type 0x11, type 0x10, <segmentation_durations and splice PTS removed (Q21); the same message as at line 144>
+    START-DATE minus the splice PTS: <removed (Q21); the same value as at lines 124 and 125>
+
+== Unified Origin live example (docs): lines 1522-1541 of derived/unified-live-scte-35.txt
+   segments 7, playlist duration 28.0 s, EXT-X-PLAYLIST-TYPE None, EXT-X-ENDLIST no
+ line 1524: #EXT-X-DATERANGE:ID="2002",START-DATE="2018-10-29T10:38:00Z",PLANNED-DURATION=24,SCTE35-OUT=<vector unified-origin:1524:SCTE35-OUT>
+    position: applies to segment #1 (URI line 1528): playlist time 4.0 s, PDT 2018-10-29T10:38:00+00:00
+    START-DATE 2018-10-29T10:38:00+00:00: inside segment #1, playlist time 4.0 s (+0.0 s from the tag's position)
+    payload: splice_insert, crc ok, out, <break_duration removed (Q21)>, no splice PTS in the message
+ line 1525: #EXT-X-CUE-OUT:24
+    position: applies to segment #1 (URI line 1528): playlist time 4.0 s, PDT 2018-10-29T10:38:00+00:00
+ line 1539: #EXT-X-CUE-IN
+    position: after the last segment
+
+== Wowza DATERANGE example: lines 1791-1820 of derived/wowza-scte-35.txt
+   segments 11, playlist duration 103.896 s, EXT-X-PLAYLIST-TYPE None, EXT-X-ENDLIST no
+ line 1804: #EXT-X-DATERANGE:ID="0001",START-DATE=2021-04-14T16:00:00.258Z,PLANNED-DURATION=60.000,SCTE35-OUT<vector wowza:1804:SCTE35-OUT>
+    position: applies to segment #3 (URI line 1805): playlist time 24.136 s, PDT 2021-04-14T15:59:46.458000+00:00
+    START-DATE 2021-04-14T16:00:00.258000+00:00: inside segment #4, playlist time 37.936 s (+13.8 s from the tag's position)
+    payload: not decoded (section_length 47 needs 50 bytes, the data has 47)
+ line 1817: #EXT-X-DATERANGE:ID="0001",START-DATE=2021-04-14T16:00:00.258Z,END-DATE=2021-04-14T16:01:00.258Z,DURATION=60.000,SCTE35-IN<vector wowza:1817:SCTE35-IN>
+    position: applies to segment #9 (URI line 1818): playlist time 83.896 s, PDT 2021-04-14T16:00:46.218000+00:00
+    START-DATE 2021-04-14T16:00:00.258000+00:00: inside segment #4, playlist time 37.936 s (-45.96 s from the tag's position)
+    payload: not decoded (section_length 42 needs 45 bytes, the data has 42)
+
+== Wowza EXT-X-CUE example: lines 1830-1870 of derived/wowza-scte-35.txt
+   segments 13, playlist duration 109.267 s, EXT-X-PLAYLIST-TYPE None, EXT-X-ENDLIST no
+ line 1845: #EXT-X-CUE-OUT:60.000
+    position: applies to segment #4 (URI line 1847): playlist time 35.0 s, PDT 2023-11-29T11:58:04.815000+00:00
+ line 1846: #EXT-OATCLS-SCTE35:<vector wowza:1846:EXT-OATCLS-SCTE35>
+    position: applies to segment #4 (URI line 1847): playlist time 35.0 s, PDT 2023-11-29T11:58:04.815000+00:00
+    payload: splice_insert, crc ok, out, <break_duration and splice PTS removed (Q21); checked: the splice PTS is not this segment's playlist time>
+ line 1849: #EXT-X-CUE-OUT-CONT:ElapsedTime=3.700,Duration=60.000,SCTE35=<vector wowza:1846:EXT-OATCLS-SCTE35>
+    position: applies to segment #5 (URI line 1850): playlist time 38.7 s, PDT 2023-11-29T11:58:08.515000+00:00
+    payload: splice_insert, crc ok, out, <break_duration and splice PTS removed (Q21); the same message as at line 1846>
+ line 1852: #EXT-X-CUE-OUT-CONT:ElapsedTime=13.567,Duration=60.000,SCTE35=<vector wowza:1846:EXT-OATCLS-SCTE35>
+    position: applies to segment #6 (URI line 1853): playlist time 48.567 s, PDT 2023-11-29T11:58:18.382000+00:00
+    payload: splice_insert, crc ok, out, <break_duration and splice PTS removed (Q21); the same message as at line 1846>
+ line 1855: #EXT-X-CUE-OUT-CONT:ElapsedTime=24.100,Duration=60.000,SCTE35=<vector wowza:1846:EXT-OATCLS-SCTE35>
+    position: applies to segment #7 (URI line 1856): playlist time 59.1 s, PDT 2023-11-29T11:58:28.915000+00:00
+    payload: splice_insert, crc ok, out, <break_duration and splice PTS removed (Q21); the same message as at line 1846>
+ line 1858: #EXT-X-CUE-OUT-CONT:ElapsedTime=34.133,Duration=60.000,SCTE35=<vector wowza:1846:EXT-OATCLS-SCTE35>
+    position: applies to segment #8 (URI line 1859): playlist time 69.133 s, PDT 2023-11-29T11:58:38.948000+00:00
+    payload: splice_insert, crc ok, out, <break_duration and splice PTS removed (Q21); the same message as at line 1846>
+ line 1861: #EXT-X-CUE-OUT-CONT:ElapsedTime=44.100,Duration=60.000,SCTE35=<vector wowza:1846:EXT-OATCLS-SCTE35>
+    position: applies to segment #9 (URI line 1862): playlist time 79.1 s, PDT 2023-11-29T11:58:48.915000+00:00
+    payload: splice_insert, crc ok, out, <break_duration and splice PTS removed (Q21); the same message as at line 1846>
+ line 1864: #EXT-X-CUE-OUT-CONT:ElapsedTime=54.367,Duration=60.000,SCTE35=<vector wowza:1846:EXT-OATCLS-SCTE35>
+    position: applies to segment #10 (URI line 1865): playlist time 89.367 s, PDT 2023-11-29T11:58:59.182000+00:00
+    payload: splice_insert, crc ok, out, <break_duration and splice PTS removed (Q21); the same message as at line 1846>
+ line 1867: #EXT-X-CUE-IN
+    position: applies to segment #11 (URI line 1868): playlist time 95.0 s, PDT 2023-11-29T11:59:04.815000+00:00
+
+== broadpeak.io DATERANGE example: lines 424-440 of derived/broadpeak-dai-scte35.txt
+   segments 5, playlist duration 28.0 s, EXT-X-PLAYLIST-TYPE None, EXT-X-ENDLIST no
+ line 434: #EXT-X-DATERANGE:ID="18",START-DATE="2022-09-20T08:44:09.400Z",PLANNED-DURATION=45.000,SCTE35-OUT=<vector broadpeak:434:SCTE35-OUT>
+    position: applies to segment #2 (URI line 436): playlist time 9.76 s, PDT 2022-09-20T08:44:09.400000+00:00
+    START-DATE 2022-09-20T08:44:09.400000+00:00: inside segment #2, playlist time 9.76 s (+0.0 s from the tag's position)
+    payload: splice_insert, crc ok, out, <break_duration and splice PTS removed (Q21); checked: pts_time + pts_adjustment wraps past 2^33>
+    START-DATE minus the splice PTS: <removed (Q21)>
+
+== broadpeak.io EXT-OATCLS-SCTE35 example: lines 450-465 of derived/broadpeak-dai-scte35.txt
+   segments 5, playlist duration 24.0 s, EXT-X-PLAYLIST-TYPE None, EXT-X-ENDLIST no
+ line 459: #EXT-OATCLS-SCTE35:<vector broadpeak:459:EXT-OATCLS-SCTE35>
+    position: applies to segment #2 (URI line 461): playlist time 9.24 s, PDT 2022-12-27T09:37:09.240000+00:00
+    payload: splice_insert, crc ok, out, immediate, <break_duration removed (Q21)>, no splice PTS in the message
+
+   warning: line 507: a URI line without EXTINF, skipped (not counted as a segment)
+== broadpeak.io EXT-X-CUE-OUT example: lines 502-523 of derived/broadpeak-dai-scte35.txt
+   segments 7, playlist duration 36.0 s, EXT-X-PLAYLIST-TYPE None, EXT-X-ENDLIST no
+ line 510: #EXT-X-CUE-OUT:20.76
+    position: applies to segment #1 (URI line 512): playlist time 3.24 s, PDT 2022-12-27T09:37:03.240000+00:00
+ line 519: #EXT-X-CUE-IN
+    position: applies to segment #5 (URI line 521): playlist time 24.0 s, PDT 2022-12-27T09:37:24+00:00
+
+exit=0

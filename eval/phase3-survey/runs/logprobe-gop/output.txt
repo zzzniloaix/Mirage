@@ -1,0 +1,238 @@
+== events: t_us, thread, kind, fields ==
+3298	t1	avformat_open_input	gop/index.m3u8
+5275	t1	open_begin	ctx#1	url=gop/index.m3u8	offset=-	end_offset=-
+5279	t1	log	cbA	DEBUG	AVFormatContext#1	Opening 'gop/index.m3u8' for reading\n
+5578	t1	log	cbA	DEBUG	URLContext#2	Setting default whitelist 'file,crypto,data'\n
+5680	t1	open_end	ctx#1	ret=0	pb#3
+6755	t1	log	cbA	TRACE	-#0	Probing hls score:100 size:217\n
+8231	t1	log	cbA	DEBUG	AVFormatContext#1	Format hls probed with size=2048 and score=100\n
+8297	t1	log	cbA	VERBOSE	AVFormatContext#1	Skip ('#EXT-X-VERSION:3')\n
+8489	t1	log	cbA	TRACE	AVFormatContext#1	new_program: id=0x0000\n
+8495	t1	log	cbA	VERBOSE	AVFormatContext#1	HLS request for url 'gop/seg0.ts', offset 0, playlist 0\n
+8498	t1	open_begin	ctx#1	url=gop/seg0.ts	offset=-	end_offset=-
+8499	t1	log	cbA	INFO	AVFormatContext#1	Opening 'gop/seg0.ts' for reading\n
+8554	t1	open_end	ctx#1	ret=0	pb#4
+8755	t1	log	cbA	TRACE	-#0	Probing mp3 score:1 size:2048\n
+8761	t1	log	cbA	TRACE	-#0	Probing mpegts score:50 size:2048\n
+8763	t1	log	cbA	TRACE	-#0	Probing mpegvideo score:12 size:2048\n
+8787	t1	log	cbA	DEBUG	-#0	Format mpegts probed with size=2048 and score=50\n
+8827	t1	log	cbA	TRACE	AVFormatContext#5	Probe: 8192, score: 44, dvhs_score: -2, fec_score: -2 \n
+8829	t1	log	cbA	TRACE	AVFormatContext#5	Filter: pid=0x11 type=1\n
+8830	t1	log	cbA	TRACE	AVFormatContext#5	Filter: pid=0x0 type=1\n
+8831	t1	log	cbA	TRACE	AVFormatContext#5	Filter: pid=0x12 type=1\n
+8835	t1	log	cbA	TRACE	AVFormatContext#5	SDT:\n
+8836	t1	log	cbA	TRACE	AVFormatContext#5	tag: 0x48 len=18\n
+10167	t1	log	cbA	TRACE	AVFormatContext#5	new_program: id=0x0001\n
+10171	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+10172	t1	log	cbA	TRACE	AVFormatContext#5	sid=0x1 pid=0x1000\n
+10173	t1	log	cbA	TRACE	AVFormatContext#5	new_program: id=0x0001\n
+10177	t1	log	cbA	TRACE	AVFormatContext#5	Filter: pid=0x1000 type=1\n
+10179	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+10180	t1	log	cbA	TRACE	AVFormatContext#5	sid=0x1 sec_num=0/0 version=0 tid=2\n
+10181	t1	log	cbA	TRACE	AVFormatContext#5	pcr_pid=0x100\n
+10184	t1	log	cbA	TRACE	AVFormatContext#5	Filter: pid=0x100 type=0\n
+11121	t1	log	cbA	DEBUG	AVFormatContext#5	stream=0 stream_type=2 pid=100 prog_reg_desc=\n
+11131	t1	log	cbA	TRACE	AVFormatContext#5	tuning done\n
+11322	t1	avformat_find_stream_info
+11333	t1	log	cbA	DEBUG	AVFormatContext#1	Before avformat_find_stream_info() pos: 217 bytes read:217 seeks:0 nb_streams:1\n
+13957	t1	log	cbA	TRACE	AVFormatContext#5	Skipping after seek\n
+13966	t1	log	cbA	TRACE	AVFormatContext#5	SDT:\n
+13972	t1	log	cbA	TRACE	AVFormatContext#5	tag: 0x48 len=18\n
+14118	t1	log	cbA	TRACE	AVFormatContext#5	new_program: id=0x0001\n
+14120	t1	log	cbA	DEBUG	AVFormatContext#5	All programs have pmt, headers found\n
+14121	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+14122	t1	log	cbA	TRACE	AVFormatContext#5	sid=0x1 pid=0x1000\n
+14122	t1	log	cbA	TRACE	AVFormatContext#5	new_program: id=0x0001\n
+14123	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+14124	t1	log	cbA	TRACE	AVFormatContext#5	sid=0x1 sec_num=0/0 version=0 tid=2\n
+14125	t1	log	cbA	TRACE	AVFormatContext#5	pcr_pid=0x100\n
+14127	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+14141	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+14191	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+14621	t1	log	cbA	DEBUG	AVCodecContext#6	Format yuv420p chosen by get_format().\n
+14694	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+14701	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+14705	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+14708	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+14714	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+14717	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+14721	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+14726	t1	close	ctx#1	pb#4	bytes_read=14664	error=0
+14728	t1	log	cbA	VERBOSE	AVIOContext#4	Statistics: 14664 bytes read, 0 seeks\n
+14740	t1	log	cbA	VERBOSE	AVFormatContext#1	HLS request for url 'gop/seg1.ts', offset 0, playlist 0\n
+14743	t1	open_begin	ctx#1	url=gop/seg1.ts	offset=-	end_offset=-
+14774	t1	log	cbA	INFO	AVFormatContext#1	Opening 'gop/seg1.ts' for reading\n
+14818	t1	open_end	ctx#1	ret=0	pb#4
+14943	t1	log	cbA	TRACE	AVFormatContext#5	SDT:\n
+14944	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+14945	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+14947	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+14955	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+14960	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+14966	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+14970	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+14973	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+14976	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+14978	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+14983	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+14987	t1	close	ctx#1	pb#4	bytes_read=16168	error=0
+14989	t1	log	cbA	VERBOSE	AVIOContext#4	Statistics: 16168 bytes read, 0 seeks\n
+14998	t1	log	cbA	VERBOSE	AVFormatContext#1	HLS request for url 'gop/seg2.ts', offset 0, playlist 0\n
+15001	t1	open_begin	ctx#1	url=gop/seg2.ts	offset=-	end_offset=-
+15002	t1	log	cbA	INFO	AVFormatContext#1	Opening 'gop/seg2.ts' for reading\n
+15035	t1	open_end	ctx#1	ret=0	pb#4
+15184	t1	log	cbA	TRACE	AVFormatContext#5	SDT:\n
+15185	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+15186	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+15187	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+15191	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+15195	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+15198	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+15201	t1	log	cbA	DEBUG	AVFormatContext#1	All info found\n
+15219	t1	log	cbA	TRACE	AVFormatContext#1	stream 0: start_time: 0.04 duration: NOPTS\n
+15220	t1	log	cbA	TRACE	AVFormatContext#1	format: start_time: 0.04 duration: 1.52 (estimate from stream) bitrate=1 kb/s\n
+15528	t1	log	cbA	DEBUG	AVFormatContext#1	After avformat_find_stream_info() pos: 217 bytes read:217 seeks:0 frames:21\n
+15541	t1	opened	format=hls	video_stream=0	time_base=1/90000	stream_start=0.040000	container_start_us=40000	duration_us=1520000	nb_programs=1	opens_so_far=4
+15543	t1	packet	pts=0.040000	dts=0.000000	duration=3600	key=1	corrupt=0	size=2849	pos=564	opens_so_far=4	last_open=gop/seg2.ts
+15546	t1	log	cbA	DEBUG	AVCodecContext#6	Format yuv420p chosen by get_format().\n
+16759	t1	packet	pts=0.160000	dts=0.040000	duration=3600	key=0	corrupt=0	size=1503	pos=3572	opens_so_far=4	last_open=gop/seg2.ts
+16812	t1	frame	pts=0.040000	best_effort=0.040000	pkt_dts=0.040000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+16825	t1	packet	pts=0.080000	dts=0.080000	duration=3600	key=0	corrupt=0	size=623	pos=5264	opens_so_far=4	last_open=gop/seg2.ts
+16844	t1	frame	pts=0.080000	best_effort=0.080000	pkt_dts=0.080000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+16845	t1	packet	pts=0.120000	dts=0.120000	duration=3600	key=0	corrupt=0	size=1063	pos=6016	opens_so_far=4	last_open=gop/seg2.ts
+16862	t1	frame	pts=0.120000	best_effort=0.120000	pkt_dts=0.120000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+16863	t1	packet	pts=0.280000	dts=0.160000	duration=3600	key=0	corrupt=0	size=1236	pos=7144	opens_so_far=4	last_open=gop/seg2.ts
+16880	t1	frame	pts=0.160000	best_effort=0.160000	pkt_dts=0.160000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+16881	t1	packet	pts=0.200000	dts=0.200000	duration=3600	key=0	corrupt=0	size=1216	pos=8460	opens_so_far=4	last_open=gop/seg2.ts
+16898	t1	frame	pts=0.200000	best_effort=0.200000	pkt_dts=0.200000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+16899	t1	packet	pts=0.240000	dts=0.240000	duration=3600	key=0	corrupt=0	size=996	pos=9776	opens_so_far=4	last_open=gop/seg2.ts
+16914	t1	frame	pts=0.240000	best_effort=0.240000	pkt_dts=0.240000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+16915	t1	packet	pts=0.400000	dts=0.280000	duration=3600	key=0	corrupt=0	size=1321	pos=10904	opens_so_far=4	last_open=gop/seg2.ts
+16957	t1	frame	pts=0.280000	best_effort=0.280000	pkt_dts=0.280000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+16958	t1	packet	pts=0.320000	dts=0.320000	duration=3600	key=0	corrupt=0	size=1117	pos=12408	opens_so_far=4	last_open=gop/seg2.ts
+16975	t1	frame	pts=0.320000	best_effort=0.320000	pkt_dts=0.320000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+16976	t1	packet	pts=0.360000	dts=0.360000	duration=3600	key=0	corrupt=0	size=755	pos=13724	opens_so_far=4	last_open=gop/seg2.ts
+16989	t1	frame	pts=0.360000	best_effort=0.360000	pkt_dts=0.360000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+16990	t1	packet	pts=0.520000	dts=0.400000	duration=3600	key=1	corrupt=0	size=2772	pos=15228	opens_so_far=4	last_open=gop/seg2.ts
+17018	t1	frame	pts=0.400000	best_effort=0.400000	pkt_dts=0.400000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+17019	t1	packet	pts=0.440000	dts=0.440000	duration=3600	key=0	corrupt=0	size=1436	pos=18236	opens_so_far=4	last_open=gop/seg2.ts
+17037	t1	frame	pts=0.440000	best_effort=0.440000	pkt_dts=0.440000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+17038	t1	packet	pts=0.480000	dts=0.480000	duration=3600	key=0	corrupt=0	size=1519	pos=19740	opens_so_far=4	last_open=gop/seg2.ts
+17057	t1	frame	pts=0.480000	best_effort=0.480000	pkt_dts=0.480000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+17058	t1	packet	pts=0.640000	dts=0.520000	duration=3600	key=0	corrupt=0	size=1331	pos=21432	opens_so_far=4	last_open=gop/seg2.ts
+17074	t1	frame	pts=0.520000	best_effort=0.520000	pkt_dts=0.520000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17075	t1	packet	pts=0.560000	dts=0.560000	duration=3600	key=0	corrupt=0	size=1574	pos=22936	opens_so_far=4	last_open=gop/seg2.ts
+17093	t1	frame	pts=0.560000	best_effort=0.560000	pkt_dts=0.560000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+17094	t1	packet	pts=0.600000	dts=0.600000	duration=3600	key=0	corrupt=0	size=1482	pos=24628	opens_so_far=4	last_open=gop/seg2.ts
+17111	t1	frame	pts=0.600000	best_effort=0.600000	pkt_dts=0.600000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+17112	t1	packet	pts=0.760000	dts=0.640000	duration=3600	key=0	corrupt=0	size=1235	pos=26320	opens_so_far=4	last_open=gop/seg2.ts
+17127	t1	frame	pts=0.640000	best_effort=0.640000	pkt_dts=0.640000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+17128	t1	packet	pts=0.680000	dts=0.680000	duration=3600	key=0	corrupt=0	size=1420	pos=27636	opens_so_far=4	last_open=gop/seg2.ts
+17144	t1	frame	pts=0.680000	best_effort=0.680000	pkt_dts=0.680000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+17145	t1	packet	pts=0.720000	dts=0.720000	duration=3600	key=0	corrupt=0	size=1504	pos=29140	opens_so_far=4	last_open=gop/seg2.ts
+17163	t1	frame	pts=0.720000	best_effort=0.720000	pkt_dts=0.720000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+17164	t1	packet	pts=0.880000	dts=0.760000	duration=3600	key=1	corrupt=0	size=2885	pos=31396	opens_so_far=4	last_open=gop/seg2.ts
+17193	t1	frame	pts=0.760000	best_effort=0.760000	pkt_dts=0.760000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+17194	t1	packet	pts=0.800000	dts=0.800000	duration=3600	key=0	corrupt=0	size=1318	pos=34404	opens_so_far=4	last_open=gop/seg2.ts
+17210	t1	frame	pts=0.800000	best_effort=0.800000	pkt_dts=0.800000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+17215	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+17219	t1	packet	pts=0.840000	dts=0.840000	duration=3600	key=0	corrupt=0	size=1570	pos=35908	opens_so_far=4	last_open=gop/seg2.ts
+17238	t1	frame	pts=0.840000	best_effort=0.840000	pkt_dts=0.840000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+17240	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+17242	t1	packet	pts=1.000000	dts=0.880000	duration=3600	key=0	corrupt=0	size=1578	pos=37600	opens_so_far=4	last_open=gop/seg2.ts
+17259	t1	frame	pts=0.880000	best_effort=0.880000	pkt_dts=0.880000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17272	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+17274	t1	packet	pts=0.920000	dts=0.920000	duration=3600	key=0	corrupt=0	size=1507	pos=39292	opens_so_far=4	last_open=gop/seg2.ts
+17293	t1	frame	pts=0.920000	best_effort=0.920000	pkt_dts=0.920000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+17295	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+17297	t1	packet	pts=0.960000	dts=0.960000	duration=3600	key=0	corrupt=0	size=1286	pos=40984	opens_so_far=4	last_open=gop/seg2.ts
+17313	t1	frame	pts=0.960000	best_effort=0.960000	pkt_dts=0.960000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+17314	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+17316	t1	packet	pts=1.120000	dts=1.000000	duration=3600	key=0	corrupt=0	size=1504	pos=42488	opens_so_far=4	last_open=gop/seg2.ts
+17333	t1	frame	pts=1.000000	best_effort=1.000000	pkt_dts=1.000000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+17335	t1	close	ctx#1	pb#4	bytes_read=16544	error=0
+17337	t1	log	cbA	VERBOSE	AVIOContext#4	Statistics: 16544 bytes read, 0 seeks\n
+17351	t1	log	cbA	VERBOSE	AVFormatContext#1	HLS request for url 'gop/seg3.ts', offset 0, playlist 0\n
+17354	t1	open_begin	ctx#1	url=gop/seg3.ts	offset=-	end_offset=-
+17355	t1	log	cbA	INFO	AVFormatContext#1	Opening 'gop/seg3.ts' for reading\n
+17405	t1	open_end	ctx#1	ret=0	pb#4
+17541	t1	log	cbA	TRACE	AVFormatContext#5	SDT:\n
+17542	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+17543	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+17544	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+17546	t1	packet	pts=1.040000	dts=1.040000	duration=3600	key=0	corrupt=0	size=1477	pos=44180	opens_so_far=5	last_open=gop/seg3.ts
+17566	t1	frame	pts=1.040000	best_effort=1.040000	pkt_dts=1.040000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+17568	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+17570	t1	packet	pts=1.080000	dts=1.080000	duration=3600	key=0	corrupt=0	size=1292	pos=45872	opens_so_far=5	last_open=gop/seg3.ts
+17586	t1	frame	pts=1.080000	best_effort=1.080000	pkt_dts=1.080000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+17588	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+17590	t1	packet	pts=1.240000	dts=1.120000	duration=3600	key=1	corrupt=0	size=2785	pos=47940	opens_so_far=5	last_open=gop/seg3.ts
+17618	t1	frame	pts=1.120000	best_effort=1.120000	pkt_dts=1.120000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+17619	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+17621	t1	packet	pts=1.160000	dts=1.160000	duration=3600	key=0	corrupt=0	size=1449	pos=50948	opens_so_far=5	last_open=gop/seg3.ts
+17638	t1	frame	pts=1.160000	best_effort=1.160000	pkt_dts=1.160000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+17639	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+17641	t1	packet	pts=1.200000	dts=1.200000	duration=3600	key=0	corrupt=0	size=1495	pos=52452	opens_so_far=5	last_open=gop/seg3.ts
+17660	t1	frame	pts=1.200000	best_effort=1.200000	pkt_dts=1.200000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+17661	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+17663	t1	packet	pts=1.360000	dts=1.240000	duration=3600	key=0	corrupt=0	size=1516	pos=54144	opens_so_far=5	last_open=gop/seg3.ts
+17679	t1	frame	pts=1.240000	best_effort=1.240000	pkt_dts=1.240000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17680	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+17682	t1	packet	pts=1.280000	dts=1.280000	duration=3600	key=0	corrupt=0	size=1444	pos=55836	opens_so_far=5	last_open=gop/seg3.ts
+17699	t1	frame	pts=1.280000	best_effort=1.280000	pkt_dts=1.280000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+17701	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+17703	t1	packet	pts=1.320000	dts=1.320000	duration=3600	key=0	corrupt=0	size=1745	pos=57340	opens_so_far=5	last_open=gop/seg3.ts
+17721	t1	frame	pts=1.320000	best_effort=1.320000	pkt_dts=1.320000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+17733	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+17734	t1	packet	pts=1.480000	dts=1.360000	duration=3600	key=0	corrupt=0	size=1637	pos=59220	opens_so_far=5	last_open=gop/seg3.ts
+17752	t1	frame	pts=1.360000	best_effort=1.360000	pkt_dts=1.360000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+17753	t1	log	cbA	TRACE	AVFormatContext#5	PAT:\n
+17754	t1	log	cbA	TRACE	AVFormatContext#5	PMT: len 21\n
+17755	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+17756	t1	packet	pts=1.400000	dts=1.400000	duration=3600	key=0	corrupt=0	size=1334	pos=61100	opens_so_far=5	last_open=gop/seg3.ts
+17772	t1	frame	pts=1.400000	best_effort=1.400000	pkt_dts=1.400000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+17774	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+17776	t1	packet	pts=1.440000	dts=1.440000	duration=3600	key=0	corrupt=0	size=1630	pos=62604	opens_so_far=5	last_open=gop/seg3.ts
+17794	t1	frame	pts=1.440000	best_effort=1.440000	pkt_dts=1.440000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+17796	t1	log	cbA	TRACE	AVFormatContext#5	pid=100 stream_id=0xe0\n
+17798	t1	packet	pts=1.600000	dts=1.480000	duration=3600	key=1	corrupt=0	size=2895	pos=64672	opens_so_far=5	last_open=gop/seg3.ts
+17825	t1	frame	pts=1.480000	best_effort=1.480000	pkt_dts=1.480000	duration=3600	key=0	corrupt=0	pict_type=P	decode_error_flags=0
+17827	t1	close	ctx#1	pb#4	bytes_read=23312	error=0
+17828	t1	log	cbA	VERBOSE	AVIOContext#4	Statistics: 23312 bytes read, 0 seeks\n
+17837	t1	packet	pts=1.520000	dts=1.520000	duration=3600	key=0	corrupt=0	size=1316	pos=67680	opens_so_far=5	last_open=gop/seg3.ts
+17854	t1	frame	pts=1.520000	best_effort=1.520000	pkt_dts=1.520000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+17861	t1	packet	pts=1.560000	dts=1.560000	duration=3600	key=0	corrupt=0	size=1373	pos=69184	opens_so_far=5	last_open=gop/seg3.ts
+17878	t1	frame	pts=1.560000	best_effort=1.560000	pkt_dts=1.560000	duration=3600	key=0	corrupt=0	pict_type=B	decode_error_flags=0
+17885	t1	frame	pts=1.600000	best_effort=1.600000	pkt_dts=-1.000000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17885	t1	end	read=-541478725	frames=40	opens=5	segment_watch_lost=(none)
+17951	t1	close	ctx#1	pb#3	bytes_read=217	error=0
+17952	t1	log	cbA	VERBOSE	AVIOContext#3	Statistics: 217 bytes read, 0 seeks\n
+== av_log calls by callback, thread, level, AVClass and first word of the format ==
+     1  cbA thread=1 DEBUG - 'Format'
+     2  cbA thread=1 DEBUG AVCodecContext 'Format'
+     1  cbA thread=1 DEBUG AVFormatContext 'After'
+     2  cbA thread=1 DEBUG AVFormatContext 'All'
+     1  cbA thread=1 DEBUG AVFormatContext 'Before'
+     1  cbA thread=1 DEBUG AVFormatContext 'Format'
+     1  cbA thread=1 DEBUG AVFormatContext 'Opening'
+     1  cbA thread=1 DEBUG AVFormatContext 'stream'
+     1  cbA thread=1 DEBUG URLContext 'Setting'
+     4  cbA thread=1 INFO AVFormatContext 'Opening'
+     4  cbA thread=1 TRACE - 'Probing'
+     5  cbA thread=1 TRACE AVFormatContext 'Filter'
+     6  cbA thread=1 TRACE AVFormatContext 'PAT'
+     6  cbA thread=1 TRACE AVFormatContext 'PMT'
+     1  cbA thread=1 TRACE AVFormatContext 'Probe'
+     5  cbA thread=1 TRACE AVFormatContext 'SDT'
+     1  cbA thread=1 TRACE AVFormatContext 'Skipping'
+     1  cbA thread=1 TRACE AVFormatContext 'format'
+     5  cbA thread=1 TRACE AVFormatContext 'new_program'
+     2  cbA thread=1 TRACE AVFormatContext 'pcr_pid'
+    40  cbA thread=1 TRACE AVFormatContext 'pid'
+     4  cbA thread=1 TRACE AVFormatContext 'sid'
+     1  cbA thread=1 TRACE AVFormatContext 'stream'
+     2  cbA thread=1 TRACE AVFormatContext 'tag'
+     1  cbA thread=1 TRACE AVFormatContext 'tuning'
+     4  cbA thread=1 VERBOSE AVFormatContext 'HLS'
+     1  cbA thread=1 VERBOSE AVFormatContext 'Skip'
+     5  cbA thread=1 VERBOSE AVIOContext 'Statistics'

@@ -1,0 +1,6 @@
+# cwd: <out>
+# command: 'python3' '-I' '-B' '<out>/review-2/tools/question_lengths.py' 'design/owner_questions.json'
+# started: 2026-11-01T07:33:38Z, ended: 2026-11-01T07:33:38Z (UTC)
+# stdout and stderr, in order:
+44 questions, 180 options; 0 counts outside L4's ranges
+# exit status: 0

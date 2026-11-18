@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/google-admanager-13049027/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://support.google.com/admanager/answer/13049027?hl=en'
+date_utc: 2026-11-01T03:48:51Z
+http_code=200
+url_effective=https://support.google.com/admanager/answer/13049027?hl=en
+size_download=1649178
+content_type=text/html; charset=UTF-8
+curl_exit=0
+sha256=741089bb216cce4e33b61f3360d014cbadaefc8e98005fdfbcba2eff866ef86f

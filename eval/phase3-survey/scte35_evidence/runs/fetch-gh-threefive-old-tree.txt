@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/gh-threefive-old-tree/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://api.github.com/repos/futzu/threefive/git/trees/b93135f2d98b946acf44e192ed6d72e8230ee9d4?recursive=1'
+date_utc: 2026-11-01T03:45:06Z
+http_code=200
+url_effective=https://api.github.com/repos/futzu/threefive/git/trees/b93135f2d98b946acf44e192ed6d72e8230ee9d4?recursive=1
+size_download=31263
+content_type=application/json; charset=utf-8
+curl_exit=0
+sha256=5e169b9f5ad615413bf20570986fd92dfa6f4181cf6cb06f99984624b3edec5f

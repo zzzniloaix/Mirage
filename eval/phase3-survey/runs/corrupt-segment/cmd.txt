@@ -1,0 +1,2 @@
+cwd: <out>/runs/fixture-data
+command: 'python3' '-I' '<out>/probe/corrupt_segment.py' 'dis' 'dis_corrupt' 'seg1.ts'

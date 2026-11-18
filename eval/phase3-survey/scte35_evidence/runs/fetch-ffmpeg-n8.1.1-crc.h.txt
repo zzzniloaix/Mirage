@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/ffmpeg-n8.1.1-crc.h/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://raw.githubusercontent.com/FFmpeg/FFmpeg/n8.1.1/libavutil/crc.h'
+date_utc: 2026-11-01T04:09:17Z
+http_code=200
+url_effective=https://raw.githubusercontent.com/FFmpeg/FFmpeg/n8.1.1/libavutil/crc.h
+size_download=3259
+content_type=text/plain; charset=utf-8
+curl_exit=0
+sha256=5728cf65705a46723ea28b4f6c8361aad82b76a90e859943efe8af0edb79ec86

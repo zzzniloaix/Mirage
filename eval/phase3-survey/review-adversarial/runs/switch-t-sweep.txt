@@ -1,0 +1,27 @@
+# cwd: <out>/testgen
+# command: 'python3' '-I' '-B' '<out>/review-adversarial/tools/switch_t_sweep.py' '<out>/design/tools/detection_semantics.py' 'reports/ad-x264.json' 'reports/ad-x264-a.layout.json'
+# started: 2026-11-01T06:05:27Z, ended: 2026-11-01T06:05:27Z (UTC)
+# stdout and stderr, in order:
+v270/index.m3u8: median of all scored frames 97.934
+v180/index.m3u8: median of all scored frames 91.140
+
+plan ad-switch (design-evaluation run 10's plan): [(1, 0, 2), (2, 3, 4), (1, 5, 7)]; W = 50, N = 12
+  T = 3: frames 75-124, baseline 97.681, min 22.237
+  T = 4: frames 75-124, baseline 97.681, min 22.237
+  T = 5: frames 75-124, baseline 97.681, min 22.237
+  T = 5.5: frames 75-124, baseline 97.681, min 22.237
+  T = 6: frames 75-124, baseline 97.681, min 22.237
+  T = 6.5: frames 75-124, baseline 97.681, min 22.237
+  T = 7: frames 75-124, baseline 97.681, min 22.237
+  T = 8: frames 75-124, baseline 97.681, min 22.237
+
+plan switch-down (entry 1, then entry 2 from segment 5): [(1, 0, 4), (2, 5, 7)]; W = 50, N = 12
+  T = 3: frames 125-199, baseline 98.106, min 87.963
+  T = 4: frames 126-199, baseline 98.106, min 87.963
+  T = 5: frames 164-182, baseline 97.452, min 87.963
+  T = 5.5: no drop
+  T = 6: no drop
+  T = 6.5: no drop
+  T = 7: no drop
+  T = 8: no drop
+# exit status: 0

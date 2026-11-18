@@ -1,0 +1,161 @@
+[hls @ 0x94ac3c280] Stream 0 packet with pts 7200 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 10800 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 14400 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 18000 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 21600 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 25200 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 28800 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 32400 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 36000 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 39600 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Opening './ref/seg0.ts' for writing
+[hls @ 0x94ac3c280] Stream 0 packet with pts 43200 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 46800 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 50400 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 54000 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 57600 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 61200 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 64800 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 68400 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 72000 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 75600 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Opening './ref/seg1.ts' for writing
+[hls @ 0x94ac3c280] Stream 0 packet with pts 79200 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 82800 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 86400 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 90000 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 93600 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 97200 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 100800 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 104400 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 108000 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 111600 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Opening './ref/seg2.ts' for writing
+[hls @ 0x94ac3c280] Stream 0 packet with pts 115200 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 118800 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 122400 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 126000 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 129600 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 133200 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 136800 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 140400 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Stream 0 packet with pts 144000 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c280] Opening './ref/seg3.ts' for writing
+[hls @ 0x94ac3c000] Stream 0 packet with pts 7200 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 10800 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 14400 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 18000 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 21600 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 25200 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 28800 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 32400 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 36000 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 39600 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Opening './dis/seg0.ts' for writing
+[hls @ 0x94ac3c000] Stream 0 packet with pts 43200 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 46800 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 50400 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 54000 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 57600 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 61200 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 64800 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 68400 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 72000 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 75600 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Opening './dis/seg1.ts' for writing
+[hls @ 0x94ac3c000] Stream 0 packet with pts 79200 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 82800 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 86400 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 90000 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 93600 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 97200 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 100800 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 104400 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 108000 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 111600 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Opening './dis/seg2.ts' for writing
+[hls @ 0x94ac3c000] Stream 0 packet with pts 115200 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 118800 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 122400 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 126000 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 129600 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 133200 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 136800 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 140400 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Stream 0 packet with pts 144000 has duration 0. The segment duration may not be precise.
+[hls @ 0x94ac3c000] Opening './dis/seg3.ts' for writing
+== master.m3u8 ==
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-STREAM-INF:BANDWIDTH=2000000,RESOLUTION=192x108
+ref/index.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=500000,RESOLUTION=96x54
+dis/index.m3u8
+== ref/index.m3u8 ==
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:0
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXTINF:0.400000,
+seg0.ts
+#EXTINF:0.400000,
+seg1.ts
+#EXTINF:0.400000,
+seg2.ts
+#EXTINF:0.360000,
+seg3.ts
+#EXT-X-ENDLIST
+== dis/index.m3u8 ==
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:0
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXTINF:0.400000,
+seg0.ts
+#EXTINF:0.400000,
+seg1.ts
+#EXTINF:0.400000,
+seg2.ts
+#EXTINF:0.360000,
+seg3.ts
+#EXT-X-ENDLIST
+== dis/tagged.m3u8 ==
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:0
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXT-X-PROGRAM-DATE-TIME:2014-03-05T11:14:59.600Z
+#EXTINF:0.400000,
+seg0.ts
+#EXT-X-DISCONTINUITY
+#EXT-X-DATERANGE:ID="splice-6FFFFFF0",START-DATE="2014-03-05T11:15:00Z",PLANNED-DURATION=59.993,SCTE35-OUT=<vector rfc8216-8.10-SCTE35-OUT>
+#EXT-OATCLS-SCTE35:<vector rfc8216-8.10-SCTE35-OUT>
+#EXT-X-CUE-OUT:0.8
+#EXTINF:0.400000,
+seg1.ts
+#EXT-X-CUE-OUT-CONT:ElapsedTime=0.4,Duration=0.8
+#EXTINF:0.400000,
+seg2.ts
+#EXT-X-DISCONTINUITY
+#EXT-X-CUE-IN
+#EXT-X-DATERANGE:ID="splice-6FFFFFF0",DURATION=59.993,SCTE35-IN=<vector rfc8216-8.10-SCTE35-IN>
+#EXT-X-VENDOR-EXAMPLE:KEY="value"
+#EXTINF:0.360000,
+seg3.ts
+#EXT-X-ENDLIST
+== files ==
+dis/index.m3u8 217 bytes
+dis/seg0.ts 15604 bytes
+dis/seg1.ts 15604 bytes
+dis/seg2.ts 15604 bytes
+dis/seg3.ts 15604 bytes
+dis/tagged.m3u8 876 bytes
+master.m3u8 162 bytes
+ref/index.m3u8 217 bytes
+ref/seg0.ts 30644 bytes
+ref/seg1.ts 30644 bytes
+ref/seg2.ts 30832 bytes
+ref/seg3.ts 30644 bytes

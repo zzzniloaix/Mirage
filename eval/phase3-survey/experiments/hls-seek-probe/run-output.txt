@@ -1,0 +1,131 @@
++ ./run.sh
++ pkg-config --modversion libavformat libavcodec libavutil
+62.12.101
+62.28.101
+60.26.101
++ clang++ --version
+Apple clang version 21.0.0 (clang-2100.1.1.101)
++ clang++ -std=c++20 -O1 -Wall -Wextra seek_probe.cpp $(pkg-config --cflags --libs libavformat libavcodec libavutil) -o seek_probe
++ ./seek_probe media
+libavformat 62.12.101, libavcodec 62.28.101, FFmpeg 8.1.1
+wrote media/reset and media/continuous
+== media/reset/index.m3u8
+    log: HLS request for url 'media/reset/seg0.ts', offset 0, playlist 0
+  start_time 10.000 s, duration 6.000 s, video time base 1/90000
+  read through from the start:
+    log: HLS request for url 'media/reset/seg1.ts', offset 0, playlist 0
+    log: Packet corrupt (stream = 0, dts = 1072800).
+    log: Packet corrupt (stream = 0, dts = 1069200).
+    run of 50 video packets, PTS 10.000 .. 11.960
+    log: HLS request for url 'media/reset/seg2.ts', offset 0, playlist 0
+    log: Packet corrupt (stream = 0, dts = 176400).
+    log: Packet corrupt (stream = 0, dts = 172800).
+    run of 50 video packets, PTS 0.040 .. 2.000
+    run of 50 video packets, PTS 12.000 .. 13.960
+ target 11.000 s
+  ffmpeg: av_seek_frame(11.000 s) -> ok
+    log: The m3u8 list sequence may have been wrapped.
+    log: HLS request for url 'media/reset/seg0.ts', offset 0, playlist 0
+    packet pts 10.000 dts 9.960 key
+    packet pts 10.040 dts 10.000 key
+  player: av_seek_frame(11.000 s) -> ok
+    log: The m3u8 list sequence may have been wrapped.
+    log: HLS request for url 'media/reset/seg0.ts', offset 0, playlist 0
+    packet pts 10.000 dts 9.960 key
+    packet pts 10.040 dts 10.000 key
+ target 0.500 s
+  ffmpeg: av_seek_frame(0.500 s) -> Operation not permitted
+  player: clamped to 10.000 s
+  player: av_seek_frame(10.000 s) -> ok
+    log: The m3u8 list sequence may have been wrapped.
+    log: HLS request for url 'media/reset/seg0.ts', offset 0, playlist 0
+    packet pts 10.000 dts 9.960 key
+    packet pts 10.040 dts 10.000 key
+ target 12.500 s
+  ffmpeg: av_seek_frame(12.500 s) -> ok
+    log: The m3u8 list sequence may have been wrapped.
+    log: HLS request for url 'media/reset/seg1.ts', offset 0, playlist 0
+    log: The m3u8 list sequence may have been wrapped.
+    log: HLS request for url 'media/reset/seg2.ts', offset 0, playlist 0
+    log: Packet corrupt (stream = 0, dts = 176400).
+    packet pts 12.000 dts 11.960 key
+    packet pts 12.040 dts 12.000 key
+  player: av_seek_frame(12.500 s) -> ok
+    log: The m3u8 list sequence may have been wrapped.
+    log: HLS request for url 'media/reset/seg1.ts', offset 0, playlist 0
+    log: The m3u8 list sequence may have been wrapped.
+    log: HLS request for url 'media/reset/seg2.ts', offset 0, playlist 0
+    log: Packet corrupt (stream = 0, dts = 176400).
+    packet pts 12.000 dts 11.960 key
+    packet pts 12.040 dts 12.000 key
+ target 13.000 s
+  ffmpeg: av_seek_frame(13.000 s) -> ok
+    log: The m3u8 list sequence may have been wrapped.
+    log: HLS request for url 'media/reset/seg1.ts', offset 0, playlist 0
+    log: The m3u8 list sequence may have been wrapped.
+    log: HLS request for url 'media/reset/seg2.ts', offset 0, playlist 0
+    log: Packet corrupt (stream = 0, dts = 176400).
+    packet pts 12.000 dts 11.960 key
+    packet pts 12.040 dts 12.000 key
+  player: av_seek_frame(13.000 s) -> ok
+    log: The m3u8 list sequence may have been wrapped.
+    log: HLS request for url 'media/reset/seg1.ts', offset 0, playlist 0
+    log: The m3u8 list sequence may have been wrapped.
+    log: HLS request for url 'media/reset/seg2.ts', offset 0, playlist 0
+    log: Packet corrupt (stream = 0, dts = 176400).
+    packet pts 12.000 dts 11.960 key
+    packet pts 12.040 dts 12.000 key
+ target 14.500 s
+  ffmpeg: av_seek_frame(14.500 s) -> ok
+    log: The m3u8 list sequence may have been wrapped.
+    log: HLS request for url 'media/reset/seg2.ts', offset 0, playlist 0
+    read: end of file
+  player: av_seek_frame(14.500 s) -> ok
+    log: The m3u8 list sequence may have been wrapped.
+    log: HLS request for url 'media/reset/seg2.ts', offset 0, playlist 0
+    read: end of file
+== media/continuous/index.m3u8
+    log: HLS request for url 'media/continuous/seg0.ts', offset 0, playlist 0
+  start_time 10.000 s, duration 6.000 s, video time base 1/90000
+  read through from the start:
+    log: HLS request for url 'media/continuous/seg1.ts', offset 0, playlist 0
+    log: Packet corrupt (stream = 0, dts = 1072800).
+    log: Packet corrupt (stream = 0, dts = 1069200).
+    log: HLS request for url 'media/continuous/seg2.ts', offset 0, playlist 0
+    log: Packet corrupt (stream = 0, dts = 1252800).
+    log: Packet corrupt (stream = 0, dts = 1249200).
+    run of 150 video packets, PTS 10.000 .. 15.960
+ target 11.000 s
+  ffmpeg: av_seek_frame(11.000 s) -> ok
+    log: The m3u8 list sequence may have been wrapped.
+    log: HLS request for url 'media/continuous/seg0.ts', offset 0, playlist 0
+    packet pts 10.000 dts 9.960 key
+    packet pts 10.040 dts 10.000 key
+  player: av_seek_frame(11.000 s) -> ok
+    log: The m3u8 list sequence may have been wrapped.
+    log: HLS request for url 'media/continuous/seg0.ts', offset 0, playlist 0
+    packet pts 10.000 dts 9.960 key
+    packet pts 10.040 dts 10.000 key
+ target 12.500 s
+  ffmpeg: av_seek_frame(12.500 s) -> ok
+    log: The m3u8 list sequence may have been wrapped.
+    log: HLS request for url 'media/continuous/seg1.ts', offset 0, playlist 0
+    packet pts 12.000 dts 11.960 key
+    packet pts 12.040 dts 12.000 key
+  player: av_seek_frame(12.500 s) -> ok
+    log: The m3u8 list sequence may have been wrapped.
+    log: HLS request for url 'media/continuous/seg1.ts', offset 0, playlist 0
+    packet pts 12.000 dts 11.960 key
+    packet pts 12.040 dts 12.000 key
+ target 14.500 s
+  ffmpeg: av_seek_frame(14.500 s) -> ok
+    log: The m3u8 list sequence may have been wrapped.
+    log: HLS request for url 'media/continuous/seg2.ts', offset 0, playlist 0
+    packet pts 14.000 dts 13.960 key
+    packet pts 14.040 dts 14.000 key
+  player: av_seek_frame(14.500 s) -> ok
+    log: The m3u8 list sequence may have been wrapped.
+    log: HLS request for url 'media/continuous/seg2.ts', offset 0, playlist 0
+    packet pts 14.000 dts 13.960 key
+    packet pts 14.040 dts 14.000 key
++ exit status 0

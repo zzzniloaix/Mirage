@@ -1,0 +1,23 @@
+== ManifestParser::parse_hls_text: true, 9 tags, 0 variants ==
+kind	pts	disc_seq	raw	value
+ProgramDateTime	0.000000	0	#EXT-X-PROGRAM-DATE-TIME:2014-03-05T11:14:59.600Z	2014-03-05T11:14:59.600Z
+Discontinuity	0.400000	0	#EXT-X-DISCONTINUITY	
+Unknown	0.400000	0	#EXT-X-DATERANGE:ID="splice-6FFFFFF0",START-DATE="2014-03-05T11:15:00Z",PLANNED-DURATION=59.993,SCTE35-OUT=<vector rfc8216-8.10-SCTE35-OUT>	ID="splice-6FFFFFF0",START-DATE="2014-03-05T11:15:00Z",PLANNED-DURATION=59.993,SCTE35-OUT=<vector rfc8216-8.10-SCTE35-OUT>
+CueOut	0.400000	0	#EXT-X-CUE-OUT:0.8	0.8
+CueOut	0.800000	0	#EXT-X-CUE-OUT-CONT:ElapsedTime=0.4,Duration=0.8	ElapsedTime=0.4,Duration=0.8
+Discontinuity	1.200000	0	#EXT-X-DISCONTINUITY	
+CueIn	1.200000	0	#EXT-X-CUE-IN	
+Unknown	1.200000	0	#EXT-X-DATERANGE:ID="splice-6FFFFFF0",DURATION=59.993,SCTE35-IN=<vector rfc8216-8.10-SCTE35-IN>	ID="splice-6FFFFFF0",DURATION=59.993,SCTE35-IN=<vector rfc8216-8.10-SCTE35-IN>
+Unknown	1.200000	0	#EXT-X-VENDOR-EXAMPLE:KEY="value"	KEY="value"
+== hls::parse_media_timeline: ok=1 media_seq=0 disc_seq=0 discontinuities=2 total=1.560000 target=0.000000 endlist=1 type=VOD ==
+seq	start	duration	discontinuity	disc_seq	pdt	pdt_explicit	gap	map	key	line	uri	range
+0	0.000000	0.400000	0	0	1394018099.600	1	0	-1		8	dis/seg0.ts	-1@-1
+1	0.400000	0.400000	1	1	-1.000	0	0	-1		14	dis/seg1.ts	-1@-1
+2	0.800000	0.400000	0	1	-1.000	0	0	-1		17	dis/seg2.ts	-1@-1
+3	1.200000	0.360000	1	2	-1.000	0	0	-1		23	dis/seg3.ts	-1@-1
+problem	no EXT-X-TARGETDURATION
+== hls::parse_media_playlist: 4 durations, vod=1 discontinuity=1 gap=0 independent=0 ==
+0.400000
+0.400000
+0.400000
+0.360000

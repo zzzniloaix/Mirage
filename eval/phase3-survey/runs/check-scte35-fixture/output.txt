@@ -1,0 +1,4 @@
+RFC 8216 section 8.10 example tags at text lines 2990 and 2997
+SCTE35-OUT in the fixture is the RFC's: True 98 hex digits
+SCTE35-IN in the fixture is the RFC's: True 88 hex digits
+#EXT-OATCLS-SCTE35 decodes to the SCTE35-OUT bytes: True

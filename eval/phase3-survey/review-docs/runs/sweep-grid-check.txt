@@ -1,0 +1,60 @@
+command (cwd: <records>): python3 -I -B <drafts>/verify/tools/sweep_grid.py design-evaluation/runs/05_detection_sweep.txt
+date_utc: 2026-11-01T11:30:25Z
+output (stdout and stderr):
+median_nonlow W=10 T=3: not E: N=0:. N=30:. N=40:. N=49:.
+median_nonlow W=10 T=4: not E: N=0:. N=30:. N=40:. N=49:.
+median_nonlow W=10 T=5: not E: N=0:. N=30:. N=40:. N=49:.
+median_nonlow W=10 T=6: not E: N=0:. N=30:. N=40:. N=49:.
+median_nonlow W=10 T=7: not E: N=30:. N=40:. N=49:.
+median_nonlow W=10 T=8: not E: N=30:. N=40:. N=49:.
+median_nonlow W=10 T=10: not E: N=30:. N=40:. N=49:.
+median_nonlow W=10 T=12: not E: N=30:. N=40:. N=49:.
+median_nonlow W=10 T=15: not E: N=30:. N=40:. N=49:.
+median_nonlow W=10 T=20: not E: N=30:. N=40:. N=49:.
+median_nonlow W=10 T=25: not E: N=30:. N=40:. N=49:.
+median_nonlow W=10 T=30: not E: N=30:. N=40:. N=49:.
+median_nonlow W=10 T=40: not E: N=30:. N=40:. N=49:.
+median_nonlow W=10 T=50: not E: N=0:h N=1:h N=2:h N=3:h N=4:h N=5:h N=8:h N=12:h N=16:h N=20:h N=24:. N=30:. N=40:. N=49:.
+median_nonlow W=25 T=3: not E: N=0:. N=30:. N=40:. N=49:.
+median_nonlow W=25 T=4: not E: N=0:. N=30:. N=40:. N=49:.
+median_nonlow W=25 T=5: not E: N=0:. N=30:. N=40:. N=49:.
+median_nonlow W=25 T=6: not E: N=0:. N=30:. N=40:. N=49:.
+median_nonlow W=25 T=7: not E: N=30:. N=40:. N=49:.
+median_nonlow W=25 T=8: not E: N=30:. N=40:. N=49:.
+median_nonlow W=25 T=10: not E: N=30:. N=40:. N=49:.
+median_nonlow W=25 T=12: not E: N=30:. N=40:. N=49:.
+median_nonlow W=25 T=15: not E: N=30:. N=40:. N=49:.
+median_nonlow W=25 T=20: not E: N=30:. N=40:. N=49:.
+median_nonlow W=25 T=25: not E: N=30:. N=40:. N=49:.
+median_nonlow W=25 T=30: not E: N=30:. N=40:. N=49:.
+median_nonlow W=25 T=40: not E: N=30:. N=40:. N=49:.
+median_nonlow W=25 T=50: not E: N=0:h N=1:h N=2:h N=3:h N=4:h N=5:h N=8:h N=12:h N=16:h N=20:h N=24:. N=30:. N=40:. N=49:.
+median_nonlow W=50 T=3: not E: N=0:. N=30:. N=40:. N=49:.
+median_nonlow W=50 T=4: not E: N=0:. N=30:. N=40:. N=49:.
+median_nonlow W=50 T=5: not E: N=0:. N=30:. N=40:. N=49:.
+median_nonlow W=50 T=6: not E: N=30:. N=40:. N=49:.
+median_nonlow W=50 T=7: not E: N=30:. N=40:. N=49:.
+median_nonlow W=50 T=8: not E: N=30:. N=40:. N=49:.
+median_nonlow W=50 T=10: not E: N=30:. N=40:. N=49:.
+median_nonlow W=50 T=12: not E: N=30:. N=40:. N=49:.
+median_nonlow W=50 T=15: not E: N=30:. N=40:. N=49:.
+median_nonlow W=50 T=20: not E: N=30:. N=40:. N=49:.
+median_nonlow W=50 T=25: not E: N=30:. N=40:. N=49:.
+median_nonlow W=50 T=30: not E: N=30:. N=40:. N=49:.
+median_nonlow W=50 T=40: not E: N=30:. N=40:. N=49:.
+median_nonlow W=50 T=50: not E: N=0:h N=1:h N=2:h N=3:h N=4:h N=5:h N=8:h N=12:h N=16:h N=20:h N=24:. N=30:. N=40:. N=49:.
+median_nonlow W=100 T=3: not E: N=0:. N=30:. N=40:. N=49:.
+median_nonlow W=100 T=4: not E: N=0:. N=30:. N=40:. N=49:.
+median_nonlow W=100 T=5: not E: N=0:. N=30:. N=40:. N=49:.
+median_nonlow W=100 T=6: not E: N=0:. N=30:. N=40:. N=49:.
+median_nonlow W=100 T=7: not E: N=30:. N=40:. N=49:.
+median_nonlow W=100 T=8: not E: N=30:. N=40:. N=49:.
+median_nonlow W=100 T=10: not E: N=30:. N=40:. N=49:.
+median_nonlow W=100 T=12: not E: N=30:. N=40:. N=49:.
+median_nonlow W=100 T=15: not E: N=30:. N=40:. N=49:.
+median_nonlow W=100 T=20: not E: N=30:. N=40:. N=49:.
+median_nonlow W=100 T=25: not E: N=30:. N=40:. N=49:.
+median_nonlow W=100 T=30: not E: N=30:. N=40:. N=49:.
+median_nonlow W=100 T=40: not E: N=30:. N=40:. N=49:.
+median_nonlow W=100 T=50: not E: N=0:h N=1:h N=2:h N=3:h N=4:h N=5:h N=8:h N=12:h N=16:h N=20:h N=24:. N=30:. N=40:. N=49:.
+exit=0

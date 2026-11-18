@@ -1,0 +1,13 @@
+# cwd: <out>/scte35_evidence/downloads
+# command: 'python3' '-I' '-B' '<out>/review-2/tools/line_has.py' 'ffmpeg-n8.1.1-hls.c/body:989:av_strstart(line, "#"' 'ffmpeg-n8.1.1-hls.c/body:990:AV_LOG_VERBOSE, "Skip' 'ffmpeg-n8.1.1-hls.c/body:1916:find_timestamp_in_playlist' 'ffmpeg-n8.1.1-hls.c/body:1944:}' 'ffmpeg-n8.1.1-mpegts.c/body:463:av_crc(av_crc_get_table(AV_CRC_32_IEEE)'
+# started: 2026-11-01T07:53:17Z, ended: 2026-11-01T07:53:17Z (UTC)
+# stdout and stderr, in order:
+ffmpeg-n8.1.1-hls.c/body: sha256 921a624c99eb18cccd3ceb6c299591b20954ddeb02c3657f7b05e024a871d2b3, 2860 lines
+ffmpeg-n8.1.1-hls.c/body:989 contains 'av_strstart(line, "#"': yes
+ffmpeg-n8.1.1-hls.c/body:990 contains 'AV_LOG_VERBOSE, "Skip': yes
+ffmpeg-n8.1.1-hls.c/body:1916 contains 'find_timestamp_in_playlist': yes
+ffmpeg-n8.1.1-hls.c/body:1944 contains '}': yes
+ffmpeg-n8.1.1-mpegts.c/body: sha256 88e3b699bb8ef7520ba252967d68d45725a80b960f3598a81f64b5f32886c887, 3684 lines
+ffmpeg-n8.1.1-mpegts.c/body:463 contains 'av_crc(av_crc_get_table(AV_CRC_32_IEEE)': yes
+5 checks, 0 not found
+# exit status: 0

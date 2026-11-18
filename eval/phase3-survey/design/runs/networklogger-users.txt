@@ -1,0 +1,27 @@
+# cwd: <repo>
+# command: 'bash' '-c' 'grep -rl -e NetworkLogger src tools tests CMakeLists.txt | LC_ALL=C sort; printf "files: %s\n" "$(grep -rl -e NetworkLogger src tools tests CMakeLists.txt | wc -l | tr -d " ")"'
+# started: 2026-11-01T08:18:19Z, ended: 2026-11-01T08:18:20Z (UTC)
+# stdout and stderr, in order:
+CMakeLists.txt
+src/Demuxer.cpp
+src/FfOpen.cpp
+src/FfOpen.h
+src/ManifestParser.cpp
+src/MediaSession.h
+src/NetDescribe.cpp
+src/NetDescribe.h
+src/NetInspector.cpp
+src/NetInspector.h
+src/NetInspectorAlign.cpp
+src/NetInspectorResponse.cpp
+src/NetInspectorUi.h
+src/NetProbe.cpp
+src/NetProbe.h
+src/NetworkLogger.cpp
+src/NetworkLogger.h
+src/main.cpp
+tests/test_hls_master.cpp
+tests/test_hls_variants.cpp
+tests/test_network_logger.cpp
+files: 21
+# exit status: 0

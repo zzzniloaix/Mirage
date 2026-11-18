@@ -1,0 +1,5 @@
+$ cp media/degraded-mpeg2-a/layout.json reports/degraded-mpeg2-a.layout.json
+(in <out>/testgen)
+--- stdout ---
+--- stderr ---
+--- exit status 0, wall time 0.005 s (time.monotonic) ---

@@ -1,0 +1,9 @@
+# cwd: <scratch>/phase3/repro3b
+# command: 'bash' '-c' 'git -C "$REPO" archive 7c0e8d2 eval/phase3-survey/design.md eval/phase3-survey/design | tar -x -f - && cd eval/phase3-survey && python3 -I -B "$OUT/design/tools/revise3.py" design && python3 -I -B design/tools/render.py design design.md && cmp design.md "$OUT/design.md" && echo "design.md: the render of revision 2 (7c0e8d2) with revise3.py applied is byte-identical to revision 3" && diff -r -x runs -x revise3.py -x revision-3.md design "$OUT/design" && echo "design/: the same sources, data and tools as revision 3, the new log, the new tool and the records aside"'
+# started: 2026-11-02T18:34:41Z, ended: 2026-11-02T18:34:41Z (UTC)
+# stdout and stderr, in order:
+revision 3 applied: 44 questions, 25 packages, 28 P-entries kept, 22 risks
+design.md: 279519 bytes; 44 questions (27, 9 and 8 in rounds 1 to 3), 25 packages, 28 P-entries (9 moved), 22 risks
+design.md: the render of revision 2 (7c0e8d2) with revise3.py applied is byte-identical to revision 3
+design/: the same sources, data and tools as revision 3, the new log, the new tool and the records aside
+# exit status: 0

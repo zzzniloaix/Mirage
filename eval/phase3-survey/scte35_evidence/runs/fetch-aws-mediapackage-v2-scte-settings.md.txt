@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/aws-mediapackage-v2-scte-settings.md/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://docs.aws.amazon.com/mediapackage/latest/userguide/scte-settings.md'
+date_utc: 2026-11-01T03:40:48Z
+http_code=200
+url_effective=https://docs.aws.amazon.com/mediapackage/latest/userguide/scte-settings.md
+size_download=5821
+content_type=text/markdown; charset=utf-8
+curl_exit=0
+sha256=c26951f9d97eb26940de5ccc940f024f2fe3e2e355d08c737cde5afdd09cff40

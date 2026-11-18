@@ -1,0 +1,14 @@
+# cwd: <repo>/build/macos-debug
+# command: 'python3' '-I' '-B' '<out>/review-adversarial/tools/ctest_registration.py' '<repo>/build/macos-debug'
+# started: 2026-11-01T06:00:42Z, ended: 2026-11-01T06:00:42Z (UTC)
+# stdout and stderr, in order:
+generated files: ['mirage_tests-b12d07c_tests.cmake']
+mirage_tests-b12d07c_tests.cmake: 359 add_test() calls
+  each runs the program mirage_tests with its own test-case name (Catch2's escapes removed) as the only filter: 359 of 359
+  test cases with 'ladder' in their name: 37; the first 5:
+    vmafcli::parse: a ladder instead of a pair
+    vmafcli::parse: --jobs and --memory-limit, with --ladder
+    vmafcli::parse: a pair and a ladder can't be given together
+    vmafcli::parse: --ladder and --mezzanine in a config file
+    vmafreport::ladder_to_json: the run, the master and the plan
+# exit status: 0

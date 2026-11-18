@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/scte-catalog-35-1/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://account.scte.org/standards/library/catalog/scte-35-1-digital-program-insertion-cueing-message-part-1-legacy-splice-based-and-time-based-signaling/'
+date_utc: 2026-11-01T03:28:08Z
+http_code=403
+url_effective=https://account.scte.org/standards/library/catalog/scte-35-1-digital-program-insertion-cueing-message-part-1-legacy-splice-based-and-time-based-signaling/
+size_download=118
+content_type=text/html
+curl_exit=0
+sha256=58bf2215b395dcac74c009aa98701854e43cbe54a1cd3a95fee6a647ca9910d4

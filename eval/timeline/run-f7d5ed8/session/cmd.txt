@@ -1,0 +1,28 @@
+# The commands of this record, as eval/timeline/run_all.sh ran them from
+# <out>, each with its exit status; <build> is the build directory environment.txt
+# names.
+$ cp -- media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin/layout.json session/layout.json
+# exit status 0
+$ cp -- media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin.session.plan.json session/plan.json
+# exit status 0
+$ python3 -I -B <repo>/eval/timeline/check.py late session/layout.json
+# exit status 0
+$ python3 -I -B <repo>/eval/timeline/slow_server.py media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin session/server.port session/server.log --delay v180/ad_000.ts=2.3
+# in the background, until the build below has exited; then stopped with SIGTERM, its exit status after the build's
+$ <build>/mirage_vmaf timeline --report media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin.session.json --out session/timeline.json --session session/plan.json --fetch on --fetch-base http://127.0.0.1:50167 --threshold 6 --window 50 --min-points 12
+# exit status 0
+# exit status 0 of slow_server.py (0 once SIGTERM has stopped it)
+$ python3 -I -B <repo>/eval/timeline/check.py curves session/timeline.json
+# exit status 0
+$ <build>/mirage_vmaf attribute --timeline session/timeline.json --report media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin.session.json --auto --curve pair:0 --threshold 6 --window 50 --min-points 12 --format json --out session/answer.pair-0.json
+# exit status 0
+$ <build>/mirage_vmaf attribute --timeline session/timeline.json --report media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin.session.json --auto --curve pair:0 --threshold 6 --window 50 --min-points 12 --format text --out session/answer.pair-0.txt
+# exit status 0
+$ <build>/mirage_vmaf attribute --timeline session/timeline.json --report media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin.session.json --auto --curve pair:1 --threshold 6 --window 50 --min-points 12 --format json --out session/answer.pair-1.json
+# exit status 0
+$ <build>/mirage_vmaf attribute --timeline session/timeline.json --report media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin.session.json --auto --curve pair:1 --threshold 6 --window 50 --min-points 12 --format text --out session/answer.pair-1.txt
+# exit status 0
+$ <build>/mirage_vmaf attribute --timeline session/timeline.json --report media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin.session.json --auto --curve session:0 --threshold 6 --window 50 --min-points 12 --format json --out session/answer.session-0.json
+# exit status 0
+$ <build>/mirage_vmaf attribute --timeline session/timeline.json --report media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin.session.json --auto --curve session:0 --threshold 6 --window 50 --min-points 12 --format text --out session/answer.session-0.txt
+# exit status 0
