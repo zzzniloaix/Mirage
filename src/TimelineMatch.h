@@ -396,16 +396,16 @@ void playhead_sought(PlayheadState& state, const VariantClock& clock, const Seek
 // that the player's step back leaves the ad: from the ad's first frame
 // `target` lies before the stream's start, which the clamp makes the start,
 // and the step shows the main content's first frame, of the same PTS, where
-// Q99 6 describes a step to the main content's last frame before the ad;
-// from another of the ad's frames, the main content's frame that the seek
-// to `target` lands on, of about the PTS stepped from
-// (tests/test_timeline_match.cpp). The player is unchanged, as D-125 (b) 6
-// has it, and the playhead marks the frame on screen; whether Phase 3's PR
-// reports this step of the player's, as it reports a switch's reposition in
-// such an ad (D-124 (e)), is pending the owner. The playback pipeline isn't
-// moved by the step: its next frame, a frame step forward's, a keyframe
-// step's that found no keyframe or playback's, follows the frame it showed
-// before the step, so that the state the tracker had then is held in
+// Q99 6 described a step to the main content's last frame before the ad
+// (its correction in docs/PHASE3_DECISIONS_PENDING.md); from another of the
+// ad's frames, the main content's frame that the seek to `target` lands on,
+// of about the PTS stepped from (tests/test_timeline_match.cpp). The player
+// is unchanged, as D-125 (b) 6 has it, and the playhead marks the frame on
+// screen; Phase 3's PR reports this step of the player's beside a switch's
+// reposition in such an ad (D-126 (b), Q102 (a); D-124 (e)). The playback
+// pipeline isn't moved by the step: its next frame, a frame step forward's, a
+// keyframe step's that found no keyframe or playback's, follows the frame it
+// showed before the step, so that the state the tracker had then is held in
 // `state.pipeline`, from the first of several steps back in a row, until
 // playhead_resumed() takes it back; a seek, a switch or a new variant drops
 // it. Both readings, of src/ScrubDecoder.cpp and of src/main.cpp, are
