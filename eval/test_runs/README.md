@@ -27,6 +27,7 @@ Local paths appear as `<repo>`, `<home>`, `<tmp>` and `<scratch>`.
 | `macos-2026-11-04-2f81afe.txt` | `2f81afe` (`vmaf/phase-3`) | `mirage_tests '~[audio]'`: all tests passed, 325575 assertions in 533 test cases, at the first run; ctest: 546 of 546 passed; the Python suites: 28, 136, 11, 16 and 14 tests, OK. A ctest run before it failed one test, the Demuxer's seamless switches, which then passed in five runs of its own and the next ctest run: `macos-2026-11-04-2f81afe-demuxer.txt` (P-082) |
 | `macos-2026-11-06-74d7215.txt` | `74d7215` (`vmaf/phase-3`) | `mirage_tests '~[audio]'`: all tests passed, 501535 assertions in 584 test cases, at the first run; ctest: 597 of 597 passed; the Python suites: 28, 136, 11, 16 and 14 tests, OK (P-084) |
 | `macos-2026-11-12-f7d5ed8.txt` | `f7d5ed8` (`vmaf/phase-3`) | `mirage_tests '~[audio]'`: 708 of 709 test cases passed and 1 skipped, the optional vectors case, 583484 assertions, at the first run; ctest: 731 of 731 passed, that case skipped; the Python suites: 28, 136, 11, 16, 14 and 19 tests, OK; load averages 5.61, 5.13 and 4.73 at the start (P-087) |
+| `macos-2026-11-18-140d2ca.txt` | `140d2ca` (`vmaf/phase-3`) | `mirage_tests '~[audio]'`: 764 of 765 test cases passed and 1 skipped, the optional vectors case, 693660 assertions, at the first run; ctest: 787 of 787 passed, that case skipped; the Python suites: 28, 136, 11, 16, 14 and 20 tests, OK; load averages 7.31, 6.12 and 6.93 at the start (P-093) |
 
 ## Repeated runs of one test (P-031)
 

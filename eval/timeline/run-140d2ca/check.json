@@ -1,0 +1,68 @@
+{
+ "verdict": "PASS",
+ "parameters": {
+  "threshold": 6.0,
+  "window": 50,
+  "min_points": 12,
+  "delay": 2.3
+ },
+ "records": [
+  {
+   "record": "ad-continuous",
+   "case": [
+    "ad",
+    "continuous",
+    false
+   ],
+   "codec": "libx264",
+   "documents": 3,
+   "differences": 0
+  },
+  {
+   "record": "ad-from-1s",
+   "case": [
+    "ad",
+    "from-1s",
+    false
+   ],
+   "codec": "libx264",
+   "documents": 3,
+   "differences": 0
+  },
+  {
+   "record": "ad-main-origin",
+   "case": [
+    "ad",
+    "main-origin",
+    false
+   ],
+   "codec": "libx264",
+   "documents": 3,
+   "differences": 0
+  },
+  {
+   "record": "degraded",
+   "case": [
+    "degraded",
+    null,
+    false
+   ],
+   "codec": "libx264",
+   "documents": 3,
+   "differences": 0
+  },
+  {
+   "record": "session",
+   "case": [
+    "ad",
+    "main-origin",
+    true
+   ],
+   "codec": "libx264",
+   "documents": 4,
+   "differences": 0
+  }
+ ],
+ "differences": [],
+ "kinds": []
+}
