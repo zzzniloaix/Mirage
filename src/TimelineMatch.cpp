@@ -1,7 +1,9 @@
 // The timeline panel's matching, playhead and seek decision (eval/phase3-survey/design.md §10):
 // written by WP12, the path among a playlist's equal bytes by WP12b (D-121 (d)), a relative
 // open path made absolute there by WP12c (D-124 (g) 2), the playhead not known where its
-// sequence isn't by WP13b (D-124 (c)).
+// sequence isn't by WP13b (D-124 (c)), and by WP13c a relative open path made absolute in the
+// address matches too, a PTS in no sequence, and a step back or a keyframe step told by where it
+// lands (D-125 (a), (b) 4 and 6).
 
 #include "TimelineMatch.h"
 
@@ -32,11 +34,9 @@ bool is_url(std::string_view s) { return s.find("://") != std::string_view::npos
 // Two addresses of one file: the same text, or for two local paths the same
 // path once lexically normalized ("a/./b", "a/c/../b"). Nothing is looked up
 // on disk, nor the current directory: a relative path and an absolute one of
-// the same file don't match, as WP12 built it, a reading pending the owner,
-// whose alternative is a relative open path made absolute against the
-// current directory here too (match_stream()); only the path components that
-// the match compares among a playlist's equal bytes take a relative open path
-// from the current directory (opened_at(); D-124 (g) 2).
+// the same file don't match here, and the address matches compare a relative
+// open path made absolute against the current directory (opened_at()) as
+// well as it was given (match_stream(); D-125 (a), Q98 (b)).
 bool same_address(const std::string& a, const std::string& b)
 {
     if (a.empty() || b.empty()) return false;
@@ -95,13 +95,15 @@ std::string tail_text(const std::string& address, std::size_t n)
 }
 
 // Where the player opened `address`, for comparing its path components
-// (D-124 (g) 2, Q97 2 (b)): a local path relative to the current directory
-// made absolute against it, lexically, so that a rung's playlist opened by
-// a path relative to its own directory, index.m3u8 or ./index.m3u8 given to
-// a player started there, ends with its rung's directory; a URL, an
-// absolute path and an empty address as they are. The current directory is
-// the one thing asked of the system, nothing being looked up on disk; where
-// it can't be had, the path is compared as it was given.
+// (D-124 (g) 2, Q97 2 (b)) and its address (D-125 (a), Q98 (b)): a local
+// path relative to the current directory made absolute against it,
+// lexically, so that a rung's playlist opened by a path relative to its own
+// directory, index.m3u8 or ./index.m3u8 given to a player started there,
+// ends with its rung's directory, and is the path that a document built
+// from its absolute path names; a URL, an absolute path and an empty
+// address as they are. The current directory is the one thing asked of the
+// system, nothing being looked up on disk; where it can't be had, the path
+// is compared as it was given.
 std::string opened_at(const std::string& address)
 {
     if (address.empty() || is_url(address)) return address;
@@ -204,9 +206,12 @@ std::size_t nearest_in(const VariantClock& c, std::size_t first, std::size_t las
     return i;
 }
 
-double distance_ticks(const ClockFrame& f, std::int64_t t)
+// How far frame `f` is from PTS `t`, in ticks of the clock's time base: an
+// integer, so that two frames are as near exactly where their distances are
+// equal (D-125 (b) 4).
+std::int64_t distance_ticks(const ClockFrame& f, std::int64_t t)
 {
-    return std::fabs(static_cast<double>(f.pts) - static_cast<double>(t));
+    return f.pts >= t ? f.pts - t : t - f.pts;
 }
 
 // The sequence a jump of the PTS leads from sequence `sequence` to (D-046):
@@ -460,14 +465,21 @@ StreamMatch match_stream(const Timeline& timeline, const LadderScores& scores, c
         for (const std::size_t e : timeline.variants[v].entries)
             if (e < of_entry.size()) of_entry[e] = static_cast<int>(v);
 
-    // The master by its bytes, else by its address, the open path and its
-    // final URL compared as they were given, a relative one not made
-    // absolute, as WP12 built it: a reading pending the owner (below, a
-    // variant's address).
+    // The master by its bytes, else by its address: the open path and its
+    // final URL as they were given, as WP12 built it, which a document that
+    // names a relative path matches, and else made absolute against the
+    // current directory, lexically (opened_at()), so that a master opened by
+    // a path relative to the current directory matches as by its absolute
+    // path, which a document built from a local ladder names (D-125 (a),
+    // Q98 (b)). So too a variant's address, below.
     const std::string sha256 = open.text.empty() ? std::string() : filehash::sha256_hex(open.text);
     const bool bytes   = !sha256.empty() && sha256 == scores.master_sha256;
-    const bool address = same_address(scores.master_location, open.final_url) ||
-                         same_address(scores.master_url, open.path);
+    const std::string path_at = opened_at(open.path), final_at = opened_at(open.final_url);
+    const bool as_given = same_address(scores.master_location, open.final_url) ||
+                          same_address(scores.master_url, open.path);
+    const bool made_absolute = !as_given && (same_address(scores.master_location, final_at) ||
+                                             same_address(scores.master_url, path_at));
+    const bool address = as_given || made_absolute;
     if (bytes || address) {
         m.by = bytes ? StreamMatch::By::MasterBytes : StreamMatch::By::Address;
         std::string refusal;
@@ -492,25 +504,32 @@ StreamMatch match_stream(const Timeline& timeline, const LadderScores& scores, c
         // order_refusal() resolves them, so that the same bytes served from
         // elsewhere still match; in a master changed since, the report's URLs
         // as VMAFLadder resolved them against where it read the master, each
-        // side resolved by its own parser.
+        // side resolved by its own parser. Where that master was matched by
+        // its open path or final URL made absolute, the player's URLs, which
+        // ManifestParser resolved against the relative final URL, are made
+        // absolute the same way and compared as same_address() compares two
+        // addresses, lexically normalized, as opened_at() gives them, so that
+        // the master matches as by its absolute path, and a warning names
+        // such a URL as it was compared (D-125 (a), Q98 (b)); otherwise they
+        // are compared as given, as WP12 built it.
         m.entries = StreamMatch::Entries::Url;
+        const bool absolute_entries = !bytes && made_absolute;
         std::vector<std::string> report_url(scores.entries.size());
         for (std::size_t e = 0; e < scores.entries.size(); ++e)
             report_url[e] = bytes ? player_url(scores.entries[e].uri, open.final_url) : scores.entries[e].url;
         std::string unmatched;
         for (std::size_t i = 0; i < open.variants.size(); ++i) {
+            const std::string url = absolute_entries ? opened_at(open.variants[i].url) : open.variants[i].url;
             bool listed = false;
             for (std::size_t e = 0; e < scores.entries.size(); ++e) {
-                if (report_url[e] != open.variants[i].url) continue;
+                if (absolute_entries ? !same_address(report_url[e], url) : report_url[e] != url) continue;
                 listed = true;
                 if (of_entry[e] >= 0) {
                     m.variant_of[i] = of_entry[e];
                     break;
                 }
             }
-            if (!listed)
-                unmatched += std::format("{}entry {} ({})", unmatched.empty() ? "" : ", ", i,
-                                         open.variants[i].url);
+            if (!listed) unmatched += std::format("{}entry {} ({})", unmatched.empty() ? "" : ", ", i, url);
         }
         if (!unmatched.empty())
             m.warnings.push_back(
@@ -526,25 +545,25 @@ StreamMatch match_stream(const Timeline& timeline, const LadderScores& scores, c
     // One variant's own input opened alone (D-121 (d), Q89 (b)): the variant
     // by its address, the URL the report gives it or where the build read its
     // playlist; else its media playlist by its bytes. The open path and its
-    // final URL are compared here as they were given, a local path relative
-    // to the current directory not made absolute, as WP12 built it, and so
-    // in the master's address match above: a reading pending the owner,
-    // whose alternative is a relative open path made absolute against the
-    // current directory in both, as the path components below take it
-    // (D-124 (g) 2). So a rung that the document names by an absolute local
-    // path, as it does where the ladder was scored from its master's
-    // absolute path, opened by a path relative to its own directory, is
-    // matched below by its bytes and its path, with the warning, where by
-    // its absolute path it is matched here by its address without one; and
-    // once its bytes have changed since the build, it is matched by
-    // neither, the document counting as another stream's, where by its
-    // absolute path it is matched here with the warning that says so.
+    // final URL are compared here as they were given and, as in the master's
+    // address match above, made absolute against the current directory
+    // (D-125 (a), Q98 (b)). So a rung that the document names by an absolute
+    // local path, as it does where the ladder was scored from its master's
+    // absolute path, opened by a path relative to its own directory,
+    // index.m3u8 or ./index.m3u8 given to a player started there, is matched
+    // here by its address as by its absolute path: with no warning while its
+    // bytes are unchanged, and with the warning that says so once they
+    // change, the open path named as it was given, where WP12 matched it
+    // below by its bytes and its path, with that match's warning, and once
+    // its bytes changed by neither, the document counting as another
+    // stream's.
     for (std::size_t v = 0; v < timeline.variants.size(); ++v) {
         const Variant& var = timeline.variants[v];
-        if (!same_address(var.url, open.path) && !same_address(var.url, open.final_url) &&
-            !same_address(var.playlist_location, open.path) &&
-            !same_address(var.playlist_location, open.final_url))
-            continue;
+        bool at = false;
+        for (const std::string* side : { &var.url, &var.playlist_location })
+            for (const std::string* given : { &open.path, &open.final_url, &path_at, &final_at })
+                at = at || same_address(*side, *given);
+        if (!at) continue;
         m.by             = StreamMatch::By::Variant;
         m.opened_variant = static_cast<int>(v);
         if (!sha256.empty() && !var.playlist_sha256.empty() && sha256 != var.playlist_sha256)
@@ -566,12 +585,14 @@ StreamMatch match_stream(const Timeline& timeline, const LadderScores& scores, c
     // same text (src/ManifestParser.cpp), is made absolute against it
     // first, lexically (opened_at()), so that a rung's playlist opened by a
     // path relative to its own directory, index.m3u8 or ./index.m3u8 given
-    // to a player started there, names its rung (D-124 (g) 2, Q97 2 (b)):
-    // here alone, the address match above comparing the open path as it was
-    // given (a reading pending the owner); a URL is compared as it was
-    // given. A warning says which was taken and the path it was taken by,
-    // the whole of an absolute one from its root (tail_text()), and the
-    // playhead and the seek take that variant's clock.
+    // to a player started there, names its rung (D-124 (g) 2, Q97 2 (b)),
+    // as the address match above takes it too (D-125 (a)), which matches
+    // such a path first where the document names the rung by it made
+    // absolute; a URL is compared as it was given. A warning says which was
+    // taken and the path it was taken by, the whole of an absolute one from
+    // its root (tail_text()), as where the document names a rung by an
+    // absolute path that ends with all of the open path made absolute, and
+    // the playhead and the seek take that variant's clock.
     std::vector<std::size_t> same_bytes;
     for (std::size_t v = 0; v < timeline.variants.size(); ++v)
         if (!sha256.empty() && sha256 == timeline.variants[v].playlist_sha256) same_bytes.push_back(v);
@@ -579,7 +600,7 @@ StreamMatch match_stream(const Timeline& timeline, const LadderScores& scores, c
         m.by             = StreamMatch::By::Variant;
         m.opened_variant = static_cast<int>(same_bytes.front());
         if (same_bytes.size() == 1) return m;
-        const std::string opened[] = { opened_at(open.path), opened_at(open.final_url) };
+        const std::string opened[] = { path_at, final_at };
         std::size_t best = same_bytes.front(), run = 0;
         bool        by_location = false;
         std::string tail;
@@ -728,39 +749,50 @@ std::optional<PlayheadFrame> track_playhead(const VariantClock& clock, PlayheadS
     if (!known) {
         // Not known, or a sequence the clock has no frame of (D-124 (c),
         // Q93 (c)): the sequences the PTS lies in, those with a frame within
-        // half a frame of it, and the nearest frame.
+        // half a frame of it, and the sequences whose nearest frames are the
+        // nearest of all, as near meaning at the same distance in ticks
+        // (distance_ticks(), an integer, compared exactly; D-125 (b) 4).
         const double half = clock.frame_rate.num > 0 && clock.frame_rate.den > 0
                           ? 0.5 / av_q2d(clock.frame_rate) / tb : 0.0;
-        std::vector<int> lies;
-        std::size_t best = 0;
-        double best_d = std::numeric_limits<double>::infinity();
+        std::vector<int> lies, nearest;
+        std::int64_t best = std::numeric_limits<std::int64_t>::max();
         for (std::size_t a = 0; a < clock.frames.size();) {
             const int s = clock.frames[a].sequence;
             const auto [first, last] = sequence_range(clock, s);
-            const std::size_t i = nearest_in(clock, first, last, t);
-            const double d = distance_ticks(clock.frames[i], t);
-            if (d <= half) lies.push_back(s);
-            if (d < best_d) {
-                best_d = d;
-                best   = i;
+            const std::int64_t d = distance_ticks(clock.frames[nearest_in(clock, first, last, t)], t);
+            if (static_cast<double>(d) <= half) lies.push_back(s);
+            if (d < best) {
+                best = d;
+                nearest.clear();
             }
+            if (d == best) nearest.push_back(s);
             a = last;
         }
-        // One sequence only: that one. None, the PTS further than half a
-        // frame from every sequence's frames, as where the report lacks the
-        // frame on screen in each sequence it would lie in, an unpaired
-        // frame: the nearest frame's, the earlier of two as near, as WP12
-        // built it, at first sight and where the playhead wasn't known
-        // alike, so that such a PTS ends a playhead not known though
-        // D-124 (c) names no such teller: a reading pending the owner, whose
-        // alternative is no playhead there either. Two or more: where a jump
-        // leads the sequences the last PTS lay in, each to its next one, to
-        // exactly one of them, that one; else the playhead isn't known.
+        // None, the PTS further than half a frame from every sequence's
+        // frames, as where the report lacks the frame on screen in each
+        // sequence it would lie in, an unpaired frame (D-125 (b) 4,
+        // Q99 4 (b)): while the playhead isn't known, sequences being named,
+        // such a PTS tells nothing, the playhead staying not known with the
+        // sequences it was in and the PTS taken for the last one, so that a
+        // jump after it is seen from it; otherwise the sequences as near as
+        // the nearest of all are taken as those it lies in, one telling it and
+        // two or more leaving the playhead not known, where WP12 took the
+        // nearest frame's sequence, the earlier of two as near, which ended a
+        // playhead not known too.
+        if (lies.empty()) {
+            if (!state.unknown.empty()) {
+                state.sequence = -1;
+                state.last_pts = t;
+                return std::nullopt;
+            }
+            lies = std::move(nearest);
+        }
+        // One sequence only: that one. Two or more: where a jump leads the
+        // sequences the last PTS lay in, each to its next one, to exactly
+        // one of them, that one; else the playhead isn't known.
         std::optional<int> told;
         if (lies.size() == 1) {
             told = lies.front();
-        } else if (lies.empty()) {
-            told = clock.frames[best].sequence;
         } else if (jumped && !state.unknown.empty()) {
             std::vector<int> led;
             for (const int s : state.unknown) {
@@ -794,11 +826,34 @@ void playhead_seeked(PlayheadState& state, int sequence)
     state.sequence = sequence;
     state.last_pts.reset();
     state.unknown.clear();
+    state.pipeline.reset();   // the seek moved the playback pipeline
 }
 
 void playhead_sought(PlayheadState& state, const VariantClock& clock, const SeekClock& seek, double target)
 {
     playhead_seeked(state, landing_sequence(clock, seek, target).value_or(-1));
+}
+
+void playhead_stepped_back(PlayheadState& state, const VariantClock& clock, const SeekClock& seek, double target)
+{
+    // The pipeline's state from before the first of the steps back in a row:
+    // a later step's frame is the scrub decoder's too, which the pipeline
+    // didn't show (D-125 (b) 6).
+    std::optional<PlayheadState::Held> pipeline = std::move(state.pipeline);
+    if (!pipeline)
+        pipeline = PlayheadState::Held{ .sequence = state.sequence, .last_pts = state.last_pts,
+                                        .unknown = state.unknown };
+    playhead_sought(state, clock, seek, target);
+    state.pipeline = std::move(pipeline);
+}
+
+void playhead_resumed(PlayheadState& state)
+{
+    if (!state.pipeline) return;
+    state.sequence = state.pipeline->sequence;
+    state.last_pts = state.pipeline->last_pts;
+    state.unknown  = std::move(state.pipeline->unknown);
+    state.pipeline.reset();
 }
 
 void playhead_switched(PlayheadState& state, const VariantClock& clock, const SeekClock& seek, double pts)

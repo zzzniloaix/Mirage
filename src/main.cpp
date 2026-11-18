@@ -1937,6 +1937,17 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
     int                 tl_entry = -1, tl_entry_video = -2, tl_entry_audio = -2;
     timeline::SeekClock tl_seek;
     int                 tl_delay_stream = -2;    // the stream tl_seek.video_delay was read from
+    // What last moved last_any_seek_at, a seek, a step back or a keyframe
+    // step, and the PTS it sought, for the panel's playhead: a step back or a
+    // keyframe step tells it as a seek it didn't ask for, by where it lands
+    // (TimelinePanel::Inputs::step; D-125 (b) 6). And the latest seek's own
+    // target (TimelinePanel::Inputs::seek_target): a step back's frame sets
+    // last_seek_pos, the thumbnail's, to its own PTS, and it can land in the
+    // iteration of a seek, after it. Set beside last_any_seek_at alone: how
+    // the player steps and seeks is unchanged.
+    TimelinePanel::Step tl_step        = TimelinePanel::Step::Seek;
+    double              tl_step_pts    = -1.0;
+    double              tl_seek_target = -1.0;
     ui_info.title      = media_title(open_path);
     ui_info.title_full = open_path;
     const float  video_aspect = (vid_h > 0) ? static_cast<float>(vid_w) / static_cast<float>(vid_h) : 16.0f / 9.0f;
@@ -2324,11 +2335,21 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 step_is_seek       = false;
                 last_any_seek_at   = now;
                 step_serial        = 0;   // no keyframe: the next frame; else its seek's (below)
+                // The timeline panel: a keyframe step, sought at its
+                // keyframe's PTS, which its seek below shows from; none found,
+                // it seeks nothing and shows the next frame (D-125 (b) 6).
+                tl_step     = TimelinePanel::Step::Keyframe;
+                tl_step_pts = kf ? kf->pts : -1.0;
             }
         }
 
         if (seek_target >= 0.0) {
             last_any_seek_at = now;
+            tl_seek_target   = seek_target;   // the timeline panel's: the seek's own target
+            if (!kf_seek) {   // the timeline panel: a seek, by its target (a keyframe step's: above)
+                tl_step     = TimelinePanel::Step::Seek;
+                tl_step_pts = seek_target;
+            }
             last_seek_pos    = seek_target;
             // Playback resumes at the target itself, not at the keyframe (HLS:
             // the segment start) the seek lands on (show_from).
@@ -2789,6 +2810,10 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 last_pts          = pts;
                 last_seek_pos     = pts;         // freeze seek-pos for thumbnail
                 last_any_seek_at  = now;         // show thumb strip briefly
+                // The timeline panel: a step back, by where the scrub
+                // decoder's seek to its request lands (D-125 (b) 6).
+                tl_step           = TimelinePanel::Step::Back;
+                tl_step_pts       = back_step_target;
                 ++frame_count;
                 pending_back_step = false;
                 s_back_steps.fetch_sub(1);
@@ -3385,8 +3410,10 @@ static std::unique_ptr<MediaSession> run_session(App& app, MediaSession& ms)
                 ti.frame_pts    = has_frame ? frame_pts_sec(shown_frame.get()) : last_pts;
                 ti.frame_serial = shown_serial;
                 ti.seek_serial  = latest_seek;
-                ti.seek_target  = last_seek_pos;
+                ti.seek_target  = tl_seek_target;
                 ti.step_mark    = static_cast<std::int64_t>(last_any_seek_at.time_since_epoch().count());
+                ti.step         = tl_step;
+                ti.step_pts     = tl_step_pts;
                 ti.scrubbing    = scrubbing;
                 ti.can_seek     = !scrubbing && !scrub_ended;   // the guard below
                 ti.seek         = tl_seek;

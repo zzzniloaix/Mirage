@@ -2,7 +2,8 @@
 
 // The timeline panel, the player's ImGui window over a timeline document
 // (eval/phase3-survey/design.md §10; DECISIONS.md D-114): written by WP13,
-// the owner's answers to its questions put in by WP13b (D-124).
+// the owner's answers to its questions put in by WP13b (D-124) and WP13c
+// (D-125).
 //
 // Docked above the control stack, full width left of the network sidebar,
 // lowest in the bottom stack (D-114 (a)): one curve per scored variant and
@@ -65,6 +66,12 @@
 
 class TimelinePanel {
 public:
+    // What last moved Inputs::step_mark (D-125 (b) 6, Q99 6 (a)).
+    enum class Step : std::uint8_t {
+        Seek,       // a seek, which moved Inputs::seek_serial too
+        Back,       // a step back (Shift+,), whose frame, the scrub decoder's, is on screen
+        Keyframe,   // a keyframe step (. or ,): with its keyframe, its seek moved seek_serial too
+    };
     struct Inputs {
         // What the player has open (TimelineMatch.h); nullptr: nothing yet.
         const timeline::OpenStream* open = nullptr;
@@ -79,13 +86,37 @@ public:
         std::uint64_t frame_serial = 0;
         // The latest seek the player requested (Demuxer::request_seek's
         // serial) and its target in PTS seconds: the seek bar's, the keys',
-        // a keyframe step's or the panel's own. The playhead follows from
-        // there (timeline::playhead_seeked()).
+        // a keyframe step's or the panel's own, as main.cpp's seek gave it
+        // (tl_seek_target), not its last_seek_pos, the thumbnail's, which a
+        // step back's frame sets to its own PTS, in a seek's iteration too.
+        // The playhead follows from there (timeline::playhead_seeked()).
         std::uint64_t seek_serial = 0;
         double        seek_target = -1.0;
-        // Changes with every seek and every frame step, whose frame need not
-        // follow the one before it (main.cpp's last_any_seek_at).
+        // Changes with every seek, every keyframe step and every step back,
+        // the last when its frame shows, whose frame need not follow the one
+        // before it (main.cpp's last_any_seek_at). A frame step forward
+        // (Shift+.) moves neither this nor seek_serial: it seeks nothing and
+        // shows the playback pipeline's next decoded frame, which the panel
+        // tracks by its PTS like any other (timeline::track_playhead()).
         std::int64_t  step_mark = 0;
+        // What last moved step_mark, and the PTS it sought, which tell the
+        // playhead where a step back or a keyframe step lands, as a seek the
+        // panel didn't ask for (D-125 (b) 6, Q99 6 (a)): a seek's, its
+        // target, as seek_target; a step back's, the PTS main.cpp asks the
+        // scrub decoder for, one and a half frames before the frame stepped
+        // from (timeline::playhead_stepped_back()); a keyframe step's, the
+        // PTS of the keyframe it seeks to and shows from, or -1 where it
+        // found none, so that it seeks nothing and shows the next decoded
+        // frame, as a frame step forward does. A keyframe step seeks back to
+        // its keyframe's PTS, its seek position then, or, for a keyframe
+        // read in an HLS stream, forward to its DTS (src/KeyframeIndex.h).
+        // timeline::simulate_seek() simulates a seek by PTS: by the
+        // keyframe's PTS it finds the segment that the seek to its DTS
+        // finds, the keyframe's DTS leading its PTS as the first packet's
+        // does, where by its DTS it would find the segment before it too for
+        // some of the leads it tries.
+        Step          step     = Step::Seek;
+        double        step_pts = -1.0;
         bool          scrubbing = false;   // the frames shown are the scrub decoder's
         // Whether main.cpp makes the seek the panel asks for in this frame:
         // not while the seek bar is dragged, nor in the frame its drag ends

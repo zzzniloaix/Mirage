@@ -1,8 +1,8 @@
 #!/bin/sh
-# The timeline panel's scripted QA cases for the owner's answers that WP13b puts into the panel
-# (DECISIONS.md D-124 (a) and (c); eval/phase3-survey/ui.md §5.3), in the method of
-# eval/timeline/ui-qa-2026-11-16/run.sh, which made WP13's record. Written, not run: its cases
-# open the player's windows, and the owner gives the time for such runs.
+# The timeline panel's scripted QA cases for the owner's answers that WP13b and WP13c put into the
+# panel (DECISIONS.md D-124 (a) and (c), D-125 (b) 6; eval/phase3-survey/ui.md §5.3), in the
+# method of eval/timeline/ui-qa-2026-11-16/run.sh, which made WP13's record. Written, not run: its
+# cases open the player's windows, and the owner gives the time for such runs.
 #
 # usage: sh eval/timeline/ui-qa-followups.sh <build dir> <out>
 #
@@ -34,12 +34,25 @@
 #    at 3 s a pick at 4 s, inside the span, which picks nothing, and at 3.5 s one at 5.5 s, after
 #    it, which picks the session's frame there and seeks to it. The report lists where the curve
 #    was drawn and the span that isn't scored, and the snapshot shows no curve over the span;
-# 4. answers the query of the unscored case's card, its second pick's, with mirage_vmaf
+# 4. case step-back (D-125 (b) 6, Q99 6 (a)): on inside-ad's ladder, its document built the same
+#    way, the panel open from the launch; paused at 0.5 s; at 1 s a seek by --speed-seq's seek:
+#    to position 2 s, the start of the segment before the ad, which the panel offers for the ad's
+#    frames (D-114 (b)), since no seek by PTS reaches them, and from which the playhead is known;
+#    25 frame steps forward from 2 s, a tenth of a second apart, to the ad's first frame, where
+#    the PTS step back and the playhead follows into the ad's sequence (D-046); a step back at
+#    5 s, from the ad's first frame, for which main.cpp asks the scrub decoder for a PTS before
+#    the stream's start. Run run: the report at 8 s after launch shows the playhead on the frame
+#    on screen, or none where the step's landing can't be told, as the tracker gives it for that
+#    landing; the snapshot at 9 s after the first frame. Run fwd: the same, then 50 frame steps
+#    forward from 6 s, 0.08 s apart, which show the playback pipeline's next frames, the step
+#    back having left it where it was, to the main content's first frame after the ad; the
+#    report at 13 s after launch shows the playhead on that frame; the snapshot at 14 s;
+# 5. answers the query of the unscored case's card, its second pick's, with mirage_vmaf
 #    attribute, the frames of the card's interval (--frames), for check_ui_followups.py to
 #    compare with the card line by line, as run.sh's step 5 does;
-# 5. keeps each snapshot's lower half, the panel, the seek bar and the controls, at half size, and
+# 6. keeps each snapshot's lower half, the panel, the seek bar and the controls, at half size, and
 #    moves the full-size captures to <out>.full, as run.sh's step 7 does;
-# 6. checks the reports and the logs (check_ui_followups.py), notes the checkout's state at the
+# 7. checks the reports and the logs (check_ui_followups.py), notes the checkout's state at the
 #    end and, last, replaces the local directories in every file of <out> but the media segments
 #    and searches them, as P-011 has the eval scripts do (eval/timeline/check.py redact).
 # Every player run passes --qa-no-focus and --window 1280x720, with HOME at <out>.home (the player
@@ -253,7 +266,28 @@ player "$build/mirage" unscored/run.log "$example/ad-main-origin/master.m3u8" --
     --ui-timeline "zoom=2:6,curves=session:0,pick=4@3,pick=5.5@3.5" --speed-seq "pause@2.5,snap@8" \
     --ui-snapshot unscored/run.png 0 --timeline-report unscored/run.txt 7
 
-# 4. The query of the unscored case's card.
+# 4. Case step-back: paused, a seek to the segment before the ad, frame steps forward to the ad's
+# first frame, then a step back from it; run fwd, frame steps forward after it. --speed-seq's own
+# events alone (src/main.cpp, SpeedStep): pause, seek:, fwd, back and snap.
+mkdir -p step-back
+run step-back/timeline.log "$build/mirage_vmaf" timeline --report "$cases/ad-main-origin.json" \
+    --out step-back/timeline.json --threshold 6 --window 50 --min-points 12
+# fwd_steps <count> <first> <apart>: <count> frame steps forward, the first <first> seconds after the
+# first frame, <apart> seconds apart, as --speed-seq's events.
+fwd_steps() {
+    awk -v n="$1" -v t0="$2" -v dt="$3" \
+        'BEGIN { for (i = 0; i < n; i++) printf "%sfwd@%.2f", (i ? "," : ""), t0 + i * dt }'
+}
+to_ad=$(fwd_steps 25 2 0.1)
+after=$(fwd_steps 50 6 0.08)
+player "$build/mirage" step-back/run.log "$cases/ad-main-origin/master.m3u8" --timeline step-back/timeline.json \
+    --speed-seq "pause@0.5,seek:2@1,$to_ad,back@5,snap@9" --ui-snapshot step-back/run.png 0 \
+    --timeline-report step-back/run.txt 8
+player "$build/mirage" step-back/fwd.log "$cases/ad-main-origin/master.m3u8" --timeline step-back/timeline.json \
+    --speed-seq "pause@0.5,seek:2@1,$to_ad,back@5,$after,snap@14" --ui-snapshot step-back/fwd.png 0 \
+    --timeline-report step-back/fwd.txt 13
+
+# 5. The query of the unscored case's card.
 answer unscored/run.txt unscored/timeline.json
 {
     echo
@@ -261,21 +295,21 @@ answer unscored/run.txt unscored/timeline.json
     pgrep -f VTDecoderXPCService | wc -l | tr -d ' '
 } >> environment.txt
 
-# 5. The snapshots for review: lower halves at half size, the full-size captures moved.
+# 6. The snapshots for review: lower halves at half size, the full-size captures moved.
 mkdir -p snapshots
-for sn_p in inside-ad/run unscored/run; do
+for sn_p in inside-ad/run unscored/run step-back/run step-back/fwd; do
     sn_n=$(printf '%s' "$sn_p" | tr / -)
     run "snapshots/$sn_n.ffmpeg.log" ffmpeg -v error -y -i "$sn_p.png" \
         -vf "crop=iw:ih/2:0:ih/2,scale=iw/2:ih/2:flags=lanczos" "snapshots/$sn_n.png"
 done
-for mv_p in inside-ad/run.png unscored/run.png; do
+for mv_p in inside-ad/run.png unscored/run.png step-back/run.png step-back/fwd.png; do
     [ -f "$mv_p" ] || continue
     mkdir -p "$full/$(dirname "$mv_p")"
     mv -- "$mv_p" "$full/$mv_p"
 done
 echo "# the full-size captures moved to <out>.full" >> cmd.txt
 
-# 6. The checks, the checkout's state at the end, then the replacement of the local directories
+# 7. The checks, the checkout's state at the end, then the replacement of the local directories
 # and the last search.
 printf '$ python3 -I -B %s %s > checks.txt 2>&1\n' "$(shown "$here/check_ui_followups.py")" "$(shown "$out")" \
     >> cmd.txt

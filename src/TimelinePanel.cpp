@@ -1,5 +1,5 @@
 // The timeline panel (eval/phase3-survey/design.md §10; DECISIONS.md D-114): written by WP13,
-// D-124 (a) and (c) put in by WP13b.
+// D-124 (a) and (c) put in by WP13b, D-125 (b) 6 by WP13c.
 
 #include "TimelinePanel.h"
 
@@ -664,9 +664,9 @@ void TimelinePanel::settle_seek(const Inputs& in, bool drawn_last_frame)
     // than one sequence (D-124 (c)); where it is known in another sequence
     // than the frame asked for, the frame on screen is that sequence's, as
     // inside an ad whose timestamps restart at the main content's origin.
-    // The note says so, the panel offering nothing more, as WP13 built it:
-    // whether it should then offer a segment start, as for a frame that no
-    // seek reaches (D-114 (b)), is pending the owner.
+    // The note says so, the panel offering nothing more, no segment start as
+    // for a frame that no seek reaches (D-114 (b)), as built, which the
+    // owner kept (D-125 (c) 2, Q100 2 (a)).
     const bool offer = p.decision.kind == timeline::SeekDecision::Kind::Offer;
     if (!moved && !playhead_unknown_.empty())
         p.note = std::format("no seek made: the player was at that PTS already, which lies in sequences {}: "
@@ -695,11 +695,14 @@ void TimelinePanel::settle_seek(const Inputs& in, bool drawn_last_frame)
 // packet's DTS that the seek decision allows, and otherwise none (WP12's
 // notes; playhead_sought()), so that a jump back caused by a seek isn't
 // taken for the next sequence; after a switch, where simulate_seek() lands
-// the first new frame's PTS (below; playhead_switched()); after a frame step
-// the sequence it was in. Where the sequence isn't known and the PTS on
-// screen lies in more than one, no playhead, and a line that says why, until
-// a seek, a switch or a jump of the PTS tells it, or the PTS lies in one
-// sequence only (D-124 (c), Q93 (c)): the tracker decides it.
+// the first new frame's PTS (below; playhead_switched()); after a step back
+// or a keyframe step, where it lands, as after a seek the panel didn't ask
+// for, the playback pipeline's frames after a step back tracked from the
+// pipeline's own last frame (D-125 (b) 6, Q99 6 (a); below); after a frame
+// step forward, its frame as any other. Where the sequence isn't known and
+// the PTS on screen lies in more than one, no playhead, and a line that says
+// why, until a seek, a switch, a step or a jump of the PTS tells it, or the
+// PTS lies in one sequence only (D-124 (c), Q93 (c)): the tracker decides it.
 void TimelinePanel::follow_playhead(const Inputs& in)
 {
     last_entry_ = in.entry;
@@ -715,9 +718,11 @@ void TimelinePanel::follow_playhead(const Inputs& in)
         // no playhead then, and the line that says why, until a seek, a
         // switch or a jump of the PTS tells the panel which, or the PTS lies
         // in one sequence only, on D-069's ladder where the ad ends, the
-        // main content's PTS after it being in no other (D-124 (c), Q93 (c)).
-        // Closed, the panel isn't fed, so that the render loop does nothing
-        // for it then.
+        // main content's PTS after it being in no other (D-124 (c), Q93 (c));
+        // and so at the stream's start, whose first PTS the ad repeats, until
+        // they lie in one sequence only, as built, which the owner kept
+        // (D-125 (b) 1, Q99 1 (a)). Closed, the panel isn't fed, so that the
+        // render loop does nothing for it then.
         seen_any_   = true;
         seen_seek_  = in.seek_serial;
         seen_step_  = in.step_mark;
@@ -762,6 +767,14 @@ void TimelinePanel::follow_playhead(const Inputs& in)
             pick_->note.clear();
         }
     }
+    // First sight where a step back was the last step: the frame on screen
+    // may be its own, the scrub decoder's, after which the playback pipeline
+    // goes on from a frame the panel never saw. The pipeline's state isn't
+    // known either, so that its next frame is told by where its PTS lies, as
+    // at first sight, not taken to follow the frame on screen
+    // (playhead_resumed(); D-124 (c), D-125 (b) 6); where the pipeline has
+    // gone on since the step, its next frame alone is told so.
+    if (first_sight && in.step == Step::Back) play_state_.pipeline = timeline::PlayheadState::Held{};
     if (v < 0) {
         playhead_.reset();
         playhead_unknown_.clear();
@@ -771,16 +784,26 @@ void TimelinePanel::follow_playhead(const Inputs& in)
         return;
     }
     const timeline::VariantClock& clock = clock_of(v);
-    if (in.seek_serial != seen_seek_) {
+    // A seek, and a step that moved step_mark: in one iteration main.cpp
+    // makes its seek before it shows a step back's frame, so that the seek
+    // goes first here too, by its own target (Inputs::seek_target, which
+    // the step's frame doesn't change), and the step back then holds where
+    // the seek lands for the playback pipeline, whose next frames are the
+    // seek's.
+    const bool sought    = in.seek_serial != seen_seek_;
+    const bool step_back = in.step_mark != seen_step_ && in.step == Step::Back;
+    seen_seek_ = in.seek_serial;
+    seen_step_ = in.step_mark;
+    if (sought) {
         // A seek tells the panel the sequence where it can tell where the
         // seek lands (D-124 (c)): the panel's own, by its frame's, which a
         // seek to its PTS shows for every lead that decide_seek() allows;
-        // another, by where simulate_seek() lands its target, where that is
-        // one sequence for every such lead (playhead_sought()); otherwise it
-        // tells nothing, and the frame on screen tells it where its PTS lies
-        // in one sequence only.
-        seen_seek_ = in.seek_serial;
-        seen_step_ = in.step_mark;
+        // another, the seek bar's, a key's or a keyframe step's, which seeks
+        // to its keyframe, by where simulate_seek() lands its target, for a
+        // keyframe step the keyframe's PTS, its Inputs::step_pts too
+        // (D-125 (b) 6), where that is one sequence for every such lead
+        // (playhead_sought()); otherwise it tells nothing, and the frame on
+        // screen tells it where its PTS lies in one sequence only.
         if (own_seek_ && std::fabs(own_seek_->target - in.seek_target) < 1e-6)
             timeline::playhead_seeked(play_state_, own_seek_->sequence);
         else if (in.seek_target >= 0.0)
@@ -788,21 +811,28 @@ void TimelinePanel::follow_playhead(const Inputs& in)
         else
             timeline::playhead_seeked(play_state_, -1);
         own_seek_.reset();
-    } else if (in.step_mark != seen_step_) {
-        // A step that moves step_mark alone, a step back (main.cpp's, by the
-        // scrub decoder's seek by PTS) or a keyframe step that found no
-        // keyframe: the sequence it was in, its last PTS forgotten, so that
-        // the step isn't taken for a jump, as WP13 built it. A step whose
-        // frame is another sequence's, as one across a sequence's start,
-        // isn't told apart, and the playhead stays in the sequence it was
-        // in, which can mark another frame than the one on screen: left to a
-        // follow-up, the inputs not telling the steps apart.
-        seen_step_ = in.step_mark;
-        timeline::playhead_seeked(play_state_, play_state_.sequence);
     }
+    // A step back tells the panel the sequence as a seek it didn't ask for,
+    // by where the scrub decoder's seek by PTS to what main.cpp asked of it
+    // lands, and nothing where that can't be told, the playback pipeline's
+    // state held for the pipeline's next frame, which follows the frame it
+    // showed before the step (D-125 (b) 6, Q99 6 (a);
+    // playhead_stepped_back()), where WP13 kept the sequence it was in and
+    // forgot the last PTS. A keyframe step that found no keyframe, which
+    // moves step_mark alone, and a frame step forward, which moves neither,
+    // show the pipeline's next decoded frame: tracked below by its PTS like
+    // any other, from the pipeline's frame before it, so that neither can
+    // make the tracker miss a jump across a sequence's start.
+    if (step_back) timeline::playhead_stepped_back(play_state_, clock, in.seek, in.step_pts);
     if (in.scrubbing || !in.has_frame) return;   // a scrub's frames are the scrub decoder's, anywhere
-    if (in.frame_serial == seen_frame_ && !track) return;
+    const bool new_frame = in.frame_serial != seen_frame_;
+    if (!new_frame && !track) return;
     seen_frame_ = in.frame_serial;
+    // A new frame but a step back's is the pipeline's: tracked from the
+    // pipeline's own state where steps back held it (playhead_resumed()).
+    // The frame first seen is tracked as it is, its successor taking back
+    // what first sight held.
+    if (new_frame && !step_back) timeline::playhead_resumed(play_state_);
     const bool was_unknown = !playhead_unknown_.empty();
     playhead_         = timeline::track_playhead(clock, play_state_, in.frame_pts);
     playhead_unknown_ = play_state_.unknown;
@@ -1535,8 +1565,9 @@ TimelinePanel::Out TimelinePanel::draw(const Inputs& in)
         // isn't scored is outside the data (D-124 (a), Q91 (b)): its columns
         // hold no score, the point before it steps up to its start only
         // (point_end()), and the line ends there, so that no curve is drawn
-        // over it; a pair's curve has no such span. Where each line was
-        // drawn is kept for --timeline-report (drawn_).
+        // over it, the gap its only mark, as built, which the owner kept
+        // (D-125 (c) 3, Q100 3 (a)); a pair's curve has no such span. Where
+        // each line was drawn is kept for --timeline-report (drawn_).
         const int   columns = std::max(1, static_cast<int>(std::lround(pw * std::max(in.scale, 1.0f))));
         const float colw    = pw / static_cast<float>(columns);
         const double cols_d = static_cast<double>(columns);
@@ -1639,7 +1670,8 @@ TimelinePanel::Out TimelinePanel::draw(const Inputs& in)
         // its sequence isn't known and the frame's PTS lies in more than one
         // (D-124 (c), Q93 (c)), none, and in its place a line of the panel's
         // own that says why, at the foot of the curves, where the scores are
-        // lowest, over a plate of the panel's background.
+        // lowest, over a plate of the panel's background, as built, which the
+        // owner kept (D-125 (c) 1, Q100 1 (a)).
         if (playhead_) {
             const float x = timeline::x_at(view_, scale.position(playhead_->ref_index), px0, pw);
             dl->AddLine(ImVec2(x, ay1 - 3.0f), ImVec2(x, by1), C(th::kText), 1.5f);
@@ -1837,8 +1869,9 @@ std::string TimelinePanel::report_text() const
                          p.sequence, playhead_pts_, off);
     } else if (!playhead_unknown_.empty()) {
         // Its sequence not known (D-124 (c), Q93 (c)): from first sight, or
-        // from a seek, a switch or a frame step whose landing the tracker
-        // can't tell (timeline::track_playhead()).
+        // from a seek, a switch or a step back whose landing the tracker
+        // can't tell (timeline::track_playhead()), a step telling it as a
+        // seek the panel didn't ask for (D-125 (b) 6), as the line says.
         r += std::format("playhead: unknown: the frame on screen at PTS {:.6f} s lies in sequences {} of the "
                          "variant on screen, which nothing has told apart since the panel first saw the player's "
                          "frames, or since a seek, a switch or a step whose landing it can't tell: none drawn "

@@ -4,7 +4,9 @@
 // the interval a click queries, ImGui-free (eval/phase3-survey/design.md §10; DECISIONS.md
 // D-114 (b), (d)): written by WP12, the path among a playlist's equal bytes by WP12b (D-121 (d)),
 // a relative open path made absolute there by WP12c (D-124 (g) 2), the playhead not known where
-// its sequence isn't by WP13b (D-124 (c)).
+// its sequence isn't by WP13b (D-124 (c)), and by WP13c a relative open path made absolute in the
+// address matches too, a PTS in no sequence, and a step back or a keyframe step told by where it
+// lands (D-125 (a), (b) 4 and 6).
 //
 // What the panel (src/TimelinePanel.h, WP13) needs between a loaded document
 // (src/TimelineLoad.h) and the stream the player has open, as pure functions
@@ -45,31 +47,34 @@
 //   given, and a local file's final URL the same text
 //   (src/ManifestParser.cpp); where that is a local path relative to the
 //   current directory, it is made absolute against the current directory,
-//   lexically, before its components are compared, so that a rung's
-//   playlist opened by a path relative to its own directory, index.m3u8 or
-//   ./index.m3u8 given to a player started there, names its rung
-//   (D-124 (g) 2, Q97 2 (b)). The current directory is all the match asks
-//   of the system: nothing is looked up on disk, and a URL is compared as it
-//   was given. The address matches above, the master's and the variant's,
-//   compare the open path and its final URL as they were given, as WP12
-//   built them: a reading pending the owner, whose alternative is a
-//   relative open path made absolute against the current directory there
-//   too. So a rung that the document names by an absolute local path, as it
-//   does where the ladder was scored from its master's absolute path,
-//   opened by a path relative to its own directory, is matched by its bytes
-//   and its path, with the warning below, where by its absolute path it is
-//   matched by its address without one; and once its bytes have changed
-//   since the build, by neither, the document then counting as another
-//   stream's, where by its absolute path it is matched by its address with
-//   the warning that says so. Where the path picks the variant, a warning
-//   says which and by what path, the whole of an absolute one from its
-//   root, as one is given wherever several variants have those bytes, so
-//   that the match carries a warning for the panel's chip even where the
-//   path named the rung, a local file that the document names by a relative
-//   path and the player by an absolute one, which the address match doesn't
-//   take, among them, as built, which the owner kept
-//   (D-124 (g) 3, Q97 3 (a)). Otherwise the document is another stream's,
-//   which the panel shows only on the user's word.
+//   lexically (opened_at()), before its components are compared, so that a
+//   rung's playlist opened by a path relative to its own directory,
+//   index.m3u8 or ./index.m3u8 given to a player started there, names its
+//   rung (D-124 (g) 2, Q97 2 (b)); and the address matches above, the
+//   master's and the variant's, compare the open path and its final URL
+//   made absolute so too, besides as they were given, which a document that
+//   names a relative path matches, so that one file matches the same way
+//   whether the player was given its absolute path or a relative one
+//   (D-125 (a), Q98 (b)). So a master or a rung that the document names by
+//   an absolute local path, as it does where the ladder was scored from its
+//   master's absolute path, opened by a path relative to the current
+//   directory, is matched by its address as by its absolute path: a rung
+//   with no warning while its bytes are unchanged and with the warning that
+//   says so once they change; the master, which its bytes match first while
+//   they are unchanged, with the warning that says so once they change, its
+//   entries by URL, the open master's, which ManifestParser resolved
+//   against the relative final URL, made absolute the same way before they
+//   are matched to the report's. The current directory is all the match
+//   asks of the system: nothing is looked up on disk, and a URL is compared
+//   as it was given. Where the path picks the variant, a warning says which
+//   and by what path, the whole of an absolute one from its root, as one is
+//   given wherever several variants have those bytes, so that the match
+//   carries a warning for the panel's chip even where the path named the
+//   rung, a local file that the document names by a relative path and the
+//   player by an absolute one, which the address match doesn't take, among
+//   them, as built, which the owner kept (D-124 (g) 3, Q97 3 (a)).
+//   Otherwise the document is another stream's, which the panel shows only
+//   on the user's word.
 // - A variant's clock (VariantClock): the frames of the variant on screen with
 //   their PTS and reference frames, from the report (a pair's distorted
 //   frames; the reference's own through the axis's media keys), and its
@@ -83,14 +88,25 @@
 //   discontinuity, back, or forward by more than 10 s (src/VMAFAlign.h), and
 //   is set from where a seek or a variant switch lands, a seek's where it
 //   lands in one sequence for every lead of the first packet's DTS that the
-//   seek decision allows (playhead_sought()). Where it isn't known, as when
-//   the panel first sees the player's frames or after a seek whose landing
-//   can't be told, and the PTS on screen lies in more than one sequence, as
-//   inside an ad whose timestamps restart at the main content's origin, the
-//   playhead isn't known either: none is given, and the sequences it may be
-//   in are, until a seek, a switch or a jump of the PTS tells which, or the
-//   PTS lies in one sequence only, so that the panel never marks a frame
-//   other than the one on screen (D-124 (c), Q93 (c); track_playhead()).
+//   seek decision allows (playhead_sought()). A step back and a keyframe
+//   step tell it as a seek the panel didn't ask for, by where they land, and
+//   nothing where that can't be told (D-125 (b) 6, Q99 6 (a)): a keyframe
+//   step by its seek to the keyframe, a step back by the scrub decoder's
+//   seek by PTS, after which the playback pipeline, which the step doesn't
+//   move, goes on from the frame it showed before the step
+//   (playhead_stepped_back(), playhead_resumed()); a frame step forward,
+//   which seeks nothing, shows the pipeline's next frame, tracked by its PTS
+//   like any other. Where it isn't known, as when the panel first sees the
+//   player's frames or after a seek whose landing can't be told, and the PTS
+//   on screen lies in more than one sequence, as inside an ad whose
+//   timestamps restart at the main content's origin, the playhead isn't
+//   known either: none is given, and the sequences it may be in are, until a
+//   seek, a step, a switch or a jump of the PTS tells which, or the PTS lies
+//   in one sequence only, so that the panel never marks a frame other than
+//   the one on screen (D-124 (c), Q93 (c); track_playhead()); a PTS that
+//   lies in no sequence is taken to lie in those whose frames are nearest
+//   it, and tells nothing while the playhead isn't known (D-125 (b) 4,
+//   Q99 4 (b)).
 // - The seek decision (ui.md §2.4; D-114 (b), Q37 (a)): whether the player's
 //   seek to a frame's PTS shows that frame, by the seek as ui.md §1.6 reads
 //   FFmpeg 8.1.1's hls.c and tests/test_hls_seek_behaviour.cpp pins it. The
@@ -143,7 +159,7 @@
 // Nothing here opens media, the network or a file, and nothing of ImGui, GL
 // or GLFW (D-031); ManifestParser is called only to resolve a URI as the
 // player does, and match_stream() asks for the current directory only to
-// make a relative open path absolute (D-124 (g) 2). Unit-tested in
+// make a relative open path absolute (D-124 (g) 2, D-125 (a)). Unit-tested in
 // tests/test_timeline_match.cpp.
 
 #include "LadderReportRead.h"
@@ -171,8 +187,9 @@ namespace timeline {
 struct OpenStream {
     // What the player was given to open: a URL or a local path, a relative
     // one being relative to the current directory, which the match takes it
-    // from where it compares path components (D-124 (g) 2), and not where
-    // it compares addresses, a reading pending the owner (this file's head).
+    // from where it compares path components (D-124 (g) 2) and, besides
+    // comparing it as given, where it compares addresses (D-125 (a),
+    // Q98 (b); this file's head).
     std::string path;
     // What its ManifestParser read (src/ManifestParser.h): where the master was
     // read from, after HTTP redirects, its bytes, and its EXT-X-STREAM-INF
@@ -275,9 +292,21 @@ struct PlayheadState {
     int sequence = -1;                       // -1: not known
     std::optional<std::int64_t> last_pts;    // ticks of the clock's time base
     // The playhead not known (D-124 (c), Q93 (c)): the two or more sequences
-    // with a frame at the last PTS tracked, ascending, which is why
-    // track_playhead() gave no frame for it; empty otherwise.
+    // the last PTS tracked lay in, ascending, which is why track_playhead()
+    // gave no frame for it; empty otherwise.
     std::vector<int> unknown;
+    // The playback pipeline's state, held while the frame on screen is a
+    // step back's, the scrub decoder's: the three fields above as they were
+    // before the first of the steps back in a row, from which the pipeline's
+    // next frame goes on (playhead_stepped_back(), playhead_resumed();
+    // D-125 (b) 6), or as made, not known, where the panel first sees what
+    // may be a step back's frame (src/TimelinePanel.cpp); nullopt otherwise.
+    struct Held {
+        int sequence = -1;
+        std::optional<std::int64_t> last_pts;
+        std::vector<int> unknown;
+    };
+    std::optional<Held> pipeline;
 };
 
 // Where the playhead is: a frame of the variant's clock and its reference frame.
@@ -294,44 +323,108 @@ struct PlayheadFrame {
 // The sequence moves to the next one when `pts` is lower than the last PTS
 // tracked, or higher by more than vmafalign::kForwardJump (D-046), and
 // stays at the last one. Where it isn't known, as at first sight (a state
-// as made) and after a seek or a switch whose landing isn't known
+// as made) and after a seek, a step or a switch whose landing isn't known
 // (playhead_seeked() with -1), `pts` tells it where it lies (D-124 (c),
-// Q93 (c)): it lies in each sequence with a frame within half a frame of
-// it, and where that is one sequence only, that one; where it is none, the
-// nearest frame's, as WP12 built it, which ends a playhead not known too,
-// though D-124 (c) names no such teller: a reading pending the owner
-// (src/TimelineMatch.cpp); and where it is two or more, the playhead isn't
-// known: nullopt, `state.unknown` naming them, until a seek or a switch
-// (playhead_seeked(), playhead_sought(), playhead_switched()), a jump of
-// the PTS or a PTS that lies in one sequence only tells it. A jump tells it
-// where, of the sequences that it leads those the last PTS lay in to, each
-// to its next one as above, exactly one has a frame within half a frame of
-// `pts`. nullopt too for a clock without frames or without a time base,
-// `state.unknown` then empty.
+// Q93 (c)): in each sequence with a frame within half a frame of it, as
+// built, which the owner kept (D-125 (b) 3, Q99 3 (a)). Where that is none,
+// a frame the report has in none of the sequences it would lie in, an
+// unpaired frame among them, the sequences whose nearest frames are as near
+// as the nearest of all are taken as those it lies in, as near meaning at
+// the same distance in ticks of the clock's time base, an integer, compared
+// exactly; but while the playhead isn't known (`state.unknown` not empty),
+// such a PTS tells nothing: the playhead stays not known with the sequences
+// it was in, `pts` taken for the last PTS, so that a jump after it is seen
+// from it (D-125 (b) 4, Q99 4 (b)). Where it lies in one sequence only,
+// that one; in two or more, the playhead isn't known: nullopt,
+// `state.unknown` naming them, until a seek, a step or a switch
+// (playhead_seeked(), playhead_sought(), playhead_stepped_back(),
+// playhead_switched()), a jump of the PTS or a PTS that lies in one
+// sequence only tells it. A jump tells it where, of the sequences that it
+// leads those the last PTS lay in to, each to its next one as above,
+// exactly one has a frame within half a frame of `pts`, as built, which the
+// owner kept (D-125 (b) 5, Q99 5 (a)). nullopt too for a clock without
+// frames or without a time base, `state.unknown` then empty.
+// A frame step forward (Shift+.), which main.cpp makes without a seek,
+// shows the playback pipeline's next decoded frame, as a keyframe step that
+// finds no keyframe does: it is tracked here by its PTS like any other,
+// nothing about the step telling the tracker anything, so that a jump of
+// the PTS at it, across a sequence's start, is seen from the pipeline's
+// frame before it, after steps back too, the pipeline's state then taken
+// back first (playhead_resumed()).
 std::optional<PlayheadFrame> track_playhead(const VariantClock& clock, PlayheadState& state, double pts);
 
 // A seek the player made, to a frame of sequence `sequence` (as the seek
 // decision's target or a landing gives it; -1: not known): the playhead
 // follows from there, and where the sequence isn't known, track_playhead()
-// is told it as it is at first sight (D-124 (c)).
+// is told it as it is at first sight (D-124 (c)). The seek moves the
+// playback pipeline, so that a state held for it is dropped.
 void playhead_seeked(PlayheadState& state, int sequence);
 
 // A seek the player made to `target` (PTS seconds) on the variant of
-// `clock`, one the panel didn't ask for (the seek bar's, a key's, a
-// keyframe step's): the playhead follows from the sequence of the frames
-// simulate_seek() lands `target` on, which tells the panel the sequence
-// (D-124 (c)), where they are of one sequence for every lead of the first
-// packet's DTS that decide_seek() allows, from 0 to the largest of one
-// frame, `seek.video_delay` frames and `seek.dts_lead`. Where the
-// simulation shows no frame for one of them, or frames of two sequences
+// `clock`, one the panel didn't ask for (the seek bar's, a key's, or a
+// keyframe step's, `target` its keyframe's PTS, D-125 (b) 6, as
+// TimelinePanel::Inputs::step_pts says): the playhead follows from the
+// sequence of the frames simulate_seek() lands `target` on, which tells the
+// panel the sequence (D-124 (c)), where they are of one sequence for every
+// lead of the first packet's DTS that decide_seek() allows, from 0 to the
+// largest of one frame, `seek.video_delay` frames and `seek.dts_lead`. Where
+// the simulation shows no frame for one of them, or frames of two sequences
 // for two, the seek tells nothing, the Demuxer not knowing the lead: the
 // playhead follows from a sequence not known, as at first sight, so that
 // the frame on screen tells it where its PTS lies in one sequence only
-// (track_playhead()). So a seek to one of a libx264 segment's last two
-// frames before an ad whose timestamps restart at the main content's
-// origin, which with no lead shows that frame and with libx264's lead of
-// two frames the first frame after the ad (D-121 (c)), tells nothing.
+// (track_playhead()), as built, which the owner kept (D-125 (b) 2,
+// Q99 2 (a)). So a seek to one of a libx264 segment's last two frames
+// before an ad whose timestamps restart at the main content's origin,
+// which with no lead shows that frame and with libx264's lead of two frames
+// the first frame after the ad (D-121 (c)), tells nothing.
 void playhead_sought(PlayheadState& state, const VariantClock& clock, const SeekClock& seek, double target);
+
+// A frame step back the player made (Shift+,), its frame the scrub
+// decoder's, which main.cpp asks for the frame at `target` (PTS seconds),
+// one and a half frames before the frame on screen: the step tells the
+// panel the sequence as a seek it didn't ask for, by where the decoder's
+// seek by PTS to `target` lands, and nothing where that can't be told, by
+// playhead_sought()'s rule (D-125 (b) 6, Q99 6 (a)). The decoder seeks by
+// PTS with the Demuxer's clamp into the media (src/ScrubDecoder.cpp), which
+// simulate_seek() stands for; it then shows the first frame at or after
+// `target`, within 1 ms, where the Demuxer's decode thread allows half a
+// frame, and it can start at a keyframe it has read by a forward seek to
+// its DTS: either can change which frame of the landing it shows, which the
+// frame on screen then tells. Inside an ad whose timestamps restart at the
+// main content's origin, as D-069's does, the decoder's seek lands in the
+// main content, whose segments hold those PTS on the demuxer's clock, so
+// that the player's step back leaves the ad: from the ad's first frame
+// `target` lies before the stream's start, which the clamp makes the start,
+// and the step shows the main content's first frame, of the same PTS, where
+// Q99 6 describes a step to the main content's last frame before the ad;
+// from another of the ad's frames, the main content's frame that the seek
+// to `target` lands on, of about the PTS stepped from
+// (tests/test_timeline_match.cpp). The player is unchanged, as D-125 (b) 6
+// has it, and the playhead marks the frame on screen; whether Phase 3's PR
+// reports this step of the player's, as it reports a switch's reposition in
+// such an ad (D-124 (e)), is pending the owner. The playback pipeline isn't
+// moved by the step: its next frame, a frame step forward's, a keyframe
+// step's that found no keyframe or playback's, follows the frame it showed
+// before the step, so that the state the tracker had then is held in
+// `state.pipeline`, from the first of several steps back in a row, until
+// playhead_resumed() takes it back; a seek, a switch or a new variant drops
+// it. Both readings, of src/ScrubDecoder.cpp and of src/main.cpp, are
+// unmeasured: the case step-back of eval/timeline/ui-qa-followups.sh checks
+// them, written and not run yet.
+void playhead_stepped_back(PlayheadState& state, const VariantClock& clock, const SeekClock& seek, double target);
+
+// The playback pipeline's frame shown after steps back
+// (playhead_stepped_back()): the tracker goes on from the state held for the
+// pipeline, so that the pipeline's next frame is tracked from its own last
+// frame, whose PTS tells a jump across a sequence's start, which the step
+// back's frame on screen, the scrub decoder's, can't: inside an ad whose
+// timestamps restart at the main content's origin, a step back from the
+// ad's first frame shows the main content's first frame and, by the
+// reading above, a frame step forward after it the ad's second frame, one
+// frame later by PTS, which tracked from the step back's frame would stay
+// in the main content (D-125 (b) 6). Nothing where no state is held. Call
+// it before track_playhead() for each frame of the pipeline.
+void playhead_resumed(PlayheadState& state);
 
 // A variant switch that put the variant of `clock` on screen, its first
 // frame at `pts` (seconds). The Demuxer repositions a switch with a seek by
@@ -349,7 +442,8 @@ void playhead_sought(PlayheadState& state, const VariantClock& clock, const Seek
 // does, that seek lands in the main content, which the player then plays
 // again from there, and the playhead follows the main content's frame on
 // screen: the Demuxer's doing, reported in Phase 3's PR, the Demuxer
-// unchanged, which the owner chose (D-124 (e), Q95 (a)).
+// unchanged, which the owner chose (D-124 (e), Q95 (a)). The switch's seek
+// moves the playback pipeline, so that a state held for it is dropped.
 void playhead_switched(PlayheadState& state, const VariantClock& clock, const SeekClock& seek, double pts);
 
 // ── The seek decision (ui.md §2.4; D-114 (b)) ────────────────────────────────

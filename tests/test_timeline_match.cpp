@@ -1,6 +1,6 @@
 // Unit tests of src/TimelineMatch.h (eval/phase3-survey/design.md §9.1): written by WP12, a
 // playlist opened alone among equal bytes by WP12b, one opened by a relative path by WP12c, the
-// playhead not known where its sequence isn't by WP13b.
+// playhead not known where its sequence isn't by WP13b, the owner's answers of D-125 by WP13c.
 //
 // eval/phase3-survey/ui.md §5.1's matching, mapping, seek decision and the
 // click's interval, on the ad ladder that tests/test_timeline_build.cpp
@@ -29,13 +29,21 @@
 //   matched to the rung by that path made absolute (D-124 (g) 2, Q97 2 (b)),
 //   another rung's through .., a URL and an absolute path compared as they
 //   were given, and from a directory that names no rung the first of all;
-//   with the rungs named by absolute local paths, as a document names them
-//   whose ladder was scored from its master's absolute path, the two
-//   relative paths matched to the rung, the warning naming its whole path
-//   from its root, and the address match comparing a relative path as it
-//   was given, a reading pending the owner: once the playlist's or the
-//   master's bytes have changed, another stream's, where the absolute path
-//   matches by its address;
+//   with the rungs and the master named by absolute local paths, as a
+//   document names them whose ladder was scored from its master's absolute
+//   path, a relative open path matched by its address made absolute as the
+//   absolute path is (D-125 (a), Q98 (b)): a rung's with no warning, and
+//   once its bytes have changed with the warning that says so, the master's,
+//   changed since it was scored, its entries by their URLs made absolute,
+//   and with the rungs named by a longer path the bytes and the path picking
+//   the rung, the warning naming the open path whole from its root; and with
+//   the rungs and the master named by relative paths, as a document names
+//   them whose ladder was scored from a relative master path, the same text
+//   matched by its address as given, from a directory where made absolute
+//   it names other files, as D-125 (a) keeps it: a rung's with no warning,
+//   and once its bytes have changed with the warning that says so, and the
+//   master's, changed since it was scored, its entries by their URLs as
+//   given;
 // - the playhead: the player's PTS to the frame of the sequence played,
 //   across the ad's restart of its timestamps, after a seek, at a forward
 //   jump of more than 10 s, and on a coarser grid; and where the PTS on
@@ -54,8 +62,19 @@
 //   then tracked as before; at first sight in one sequence only, at once; a
 //   PTS between frames lying in each sequence with a frame within half a
 //   frame of it, half a frame itself included; and a PTS that lies in no
-//   sequence taking the nearest frame's, at first sight and where the
-//   playhead wasn't known alike, a reading pending the owner;
+//   sequence taken to lie in the sequences whose nearest frames are as near,
+//   in ticks, as the nearest of all, one telling it and a tie of two giving
+//   no playhead, and telling nothing while the playhead isn't known, its PTS
+//   then the last, so that a jump after it is seen from it (D-125 (b) 4,
+//   Q99 4 (b));
+// - a step back (D-125 (b) 6, Q99 6 (a)): told by where the scrub decoder's
+//   seek by PTS lands, from the ad's first frame the main content's first,
+//   twice in a row inside the ad, and nothing where the landing can't be
+//   told; the playback pipeline's next frame tracked from the pipeline's own
+//   last frame, and a seek or a switch dropping what was held for it; a
+//   seek and a step back's frame in one iteration, the seek by its own
+//   target first; a panel's first sight of a step back's frame, the
+//   pipeline's state not known; and a keyframe step by its keyframe's PTS;
 // - the seek decision (D-114 (b), Q37 (a)): the main content by its PTS, a
 //   segment's last frame by its own segment's start, the first DTS's lead
 //   being at least a frame, and the frame before it too for a lead of two
@@ -673,9 +692,8 @@ TEST_CASE("timeline::match_stream: a rung's playlist opened by a path relative t
     }
 }
 
-TEST_CASE("timeline::match_stream: rungs named by absolute local paths, a rung's playlist opened by a path "
-          "relative to its own directory named whole in the warning, its address compared as given "
-          "(D-124 (g) 2)",
+TEST_CASE("timeline::match_stream: rungs and a master named by absolute local paths, opened by paths relative "
+          "to the current directory, matched by their addresses made absolute (D-125 (a))",
           "[timeline][timeline_match]")
 {
     // D-069's shape as a document names it whose ladder was scored from its
@@ -685,7 +703,7 @@ TEST_CASE("timeline::match_stream: rungs named by absolute local paths, a rung's
     // master's path, as VMAFLadder resolves them. The ladder's directories
     // are made, with no file in them, and named by their canonical path, as
     // the current directory gives it back once set there, so that the open
-    // path made absolute shares every component with its rung's.
+    // path made absolute is its rung's: nothing is looked up on disk.
     const std::filesystem::path root = testtemp::path("q97-abs");
     std::filesystem::remove_all(root);
     for (const char* rung : kRungs) std::filesystem::create_directories(root / "ladder" / rung);
@@ -701,17 +719,23 @@ TEST_CASE("timeline::match_stream: rungs named by absolute local paths, a rung's
     REQUIRE(scores.entries.size() == 3);
     for (int k = 0; k < 3; ++k) REQUIRE(scores.entries[static_cast<std::size_t>(k)].url == local(k));
     const std::string edited = kAdPlaylist + "#EXT-X-INDEPENDENT-SEGMENTS\n";
+    auto changed_since = [&](const std::string& path) {
+        return std::format("{} has changed since the document was built: its SHA-256 is {}, the document's {}",
+                           path, filehash::sha256_hex(edited), sha256);
+    };
 
     for (int k = 0; k < 3; ++k) {
         INFO("rung " << kRungs[k]);
         const InDirectory cwd(ladder / kRungs[k]);
         REQUIRE(std::filesystem::current_path() == ladder / kRungs[k]);
-        // index.m3u8 and ./index.m3u8: the rung, by its bytes and its path,
-        // the warning naming the path whole, from its root.
-        REQUIRE(local(k).starts_with('/'));
-        const std::string warning =
-            std::format("the open playlist's bytes are those of 3 of the document's variants: variant {}, "
-                        "whose URL ends with the open playlist's {}, is taken", k, local(k));
+        // index.m3u8 and ./index.m3u8, made absolute against the current
+        // directory, are the rung's address: matched by it as by the
+        // absolute path, with no warning, where WP12c matched them by their
+        // bytes and their path, with D-124 (g) 3's warning; once the bytes
+        // have changed since the build, with the warning that says so, the
+        // open path named as it was given, where WP12c's address match
+        // compared it as given and the document counted as another stream's
+        // (D-125 (a), Q98 (b)).
         for (const std::string path : { "index.m3u8", "./index.m3u8" }) {
             INFO(path);
             StreamMatch m = timeline::match_stream(t, scores, opened(path, kAdPlaylist, path));
@@ -719,43 +743,182 @@ TEST_CASE("timeline::match_stream: rungs named by absolute local paths, a rung's
             CHECK(m.by == StreamMatch::By::Variant);
             CHECK(m.entries == StreamMatch::Entries::None);
             CHECK(m.opened_variant == k);
-            CHECK(m.warnings == std::vector<std::string>{ warning });
-            // Its bytes changed since the build: the address match compares
-            // the relative path as it was given, as WP12 built it, a reading
-            // pending the owner (src/TimelineMatch.h), so that the document
-            // counts as another stream's.
+            CHECK(m.warnings.empty());
             m = timeline::match_stream(t, scores, opened(path, edited, path));
-            CHECK(m.by == StreamMatch::By::None);
-            CHECK(m.opened_variant == -1);
+            CHECK(m.by == StreamMatch::By::Variant);
+            CHECK(m.opened_variant == k);
+            CHECK(m.warnings == std::vector<std::string>{ changed_since(path) });
         }
+        // Another rung's through .., lexically, likewise.
+        const int         other   = (k + 1) % 3;
+        const std::string sibling = std::format("../{}/index.m3u8", kRungs[other]);
+        StreamMatch m = timeline::match_stream(t, scores, opened(sibling, edited, sibling));
+        CHECK(m.by == StreamMatch::By::Variant);
+        CHECK(m.opened_variant == other);
+        CHECK(m.warnings == std::vector<std::string>{ changed_since(sibling) });
         // By its absolute path: by its address, with no warning, and once
         // its bytes have changed, with the warning that says so.
-        StreamMatch m = timeline::match_stream(t, scores, opened(local(k), kAdPlaylist, local(k)));
+        m = timeline::match_stream(t, scores, opened(local(k), kAdPlaylist, local(k)));
         CHECK(m.by == StreamMatch::By::Variant);
         CHECK(m.opened_variant == k);
         CHECK(m.warnings.empty());
         m = timeline::match_stream(t, scores, opened(local(k), edited, local(k)));
-        const std::string changed_since =
-            std::format("{} has changed since the document was built: its SHA-256 is {}, the document's {}",
-                        local(k), filehash::sha256_hex(edited), sha256);
         CHECK(m.by == StreamMatch::By::Variant);
         CHECK(m.opened_variant == k);
-        CHECK(m.warnings == std::vector<std::string>{ changed_since });
+        CHECK(m.warnings == std::vector<std::string>{ changed_since(local(k)) });
     }
 
-    // The master likewise, changed since it was scored: by its absolute
-    // path, by its address, its entries by URL; by a path relative to the
-    // current directory, compared as it was given, a reading pending the
-    // owner, another stream's.
-    const InDirectory cwd(ladder);
-    const std::string changed  = kMaster + "#EXT-X-INDEPENDENT-SEGMENTS\n";
-    const StreamMatch absolute = timeline::match_stream(t, scores, opened(master, changed, master));
-    CHECK(absolute.by == StreamMatch::By::Address);
-    CHECK(absolute.entries == StreamMatch::Entries::Url);
-    CHECK(absolute.variant_of == std::vector<int>{ 0, 1, 2 });
-    const StreamMatch relative = timeline::match_stream(t, scores, opened("master.m3u8", changed, "master.m3u8"));
-    CHECK(relative.by == StreamMatch::By::None);
-    CHECK(relative.variant_of == std::vector<int>{ -1, -1, -1 });
+    // The rungs named by a longer path that ends with the whole of the open
+    // path made absolute, as a document built where the ladder lay under
+    // another root names them: no address is the open path's, so the bytes
+    // and the path pick the rung, the warning naming the open path whole,
+    // from its root (D-124 (g) 3).
+    timeline::Timeline moved = t;
+    for (int k = 0; k < 3; ++k) {
+        moved.variants[static_cast<std::size_t>(k)].url               = "/mnt" + local(k);
+        moved.variants[static_cast<std::size_t>(k)].playlist_location = "/mnt" + local(k);
+    }
+    for (int k = 0; k < 3; ++k) {
+        INFO("rung " << kRungs[k] << " under /mnt");
+        const InDirectory cwd(ladder / kRungs[k]);
+        REQUIRE(local(k).starts_with('/'));
+        const StreamMatch m = timeline::match_stream(moved, scores, opened("index.m3u8", kAdPlaylist, "index.m3u8"));
+        CHECK(m.by == StreamMatch::By::Variant);
+        CHECK(m.opened_variant == k);
+        CHECK(m.warnings == std::vector<std::string>{ std::format(
+                                "the open playlist's bytes are those of 3 of the document's variants: variant {}, "
+                                "whose URL ends with the open playlist's {}, is taken", k, local(k)) });
+    }
+
+    // The master likewise, changed since it was scored: by its absolute path
+    // by its address, its entries by URL; by master.m3u8, ./master.m3u8, and
+    // ../master.m3u8 from a rung's directory, made absolute, the same, the
+    // open master's entries, which ManifestParser resolves against the
+    // relative final URL, made absolute the same way before they are
+    // matched to the report's (D-125 (a), Q98 (b)), where WP12c's address
+    // match compared the relative path as given and the document counted as
+    // another stream's.
+    const std::string changed = kMaster + "#EXT-X-INDEPENDENT-SEGMENTS\n";
+    auto master_changed = [&](const std::string& path) {
+        return std::format("the master at {} has changed since it was scored: its SHA-256 is {}, the report's {}; "
+                           "its entries are matched by URL", path, filehash::sha256_hex(changed), scores.master_sha256);
+    };
+    {
+        const InDirectory cwd(ladder);
+        StreamMatch m = timeline::match_stream(t, scores, opened(master, changed, master));
+        CHECK(m.by == StreamMatch::By::Address);
+        CHECK(m.entries == StreamMatch::Entries::Url);
+        CHECK(m.variant_of == std::vector<int>{ 0, 1, 2 });
+        CHECK(m.warnings == std::vector<std::string>{ master_changed(master) });
+        for (const std::string path : { "master.m3u8", "./master.m3u8" }) {
+            INFO(path);
+            m = timeline::match_stream(t, scores, opened(path, changed, path));
+            INFO(warnings_of(m));
+            CHECK(m.by == StreamMatch::By::Address);
+            CHECK(m.entries == StreamMatch::Entries::Url);
+            CHECK(m.variant_of == std::vector<int>{ 0, 1, 2 });
+            CHECK(m.warnings == std::vector<std::string>{ master_changed(path) });
+        }
+        // An entry the report doesn't have: the warning names its URL as it
+        // was compared, made absolute.
+        const std::string more = changed + "#EXT-X-STREAM-INF:BANDWIDTH=200000\nv144/index.m3u8\n";
+        m = timeline::match_stream(t, scores, opened("master.m3u8", more, "master.m3u8"));
+        CHECK(m.by == StreamMatch::By::Address);
+        CHECK(m.variant_of == std::vector<int>{ 0, 1, 2, -1 });
+        CHECK(any_warning(m, std::format("no entry of the report has the URL of the player's entry 3 ({}): "
+                                         "VMAFLadder resolved the report's, ManifestParser the player's",
+                                         (ladder / "v144" / "index.m3u8").string())));
+        // Its bytes unchanged: by them first, its entries in order, however
+        // its path is spelled.
+        m = timeline::match_stream(t, scores, opened("master.m3u8", kMaster, "master.m3u8"));
+        CHECK(m.by == StreamMatch::By::MasterBytes);
+        CHECK(m.entries == StreamMatch::Entries::Index);
+        CHECK(m.variant_of == std::vector<int>{ 0, 1, 2 });
+        CHECK(m.warnings.empty());
+    }
+    const InDirectory cwd(ladder / "v270");
+    const StreamMatch up = timeline::match_stream(t, scores, opened("../master.m3u8", changed, "../master.m3u8"));
+    CHECK(up.by == StreamMatch::By::Address);
+    CHECK(up.entries == StreamMatch::Entries::Url);
+    CHECK(up.variant_of == std::vector<int>{ 0, 1, 2 });
+    // From a directory where it names another file, as given and made
+    // absolute: another stream's.
+    const StreamMatch elsewhere = timeline::match_stream(t, scores, opened("master.m3u8", changed, "master.m3u8"));
+    CHECK(elsewhere.by == StreamMatch::By::None);
+    CHECK(elsewhere.variant_of == std::vector<int>{ -1, -1, -1 });
+}
+
+TEST_CASE("timeline::match_stream: rungs and a master that the document names by relative paths, opened by the "
+          "same text, matched by their addresses as given (D-125 (a))",
+          "[timeline][timeline_match]")
+{
+    // D-069's shape as a document names it whose ladder was scored from a
+    // relative master path, ladder/master.m3u8: its master by that path and
+    // its three rungs of one playlist text by ladder/<rung>/index.m3u8, the
+    // report's entries resolved against the master's path, as VMAFLadder
+    // resolves them. The player is given the same text, from a current
+    // directory where, made absolute, it names other files than the ones
+    // the ladder was scored from, which the document doesn't name: the
+    // comparison as given, which D-125 (a) keeps for a document that names a
+    // relative path, matches it by its address. Nothing is looked up on
+    // disk.
+    auto relative = [](int k) { return std::format("ladder/{}/index.m3u8", kRungs[k]); };
+    const std::string sha256 = filehash::sha256_hex(kAdPlaylist);
+    timeline::Timeline t;
+    for (int k = 0; k < 3; ++k)
+        t.variants.push_back({ .index = k, .pair = k - 1, .entries = { static_cast<std::size_t>(k) },
+                               .url = relative(k), .playlist_location = relative(k), .playlist_sha256 = sha256 });
+    const std::string            master = "ladder/master.m3u8";
+    const timeline::LadderScores scores = with_master(ad_report(), kMaster, master);
+    REQUIRE(scores.entries.size() == 3);
+    for (int k = 0; k < 3; ++k) REQUIRE(scores.entries[static_cast<std::size_t>(k)].url == relative(k));
+    const std::filesystem::path root = testtemp::path("q98-rel");
+    std::filesystem::remove_all(root);
+    std::filesystem::create_directories(root / "elsewhere");
+    const InDirectory cwd(root / "elsewhere");
+
+    // Each rung's playlist by the document's text: by its address, with no
+    // warning, where by its address made absolute alone it would be matched
+    // by its bytes, which the three rungs share, and its path, with
+    // D-124 (g) 3's warning; and once its bytes have changed since the
+    // build, by its address, with the warning that says so, where by its
+    // address made absolute alone it would be another stream's, no variant
+    // having those bytes.
+    const std::string edited = kAdPlaylist + "#EXT-X-INDEPENDENT-SEGMENTS\n";
+    for (int k = 0; k < 3; ++k) {
+        INFO("rung " << kRungs[k]);
+        const std::string path = relative(k);
+        StreamMatch m = timeline::match_stream(t, scores, opened(path, kAdPlaylist, path));
+        INFO(warnings_of(m));
+        CHECK(m.by == StreamMatch::By::Variant);
+        CHECK(m.entries == StreamMatch::Entries::None);
+        CHECK(m.opened_variant == k);
+        CHECK(m.warnings.empty());
+        m = timeline::match_stream(t, scores, opened(path, edited, path));
+        CHECK(m.by == StreamMatch::By::Variant);
+        CHECK(m.opened_variant == k);
+        CHECK(m.warnings == std::vector<std::string>{ std::format(
+                                "{} has changed since the document was built: its SHA-256 is {}, the document's {}",
+                                path, filehash::sha256_hex(edited), sha256) });
+    }
+
+    // The master, changed since it was scored, by the document's text: by
+    // its address, its entries by their URLs as given, ManifestParser's and
+    // VMAFLadder's, each resolved against the same relative path; by its
+    // address made absolute alone it would be another stream's.
+    const std::string          changed = kMaster + "#EXT-X-INDEPENDENT-SEGMENTS\n";
+    const timeline::OpenStream open    = opened(master, changed, master);
+    REQUIRE(open.variants.size() == 3);
+    for (int k = 0; k < 3; ++k) REQUIRE(open.variants[static_cast<std::size_t>(k)].url == relative(k));
+    const StreamMatch m = timeline::match_stream(t, scores, open);
+    INFO(warnings_of(m));
+    CHECK(m.by == StreamMatch::By::Address);
+    CHECK(m.entries == StreamMatch::Entries::Url);
+    CHECK(m.variant_of == std::vector<int>{ 0, 1, 2 });
+    CHECK(m.warnings == std::vector<std::string>{ std::format(
+                            "the master at {} has changed since it was scored: its SHA-256 is {}, the report's {}; "
+                            "its entries are matched by URL", master, filehash::sha256_hex(changed),
+                            scores.master_sha256) });
 }
 
 TEST_CASE("timeline::match_stream: among equal bytes, a variant's playlist location, the longest run of "
@@ -1018,36 +1181,53 @@ TEST_CASE("timeline::track_playhead: no playhead where the PTS on screen lies in
         CHECK(frame_at(c, beside, 12.02).ref_index == 50);
 
         // A PTS that lies in no sequence, further than half a frame from
-        // every frame: the nearest frame's sequence, the earlier of two as
-        // near, as WP12 built it, at first sight and where the playhead
-        // wasn't known alike, a reading pending the owner
-        // (src/TimelineMatch.cpp). At first sight at 14.0 s, between the
-        // main content's last frame before the ad, at 12.96 s, and its first
-        // after it, at 15.0 s, the nearer: sequence 1's frame 125.
+        // every frame, as an unpaired frame's: the sequences whose nearest
+        // frames are as near as the nearest of all, in ticks, are taken as
+        // those it lies in, one telling it and two or more giving no
+        // playhead, and while the playhead isn't known such a PTS tells
+        // nothing, its PTS then the last (D-125 (b) 4, Q99 4 (b)). At first
+        // sight at 14.0 s, between the main content's last frame before the
+        // ad, at 12.96 s, 1.04 s away, and its first after it, at 15.0 s,
+        // 1.0 s away: sequence 1 alone, its frame 125.
         timeline::PlayheadState gap;
         const timeline::PlayheadFrame g = frame_at(c, gap, 14.0);
         CHECK(g.ref_index == 125);
         CHECK(g.sequence == 1);
         // The report lacking the frames of PTS 10.52 s in both sequences, as
-        // it lacks an unpaired frame: no playhead at 10.48 s, which the ad
-        // and the main content share, and at 10.52 s the nearest frames, at
-        // 10.48 s and 10.56 s in each sequence, all as near, the first of
-        // them: sequence 0's frame 12, which ends the playhead not known; the
-        // same at first sight. The clock's segments go with the frames, the
-        // tracker not using them.
+        // it lacks an unpaired frame. At first sight at 10.52 s the nearest
+        // frames, at 10.48 s and 10.56 s in each sequence, are all a frame,
+        // kFrame25 ticks, away: a tie of sequences 0 and 1, no playhead, both
+        // named, where WP12 took the first of them, sequence 0's frame 12.
+        // The clock's segments go with the frames, the tracker not using them.
         timeline::VariantClock holed = c;
         std::erase_if(holed.frames,
                       [](const timeline::ClockFrame& fr) { return fr.ref_index == 13 || fr.ref_index == 88; });
         holed.segments.clear();
         REQUIRE(holed.frames.size() == 198);
+        timeline::PlayheadState hole_first;
+        CHECK_FALSE(timeline::track_playhead(holed, hole_first, 10.52));
+        CHECK(hole_first.unknown == both);
+        CHECK(hole_first.sequence == -1);
+        // No playhead at 10.48 s, which the ad and the main content share;
+        // then 10.52 s, a PTS in no sequence while the playhead isn't known,
+        // tells nothing, both still named, its PTS the last; and so 14.0 s,
+        // though its nearest frame is sequence 1's alone, which at first
+        // sight tells it. A jump after it is seen from it: back to 11.0 s,
+        // in both, which leads sequences 0 and 1 to sequence 1 alone, its
+        // frame 100, where from 10.52 s, 0.48 s before, no jump would be.
         timeline::PlayheadState hole;
         CHECK_FALSE(timeline::track_playhead(holed, hole, 10.48));
         CHECK(hole.unknown == both);
-        const timeline::PlayheadFrame h = frame_at(holed, hole, 10.52);
-        CHECK(h.ref_index == 12);
-        CHECK(h.sequence == 0);
-        timeline::PlayheadState hole_first;
-        CHECK(frame_at(holed, hole_first, 10.52).ref_index == 12);
+        CHECK_FALSE(timeline::track_playhead(holed, hole, 10.52));
+        CHECK(hole.unknown == both);
+        CHECK(hole.last_pts == std::optional<std::int64_t>{ 946800 });    // 10.52 s
+        CHECK_FALSE(timeline::track_playhead(holed, hole, 14.0));
+        CHECK(hole.unknown == both);
+        CHECK(hole.sequence == -1);
+        CHECK(hole.last_pts == std::optional<std::int64_t>{ 1260000 });   // 14.0 s
+        const timeline::PlayheadFrame h = frame_at(holed, hole, 11.0);
+        CHECK(h.ref_index == 100);
+        CHECK(h.sequence == 1);
     }
 
     // A seek that shows no frame for one of the leads tells nothing either:
@@ -1064,6 +1244,211 @@ TEST_CASE("timeline::track_playhead: no playhead where the PTS on screen lies in
     timeline::PlayheadState dropped{ .sequence = 2 };
     timeline::playhead_sought(dropped, reset, probe_seek, 13.96);
     CHECK(dropped.sequence == -1);
+}
+
+TEST_CASE("timeline::playhead_stepped_back: a step back told by where the scrub decoder's seek lands, the "
+          "playback pipeline's next frame from its own last frame; a keyframe step by its keyframe's PTS "
+          "(D-125 (b) 6)",
+          "[timeline][timeline_match]")
+{
+    const timeline::BuildInputs in = ad_inputs();
+    const timeline::Timeline    t  = built(in);
+    // libx264's segments, as D-069's ladders are encoded: the decoder's
+    // reorder delay of two frames, which the panel takes from the Demuxer.
+    const timeline::SeekClock x264{ .start = 10.0, .duration = 8.0, .video_delay = 2 };
+    // main.cpp's step back asks the scrub decoder for the frame one and a
+    // half frames before the frame on screen.
+    auto back_from = [](double pts) { return pts - 0.04 * 1.5; };
+    for (const int variant : { 0, 2 }) {   // the reference, and v180's distorted input
+        INFO("variant " << variant);
+        const timeline::VariantClock c = timeline::variant_clock(t, in.scores, variant);
+        REQUIRE(c.frames.size() == 200);
+        auto frame_at = [&](timeline::PlayheadState& st, double pts) {
+            const std::optional<timeline::PlayheadFrame> f = timeline::track_playhead(c, st, pts);
+            REQUIRE(f);
+            CHECK(st.unknown.empty());
+            return f->ref_index;
+        };
+
+        // The playhead known in the ad: a seek to the segment before it, the
+        // one decide_seek() offers for the ad's frames, then its frames to
+        // the ad's first, where the PTS step back: sequence 1's frame 75.
+        timeline::PlayheadState at_ad;
+        timeline::playhead_sought(at_ad, c, x264, 12.0);
+        CHECK(at_ad.sequence == 0);
+        CHECK(frame_at(at_ad, 12.0) == 50);
+        CHECK(frame_at(at_ad, 12.96) == 74);
+        CHECK(frame_at(at_ad, 10.0) == 75);
+        CHECK(at_ad.sequence == 1);
+        CHECK_FALSE(at_ad.pipeline);
+
+        // A step back from the ad's first frame: the scrub decoder is asked
+        // for 9.94 s, before the stream's start, which the clamp makes the
+        // start, so that it shows the main content's first frame, of the
+        // same PTS: the step tells sequence 0, and the playhead marks frame
+        // 0, where WP13's panel kept sequence 1 and marked the ad's frame 75.
+        timeline::PlayheadState st = at_ad;
+        timeline::playhead_stepped_back(st, c, x264, back_from(10.0));
+        CHECK(st.sequence == 0);
+        REQUIRE(st.pipeline);
+        CHECK(st.pipeline->sequence == 1);
+        CHECK(frame_at(st, 10.0) == 0);
+        // A frame step forward then shows the playback pipeline's next
+        // frame, which the step didn't move: the ad's second, PTS 10.04 s,
+        // tracked from the ad's first frame, the pipeline's own last, as its
+        // frame 76 of sequence 1, where tracked from the step's frame it
+        // would be the main content's frame 1. Taken back once, the
+        // pipeline's frames after it go on as before.
+        timeline::playhead_resumed(st);
+        CHECK_FALSE(st.pipeline);
+        CHECK(frame_at(st, 10.04) == 76);
+        CHECK(st.sequence == 1);
+        timeline::playhead_resumed(st);
+        CHECK(frame_at(st, 10.08) == 77);
+        // With nothing held, nothing changes.
+        timeline::PlayheadState plain = at_ad;
+        timeline::playhead_resumed(plain);
+        CHECK(plain.sequence == at_ad.sequence);
+        CHECK(plain.last_pts == at_ad.last_pts);
+
+        // Two steps back in a row from the ad's frame 80, at 10.2 s: each
+        // asks for a PTS of the ad that the main content's first segment
+        // holds on the demuxer's clock, so that each lands there, sequence
+        // 0, the frames on screen the scrub decoder's first at or after its
+        // request, 10.16 s and 10.12 s, the main content's frames 4 and 3;
+        // the pipeline's state is held from before the first, so that its
+        // next frame, the ad's 81, is sequence 1's.
+        timeline::PlayheadState twice = at_ad;
+        for (const double pts : { 10.04, 10.08, 10.12, 10.16 }) frame_at(twice, pts);
+        CHECK(frame_at(twice, 10.2) == 80);
+        timeline::playhead_stepped_back(twice, c, x264, back_from(10.2));
+        CHECK(twice.sequence == 0);
+        CHECK(frame_at(twice, 10.16) == 4);
+        timeline::playhead_stepped_back(twice, c, x264, back_from(10.16));
+        CHECK(twice.sequence == 0);
+        CHECK(frame_at(twice, 10.12) == 3);
+        timeline::playhead_resumed(twice);
+        CHECK(frame_at(twice, 10.24) == 81);
+        CHECK(twice.sequence == 1);
+
+        // A seek after a step back moves the pipeline: what was held for it
+        // is dropped, and the seek's frames follow from where it lands, a
+        // seek to 11.0 s the main content's frame 25, where the held state
+        // would make it the ad's frame 100; a switch and the panel's own
+        // seek likewise.
+        timeline::PlayheadState sought = at_ad;
+        timeline::playhead_stepped_back(sought, c, x264, back_from(10.0));
+        REQUIRE(sought.pipeline);
+        timeline::playhead_sought(sought, c, x264, 11.0);
+        CHECK_FALSE(sought.pipeline);
+        timeline::playhead_resumed(sought);
+        CHECK(frame_at(sought, 11.0) == 25);
+        const timeline::VariantClock other = timeline::variant_clock(t, in.scores, variant == 0 ? 2 : 0);
+        timeline::PlayheadState switched = at_ad;
+        timeline::playhead_stepped_back(switched, c, x264, back_from(10.0));
+        timeline::playhead_switched(switched, other, x264, 10.0);
+        CHECK_FALSE(switched.pipeline);
+        timeline::PlayheadState own = at_ad;
+        timeline::playhead_stepped_back(own, c, x264, back_from(10.0));
+        timeline::playhead_seeked(own, 1);
+        CHECK_FALSE(own.pipeline);
+
+        // A seek, then a step back's frame, in one iteration of main.cpp,
+        // the step asked for before the seek: the panel takes the seek first,
+        // by its own target (TimelinePanel::Inputs::seek_target), then the
+        // step back, which holds where the seek lands for the playback
+        // pipeline, whose next frames are the seek's. A seek to 16.0 s, the
+        // main content after the ad, sequence 1, with the step back from the
+        // ad's first frame: the step's frame the main content's first, then
+        // the seek's the main content's frame 150, where with the step's PTS
+        // taken for the seek's target, as main.cpp's last_seek_pos has it,
+        // the pipeline's state would be sequence 0's, the seek's frame its
+        // frame 74.
+        timeline::PlayheadState both = at_ad;
+        timeline::playhead_sought(both, c, x264, 16.0);
+        CHECK(both.sequence == 1);
+        timeline::playhead_stepped_back(both, c, x264, back_from(10.0));
+        CHECK(both.sequence == 0);
+        CHECK(frame_at(both, 10.0) == 0);
+        timeline::playhead_resumed(both);
+        CHECK(frame_at(both, 16.0) == 150);
+        CHECK(both.sequence == 1);
+        timeline::PlayheadState by_step = at_ad;
+        timeline::playhead_sought(by_step, c, x264, 10.0);
+        timeline::playhead_stepped_back(by_step, c, x264, back_from(10.0));
+        CHECK(frame_at(by_step, 10.0) == 0);
+        timeline::playhead_resumed(by_step);
+        CHECK(frame_at(by_step, 16.0) == 74);
+    }
+
+    // A keyframe step seeks to its keyframe and shows from its PTS, which the
+    // panel takes for its landing (TimelinePanel::Inputs::step_pts): on the
+    // probe's shape of timestamps that continue, its three segments three
+    // sequences, as discontinuity tags would make them (D-046), the second
+    // segment's keyframe, PTS 12.0 s, lands in its segment for every lead of
+    // libx264's two frames, and tells sequence 1; a simulated seek by PTS to
+    // its DTS, two frames before, lands in the first segment with no lead,
+    // and tells nothing.
+    const timeline::SeekClock    probe_x264{ .start = 10.0, .duration = 6.0, .video_delay = 2 };
+    constexpr double             kContinuous[3] = { 10.0, 12.0, 14.0 };
+    const timeline::VariantClock cont = probe_clock(kContinuous);
+    timeline::PlayheadState by_pts;
+    timeline::playhead_sought(by_pts, cont, probe_x264, 12.0);
+    CHECK(by_pts.sequence == 1);
+    timeline::PlayheadState by_dts;
+    timeline::playhead_sought(by_dts, cont, probe_x264, 11.92);
+    CHECK(by_dts.sequence == -1);
+
+    // A step back whose landing can't be told tells nothing: on the probe's
+    // shape of an ad whose timestamps restart at 1 s
+    // (tests/test_hls_seek_behaviour.cpp), from the third segment's first
+    // frame, PTS 12.0 s, sequence 2, the scrub decoder is asked for 11.94 s,
+    // which with no lead lands in the first segment, sequence 0, and with a
+    // lead of 0.06 s, within libx264's two frames, in the ad's segment,
+    // whose frames are all before it, and so on in the third, sequence 2.
+    // The frame on screen then tells it where its PTS lies in one sequence
+    // only, the first segment's last frame at 11.96 s, or the third
+    // segment's first again at 12.0 s, as the lead has it; and the
+    // pipeline's next frame, the third segment's second at 12.04 s, follows
+    // from the pipeline's state, sequence 2's frame 101.
+    constexpr double             kReset[3] = { 10.0, 1.0, 12.0 };
+    const timeline::VariantClock reset = probe_clock(kReset);
+    CHECK(reset.frames[timeline::simulate_seek(reset, probe_x264, 11.94, 0.0).frame].sequence == 0);
+    CHECK(reset.frames[timeline::simulate_seek(reset, probe_x264, 11.94, 0.06).frame].sequence == 2);
+    for (const auto& [shown, ref] : { std::pair{ 11.96, 49 }, std::pair{ 12.0, 100 } }) {
+        INFO("the step's frame at " << shown << " s");
+        timeline::PlayheadState probe{ .sequence = 2, .last_pts = 1080000 };   // at 12.0 s
+        timeline::playhead_stepped_back(probe, reset, probe_x264, back_from(12.0));
+        CHECK(probe.sequence == -1);
+        REQUIRE(probe.pipeline);
+        const std::optional<timeline::PlayheadFrame> f = timeline::track_playhead(reset, probe, shown);
+        REQUIRE(f);
+        CHECK(f->ref_index == ref);
+        timeline::playhead_resumed(probe);
+        const std::optional<timeline::PlayheadFrame> next = timeline::track_playhead(reset, probe, 12.04);
+        REQUIRE(next);
+        CHECK(next->ref_index == 101);
+        CHECK(next->sequence == 2);
+    }
+
+    // The panel's first sight of a step back's frame holds the pipeline's
+    // state as not known, an empty Held (src/TimelinePanel.cpp): the frame
+    // on screen tells it where its PTS lies, and so does the pipeline's next
+    // frame, as at first sight, not taken to follow the frame on screen. On
+    // the probe's reset shape, the step's frame at 11.96 s, sequence 0's
+    // alone, then the pipeline's at 12.04 s, sequence 2's alone, its frame
+    // 101, which from 11.96 s, 0.08 s before, would be taken for sequence
+    // 0's frame 49.
+    timeline::PlayheadState unseen;
+    unseen.pipeline = timeline::PlayheadState::Held{};
+    const std::optional<timeline::PlayheadFrame> first = timeline::track_playhead(reset, unseen, 11.96);
+    REQUIRE(first);
+    CHECK(first->ref_index == 49);
+    timeline::playhead_resumed(unseen);
+    const std::optional<timeline::PlayheadFrame> after = timeline::track_playhead(reset, unseen, 12.04);
+    REQUIRE(after);
+    CHECK(after->ref_index == 101);
+    CHECK(after->sequence == 2);
 }
 
 TEST_CASE("timeline::track_playhead: a jump of the PTS tells the sequence where it leads to one the PTS lies "
