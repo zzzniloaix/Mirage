@@ -1,0 +1,7 @@
+check.py: the records of <out>: ad-continuous, ad-from-1s, ad-main-origin, degraded, session; T 6, W 50, N 12, the late segment held 2.3 s
+ad-continuous (libx264): 3 documents, no difference
+ad-from-1s (libx264): 3 documents, no difference
+ad-main-origin (libx264): 3 documents, no difference
+degraded (libx264): 3 documents, no difference
+session (libx264): 4 documents, no difference
+check.py: PASS: 5 records, 16 documents, every answer as the layouts give it

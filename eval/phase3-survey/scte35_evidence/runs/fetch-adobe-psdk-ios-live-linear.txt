@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/adobe-psdk-ios-live-linear/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://helpx.adobe.com/primetime/psdk/ios/PSDKs/concept/c_psdk_ios_live-and-linear-client-ad-resolving-insertion.html'
+date_utc: 2026-11-01T03:49:42Z
+http_code=200
+url_effective=https://helpx.adobe.com/primetime/psdk/ios/PSDKs/concept/c_psdk_ios_live-and-linear-client-ad-resolving-insertion.html
+size_download=3680
+content_type=text/html; charset=UTF-8
+curl_exit=0
+sha256=9abd42ed43c8d860f9213ed37a178f0e1c321757e2bf63aa72a4f21e3f2cfc8b

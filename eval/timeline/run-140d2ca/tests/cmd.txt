@@ -1,0 +1,5 @@
+# The commands of this record, as eval/timeline/run_all.sh ran them from
+# <out>, each with its exit status; <build> is the build directory environment.txt
+# names.
+$ env MIRAGE_KEEP_MEDIA=media <build>/mirage_tests '[attribution][acceptance]' --order decl
+# exit status 0

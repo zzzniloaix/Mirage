@@ -1,0 +1,25 @@
+Timeline panel (--timeline-report)
+document: degraded/timeline.json
+load: loaded: 48 events on 200 reference frames, 2 curves, 1 attributions
+ladder report: media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/degraded.json: its SHA-256 is the one the document names
+axis: 200 reference frames, seconds on the reference's playlist time, checked by segment-map
+match: master SHA-256, entries by their order
+  player entry 0 (media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/degraded/v360/index.m3u8): entry 0 (<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/degraded/v360/index.m3u8; variant 0, the reference, not scored in top-rung mode)
+  player entry 1 (media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/degraded/v270/index.m3u8): entry 1 (<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/degraded/v270/index.m3u8; variant 1, pair 0)
+  player entry 2 (media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/degraded/v180/index.m3u8): entry 2 (<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/degraded/v180/index.m3u8; variant 2, pair 1)
+variant on screen: player entry 1: entry 1 (<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/degraded/v270/index.m3u8; variant 1, pair 0)
+playhead: reference frame 56 at 2.240 s, the variant's frame 56 (its input's frame 56), sequence 0; the frame on screen at PTS 12.240000 s, +0.000000 s from the report's PTS of that frame
+view: 2.000 s to 6.000 s
+curves shown: pair:0 (entry 1 · 480x270)
+attributions: 1
+  0: a detected drop of pair:0, reference frames 100-124 (25 frames), 4.000-5.000 s, min 38.443
+pick: --ui-timeline pick=4.98@3.5 at 3.52 s after the first frame
+card:
+  Curve pair:0 (entry 1): reference frame 124 at 4.960 s, sequence 0, PTS 14.960 s; VMAF 38.769
+  In the document's attribution 0, a detected drop:
+  reference frames 100-124 (25 frames), 4.000-5.000 s; 25 points, baseline 97.963, min 38.443, mean 41.239, drop_magnitude 59.520, mean_drop 56.724
+    playlist segment          entry 0, segment 4 at +0.000 s to +1.000 s (+0 to +25 frames): seg_004.ts, EXTINF 1 s
+    playlist segment          entry 1, segment 4 at +0.000 s to +1.000 s (+0 to +25 frames): seg_004.ts, EXTINF 1 s
+    decoder  keyframe         entry 0, segment 4 at +0.000 s (+0 frames): frame 100 of its input
+    decoder  keyframe         entry 1, segment 4 at +0.000 s (+0 frames): frame 100 of its input
+Seek: the frame isn't reachable by a seek: a seek to its PTS, 14.960 s, would show the frame of PTS 15.000 s in segment 5 instead, with the first packet's DTS 0.040 s before the start. Offered: PTS 14.000 s, the start of segment 4 of entry 1 (<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/degraded/v270/index.m3u8; variant 1, pair 0), the variant on screen, from which playing reaches the frame (D-114 (b)); not taken

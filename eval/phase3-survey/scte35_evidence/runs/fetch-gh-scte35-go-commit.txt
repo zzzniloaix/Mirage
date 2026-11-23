@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/gh-scte35-go-commit/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://api.github.com/repos/Comcast/scte35-go/commits/main'
+date_utc: 2026-11-01T03:30:36Z
+http_code=200
+url_effective=https://api.github.com/repos/Comcast/scte35-go/commits/main
+size_download=5934
+content_type=application/json; charset=utf-8
+curl_exit=0
+sha256=ce53ab2ca496dbebac10ffef6668a35ef3a153e0458f3fa8e539133b4e743bf7

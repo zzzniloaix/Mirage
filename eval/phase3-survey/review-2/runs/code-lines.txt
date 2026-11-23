@@ -1,0 +1,1102 @@
+# cwd: <repo>
+# command: 'python3' '-I' '-B' '<out>/review-2/tools/show_lines.py' 'CMakeLists.txt:1-2' 'CMakeLists.txt:150-194' 'CMakeLists.txt:227-227' 'CMakeLists.txt:229-246' 'CMakeLists.txt:371-371' 'src/VMAFAlign.h:9-11' 'src/VMAFAlign.h:23-25' 'src/VMAFAlign.h:110-114' 'src/VMAFReport.cpp:193-201' 'src/VMAFReport.h:146-149' 'src/HlsAlign.h:1-12' 'src/HlsAlign.h:33-75' 'src/HlsAlign.cpp:1-9' 'src/JsonText.h:1-21' 'src/NetworkLogger.h:118-125' 'src/NetworkLogger.h:155-160' 'src/NetworkLogger.h:189-194' 'src/NetworkLogger.cpp:1-21' 'src/NetworkLogger.cpp:172-186' 'src/NetworkLogger.cpp:385-395' 'src/NetworkLogger.cpp:595-697' 'src/VMAFNet.h:3-9' 'src/VMAFSegments.h:26-40' 'src/VMAFAnalyzer.cpp:166-241' 'src/VMAFLadder.h:15-38' 'src/VMAFLadder.h:86-92' 'src/VMAFLadder.h:128-132' 'src/VMAFLadder.cpp:293-334' 'src/VMAFCli.cpp:26-35' 'src/VMAFCli.cpp:92-124' 'src/VMAFCli.cpp:195-257' 'src/VMAFCli.cpp:273-344' 'tools/mirage_vmaf.cpp:7-17' 'tools/mirage_vmaf.cpp:142-156' 'src/main.cpp:553-556' 'src/main.cpp:1751-1751' 'src/main.cpp:3333-3339' 'src/NetInspector.cpp:387-394' 'src/NetInspectorAlign.cpp:69-109' 'src/NetInspectorAlign.cpp:637-662' 'src/ManifestParser.cpp:121-157' 'src/NetProbe.cpp:120-141' 'tests/HttpFileServer.h:31-36' 'tests/TestTemp.h:1-7' 'tests/test_vmaf_ladder.cpp:192-216' 'tests/test_vmaf_ladder.cpp:286-310' 'tests/test_vmaf_report.cpp:104-104' 'tests/test_vmaf_report.cpp:909-909' 'tests/test_vmaf_cli.cpp:161-170' 'tests/test_manifest_parser.cpp:90-95' 'tests/test_vmaf_segments.cpp:46-60' 'tests/test_vmaf_segments.cpp:110-117' 'docs/VMAF_GAP_REPORT.md:228-231' 'docs/DECISIONS.md:94-98' 'docs/DECISIONS.md:378-386' 'docs/DECISIONS.md:783-808' 'docs/DECISIONS.md:1356-1368' 'eval/ladder/pool_check.py:117-118' 'eval/consistency/ladder_check.py:25-27'
+# started: 2026-11-01T07:54:47Z, ended: 2026-11-01T07:54:47Z (UTC)
+# stdout and stderr, in order:
+== CMakeLists.txt:1-2
+    1  cmake_minimum_required(VERSION 3.28)
+    2  project(Mirage C CXX)
+== CMakeLists.txt:150-194
+  150      add_executable(mirage
+  151          src/main.cpp
+  152          src/MediaSession.cpp
+  153          src/Demuxer.cpp
+  154          src/Decoder.cpp
+  155          src/AudioDecoder.cpp
+  156          src/AudioPlayer.cpp
+  157          src/VideoRenderer.cpp
+  158          src/ScrubBar.cpp
+  159          src/DebugHUD.cpp
+  160          src/ThumbnailStrip.cpp
+  161          src/Sync.cpp
+  162          src/NetworkLogger.cpp
+  163          src/NetDescribe.cpp
+  164          src/NetInspector.cpp
+  165          src/NetInspectorAlign.cpp
+  166          src/NetInspectorResponse.cpp
+  167          src/NetProbe.cpp
+  168          src/TrackPanel.cpp
+  169          src/TrackGroups.cpp
+  170          src/ManifestParser.cpp
+  171          src/PlayerUI.cpp
+  172          src/VMAFAlign.cpp
+  173          src/VMAFAnalyzer.cpp
+  174          src/VMAFColor.cpp
+  175          src/VMAFPool.cpp
+  176          src/FileHash.cpp
+  177          src/ScrubDecoder.cpp
+  178          src/SubtitleDecoder.cpp
+  179          src/SubtitleSelect.cpp
+  180          src/SubtitleOverlay.cpp
+  181          src/SidecarSubtitles.cpp
+  182          src/UiFonts.cpp
+  183          src/UiFormat.cpp
+  184          src/UiIcons.cpp
+  185          src/UiWidgets.cpp
+  186          src/ThumbPlan.cpp
+  187          src/FfOpen.cpp
+  188          src/HlsMaster.cpp
+  189          src/HlsVariants.cpp
+  190          src/HlsAlign.cpp
+  191          src/DemuxRetry.cpp
+  192          src/PipelineState.cpp
+  193          src/KeyframeIndex.cpp
+  194      )
+== CMakeLists.txt:227-227
+  227  set_source_files_properties(src/VMAFPool.cpp PROPERTIES COMPILE_OPTIONS "-ffp-contract=off")
+== CMakeLists.txt:229-246
+  229  # mirage_vmaf: the player's VMAF analyzer without a window, GL or ImGui
+  230  # (DECISIONS.md D-017). Links FFmpeg and libvmaf only. Its ladder scoring
+  231  # (D-029) reads master playlists itself, with HlsMaster's URI resolution,
+  232  # not through the player's ManifestParser and its network logger.
+  233  add_executable(mirage_vmaf
+  234      tools/mirage_vmaf.cpp
+  235      src/VMAFAlign.cpp
+  236      src/VMAFAnalyzer.cpp
+  237      src/VMAFColor.cpp
+  238      src/VMAFLadder.cpp
+  239      src/VMAFPool.cpp
+  240      src/VMAFProcess.cpp
+  241      src/FileHash.cpp
+  242      src/HlsMaster.cpp
+  243      src/VMAFCli.cpp
+  244      src/VMAFReport.cpp
+  245      src/JsonText.cpp
+  246  )
+== CMakeLists.txt:371-371
+  371  catch_discover_tests(mirage_tests)
+== src/VMAFAlign.h:9-11
+    9  // the frame at the head of one queue. No FFmpeg here but AVRational and
+   10  // libavutil's rational arithmetic, so that it is unit-tested on timestamp
+   11  // sequences alone (tests/test_vmaf_align.cpp).
+== src/VMAFAlign.h:23-25
+   23  // - Rule A, the reference's timeline. A pair is a reference frame and a
+   24  //   distorted frame whose times differ by at most the tolerance, half the
+   25  //   reference's frame duration, 1 / Clock::frame_rate.
+== src/VMAFAlign.h:110-114
+  110  // A forward jump of a timestamp larger than this, in seconds, is a
+  111  // discontinuity: the default of `ffmpeg`'s dts_delta_threshold, beyond which
+  112  // it takes a jump in a format whose timestamps may jump for a discontinuity
+  113  // (fftools/ffmpeg_opt.c and ffmpeg_demux.c of FFmpeg 8.1.1).
+  114  inline constexpr AVRational kForwardJump = { 10, 1 };
+== src/VMAFReport.cpp:193-201
+  193      out += ind + "\"frames\": [";
+  194      for (std::size_t i = 0; i < r.per_frame.size(); ++i) {
+  195          out += (i == 0 ? "\n" : ",\n") + ind + "  ";
+  196          out += std::format("{{\"index\": {}, \"ref_index\": {}, \"dis_index\": {}, \"ref_pts\": {}, "
+  197                             "\"dis_pts\": {}, \"vmaf\": {}}}",
+  198                             i, index_at(r.ref_index, i), index_at(r.dis_index, i),
+  199                             pts_at(r.ref_pts, i), pts_at(r.dis_pts, i), number(r.per_frame[i]));
+  200      }
+  201      out += r.per_frame.empty() ? "]\n" : "\n" + ind + "]\n";
+== src/VMAFReport.h:146-149
+  146  // Writes `text` to `path` through a temporary file next to it that is renamed
+  147  // over `path` only once everything was written and closed, so a failed write
+  148  // leaves no partial report behind. On failure returns false and sets `err`.
+  149  bool write_file(const std::string& path, std::string_view text, std::string& err);
+== src/HlsAlign.h:1-12
+    1  #pragma once
+    2  
+    3  // Are the HLS renditions a player combines aligned? The checks a video
+    4  // engineer otherwise does by hand when a stream plays black, stalls at a
+    5  // boundary or drifts out of lip sync:
+    6  //  * playlist level — each media playlist's segment timeline (EXTINF sums,
+    7  //    media / discontinuity sequence, discontinuities, PROGRAM-DATE-TIME,
+    8  //    ENDLIST), rendition against rendition;
+    9  //  * media level — the start timestamps inside the segments (fMP4 tfdt +
+   10  //    trun, MPEG-TS PES PTS, packed audio's ID3 timestamp, WebVTT
+   11  //    X-TIMESTAMP-MAP) against where the playlist puts those segments.
+   12  // Pure functions, no FFmpeg / ImGui — unit-tested in tests/test_hls_align.cpp.
+== src/HlsAlign.h:33-75
+   33  struct Segment {
+   34      std::int64_t seq      = 0;      // media sequence number
+   35      double       start    = 0.0;    // playlist time: Σ EXTINF of the segments listed before it
+   36      double       duration = 0.0;    // EXTINF
+   37      std::string  uri;               // absolute
+   38      ByteRange    range;             // EXT-X-BYTERANGE
+   39      bool         discontinuity = false;   // EXT-X-DISCONTINUITY before it
+   40      std::int64_t disc_seq = 0;      // discontinuity sequence number of its period
+   41      double       pdt = kNaN;        // EXT-X-PROGRAM-DATE-TIME, Unix seconds (explicit or carried on)
+   42      bool         pdt_explicit = false;
+   43      bool         gap = false;       // EXT-X-GAP
+   44      int          map = -1;          // EXT-X-MAP in effect: index into MediaTimeline::maps
+   45      std::string  key;               // EXT-X-KEY METHOD in effect ("" = none listed)
+   46      int          line = 0;          // 1-based line of its URI in the playlist
+   47  };
+   48  
+   49  struct InitMap {
+   50      std::string uri;                // absolute
+   51      ByteRange   range;
+   52  };
+   53  
+   54  struct MediaTimeline {
+   55      bool          ok = false;       // a media playlist with at least one segment
+   56      int           version = 0;
+   57      double        target = 0.0;     // EXT-X-TARGETDURATION
+   58      std::int64_t  media_seq = 0;    // EXT-X-MEDIA-SEQUENCE
+   59      std::int64_t  disc_seq  = 0;    // EXT-X-DISCONTINUITY-SEQUENCE
+   60      std::string   type;             // EXT-X-PLAYLIST-TYPE: "VOD", "EVENT" or ""
+   61      bool          endlist = false;
+   62      bool          independent = false;
+   63      double        total = 0.0;      // Σ EXTINF
+   64      int           discontinuities = 0;   // EXT-X-DISCONTINUITY tags
+   65      std::vector<Segment> segments;
+   66      std::vector<InitMap> maps;
+   67      std::vector<std::string> problems;   // spec violations found while parsing
+   68  
+   69      bool live() const { return !endlist && type != "VOD"; }
+   70      bool has_pdt() const;
+   71      // Segment whose [start, start + duration) holds playlist time t; -1 = none.
+   72      int  segment_at(double t) const;
+   73      // Segment with media sequence number `seq`; -1 = none.
+   74      int  index_of(std::int64_t seq) const;
+   75  };
+== src/HlsAlign.cpp:1-9
+    1  #include "HlsAlign.h"
+    2  
+    3  #include <algorithm>
+    4  #include <cctype>
+    5  #include <cstdlib>
+    6  #include <cstring>
+    7  #include <format>
+    8  #include <optional>
+    9  #include <string_view>
+== src/JsonText.h:1-21
+    1  #pragma once
+    2  
+    3  // Pieces of JSON text for hand-written reports: strings and numbers. No
+    4  // FFmpeg / libvmaf here so they can be unit-tested in mirage_tests.
+    5  
+    6  #include <string>
+    7  #include <string_view>
+    8  
+    9  namespace json {
+   10  
+   11  // `s` as a quoted JSON string. '"' and '\' are escaped, control characters
+   12  // become \b \f \n \r \t or \u00XX, valid UTF-8 is copied as is, and each byte
+   13  // that does not start a valid UTF-8 sequence becomes �, so the result is
+   14  // always valid JSON.
+   15  std::string quote(std::string_view s);
+   16  
+   17  // The shortest text that reads back as exactly `v` (std::format's "{}"), or
+   18  // null for NaN and infinities, which JSON cannot represent.
+   19  std::string number(double v);
+   20  
+   21  } // namespace json
+== src/NetworkLogger.h:118-125
+  118      // Manual tracking for plain avio_open() users (no AVFormatContext).
+  119      // track_open_end also taps pb's body (read it with avio_read, no probing).
+  120      // range_start / range_end (inclusive, -1 none): the byte range a
+  121      // non-HTTP open reads (HTTP takes it from the Range header).
+  122      static void track_open_begin(NetInitiator who, const char* url, std::int64_t range_start = -1,
+  123                                   std::int64_t range_end = -1);
+  124      static void track_open_end(int ret, AVIOContext* pb);
+  125      static void track_close(AVIOContext* pb);
+== src/NetworkLogger.h:155-160
+  155      // Copy every request modified after `since_seq` (oldest first) and report
+  156      // the oldest id still retained (older ids were evicted or cleared).
+  157      void copy_changed_since(std::uint64_t since_seq, std::vector<NetRequest>& out,
+  158                              std::uint64_t& oldest_id) const;
+  159      std::size_t size() const;
+  160      void clear();
+== src/NetworkLogger.h:189-194
+  189      // Steady clock, µs since process start. wall_ms() maps such a time to
+  190      // Unix epoch ms for display.
+  191      static std::int64_t now_us();
+  192      static std::int64_t wall_ms(std::int64_t t_us);
+  193  
+  194      static constexpr std::size_t kMaxRequests = 4000;
+== src/NetworkLogger.cpp:1-21
+    1  #include "NetworkLogger.h"
+    2  
+    3  #include <algorithm>
+    4  #include <limits>
+    5  #include <cctype>
+    6  #include <chrono>
+    7  #include <cstdio>
+    8  #include <cstdlib>
+    9  #include <cstring>
+   10  #include <format>
+   11  #include <initializer_list>
+   12  #include <string_view>
+   13  
+   14  extern "C" {
+   15  #include <libavformat/avformat.h>
+   16  #include <libavformat/avio.h>
+   17  #include <libavutil/error.h>
+   18  #include <libavutil/log.h>
+   19  #include <libavutil/mem.h>
+   20  #include <libavutil/opt.h>
+   21  }
+== src/NetworkLogger.cpp:172-186
+  172  void NetworkLogger::install()
+  173  {
+  174      instance_.store(this, std::memory_order_release);
+  175      av_log_set_callback(av_log_cb);
+  176      installed_ = true;
+  177  }
+  178  
+  179  void NetworkLogger::uninstall()
+  180  {
+  181      if (installed_.exchange(false)) {
+  182          av_log_set_callback(av_log_default_callback);
+  183          NetworkLogger* self = this;
+  184          instance_.compare_exchange_strong(self, nullptr);
+  185      }
+  186  }
+== src/NetworkLogger.cpp:385-395
+  385  NetRequest& NetworkLogger::push_locked(NetRequest r)
+  386  {
+  387      r.id = next_id_++;
+  388      reqs_.push_back(std::move(r));
+  389      while (reqs_.size() > kMaxRequests) {
+  390          if (auto it = bodies_.find(reqs_.front().id); it != bodies_.end()) {
+  391              body_total_ -= it->second.data.size();
+  392              bodies_.erase(it);
+  393          }
+  394          reqs_.pop_front();
+  395      }
+== src/NetworkLogger.cpp:595-697
+  595  void NetworkLogger::on_request_line_locked(const void* log_ctx, const std::string& text, std::int64_t now)
+  596  {
+  597      Conn* conn = conn_by_log_ctx_locked(log_ctx);
+  598      // What the previous request left in the handle's buffer is its body.
+  599      if (conn) flush_body_locked(*conn);
+  600  
+  601      // A new request on a handle ends the previous one (keep-alive, redirect, seek).
+  602      std::string prev_scheme;
+  603      if (auto it = ctx_req_.find(log_ctx); it != ctx_req_.end()) {
+  604          if (NetRequest* prev = find_locked(it->second)) {
+  605              prev_scheme = prev->protocol;
+  606              if (!prev->done())
+  607                  finish_locked(*prev, now, (conn && conn->counter && conn->cur_req == prev->id)
+  608                                                ? *conn->counter - conn->snap : -1);
+  609          }
+  610          ctx_req_.erase(it);
+  611      }
+  612      if (conn) conn->cur_req = 0;
+  613  
+  614      const bool in_open = t_open.owner == this && t_open.active;
+  615      if (!recording_.load()) {
+  616          if (in_open) t_open.first_used = true;
+  617          return;
+  618      }
+  619  
+  620      NetRequest n;
+  621      // Request line + headers, CRLF separated.
+  622      std::string_view rest(text);
+  623      bool first = true;
+  624      std::string path, host;
+  625      while (!rest.empty()) {
+  626          auto eol = rest.find('\n');
+  627          std::string_view ln = rest.substr(0, eol);
+  628          rest = (eol == std::string_view::npos) ? std::string_view() : rest.substr(eol + 1);
+  629          ln = trim(ln);
+  630          if (ln.empty()) { if (first) continue; else break; }
+  631          if (first) {
+  632              first = false;
+  633              const auto sp1 = ln.find(' ');
+  634              const auto sp2 = ln.rfind(' ');
+  635              if (sp1 != std::string_view::npos) {
+  636                  n.method.assign(ln.substr(0, sp1));
+  637                  path.assign(sp2 > sp1 ? ln.substr(sp1 + 1, sp2 - sp1 - 1) : ln.substr(sp1 + 1));
+  638              }
+  639              continue;
+  640          }
+  641          const auto colon = ln.find(':');
+  642          if (colon == std::string_view::npos) continue;
+  643          std::string k(trim(ln.substr(0, colon))), v(trim(ln.substr(colon + 1)));
+  644          if (iequals(k, "Host"))  host = v;
+  645          if (iequals(k, "Range")) parse_range(v, n.range_start, n.range_end);
+  646          n.request_headers.emplace_back(std::move(k), std::move(v));
+  647      }
+  648  
+  649      // Full URL: prefer what FFmpeg was asked to open (exact, with scheme).
+  650      auto path_matches = [&](const std::string& cand) {
+  651          if (cand.empty() || path.empty()) return false;
+  652          if (path.starts_with("http")) return cand == path;      // proxy form
+  653          return url_path(cand) == path;
+  654      };
+  655      if (path.starts_with("http://") || path.starts_with("https://"))
+  656          n.url = path;
+  657      else if (t_open.owner == this && path_matches(t_open.last_opening))
+  658          n.url = t_open.last_opening;
+  659      else if (in_open && path_matches(t_open.url))
+  660          n.url = t_open.url;
+  661      else {
+  662          // Redirect / unknown: rebuild from Host, keeping the handle's scheme.
+  663          std::string scheme = !prev_scheme.empty() ? prev_scheme
+  664                             : in_open ? url_scheme(t_open.url) : std::string("http");
+  665          if (scheme == "file") scheme = "http";
+  666          n.url = scheme + "://" + host + path;
+  667      }
+  668      n.protocol = url_scheme(n.url);
+  669      n.initiator = in_open ? t_open.who : conn ? conn->who : NetInitiator::Other;
+  670      n.t_sent  = now;
+  671      n.t_start = now;
+  672      if (in_open && !t_open.first_used) {
+  673          n.t_start = t_open.t0;          // includes DNS / TCP / TLS setup
+  674          t_open.first_used = true;
+  675      }
+  676      n.conn_id = in_open ? t_open.conn_id : conn ? conn->conn_id : 0;
+  677      n.reused_connection = !in_open && conn != nullptr;
+  678  
+  679      // Retry of something that failed recently?
+  680      int scanned = 0;
+  681      for (auto it = reqs_.rbegin(); it != reqs_.rend() && scanned < 400; ++it, ++scanned)
+  682          if (it->failed && it->url == n.url && it->range_start == n.range_start) {
+  683              n.retry_of_failed = true;
+  684              break;
+  685          }
+  686  
+  687      NetRequest& r = push_locked(std::move(n));
+  688      ctx_req_[log_ctx] = r.id;
+  689      if (conn) {
+  690          conn->cur_req = r.id;
+  691          conn->snap    = conn->counter ? *conn->counter : 0;
+  692      }
+  693      if (in_open) {
+  694          t_open.last_req = r.id;
+  695          t_open.req_ctx  = log_ctx;
+  696      }
+  697  }
+== src/VMAFNet.h:3-9
+    3  // The limits on the VMAF analyzer's network reads (DECISIONS.md D-036,
+    4  // D-056): its inputs and the ladder's master playlist get the I/O timeouts
+    5  // of the player's helpers (src/FfOpen.cpp), so a read that waits longer
+    6  // fails instead of waiting for good, and both an interrupt callback on the
+    7  // run's stop token, so a cancel interrupts a read that waits (the
+    8  // master's: vmafladder::read_master()). Header-only: mirage_vmaf doesn't
+    9  // link the player's FfOpen and its network logger.
+== src/VMAFSegments.h:26-40
+   26  // How many times the hls demuxer tries a segment again before it goes on
+   27  // without it: the player's value (src/Demuxer.cpp). FFmpeg's default is 0.
+   28  inline constexpr int kSegMaxRetry = 10;
+   29  
+   30  // Adds the hls demuxer's options to *opts: kSegMaxRetry, and no persistent
+   31  // connection or second connection for the next segment, so that the demuxer
+   32  // opens each file through io_open when it reads it, one at a time, and
+   33  // closes it when its reads end (SegmentWatch::watch()). Other demuxers
+   34  // leave them unused.
+   35  inline void set_hls_options(AVDictionary** opts)
+   36  {
+   37      av_dict_set_int(opts, "seg_max_retry", kSegMaxRetry, 0);
+   38      av_dict_set(opts, "http_persistent", "0", 0);
+   39      av_dict_set(opts, "http_multiple", "0", 0);
+   40  }
+== src/VMAFAnalyzer.cpp:166-241
+  166      [[nodiscard]] bool open(const std::string& url, const std::stop_token& st)
+  167      {
+  168          fmt_ctx = avformat_alloc_context();
+  169          if (!fmt_ctx) return false;
+  170          fmt_ctx->interrupt_callback.callback = vmafnet::stop_requested;
+  171          fmt_ctx->interrupt_callback.opaque   = const_cast<std::stop_token*>(&st);
+  172          segments.watch(fmt_ctx);
+  173          AVDictionary* opts = nullptr;
+  174          vmafnet::set_io_limits(&opts, url);
+  175          vmafsegments::set_hls_options(&opts);
+  176          // On failure avformat_open_input frees fmt_ctx and nulls the pointer.
+  177          const int r = avformat_open_input(&fmt_ctx, url.c_str(), nullptr, &opts);
+  178          av_dict_free(&opts);
+  179          if (r < 0) return false;
+  180          if (avformat_find_stream_info(fmt_ctx, nullptr) < 0) return false;
+  181  
+  182          const AVCodec* codec = nullptr;
+  183          vid_idx = av_find_best_stream(fmt_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, &codec, 0);
+  184          if (vid_idx < 0 || !codec) return false;
+  185  
+  186          codec_ctx = avcodec_alloc_context3(codec);
+  187          if (!codec_ctx) return false;
+  188          if (avcodec_parameters_to_context(
+  189                  codec_ctx, fmt_ctx->streams[vid_idx]->codecpar) < 0) return false;
+  190          if (avcodec_open2(codec_ctx, codec, nullptr) < 0) return false;
+  191  
+  192          pkt = av_packet_alloc();
+  193          return pkt != nullptr;
+  194      }
+  195  
+  196      // Returns the next decoded video frame (caller owns it), or nullptr at EOF/error.
+  197      [[nodiscard]] AVFrame* next_video_frame()
+  198      {
+  199          if (state == DecodeState::Done) return nullptr;
+  200  
+  201          AVFrame* frame = av_frame_alloc();
+  202  
+  203          while (true) {
+  204              int r = avcodec_receive_frame(codec_ctx, frame);
+  205              if (r == 0)            return frame;
+  206              if (r == AVERROR_EOF)  { state = DecodeState::Done; break; }
+  207              if (r != AVERROR(EAGAIN)) { error = r; state = DecodeState::Done; break; }
+  208  
+  209              // Codec needs more input
+  210              if (state == DecodeState::Flushing) {
+  211                  // Already sent flush packet; keep trying to drain
+  212                  continue;
+  213              }
+  214  
+  215              // Read the next video packet and feed it. A file the hls demuxer
+  216              // went on without ends the input there, as a read error does
+  217              // (src/VMAFSegments.h, DECISIONS.md D-055).
+  218              while (true) {
+  219                  r = av_read_frame(fmt_ctx, pkt);
+  220                  if (r == AVERROR_EOF) segments.ended();
+  221                  if (r < 0 || !segments.lost().empty()) {
+  222                      if (r >= 0)
+  223                          av_packet_unref(pkt);   // read after the file gone without: not decoded
+  224                      else if (r != AVERROR_EOF)
+  225                          error = r;              // still drained like EOF
+  226                      avcodec_send_packet(codec_ctx, nullptr);
+  227                      state = DecodeState::Flushing;
+  228                      break;
+  229                  }
+  230                  if (pkt->stream_index == vid_idx) {
+  231                      avcodec_send_packet(codec_ctx, pkt);
+  232                      av_packet_unref(pkt);
+  233                      break;
+  234                  }
+  235                  av_packet_unref(pkt);
+  236              }
+  237          }
+  238  
+  239          av_frame_free(&frame);
+  240          return nullptr;
+  241      }
+== src/VMAFLadder.h:15-38
+   15  // - Entries. The master's EXT-X-STREAM-INF tags, each with the URI line that
+   16  //   follows it, blank lines, comments and other tags between them allowed,
+   17  //   as FFmpeg's hls demuxer pairs them; each line without the white space
+   18  //   around it, as eval/streams/fetch_streams.py reads it. The first line is
+   19  //   #EXTM3U, as FFmpeg's hls demuxer requires. I-frame playlists
+   20  //   (EXT-X-I-FRAME-STREAM-INF) and renditions (EXT-X-MEDIA) are no entries.
+   21  //   Every entry needs a BANDWIDTH, RFC 8216's decimal-integer, since the top
+   22  //   rung is chosen by it.
+   23  // - URIs are resolved against where the master was read from, after HTTP
+   24  //   redirects, as FFmpeg's hls demuxer resolves them; a URI in a form
+   25  //   resolve() doesn't resolve makes the master one this doesn't read.
+   26  // - Video. An entry has video when it has a RESOLUTION, or a CODECS entry
+   27  //   whose sample entry name is a video codec's (kVideoCodecs): the rule of
+   28  //   eval/streams/fetch_streams.py, whose committed records say which entries
+   29  //   of the repository's streams have video. The others are skipped, without
+   30  //   being opened, and listed with the reason kNoVideo.
+   31  // - Playlists. Entries whose URLs are the same string name one playlist,
+   32  //   which is scored once; each pair lists the video entries that name it.
+   33  // - The top rung is the playlist of the video entry with the highest
+   34  //   BANDWIDTH; of two or more such entries naming different playlists, the
+   35  //   first in the master's order, with a warning.
+   36  // - The pairs, in the master's order of their first entry: in top-rung mode
+   37  //   every video playlist but the top rung's, against it; in mezzanine mode
+   38  //   every video playlist, the top rung's included, against the mezzanine.
+== src/VMAFLadder.h:86-92
+   86  // One EXT-X-STREAM-INF entry of a master playlist.
+   87  struct Entry {
+   88      std::size_t index = 0;   // its position among the master's entries, from 0
+   89      std::size_t line  = 0;   // the line of its EXT-X-STREAM-INF, from 1
+   90      std::string uri;         // its URI line, as the master gives it
+   91      std::string url;         // `uri` resolved against the master's location
+   92      int64_t     bandwidth = 0;   // BANDWIDTH
+== src/VMAFLadder.h:128-132
+  128  // The video playlist a pair scores, and the video entries that name it.
+  129  struct Pair {
+  130      std::string              url;
+  131      std::vector<std::size_t> entries;   // Entry::index, in the master's order
+  132  };
+== src/VMAFLadder.cpp:293-334
+  293  Fetched read_master(const std::string& url, std::stop_token cancel)
+  294  {
+  295      Fetched f;
+  296      f.location = url;
+  297      AVIOContext* ctx = nullptr;
+  298      // A network read waits at most 5 s, as the analyzer's (D-036), and a
+  299      // cancel ends one that waits.
+  300      AVDictionary* opts = nullptr;
+  301      vmafnet::set_io_limits(&opts, url);
+  302      MasterRead read{ .cancel = cancel, .start = std::chrono::steady_clock::now() };
+  303      const AVIOInterruptCB interrupt{ master_read_interrupted, &read };
+  304      const int r = avio_open2(&ctx, url.c_str(), AVIO_FLAG_READ, &interrupt, &opts);
+  305      av_dict_free(&opts);
+  306      if (r < 0) {
+  307          f.error = av_error_text(r);
+  308          return f;
+  309      }
+  310      // HTTP: the URL the playlist came from after redirects, which FFmpeg's
+  311      // hls demuxer resolves the playlist's URIs against.
+  312      uint8_t* loc = nullptr;
+  313      if (av_opt_get(ctx, "location", AV_OPT_SEARCH_CHILDREN, &loc) >= 0 && loc) {
+  314          if (*loc) f.location = reinterpret_cast<const char*>(loc);
+  315          av_free(loc);
+  316      }
+  317      uint8_t buf[4096];
+  318      int n = 0;
+  319      while ((n = avio_read(ctx, buf, sizeof buf)) > 0) {
+  320          f.text.append(reinterpret_cast<const char*>(buf), static_cast<std::size_t>(n));
+  321          const std::size_t head = std::min(f.text.size(), kHeader.size());
+  322          if (std::string_view(f.text).substr(0, head) != kHeader.substr(0, head)) {
+  323              f.error = "it doesn't start with #EXTM3U, so it isn't an HLS playlist";
+  324              break;
+  325          }
+  326      }
+  327      // A text cut short is a failed read, not a shorter playlist.
+  328      const int err = ctx->error < 0 ? ctx->error : (n < 0 && n != AVERROR_EOF ? n : 0);
+  329      if (f.error.empty() && err < 0) f.error = av_error_text(err);
+  330      avio_closep(&ctx);
+  331      if (!f.error.empty()) f.text.clear();
+  332      else f.sha256 = filehash::sha256_hex(f.text);
+  333      return f;
+  334  }
+== src/VMAFCli.cpp:26-35
+   26  struct Option {
+   27      std::string_view name;      // "--ref"; "ref" in a config file
+   28      std::string_view value;     // placeholder shown in the help, "<url|path>"
+   29      std::string_view help;
+   30      Form             form;
+   31      bool             required;  // in its form
+   32      // Stores `v` in `a`; returns what is wrong with it, or "", in words that
+   33      // follow the option's name ("wants a whole number ...").
+   34      std::string (*set)(Args& a, std::string_view v);
+   35  };
+== src/VMAFCli.cpp:92-124
+   92  const std::array kOptions = {
+   93      Option{ "--ref", "<url|path>", "reference video: a file or any URL FFmpeg opens", Form::Pair,
+   94              true, [](Args& a, std::string_view v) { a.ref = v; return std::string(); } },
+   95      Option{ "--dis", "<url|path>", "distorted video, scored against the reference", Form::Pair,
+   96              true, [](Args& a, std::string_view v) { a.dis = v; return std::string(); } },
+   97      Option{ "--ladder", "<url|path>", "HLS master playlist: score each of its video playlists, "
+   98              "against the top rung (see Ladder below)", Form::Ladder, true,
+   99              [](Args& a, std::string_view v) { a.ladder = v; return std::string(); } },
+  100      Option{ "--mezzanine", "<url|path>", "with --ladder: score every video playlist against this "
+  101              "video instead", Form::Ladder, false,
+  102              [](Args& a, std::string_view v) { a.mezzanine = v; return std::string(); } },
+  103      Option{ "--jobs", "N", "with --ladder: score N pairs at a time (default: the physical cores "
+  104              "minus one, at least 1)", Form::Ladder, false, set_jobs },
+  105      Option{ "--memory-limit", "SIZE", "with --ladder: start a pair only while the memory the pool "
+  106              "counts for its pairs stays under SIZE (see The pool below); bytes, or K, M, G or T "
+  107              "for KiB, MiB, GiB or TiB (default: none)", Form::Ladder, false, set_memory_limit },
+  108      Option{ "--out", "<report.json>", "report to write; written when the run succeeds, and with "
+  109              "--ladder also when it is cancelled or a pair fails",
+  110              Form::Any, true, [](Args& a, std::string_view v) { a.out = v; return std::string(); } },
+  111      Option{ "--frames", "N", "score only the first N frame pairs (N >= 1), of each pair with "
+  112              "--ladder", Form::Any, false, set_frames },
+  113      Option{ "--scaler", "NAME", "scales the distorted frames: bilinear, bicubic (default) or lanczos",
+  114              Form::Any, false, set_scaler },
+  115      Option{ "--model", "NAME", "libvmaf built-in model: vmaf_v0.6.1 (default), vmaf_v0.6.1neg, "
+  116              "vmaf_4k_v0.6.1, ...", Form::Any, false,
+  117              [](Args& a, std::string_view v) { a.model.version = v; return std::string(); } },
+  118      Option{ "--model-file", "<model.json>", "libvmaf model file, instead of a built-in model",
+  119              Form::Any, false,
+  120              [](Args& a, std::string_view v) { a.model.path = v; return std::string(); } },
+  121      Option{ kConfig, "<file>", "read settings from a file of name = value lines first (see below)",
+  122              Form::Any, false,
+  123              [](Args& a, std::string_view v) { a.config = v; return std::string(); } },
+  124  };
+== src/VMAFCli.cpp:195-257
+  195  std::string read_settings(std::string_view text, std::vector<FileSetting>& out)
+  196  {
+  197      if (text.starts_with("\xEF\xBB\xBF")) text.remove_prefix(3);   // a UTF-8 byte order mark
+  198      std::array<std::size_t, kOptions.size()> line_of{};             // 0 = not set yet
+  199      std::size_t line = 0;
+  200      while (!text.empty()) {
+  201          const std::size_t eol = text.find('\n');
+  202          std::string_view raw = text.substr(0, eol);
+  203          text.remove_prefix(eol == std::string_view::npos ? text.size() : eol + 1);
+  204          ++line;
+  205          if (raw.ends_with('\r')) raw.remove_suffix(1);
+  206          const std::string_view entry = trimmed(raw);
+  207          if (entry.empty() || entry.starts_with('#')) continue;
+  208  
+  209          const std::size_t eq = entry.find('=');
+  210          if (eq == std::string_view::npos)
+  211              return std::format("line {}: expected name = value, not '{}'", line, entry);
+  212          const std::string_view name  = trimmed(entry.substr(0, eq));
+  213          const std::string_view value = trimmed(entry.substr(eq + 1));
+  214          if (name.empty()) return std::format("line {}: no name before '='", line);
+  215          if (name.starts_with('-'))
+  216              return std::format("line {}: unknown setting '{}' (names are written without --)",
+  217                                 line, name);
+  218          const Option* opt = find_option(std::format("--{}", name));
+  219          if (!opt) return std::format("line {}: unknown setting '{}'", line, name);
+  220          if (opt->name == kConfig)
+  221              return std::format("line {}: {} can't be set in a config file", line, name);
+  222          const std::size_t k = static_cast<std::size_t>(opt - kOptions.data());
+  223          if (line_of[k])
+  224              return std::format("line {}: {} is set more than once (first on line {})", line, name,
+  225                                 line_of[k]);
+  226          line_of[k] = line;
+  227          if (value.empty()) return std::format("line {}: {} needs a non-empty value", line, name);
+  228          Args check;
+  229          if (std::string err = opt->set(check, value); !err.empty())
+  230              return std::format("line {}: {} {}", line, name, err);
+  231          out.push_back({ k, value, line });
+  232      }
+  233      for (const auto& [a, b] : kExclusive)
+  234          if (line_of[index_of(a)] && line_of[index_of(b)])
+  235              return std::format("{} (line {}) and {} (line {}) can't both be set",
+  236                                 file_name(*find_option(a)), line_of[index_of(a)],
+  237                                 file_name(*find_option(b)), line_of[index_of(b)]);
+  238      // Inputs of both forms: the first setting of each form, by its line.
+  239      std::size_t first_pair = 0, first_ladder = 0;
+  240      for (std::size_t k = 0; k < kOptions.size(); ++k) {
+  241          if (!line_of[k] || kOptions[k].form == Form::Any) continue;
+  242          std::size_t& first = kOptions[k].form == Form::Pair ? first_pair : first_ladder;
+  243          if (!first || line_of[k] < first) first = line_of[k];
+  244      }
+  245      if (first_pair && first_ladder) {
+  246          const auto set_on = [&](std::size_t l) {
+  247              for (std::size_t k = 0; k < kOptions.size(); ++k)
+  248                  if (line_of[k] == l) return file_name(kOptions[k]);
+  249              return std::string_view();
+  250          };
+  251          const std::size_t a = std::min(first_pair, first_ladder);
+  252          const std::size_t b = std::max(first_pair, first_ladder);
+  253          return std::format("{} (line {}) and {} (line {}) can't both be set", set_on(a), a,
+  254                             set_on(b), b);
+  255      }
+  256      return {};
+  257  }
+== src/VMAFCli.cpp:273-344
+  273  std::string parse(const std::vector<std::string_view>& argv, Args& out,
+  274                    const std::function<ConfigFile(const std::string&)>& load)
+  275  {
+  276      for (std::string_view a : argv) {
+  277          if (is_help(a)) {
+  278              out = Args{};
+  279              out.help = true;
+  280              return {};
+  281          }
+  282      }
+  283  
+  284      Args args;
+  285      std::array<bool, kOptions.size()> on_line{};   // given on the command line
+  286      for (std::size_t i = 0; i < argv.size(); ++i) {
+  287          const Option* opt = find_option(argv[i]);
+  288          if (!opt) return std::format("unknown argument '{}'", argv[i]);
+  289          const std::size_t k = static_cast<std::size_t>(opt - kOptions.data());
+  290          if (on_line[k]) return std::format("{} is given more than once", opt->name);
+  291          on_line[k] = true;
+  292          // A value that is itself an option means the real value is missing.
+  293          if (i + 1 >= argv.size() || find_option(argv[i + 1]))
+  294              return std::format("{} needs a value: {} {}", opt->name, opt->name, opt->value);
+  295          const std::string_view v = argv[++i];
+  296          if (v.empty()) return std::format("{} needs a non-empty value", opt->name);
+  297          if (std::string err = opt->set(args, v); !err.empty())
+  298              return std::format("{} {}", opt->name, err);
+  299      }
+  300  
+  301      // The inputs: a pair or a ladder, not both in one place.
+  302      const FormsGiven line_forms = forms_given(on_line);
+  303      if (line_forms.pair && line_forms.ladder)
+  304          return std::format("{} and {} can't be given together", line_forms.pair->name,
+  305                             line_forms.ladder->name);
+  306      const Form line_form = line_forms.ladder ? Form::Ladder
+  307                             : line_forms.pair ? Form::Pair
+  308                                               : Form::Any;
+  309  
+  310      // The config file's settings, but those the command line gives, and those
+  311      // of the other form of the inputs than the command line's.
+  312      std::array<bool, kOptions.size()> applied{};
+  313      if (on_line[index_of(kConfig)]) {
+  314          const ConfigFile file = load(args.config);
+  315          if (!file.error.empty())
+  316              return std::format("cannot read the config file {}: {}", args.config, file.error);
+  317          std::vector<FileSetting> settings;
+  318          if (std::string err = read_settings(file.text, settings); !err.empty())
+  319              return std::format("config file {}, {}", args.config, err);
+  320          for (const FileSetting& s : settings) {
+  321              const Form f = kOptions[s.option].form;
+  322              bool replaced = line_form != Form::Any && f != Form::Any && f != line_form;
+  323              for (std::size_t k : setting_of(s.option)) replaced = replaced || on_line[k];
+  324              if (replaced) continue;
+  325              kOptions[s.option].set(args, s.value);   // checked by read_settings
+  326              applied[s.option] = true;
+  327          }
+  328      }
+  329  
+  330      std::array<bool, kOptions.size()> given{};
+  331      for (std::size_t k = 0; k < kOptions.size(); ++k) given[k] = on_line[k] || applied[k];
+  332      const Form form = forms_given(given).ladder ? Form::Ladder : Form::Pair;
+  333      for (std::size_t k = 0; k < kOptions.size(); ++k) {
+  334          const Option& o = kOptions[k];
+  335          if (o.required && (o.form == Form::Any || o.form == form) && !given[k])
+  336              return std::format("missing {} {}", o.name, o.value);
+  337      }
+  338      for (const auto& [a, b] : kExclusive)
+  339          if (on_line[index_of(a)] && on_line[index_of(b)])
+  340              return std::format("{} and {} can't be given together", a, b);
+  341  
+  342      out = std::move(args);
+  343      return {};
+  344  }
+== tools/mirage_vmaf.cpp:7-17
+    7  // Exit codes:
+    8  //   0 — report written, also when more frames than the threshold allows
+    9  //       failed to pair by timestamp: that is a warning, on stderr and in the
+   10  //       report (DECISIONS.md D-028)
+   11  //   1 — the analysis failed or was incomplete, with --ladder the master
+   12  //       playlist couldn't be read or was refused (src/VMAFLadder.h), or the
+   13  //       report could not be written: no report is left at --out; or, with
+   14  //       --ladder, the run was cancelled (SIGINT, SIGTERM) or a pair's
+   15  //       analysis failed or was incomplete: the report of the complete pairs
+   16  //       says so (DECISIONS.md D-047)
+   17  //   2 — bad arguments, or a --config file that can't be read or has an error
+== tools/mirage_vmaf.cpp:142-156
+  142      const std::vector<std::string_view> argl(argv + 1, argv + argc);
+  143      if (const std::string err = vmafcli::parse(argl, args, load_config); !err.empty()) {
+  144          const std::string usage = vmafcli::usage();
+  145          std::fprintf(stderr, "mirage_vmaf: %s\n%sRun mirage_vmaf --help for details.\n",
+  146                       err.c_str(), usage.substr(0, usage.find("\n\n") + 1).c_str());
+  147          return 2;
+  148      }
+  149      if (args.help) {
+  150          std::fputs(vmafcli::usage().c_str(), stdout);
+  151          return 0;
+  152      }
+  153  
+  154      // FFmpeg's warnings and errors only: no per-segment "Opening ..." lines.
+  155      av_log_set_level(AV_LOG_WARNING);
+  156      avformat_network_init();
+== src/main.cpp:553-556
+  553      // QA track switching: `--qa-switch "v720@4,a2@10,s1@14,soff@16"` switches
+  554      // tracks at wall seconds since the first presented frame. v<height> /
+  555      // v#<stream>, a<n> / a#<stream> (n = 1-based panel order), s<n> / soff.
+  556      std::vector<std::pair<double, std::string>> qa_switch;
+== src/main.cpp:1751-1751
+ 1751      int64_t             total_dropped = 0;       // late frames dropped (top-bar chip)
+== src/main.cpp:3333-3339
+ 3333              // Suppress seek-bar commits while scrubbing is active: the scrubbing
+ 3334              // path (ScrubDecoder + scrub_ended) handles everything.  Firing seeks from
+ 3335              // both paths simultaneously floods audioq with flush sentinels, which
+ 3336              // causes the audio decode thread to keep emptying the ring buffer after
+ 3337              // release, producing the "buzz on one note" artifact.
+ 3338              if (ui.seek_to >= 0.0 && !scrubbing && !scrub_ended)
+ 3339                  s_seek_to.store(ui.seek_to);
+== src/NetInspector.cpp:387-394
+  387      // Keep the player's shortcuts alive. PlayerUI enables keyboard nav, and a
+  388      // click on a row, chip or button leaves this window (or one of its child
+  389      // windows — tables, details pane — which do not inherit NoNav) as
+  390      // ImGui's nav window, so io.WantCaptureKeyboard would stay true and
+  391      // Space would re-press the last button instead of pausing. Drop focus as
+  392      // soon as no widget is held; typing in the filter keeps it (active item).
+  393      if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::IsAnyItemActive())
+  394          ImGui::SetWindowFocus(nullptr);
+== src/NetInspectorAlign.cpp:69-109
+   69  // Axis step (s) giving ticks at least `min_px` apart.
+   70  double nice_step(double span, float width, float min_px)
+   71  {
+   72      static constexpr double kSteps[] = { 0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600, 7200 };
+   73      for (double s : kSteps)
+   74          if (span / s * min_px <= width) return s;
+   75      return 14400;
+   76  }
+   77  
+   78  // Unix seconds as "2024-03-01 12:00:00.000 UTC".
+   79  std::string utc_text(double unix_s)
+   80  {
+   81      const auto whole = static_cast<std::time_t>(std::floor(unix_s));
+   82      std::tm tm{};
+   83      gmtime_r(&whole, &tm);
+   84      return std::format("{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:03} UTC", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+   85                         tm.tm_hour, tm.tm_min, tm.tm_sec, static_cast<int>((unix_s - std::floor(unix_s)) * 1000.0));
+   86  }
+   87  
+   88  // Unix seconds as the UTC time of day: "20:41:30", "20:41" (minute steps),
+   89  // "20:41:30.16" (sub-second steps), "20:41:30.160" (step 0.001).
+   90  std::string wall_label(double unix_s, double step)
+   91  {
+   92      const double day = std::fmod(unix_s, 86400.0);
+   93      const auto ms = static_cast<std::int64_t>(std::llround(day * 1000.0));
+   94      const std::int64_t h = ms / 3'600'000 % 24, m = ms / 60'000 % 60, sec = ms / 1000 % 60;
+   95      if (step <= 0.001) return std::format("{:02}:{:02}:{:02}.{:03}", h, m, sec, ms % 1000);
+   96      if (step < 1.0)    return std::format("{:02}:{:02}:{:02}.{:02}", h, m, sec, ms % 1000 / 10);
+   97      if (step >= 60.0)  return std::format("{:02}:{:02}", h, m);
+   98      return std::format("{:02}:{:02}:{:02}", h, m, sec);
+   99  }
+  100  
+  101  std::string axis_label(double t, double step)
+  102  {
+  103      if (step < 1.0) return std::format("{:.2f}", t);
+  104      const auto s = static_cast<std::int64_t>(std::llround(t));
+  105      if (s >= 3600) return std::format("{}:{:02}:{:02}", s / 3600, s / 60 % 60, s % 60);
+  106      return std::format("{}:{:02}", s / 60, s % 60);
+  107  }
+  108  
+  109  } // namespace
+== src/NetInspectorAlign.cpp:637-662
+  637          // Interaction: wheel zooms at the mouse, drag pans, double-click fits.
+  638          ImGui::SetCursorScreenPos(ImVec2(track_x0, tp.y));
+  639          ImGui::InvisibleButton("##tl", ImVec2(track_w, tl_h));
+  640          const bool tl_hov = ImGui::IsItemHovered();
+  641          const ImGuiIO& io = ImGui::GetIO();
+  642          if (tl_hov && io.MouseWheel != 0.0f) {
+  643              const double at = T(io.MousePos.x);
+  644              const double f = io.MouseWheel > 0 ? 0.8 : 1.25;
+  645              double ns = std::clamp(span * f, 0.5, (hi - lo) * 1.5 + 1.0);
+  646              view_t0_ = at - (at - view_t0_) / span * ns;
+  647              view_t1_ = view_t0_ + ns;
+  648              view_fit_ = false;
+  649          }
+  650          if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left, 2.0f)) {
+  651              const double dt = -io.MouseDelta.x / track_w * span;
+  652              view_t0_ += dt;
+  653              view_t1_ += dt;
+  654              view_fit_ = false;
+  655          }
+  656          if (tl_hov && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+  657              view_t0_ = fit_lo;
+  658              view_t1_ = hi;
+  659              view_fit_ = true;
+  660          }
+  661          const bool clicked_tl = tl_hov && ImGui::IsMouseReleased(ImGuiMouseButton_Left)
+  662                               && std::fabs(io.MouseDragMaxDistanceSqr[0]) < 9.0f;
+== src/ManifestParser.cpp:121-157
+  121      NetworkLogger::track_open_begin(NetInitiator::Manifest, url.c_str());
+  122      const int ret = avio_open2(&ctx, url.c_str(), AVIO_FLAG_READ, abort ? &cb : nullptr, &opts);
+  123      av_dict_free(&opts);
+  124      NetworkLogger::track_open_end(ret, ctx);
+  125      if (ret < 0) {
+  126          if (!(abort && abort->load()))
+  127              logger::warn("ManifestParser: cannot open {}", url);
+  128          return false;
+  129      }
+  130      // HTTP: the URL the body came from after redirects.
+  131      if (uint8_t* loc = nullptr; av_opt_get(ctx, "location", AV_OPT_SEARCH_CHILDREN, &loc) >= 0 && loc) {
+  132          if (*loc) final_url = reinterpret_cast<const char*>(loc);
+  133          av_free(loc);
+  134      }
+  135  
+  136      std::string result;
+  137      result.reserve(65536);
+  138      uint8_t buf[4096];
+  139      int n;
+  140      while ((n = avio_read(ctx, buf, sizeof(buf))) > 0)
+  141          result.append(reinterpret_cast<char*>(buf), static_cast<size_t>(n));
+  142      const bool aborted = abort && abort->load();
+  143      // A body cut short (timeout, dropped connection) is a failed fetch, not a
+  144      // shorter manifest: playback would otherwise see some variants only.
+  145      const int read_err = ctx->error < 0 ? ctx->error : (n < 0 && n != AVERROR_EOF ? n : 0);
+  146      if (read_err < 0 && !aborted) {
+  147          char errbuf[AV_ERROR_MAX_STRING_SIZE];
+  148          av_strerror(read_err, errbuf, sizeof(errbuf));
+  149          logger::warn("ManifestParser: reading {} failed after {} bytes: {}", url, result.size(), errbuf);
+  150      }
+  151      // HTTP: Set-Cookie values received (http.c keeps them in "cookies").
+  152      if (uint8_t* c = nullptr; av_opt_get(ctx, "cookies", AV_OPT_SEARCH_CHILDREN, &c) >= 0 && c) {
+  153          cookies = *c != '\0';
+  154          av_free(c);
+  155      }
+  156  
+  157      NetworkLogger::track_close(ctx);
+== src/NetProbe.cpp:120-141
+  120      NetworkLogger::track_open_begin(NetInitiator::Inspector, j.url.c_str(), local_range ? first : -1,
+  121                                      local_range && j.length > 0 ? first + j.length - 1 : -1);
+  122      AVIOContext* pb = nullptr;
+  123      const int ret = avio_open2(&pb, j.url.c_str(), AVIO_FLAG_READ, &cb, &opts);
+  124      av_dict_free(&opts);
+  125      NetworkLogger::track_open_end(ret, pb);
+  126      if (ret < 0) return;
+  127      if (!http && first > 0 && avio_seek(pb, first, SEEK_SET) < 0) {
+  128          NetworkLogger::track_close(pb);
+  129          avio_closep(&pb);
+  130          return;
+  131      }
+  132  
+  133      // A server that ignores Range sends everything: stop at what was asked.
+  134      std::int64_t want = j.length > 0 ? j.length : static_cast<std::int64_t>(NetworkLogger::kMaxTextBody);
+  135      unsigned char buf[16384];
+  136      while (want > 0) {
+  137          const int n = avio_read(pb, buf, static_cast<int>(std::min<std::int64_t>(want, sizeof(buf))));
+  138          if (n <= 0) break;
+  139          want -= n;
+  140      }
+  141      NetworkLogger::track_close(pb);
+== tests/HttpFileServer.h:31-36
+   31  // How an HttpFileServer answers the requests for one path.
+   32  struct HttpFileRule {
+   33      std::string path;                  // as requested, without the leading '/'
+   34      int         hold_first = 0;        // the first this many requests get no answer
+   35      std::size_t cut_after  = 0;        // > 0: send only this many bytes of the body, then close
+   36  };
+== tests/TestTemp.h:1-7
+    1  #pragma once
+    2  
+    3  // A temporary directory of its own for each run of mirage_tests, so that two
+    4  // runs at the same time never share a file name (DECISIONS.md D-032). Every
+    5  // test that writes a file writes it here. The directory is created on first
+    6  // use under the system's temporary directory and removed, with what is in
+    7  // it, when the process exits normally.
+== tests/test_vmaf_ladder.cpp:192-216
+  192  const Ladder& ladder()
+  193  {
+  194      static const Ladder l = [] {
+  195          Ladder x;
+  196          x.dir    = testtemp::path("mirage_test_ladder");
+  197          x.low    = make_rung(x.dir / "low", 96, 54);
+  198          x.mid    = make_rung(x.dir / "mid", 128, 72);
+  199          x.top    = make_rung(x.dir / "top", 192, 108);
+  200          x.master = (x.dir / "master.m3u8").string();
+  201          write_text(x.master,
+  202                     "#EXTM3U\n#EXT-X-VERSION:3\n"
+  203                     "#EXT-X-STREAM-INF:BANDWIDTH=300000,RESOLUTION=96x54,CODECS=\"mp2v,mp4a.40.2\"\n"
+  204                     "low/index.m3u8\n"
+  205                     "#EXT-X-STREAM-INF:BANDWIDTH=600000,RESOLUTION=128x72,AUDIO=\"a1\"\n"
+  206                     "mid/index.m3u8\n"
+  207                     "#EXT-X-STREAM-INF:BANDWIDTH=900000,RESOLUTION=192x108\n"
+  208                     "top/index.m3u8\n"
+  209                     "#EXT-X-STREAM-INF:BANDWIDTH=640000,RESOLUTION=128x72,AUDIO=\"a2\"\n"
+  210                     "mid/index.m3u8\n"
+  211                     "#EXT-X-STREAM-INF:BANDWIDTH=64000,CODECS=\"mp4a.40.2\"\n"
+  212                     "audio/index.m3u8\n");
+  213          return x;
+  214      }();
+  215      return l;
+  216  }
+== tests/test_vmaf_ladder.cpp:286-310
+  286      posix_spawn_file_actions_t files;
+  287      posix_spawn_file_actions_init(&files);
+  288      posix_spawn_file_actions_adddup2(&files, out[1], STDOUT_FILENO);
+  289      posix_spawn_file_actions_addclose(&files, out[0]);
+  290      posix_spawn_file_actions_addclose(&files, out[1]);
+  291      posix_spawn_file_actions_addopen(&files, STDERR_FILENO, err_path.c_str(),
+  292                                       O_WRONLY | O_CREAT | O_TRUNC, 0644);
+  293      posix_spawnattr_t attr;
+  294      posix_spawnattr_init(&attr);
+  295      sigset_t none, defaults;
+  296      sigemptyset(&none);
+  297      sigemptyset(&defaults);
+  298      sigaddset(&defaults, SIGINT);
+  299      sigaddset(&defaults, SIGTERM);
+  300      posix_spawnattr_setsigmask(&attr, &none);
+  301      posix_spawnattr_setsigdefault(&attr, &defaults);
+  302      posix_spawnattr_setflags(&attr, POSIX_SPAWN_SETSIGMASK | POSIX_SPAWN_SETSIGDEF);
+  303      args.insert(args.begin(), MIRAGE_VMAF_PATH);
+  304      std::vector<char*> argv;
+  305      for (std::string& a : args) argv.push_back(a.data());
+  306      argv.push_back(nullptr);
+  307      pid_t pid = 0;
+  308      const int spawned = posix_spawn(&pid, argv[0], &files, &attr, argv.data(), environ);
+  309      posix_spawn_file_actions_destroy(&files);
+  310      posix_spawnattr_destroy(&attr);
+== tests/test_vmaf_report.cpp:104-104
+  104              if (v.obj.count(key)) return false;   // duplicate keys are not wanted in a report
+== tests/test_vmaf_report.cpp:909-909
+  909          CHECK(p.obj.size() == own.size() + 4);   // and index, entries, started_s, ended_s
+== tests/test_vmaf_cli.cpp:161-170
+  161  TEST_CASE("vmafcli::usage: lists every option", "[vmafcli]")
+  162  {
+  163      const std::string u = vmafcli::usage();
+  164      CHECK(u.starts_with("Usage: mirage_vmaf --ref <url|path> --dis <url|path> --out <report.json> "
+  165                          "[--frames N] [--scaler NAME] [--model NAME] [--model-file <model.json>] "
+  166                          "[--config <file>]\n"
+  167                          "       mirage_vmaf --ladder <url|path> [--mezzanine <url|path>] "
+  168                          "[--jobs N] [--memory-limit SIZE] --out <report.json> [--frames N] "
+  169                          "[--scaler NAME] [--model NAME] [--model-file <model.json>] "
+  170                          "[--config <file>]\n\n"));
+== tests/test_manifest_parser.cpp:90-95
+   90      // Should have DiscontinuitySequence + Discontinuity
+   91      REQUIRE(tags.size() == 2);
+   92      CHECK(tags[0].kind == ManifestTagKind::DiscontinuitySequence);
+   93      CHECK(tags[0].disc_seq == 5);
+   94      CHECK(tags[1].kind == ManifestTagKind::Discontinuity);
+   95      CHECK(tags[1].disc_seq == 5);  // inherited from running disc_seq
+== tests/test_vmaf_segments.cpp:46-60
+   46  fs::path make_stream(const fs::path& dir, int w, int h)
+   47  {
+   48      fs::create_directories(dir);
+   49      const AVCodec* codec = avcodec_find_encoder(AV_CODEC_ID_MPEG2VIDEO);
+   50      REQUIRE(codec);
+   51      AVCodecContext* enc = avcodec_alloc_context3(codec);
+   52      enc->width          = w;
+   53      enc->height         = h;
+   54      enc->pix_fmt        = AV_PIX_FMT_YUV420P;
+   55      enc->time_base      = { 1, kFps };
+   56      enc->framerate      = { kFps, 1 };
+   57      enc->gop_size       = 1;
+   58      enc->max_b_frames   = 0;
+   59      enc->flags         |= AV_CODEC_FLAG_QSCALE;
+   60      enc->global_quality = FF_QP2LAMBDA * 2;
+== tests/test_vmaf_segments.cpp:110-117
+  110      REQUIRE(av_write_trailer(oc) >= 0);
+  111      avformat_free_context(oc);
+  112      avcodec_free_context(&enc);
+  113  
+  114      for (int s = 0; s < kSegments; ++s) REQUIRE(fs::exists(dir / std::format("seg{}.ts", s)));
+  115      REQUIRE_FALSE(fs::exists(dir / std::format("seg{}.ts", kSegments)));
+  116      return playlist;
+  117  }
+== docs/VMAF_GAP_REPORT.md:228-231
+  228  - **Player switching**
+  229    - Mirage doesn't do ABR. When the user switches variants manually it only writes log text and produces no structured event.
+  230  - **Decoder**
+  231    - Has a dropped-frame counter; `KeyframeIndex` records keyframe positions.
+== docs/DECISIONS.md:94-98
+   94  ### D-007 Any refactor touching the render or decode path needs a plan first
+   95  
+   96  - **Decision**: for any refactor that changes the render or decode path (e.g. §4's scoring of played frames, or moving the analyzer out of `MediaSession`), the agent first writes a plan for the owner to approve, and changes code only after approval.
+   97  - **Alternatives**: do small refactors directly and explain them in the PR; only large ones need a plan first.
+   98  - **Rationale**: hard rule 3 of the work order.
+== docs/DECISIONS.md:378-386
+  378  ### D-032 Smaller Phase 1 items
+  379  
+  380  - **Decision**
+  381    - The subtitle test writes its SRT fixture to a temporary file at run time, as the other media tests generate their inputs; a change to the test only.
+  382    - For the intermittent `Demuxer: seamless video and audio switches on a local file`, the agent writes a plan to find out whether the test's timing or the track switch is at fault (D-007); nothing on the decode path changes before the owner approves it.
+  383    - Two findings of the review are fixed before merge: the analyzer's leak when an input opens but has no video stream or its decoder fails to open, and the tests' fixed file names in the shared temporary directory. The other low findings are left for later.
+  384    - The committed delta runs keep FFmpeg's verbose logs raw, the CDN servers' public addresses included.
+  385    - The paper's method text states that the §5 tool adds `scale=W:H:flags=<scaler>` to FFmpeg's distorted input, since FFmpeg's libvmaf filter refuses inputs of different sizes (difference 3 of the pending document).
+  386    - D-009 gets a correction note and D-016 a note citing the committed runs, as D-001 has its correction.
+== docs/DECISIONS.md:783-808
+  783  ### P-006 What mirage_vmaf records, and when it writes no report
+  784  
+  785  - **Choice**
+  786    - **PTS**: each paired frame's `best_effort_timestamp`, in seconds (`ts × num / den` with the stream's time base, which the report also gives), as the stream has it, not shifted to start at 0. `null` when the frame has none.
+  787    - **Input parameters** (size, `pix_fmt`, color space, range, primaries, transfer): the decoder's values right after opening, the stream parameters ffprobe also shows, under FFmpeg's names. Not those of the first decoded frame.
+  788    - **Pooled values**: only libvmaf's pooled mean and min, as the analyzer computes them today. The analyzer's p5 stays out of the report while its definition is open (#6); every per-frame score is in the report.
+  789    - **No report, and exit status 1**, when an input can't be opened, an input stops on a read or decode error instead of reaching its end, no pair is scored, or a libvmaf call fails while scoring. Until now the analyzer took a read or decode error for the end of the input, and a failed score stayed 0. The report is written to a temporary file next to `--out` and renamed over it once complete.
+  790    - **FFmpeg's log level** in `mirage_vmaf`: warnings and errors only. That drops FFmpeg's informational lines, such as the "Opening … for reading" line for every HLS segment.
+  791    - The libvmaf package version is read at configure time, from the real path of the libvmaf the build links (`CMakeLists.txt`). The commit is recorded by the eval tooling when it runs, not by `mirage_vmaf`.
+  792    - `mirage_tests` links libvmaf and runs the analyzer on clips it generates.
+  793  - **Alternatives**
+  794    - PTS: the frame's `pts`.
+  795    - Input parameters: the first decoded frame's values, or both.
+  796    - Failures: write a report with an error field, or report whatever was scored, as the analyzer did before.
+  797    - Package version: read at run time from the library that was actually loaded (`dladdr()` and `realpath()`), which can't go stale when libvmaf is upgraded without a new configure.
+  798    - Keep `mirage_tests` free of libvmaf and test only the helpers.
+  799  - **Rationale**
+  800    - `best_effort_timestamp` is the decoder's timestamp for the frame. It is the frame's `pts` unless FFmpeg's heuristics find the stream's `pts` unreliable.
+  801    - The decoder's values exist even when decoding fails, and can be compared with `eval/baseline/diagnostics/ffprobe_rungs.txt`. If a stream's frames ever carry other tags than its parameters, the report needs the frames' values too; D-016's conversion is where that would show.
+  802    - With these rules a report exists only for a complete run, so later tooling can't take a truncated run for a full one.
+  803    - A commit read when the tooling runs can't go stale the way a value fixed at configure time can.
+  804    - The analyzer's new features (frame limit, PTS, input parameters, how inputs ended) need tests that run the analyzer.
+  805  - **Who**: agent (<the model's name, removed under D-060>)
+  806  - **Date**: 2026-10-23
+  807  - **Status**: confirmed by the owner (2026-10-23, D-033)
+  808  
+== docs/DECISIONS.md:1356-1368
+ 1356  ### P-036 D-032's fixes in the tests and the analyzer
+ 1357  
+ 1358  - **Choice**
+ 1359    - `tests/TestTemp.h`: one directory per run of `mirage_tests`, made by `mkdtemp()` as `mirage_tests.XXXXXX` under the system's temporary directory on first use, and removed with its contents when the process exits normally. Every test that writes a file writes it there: the tests of `filehash`, `Demuxer` switching, `PipelineState`, HLS variants, scrub following, the network logger, subtitle selection, `VMAFReport` and `VMAFAnalyzer`.
+ 1360    - The subtitle test writes its three cues to an SRT file in that directory and reads it back; data/ is left alone. The test is renamed `SidecarSubtitles — decodes an SRT file`.
+ 1361    - The analyzer's decode context frees its demuxer, decoder and packet in its destructor, so every early return of `analyze_pair()` leaks nothing; a test scores an input that opens without a video stream and one whose FFV1 decoder rejects its extradata, on either side.
+ 1362  - **Alternatives**
+ 1363    - A directory per test case; unique file names in the shared directory; Catch2 listeners for the cleanup.
+ 1364    - Committing the SRT file with a `.gitignore` exception (the package's other options).
+ 1365    - Closing both inputs before each early return instead of a destructor.
+ 1366  - **Rationale**
+ 1367    - One directory per process is what makes two runs at the same time safe, and removing it at exit leaves nothing behind; a crash leaves it, under a name that says what it is.
+ 1368    - A destructor covers early returns added later as well.
+== eval/ladder/pool_check.py:117-118
+  117              with open(report + ".xz", "wb") as f:
+  118                  f.write(lzma.compress(shown(data.decode()).encode()))
+== eval/consistency/ladder_check.py:25-27
+   25  Reports larger than 1 MiB are kept as mirage.json.xz. Local paths in all
+   26  of it are replaced by placeholders (<out_dir>, <repo>, <home>, <tmp>); the
+   27  program shows as <mirage_vmaf>. See eval/consistency/README.md. Python 3
+# exit status: 0

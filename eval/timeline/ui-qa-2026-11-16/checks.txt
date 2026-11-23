@@ -1,0 +1,114 @@
+ok   degraded/run1: the document loaded
+ok   degraded/run1: matched by the master's SHA-256, its entries in order
+ok   degraded/run1: a variant of the document on screen
+ok   degraded/run1: the playhead's frame within half a frame of the frame on screen (+0.000000 s, reference frame 107)
+ok   degraded/run1: a frame picked
+ok   degraded/run1: the card's 5 lines are mirage_vmaf attribute's
+ok   degraded/run1: the card is the document's attribution 0
+ok   degraded/run1: the card lists the degraded segment's URI, seg_004.ts (test 1)
+ok   degraded/run1: frame 107 sought by its PTS, 14.280 s (the report: 14.280 s)
+ok   degraded/run1: the seek landed within half a frame of 14.280 s (the log: 14.280)
+ok   degraded/run1: the card says the seek was made
+ok   degraded/run2: the document loaded
+ok   degraded/run2: matched by the master's SHA-256, its entries in order
+ok   degraded/run2: a variant of the document on screen
+ok   degraded/run2: the playhead's frame within half a frame of the frame on screen (+0.000000 s, reference frame 56)
+ok   degraded/run2: on screen the rung switched to, entry 1 (the report: entry 1)
+ok   degraded/run2: a frame picked
+ok   degraded/run2: the card's 5 lines are mirage_vmaf attribute's
+ok   degraded/run2: frame 124 not reachable by a seek, segment 4's start offered, PTS 14.000 s (the report: 14.000 s, segment 4 of entry 1)
+ok   degraded/run2: no seek after the pick
+ok   ad-main-origin/run1: the document loaded
+ok   ad-main-origin/run1: matched by the master's SHA-256, its entries in order
+ok   ad-main-origin/run1: a variant of the document on screen
+ok   ad-main-origin/run1: the playhead's frame within half a frame of the frame on screen (+0.000000 s, reference frame 51)
+ok   ad-main-origin/run1: a frame picked
+ok   ad-main-origin/run1: the card's 18 lines are mirage_vmaf attribute's
+ok   ad-main-origin/run1: the card is the document's attribution 0
+ok   ad-main-origin/run1: the card lists the cue_out of the ad's first segment, segment 3 (test 2)
+ok   ad-main-origin/run1: the card lists the discontinuity of the ad's first segment, segment 3 (test 2)
+ok   ad-main-origin/run1: frame 84 not reachable by a seek, segment 2's start offered, PTS 12.000 s (the report: 12.000 s, segment 2 of entry 0)
+ok   ad-main-origin/run1: no seek after the pick
+ok   ad-main-origin/run2: the document loaded
+ok   ad-main-origin/run2: matched by the master's SHA-256, its entries in order
+ok   ad-main-origin/run2: a variant of the document on screen
+ok   ad-main-origin/run2: the playhead's frame within half a frame of the frame on screen (+0.000000 s, reference frame 130)
+ok   ad-main-origin/run2: on screen the rung switched to, entry 2 (the report: entry 2)
+ok   ad-main-origin/run2: a frame picked
+ok   ad-main-origin/run2: the card's 9 lines are mirage_vmaf attribute's
+ok   ad-main-origin/run2: frame 130 sought by its PTS, 15.200 s (the report: 15.200 s)
+ok   ad-main-origin/run2: the seek landed within half a frame of 15.200 s (the log: 15.200)
+ok   ad-main-origin/run2: the card says the seek was made
+ok   ad-from-1s/run1: the document loaded
+ok   ad-from-1s/run1: matched by the master's SHA-256, its entries in order
+ok   ad-from-1s/run1: a variant of the document on screen
+ok   ad-from-1s/run1: the playhead's frame within half a frame of the frame on screen (+0.000000 s, reference frame 51)
+ok   ad-from-1s/run1: a frame picked
+ok   ad-from-1s/run1: the card's 18 lines are mirage_vmaf attribute's
+ok   ad-from-1s/run1: the card is the document's attribution 0
+ok   ad-from-1s/run1: the card lists the cue_out of the ad's first segment, segment 3 (test 2)
+ok   ad-from-1s/run1: the card lists the discontinuity of the ad's first segment, segment 3 (test 2)
+ok   ad-from-1s/run1: frame 84 not reachable by a seek, segment 2's start offered, PTS 12.000 s (the report: 12.000 s, segment 2 of entry 0)
+ok   ad-from-1s/run1: no seek after the pick
+ok   ad-from-1s/run2: the document loaded
+ok   ad-from-1s/run2: matched by the master's SHA-256, its entries in order
+ok   ad-from-1s/run2: a variant of the document on screen
+ok   ad-from-1s/run2: the playhead's frame within half a frame of the frame on screen (+0.000000 s, reference frame 130)
+ok   ad-from-1s/run2: on screen the rung switched to, entry 2 (the report: entry 2)
+ok   ad-from-1s/run2: a frame picked
+ok   ad-from-1s/run2: the card's 10 lines are mirage_vmaf attribute's
+ok   ad-from-1s/run2: frame 130 sought by its PTS, 15.200 s (the report: 15.200 s)
+ok   ad-from-1s/run2: the seek landed within half a frame of 15.200 s (the log: 15.200)
+ok   ad-from-1s/run2: the card says the seek was made
+ok   ad-continuous/run1: the document loaded
+ok   ad-continuous/run1: matched by the master's SHA-256, its entries in order
+ok   ad-continuous/run1: a variant of the document on screen
+ok   ad-continuous/run1: the playhead's frame within half a frame of the frame on screen (+0.000000 s, reference frame 84)
+ok   ad-continuous/run1: a frame picked
+ok   ad-continuous/run1: the card's 17 lines are mirage_vmaf attribute's
+ok   ad-continuous/run1: the card is the document's attribution 0
+ok   ad-continuous/run1: the card lists the cue_out of the ad's first segment, segment 3 (test 2)
+ok   ad-continuous/run1: the card lists the discontinuity of the ad's first segment, segment 3 (test 2)
+ok   ad-continuous/run1: frame 84 sought by its PTS, 13.360 s (the report: 13.360 s)
+ok   ad-continuous/run1: the seek landed within half a frame of 13.360 s (the log: 13.360)
+ok   ad-continuous/run1: the card says the seek was made
+ok   ad-continuous/run2: the document loaded
+ok   ad-continuous/run2: matched by the master's SHA-256, its entries in order
+ok   ad-continuous/run2: a variant of the document on screen
+ok   ad-continuous/run2: the playhead's frame within half a frame of the frame on screen (+0.000000 s, reference frame 56)
+ok   ad-continuous/run2: on screen the rung switched to, entry 2 (the report: entry 2)
+ok   ad-continuous/run2: a frame picked
+ok   ad-continuous/run2: the card's 5 lines are mirage_vmaf attribute's
+ok   ad-continuous/run2: frame 74 not reachable by a seek, segment 2's start offered, PTS 12.000 s (the report: 12.000 s, segment 2 of entry 2)
+ok   ad-continuous/run2: no seek after the pick
+ok   ad-main-origin/run3: the document loaded
+ok   ad-main-origin/run3: matched by the master's SHA-256, its entries in order
+ok   ad-main-origin/run3: a variant of the document on screen
+ok   ad-main-origin/run3: the playhead's frame within half a frame of the frame on screen (+0.000000 s, reference frame 40)
+ok   ad-main-origin/run3: on screen the rung switched to, entry 2 (the report: entry 2)
+ok   ad-main-origin/run3: the switch's first frame shown, then the pause, then the report (the log: t=4.308, t=5.441, t=10.152)
+ok   ad-main-origin/run3: the switch requested inside the ad, at PTS 10.280, the ad's PTS restarting at the main content's origin
+ok   ad-main-origin/run3: after the reposition to 10.530 the playhead at reference frame 40, the main content's frame of PTS 11.600000, not the ad's (the report: reference frame 40)
+ok   ad-main-origin/run3: a frame picked
+ok   ad-main-origin/run3: the card's 18 lines are mirage_vmaf attribute's
+ok   ad-main-origin/run3: the decision made again for the rung switched to, its offer not taken
+ok   ad-main-origin/run3: frame 84 not reachable by a seek, segment 2's start offered, PTS 12.000 s, of entry 2 (the report: 12.000 s, segment 2 of entry 2)
+ok   ad-main-origin/run3: no seek after the pick
+ok   session/run1: the document loaded
+ok   session/run1: matched by the master's SHA-256, its entries in order
+ok   session/run1: a variant of the document on screen
+ok   session/run1: the playhead's frame within half a frame of the frame on screen (+0.000000 s, reference frame 50)
+ok   session/run1: a frame picked
+ok   session/run1: the card's 23 lines are mirage_vmaf attribute's
+ok   session/run1: the card is the session's drop, the document's attribution 1
+ok   session/run1: the card lists the ad's first segment's request, answered late, with its times and bytes (1.007 s to its last byte)
+ok   session/run1: the card names the session's switch by its rungs
+ok   session/run1: frame 84 not reachable by a seek, segment 2's start offered, PTS 12.000 s (the report: 12.000 s, segment 2 of entry 0)
+ok   session/run1: no seek after the pick
+ok   extras/drag: a frame picked
+ok   extras/drag: frame 84, which a seek to 13.360 s reaches, not sent while the seek bar was dragged
+ok   extras/drag: no seek landed at the picked frame (the log's landings after the pick: [16.0])
+ok   extras/keys: Esc closes the timeline panel
+ok   extras/ruler-after: the media playlist opened alone matched as its variant
+ok   extras/ruler-after: on screen entry 2, the playlist opened
+check_ui.py: PASS: 113 of 113 checks passed

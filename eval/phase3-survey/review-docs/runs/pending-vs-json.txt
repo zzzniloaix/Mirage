@@ -1,0 +1,87 @@
+command (cwd: <drafts>): python3 -I -B <drafts>/verify/tools/pending_vs_json.py tools/render_pending.py <records> PHASE3_DECISIONS_PENDING.md
+date_utc: 2026-11-01T11:22:16Z
+output (stdout and stderr):
+questions in the JSON: 44; ids unique: True; ids Q01..Q44: True
+questions by round in the document: {1: 27, 2: 9, 3: 8}
+fields checked: 647
+kinds of rewriter change (digits as N): 68
+    18  Q01 option (C) Per-variant events in the  description: '(design' -> '(`eval/phase3-survey/design.md`'
+    17  Q02 question: 'design' -> '`eval/phase3-survey/design.md`'
+    13  Q14 question: '(scte35.md' -> '(`eval/phase3-survey/scte35.md`'
+     9  Q03 option (b) (a), as microseconds from  description: '(sources.md' -> '(`eval/phase3-survey/sources.md`'
+     9  Q14 question: '(testgen.md' -> '(`eval/phase3-survey/testgen.md`'
+     7  Q12 option (c) Sessions require mezzanine description: 'testgen.md' -> '`eval/phase3-survey/testgen.md`'
+     7  Q34 option (c) Continuous description: '(ui.md' -> '(`eval/phase3-survey/ui.md`'
+     6  Q05 option (a) `schema_version` and a sch description: '(schema.md' -> '(`eval/phase3-survey/schema.md`'
+     5  Q02 question: '(design-evaluation run 09).' -> '(`eval/phase3-survey/design-evaluation/runs/09_axes.txt`).'
+     4  Q04 question: 'Design' -> '`eval/phase3-survey/design.md`'
+     4  Q04 why: '(design-evaluation run 10).' -> '(`eval/phase3-survey/design-evaluation/runs/10_attribute_final.txt`).'
+     3  Q01 option (A) In the ladder report description: 'schema.md' -> '`eval/phase3-survey/schema.md`'
+     3  Q22 option (b) The pairs' curves, and the description: '(design/runs/detection-semantics-ad.txt).' -> '(`eval/phase3-survey/design/runs/detection-semantics-ad.txt`).'
+     3  Q41 option (a) Keep the code's name and r description: 'this' -> 'the'
+     2  Q13 option (b) In Phase 3, under a D-007  description: 'src/main.cpp' -> '`src/main.cpp`'
+     2  Q20 question: '(src/VMAFLadder.h:15-22),' -> '(`src/VMAFLadder.h:15-22`),'
+     2  Q23 option (b) Mean of the same points description: '(design-evaluation run 05);' -> '(`eval/phase3-survey/design-evaluation/runs/05_detection_sweep.txt`);'
+     2  Q23 option (c) Median of the last W point description: '(design-evaluation run 05).' -> '(`eval/phase3-survey/design-evaluation/runs/05_detection_sweep.txt`).'
+     1  Q01 option (B) A separate timeline docume description: '(design-evaluation run 11);' -> '(`eval/phase3-survey/design-evaluation/runs/11_doc_sizes.txt`);'
+     1  Q01 option (C) Per-variant events in the  description: 'tests/test_vmaf_report.cpp:909)' -> '`tests/test_vmaf_report.cpp:909`)'
+     1  Q02 why: '(design-evaluation runs 07' -> '(`eval/phase3-survey/design-evaluation/runs/07_attribute_seconds_as_doubles.txt`'
+     1  Q02 why: '08' -> '`08_attribute_ticks.txt`'
+     1  Q02 option (a) Raw reference PTS for ever description: '(design-library run axis-ad),' -> '(`eval/phase3-survey/design-library/runs/axis-ad.txt`),'
+     1  Q02 option (b) Reference frames; seconds  description: '(src/VMAFAlign.h:114),' -> '(`src/VMAFAlign.h:114`),'
+     1  Q02 option (c) Reference frames; seconds  description: 'design/runs/seconds-check.txt).' -> '`eval/phase3-survey/design/runs/seconds-check.txt`).'
+     1  Q02 option (d) Reference frames; seconds  description: '(design/runs/seconds-check.txt).' -> '(`eval/phase3-survey/design/runs/seconds-check.txt`).'
+     1  Q03 why: '(src/NetworkLogger.h:189-192).' -> '(`src/NetworkLogger.h:189-192`).'
+     1  Q05 question: '(CMakeLists.txt:2),' -> '(`CMakeLists.txt:2`),'
+     1  Q05 option (a) `schema_version` and a sch description: 'docs/schema/;' -> '`docs/schema/`;'
+     1  Q07 question: '(src/VMAFLadder.h:88).' -> '(`src/VMAFLadder.h:88`).'
+     1  Q07 option (d) Entry and URI as identity, description: '(design-evaluation run 10' -> '(`eval/phase3-survey/design-evaluation/runs/10_attribute_final.txt`'
+     1  Q08 option (a) A demux-only pass in the t description: 'design-evaluation runs 03' -> '`eval/phase3-survey/design-evaluation/runs/03_segmap.txt`'
+     1  Q08 option (a) A demux-only pass in the t description: '04);' -> '`04_join_check.txt`);'
+     1  Q08 option (b) The analyzer records them  description: 'tests/test_vmaf_report.cpp:909),' -> '`tests/test_vmaf_report.cpp:909`),'
+     1  Q08 option (c) PTS against EXTINF sums, n description: '(design-library runs map-by-pos-*),' -> '(`eval/phase3-survey/design-library/runs/map-by-pos-*.txt`),'
+     1  Q09 option (a) Recorded by the analyzer w description: '(src/VMAFAnalyzer.cpp:197-241),' -> '(`src/VMAFAnalyzer.cpp:197-241`),'
+     1  Q10 option (a) A fetch of the session's f description: '(design-evaluation run 06);' -> '(`eval/phase3-survey/design-evaluation/runs/06_session_fetch.txt`);'
+     1  Q11 question: 'src/VMAFCli.cpp:224),' -> '`src/VMAFCli.cpp:224`),'
+     1  Q11 option (d) The player's `--qa-switch` description: '(src/main.cpp:553-556),' -> '(`src/main.cpp:553-556`),'
+     1  Q12 question: '(src/VMAFLadder.h:36-38).' -> '(`src/VMAFLadder.h:36-38`).'
+     1  Q16 question: 'scte35_evidence/runs/check_vectors.txt; review-3/runs/vector-status.txt).' -> '`eval/phase3-survey/scte35_evidence/runs/check_vectors.txt`; `eval/phase3-survey/review-3/runs/vector-status.txt`).'
+     1  Q22 option (b) The pairs' curves, and the description: '(review-adversarial/runs/switch-t-sweep.txt).' -> '(`eval/phase3-survey/review-adversarial/runs/switch-t-sweep.txt`).'
+     1  Q23 option (a) Median of the last W point description: 'design-evaluation run 05),' -> '`eval/phase3-survey/design-evaluation/runs/05_detection_sweep.txt`),'
+     1  Q26 item a option 2. All three set now description: 'design-evaluation run 05' -> '`eval/phase3-survey/design-evaluation/runs/05_detection_sweep.txt`'
+     1  Q28 option (a) The curve's own inputs description: "Run 10's" -> 'The'
+     1  Q28 option (a) The curve's own inputs description: '' -> 'of `eval/phase3-survey/design-evaluation/runs/10_attribute_final.txt`'
+     1  Q31 question: '(src/VMAFCli.cpp:288).' -> '(`src/VMAFCli.cpp:288`).'
+     1  Q32 question: '(src/JsonText.h:1-21);' -> '(`src/JsonText.h:1-21`);'
+     1  Q33 why: '(design-evaluation run 10),' -> '(`eval/phase3-survey/design-evaluation/runs/10_attribute_final.txt`),'
+     1  Q34 option (c) Continuous description: "ui.md's" -> "`eval/phase3-survey/ui.md`'s"
+     1  Q36 question: 'ui.md)' -> '`eval/phase3-survey/ui.md`)'
+     1  Q37 option (b) Play to the frame, then pa description: '(src/main.cpp).' -> '(`src/main.cpp`).'
+     1  Q37 option (c) Another way to position th description: 'src/Demuxer.cpp.' -> '`src/Demuxer.cpp`.'
+     1  Q40 option (b) Fix ManifestParser description: '(tests/test_manifest_parser.cpp:95)' -> '(`tests/test_manifest_parser.cpp:95`)'
+     1  Q40 option (c) Retire the GL ruler for th description: 'src/DebugHUD.{h,cpp}.' -> '`src/DebugHUD.{h,cpp}`.'
+     1  Q41 question: 'src/Demuxer.cpp' -> '`src/Demuxer.cpp`'
+     1  Q41 question: 'src/main.cpp,' -> '`src/main.cpp`,'
+     1  Q41 option (b) Rename it throughout description: 'CMakeLists.txt, src/Demuxer.cpp' -> '`CMakeLists.txt`, `src/Demuxer.cpp`'
+     1  Q41 option (b) Rename it throughout description: '(design/runs/networklogger-users.txt),' -> '(`eval/phase3-survey/design/runs/networklogger-users.txt`),'
+     1  Q42 question: 'docs/VMAF_GAP_REPORT.md:230-231' -> '`docs/VMAF_GAP_REPORT.md:230-231`'
+     1  Q42 question: '(src/main.cpp:1751).' -> '(`src/main.cpp:1751`).'
+     1  Q42 option (a) Acknowledged as stated description: 'docs/PHASE3_DECISIONS_PENDING.md' -> '`docs/PHASE3_DECISIONS_PENDING.md`'
+     1  Q42 option (b) Acknowledged, and the gap  description: 'docs/VMAF_GAP_REPORT.md' -> '`docs/VMAF_GAP_REPORT.md`'
+     1  Q43 item a option 1. Refused description: 'src/HlsAlign.h:69)' -> '`src/HlsAlign.h:69`)'
+     1  Q43 item c why: '(design-evaluation run 04),' -> '(`eval/phase3-survey/design-evaluation/runs/04_join_check.txt`),'
+     1  Q43 item c option 3. The variant's seg description: '(design-library runs map-by-pos-*).' -> '(`eval/phase3-survey/design-library/runs/map-by-pos-*.txt`).'
+     1  Q44 item c option 2. As the scorer's d description: '(src/VMAFSegments.h:28),' -> '(`src/VMAFSegments.h:28`),'
+     1  Q44 item d option 1. One event per fet description: '(src/NetworkLogger.cpp:601,' -> '(`src/NetworkLogger.cpp:601`,'
+additions beyond the design:
+  Q16 question: correction replaces 15 words with 17, plus a note
+  Q02: note
+  Q01: Blocks adds WP09b
+  Q05: Blocks adds WP09b, WP12
+  Q20: Blocks adds WP09a
+  Q23: Blocks adds WP11a, WP11b, WP14
+  Q25: Blocks adds WP11b, WP14
+  Q43: Blocks adds WP00a
+  Q44: Blocks adds WP00b
+problems: 0
+exit=0

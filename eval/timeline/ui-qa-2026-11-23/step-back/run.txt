@@ -1,0 +1,19 @@
+Timeline panel (--timeline-report)
+document: step-back/timeline.json
+load: loaded: 68 events on 200 reference frames, 2 curves, 1 attributions
+ladder report: media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin.json: its SHA-256 is the one the document names
+axis: 200 reference frames, seconds on the reference's playlist time, checked by segment-map
+match: master SHA-256, entries by their order
+  player entry 0 (media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v360/index.m3u8): entry 0 (<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v360/index.m3u8; variant 0, the reference, not scored in top-rung mode)
+  player entry 1 (media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v270/index.m3u8): entry 1 (<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v270/index.m3u8; variant 1, pair 0)
+  player entry 2 (media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/index.m3u8): entry 2 (<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/index.m3u8; variant 2, pair 1)
+variant on screen: player entry 0: entry 0 (<out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v360/index.m3u8; variant 0, the reference, not scored in top-rung mode)
+playhead: reference frame 0 at 0.000 s, the variant's frame 0 (its input's frame 0), sequence 0; the frame on screen at PTS 10.000000 s, +0.000000 s from the report's PTS of that frame
+view: 0.000 s to 8.000 s, fitted
+curves shown: pair:0 (entry 1 · 480x270), pair:1 (entry 2 · 320x180)
+curves drawn, at the last draw:
+  pair:0: 0.000-8.000 s
+  pair:1: 0.000-8.000 s
+attributions: 1
+  0: a detected drop of pair:1, reference frames 75-124 (50 frames), 3.000-5.000 s, min 22.237
+pick: none

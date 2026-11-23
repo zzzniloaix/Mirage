@@ -1,0 +1,52 @@
+# One command of the schema survey, run in <repo> by tools/run.py, started 2026-11-01T03:34:03Z, ended 2026-11-01T03:34:03Z (UTC).
+# <repo>: the worktree of vmaf/phase-3 at 75cf6e0; <out>: the survey's output directory; <scratch>: the scratch directory.
+# The command, then its standard output and standard error as they came, then its exit status.
+
+$ python3 -I <out>/schema-survey/tools/playlist_counts.py eval/streams/fetched-2026-10-23/img_bipbop_adv_example_ts__v*__prog_index.m3u8 eval/streams/fetched-2026-10-23/bipbop_16x9__gear*__prog_index.m3u8 eval/streams/local-advanced-2026-10-26/playlists/v*/prog_index.m3u8
+eval/streams/fetched-2026-10-23/img_bipbop_adv_example_ts__v2__prog_index.m3u8: 100 segments, 600.00000 s in all, target duration 6
+  tags: #EXT-X-BITRATE 100, #EXT-X-ENDLIST 1, #EXT-X-INDEPENDENT-SEGMENTS 1, #EXT-X-MEDIA-SEQUENCE 1, #EXT-X-PLAYLIST-TYPE 1, #EXT-X-TARGETDURATION 1, #EXT-X-VERSION 1, #EXTINF 100, #EXTM3U 1
+eval/streams/fetched-2026-10-23/img_bipbop_adv_example_ts__v3__prog_index.m3u8: 100 segments, 600.00000 s in all, target duration 6
+  tags: #EXT-X-BITRATE 100, #EXT-X-ENDLIST 1, #EXT-X-INDEPENDENT-SEGMENTS 1, #EXT-X-MEDIA-SEQUENCE 1, #EXT-X-PLAYLIST-TYPE 1, #EXT-X-TARGETDURATION 1, #EXT-X-VERSION 1, #EXTINF 100, #EXTM3U 1
+eval/streams/fetched-2026-10-23/img_bipbop_adv_example_ts__v4__prog_index.m3u8: 100 segments, 600.00000 s in all, target duration 6
+  tags: #EXT-X-BITRATE 100, #EXT-X-ENDLIST 1, #EXT-X-INDEPENDENT-SEGMENTS 1, #EXT-X-MEDIA-SEQUENCE 1, #EXT-X-PLAYLIST-TYPE 1, #EXT-X-TARGETDURATION 1, #EXT-X-VERSION 1, #EXTINF 100, #EXTM3U 1
+eval/streams/fetched-2026-10-23/img_bipbop_adv_example_ts__v5__prog_index.m3u8: 100 segments, 600.00000 s in all, target duration 6
+  tags: #EXT-X-BITRATE 100, #EXT-X-ENDLIST 1, #EXT-X-INDEPENDENT-SEGMENTS 1, #EXT-X-MEDIA-SEQUENCE 1, #EXT-X-PLAYLIST-TYPE 1, #EXT-X-TARGETDURATION 1, #EXT-X-VERSION 1, #EXTINF 100, #EXTM3U 1
+eval/streams/fetched-2026-10-23/img_bipbop_adv_example_ts__v6__prog_index.m3u8: 100 segments, 600.00000 s in all, target duration 6
+  tags: #EXT-X-BITRATE 100, #EXT-X-ENDLIST 1, #EXT-X-INDEPENDENT-SEGMENTS 1, #EXT-X-MEDIA-SEQUENCE 1, #EXT-X-PLAYLIST-TYPE 1, #EXT-X-TARGETDURATION 1, #EXT-X-VERSION 1, #EXTINF 100, #EXTM3U 1
+eval/streams/fetched-2026-10-23/img_bipbop_adv_example_ts__v7__prog_index.m3u8: 100 segments, 600.00000 s in all, target duration 6
+  tags: #EXT-X-BITRATE 100, #EXT-X-ENDLIST 1, #EXT-X-INDEPENDENT-SEGMENTS 1, #EXT-X-MEDIA-SEQUENCE 1, #EXT-X-PLAYLIST-TYPE 1, #EXT-X-TARGETDURATION 1, #EXT-X-VERSION 1, #EXTINF 100, #EXTM3U 1
+eval/streams/fetched-2026-10-23/img_bipbop_adv_example_ts__v8__prog_index.m3u8: 100 segments, 600.00000 s in all, target duration 6
+  tags: #EXT-X-BITRATE 100, #EXT-X-ENDLIST 1, #EXT-X-INDEPENDENT-SEGMENTS 1, #EXT-X-MEDIA-SEQUENCE 1, #EXT-X-PLAYLIST-TYPE 1, #EXT-X-TARGETDURATION 1, #EXT-X-VERSION 1, #EXTINF 100, #EXTM3U 1
+eval/streams/fetched-2026-10-23/img_bipbop_adv_example_ts__v9__prog_index.m3u8: 100 segments, 600.00000 s in all, target duration 6
+  tags: #EXT-X-BITRATE 100, #EXT-X-ENDLIST 1, #EXT-X-INDEPENDENT-SEGMENTS 1, #EXT-X-MEDIA-SEQUENCE 1, #EXT-X-PLAYLIST-TYPE 1, #EXT-X-TARGETDURATION 1, #EXT-X-VERSION 1, #EXTINF 100, #EXTM3U 1
+eval/streams/fetched-2026-10-23/bipbop_16x9__gear0__prog_index.m3u8: 180 segments, 1799.9191 s in all, target duration 11
+  tags: #EXT-X-BYTERANGE 180, #EXT-X-ENDLIST 1, #EXT-X-MEDIA-SEQUENCE 1, #EXT-X-PLAYLIST-TYPE 1, #EXT-X-TARGETDURATION 1, #EXT-X-VERSION 1, #EXTINF 180, #EXTM3U 1
+eval/streams/fetched-2026-10-23/bipbop_16x9__gear1__prog_index.m3u8: 181 segments, 1800.0453 s in all, target duration 11
+  tags: #EXT-X-BYTERANGE 181, #EXT-X-ENDLIST 1, #EXT-X-MEDIA-SEQUENCE 1, #EXT-X-PLAYLIST-TYPE 1, #EXT-X-TARGETDURATION 1, #EXT-X-VERSION 1, #EXTINF 181, #EXTM3U 1
+eval/streams/fetched-2026-10-23/bipbop_16x9__gear2__prog_index.m3u8: 181 segments, 1800.0119 s in all, target duration 11
+  tags: #EXT-X-BYTERANGE 181, #EXT-X-ENDLIST 1, #EXT-X-MEDIA-SEQUENCE 1, #EXT-X-PLAYLIST-TYPE 1, #EXT-X-TARGETDURATION 1, #EXT-X-VERSION 1, #EXTINF 181, #EXTM3U 1
+eval/streams/fetched-2026-10-23/bipbop_16x9__gear3__prog_index.m3u8: 181 segments, 1800.0119 s in all, target duration 11
+  tags: #EXT-X-BYTERANGE 181, #EXT-X-ENDLIST 1, #EXT-X-MEDIA-SEQUENCE 1, #EXT-X-PLAYLIST-TYPE 1, #EXT-X-TARGETDURATION 1, #EXT-X-VERSION 1, #EXTINF 181, #EXTM3U 1
+eval/streams/fetched-2026-10-23/bipbop_16x9__gear4__prog_index.m3u8: 181 segments, 1800.0119 s in all, target duration 11
+  tags: #EXT-X-BYTERANGE 181, #EXT-X-ENDLIST 1, #EXT-X-MEDIA-SEQUENCE 1, #EXT-X-PLAYLIST-TYPE 1, #EXT-X-TARGETDURATION 1, #EXT-X-VERSION 1, #EXTINF 181, #EXTM3U 1
+eval/streams/fetched-2026-10-23/bipbop_16x9__gear5__prog_index.m3u8: 181 segments, 1800.0119 s in all, target duration 11
+  tags: #EXT-X-BYTERANGE 181, #EXT-X-ENDLIST 1, #EXT-X-MEDIA-SEQUENCE 1, #EXT-X-PLAYLIST-TYPE 1, #EXT-X-TARGETDURATION 1, #EXT-X-VERSION 1, #EXTINF 181, #EXTM3U 1
+eval/streams/local-advanced-2026-10-26/playlists/v2/prog_index.m3u8: 2 segments, 12.00000 s in all, target duration 6
+  tags: #EXT-X-BITRATE 2, #EXT-X-ENDLIST 1, #EXT-X-INDEPENDENT-SEGMENTS 1, #EXT-X-MEDIA-SEQUENCE 1, #EXT-X-PLAYLIST-TYPE 1, #EXT-X-TARGETDURATION 1, #EXT-X-VERSION 1, #EXTINF 2, #EXTM3U 1
+eval/streams/local-advanced-2026-10-26/playlists/v3/prog_index.m3u8: 2 segments, 12.00000 s in all, target duration 6
+  tags: #EXT-X-BITRATE 2, #EXT-X-ENDLIST 1, #EXT-X-INDEPENDENT-SEGMENTS 1, #EXT-X-MEDIA-SEQUENCE 1, #EXT-X-PLAYLIST-TYPE 1, #EXT-X-TARGETDURATION 1, #EXT-X-VERSION 1, #EXTINF 2, #EXTM3U 1
+eval/streams/local-advanced-2026-10-26/playlists/v4/prog_index.m3u8: 2 segments, 12.00000 s in all, target duration 6
+  tags: #EXT-X-BITRATE 2, #EXT-X-ENDLIST 1, #EXT-X-INDEPENDENT-SEGMENTS 1, #EXT-X-MEDIA-SEQUENCE 1, #EXT-X-PLAYLIST-TYPE 1, #EXT-X-TARGETDURATION 1, #EXT-X-VERSION 1, #EXTINF 2, #EXTM3U 1
+eval/streams/local-advanced-2026-10-26/playlists/v5/prog_index.m3u8: 2 segments, 12.00000 s in all, target duration 6
+  tags: #EXT-X-BITRATE 2, #EXT-X-ENDLIST 1, #EXT-X-INDEPENDENT-SEGMENTS 1, #EXT-X-MEDIA-SEQUENCE 1, #EXT-X-PLAYLIST-TYPE 1, #EXT-X-TARGETDURATION 1, #EXT-X-VERSION 1, #EXTINF 2, #EXTM3U 1
+eval/streams/local-advanced-2026-10-26/playlists/v6/prog_index.m3u8: 2 segments, 12.00000 s in all, target duration 6
+  tags: #EXT-X-BITRATE 2, #EXT-X-ENDLIST 1, #EXT-X-INDEPENDENT-SEGMENTS 1, #EXT-X-MEDIA-SEQUENCE 1, #EXT-X-PLAYLIST-TYPE 1, #EXT-X-TARGETDURATION 1, #EXT-X-VERSION 1, #EXTINF 2, #EXTM3U 1
+eval/streams/local-advanced-2026-10-26/playlists/v7/prog_index.m3u8: 2 segments, 12.00000 s in all, target duration 6
+  tags: #EXT-X-BITRATE 2, #EXT-X-ENDLIST 1, #EXT-X-INDEPENDENT-SEGMENTS 1, #EXT-X-MEDIA-SEQUENCE 1, #EXT-X-PLAYLIST-TYPE 1, #EXT-X-TARGETDURATION 1, #EXT-X-VERSION 1, #EXTINF 2, #EXTM3U 1
+eval/streams/local-advanced-2026-10-26/playlists/v8/prog_index.m3u8: 2 segments, 12.00000 s in all, target duration 6
+  tags: #EXT-X-BITRATE 2, #EXT-X-ENDLIST 1, #EXT-X-INDEPENDENT-SEGMENTS 1, #EXT-X-MEDIA-SEQUENCE 1, #EXT-X-PLAYLIST-TYPE 1, #EXT-X-TARGETDURATION 1, #EXT-X-VERSION 1, #EXTINF 2, #EXTM3U 1
+eval/streams/local-advanced-2026-10-26/playlists/v9/prog_index.m3u8: 2 segments, 12.00000 s in all, target duration 6
+  tags: #EXT-X-BITRATE 2, #EXT-X-ENDLIST 1, #EXT-X-INDEPENDENT-SEGMENTS 1, #EXT-X-MEDIA-SEQUENCE 1, #EXT-X-PLAYLIST-TYPE 1, #EXT-X-TARGETDURATION 1, #EXT-X-VERSION 1, #EXTINF 2, #EXTM3U 1
+
+tags in any of them (playlists that have it): #EXT-X-BITRATE (16), #EXT-X-BYTERANGE (6), #EXT-X-ENDLIST (22), #EXT-X-INDEPENDENT-SEGMENTS (16), #EXT-X-MEDIA-SEQUENCE (22), #EXT-X-PLAYLIST-TYPE (22), #EXT-X-TARGETDURATION (22), #EXT-X-VERSION (22), #EXTINF (22), #EXTM3U (22)
+(exit status 0)

@@ -1,0 +1,105 @@
+# The commands of run.sh's run, from <out>, each with its exit status; <home> is
+# <out>.home, the players' HOME.
+$ MIRAGE_KEEP_MEDIA=<out>/media <build>/mirage_tests 'attribution acceptance: a degraded segment and an ad boundary' > tests/mirage_tests.txt 2>&1
+# exit status 0
+$ MIRAGE_KEEP_MEDIA=<out>/media <build>/mirage_tests 'attribution acceptance: test 3*' > tests/mirage_tests_example.txt 2>&1
+# exit status 0
+$ <build>/mirage_vmaf timeline --report media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/degraded.json --out degraded/timeline.json --threshold 6 --window 50 --min-points 12 > degraded/timeline.log 2>&1
+# exit status 0
+$ <build>/mirage_vmaf timeline --report media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin.json --out ad-main-origin/timeline.json --threshold 6 --window 50 --min-points 12 > ad-main-origin/timeline.log 2>&1
+# exit status 0
+$ <build>/mirage_vmaf timeline --report media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-from-1s.json --out ad-from-1s/timeline.json --threshold 6 --window 50 --min-points 12 > ad-from-1s/timeline.log 2>&1
+# exit status 0
+$ <build>/mirage_vmaf timeline --report media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous.json --out ad-continuous/timeline.json --threshold 6 --window 50 --min-points 12 > ad-continuous/timeline.log 2>&1
+# exit status 0
+$ HOME=<out>.home caffeinate -i perl -e 'alarm shift; exec @ARGV' 60 <build>/mirage --qa-no-focus --window 1280x720 media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/degraded/master.m3u8 --timeline degraded/timeline.json --ui-timeline fit=1,variants=all,pick=attribution:0@3 --speed-seq pause@2,snap@8 --ui-snapshot degraded/run1.png 0 --timeline-report degraded/run1.txt 7 > degraded/run1.log 2>&1
+# exit status 0
+$ <build>/mirage_vmaf attribute --timeline degraded/timeline.json --curve pair:0 --drop 1 > degraded/run1.attribute.txt 2>&1
+# exit status 0
+$ HOME=<out>.home caffeinate -i perl -e 'alarm shift; exec @ARGV' 60 <build>/mirage --qa-no-focus --window 1280x720 media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/degraded/master.m3u8 --timeline degraded/timeline.json --qa-switch v270@0.5 --ui-timeline zoom=2:6,variants=1,pick=4.98@3.5 --speed-seq pause@2.5,snap@8 --ui-snapshot degraded/run2.png 0 --timeline-report degraded/run2.txt 7 > degraded/run2.log 2>&1
+# exit status 0
+$ <build>/mirage_vmaf attribute --timeline degraded/timeline.json --curve pair:0 --drop 1 > degraded/run2.attribute.txt 2>&1
+# exit status 0
+$ HOME=<out>.home caffeinate -i perl -e 'alarm shift; exec @ARGV' 60 <build>/mirage --qa-no-focus --window 1280x720 media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/master.m3u8 --timeline ad-main-origin/timeline.json --ui-timeline fit=1,variants=all,pick=attribution:0@3 --speed-seq pause@2,snap@8 --ui-snapshot ad-main-origin/run1.png 0 --timeline-report ad-main-origin/run1.txt 7 > ad-main-origin/run1.log 2>&1
+# exit status 0
+$ <build>/mirage_vmaf attribute --timeline ad-main-origin/timeline.json --curve pair:1 --drop 1 > ad-main-origin/run1.attribute.txt 2>&1
+# exit status 0
+$ HOME=<out>.home caffeinate -i perl -e 'alarm shift; exec @ARGV' 60 <build>/mirage --qa-no-focus --window 1280x720 media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/master.m3u8 --timeline ad-main-origin/timeline.json --qa-switch v180@0.5 --ui-timeline zoom=2:6,variants=2,pick=5.22@3.5 --speed-seq pause@2.5,snap@8 --ui-snapshot ad-main-origin/run2.png 0 --timeline-report ad-main-origin/run2.txt 7 > ad-main-origin/run2.log 2>&1
+# exit status 0
+$ <build>/mirage_vmaf attribute --timeline ad-main-origin/timeline.json --curve pair:1 --frames 125-149 > ad-main-origin/run2.attribute.txt 2>&1
+# exit status 0
+$ HOME=<out>.home caffeinate -i perl -e 'alarm shift; exec @ARGV' 60 <build>/mirage --qa-no-focus --window 1280x720 media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-from-1s/master.m3u8 --timeline ad-from-1s/timeline.json --ui-timeline fit=1,variants=all,pick=attribution:0@3 --speed-seq pause@2,snap@8 --ui-snapshot ad-from-1s/run1.png 0 --timeline-report ad-from-1s/run1.txt 7 > ad-from-1s/run1.log 2>&1
+# exit status 0
+$ <build>/mirage_vmaf attribute --timeline ad-from-1s/timeline.json --curve pair:1 --drop 1 > ad-from-1s/run1.attribute.txt 2>&1
+# exit status 0
+$ HOME=<out>.home caffeinate -i perl -e 'alarm shift; exec @ARGV' 60 <build>/mirage --qa-no-focus --window 1280x720 media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-from-1s/master.m3u8 --timeline ad-from-1s/timeline.json --qa-switch v180@0.5 --ui-timeline zoom=2:6,variants=2,pick=5.22@3.5 --speed-seq pause@2.5,snap@8 --ui-snapshot ad-from-1s/run2.png 0 --timeline-report ad-from-1s/run2.txt 7 > ad-from-1s/run2.log 2>&1
+# exit status 0
+$ <build>/mirage_vmaf attribute --timeline ad-from-1s/timeline.json --curve pair:1 --frames 125-149 > ad-from-1s/run2.attribute.txt 2>&1
+# exit status 0
+$ HOME=<out>.home caffeinate -i perl -e 'alarm shift; exec @ARGV' 60 <build>/mirage --qa-no-focus --window 1280x720 media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/master.m3u8 --timeline ad-continuous/timeline.json --ui-timeline fit=1,variants=all,pick=attribution:0@3 --speed-seq pause@2,snap@8 --ui-snapshot ad-continuous/run1.png 0 --timeline-report ad-continuous/run1.txt 7 > ad-continuous/run1.log 2>&1
+# exit status 0
+$ <build>/mirage_vmaf attribute --timeline ad-continuous/timeline.json --curve pair:1 --drop 1 > ad-continuous/run1.attribute.txt 2>&1
+# exit status 0
+$ HOME=<out>.home caffeinate -i perl -e 'alarm shift; exec @ARGV' 60 <build>/mirage --qa-no-focus --window 1280x720 media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/master.m3u8 --timeline ad-continuous/timeline.json --qa-switch v180@0.5 --ui-timeline zoom=2:6,variants=2,pick=2.98@3.5 --speed-seq pause@2.5,snap@8 --ui-snapshot ad-continuous/run2.png 0 --timeline-report ad-continuous/run2.txt 7 > ad-continuous/run2.log 2>&1
+# exit status 0
+$ <build>/mirage_vmaf attribute --timeline ad-continuous/timeline.json --curve pair:1 --frames 50-74 > ad-continuous/run2.attribute.txt 2>&1
+# exit status 0
+$ HOME=<out>.home caffeinate -i perl -e 'alarm shift; exec @ARGV' 60 <build>/mirage --qa-no-focus --window 1280x720 media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/master.m3u8 --timeline ad-main-origin/timeline.json --qa-switch v180@3.3 --ui-timeline fit=1,variants=all,pick=attribution:0@2.5 --speed-seq pause@5,snap@11 --ui-snapshot ad-main-origin/run3.png 0 --timeline-report ad-main-origin/run3.txt 10 > ad-main-origin/run3.log 2>&1
+# exit status 0
+$ <build>/mirage_vmaf attribute --timeline ad-main-origin/timeline.json --curve pair:1 --drop 1 > ad-main-origin/run3.attribute.txt 2>&1
+# exit status 0
+$ HOME=<out>.home caffeinate -i perl -e 'alarm shift; exec @ARGV' 60 <build>/mirage --qa-no-focus --window 1280x720 media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin/master.m3u8 --timeline media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin.session.timeline.json --ui-timeline fit=1,variants=all,pick=attribution:1@3 --speed-seq pause@2,snap@8 --ui-snapshot session/run1.png 0 --timeline-report session/run1.txt 7 > session/run1.log 2>&1
+# exit status 0
+$ <build>/mirage_vmaf attribute --timeline media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin.session.timeline.json --curve session:0 --drop 1 > session/run1.attribute.txt 2>&1
+# exit status 0
+$ HOME=<out>.home caffeinate -i perl -e 'alarm shift; exec @ARGV' 60 <build>/mirage --qa-no-focus --window 1280x720 media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/master.m3u8 --timeline ad-main-origin/timeline.json --speed-seq panel:E@1,panel:E@2,esc@3,snap@4 --ui-snapshot extras/keys.png 0 > extras/keys.log 2>&1
+# exit status 0
+$ HOME=<out>.home caffeinate -i perl -e 'alarm shift; exec @ARGV' 60 <build>/mirage --qa-no-focus --window 1280x720 media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/master.m3u8 --timeline ad-main-origin/timeline.json --ui-menu overlays --ui-snapshot extras/overlays.png 30 > extras/overlays.log 2>&1
+# exit status 0
+$ HOME=<out>.home caffeinate -i perl -e 'alarm shift; exec @ARGV' 60 <build>/mirage --qa-no-focus --window 1280x720 media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/master.m3u8 --timeline ad-main-origin/timeline.json --ui-menu help --ui-snapshot extras/help.png 30 > extras/help.log 2>&1
+# exit status 0
+$ HOME=<out>.home caffeinate -i perl -e 'alarm shift; exec @ARGV' 60 <build>/mirage --qa-no-focus --window 1280x720 media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/master.m3u8 --timeline ad-continuous/timeline.json --ui-timeline variants=all,pick=attribution:0@3 --speed-seq pause@2,scrub:6@2.5,release@4,snap@8 --ui-snapshot extras/drag.png 0 --timeline-report extras/drag.txt 7.5 > extras/drag.log 2>&1
+# exit status 0
+$ HOME=<out>.home caffeinate -i perl -e 'alarm shift; exec @ARGV' 60 <before>/mirage --qa-no-focus --window 1280x720 <out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/index.m3u8 --timeline ad-main-origin/timeline.json --ui-net tab=manifest --speed-seq pause@2,snap@3 --ui-snapshot extras/ruler-before.png 0 > extras/ruler-before.log 2>&1
+# exit status 0
+$ HOME=<out>.home caffeinate -i perl -e 'alarm shift; exec @ARGV' 60 <build>/mirage --qa-no-focus --window 1280x720 <out>/media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/v180/index.m3u8 --timeline ad-main-origin/timeline.json --ui-net tab=manifest --speed-seq pause@2,snap@3 --ui-snapshot extras/ruler-after.png 0 --timeline-report extras/ruler-after.txt 3 > extras/ruler-after.log 2>&1
+# exit status 0
+$ ffmpeg -v error -y -i degraded/run1.png -vf crop=iw:ih/2:0:ih/2,scale=iw/2:ih/2:flags=lanczos snapshots/degraded-run1.png > snapshots/degraded-run1.ffmpeg.log 2>&1
+# exit status 0
+$ ffmpeg -v error -y -i degraded/run2.png -vf crop=iw:ih/2:0:ih/2,scale=iw/2:ih/2:flags=lanczos snapshots/degraded-run2.png > snapshots/degraded-run2.ffmpeg.log 2>&1
+# exit status 0
+$ ffmpeg -v error -y -i ad-main-origin/run1.png -vf crop=iw:ih/2:0:ih/2,scale=iw/2:ih/2:flags=lanczos snapshots/ad-main-origin-run1.png > snapshots/ad-main-origin-run1.ffmpeg.log 2>&1
+# exit status 0
+$ ffmpeg -v error -y -i ad-main-origin/run2.png -vf crop=iw:ih/2:0:ih/2,scale=iw/2:ih/2:flags=lanczos snapshots/ad-main-origin-run2.png > snapshots/ad-main-origin-run2.ffmpeg.log 2>&1
+# exit status 0
+$ ffmpeg -v error -y -i ad-main-origin/run3.png -vf crop=iw:ih/2:0:ih/2,scale=iw/2:ih/2:flags=lanczos snapshots/ad-main-origin-run3.png > snapshots/ad-main-origin-run3.ffmpeg.log 2>&1
+# exit status 0
+$ ffmpeg -v error -y -i ad-from-1s/run1.png -vf crop=iw:ih/2:0:ih/2,scale=iw/2:ih/2:flags=lanczos snapshots/ad-from-1s-run1.png > snapshots/ad-from-1s-run1.ffmpeg.log 2>&1
+# exit status 0
+$ ffmpeg -v error -y -i ad-from-1s/run2.png -vf crop=iw:ih/2:0:ih/2,scale=iw/2:ih/2:flags=lanczos snapshots/ad-from-1s-run2.png > snapshots/ad-from-1s-run2.ffmpeg.log 2>&1
+# exit status 0
+$ ffmpeg -v error -y -i ad-continuous/run1.png -vf crop=iw:ih/2:0:ih/2,scale=iw/2:ih/2:flags=lanczos snapshots/ad-continuous-run1.png > snapshots/ad-continuous-run1.ffmpeg.log 2>&1
+# exit status 0
+$ ffmpeg -v error -y -i ad-continuous/run2.png -vf crop=iw:ih/2:0:ih/2,scale=iw/2:ih/2:flags=lanczos snapshots/ad-continuous-run2.png > snapshots/ad-continuous-run2.ffmpeg.log 2>&1
+# exit status 0
+$ ffmpeg -v error -y -i session/run1.png -vf crop=iw:ih/2:0:ih/2,scale=iw/2:ih/2:flags=lanczos snapshots/session-run1.png > snapshots/session-run1.ffmpeg.log 2>&1
+# exit status 0
+$ ffmpeg -v error -y -i extras/keys.png -vf crop=iw:ih/2:0:ih/2,scale=iw/2:ih/2:flags=lanczos snapshots/extras-keys.png > snapshots/extras-keys.ffmpeg.log 2>&1
+# exit status 0
+$ ffmpeg -v error -y -i extras/drag.png -vf crop=iw:ih/2:0:ih/2,scale=iw/2:ih/2:flags=lanczos snapshots/extras-drag.png > snapshots/extras-drag.ffmpeg.log 2>&1
+# exit status 0
+$ ffmpeg -v error -y -i extras/ruler-before.png -vf crop=iw:ih/2:0:ih/2,scale=iw/2:ih/2:flags=lanczos snapshots/extras-ruler-before.png > snapshots/extras-ruler-before.ffmpeg.log 2>&1
+# exit status 0
+$ ffmpeg -v error -y -i extras/ruler-after.png -vf crop=iw:ih/2:0:ih/2,scale=iw/2:ih/2:flags=lanczos snapshots/extras-ruler-after.png > snapshots/extras-ruler-after.ffmpeg.log 2>&1
+# exit status 0
+$ ffmpeg -v error -y -i extras/overlays.png -vf scale=iw/2:ih/2:flags=lanczos snapshots/extras-overlays.png > snapshots/extras-overlays.ffmpeg.log 2>&1
+# exit status 0
+$ ffmpeg -v error -y -i extras/help.png -vf scale=iw/2:ih/2:flags=lanczos snapshots/extras-help.png > snapshots/extras-help.ffmpeg.log 2>&1
+# exit status 0
+# the full-size captures moved to <out>.full
+$ python3 -I -B <repo>/eval/timeline/ui-qa-2026-11-16/check_ui.py <out> > checks.txt 2>&1
+# exit status 0
+$ python3 -I -B <repo>/eval/timeline/check.py redact <out> --build <build> --repo <repo> > redact.txt 2>&1
+# exit status 0
+$ python3 -I -B <repo>/eval/timeline/check.py redact <out> --search-only --build <build> --repo <repo> > search.txt 2>&1
+# exit status 0 (the last line of this file: the search ran before it was written)

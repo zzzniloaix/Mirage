@@ -1,0 +1,14 @@
+# cwd: <scratch>/phase3/deps-src/catch2-src
+# command: 'sh' '-c' 'git --no-optional-locks describe --tags; python3 -I -B "$0" extras/Catch.cmake:28-34' '<out>/review-2/tools/show_lines.py'
+# started: 2026-11-01T07:53:05Z, ended: 2026-11-01T07:53:05Z (UTC)
+# stdout and stderr, in order:
+v3.7.1
+== extras/Catch.cmake:28-34
+   28      catch_discover_tests(target
+   29                           [TEST_SPEC arg1...]
+   30                           [EXTRA_ARGS arg1...]
+   31                           [WORKING_DIRECTORY dir]
+   32                           [TEST_PREFIX prefix]
+   33                           [TEST_SUFFIX suffix]
+   34                           [PROPERTIES name1 value1...]
+# exit status: 0

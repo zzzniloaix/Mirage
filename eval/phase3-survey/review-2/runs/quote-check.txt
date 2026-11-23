@@ -1,0 +1,6 @@
+# cwd: <out>
+# command: 'python3' '-I' '<scratch>/phase3/tools/quote_check.py' '<scratch>/phase3/private/work_order_p3.txt' 'design.md' 'design/owner_questions.json' 'design/p_entries.json' 'design/revision-1.md' 'design/risks.json' 'design/runs/axis-check.txt' 'design/runs/detection-semantics-ad.txt' 'design/runs/log-callback-grep.txt' 'design/runs/quote-check.txt' 'design/runs/render-check.txt' 'design/src/part1.md' 'design/src/part2.md' 'design/tools/axis_check.py' 'design/tools/detection_semantics.py' 'design/tools/render.py' 'design/tools/run.sh' 'design/work_packages.json'
+# started: 2026-11-01T07:19:58Z, ended: 2026-11-01T07:19:58Z (UTC)
+# stdout and stderr, in order:
+in all: 0 prose runs, 0 runs of names, K = 6
+# exit status: 0

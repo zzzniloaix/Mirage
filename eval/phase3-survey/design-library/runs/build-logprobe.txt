@@ -1,0 +1,6 @@
+# cwd: <out>/design-library
+# command: 'sh' '-c' 'clang++ -std=c++20 -O1 -Wall -Wextra -I"$REPO/src" -I"$REPO/tests" -o bin/logprobe "$OUT/probe/logprobe.cpp" $(pkg-config --cflags --libs libavformat libavcodec libavutil libswscale libswresample) && echo built'
+# started: 2026-11-01T04:30:06Z, ended: 2026-11-01T04:30:07Z (UTC)
+# stdout and stderr, in order:
+built
+# exit status: 0

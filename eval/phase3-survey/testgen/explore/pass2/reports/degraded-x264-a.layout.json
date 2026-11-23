@@ -1,0 +1,25 @@
+{
+  "kind": "degraded",
+  "codec": "libx264",
+  "source": "noise",
+  "fps": 25,
+  "segment_frames": 25,
+  "x264_sei": "x264 - core 165 r3222 b35605a - H.264/MPEG-4 AVC codec - Copyleft 2003-2025 - http://www.videolan.org/x264.html - options: cabac=1 ref=1 deblock=1:0:0 analyse=0x3:0x113 me=hex subme=2 psy=1 psy_rd=1.00:0.00 mixed_ref=0 me_range=16 chroma_me=1 trellis=0 8x8dct=1 cqm=0 deadzone=21,11 fast_pskip=1 chroma_qp_offset=0 threads=1 lookahead_threads=1 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=3 b_pyramid=2 b_adapt=1 b_bias=0 direct=1 weightb=1 open_gop=0 weightp=1 keyint=25 keyint_min=13 scenecut=0 intra_refresh=0 rc=cqp mbtree=0 qp=22 ip_ratio=1.40 pb_ratio=1.30 aq=0",
+  "source_si_ti": {"main": {"si": 56.624, "ti": 21.325}},
+  "degraded": {"rung": "v270", "segment": 4, "q_normal": 22, "q_low": 46},
+  "rungs": [
+    {"name": "v360", "width": 640, "height": 360, "bandwidth": 624160, "average_bandwidth": 596336, "codecs": "avc1.64001e", "bytes": 596336},
+    {"name": "v270", "width": 480, "height": 270, "bandwidth": 565504, "average_bandwidth": 473196, "codecs": "avc1.640015", "bytes": 473196},
+    {"name": "v180", "width": 320, "height": 180, "bandwidth": 345920, "average_bandwidth": 334452, "codecs": "avc1.64000c", "bytes": 334452}
+  ],
+  "segments": [
+    {"index": 0, "file": "seg_000.ts", "period": "main", "first_frame": 0, "frames": 25, "position_s": 0.000, "pts_first": 900000, "pts_first_s": 10.000000, "source_first": 0, "discontinuity": false, "tags": [], "q": {"v360": 22, "v270": 22, "v180": 22}, "bytes": {"v360": 75388, "v270": 66552, "v180": 42864}},
+    {"index": 1, "file": "seg_001.ts", "period": "main", "first_frame": 25, "frames": 25, "position_s": 1.000, "pts_first": 990000, "pts_first_s": 11.000000, "source_first": 25, "discontinuity": false, "tags": [], "q": {"v360": 22, "v270": 22, "v180": 22}, "bytes": {"v360": 73320, "v270": 66176, "v180": 41172}},
+    {"index": 2, "file": "seg_002.ts", "period": "main", "first_frame": 50, "frames": 25, "position_s": 2.000, "pts_first": 1080000, "pts_first_s": 12.000000, "source_first": 50, "discontinuity": false, "tags": [], "q": {"v360": 22, "v270": 22, "v180": 22}, "bytes": {"v360": 72568, "v270": 63356, "v180": 40796}},
+    {"index": 3, "file": "seg_003.ts", "period": "main", "first_frame": 75, "frames": 25, "position_s": 3.000, "pts_first": 1170000, "pts_first_s": 13.000000, "source_first": 75, "discontinuity": false, "tags": [], "q": {"v360": 22, "v270": 22, "v180": 22}, "bytes": {"v360": 73696, "v270": 63356, "v180": 42676}},
+    {"index": 4, "file": "seg_004.ts", "period": "main", "first_frame": 100, "frames": 25, "position_s": 4.000, "pts_first": 1260000, "pts_first_s": 14.000000, "source_first": 100, "discontinuity": false, "tags": [], "q": {"v360": 22, "v270": 46, "v180": 22}, "bytes": {"v360": 78020, "v270": 13348, "v180": 41548}},
+    {"index": 5, "file": "seg_005.ts", "period": "main", "first_frame": 125, "frames": 25, "position_s": 5.000, "pts_first": 1350000, "pts_first_s": 15.000000, "source_first": 125, "discontinuity": false, "tags": [], "q": {"v360": 22, "v270": 22, "v180": 22}, "bytes": {"v360": 75764, "v270": 66176, "v180": 43240}},
+    {"index": 6, "file": "seg_006.ts", "period": "main", "first_frame": 150, "frames": 25, "position_s": 6.000, "pts_first": 1440000, "pts_first_s": 16.000000, "source_first": 150, "discontinuity": false, "tags": [], "q": {"v360": 22, "v270": 22, "v180": 22}, "bytes": {"v360": 76704, "v270": 70688, "v180": 42864}},
+    {"index": 7, "file": "seg_007.ts", "period": "main", "first_frame": 175, "frames": 25, "position_s": 7.000, "pts_first": 1530000, "pts_first_s": 17.000000, "source_first": 175, "discontinuity": false, "tags": [], "q": {"v360": 22, "v270": 22, "v180": 22}, "bytes": {"v360": 70876, "v270": 63544, "v180": 39292}}
+  ]
+}

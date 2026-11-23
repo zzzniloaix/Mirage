@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/scte35-go-pkg_scte35_splice_null.go/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://raw.githubusercontent.com/Comcast/scte35-go/06d0ba5099d939c89a276629701b42221d3ecf30/pkg/scte35/splice_null.go'
+date_utc: 2026-11-01T03:30:49Z
+http_code=200
+url_effective=https://raw.githubusercontent.com/Comcast/scte35-go/06d0ba5099d939c89a276629701b42221d3ecf30/pkg/scte35/splice_null.go
+size_download=1991
+content_type=text/plain; charset=utf-8
+curl_exit=0
+sha256=f08cf1d4caba844b7ccb7c5961b32d2affd0f677a514021eeb4e05502a891dba

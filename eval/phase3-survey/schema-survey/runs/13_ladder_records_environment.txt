@@ -1,0 +1,20 @@
+# One command of the schema survey, run in <repo> by tools/run.py, started 2026-11-01T03:51:17Z, ended 2026-11-01T03:51:18Z (UTC).
+# <repo>: the worktree of vmaf/phase-3 at 75cf6e0; <out>: the survey's output directory; <scratch>: the scratch directory.
+# The command, then its standard output and standard error as they came, then its exit status.
+
+$ echo "## the first line of each build.txt under eval/ladder:"; for f in $(git ls-files "eval/ladder/*build.txt"); do printf "%s: " "$f"; head -1 "$f"; done; echo "## committed files under eval/ladder that name sw_vers, uname or machdep.cpu (OS, architecture, CPU):"; git grep -l -I -E "sw_vers|uname|machdep\\.cpu" -- eval/ladder | wc -l; echo "## the same under eval/consistency (run_delta.py and ladder_check.py records):"; git grep -l -I -E "sw_vers|uname|machdep\\.cpu" -- eval/consistency | wc -l
+## the first line of each build.txt under eval/ladder:
+eval/ladder/acceptance-c673738/build.txt: $ git rev-parse HEAD
+eval/ladder/advanced-cdn-full-af17121/build.txt: $ git rev-parse HEAD
+eval/ladder/advanced-cdn-full-b706ed3/build.txt: $ git rev-parse HEAD
+eval/ladder/advanced-local-300-mem1g-1cc1ab0/build.txt: $ git rev-parse HEAD
+eval/ladder/advanced-local-300-mem1g-a3d011b/build.txt: $ git rev-parse HEAD
+eval/ladder/advanced-local-300-mem1g-af17121/build.txt: $ git rev-parse HEAD
+eval/ladder/advanced-local-300-mem1g-b706ed3/build.txt: $ git rev-parse HEAD
+eval/ladder/advanced-local-300-mem1g-dfed5a3/build.txt: $ git rev-parse HEAD
+eval/ladder/advanced-local-300/build.txt: $ git rev-parse HEAD
+## committed files under eval/ladder that name sw_vers, uname or machdep.cpu (OS, architecture, CPU):
+       2
+## the same under eval/consistency (run_delta.py and ladder_check.py records):
+      29
+(exit status 0)

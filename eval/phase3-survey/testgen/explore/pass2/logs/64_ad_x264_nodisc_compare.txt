@@ -1,0 +1,8 @@
+$ python3 -I compare_reports.py reports/ad-x264.json reports/ad-x264-nodisc.json
+(in <out>/testgen)
+--- stdout ---
+pair 0 v270/index.m3u8 / v270/index.m3u8: frames same, alignment same, pooled same, warnings same
+pair 1 v180/index.m3u8 / v180/index.m3u8: frames same, alignment same, pooled same, warnings same
+the pairs are the same
+--- stderr ---
+--- exit status 0, wall time 0.036 s (time.monotonic) ---

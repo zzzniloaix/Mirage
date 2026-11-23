@@ -1,0 +1,58 @@
+# Environment of an eval/timeline/run_all.sh run. <build> is the build directory below,
+# <out> the output directory, <repo> the repository the script is in and <home> the home
+# directory; the commit is git rev-parse HEAD's, at the run's start and end.
+<build> = <repo>/build/macos-debug
+
+$ git -C <repo> rev-parse HEAD   (start of the run)
+f7d5ed8f28c237c8ae6f59ff962957729dbaa88a
+
+$ git -C <repo> status --porcelain   (start of the run)
+(no output: the working tree is clean)
+
+$ sed -n 's/^CMAKE_HOME_DIRECTORY:INTERNAL=//p' <build>/CMakeCache.txt   (its source)
+<repo>
+
+$ ninja -C <build> -n   (before the tests: its last line)
+ninja: no work to do.
+
+$ sw_vers
+ProductName:		macOS
+ProductVersion:		26.6.2
+BuildVersion:		25G83
+
+$ sysctl -n machdep.cpu.brand_string
+Apple M3 Pro
+
+$ sysctl -n hw.ncpu
+12
+
+$ sysctl -n vm.loadavg   (start of the run)
+{ 5.74 5.21 4.82 }
+
+$ uname -srm
+Darwin 25.6.0 arm64
+
+$ python3 -I -B (the interpreter of check.py and slow_server.py)
+3.14.7 (main, Aug  5 2026, 10:29:49) [Clang 21.0.0 (clang-2100.1.1.101)]
+
+$ <build>/mirage_vmaf
+sha256: cf18e5137f1af2e947cea49917fcb813ffd66fdee313607a48f48c0a41543a89
+size: 9706200 bytes
+--help, its first line that isn't empty: Usage: mirage_vmaf --ref <url|path> --dis <url|path> --out <report.json> [--frames N] [--scaler NAME] [--model NAME] [--model-file <model.json>] [--config <file>]
+
+$ <build>/mirage_tests
+sha256: d96c824f9fd01c16c4951f047c37de6d4badef9c9cfef297e56611aa7c7f82b1
+size: 37549520 bytes
+--help, its first line that isn't empty: Catch2 v3.7.1
+
+$ git -C <repo> rev-parse HEAD   (end of the run)
+f7d5ed8f28c237c8ae6f59ff962957729dbaa88a
+
+$ git -C <repo> status --porcelain   (end of the run)
+(no output: the working tree is clean)
+
+$ sysctl -n vm.loadavg   (end of the run)
+{ 5.36 5.17 4.82 }
+
+# The run's warnings, which run_all.sh printed too:
+(none)

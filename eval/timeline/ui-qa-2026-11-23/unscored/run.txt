@@ -1,0 +1,34 @@
+Timeline panel (--timeline-report)
+document: unscored/timeline.json
+load: loaded: 73 events on 200 reference frames, 3 curves, 1 attributions
+ladder report: media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin.session.json: its SHA-256 is the one the document names
+axis: 200 reference frames, seconds on the reference's playlist time, checked by segment-map
+match: master SHA-256, entries by their order
+  player entry 0 (media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin/v360/index.m3u8): entry 0 (<out>/media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin/v360/index.m3u8; variant 0, the reference, not scored in top-rung mode)
+  player entry 1 (media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin/v270/index.m3u8): entry 1 (<out>/media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin/v270/index.m3u8; variant 1, pair 0)
+  player entry 2 (media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin/v180/index.m3u8): entry 2 (<out>/media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin/v180/index.m3u8; variant 2, pair 1)
+variant on screen: player entry 0: entry 0 (<out>/media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin/v360/index.m3u8; variant 0, the reference, not scored in top-rung mode)
+playhead: reference frame 137 at 5.480 s, the variant's frame 137 (its input's frame 137), sequence 1; the frame on screen at PTS 15.480000 s, +0.000000 s from the report's PTS of that frame
+view: 2.000 s to 6.000 s
+curves shown: session:0 (session:0)
+  session:0: not scored over reference frames 75-124 (50 frames), 3.000-5.000 s: outside its data, no curve drawn and no point picked there (D-124 (a))
+curves drawn, at the last draw:
+  session:0: 2.000-3.000 s, 5.000-6.000 s
+attributions: 1
+  0: a detected drop of pair:1, reference frames 75-124 (50 frames), 3.000-5.000 s, min 22.237
+pick: --ui-timeline pick=5.5@3.5 at 3.52 s after the first frame
+card:
+  Curve session:0 (a session): reference frame 137 at 5.480 s, sequence 1, PTS 15.480 s; VMAF 99.045
+  Outside the document's drops: the query of the clicked frame's segment (D-114 (d)):
+  reference frames 125-149 (25 frames), 5.000-6.000 s; 25 points, min 96.606, mean 98.045
+    playlist discontinuity    entry 0, segment 5 at +0.000 s (+0 frames): line 20, discontinuity sequence 2
+    playlist discontinuity    entry 1, segment 5 at +0.000 s (+0 frames): line 20, discontinuity sequence 2
+    playlist segment          entry 0, segment 5 at +0.000 s to +1.000 s (+0 to +25 frames): main_005.ts, EXTINF 1 s
+    playlist segment          entry 1, segment 5 at +0.000 s to +1.000 s (+0 to +25 frames): main_005.ts, EXTINF 1 s
+    scte35   cue_in           entry 0, segment 5 at +0.000 s (+0 frames): line 21, #EXT-X-CUE-IN
+    scte35   cue_in           entry 1, segment 5 at +0.000 s (+0 frames): line 21, #EXT-X-CUE-IN
+    player   variant_switch   entry 1 at +0.000 s (+0 frames): entry 0 (v360/index.m3u8, 640x360, BANDWIDTH 613632; rank 1 from the top, 3 from the bottom) -> entry 1 (v270/index.m3u8, 480x270, BANDWIDTH 565504; rank 2 from the top, 2 from the bottom)
+    player   variant_span     entry 1 at +0.000 s to +3.000 s (+0 to +75 frames): entry 1 (v270/index.m3u8, 480x270, BANDWIDTH 565504; rank 2 from the top, 2 from the bottom), segments 5-7
+    decoder  keyframe         entry 0, segment 5 at +0.000 s (+0 frames): frame 125 of its input
+    decoder  keyframe         entry 1, segment 5 at +0.000 s (+0 frames): frame 125 of its input
+Seek: to PTS 15.480 s, the frame at reference frame 137 on entry 0 (<out>/media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin/v360/index.m3u8; variant 0, the reference, not scored in top-rung mode), the variant on screen: sent and made

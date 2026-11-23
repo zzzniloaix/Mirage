@@ -1,0 +1,14 @@
+$ ./testgen degraded media/degraded-mpeg2-a --codec mpeg2video
+(in <out>/testgen)
+--- stdout ---
+degraded ladder written: 8 segments of 25 frames at 25 fps, 3 rungs, codec mpeg2video, source noise
+source SI/TI (ITU-T P.910, luma at 640x360): main SI 56.624 TI 21.325
+rung v360 640x360: 1035880 bytes, BANDWIDTH 1076864, AVERAGE-BANDWIDTH 1035880, CODECS (none)
+  segment bytes: 125584 133668 133292 129344 134608 127652 130472 121260
+rung v270 480x270: 843932 bytes, BANDWIDTH 971584, AVERAGE-BANDWIDTH 843932, CODECS (none)
+  segment bytes: 118064 117500 111484 115432 32148 121448 115432 112424
+rung v180 320x180: 563436 bytes, BANDWIDTH 585056, AVERAGE-BANDWIDTH 563436, CODECS (none)
+  segment bytes: 68996 71064 66176 72004 71440 73132 71440 69184
+wall time: 1.902 s (source 1.544 s, scaling, encoding and muxing 0.356 s)
+--- stderr ---
+--- exit status 0, wall time 1.946 s (time.monotonic) ---

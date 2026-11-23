@@ -1,0 +1,26 @@
+# cwd: <out>
+# command: 'python3' '-I' '-B' '<out>/review-2/tools/package_check.py' 'design/work_packages.json'
+# started: 2026-11-01T07:41:09Z, ended: 2026-11-01T07:41:09Z (UTC)
+# stdout and stderr, in order:
+CMakeLists.txt: WP00a and WP00b in turn (WP00a before WP00b)
+CMakeLists.txt: WP00a and WP00c in turn (WP00a before WP00c)
+CMakeLists.txt: WP00b (round 2) and WP00c (round 3) NOT ordered by their dependencies
+docs/TIMELINE_FORMAT.md: WP08 and WP09b in turn (WP08 before WP09b)
+docs/schema/mirage-timeline-1.schema.json: WP08 and WP09b in turn (WP08 before WP09b)
+src/LadderReportRead.cpp: WP03 and WP16 in turn (WP03 before WP16)
+src/TimelineBuild.cpp: WP09a and WP09b in turn (WP09a before WP09b)
+src/TimelineBuild.h: WP09a and WP09b in turn (WP09a before WP09b)
+src/TimelineCli.cpp: WP09a and WP09b in turn (WP09a before WP09b)
+src/TimelineCli.h: WP09a and WP09b in turn (WP09a before WP09b)
+src/TimelineDoc.cpp: WP08 and WP09b in turn (WP08 before WP09b)
+src/TimelineDoc.h: WP08 and WP09b in turn (WP08 before WP09b)
+src/TimelineModel.h: WP00b and WP01 in turn (WP01 before WP00b)
+src/main.cpp: WP13 and WP17 in turn (WP13 before WP17)
+tests/test_timeline_build.cpp: WP09a and WP09b in turn (WP09a before WP09b)
+tests/test_timeline_cli.cpp: WP09a and WP09b in turn (WP09a before WP09b)
+tests/test_timeline_doc.cpp: WP08 and WP09b in turn (WP08 before WP09b)
+no file named: WP00a new_files: the empty files of round 1's packages listed in design §3.2, and the shared declarations (contents then owned by WP01 to WP11a)
+no file named: WP00b new_files: the empty files of SessionFetch and its test
+no file named: WP00c new_files: the empty files of WP12 and WP13
+22 packages, 97 files named; 1 pairs of owners not ordered by the dependencies
+# exit status: 0

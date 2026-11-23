@@ -1,0 +1,6 @@
+$ ./testgen mezzanine media/mezzanine/degraded.mkv --kind degraded
+(in <out>/testgen)
+--- stdout ---
+mezzanine written: FFV1 in Matroska, 640x360, 200 frames at 25 fps, kind degraded, source noise, 19744829 bytes, SI 56.624 TI 21.325, wall time 2.249 s
+--- stderr ---
+--- exit status 0, wall time 2.292 s (time.monotonic) ---

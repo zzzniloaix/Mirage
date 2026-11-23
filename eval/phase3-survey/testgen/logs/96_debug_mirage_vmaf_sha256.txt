@@ -1,0 +1,6 @@
+$ shasum -a 256 <repo>/build/macos-debug/mirage_vmaf
+(in <out>/testgen)
+--- stdout ---
+fe02dbcec650396151ce83fbe1deeffed4eaed19531e0e322b7fddee84625e76  <repo>/build/macos-debug/mirage_vmaf
+--- stderr ---
+--- exit status 0, wall time 0.022 s (time.monotonic) ---

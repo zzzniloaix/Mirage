@@ -1,0 +1,185 @@
+$ <scratch>/accept/wt/build/macos-release/mirage_vmaf --help
+(in <out>/testgen)
+--- stdout ---
+Usage: mirage_vmaf --ref <url|path> --dis <url|path> --out <report.json> [--frames N] [--scaler NAME] [--model NAME] [--model-file <model.json>] [--config <file>]
+       mirage_vmaf --ladder <url|path> [--mezzanine <url|path>] [--jobs N] [--memory-limit SIZE] --out <report.json> [--frames N] [--scaler NAME] [--model NAME] [--model-file <model.json>] [--config <file>]
+
+Scores a distorted video against a reference with Mirage's VMAF analyzer
+(the scorer behind the player's VMAF panel), without opening a window, and
+writes a JSON report; with --ladder, every video playlist of an HLS master
+playlist, --jobs pairs at a time (see Ladder and The pool below).
+
+Options:
+  --ref <url|path>           reference video: a file or any URL FFmpeg opens
+  --dis <url|path>           distorted video, scored against the reference
+  --ladder <url|path>        HLS master playlist: score each of its video playlists, against the top rung (see Ladder below)
+  --mezzanine <url|path>     with --ladder: score every video playlist against this video instead
+  --jobs N                   with --ladder: score N pairs at a time (default: the physical cores minus one, at least 1)
+  --memory-limit SIZE        with --ladder: start a pair only while the memory the pool counts for its pairs stays under SIZE (see The pool below); bytes, or K, M, G or T for KiB, MiB, GiB or TiB (default: none)
+  --out <report.json>        report to write; written when the run succeeds, and with --ladder also when it is cancelled or a pair fails
+  --frames N                 score only the first N frame pairs (N >= 1), of each pair with --ladder
+  --scaler NAME              scales the distorted frames: bilinear, bicubic (default) or lanczos
+  --model NAME               libvmaf built-in model: vmaf_v0.6.1 (default), vmaf_v0.6.1neg, vmaf_4k_v0.6.1, ...
+  --model-file <model.json>  libvmaf model file, instead of a built-in model
+  --config <file>            read settings from a file of name = value lines first (see below)
+  -h, --help                 print this help and exit
+
+Scoring: the best video stream of each input is decoded, and the frames of
+the two are paired by timestamp (see Pairing below). Both frames of a pair
+become 8-bit yuv420p at the reference's size, in the color matrix and range
+FFmpeg 8.1.1's libvmaf filter graph negotiates for its two inputs, with
+FFmpeg's rules for missing tags. The distorted frame is scaled with the
+swscale scaler --scaler names (bicubic unless given, the scaler FFmpeg's
+scale filter uses without flags=), with swscale's default parameters for it,
+as FFmpeg's scale filter scales with flags=NAME, and converted to those
+tags. A yuv420p reference is used as it is, and the tags are its own. A
+reference in another pixel format is converted to them with swscale's
+bicubic flags, as the scale filter FFmpeg inserts for such a reference
+converts it, and the tags are then the distorted frames' own, as far as they
+have tags. Frames in a pixel format whose conversion isn't checked against
+FFmpeg's are scored, with a warning in the report. Pairs are scored on 4
+libvmaf threads with the model --model or --model-file names: libvmaf's
+built-in vmaf_v0.6.1 unless given, as FFmpeg's libvmaf filter scores with
+model=version=NAME or model=path=FILE. An input whose color matrix swscale
+can't convert is not scored, as FFmpeg doesn't score it, nor is a reference
+whose frames change size: the pairs are scored at the reference's size, and
+FFmpeg's libvmaf filter takes inputs of one size only.
+
+Network inputs: an http(s) or rtsp URL, an input's or a ladder's master's,
+is opened with FFmpeg's timeout and rw_timeout options of 5 s, and an rtmp
+URL with rw_timeout alone, since rtmp's own timeout is how long to wait for
+a connection to it: a connection attempt, or a read or write, that waits
+longer fails.
+
+HLS inputs: FFmpeg's hls demuxer tries a segment it can't open 10 more
+times, as the player's demuxer does, and reads each file of the stream on a
+connection of its own. A segment it still goes on without, or the rest of a
+file whose read fails, ends the input there, as a read error does: the
+analysis fails, and with --ladder so does the run.
+
+Pairing: a frame's timestamp is measured from its input's start: the
+container's start time, as ffmpeg shifts an input's timestamps without
+-copyts, or the input's first frame when the container has none. A reference
+frame and a distorted frame pair when their times differ by at most half the
+reference's frame duration, each frame with the nearest frame of the other
+input; the frame rates are those ffmpeg gives its filter graph. When the
+distorted input's frame rate is lower than the reference's, its frames are
+the grid and the reference frames between them are skipped; when it is
+higher, the distorted frames between the reference's frames are. Reference
+frames no distorted frame pairs with, distorted frames that pair with no
+reference frame or repeat the timestamp before them, and frames without a
+timestamp fail. A timestamp that goes back, or forward by more than 10
+seconds, is a discontinuity: it starts its input's next discontinuity
+sequence, whose times are measured from it, and the k-th sequence of the
+reference pairs with the k-th of the distorted input where the jump before
+them is at the same place in both inputs, within one frame of the coarser of
+the two frame rates. Where it isn't, pairing stops there, and every frame
+not paired or counted yet, and every frame after it, fails. The sequences of
+an input left after the other has ended pair with nothing. Both inputs are
+read to their ends, unless --frames stops the run, so that every failure is
+counted. After a reference frame that fails between two pairs, and at each
+discontinuity sequence, libvmaf starts again, so that no motion feature
+spans the gap. The failure rate is failed / (paired + failed); above 1% the
+pair is still scored and reported, with a warning on stderr and in the
+report.
+
+With --frames N the last pair can score differently from the same pair in a
+longer run, because libvmaf's motion2 feature for a frame also uses the next
+frame. A run compared with this one has to stop at the same frame.
+
+Ladder: --ladder reads an HLS master playlist, a file or any URL FFmpeg
+opens, and scores its video playlists, --jobs pairs at a time (see The pool
+below), each as a pair given with --ref and --dis is scored. Its entries are
+its EXT-X-STREAM-INF tags, each with the URI line after it, resolved against
+where the master was read from, after HTTP redirects; I-frame playlists and
+EXT-X-MEDIA renditions aren't entries. An entry has video when it has a
+RESOLUTION, or a video codec in CODECS (avc1, avc3, hvc1, hev1, dvh1, dvhe,
+av01, vp09, vp08, mp4v); the others are skipped, and the report lists them.
+Entries that name the same playlist are scored once. The reference is the
+top rung, the playlist of the entry with the highest BANDWIDTH, the first in
+the master among equals, with a warning when they name other playlists, and
+every other video playlist is scored against it (reference mode top-rung).
+With --mezzanine the reference is that video instead, and every video
+playlist, the top rung's included, is scored against it (reference mode
+mezzanine). --frames limits each pair. A master playlist is refused when its
+first line isn't #EXTM3U, an entry has no BANDWIDTH of digits only or no URI
+line after it, a URI line has no entry before it, or a URI isn't one it
+resolves (from an http(s) master: a relative or absolute path or an http(s)
+URL, without dot segments or white space); so is a master with nothing to
+score: no entry with video or, without --mezzanine, no video playlist but
+the top rung's. A refused master stops the run, which then writes no report.
+
+The pool: --jobs pairs are scored at a time, each as a pair given with --ref
+and --dis is scored, so a pair's scores don't depend on the pool; by default
+the machine's physical cores minus one, at least 1. With --memory-limit a
+pair starts only once every running pair has scored 30 frame pairs, or all
+of its frame pairs if it has fewer, and only while the process's resident
+memory before the run, plus what a pair uses as measured then and 25% more,
+for each running pair and the new one, stays under the limit. Running pairs
+aren't stopped, and with none running a pair always starts. When the
+process's resident memory can't be read before the first pair, the run fails
+then, and a reading that fails later holds the next pair back until one
+succeeds. SIGINT or SIGTERM, or a pair that can't be scored, stops the pairs
+still running and starts no other: the report then lists the complete pairs,
+says the run was cancelled or failed, and lists the other pairs with their
+state, and the exit status is 1. The report lists the pairs in the master's
+order, with the pool's size, the limit, the resident memory before the run,
+the most pairs scored at once, each pair the limit let start while others
+ran, with the resident memory it read and what it measured a pair to use
+then, and the peak resident memory.
+
+Config file: --config FILE reads settings before the command line, one per
+line as name = value, where name is a long option's name without the
+leading --, such as scaler = lanczos, and value is the rest of the line
+without the white space around it, as it is: no quotes, no escapes, no
+comment after it. Blank lines and lines starting with # are skipped. Every
+option but --config can be set there, once, and is checked as on the
+command line; --ref, --dis, --ladder, --mezzanine and --out can come from
+either. An option on the command line replaces the file's setting, and
+--model and --model-file replace each other, since both set the model;
+the inputs are either a pair, --ref and --dis, or a ladder, --ladder and
+--mezzanine, and those of one on the command line leave out the file's of
+the other. Relative paths are taken from the current directory, as on the
+command line.
+
+The report records the reference mode (explicit-pair: --ref names the
+reference), the libvmaf version the library reports at run time and
+the libvmaf package version found when the build was configured, the
+versions of the FFmpeg libraries at run time (libavutil, libavcodec,
+libavformat, libswscale, libavfilter), these settings (a model file, and
+a --config file, each by its path as given and the SHA-256 of its
+contents), both inputs' stream parameters, how the distorted frames' and
+the reference's color tags were converted (dis_conversion,
+ref_conversion), what can make the scores differ from FFmpeg's
+(warnings), the pooled values, how the frames were paired (alignment: the
+counts, the failure rate and its threshold, the libvmaf contexts, each
+input's discontinuity sequences, with the position and PTS of each one's
+first frame and its number of frames, and each frame that failed, with its
+input, position, PTS and reason), and for every frame pair its index, the
+positions of its two frames in their inputs, the reference and distorted PTS
+in seconds and the score, all at full precision. With --ladder the report
+has the reference mode, top-rung or mezzanine, one per report, and the
+settings once; the master playlist, as given, where it was read from, its
+SHA-256 and its entries with their attributes; the reference, the skipped
+entries and the warnings about the top rung; and a list of pairs, each with
+the entries that name its playlist and the fields above that are a pair's
+own.
+
+Pooled values: the mean, the harmonic mean (n / sum(1 / (x + 1)) - 1) and
+the minimum, each as libvmaf pools the per-frame scores and FFmpeg's
+libvmaf filter reports it; the minimum without the first frame, whose
+motion features are 0; the minimum without the first pair of each libvmaf
+context, which has no motion to a frame before it either (the same value
+for a pair scored in one context); and the 1st, 5th, 10th, 25th and 50th
+percentiles by linear interpolation between the closest ranks (Hyndman and
+Fan's definition 7).
+
+Exit status: 0 the report was written, a warning about the pairing included;
+1 the analysis or the write failed, or with --ladder the master playlist
+couldn't be read or was refused (no report is left behind, also when SIGINT
+or SIGTERM ended its read), or the run was cancelled by SIGINT or SIGTERM,
+or a pair couldn't be scored (the report is written, with the complete pairs
+and the other pairs' states); 2 bad arguments, or a config file that can't
+be read or has an error.
+--- stderr ---
+--- exit status 0, wall time 0.115 s (time.monotonic) ---

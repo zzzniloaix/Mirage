@@ -1,0 +1,2 @@
+cwd: <out>/probe
+command: '<out>/probe/build.sh'

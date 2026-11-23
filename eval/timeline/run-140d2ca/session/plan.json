@@ -1,0 +1,4 @@
+{"schema": "mirage-session-plan", "schema_version": 1, "name": "the composite example",
+ "spans": [{"entry": 1, "first_seq": 0, "last_seq": 2},
+           {"entry": 2, "first_seq": 3, "last_seq": 4},
+           {"entry": 1, "first_seq": 5, "last_seq": 7}]}

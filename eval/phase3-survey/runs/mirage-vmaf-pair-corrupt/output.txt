@@ -1,0 +1,19 @@
+[mpeg2video @ 0x756c51c00] ac-tex damaged at 3 2
+[mpeg2video @ 0x756c51c00] Warning MVs not available
+[mpeg2video @ 0x756c51c00] ac-tex damaged at 4 0
+[mpeg2video @ 0x756c51c00] ac-tex damaged at 3 2
+[mpeg2video @ 0x756c51c00] Warning MVs not available
+[mpeg2video @ 0x756c51c00] ac-tex damaged at 0 1
+[mpeg2video @ 0x756c51c00] ac-tex damaged at 5 2
+[mpeg2video @ 0x756c51c00] Warning MVs not available
+[mpeg2video @ 0x756c51c00] ac-tex damaged at 4 0
+[mpeg2video @ 0x756c51c00] ac-tex damaged at 0 3
+[mpeg2video @ 0x756c51c00] Warning MVs not available
+[mpeg2video @ 0x756c51c00] ac-tex damaged at 4 0
+[mpeg2video @ 0x756c51c00] ac-tex damaged at 0 3
+[mpeg2video @ 0x756c51c00] Warning MVs not available
+[mpeg2video @ 0x756c51c00] ac-tex damaged at 4 0
+[mpeg2video @ 0x756c51c00] ac-tex damaged at 0 3
+[mpeg2video @ 0x756c51c00] Warning MVs not available
+[INFO]  VMAFAnalyzer: 40 frames  mean=48.68  min=0.00  p5=16.37  [Analysis]
+mirage_vmaf: 40 frame pairs scored, report written to ../mirage-vmaf-pair-corrupt/report.json

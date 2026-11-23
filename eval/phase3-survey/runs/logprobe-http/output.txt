@@ -1,0 +1,325 @@
+== events: t_us, thread, kind, fields ==
+2192	t1	avformat_open_input	http://127.0.0.1:52357/dis/tagged.m3u8
+2510	t1	open_begin	ctx#1	url=http://127.0.0.1:52357/dis/tagged.m3u8	offset=-	end_offset=-
+2513	t1	log	cbA	DEBUG	AVFormatContext#1	Opening 'http://127.0.0.1:52357/dis/tagged.m3u8' for reading\n
+2563	t1	log	cbA	DEBUG	URLContext#2	Setting default whitelist 'http,https,tls,rtp,tcp,udp,crypto,httpproxy,data'\n
+2812	t1	log	cbA	DEBUG	URLContext#3	Original list of addresses:\n
+2815	t1	log	cbA	DEBUG	URLContext#3	Address 127.0.0.1 port 52357\n
+2816	t1	log	cbA	DEBUG	URLContext#3	Interleaved list of addresses:\n
+2817	t1	log	cbA	DEBUG	URLContext#3	Address 127.0.0.1 port 52357\n
+2819	t1	log	cbA	VERBOSE	URLContext#3	Starting connection attempt to 127.0.0.1 port 52357\n
+2947	t1	log	cbA	VERBOSE	URLContext#3	Successfully connected to 127.0.0.1 port 52357\n
+2951	t1	log	cbA	DEBUG	URLContext#2	request: GET /dis/tagged.m3u8 HTTP/1.1\r\nUser-Agent: Lavf/62.12.101\r\nAccept: */*\r\nRange: bytes=0-\r\nConnection: close\r\nHost: 127.0.0.1:52357\r\nIcy-MetaData: 1\r\n\r\n\n
+3264	t1	log	cbA	TRACE	URLContext#2	header='HTTP/1.1 200 OK'\n
+3267	t1	log	cbA	TRACE	URLContext#2	http_code=200\n
+3268	t1	log	cbA	TRACE	URLContext#2	header='Content-Length: 876'\n
+3269	t1	log	cbA	TRACE	URLContext#2	header='Connection: close'\n
+3270	t1	log	cbA	TRACE	URLContext#2	header=''\n
+3275	t1	open_end	ctx#1	ret=0	pb#4
+4148	t1	log	cbA	TRACE	-#0	Probing hls score:100 size:876\n
+4954	t1	log	cbA	DEBUG	AVFormatContext#1	Format hls probed with size=2048 and score=100\n
+4989	t1	log	cbA	VERBOSE	AVFormatContext#1	Skip ('#EXT-X-VERSION:3')\n
+4994	t1	log	cbA	VERBOSE	AVFormatContext#1	Skip ('#EXT-X-PROGRAM-DATE-TIME:2014-03-05T11:14:59.600Z')\n
+4998	t1	log	cbA	VERBOSE	AVFormatContext#1	Skip ('#EXT-X-DISCONTINUITY')\n
+4999	t1	log	cbA	VERBOSE	AVFormatContext#1	Skip ('#EXT-X-DATERANGE:ID="splice-6FFFFFF0",START-DATE="2014-03-05T11:15:00Z",PLANNED-DURATION=59.993,SCTE35-OUT=<vector rfc8216-8.10-SCTE35-OUT>')\n
+5001	t1	log	cbA	VERBOSE	AVFormatContext#1	Skip ('#EXT-OATCLS-SCTE35:<vector rfc8216-8.10-SCTE35-OUT>')\n
+5002	t1	log	cbA	VERBOSE	AVFormatContext#1	Skip ('#EXT-X-CUE-OUT:0.8')\n
+5004	t1	log	cbA	VERBOSE	AVFormatContext#1	Skip ('#EXT-X-CUE-OUT-CONT:ElapsedTime=0.4,Duration=0.8')\n
+5005	t1	log	cbA	VERBOSE	AVFormatContext#1	Skip ('#EXT-X-DISCONTINUITY')\n
+5006	t1	log	cbA	VERBOSE	AVFormatContext#1	Skip ('#EXT-X-CUE-IN')\n
+5007	t1	log	cbA	VERBOSE	AVFormatContext#1	Skip ('#EXT-X-DATERANGE:ID="splice-6FFFFFF0",DURATION=59.993,SCTE35-IN=<vector rfc8216-8.10-SCTE35-IN>')\n
+5008	t1	log	cbA	VERBOSE	AVFormatContext#1	Skip ('#EXT-X-VENDOR-EXAMPLE:KEY="value"')\n
+5012	t1	log	cbA	TRACE	AVFormatContext#1	new_program: id=0x0000\n
+5019	t1	log	cbA	VERBOSE	AVFormatContext#1	HLS request for url 'http://127.0.0.1:52357/dis/seg0.ts', offset 0, playlist 0\n
+5023	t1	open_begin	ctx#1	url=http://127.0.0.1:52357/dis/seg0.ts	offset=-	end_offset=-
+5024	t1	log	cbA	INFO	AVFormatContext#1	Opening 'http://127.0.0.1:52357/dis/seg0.ts' for reading\n
+5044	t1	log	cbA	DEBUG	URLContext#5	Original list of addresses:\n
+5047	t1	log	cbA	DEBUG	URLContext#5	Address 127.0.0.1 port 52357\n
+5055	t1	log	cbA	DEBUG	URLContext#5	Interleaved list of addresses:\n
+5057	t1	log	cbA	DEBUG	URLContext#5	Address 127.0.0.1 port 52357\n
+5058	t1	log	cbA	VERBOSE	URLContext#5	Starting connection attempt to 127.0.0.1 port 52357\n
+5212	t1	log	cbA	VERBOSE	URLContext#5	Successfully connected to 127.0.0.1 port 52357\n
+5216	t1	log	cbA	DEBUG	URLContext#6	request: GET /dis/seg0.ts HTTP/1.1\r\nUser-Agent: Lavf/62.12.101\r\nAccept: */*\r\nRange: bytes=0-\r\nConnection: close\r\nHost: 127.0.0.1:52357\r\nIcy-MetaData: 1\r\n\r\n\n
+5557	t1	log	cbA	TRACE	URLContext#6	header='HTTP/1.1 200 OK'\n
+5559	t1	log	cbA	TRACE	URLContext#6	http_code=200\n
+5559	t1	log	cbA	TRACE	URLContext#6	header='Content-Length: 15604'\n
+5560	t1	log	cbA	TRACE	URLContext#6	header='Connection: close'\n
+5561	t1	log	cbA	TRACE	URLContext#6	header=''\n
+5603	t1	open_end	ctx#1	ret=0	pb#7
+5665	t1	log	cbA	TRACE	-#0	Probing mp3 score:1 size:2048\n
+5672	t1	log	cbA	TRACE	-#0	Probing mpegts score:50 size:2048\n
+5674	t1	log	cbA	TRACE	-#0	Probing mpegvideo score:12 size:2048\n
+5701	t1	log	cbA	DEBUG	-#0	Format mpegts probed with size=2048 and score=50\n
+5735	t1	log	cbA	TRACE	AVFormatContext#8	Probe: 8192, score: 44, dvhs_score: -2, fec_score: -2 \n
+5737	t1	log	cbA	TRACE	AVFormatContext#8	Filter: pid=0x11 type=1\n
+5738	t1	log	cbA	TRACE	AVFormatContext#8	Filter: pid=0x0 type=1\n
+5740	t1	log	cbA	TRACE	AVFormatContext#8	Filter: pid=0x12 type=1\n
+5744	t1	log	cbA	TRACE	AVFormatContext#8	SDT:\n
+5745	t1	log	cbA	TRACE	AVFormatContext#8	tag: 0x48 len=18\n
+7154	t1	log	cbA	TRACE	AVFormatContext#8	new_program: id=0x0001\n
+7160	t1	log	cbA	TRACE	AVFormatContext#8	PAT:\n
+7161	t1	log	cbA	TRACE	AVFormatContext#8	sid=0x1 pid=0x1000\n
+7162	t1	log	cbA	TRACE	AVFormatContext#8	new_program: id=0x0001\n
+7163	t1	log	cbA	TRACE	AVFormatContext#8	Filter: pid=0x1000 type=1\n
+7164	t1	log	cbA	TRACE	AVFormatContext#8	PMT: len 21\n
+7165	t1	log	cbA	TRACE	AVFormatContext#8	sid=0x1 sec_num=0/0 version=0 tid=2\n
+7166	t1	log	cbA	TRACE	AVFormatContext#8	pcr_pid=0x100\n
+7170	t1	log	cbA	TRACE	AVFormatContext#8	Filter: pid=0x100 type=0\n
+8438	t1	log	cbA	DEBUG	AVFormatContext#8	stream=0 stream_type=2 pid=100 prog_reg_desc=\n
+8453	t1	log	cbA	TRACE	AVFormatContext#8	tuning done\n
+8696	t1	avformat_find_stream_info
+8709	t1	log	cbA	DEBUG	AVFormatContext#1	Before avformat_find_stream_info() pos: 876 bytes read:876 seeks:0 nb_streams:1\n
+13965	t1	log	cbA	TRACE	AVFormatContext#8	Skipping after seek\n
+13974	t1	log	cbA	TRACE	AVFormatContext#8	SDT:\n
+13975	t1	log	cbA	TRACE	AVFormatContext#8	tag: 0x48 len=18\n
+14175	t1	log	cbA	TRACE	AVFormatContext#8	new_program: id=0x0001\n
+14178	t1	log	cbA	DEBUG	AVFormatContext#8	All programs have pmt, headers found\n
+14179	t1	log	cbA	TRACE	AVFormatContext#8	PAT:\n
+14180	t1	log	cbA	TRACE	AVFormatContext#8	sid=0x1 pid=0x1000\n
+14181	t1	log	cbA	TRACE	AVFormatContext#8	new_program: id=0x0001\n
+14182	t1	log	cbA	TRACE	AVFormatContext#8	PMT: len 21\n
+14183	t1	log	cbA	TRACE	AVFormatContext#8	sid=0x1 sec_num=0/0 version=0 tid=2\n
+14184	t1	log	cbA	TRACE	AVFormatContext#8	pcr_pid=0x100\n
+14186	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+14192	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+14246	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+14663	t1	log	cbA	DEBUG	AVCodecContext#9	Format yuv420p chosen by get_format().\n
+14737	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+14746	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+14751	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+14755	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+14758	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+14763	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+14767	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+14771	t1	close	ctx#1	pb#7	bytes_read=15604	error=0
+14774	t1	log	cbA	VERBOSE	AVIOContext#7	Statistics: 15604 bytes read, 0 seeks\n
+14797	t1	log	cbA	DEBUG	URLContext#6	Statistics: 1 connection, 1 request, 0 retries, 0 reconnections, 0 redirects\n
+14801	t1	log	cbA	DEBUG	URLContext#6	Latency: 0.37 ms avg, 0.37 ms max\n
+14803	t1	log	cbA	VERBOSE	AVFormatContext#1	HLS request for url 'http://127.0.0.1:52357/dis/seg1.ts', offset 0, playlist 0\n
+14806	t1	open_begin	ctx#1	url=http://127.0.0.1:52357/dis/seg1.ts	offset=-	end_offset=-
+14808	t1	log	cbA	INFO	AVFormatContext#1	Opening 'http://127.0.0.1:52357/dis/seg1.ts' for reading\n
+14831	t1	log	cbA	DEBUG	URLContext#5	Original list of addresses:\n
+14833	t1	log	cbA	DEBUG	URLContext#5	Address 127.0.0.1 port 52357\n
+14834	t1	log	cbA	DEBUG	URLContext#5	Interleaved list of addresses:\n
+14835	t1	log	cbA	DEBUG	URLContext#5	Address 127.0.0.1 port 52357\n
+14836	t1	log	cbA	VERBOSE	URLContext#5	Starting connection attempt to 127.0.0.1 port 52357\n
+14969	t1	log	cbA	VERBOSE	URLContext#5	Successfully connected to 127.0.0.1 port 52357\n
+14972	t1	log	cbA	DEBUG	URLContext#6	request: GET /dis/seg1.ts HTTP/1.1\r\nUser-Agent: Lavf/62.12.101\r\nAccept: */*\r\nRange: bytes=0-\r\nConnection: close\r\nHost: 127.0.0.1:52357\r\nIcy-MetaData: 1\r\n\r\n\n
+15348	t1	log	cbA	TRACE	URLContext#6	header='HTTP/1.1 200 OK'\n
+15349	t1	log	cbA	TRACE	URLContext#6	http_code=200\n
+15350	t1	log	cbA	TRACE	URLContext#6	header='Content-Length: 15604'\n
+15351	t1	log	cbA	TRACE	URLContext#6	header='Connection: close'\n
+15351	t1	log	cbA	TRACE	URLContext#6	header=''\n
+15353	t1	open_end	ctx#1	ret=0	pb#7
+15362	t1	log	cbA	TRACE	AVFormatContext#8	SDT:\n
+15363	t1	log	cbA	TRACE	AVFormatContext#8	PAT:\n
+15363	t1	log	cbA	TRACE	AVFormatContext#8	PMT: len 21\n
+15364	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+15369	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+15372	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+15376	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+15379	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+15382	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+15384	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+15387	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+15391	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+15394	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+15396	t1	close	ctx#1	pb#7	bytes_read=15604	error=0
+15397	t1	log	cbA	VERBOSE	AVIOContext#7	Statistics: 15604 bytes read, 0 seeks\n
+15404	t1	log	cbA	DEBUG	URLContext#6	Statistics: 1 connection, 1 request, 0 retries, 0 reconnections, 0 redirects\n
+15406	t1	log	cbA	DEBUG	URLContext#6	Latency: 0.35 ms avg, 0.35 ms max\n
+15407	t1	log	cbA	VERBOSE	AVFormatContext#1	HLS request for url 'http://127.0.0.1:52357/dis/seg2.ts', offset 0, playlist 0\n
+15409	t1	open_begin	ctx#1	url=http://127.0.0.1:52357/dis/seg2.ts	offset=-	end_offset=-
+15410	t1	log	cbA	INFO	AVFormatContext#1	Opening 'http://127.0.0.1:52357/dis/seg2.ts' for reading\n
+15419	t1	log	cbA	DEBUG	URLContext#5	Original list of addresses:\n
+15420	t1	log	cbA	DEBUG	URLContext#5	Address 127.0.0.1 port 52357\n
+15421	t1	log	cbA	DEBUG	URLContext#5	Interleaved list of addresses:\n
+15422	t1	log	cbA	DEBUG	URLContext#5	Address 127.0.0.1 port 52357\n
+15423	t1	log	cbA	VERBOSE	URLContext#5	Starting connection attempt to 127.0.0.1 port 52357\n
+15519	t1	log	cbA	VERBOSE	URLContext#5	Successfully connected to 127.0.0.1 port 52357\n
+15521	t1	log	cbA	DEBUG	URLContext#6	request: GET /dis/seg2.ts HTTP/1.1\r\nUser-Agent: Lavf/62.12.101\r\nAccept: */*\r\nRange: bytes=0-\r\nConnection: close\r\nHost: 127.0.0.1:52357\r\nIcy-MetaData: 1\r\n\r\n\n
+15853	t1	log	cbA	TRACE	URLContext#6	header='HTTP/1.1 200 OK'\n
+15854	t1	log	cbA	TRACE	URLContext#6	http_code=200\n
+15855	t1	log	cbA	TRACE	URLContext#6	header='Content-Length: 15604'\n
+15856	t1	log	cbA	TRACE	URLContext#6	header='Connection: close'\n
+15856	t1	log	cbA	TRACE	URLContext#6	header=''\n
+15857	t1	open_end	ctx#1	ret=0	pb#7
+15864	t1	log	cbA	TRACE	AVFormatContext#8	SDT:\n
+15864	t1	log	cbA	TRACE	AVFormatContext#8	PAT:\n
+15865	t1	log	cbA	TRACE	AVFormatContext#8	PMT: len 21\n
+15866	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+15869	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+15872	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+15875	t1	log	cbA	DEBUG	AVFormatContext#1	All info found\n
+15889	t1	log	cbA	TRACE	AVFormatContext#1	stream 0: start_time: 0.04 duration: NOPTS\n
+15891	t1	log	cbA	TRACE	AVFormatContext#1	format: start_time: 0.04 duration: 1.56 (estimate from stream) bitrate=4 kb/s\n
+16200	t1	log	cbA	DEBUG	AVFormatContext#1	After avformat_find_stream_info() pos: 876 bytes read:876 seeks:0 frames:21\n
+16213	t1	opened	format=hls	video_stream=0	time_base=1/90000	stream_start=0.040000	container_start_us=40000	duration_us=1560000	nb_programs=1	opens_so_far=4
+16214	t1	packet	pts=0.040000	dts=0.000000	duration=3600	key=1	corrupt=0	size=1366	pos=564	opens_so_far=4	last_open=http://127.0.0.1:52357/dis/seg2.ts
+16218	t1	log	cbA	DEBUG	AVCodecContext#9	Format yuv420p chosen by get_format().\n
+17366	t1	packet	pts=0.080000	dts=0.040000	duration=3600	key=1	corrupt=0	size=1348	pos=2068	opens_so_far=4	last_open=http://127.0.0.1:52357/dis/seg2.ts
+17414	t1	frame	pts=0.040000	best_effort=0.040000	pkt_dts=0.040000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17428	t1	packet	pts=0.120000	dts=0.080000	duration=3600	key=1	corrupt=0	size=1320	pos=3572	opens_so_far=4	last_open=http://127.0.0.1:52357/dis/seg2.ts
+17444	t1	frame	pts=0.080000	best_effort=0.080000	pkt_dts=0.080000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17445	t1	packet	pts=0.160000	dts=0.120000	duration=3600	key=1	corrupt=0	size=1306	pos=5076	opens_so_far=4	last_open=http://127.0.0.1:52357/dis/seg2.ts
+17458	t1	frame	pts=0.120000	best_effort=0.120000	pkt_dts=0.120000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17459	t1	packet	pts=0.200000	dts=0.160000	duration=3600	key=1	corrupt=0	size=1300	pos=6580	opens_so_far=4	last_open=http://127.0.0.1:52357/dis/seg2.ts
+17472	t1	frame	pts=0.160000	best_effort=0.160000	pkt_dts=0.160000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17473	t1	packet	pts=0.240000	dts=0.200000	duration=3600	key=1	corrupt=0	size=1292	pos=8084	opens_so_far=4	last_open=http://127.0.0.1:52357/dis/seg2.ts
+17485	t1	frame	pts=0.200000	best_effort=0.200000	pkt_dts=0.200000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17486	t1	packet	pts=0.280000	dts=0.240000	duration=3600	key=1	corrupt=0	size=1378	pos=9588	opens_so_far=4	last_open=http://127.0.0.1:52357/dis/seg2.ts
+17498	t1	frame	pts=0.240000	best_effort=0.240000	pkt_dts=0.240000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17499	t1	packet	pts=0.320000	dts=0.280000	duration=3600	key=1	corrupt=0	size=1418	pos=11092	opens_so_far=4	last_open=http://127.0.0.1:52357/dis/seg2.ts
+17512	t1	frame	pts=0.280000	best_effort=0.280000	pkt_dts=0.280000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17513	t1	packet	pts=0.360000	dts=0.320000	duration=3600	key=1	corrupt=0	size=1368	pos=12596	opens_so_far=4	last_open=http://127.0.0.1:52357/dis/seg2.ts
+17527	t1	frame	pts=0.320000	best_effort=0.320000	pkt_dts=0.320000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17528	t1	packet	pts=0.400000	dts=0.360000	duration=3600	key=1	corrupt=0	size=1325	pos=14100	opens_so_far=4	last_open=http://127.0.0.1:52357/dis/seg2.ts
+17540	t1	frame	pts=0.360000	best_effort=0.360000	pkt_dts=0.360000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17541	t1	packet	pts=0.440000	dts=0.400000	duration=3600	key=1	corrupt=0	size=1311	pos=16168	opens_so_far=4	last_open=http://127.0.0.1:52357/dis/seg2.ts
+17553	t1	frame	pts=0.400000	best_effort=0.400000	pkt_dts=0.400000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17554	t1	packet	pts=0.480000	dts=0.440000	duration=3600	key=1	corrupt=0	size=1316	pos=17672	opens_so_far=4	last_open=http://127.0.0.1:52357/dis/seg2.ts
+17566	t1	frame	pts=0.440000	best_effort=0.440000	pkt_dts=0.440000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17567	t1	packet	pts=0.520000	dts=0.480000	duration=3600	key=1	corrupt=0	size=1284	pos=19176	opens_so_far=4	last_open=http://127.0.0.1:52357/dis/seg2.ts
+17578	t1	frame	pts=0.480000	best_effort=0.480000	pkt_dts=0.480000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17579	t1	packet	pts=0.560000	dts=0.520000	duration=3600	key=1	corrupt=0	size=1362	pos=20680	opens_so_far=4	last_open=http://127.0.0.1:52357/dis/seg2.ts
+17591	t1	frame	pts=0.520000	best_effort=0.520000	pkt_dts=0.520000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17592	t1	packet	pts=0.600000	dts=0.560000	duration=3600	key=1	corrupt=0	size=1416	pos=22184	opens_so_far=4	last_open=http://127.0.0.1:52357/dis/seg2.ts
+17605	t1	frame	pts=0.560000	best_effort=0.560000	pkt_dts=0.560000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17606	t1	packet	pts=0.640000	dts=0.600000	duration=3600	key=1	corrupt=0	size=1368	pos=23688	opens_so_far=4	last_open=http://127.0.0.1:52357/dis/seg2.ts
+17618	t1	frame	pts=0.600000	best_effort=0.600000	pkt_dts=0.600000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17626	t1	packet	pts=0.680000	dts=0.640000	duration=3600	key=1	corrupt=0	size=1287	pos=25192	opens_so_far=4	last_open=http://127.0.0.1:52357/dis/seg2.ts
+17638	t1	frame	pts=0.640000	best_effort=0.640000	pkt_dts=0.640000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17639	t1	packet	pts=0.720000	dts=0.680000	duration=3600	key=1	corrupt=0	size=1324	pos=26696	opens_so_far=4	last_open=http://127.0.0.1:52357/dis/seg2.ts
+17651	t1	frame	pts=0.680000	best_effort=0.680000	pkt_dts=0.680000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17652	t1	packet	pts=0.760000	dts=0.720000	duration=3600	key=1	corrupt=0	size=1313	pos=28200	opens_so_far=4	last_open=http://127.0.0.1:52357/dis/seg2.ts
+17664	t1	frame	pts=0.720000	best_effort=0.720000	pkt_dts=0.720000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17665	t1	packet	pts=0.800000	dts=0.760000	duration=3600	key=1	corrupt=0	size=1306	pos=29704	opens_so_far=4	last_open=http://127.0.0.1:52357/dis/seg2.ts
+17677	t1	frame	pts=0.760000	best_effort=0.760000	pkt_dts=0.760000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17678	t1	packet	pts=0.840000	dts=0.800000	duration=3600	key=1	corrupt=0	size=1353	pos=31772	opens_so_far=4	last_open=http://127.0.0.1:52357/dis/seg2.ts
+17690	t1	frame	pts=0.800000	best_effort=0.800000	pkt_dts=0.800000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17693	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+17699	t1	packet	pts=0.880000	dts=0.840000	duration=3600	key=1	corrupt=0	size=1419	pos=33276	opens_so_far=4	last_open=http://127.0.0.1:52357/dis/seg2.ts
+17711	t1	frame	pts=0.840000	best_effort=0.840000	pkt_dts=0.840000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17713	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+17715	t1	packet	pts=0.920000	dts=0.880000	duration=3600	key=1	corrupt=0	size=1378	pos=34780	opens_so_far=4	last_open=http://127.0.0.1:52357/dis/seg2.ts
+17727	t1	frame	pts=0.880000	best_effort=0.880000	pkt_dts=0.880000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17729	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+17731	t1	packet	pts=0.960000	dts=0.920000	duration=3600	key=1	corrupt=0	size=1279	pos=36284	opens_so_far=4	last_open=http://127.0.0.1:52357/dis/seg2.ts
+17742	t1	frame	pts=0.920000	best_effort=0.920000	pkt_dts=0.920000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17744	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+17745	t1	packet	pts=1.000000	dts=0.960000	duration=3600	key=1	corrupt=0	size=1305	pos=37788	opens_so_far=4	last_open=http://127.0.0.1:52357/dis/seg2.ts
+17757	t1	frame	pts=0.960000	best_effort=0.960000	pkt_dts=0.960000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17759	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+17760	t1	packet	pts=1.040000	dts=1.000000	duration=3600	key=1	corrupt=0	size=1310	pos=39292	opens_so_far=4	last_open=http://127.0.0.1:52357/dis/seg2.ts
+17772	t1	frame	pts=1.000000	best_effort=1.000000	pkt_dts=1.000000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17774	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+17775	t1	packet	pts=1.080000	dts=1.040000	duration=3600	key=1	corrupt=0	size=1319	pos=40796	opens_so_far=4	last_open=http://127.0.0.1:52357/dis/seg2.ts
+17787	t1	frame	pts=1.040000	best_effort=1.040000	pkt_dts=1.040000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17789	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+17790	t1	packet	pts=1.120000	dts=1.080000	duration=3600	key=1	corrupt=0	size=1306	pos=42300	opens_so_far=4	last_open=http://127.0.0.1:52357/dis/seg2.ts
+17802	t1	frame	pts=1.080000	best_effort=1.080000	pkt_dts=1.080000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+17804	t1	close	ctx#1	pb#7	bytes_read=15604	error=0
+17807	t1	log	cbA	VERBOSE	AVIOContext#7	Statistics: 15604 bytes read, 0 seeks\n
+17821	t1	log	cbA	DEBUG	URLContext#6	Statistics: 1 connection, 1 request, 0 retries, 0 reconnections, 0 redirects\n
+17830	t1	log	cbA	DEBUG	URLContext#6	Latency: 0.33 ms avg, 0.33 ms max\n
+17832	t1	log	cbA	VERBOSE	AVFormatContext#1	HLS request for url 'http://127.0.0.1:52357/dis/seg3.ts', offset 0, playlist 0\n
+17835	t1	open_begin	ctx#1	url=http://127.0.0.1:52357/dis/seg3.ts	offset=-	end_offset=-
+17837	t1	log	cbA	INFO	AVFormatContext#1	Opening 'http://127.0.0.1:52357/dis/seg3.ts' for reading\n
+17852	t1	log	cbA	DEBUG	URLContext#5	Original list of addresses:\n
+17854	t1	log	cbA	DEBUG	URLContext#5	Address 127.0.0.1 port 52357\n
+17854	t1	log	cbA	DEBUG	URLContext#5	Interleaved list of addresses:\n
+17856	t1	log	cbA	DEBUG	URLContext#5	Address 127.0.0.1 port 52357\n
+17858	t1	log	cbA	VERBOSE	URLContext#5	Starting connection attempt to 127.0.0.1 port 52357\n
+18053	t1	log	cbA	VERBOSE	URLContext#5	Successfully connected to 127.0.0.1 port 52357\n
+18056	t1	log	cbA	DEBUG	URLContext#6	request: GET /dis/seg3.ts HTTP/1.1\r\nUser-Agent: Lavf/62.12.101\r\nAccept: */*\r\nRange: bytes=0-\r\nConnection: close\r\nHost: 127.0.0.1:52357\r\nIcy-MetaData: 1\r\n\r\n\n
+18445	t1	log	cbA	TRACE	URLContext#6	header='HTTP/1.1 200 OK'\n
+18446	t1	log	cbA	TRACE	URLContext#6	http_code=200\n
+18446	t1	log	cbA	TRACE	URLContext#6	header='Content-Length: 15604'\n
+18447	t1	log	cbA	TRACE	URLContext#6	header='Connection: close'\n
+18448	t1	log	cbA	TRACE	URLContext#6	header=''\n
+18450	t1	open_end	ctx#1	ret=0	pb#7
+18458	t1	log	cbA	TRACE	AVFormatContext#8	SDT:\n
+18459	t1	log	cbA	TRACE	AVFormatContext#8	PAT:\n
+18460	t1	log	cbA	TRACE	AVFormatContext#8	PMT: len 21\n
+18461	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+18464	t1	packet	pts=1.160000	dts=1.120000	duration=3600	key=1	corrupt=0	size=1404	pos=43804	opens_so_far=5	last_open=http://127.0.0.1:52357/dis/seg3.ts
+18479	t1	frame	pts=1.120000	best_effort=1.120000	pkt_dts=1.120000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+18481	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+18483	t1	packet	pts=1.200000	dts=1.160000	duration=3600	key=1	corrupt=0	size=1378	pos=45308	opens_so_far=5	last_open=http://127.0.0.1:52357/dis/seg3.ts
+18498	t1	frame	pts=1.160000	best_effort=1.160000	pkt_dts=1.160000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+18499	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+18501	t1	packet	pts=1.240000	dts=1.200000	duration=3600	key=1	corrupt=0	size=1299	pos=47376	opens_so_far=5	last_open=http://127.0.0.1:52357/dis/seg3.ts
+18513	t1	frame	pts=1.200000	best_effort=1.200000	pkt_dts=1.200000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+18514	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+18516	t1	packet	pts=1.280000	dts=1.240000	duration=3600	key=1	corrupt=0	size=1269	pos=48880	opens_so_far=5	last_open=http://127.0.0.1:52357/dis/seg3.ts
+18527	t1	frame	pts=1.240000	best_effort=1.240000	pkt_dts=1.240000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+18528	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+18530	t1	packet	pts=1.320000	dts=1.280000	duration=3600	key=1	corrupt=0	size=1321	pos=50384	opens_so_far=5	last_open=http://127.0.0.1:52357/dis/seg3.ts
+18542	t1	frame	pts=1.280000	best_effort=1.280000	pkt_dts=1.280000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+18543	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+18545	t1	packet	pts=1.360000	dts=1.320000	duration=3600	key=1	corrupt=0	size=1306	pos=51888	opens_so_far=5	last_open=http://127.0.0.1:52357/dis/seg3.ts
+18556	t1	frame	pts=1.320000	best_effort=1.320000	pkt_dts=1.320000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+18558	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+18560	t1	packet	pts=1.400000	dts=1.360000	duration=3600	key=1	corrupt=0	size=1324	pos=53392	opens_so_far=5	last_open=http://127.0.0.1:52357/dis/seg3.ts
+18574	t1	frame	pts=1.360000	best_effort=1.360000	pkt_dts=1.360000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+18576	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+18578	t1	packet	pts=1.440000	dts=1.400000	duration=3600	key=1	corrupt=0	size=1403	pos=54896	opens_so_far=5	last_open=http://127.0.0.1:52357/dis/seg3.ts
+18603	t1	frame	pts=1.400000	best_effort=1.400000	pkt_dts=1.400000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+18605	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+18607	t1	packet	pts=1.480000	dts=1.440000	duration=3600	key=1	corrupt=0	size=1376	pos=56400	opens_so_far=5	last_open=http://127.0.0.1:52357/dis/seg3.ts
+18619	t1	frame	pts=1.440000	best_effort=1.440000	pkt_dts=1.440000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+18620	t1	log	cbA	TRACE	AVFormatContext#8	pid=100 stream_id=0xe0\n
+18622	t1	packet	pts=1.520000	dts=1.480000	duration=3600	key=1	corrupt=0	size=1302	pos=57904	opens_so_far=5	last_open=http://127.0.0.1:52357/dis/seg3.ts
+18634	t1	frame	pts=1.480000	best_effort=1.480000	pkt_dts=1.480000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+18635	t1	close	ctx#1	pb#7	bytes_read=15604	error=0
+18636	t1	log	cbA	VERBOSE	AVIOContext#7	Statistics: 15604 bytes read, 0 seeks\n
+18644	t1	log	cbA	DEBUG	URLContext#6	Statistics: 1 connection, 1 request, 0 retries, 0 reconnections, 0 redirects\n
+18645	t1	log	cbA	DEBUG	URLContext#6	Latency: 0.38 ms avg, 0.38 ms max\n
+18648	t1	packet	pts=1.560000	dts=1.520000	duration=3600	key=1	corrupt=0	size=1292	pos=59408	opens_so_far=5	last_open=http://127.0.0.1:52357/dis/seg3.ts
+18660	t1	frame	pts=1.520000	best_effort=1.520000	pkt_dts=1.520000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+18667	t1	packet	pts=1.600000	dts=1.560000	duration=3600	key=1	corrupt=0	size=1290	pos=60912	opens_so_far=5	last_open=http://127.0.0.1:52357/dis/seg3.ts
+18678	t1	frame	pts=1.560000	best_effort=1.560000	pkt_dts=1.560000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+18685	t1	frame	pts=1.600000	best_effort=1.600000	pkt_dts=-1.000000	duration=3600	key=1	corrupt=0	pict_type=I	decode_error_flags=0
+18686	t1	end	read=-541478725	frames=40	opens=5	segment_watch_lost=(none)
+18750	t1	close	ctx#1	pb#4	bytes_read=876	error=0
+18752	t1	log	cbA	VERBOSE	AVIOContext#4	Statistics: 876 bytes read, 0 seeks\n
+18763	t1	log	cbA	DEBUG	URLContext#2	Statistics: 1 connection, 1 request, 0 retries, 0 reconnections, 0 redirects\n
+18765	t1	log	cbA	DEBUG	URLContext#2	Latency: 0.31 ms avg, 0.31 ms max\n
+== av_log calls by callback, thread, level, AVClass and first word of the format ==
+     1  cbA thread=1 DEBUG - 'Format'
+     2  cbA thread=1 DEBUG AVCodecContext 'Format'
+     1  cbA thread=1 DEBUG AVFormatContext 'After'
+     2  cbA thread=1 DEBUG AVFormatContext 'All'
+     1  cbA thread=1 DEBUG AVFormatContext 'Before'
+     1  cbA thread=1 DEBUG AVFormatContext 'Format'
+     1  cbA thread=1 DEBUG AVFormatContext 'Opening'
+     1  cbA thread=1 DEBUG AVFormatContext 'stream'
+    10  cbA thread=1 DEBUG URLContext ''
+    10  cbA thread=1 DEBUG URLContext 'Address'
+     5  cbA thread=1 DEBUG URLContext 'Latency'
+     1  cbA thread=1 DEBUG URLContext 'Setting'
+     5  cbA thread=1 DEBUG URLContext 'Statistics'
+     5  cbA thread=1 DEBUG URLContext 'request'
+     4  cbA thread=1 INFO AVFormatContext 'Opening'
+     4  cbA thread=1 TRACE - 'Probing'
+     5  cbA thread=1 TRACE AVFormatContext 'Filter'
+     5  cbA thread=1 TRACE AVFormatContext 'PAT'
+     5  cbA thread=1 TRACE AVFormatContext 'PMT'
+     1  cbA thread=1 TRACE AVFormatContext 'Probe'
+     5  cbA thread=1 TRACE AVFormatContext 'SDT'
+     1  cbA thread=1 TRACE AVFormatContext 'Skipping'
+     1  cbA thread=1 TRACE AVFormatContext 'format'
+     5  cbA thread=1 TRACE AVFormatContext 'new_program'
+     2  cbA thread=1 TRACE AVFormatContext 'pcr_pid'
+    40  cbA thread=1 TRACE AVFormatContext 'pid'
+     4  cbA thread=1 TRACE AVFormatContext 'sid'
+     1  cbA thread=1 TRACE AVFormatContext 'stream'
+     2  cbA thread=1 TRACE AVFormatContext 'tag'
+     1  cbA thread=1 TRACE AVFormatContext 'tuning'
+    20  cbA thread=1 TRACE URLContext 'header'
+     5  cbA thread=1 TRACE URLContext 'http_code'
+     4  cbA thread=1 VERBOSE AVFormatContext 'HLS'
+    11  cbA thread=1 VERBOSE AVFormatContext 'Skip'
+     5  cbA thread=1 VERBOSE AVIOContext 'Statistics'
+     5  cbA thread=1 VERBOSE URLContext 'Starting'
+     5  cbA thread=1 VERBOSE URLContext 'Successfully'

@@ -1,0 +1,11 @@
+{"n": 0, "path": "master.m3u8", "status": 200, "bytes": 455, "delay": 0.0, "read": 1.165211, "head": 1.165364, "end": 1.165566}
+{"n": 1, "path": "v270/index.m3u8", "status": 200, "bytes": 490, "delay": 0.0, "read": 1.166417, "head": 1.166516, "end": 1.166548}
+{"n": 2, "path": "v270/main_000.ts", "status": 200, "bytes": 66552, "delay": 0.0, "read": 1.167237, "head": 1.167374, "end": 1.167417}
+{"n": 3, "path": "v270/main_001.ts", "status": 200, "bytes": 66176, "delay": 0.0, "read": 1.168179, "head": 1.168301, "end": 1.16834}
+{"n": 4, "path": "v270/main_002.ts", "status": 200, "bytes": 63356, "delay": 0.0, "read": 1.169115, "head": 1.169231, "end": 1.169264}
+{"n": 5, "path": "v180/index.m3u8", "status": 200, "bytes": 490, "delay": 0.0, "read": 1.169963, "head": 1.170058, "end": 1.170082}
+{"n": 6, "path": "v180/ad_000.ts", "status": 200, "bytes": 12032, "delay": 2.3, "read": 1.170739, "head": 3.480876, "end": 3.481123}
+{"n": 7, "path": "v180/ad_001.ts", "status": 200, "bytes": 12408, "delay": 0.0, "read": 3.483933, "head": 3.484333, "end": 3.484515}
+{"n": 8, "path": "v270/main_005.ts", "status": 200, "bytes": 66176, "delay": 0.0, "read": 3.486351, "head": 3.486777, "end": 3.486913}
+{"n": 9, "path": "v270/main_006.ts", "status": 200, "bytes": 70688, "delay": 0.0, "read": 3.488999, "head": 3.489408, "end": 3.489547}
+{"n": 10, "path": "v270/main_007.ts", "status": 200, "bytes": 63544, "delay": 0.0, "read": 3.491622, "head": 3.491913, "end": 3.492021}

@@ -12,6 +12,7 @@ The evaluation's scripts and their committed outputs. The numbers in this reposi
 | `run_all.sh`, `run_all.py`, `tests/` | one command that reruns every committed Phase 1 measurement and compares its outputs with the committed ones |
 | `run_all/` | the records of `run_all.sh` runs |
 | `test_runs/` | records of the unit test suites run at a commit, which the PR descriptions quote (`test_runs/README.md`) |
+| `timeline/` | Phase 3's end-to-end results, §3.2's two acceptance tests and the work order's example, reproduced from one command and checked against the generated ladders' layouts, and its records (`timeline/README.md`) |
 
 ## Rerunning every measurement: run_all.sh
 
@@ -90,6 +91,7 @@ python3 -I -B -m unittest discover -s eval/consistency/tests -v
 python3 -I -B -m unittest discover -s eval/pooling/tests -v
 python3 -I -B -m unittest discover -s eval/streams/tests -v
 python3 -I -B -m unittest discover -s eval/ladder/tests -v
+python3 -I -B -m unittest discover -s eval/timeline/tests -v
 ```
 
 None of them needs the network. `tests/test_run_all.py` checks every step against the committed `run.cmd.txt` and `checks.txt` files, fails when a committed run has no step, and runs the whole script with the stand-ins of `consistency/tests/fake_tools.py`. `ladder/tests/test_pool_check.py` runs `ladder/pool_check.py` with a stand-in for `mirage_vmaf`, on macOS only, as the check runs `/usr/bin/time -l`.

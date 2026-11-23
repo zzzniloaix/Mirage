@@ -1,0 +1,29 @@
+# cwd: <out>/testgen
+# command: 'python3' '-I' '<out>/design-library/tools/axis_probe.py' 'reports/degraded-x264.json' 'reports/degraded-x264-a.layout.json' 'media/degraded-x264-a/v360/index.m3u8' 'v270/index.m3u8' '100:124'
+# started: 2026-11-01T04:30:09Z, ended: 2026-11-01T04:30:09Z (UTC)
+# stdout and stderr, in order:
+report: reports/degraded-x264.json; pair: v270/index.m3u8; arithmetic: exact ticks; reference frames scored: 200; frame duration: 0.040000 s
+reference sequences (first_index, first_pts, frames): [(0, 10, 200)]
+distinct ref_pts: 200 ; distinct (sequence, ref_pts): 200
+ref_pts shared by two or more frames (first 3): []
+
+== axis pts ==
+rising at every frame: True; largest step 0.040000 s (frames 198->199); smallest step 0.040000 s (frames 0->1)
+interval: frames 100-124 -> [14.000000, 15.000000) s, 1.000000 s long; the frame after it, 125, at 15.000000
+  overlaps: segment 4 seg_004.ts [14.000000, 15.000000), offset 0.000000 s
+
+== axis seq_pts ==
+rising at every frame: True; largest step 0.040000 s (frames 198->199); smallest step 0.040000 s (frames 0->1)
+interval: frames 100-124 -> [4.000000, 5.000000) s, 1.000000 s long; the frame after it, 125, at 5.000000
+  overlaps: segment 4 seg_004.ts [4.000000, 5.000000), offset 0.000000 s
+
+== axis playlist ==
+rising at every frame: True; largest step 0.040000 s (frames 198->199); smallest step 0.040000 s (frames 0->1)
+interval: frames 100-124 -> [4.000000, 5.000000) s, 1.000000 s long; the frame after it, 125, at 5.000000
+  overlaps: segment 4 seg_004.ts [4.000000, 5.000000), offset 0.000000 s
+
+== axis index ==
+rising at every frame: True; largest step 0.040000 s (frames 198->199); smallest step 0.040000 s (frames 0->1)
+interval: frames 100-124 -> [4.000000, 5.000000) s, 1.000000 s long; the frame after it, 125, at 5.000000
+  overlaps: segment 4 seg_004.ts [4.000000, 5.000000), offset 0.000000 s
+# exit status: 0

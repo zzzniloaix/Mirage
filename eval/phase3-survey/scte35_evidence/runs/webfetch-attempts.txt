@@ -1,0 +1,11 @@
+Attempts with the WebFetch tool (not curl), recorded by hand from the tool's results.
+
+1. WebFetch https://account.scte.org/standards/library/catalog/scte-35-1-digital-program-insertion-cueing-message-part-1-legacy-splice-based-and-time-based-signaling/
+   result: "The server returned HTTP 403 Forbidden."
+2. WebFetch https://www.scte.org/documents/6710/SCTE_35_2023r1.pdf
+   result: "Status: 301 Moved Permanently", Location https://account.scte.org/documents/6710/SCTE_35_2023r1.pdf
+3. WebFetch https://account.scte.org/documents/6710/SCTE_35_2023r1.pdf
+   result: "The server returned HTTP 403 Forbidden."
+The same URLs fetched with curl's default settings are in fetch-scte-catalog-35-1.txt and
+fetch-scte35-2023r1-pdf.txt (HTTP 403, a 118-byte "403 Forbidden" page). No other way of
+fetching scte.org was used.

@@ -1,0 +1,22 @@
+── clips ──
+── snapshots ──
+  frame_inspector_sdr.png
+  frame_inspector_hdr.png
+  frame_inspector_tag_switch.png
+  scopes_waveform_hdr.png
+  scopes_vectorscope.png
+  scopes_parade.png
+  scopes_histogram.png
+  frame_sizes.png
+  loudness_51.png
+  loudness_aac.png
+── FFmpeg's ebur128 on the loudness clips (compare with the cards) ──
+  surround51.mkv:
+        I:         -22.1 LUFS
+        LRA:         0.0 LU
+        Peak:       -6.0 dBFS
+  x264_sdr.mp4:
+        I:         -21.1 LUFS
+        LRA:         0.0 LU
+        Peak:      -20.3 dBFS
+Output: <out>.eng/after

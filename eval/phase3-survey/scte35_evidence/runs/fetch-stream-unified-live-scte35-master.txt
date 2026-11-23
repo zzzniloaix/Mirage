@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/stream-unified-live-scte35-master/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://demo.unified-streaming.com/k8s/live/stable/scte35.isml/.m3u8'
+date_utc: 2026-11-01T04:03:38Z
+http_code=200
+url_effective=https://demo.unified-streaming.com/k8s/live/stable/scte35.isml/.m3u8
+size_download=735
+content_type=application/vnd.apple.mpegurl
+curl_exit=0
+sha256=3d3fd0ff67cb8b89c8043be62126bd46f1748af315a963f433a5291e26045b35

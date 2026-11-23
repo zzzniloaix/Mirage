@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/stream-mux-dai-deltatre-master/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://test-streams.mux.dev/dai-discontinuity-deltatre/manifest.m3u8'
+date_utc: 2026-11-01T04:03:39Z
+http_code=200
+url_effective=https://test-streams.mux.dev/dai-discontinuity-deltatre/manifest.m3u8
+size_download=2758
+content_type=audio/mpegurl
+curl_exit=0
+sha256=562886ef7f038fa304a57f3c49bd3439284b225cc966f395363d154f397ee7a9

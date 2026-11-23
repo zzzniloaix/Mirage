@@ -1,0 +1,2 @@
+[INFO]  VMAFAnalyzer: 40 frames  mean=54.28  min=48.84  p5=49.79  [Analysis]
+mirage_vmaf: 40 frame pairs scored, report written to ../mirage-vmaf-pair-tagged/report.json

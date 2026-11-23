@@ -1,0 +1,6 @@
+libavformat 62.12.101
+hls     present
+dash    present
+mpegts  present
+mov     present
+webvtt  present

@@ -1,0 +1,13 @@
+# cwd: <repo>
+# command: 'grep' '-rn' '-e' 'av_log_set_callback' '-e' 'av_log_set_level' '-e' 'avformat_network_init' 'src' 'tools' 'tests'
+# started: 2026-11-01T06:43:41Z, ended: 2026-11-01T06:43:41Z (UTC)
+# stdout and stderr, in order:
+src/NetworkLogger.h:82://  * FFmpeg's own av_log output from http.c (captured via av_log_set_callback,
+src/Demuxer.cpp:831:        avformat_network_init();
+src/NetworkLogger.cpp:175:    av_log_set_callback(av_log_cb);
+src/NetworkLogger.cpp:182:        av_log_set_callback(av_log_default_callback);
+tools/mirage_vmaf.cpp:155:    av_log_set_level(AV_LOG_WARNING);
+tools/mirage_vmaf.cpp:156:    avformat_network_init();
+tests/test_vmaf_color.cpp:130:    QuietLog() { av_log_set_level(AV_LOG_QUIET); }
+tests/test_vmaf_color.cpp:131:    ~QuietLog() { av_log_set_level(level); }
+# exit status: 0

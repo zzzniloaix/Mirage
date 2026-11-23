@@ -1,0 +1,59 @@
+$ python3 -I tables.py media/degraded-x264-ramp/layout.json reports/degraded-x264-ramp.json
+(in <out>/testgen)
+--- stdout ---
+# reports/degraded-x264-ramp.json: degraded ladder, codec libx264, source ramp, reference mode top-rung, reference v360/index.m3u8, status complete
+
+## Pair 0: v270/index.m3u8 (rung v270) against v360/index.m3u8
+
+- frames paired 200, failed 0, failure rate 0, discontinuities 0, after_discontinuity 0, unmatched_reference 0, extra_distorted 0
+- reference sequences [{"first_index": 0, "first_pts": 10, "frames": 200}]
+- distorted sequences [{"first_index": 0, "first_pts": 10, "frames": 200}]
+- libvmaf contexts [{"first_index": 0, "pairs": 200}]
+- pooled mean 77.651, min 28.967
+- pairs whose reference PTS isn't the layout's for their reference frame: 0
+
+| segment | file | period | reference frames | pairs | mean VMAF | min VMAF | quantizer | tags before it |
+|---|---|---|---|---|---|---|---|---|
+| 0 | seg_000.ts | main | 0-24 | 25 | 82.958 | 76.917 | 22 | - |
+| 1 | seg_001.ts | main | 25-49 | 25 | 83.358 | 82.642 | 22 | - |
+| 2 | seg_002.ts | main | 50-74 | 25 | 84.194 | 83.450 | 22 | - |
+| 3 | seg_003.ts | main | 75-99 | 25 | 83.298 | 82.347 | 22 | - |
+| 4 | seg_004.ts | main | 100-124 | 25 | 36.422 | 28.967 | 46 | - |
+| 5 | seg_005.ts | main | 125-149 | 25 | 83.941 | 83.080 | 22 | - |
+| 6 | seg_006.ts | main | 150-174 | 25 | 83.783 | 82.489 | 22 | - |
+| 7 | seg_007.ts | main | 175-199 | 25 | 83.251 | 82.023 | 22 | - |
+
+Scores more than 6 points below the pair's median (83.369): 26 frames
+- pairs 0-0 (1 frames): first frame 0: segment 0 (seg_000.ts, main), its frame 0 of 25; last frame 0: segment 0 (seg_000.ts, main), its frame 0 of 25
+- pairs 100-124 (25 frames): first frame 100: segment 4 (seg_004.ts, main), its frame 0 of 25; last frame 124: segment 4 (seg_004.ts, main), its frame 24 of 25
+
+Trailing-median prototype (threshold 6, window 50, more than 12 frames): 25 low frames, 1 drops
+- pairs 100-124 (25 frames, drop): first frame 100: segment 4 (seg_004.ts, main), its frame 0 of 25; last frame 124: segment 4 (seg_004.ts, main), its frame 24 of 25; baseline at the first 83.687, lowest score 28.967
+
+## Pair 1: v180/index.m3u8 (rung v180) against v360/index.m3u8
+
+- frames paired 200, failed 0, failure rate 0, discontinuities 0, after_discontinuity 0, unmatched_reference 0, extra_distorted 0
+- reference sequences [{"first_index": 0, "first_pts": 10, "frames": 200}]
+- distorted sequences [{"first_index": 0, "first_pts": 10, "frames": 200}]
+- libvmaf contexts [{"first_index": 0, "pairs": 200}]
+- pooled mean 72.989, min 66.635
+- pairs whose reference PTS isn't the layout's for their reference frame: 0
+
+| segment | file | period | reference frames | pairs | mean VMAF | min VMAF | quantizer | tags before it |
+|---|---|---|---|---|---|---|---|---|
+| 0 | seg_000.ts | main | 0-24 | 25 | 72.193 | 66.635 | 22 | - |
+| 1 | seg_001.ts | main | 25-49 | 25 | 72.675 | 71.173 | 22 | - |
+| 2 | seg_002.ts | main | 50-74 | 25 | 74.103 | 72.909 | 22 | - |
+| 3 | seg_003.ts | main | 75-99 | 25 | 72.825 | 71.625 | 22 | - |
+| 4 | seg_004.ts | main | 100-124 | 25 | 72.506 | 71.711 | 22 | - |
+| 5 | seg_005.ts | main | 125-149 | 25 | 73.451 | 72.409 | 22 | - |
+| 6 | seg_006.ts | main | 150-174 | 25 | 73.643 | 72.159 | 22 | - |
+| 7 | seg_007.ts | main | 175-199 | 25 | 72.514 | 71.153 | 22 | - |
+
+Scores more than 6 points below the pair's median (72.881): 1 frames
+- pairs 0-0 (1 frames): first frame 0: segment 0 (seg_000.ts, main), its frame 0 of 25; last frame 0: segment 0 (seg_000.ts, main), its frame 0 of 25
+
+Trailing-median prototype (threshold 6, window 50, more than 12 frames): 0 low frames, 0 drops
+
+--- stderr ---
+--- exit status 0, wall time 0.054 s (time.monotonic) ---

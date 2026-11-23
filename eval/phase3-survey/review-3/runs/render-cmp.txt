@@ -1,0 +1,5 @@
+# cwd: <out>/review-3
+# command: 'cmp' '<out>/review-3/design-rendered.md' '<out>/design.md'
+# started: 2026-11-01T08:45:08Z, ended: 2026-11-01T08:45:08Z (UTC)
+# stdout and stderr, in order:
+# exit status: 0

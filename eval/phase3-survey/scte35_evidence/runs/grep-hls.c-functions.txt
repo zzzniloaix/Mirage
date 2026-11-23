@@ -1,0 +1,8 @@
+command: grep -n -E 'static int update_streams_from_subdemuxer|static int set_stream_info_from_input_stream|static int parse_playlist|while \(!avio_feof|ff_get_chomp_line|av_log\(c->ctx, AV_LOG_VERBOSE, "Skip' downloads/ffmpeg-n8.1.1-hls.c/body
+785:static int parse_playlist(HLSContext *c, const char *url,
+843:    ff_get_chomp_line(in, line, sizeof(line));
+859:    while (!avio_feof(in)) {
+860:        ff_get_chomp_line(in, line, sizeof(line));
+990:            av_log(c->ctx, AV_LOG_VERBOSE, "Skip ('%s')\n", line);
+2047:static int set_stream_info_from_input_stream(AVStream *st, struct playlist *pls, AVStream *ist)
+2071:static int update_streams_from_subdemuxer(AVFormatContext *s, struct playlist *pls)

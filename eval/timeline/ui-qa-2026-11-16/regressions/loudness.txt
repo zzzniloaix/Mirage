@@ -1,0 +1,20 @@
+# The 5.1 loudness case of tests/engineer_tools_snapshots.sh: its snapshots of the engineer
+# part, at the render loop's 420th iteration, then the case again at three counts of the
+# loop's iterations, twice each, with each player: each snapshot's source frame counter and
+# its picture outside the loudness card and the drop counter, by their pixels' MD5; each
+# counter's pixels are regressions/loudness-counters/<MD5>.png.
+  engineer part, before-1, iteration 420  counter 05b2a49faa270d16f41e6ca4c14f84a0  outside the card b2eee844372f25ab5eb90c12dfa0d505
+  engineer part, before-2, iteration 420  counter 0447b878231d4a8568343a0cd9ba3a82  outside the card 9347d0eabcd3e6e969c73ca7f7f5b65a
+  engineer part, after, iteration 420  counter 05b2a49faa270d16f41e6ca4c14f84a0  outside the card b2eee844372f25ab5eb90c12dfa0d505
+  before, iteration 419, run 1  counter 0447b878231d4a8568343a0cd9ba3a82  outside the card 9347d0eabcd3e6e969c73ca7f7f5b65a
+  before, iteration 419, run 2  counter 0447b878231d4a8568343a0cd9ba3a82  outside the card 9347d0eabcd3e6e969c73ca7f7f5b65a
+  before, iteration 420, run 1  counter 05b2a49faa270d16f41e6ca4c14f84a0  outside the card b2eee844372f25ab5eb90c12dfa0d505
+  before, iteration 420, run 2  counter 05b2a49faa270d16f41e6ca4c14f84a0  outside the card b2eee844372f25ab5eb90c12dfa0d505
+  before, iteration 421, run 1  counter 584a4c31e6d9d888f75d2d399e476efa  outside the card f17e8a3026d57dc7402538d28ef2fb51
+  before, iteration 421, run 2  counter 584a4c31e6d9d888f75d2d399e476efa  outside the card f17e8a3026d57dc7402538d28ef2fb51
+  after, iteration 419, run 1  counter 0447b878231d4a8568343a0cd9ba3a82  outside the card 9347d0eabcd3e6e969c73ca7f7f5b65a
+  after, iteration 419, run 2  counter 0447b878231d4a8568343a0cd9ba3a82  outside the card 9347d0eabcd3e6e969c73ca7f7f5b65a
+  after, iteration 420, run 1  counter 0447b878231d4a8568343a0cd9ba3a82  outside the card 9347d0eabcd3e6e969c73ca7f7f5b65a
+  after, iteration 420, run 2  counter 05b2a49faa270d16f41e6ca4c14f84a0  outside the card b2eee844372f25ab5eb90c12dfa0d505
+  after, iteration 421, run 1  counter 584a4c31e6d9d888f75d2d399e476efa  outside the card f17e8a3026d57dc7402538d28ef2fb51
+  after, iteration 421, run 2  counter 584a4c31e6d9d888f75d2d399e476efa  outside the card f17e8a3026d57dc7402538d28ef2fb51

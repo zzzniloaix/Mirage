@@ -1,0 +1,13 @@
+command: grep -n -E 'TIMED_ID3|STREAM_TYPE_METADATA|0x15' downloads/ffmpeg-n8.1.1-mpegts.c/body downloads/ffmpeg-n8.1.1-mpegts.h/body; sed -n 985,992p downloads/ffmpeg-n8.1.1-hls.c/body
+downloads/ffmpeg-n8.1.1-mpegts.h/body:139:#define STREAM_TYPE_METADATA        0x15
+downloads/ffmpeg-n8.1.1-mpegts.c/body:880:    { MKTAG('I', 'D', '3', ' '), AVMEDIA_TYPE_DATA,  AV_CODEC_ID_TIMED_ID3 },
+downloads/ffmpeg-n8.1.1-mpegts.c/body:888:    { MKTAG('I','D','3',' '), AVMEDIA_TYPE_DATA, AV_CODEC_ID_TIMED_ID3 },
+downloads/ffmpeg-n8.1.1-mpegts.c/body:1331:                if (pes->stream_type == STREAM_TYPE_METADATA &&
+            if (seg_size < 0 || seg_offset > INT64_MAX - seg_size) {
+                ret = AVERROR_INVALIDDATA;
+                goto fail;
+            }
+        } else if (av_strstart(line, "#", NULL)) {
+            av_log(c->ctx, AV_LOG_VERBOSE, "Skip ('%s')\n", line);
+            continue;
+        } else if (line[0]) {

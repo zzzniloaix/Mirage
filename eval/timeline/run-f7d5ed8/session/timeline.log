@@ -1,0 +1,6 @@
+mirage_vmaf timeline: variant 0 (1 of 3), <out>/media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin/v360/index.m3u8: 200 frames in 8 segments
+mirage_vmaf timeline: variant 1 (2 of 3), <out>/media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin/v270/index.m3u8: 200 frames in 8 segments
+mirage_vmaf timeline: variant 2 (3 of 3), <out>/media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin/v180/index.m3u8: 200 frames in 8 segments
+mirage_vmaf timeline: session 0 of session/plan.json: 3 spans over reference frames 0-199
+mirage_vmaf timeline: session 0's fetch: 11 files from http://127.0.0.1:50167, 0 failed
+mirage_vmaf timeline: 84 events on 200 reference frames, offsets in seconds on the reference's playlist time; 1 drop on 2 curves and 1 on the session's; 0 warnings; document written to session/timeline.json

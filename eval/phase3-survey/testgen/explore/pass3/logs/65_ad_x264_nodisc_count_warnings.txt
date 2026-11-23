@@ -1,0 +1,7 @@
+$ sh -c 'grep -c "Packet corrupt" logs/62_ad_x264_nodisc_score.txt; grep -c "Packet corrupt" logs/45_ad_x264_score.txt || true'
+(in <out>/testgen)
+--- stdout ---
+16
+0
+--- stderr ---
+--- exit status 0, wall time 0.018 s (time.monotonic) ---

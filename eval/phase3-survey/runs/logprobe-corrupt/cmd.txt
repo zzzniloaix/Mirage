@@ -1,0 +1,2 @@
+cwd: <out>/runs/fixture-data
+command: '<out>/probe/bin/logprobe' 'file' 'dis_corrupt/index.m3u8'

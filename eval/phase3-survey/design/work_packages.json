@@ -1,0 +1,775 @@
+[
+  {
+    "id": "WP15a",
+    "title": "The pending-decisions document and the UI plan",
+    "round": 0,
+    "depends_on": [],
+    "blocked_by_questions": [],
+    "new_files": [
+      "docs/PHASE3_DECISIONS_PENDING.md",
+      "docs/plans/timeline-ui.md"
+    ],
+    "changed_files": [
+      "docs/DECISIONS.md"
+    ],
+    "description": "Now, before any answer, since no answer changes them: docs/PHASE3_DECISIONS_PENDING.md with §12's questions by round, §11's differences and §13's P-entries, each pending; docs/plans/timeline-ui.md, design §10 as the written D-007 plan for the owner to approve; §13's P-entries appended to docs/DECISIONS.md from P-082 on, each marked pending (entries only added, D-060). Each gives the work order's requirements in its own words, quoting no passage of it (D-013, D-060). The lead then records the owner's answers as those of each round come in (P-AH).",
+    "tests": [
+      "Before each commit: a cross-reference check of every cited file:line, decision and run record, and the quote check of every committed document against the work order's translation, kept outside the repository, whose output names files and lines only (P-AK)."
+    ]
+  },
+  {
+    "id": "WP00a",
+    "title": "Wiring and shared declarations, round 1",
+    "round": 1,
+    "depends_on": [],
+    "blocked_by_questions": [
+      "Q01",
+      "Q02",
+      "Q03",
+      "Q04",
+      "Q05",
+      "Q07",
+      "Q08",
+      "Q20",
+      "Q31",
+      "Q32",
+      "Q43"
+    ],
+    "new_files": [
+      "the empty files of design §3.2 whose existence the owner's decisions or round 1's answers settle: those of round 1's packages, and of round 2's src/SessionPlan.{h,cpp}, src/Scte35.{h,cpp}, src/Scte35Events.{h,cpp}, tests/test_session_plan.cpp, tests/test_scte35.cpp, tests/test_scte35_events.cpp and tests/test_attribution_session.cpp, which D-068 and D-070 settle; and the shared declarations (contents then owned by WP01 to WP11b)"
+    ],
+    "changed_files": [
+      "CMakeLists.txt"
+    ],
+    "description": "One commit once round 1's answers are in. Every file of design §3.2 whose existence the owner's decisions (D-068, D-069, D-070) or round 1's answers settle, as an empty compiling file: the core (SessionPlan and Scte35 included), TimelineMedia, TimelineCli, tests/SyntheticLadder, and their tests and the two attribution test files; the CMake lines for them, with the core, TimelineMedia, TimelineCli and src/HlsAlign.cpp in mirage_vmaf, the same and the tests in mirage_tests, and tests/SyntheticLadder.cpp compiled with optimization in every build type, as src/VMAFPool.cpp gets its own options (CMakeLists.txt:227); under Q05 (b) also the configure-time step that records the commit, and under Q20 (b) an XML parser linked into mirage_vmaf. Then only the declarations that packages running in parallel share, which encode round 1's answers: TimelineModel.h's Source (Q04), Event and MediaKey (Q02, Q03), Variant with its ranks (Q07), Curve, CurveRef for a pair's curve, Timeline and the declaration of curve_points(); TimelineAxis.h's Axis; LadderReportRead.h's PairScores and LadderScores, which WP06 uses while WP03 writes the reader; TimelineBuild.h's SegmentFrames and VariantMedia, which WP06 returns; PlaylistEvents.h's CueInput, the extension point of D-070's interfaces (design §5.5). Each module's own functions and option structs (QueryOptions, DetectOptions and the like) are written by the package that implements it, which the questions they encode block. No behaviour. Afterwards each package owns its files' contents, a change to a shared type goes through the lead (P-AG), and only the wiring packages edit CMakeLists.txt (P-C).",
+    "tests": [
+      "The macos-debug and macos-headless presets build, and ctest passes as before; a compile-only test includes every new header."
+    ]
+  },
+  {
+    "id": "WP01",
+    "title": "Timeline core: model, axis and the overlap query",
+    "round": 1,
+    "depends_on": [
+      "WP00a"
+    ],
+    "blocked_by_questions": [
+      "Q02",
+      "Q28",
+      "Q29",
+      "Q30",
+      "Q43"
+    ],
+    "new_files": [
+      "src/TimelineModel.h",
+      "src/TimelineModel.cpp",
+      "src/TimelineAxis.h",
+      "src/TimelineAxis.cpp",
+      "src/TimelineQuery.h",
+      "src/TimelineQuery.cpp",
+      "tests/test_timeline_model.cpp",
+      "tests/test_timeline_axis.cpp",
+      "tests/test_timeline_query.cpp"
+    ],
+    "changed_files": [],
+    "description": "TimelineModel: the canonical order, deterministic string ids, the overlap index on reference frames (a start-sorted vector with a running maximum of ends), and curve_points() for a pair's curve. TimelineAxis: each reference frame's media key; the seconds of the option Q02 picks, with its fallback where the reference has no segment map; the check of design §4.2, which compares (c)'s and (d)'s seconds at every scored reference frame and each frame's PTS with the frame grid of its playlist discontinuity sequence (without a map, with that of its report sequence); and seconds turned into frames for declared durations, margins and intervals given in seconds (Q43 (g)). TimelineQuery: attribute() for a pair's curve, with the half-open overlap and optional margins of Q29, the scope of Q28 for a pair (each rung's copy kept, Q43 (f)), the groups in §3.1's order without ranking (Q30), and offsets in seconds and in frames. A session's curve and a session's scope are WP07's, written in these files once WP00b has declared the session types.",
+    "tests": [
+      "Canonical order and deterministic ids; the overlap index against brute force on random events; points and spans at exact boundaries; empty intervals.",
+      "The axis on hand-made reports: PTS that restart at the main content's origin, a forward jump under 10 s, a coarser-grid pair; the seconds of Q02's option and of its fallback; seconds to frames for durations and intervals.",
+      "The check of design §4.2 on reports and segment maps the test writes in the shapes of design/runs/seconds-check.txt: no warning on the D-069 ad shape with its map, and its run of frames 125 to 199 listed as a fact without one; a missing reference frame (in the last segment too), an ad at 24 and at 30 fps after its discontinuity, and an EXTINF one frame too long each warned at the frames that record gives, the PTS check (2) warning for the first two and not for the third; a reference frame missing at the start of each playlist discontinuity sequence, in the shapes of review-3/runs/seconds-check-sequence-start.txt, warned by (1) alone, from the next segment on; a reference that isn't a playlist warned where its PTS change rate.",
+      "The scope filter for a pair's curve, the group order, exact offsets, margins."
+    ]
+  },
+  {
+    "id": "WP02",
+    "title": "Drop detection on a curve",
+    "round": 1,
+    "depends_on": [
+      "WP00a"
+    ],
+    "blocked_by_questions": [
+      "Q22",
+      "Q23",
+      "Q24",
+      "Q25",
+      "Q26",
+      "Q27",
+      "Q43"
+    ],
+    "new_files": [
+      "src/TimelineDetect.h",
+      "src/TimelineDetect.cpp",
+      "tests/test_timeline_detect.cpp"
+    ],
+    "changed_files": [],
+    "description": "TimelineDetect: detect() over a curve's points, with the statistic and warm-up of Q23, W and N counted as Q24 says, context-first frames as Q25 says, and the drop record (the interval of Q43 (g), the baseline at the first low point, the minimum, the mean, and the magnitudes of Q27); every parameter recorded; defaults only those Q26 gives; nothing when W and N are absent, as Q26 (b) says. Which curves are detected is Q22: pairs here; sessions in WP07.",
+    "tests": [
+      "Hand-built series: a step drop; single-frame dips at context starts that N passes over; alternating dips like testgen's busy control; a drop inside the blind start of Q23 (a), not found, as the document then states; gaps on a coarser grid; the baseline unchanged through a drop; the same drops from the same input twice.",
+      "The shapes of design/runs/detection-semantics-ad.txt rebuilt from the test's own numbers: a context start at a drop's first frame."
+    ]
+  },
+  {
+    "id": "WP03",
+    "title": "JSON reader and ladder report reader",
+    "round": 1,
+    "depends_on": [
+      "WP00a"
+    ],
+    "blocked_by_questions": [
+      "Q06",
+      "Q32",
+      "Q43"
+    ],
+    "new_files": [
+      "src/JsonRead.h",
+      "src/JsonRead.cpp",
+      "src/LadderReportRead.h",
+      "src/LadderReportRead.cpp",
+      "tests/test_json_read.cpp",
+      "tests/test_ladder_report_read.cpp"
+    ],
+    "changed_files": [],
+    "description": "JsonRead: a document tree with objects in their order, duplicate keys refused, a nesting limit, numbers by std::from_chars so that they round-trip with json::number, errors with their position (P-Y). LadderReportRead: the reports Q43 (b) admits, others refused with the reason named; settings, master entries, reference, each complete pair's frames, failures, sequences and libvmaf contexts; PTS seconds to ticks; the canonical text of the scores digest of Q06, leaving out every field the eval scripts redact (P-Z).",
+    "tests": [
+      "RFC 8259's grammar, escapes and UTF-8; numbers as json::number writes them (the integer literal 100, exponents); round trip with JsonText; duplicate keys; the nesting limit; error positions.",
+      "A report written by vmafreport::ladder_to_json from results built in the test, read back field by field; the refusals of Q43 (b) with their reasons.",
+      "The scores digest unchanged after the test redacts a report as eval/ladder/pool_check.py and eval/consistency/ladder_check.py redact."
+    ]
+  },
+  {
+    "id": "WP04",
+    "title": "Playlist events, the plain cue tags, and the pairing of every cue",
+    "round": 1,
+    "depends_on": [
+      "WP00a"
+    ],
+    "blocked_by_questions": [
+      "Q04",
+      "Q17",
+      "Q18",
+      "Q19",
+      "Q20",
+      "Q43"
+    ],
+    "new_files": [
+      "src/PlaylistEvents.h",
+      "src/PlaylistEvents.cpp",
+      "tests/test_playlist_events.cpp"
+    ],
+    "changed_files": [],
+    "description": "PlaylistEvents: hls::parse_media_timeline's segments plus one more scan of the text for tags, each attached to the segment whose URI follows it (RFC 8216 §4.3.2); discontinuity, program_date_time, daterange (attributes as RFC 8216 §4.3.2.7 lists them) and every other tag; the plain cue tags of D-070 (EXT-X-CUE-OUT bare or with a duration or attributes, EXT-X-CUE-OUT-CONT in both forms, EXT-X-CUE-IN bare or with an ID) into cue_out, cue_out_cont and cue_in; every embedded message (#EXT-OATCLS-SCTE35's base64, DATERANGE's SCTE35-* hex, EXT-X-CUE-OUT-CONT's SCTE35=) handed on as a CueInput; pair_breaks(), which pairs every cue, from plain tags now and from WP05's decoded messages later, into ad_break with Q17's end rule, so that the pairing has one owner; tags outside D-070's list as Q18 says; a bare discontinuity as Q19 says; a 'period' type reserved for DASH, or under Q20 (b) an MPD's periods and EventStreams read into period events and CueInputs; a live playlist as Q43 (a) says. HlsAlign and ManifestParser unchanged.",
+    "tests": [
+      "Tags before #EXTINF and between #EXTINF and the URI attach to the same segment; discontinuity numbering; PDT; vendor tags kept raw; a live playlist as Q43 (a) says.",
+      "The cue forms scte35.md §2 describes, written by the test in those shapes; DATERANGE attributes (quoted, hex, a malformed one kept raw); OATCLS and CUE-OUT-CONT's SCTE35= handed on as CueInputs with their anchors.",
+      "Pairing of cue-out and cue-in into ad_break, the end from a declared duration without a cue-in, and cues from a stub decoder paired with plain ones; testgen's ad playlist shape (testgen.md §2.3), written by the test."
+    ]
+  },
+  {
+    "id": "WP06",
+    "title": "Media ingest: playlists, the demux pass, frame-to-segment maps",
+    "round": 1,
+    "depends_on": [
+      "WP00a"
+    ],
+    "blocked_by_questions": [
+      "Q08",
+      "Q43"
+    ],
+    "new_files": [
+      "src/TimelineMedia.h",
+      "src/TimelineMedia.cpp",
+      "tests/test_timeline_media.cpp"
+    ],
+    "changed_files": [],
+    "description": "TimelineMedia (an adapter, libavformat): each scored playlist read with vmafladder::read_master, with its URL, location and SHA-256 (P-D); the demux pass (P-F) with its own io_open/io_close2 recorder; packets to segments by byte position, frames to packets in presentation order within a segment, and the PTS check against the report for every scored frame (P-G), a mismatch handled as Q43 (c) says; keyframes; corrupt packets, each with the next segment boundary, placed as Q43 (h) says; the reference's PTS for reference frames no pair scored. Under Q08 (a); under Q08 (b) the map and the key flags come from the report instead, and the plan changes as design §14 says.",
+    "tests": [
+      "HLS streams the test writes with FFmpeg's libraries (as tests/test_vmaf_segments.cpp:46-117 does): byte positions against the writer's layout; B-frames; restarted timestamps with a PTS two segments share; EXT-X-BYTERANGE segments; a missing frame, handled as Q43 (c) says; the same over HTTP from tests/HttpFileServer.h.",
+      "Continuity counters left unmarked at a splice: the corrupt flags found, each with the boundary that follows it, as Q43 (h) places them.",
+      "A playlist whose last EXTINF is shorter than its frames (as FFmpeg's hls muxer writes it) maps exactly."
+    ]
+  },
+  {
+    "id": "WP08",
+    "title": "The timeline document and its JSON Schema: the ladder part",
+    "round": 1,
+    "depends_on": [
+      "WP01",
+      "WP03"
+    ],
+    "blocked_by_questions": [
+      "Q01",
+      "Q02",
+      "Q03",
+      "Q04",
+      "Q05",
+      "Q06",
+      "Q07",
+      "Q22",
+      "Q23",
+      "Q24",
+      "Q25",
+      "Q26",
+      "Q27",
+      "Q28",
+      "Q29",
+      "Q30"
+    ],
+    "new_files": [
+      "src/TimelineDoc.h",
+      "src/TimelineDoc.cpp",
+      "tests/test_timeline_doc.cpp",
+      "docs/schema/mirage-timeline-1.schema.json",
+      "docs/TIMELINE_FORMAT.md"
+    ],
+    "changed_files": [
+      "src/VMAFReport.h, src/VMAFReport.cpp and tests/test_vmaf_report.cpp (only under Q01 (A))"
+    ],
+    "description": "TimelineDoc: the writer (json::quote and json::number, a temporary file renamed over --out, P-W) and the reader (JsonRead) of design §8's layout under Q04 and Q05, naming its ladder report as Q06 says: the header, the axis (Q02) with its check, the variants (Q07), the events with their wall clock (Q03), the detection record (Q22 to Q26), the overlap record (Q28, Q29) and the attributions with their magnitudes (Q27) and groups (Q30); docs/schema/mirage-timeline-1.schema.json, with §5.9's whole vocabulary; docs/TIMELINE_FORMAT.md, the format's description with the event vocabulary and the mapping to §7; the subset JSON Schema validator in the test (P-AI). Under Q01 (A) the writer puts the timeline and attributions into the ladder report instead, with the report's writer and its tests. The session part is WP09b's.",
+    "tests": [
+      "The writer's keys and types, checked against the schema file by the subset validator; a reader round trip; byte-identical output for the same timeline twice; an unknown schema_version refused; whole numbers written as integer literals and typed 'number' in the schema; detection: null when no detection ran."
+    ]
+  },
+  {
+    "id": "WP09a",
+    "title": "The builder and the CLI subcommands, for a ladder",
+    "round": 1,
+    "depends_on": [
+      "WP01",
+      "WP02",
+      "WP03",
+      "WP04",
+      "WP06",
+      "WP08"
+    ],
+    "blocked_by_questions": [
+      "Q01",
+      "Q02",
+      "Q04",
+      "Q06",
+      "Q07",
+      "Q08",
+      "Q19",
+      "Q20",
+      "Q22",
+      "Q24",
+      "Q26",
+      "Q27",
+      "Q28",
+      "Q29",
+      "Q30",
+      "Q31",
+      "Q43"
+    ],
+    "new_files": [
+      "src/TimelineBuild.h",
+      "src/TimelineBuild.cpp",
+      "src/TimelineCli.h",
+      "src/TimelineCli.cpp",
+      "tests/test_timeline_build.cpp",
+      "tests/test_timeline_cli.cpp"
+    ],
+    "changed_files": [
+      "tools/mirage_vmaf.cpp",
+      "src/VMAFCli.cpp"
+    ],
+    "description": "TimelineBuild: the merge of design §3.4 for a ladder without a session, with the placement rules of §5.1 and Q43, the vocabulary of Q04, unplaceable anchors in warnings; cues from plain tags paired by WP04's pair_breaks(); the segment maps from the demux pass under Q08 (a), from the report under Q08 (b). TimelineCli: the two subcommands of Q31 with option tables of their own (P-V), their config files, --help, run_timeline() and run_attribute(), which set FFmpeg's log level and initialize its network as tools/mirage_vmaf.cpp:155-156 does (P-N); detection on the curves Q22 names for a ladder, only when W and N are given (Q26 (b)), with W and N counted as Q24 says; the axis of Q02; the JSON and text outputs (P-AD), text by default, with the magnitudes of Q27 and the groups of Q30; under Q19 (c) the inference option; the exit statuses of P-W. tools/mirage_vmaf.cpp dispatches on a first word before vmafcli::parse; src/VMAFCli.cpp gains a paragraph in usage() naming the subcommands, after the existing synopsis lines, which tests/test_vmaf_cli.cpp:161 pins.",
+    "tests": [
+      "The merge on hand-built inputs: each source's events placed by design §5.1's rules, unplaceable anchors in warnings, the same timeline from the same inputs twice.",
+      "Option and config parsing: precedence of the command line, unknown and repeated options, required options, --help; an events-only build without W and N; one end-to-end run of each subcommand as a program on a small fixture (exit statuses, outputs); tests/test_vmaf_cli.cpp passes unchanged."
+    ]
+  },
+  {
+    "id": "WP10",
+    "title": "Synthetic ladders (D-069's content)",
+    "round": 1,
+    "depends_on": [
+      "WP00a"
+    ],
+    "blocked_by_questions": [
+      "Q33",
+      "Q34",
+      "Q35"
+    ],
+    "new_files": [
+      "tests/SyntheticLadder.h",
+      "tests/SyntheticLadder.cpp",
+      "tests/test_synthetic_ladder.cpp"
+    ],
+    "changed_files": [],
+    "description": "tests/SyntheticLadder.{h,cpp}, ported from testgen's prototype (testgen/src/testgen.cpp): the degraded and the ad ladders with Q33's encoder, Q34's timestamp variants and Q35's content, three rungs of eight 1 s segments at 25 fps, BANDWIDTH measured from the segments, the layout as ground truth; each ladder made once per process, which under ctest means once per Catch2 test case (P-Q); MIRAGE_KEEP_MEDIA keeps them, each test case under its own subdirectory (P-U).",
+    "tests": [
+      "In one test case: one ladder made twice, byte-identical; its segments, frames and tags against its layout; BANDWIDTH in rung order; the encoder used recorded in the output."
+    ]
+  },
+  {
+    "id": "WP11a",
+    "title": "§3.2's two acceptance tests",
+    "round": 1,
+    "depends_on": [
+      "WP09a",
+      "WP10"
+    ],
+    "blocked_by_questions": [
+      "Q01",
+      "Q02",
+      "Q04",
+      "Q22",
+      "Q23",
+      "Q25",
+      "Q29",
+      "Q31",
+      "Q33",
+      "Q34",
+      "Q35"
+    ],
+    "new_files": [
+      "tests/test_attribution_acceptance.cpp"
+    ],
+    "changed_files": [],
+    "description": "tests/test_attribution_acceptance.cpp: one Catch2 test case with a section per case, so that ctest runs it in one process and each ladder is made once (P-Q): test 1, the degraded segment; test 2, the ad boundary, in Q34's variants. Each runs mirage_vmaf --ladder, mirage_vmaf timeline and mirage_vmaf attribute as programs (P-T), reads the document back and asserts as design §9.2 says, with pinned parameters (P-R). It needs no session, no fetch and no SCTE-35 decoder: D-069's ladders carry plain cue tags only.",
+    "tests": [
+      "Test 1: one drop on the degraded rung, over its degraded segment's reference frames, whose playlist group holds that segment by URI and media sequence number; no drop on the control rung.",
+      "Test 2 in each timestamp variant: one drop on the low-quality ad rung, over the ad's reference frames; its scte35 group holds the cue_out at offset 0 frames and an ad_break spanning the drop; its playlist group the discontinuity at offset 0; no drop on the control rung."
+    ]
+  },
+  {
+    "id": "WP00b",
+    "title": "Wiring and shared declarations, round 2",
+    "round": 2,
+    "depends_on": [
+      "WP00a",
+      "WP01"
+    ],
+    "blocked_by_questions": [
+      "Q10",
+      "Q11",
+      "Q12",
+      "Q41",
+      "Q44"
+    ],
+    "new_files": [
+      "the empty files of SessionFetch and its test"
+    ],
+    "changed_files": [
+      "CMakeLists.txt",
+      "src/VMAFNet.h (a comment only)",
+      "src/TimelineModel.h (the session declarations, through the lead)",
+      "src/SessionPlan.h (the session plan's and the fetch's types, through the lead)",
+      "src/NetworkLogger.h, src/NetworkLogger.cpp and the 19 other files that name NetworkLogger, src/main.cpp, src/Demuxer.cpp, src/ManifestParser.cpp and src/NetInspectorAlign.cpp among them (only under Q41 (b))"
+    ],
+    "description": "One commit once round 2's answers are in: SessionFetch's files and test as empty files with their CMake lines, under Q10 (a) or (b); under Q10 (a), src/NetworkLogger.cpp added to mirage_vmaf, and the two comments that would then be wrong or misleading reworded: CMakeLists.txt:229-232 (mirage_vmaf's ladder scoring still reads playlists itself; the timeline fetch uses the network logger) and src/VMAFNet.h:8-9 (mirage_vmaf then links the network logger); the session declarations, encoding Q11, Q12 and Q44 (d), added through the lead (P-AG) to headers WP00a created: Span, Session, Timeline::sessions and CurveRef's session kind in src/TimelineModel.h; PlanSpan, SessionPlan, RequestRow and Request in src/SessionPlan.h, whose contents WP07 then owns. Under Q41 (b), first and as a commit of its own, NetworkLogger renamed throughout, under the owner's ruling under D-007 or an approved plan, since src/Demuxer.cpp and src/main.cpp are among the 21 files that name it (design/runs/networklogger-users.txt).",
+    "tests": [
+      "The presets build and ctest passes as before; the compile-only test includes the new headers.",
+      "Under Q41 (b), the same after the rename, tests/test_network_logger.cpp included."
+    ]
+  },
+  {
+    "id": "WP05",
+    "title": "SCTE-35 decoder and message events",
+    "round": 2,
+    "depends_on": [
+      "WP00a",
+      "WP04"
+    ],
+    "blocked_by_questions": [
+      "Q04",
+      "Q14",
+      "Q15",
+      "Q16",
+      "Q18",
+      "Q21",
+      "Q44"
+    ],
+    "new_files": [
+      "src/Scte35.h",
+      "src/Scte35.cpp",
+      "src/Scte35Events.h",
+      "src/Scte35Events.cpp",
+      "tests/test_scte35.cpp",
+      "tests/test_scte35_events.cpp"
+    ],
+    "changed_files": [],
+    "description": "Scte35: a splice_info_section from base64 (av_base64_decode) or hex; the CRC_32 by av_crc (P-L); splice_insert, time_signal, break_duration, splice_time with pts_adjustment added mod 2^33, the descriptor loop with unknown descriptors skipped by length, segmentation_descriptor with its UPID bytes kept; never reads past its input; encrypted messages reported undecoded. Scte35Events: every CueInput decoded, classed as Q15 says (with cancellations), with the CRC policy of Q16; placed by its anchor kind as design §5.1 says, a splice time on the carrying variant's own frames within the carrying playlist's discontinuity sequence, with splice_point events and every anchor in the payload as Q14 says, and a warning when an anchor falls outside the tag's segment; a message in a CUE-OUT's segment merged into that cue as Q44 (e) says; the decoded cues returned to WP04's pair_breaks().",
+    "tests": [
+      "Sections built by a writer in the test (P-M): splice_insert out and in, immediate, break_duration with auto_return, time_signal with segmentation descriptors and sub-segments, a descriptor whose identifier isn't CUEI, splice_command_length 0xFFF, alignment stuffing, the pts_adjustment wrap mod 2^33, CRC good and bad, truncation at every byte, the encrypted flag, cancel indicators; base64 and hex input.",
+      "The CRC against av_crc on the same bytes; an optional case that reads a local vectors file named by MIRAGE_SCTE35_VECTORS, skipped when it is unset.",
+      "Event mapping: classes, the CRC policy, anchors and their warnings, pairing of message-only cues through WP04's pair_breaks(), a CUE-OUT-CONT's message decoded.",
+      "Placement: a splice time on a distorted variant whose PTS origin differs from the reference's lands on the right reference frame; a section anchored by media PTS, as an in-segment reader would give it, placed through the same interface; a period-time anchor sent to the warnings."
+    ]
+  },
+  {
+    "id": "WP07",
+    "title": "Sessions, their drops, and the session fetch",
+    "round": 2,
+    "depends_on": [
+      "WP00b",
+      "WP01",
+      "WP02",
+      "WP03",
+      "WP06"
+    ],
+    "blocked_by_questions": [
+      "Q03",
+      "Q04",
+      "Q07",
+      "Q10",
+      "Q11",
+      "Q12",
+      "Q22",
+      "Q28",
+      "Q41",
+      "Q44"
+    ],
+    "new_files": [
+      "src/SessionPlan.h",
+      "src/SessionPlan.cpp",
+      "src/SessionFetch.h",
+      "src/SessionFetch.cpp",
+      "tests/test_session_plan.cpp",
+      "tests/test_session_fetch.cpp"
+    ],
+    "changed_files": [
+      "tests/HttpFileServer.h",
+      "src/TimelineModel.cpp (a session's curve, after WP01 has merged)",
+      "src/TimelineQuery.cpp (a session's scope, after WP01 has merged)"
+    ],
+    "description": "SessionPlan: the plan format of Q11, its checks (unknown entries; gaps and overlaps as Q44 (a) says), the spans on reference frames through the pairs, variant_span and variant_switch events with the rung names of Q07, and session_drops(): the pairs' drops (WP02's detect()) clipped to the spans that played them, under Q22 and design §6.3's three rules. In WP01's files, after WP01 has merged: curve_points() for a session's curve, at each frame the score of the variant played there (D-068), with top-rung spans as Q12 says and gaps on coarser grids (src/TimelineModel.cpp); and attribute()'s scope for a session's curve under Q28: the played variant's events in each span, the reference's and the session's own (src/TimelineQuery.cpp). SessionFetch (an adapter): the fetch of P-N through NetworkLogger's manual tracking, under Q10 and with Q41's name, in the order and pacing of Q44 (f) and (g), each file's rows copied and the logger cleared after its close, retries as Q44 (c) says and redirects as Q44 (d) says; the rows becoming playlist_request and segment_request events placed as Q44 (b) says, with the wall clock of Q03. tests/HttpFileServer.h gains a delay rule and a redirect rule (P-O). Its tests of the session's curve and scope are in its own tests/test_session_plan.cpp, so that WP01's test files keep one owner.",
+    "tests": [
+      "Plan parsing and its errors; spans from segment ranges; switch events with both ranks.",
+      "The session's curve through curve_points(): an unscored top-rung span and a lower-rate variant's gaps; attribute() on a session's curve: the played variant's events in each span, the reference's and the session's own, and no other rung's.",
+      "The work order's example on a hand-built timeline: a cue-out, a switch between two numbered rungs of a hand-built five-rung ladder and a request of 2.3 s, all the test's inputs, returned in their groups with their offsets.",
+      "Session drops under design §6.3's rules: a clipped piece of N points or fewer; pieces of two pairs that meet at a switch; the baseline a piece reports.",
+      "The fetch over HttpFileServer: status 200 and the file's bytes; a delayed segment measured at least the delay (under the analyzer's 5 s limit, D-036); a 404 and a cut body recorded as failures; a redirected file as one event with its chain; the order and pacing of Q44 (f) and (g); rows tagged playback; the logger cleared after each file and uninstalled afterwards; the UTC anchor and session-relative wall clock."
+    ]
+  },
+  {
+    "id": "WP09b",
+    "title": "Sessions in the build, the CLI and the document",
+    "round": 2,
+    "depends_on": [
+      "WP09a",
+      "WP07"
+    ],
+    "blocked_by_questions": [
+      "Q01",
+      "Q03",
+      "Q04",
+      "Q05",
+      "Q07",
+      "Q10",
+      "Q11",
+      "Q12",
+      "Q22",
+      "Q44"
+    ],
+    "new_files": [],
+    "changed_files": [
+      "src/TimelineBuild.h",
+      "src/TimelineBuild.cpp",
+      "src/TimelineCli.h",
+      "src/TimelineCli.cpp",
+      "tests/test_timeline_build.cpp",
+      "tests/test_timeline_cli.cpp",
+      "src/TimelineDoc.h",
+      "src/TimelineDoc.cpp",
+      "tests/test_timeline_doc.cpp",
+      "docs/schema/mirage-timeline-1.schema.json",
+      "docs/TIMELINE_FORMAT.md"
+    ],
+    "description": "After WP09a and WP07 have merged: TimelineBuild gains the session (spans, switches, the fetch's requests); TimelineCli gains --session, --fetch and --fetch-base, and session drops (Q22); TimelineDoc, its test, the schema file and docs/TIMELINE_FORMAT.md gain the session part of design §8 (session_plan, sessions with their spans and scored flags, the network and player events' fields with their wall clock, Q03). It needs no SCTE-35 decoder: D-069's ad ladder carries plain cue tags only (testgen.md §2.3), so the composite example doesn't wait for WP05.",
+    "tests": [
+      "The merge with a session on hand-built inputs; the session options and their config settings; the document's session part against the schema file and in a round trip."
+    ]
+  },
+  {
+    "id": "WP09c",
+    "title": "Decoded SCTE-35 messages in the build and the CLI",
+    "round": 2,
+    "depends_on": [
+      "WP09b",
+      "WP05"
+    ],
+    "blocked_by_questions": [
+      "Q15",
+      "Q16"
+    ],
+    "new_files": [],
+    "changed_files": [
+      "src/TimelineBuild.h",
+      "src/TimelineBuild.cpp",
+      "src/TimelineCli.h",
+      "src/TimelineCli.cpp",
+      "tests/test_timeline_build.cpp",
+      "tests/test_timeline_cli.cpp"
+    ],
+    "description": "After WP09b and WP05 have merged: TimelineBuild gains the decoded messages (WP05's events, returned to WP04's pairing); TimelineCli gains --cue-types (Q15) and --bad-crc (Q16). The document needs no change for them, since WP08's schema holds §5.9's whole vocabulary. It follows WP09b because both change the builder and the CLI, and it is on neither the acceptance path nor the composite example's.",
+    "tests": [
+      "The merge with decoded messages on hand-built inputs: a message merged into its cue, a message-only cue paired, a bad CRC kept or dropped; the two options and their config settings."
+    ]
+  },
+  {
+    "id": "WP11b",
+    "title": "The composite example (test 3)",
+    "round": 2,
+    "depends_on": [
+      "WP09b",
+      "WP10"
+    ],
+    "blocked_by_questions": [
+      "Q01",
+      "Q04",
+      "Q07",
+      "Q10",
+      "Q11",
+      "Q22",
+      "Q23",
+      "Q25",
+      "Q44"
+    ],
+    "new_files": [
+      "tests/test_attribution_session.cpp"
+    ],
+    "changed_files": [],
+    "description": "tests/test_attribution_session.cpp: the work order's example on a scripted session with a delayed segment, as design §9.3 says, in a test case of its own (its ad ladder made once in its process, P-Q). It runs the three programs as WP11a's tests do (P-T), with the test's own delay (P-S).",
+    "tests": [
+      "Test 3: the session drop lists the cue_out (scte35), a variant_switch between the planned entries (player), and a segment_request for the delayed segment with a duration at least the delay and status 200 (network)."
+    ]
+  },
+  {
+    "id": "WP00c",
+    "title": "Wiring, round 3: the UI",
+    "round": 3,
+    "depends_on": [
+      "WP00a",
+      "WP00b"
+    ],
+    "blocked_by_questions": [
+      "Q36"
+    ],
+    "new_files": [
+      "the empty files of WP12 and WP13"
+    ],
+    "changed_files": [
+      "CMakeLists.txt"
+    ],
+    "description": "Under Q36's approval, after WP00b has merged, since both edit CMakeLists.txt (P-C): the UI's files (TimelineLoad, TimelineView, TimelineMatch and their tests; TimelinePanel) as empty files with their CMake lines: the core, the UI math, the panel and src/JsonText.cpp in the player (which doesn't compile JsonText.cpp today, CMakeLists.txt:150-194), the UI math and its tests in mirage_tests, which links no ImGui (D-031).",
+    "tests": [
+      "The macos-debug and macos-headless presets build, and ctest passes as before."
+    ]
+  },
+  {
+    "id": "WP12",
+    "title": "UI loading and math, ImGui-free",
+    "round": 3,
+    "depends_on": [
+      "WP00c",
+      "WP01",
+      "WP03",
+      "WP07",
+      "WP08",
+      "WP09b"
+    ],
+    "blocked_by_questions": [
+      "Q01",
+      "Q02",
+      "Q05",
+      "Q06",
+      "Q36",
+      "Q37",
+      "Q39"
+    ],
+    "new_files": [
+      "src/TimelineLoad.h",
+      "src/TimelineLoad.cpp",
+      "src/TimelineView.h",
+      "src/TimelineView.cpp",
+      "src/TimelineMatch.h",
+      "src/TimelineMatch.cpp",
+      "tests/test_timeline_load.cpp",
+      "tests/test_timeline_view.cpp",
+      "tests/test_timeline_match.cpp",
+      "tests/test_hls_seek_behaviour.cpp"
+    ],
+    "changed_files": [],
+    "description": "TimelineLoad: the panel's loader, off the main thread with a stop token: reads a document and the ladder report it names, checks both hashes (Q06), builds the Timeline, a session's curve through WP07's curve_points() included, and hands an immutable snapshot over once. TimelineView: view state with zoom about a point, pan and fit, x to seconds on Q02's axis, the min/max envelope pyramid (a one-frame dip survives), hit testing for the lowest frame near the cursor, marker clustering; nice_step and axis_label copied from src/NetInspectorAlign.cpp:69-107, which stays unchanged (P-AJ). TimelineMatch: matching a document to the open master by SHA-256, else by URL, with the entry checks of ui.md §2.3; the playhead (the frame on screen, its pair's frame, its reference frame); the seek decision of ui.md §2.4 under Q37; the interval a click outside a drop queries (Q39 (b)). tests/test_hls_seek_behaviour.cpp turns ui.md's seek probe into a ctest case on playlists the test writes.",
+    "tests": [
+      "The loader on documents and reports the test writes: matching hashes accepted, a changed report refused, a redacted report accepted by its scores digest, an unknown version refused; the snapshot handed over once; a second load cancelling the first.",
+      "ui.md §5.1: view math; the envelope keeps a one-frame dip; hit testing; the click's interval; matching, including the cases where ManifestParser and VMAFLadder enumerate or resolve entries differently; playhead mapping across sequences; the seek decision for continuous, restarted and after-ad frames.",
+      "ui.md §5.2: FFmpeg 8.1.1's seek behaviour the decision relies on, pinned on playlists the test writes."
+    ]
+  },
+  {
+    "id": "WP13",
+    "title": "The timeline panel in the player",
+    "round": 3,
+    "depends_on": [
+      "WP12",
+      "WP01",
+      "WP02",
+      "WP08"
+    ],
+    "blocked_by_questions": [
+      "Q36",
+      "Q37",
+      "Q38",
+      "Q39",
+      "Q40"
+    ],
+    "new_files": [
+      "src/TimelinePanel.h",
+      "src/TimelinePanel.cpp"
+    ],
+    "changed_files": [
+      "src/main.cpp",
+      "src/PlayerUI.h",
+      "src/PlayerUI.cpp",
+      "src/DebugHUD.h and src/DebugHUD.cpp (only under Q40 (c))",
+      "src/ManifestParser.h, src/ManifestParser.cpp and tests/test_manifest_parser.cpp (only under Q40 (b))",
+      "src/Demuxer.h and src/Demuxer.cpp (only under Q37 (c), with its plan approved)"
+    ],
+    "description": "TimelinePanel (player only), as design §10 plans it: starts TimelineLoad and draws its snapshot: the curves, the event lanes, the detected drops and the playhead; a click picks the lowest frame near the cursor, shows its attribution, from the document inside a drop and through the core's query API on WP12's interval elsewhere, and seeks through s_seek_to only when the seek decision says the frame is reachable; the toggle, the View menu, the overlays popover, Esc, and the QA flags --timeline, --ui-timeline and --timeline-report. Under Q37 (b), with its plan approved, the render loop's request to play to a frame and pause; under Q37 (c), with its plan approved, another way to position the hls demuxer; under Q40 (b), ManifestParser's cue defects fixed and its test changed; under Q40 (c), the GL ruler retired for the panel's playlist lane.",
+    "tests": [
+      "Through WP12's unit tests; the scripted QA run of ui.md §5.3, outside ctest; the manual checks of ui.md §5.4."
+    ]
+  },
+  {
+    "id": "WP14",
+    "title": "The evaluation harness: reproduction from one command",
+    "round": 3,
+    "depends_on": [
+      "WP09a",
+      "WP09b",
+      "WP10",
+      "WP11a",
+      "WP11b"
+    ],
+    "blocked_by_questions": [
+      "Q02",
+      "Q04",
+      "Q07",
+      "Q10",
+      "Q22",
+      "Q23",
+      "Q25",
+      "Q31"
+    ],
+    "new_files": [
+      "eval/timeline/README.md",
+      "eval/timeline/run_all.sh",
+      "eval/timeline/check.py",
+      "eval/timeline/slow_server.py",
+      "eval/timeline/tests/test_check.py"
+    ],
+    "changed_files": [],
+    "description": "eval/timeline/: run_all.sh <build dir> <out> runs the acceptance cases with MIRAGE_KEEP_MEDIA, builds and queries their documents, and runs the composite example against a local delaying server with the example's 2.3 s; check.py compares every answer with the generator's layout, excluding wall-clock fields and checking measured durations as at least the injected delay; each record keeps cmd.txt and environment.txt with the commit (P-AF).",
+    "tests": [
+      "check.py against fake documents, with the standard library's unittest, as eval/ladder/tests/ does."
+    ]
+  },
+  {
+    "id": "WP15b",
+    "title": "The differences' wording and the gap report's correction",
+    "round": 3,
+    "depends_on": [
+      "WP15a"
+    ],
+    "blocked_by_questions": [
+      "Q41",
+      "Q42"
+    ],
+    "new_files": [],
+    "changed_files": [
+      "docs/PHASE3_DECISIONS_PENDING.md (after WP15a has merged)",
+      "docs/VMAF_GAP_REPORT.md (only under Q42 (b))"
+    ],
+    "description": "Once the answers to Q41 and Q42 are in: design §11's differences in the wording those answers settle, in the list of differences of docs/PHASE3_DECISIONS_PENDING.md, from which WP15c's PR description takes them; under Q42 (b), a dated correction line in docs/VMAF_GAP_REPORT.md for its factual error (design §11). Each gives the work order's requirements in its own words, quoting no passage of it (D-013, D-060), and neither is edited to match the implementation; differences are listed.",
+    "tests": [
+      "Before each commit: the cross-reference check and the quote check of P-AK, the checker's output kept as the record."
+    ]
+  },
+  {
+    "id": "WP15c",
+    "title": "The closing documents and the PR description",
+    "round": 3,
+    "depends_on": [
+      "WP09c",
+      "WP13",
+      "WP14",
+      "WP15b"
+    ],
+    "blocked_by_questions": [],
+    "new_files": [],
+    "changed_files": [
+      "docs/PHASE3_STATUS.md",
+      "docs/DECISIONS.md (after WP15a has merged)",
+      "docs/AI_CONTRIBUTIONS.md",
+      "docs/PAPER_METHOD_NOTES.md"
+    ],
+    "description": "Last, once every package that is built has merged: those it depends on and, through them, every other package of design §14 but WP16 and WP17, which the lead adds to its dependencies when the owner's answers start them. The Phase 3 rows of docs/AI_CONTRIBUTIONS.md; docs/PAPER_METHOD_NOTES.md once there is something measured to state; dated lines in docs/DECISIONS.md's pending entries where the implementation found more (D-060); docs/PHASE3_STATUS.md completed item by item with the output that shows it; and Phase 3's PR description, with the differences in WP15b's wording and the acceptance outputs pasted in. Every document and the PR description give the work order's requirements in their own words, quoting no passage of it (D-013, D-060), and none is edited to match the implementation; differences are listed.",
+    "tests": [
+      "Before each commit, and before the PR description or any other text about Phase 3 is posted: the cross-reference check and the quote check of P-AK, the checker's output kept as the record."
+    ]
+  },
+  {
+    "id": "WP16",
+    "title": "Conditional: what the scorer records, its extra pair, and a decode pass",
+    "round": 3,
+    "depends_on": [
+      "WP03",
+      "WP06",
+      "WP09c"
+    ],
+    "blocked_by_questions": [
+      "Q01",
+      "Q08",
+      "Q09",
+      "Q10",
+      "Q12"
+    ],
+    "new_files": [
+      "src/TimelineDecode.h and src/TimelineDecode.cpp (only under Q09 (b))"
+    ],
+    "changed_files": [
+      "src/VMAFAnalyzer.h",
+      "src/VMAFAnalyzer.cpp",
+      "src/VMAFReport.h",
+      "src/VMAFReport.cpp",
+      "tests/test_vmaf_report.cpp",
+      "tests/test_vmaf_analyzer.cpp",
+      "src/VMAFSegments.h and tests/test_vmaf_segments.cpp (only under Q10 (e))",
+      "src/VMAFLadder.h, src/VMAFLadder.cpp and tests/test_vmaf_ladder.cpp (only under Q12 (d))",
+      "src/LadderReportRead.cpp and tests/test_ladder_report_read.cpp (after WP03 has merged)",
+      "src/TimelineBuild.cpp and tests/test_timeline_build.cpp (after WP09c has merged)"
+    ],
+    "description": "Only when the owner picks an option that changes the scorer or adds a decode pass, after the owner's ruling under D-007 or approval of its written plan where the option needs one; frames, pairing and scores unchanged in every case. In DecodeCtx: under Q09 (a), decode_error_flags, AV_FRAME_FLAG_CORRUPT and avcodec_send_packet's errors; under Q08 (b), each frame's segment and key flag; under Q01 (C), the per-variant events; under Q10 (e), the scoring reads, through a per-input recorder in SegmentWatch's hooks, labelled scoring-paced. Under Q12 (d), VMAFLadder scores the top rung against itself as one more pair. The ladder report carries what is recorded as sparse per-pair lists; after WP03 has merged, LadderReportRead reads the new keys, optional for older reports; after WP09c has merged, TimelineBuild turns them into events (decode_error; segment_request with origin scoring; the segment map and keyframes). Under Q09 (b) instead: a decode pass in an adapter of its own, src/TimelineDecode.{h,cpp}, wired by the lead when the package starts (P-C), its errors made decode_error events through TimelineBuild. Under Q08 (b) or Q01 (C) the part for that option moves into round 1, as design §14 says.",
+    "tests": [
+      "A damaged segment, made as sources.md's corrupt-segment run made one, records its errors, and a clean one records none; every score, pairing and pooled value unchanged on the committed records' inputs; the report's new keys, with tests/test_vmaf_report.cpp:909's exact key count updated; the events they become, on hand-built reports."
+    ]
+  },
+  {
+    "id": "WP17",
+    "title": "Later: the player's session log",
+    "round": 3,
+    "depends_on": [
+      "WP07",
+      "WP13"
+    ],
+    "blocked_by_questions": [
+      "Q11",
+      "Q13"
+    ],
+    "new_files": [
+      "src/SessionLog.h",
+      "src/SessionLog.cpp"
+    ],
+    "changed_files": [
+      "src/main.cpp (only under Q13 (b), after WP13 has merged; the two never run in parallel)",
+      "src/Demuxer.cpp (only under Q13 (b))",
+      "src/MediaSession.cpp (only under Q13 (b))"
+    ],
+    "description": "Only under Q13 (b), with its D-007 plan approved: logging-only hooks in switch_video, read_loop, video_decode_loop and on_present that write Q11's format with origin 'player': the rung, the demuxer's take-over point, the frames dropped, the requests. Under Q13 (c) instead: a reader of the player's existing switch-trace text into Q11's format, with no change to the player. Its files are wired by the lead when the package starts (P-C).",
+    "tests": [
+      "The log, or under Q13 (c) the trace of a scripted --qa-switch run, read back through SessionPlan's reader; a scripted --qa-switch run outside ctest."
+    ]
+  }
+]

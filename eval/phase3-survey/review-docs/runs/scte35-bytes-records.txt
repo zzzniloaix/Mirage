@@ -1,0 +1,5 @@
+command (cwd: <records>): python3 -I -B <drafts>/verify/tools/scte35_bytes_scan.py .
+date_utc: 2026-11-01T10:26:56Z
+output (stdout and stderr):
+checked: 1079 files; hex runs: 0; base64 runs: 0; looser forms: 0; <vector id> placeholders: 109
+exit=0

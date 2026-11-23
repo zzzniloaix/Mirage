@@ -1,0 +1,2 @@
+cwd: <out>/runs/fixture-data
+command: '<out>/probe/bin/manifest_probe' 'dis/tagged.m3u8' 'dis/tagged.m3u8'

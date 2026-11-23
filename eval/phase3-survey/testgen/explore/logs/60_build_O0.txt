@@ -1,0 +1,6 @@
+$ sh build_O0.sh
+(in <out>/testgen)
+--- stdout ---
+--- stderr ---
++ clang++ -std=c++20 -g -O0 -Wall -Wextra -o <out>/testgen/testgen-O0 <out>/testgen/src/testgen.cpp -I<homebrew>/Cellar/ffmpeg-full/8.1.1/include -L<homebrew>/Cellar/ffmpeg-full/8.1.1/lib -lavformat -lavcodec -lswscale -lavutil
+--- exit status 0, wall time 1.126 s (time.monotonic) ---

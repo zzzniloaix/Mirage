@@ -1,0 +1,25 @@
+# cwd: <out>
+# command: 'python3' '-I' '-B' '<out>/review-3/tools/vector_status.py' 'scte35_evidence/runs/check_vectors.txt'
+# started: 2026-11-01T09:08:14Z, ended: 2026-11-01T09:08:14Z (UTC)
+# stdout and stderr, in order:
+line 39: scte35-go:Empty Data: not decoded; its source expects it to fail
+line 40: scte35-go:Invalid Encoding: not decoded; its source expects it to fail
+line 44: scte35-go:SpliceInsert Time Specified With Invalid Component Count: not decoded; its source expects it to fail
+line 47: scte35-go:Invalid CRC_32: crc bad; its source expects it to fail
+line 61: rfc8216-8.10-SCTE35-OUT: not decoded
+line 62: rfc8216-8.10-SCTE35-IN: not decoded
+line 63: rfc8216bis-22-9.10-SCTE35-OUT: crc bad
+line 64: rfc8216bis-22-9.10-SCTE35-IN: crc bad
+line 72: unified-origin:1564:SCTE35-OUT: crc bad
+line 73: unified-origin:1590:SCTE35-OUT: not decoded
+line 74: unified-origin:1627:SCTE35-OUT: crc bad
+line 76: wowza:1804:SCTE35-OUT: not decoded
+line 77: wowza:1817:SCTE35-IN: not decoded
+line 81: google-admanager:173:SCTE35-OUT: not decoded
+line 82: google-admanager:179:SCTE35-IN: crc bad
+line 96: google-video-stitcher:412:SCTE35-OUT: crc bad
+line 97: google-video-stitcher:414:SCTE35-IN: crc bad
+line 98: google-video-stitcher:432:EXT-OATCLS-SCTE35: crc bad
+crc bad: 9 vectors, 1 of them intended negative tests of their source
+not decoded: 9 vectors, 3 of them intended negative tests of their source
+# exit status: 0

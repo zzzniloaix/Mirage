@@ -1,0 +1,77 @@
+[INFO]  OpenGL 4.1 Metal - 90.5 — GLSL 4.10
+[INFO]  Opening media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/master.m3u8 (t=0.207)
+[INFO]  ManifestParser: parsed HLS — 0 tags, 3 variants from media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/master.m3u8
+[hls @ 0xc7b94e300] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v360/index.m3u8' for reading
+[hls @ 0xc7b94e300] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v270/index.m3u8' for reading
+[hls @ 0xc7b94e300] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v180/index.m3u8' for reading
+[hls @ 0xc7b94e300] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v360/main_000.ts' for reading
+[hls @ 0xc7b94e300] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v270/main_000.ts' for reading
+[hls @ 0xc7b94e300] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v180/main_000.ts' for reading
+[INFO]  Demuxer: avformat_open_input 3 ms (3 streams, 3 programs) (t=0.211)
+[INFO]  Demuxer: avformat_find_stream_info 6 ms (t=0.217)
+[WARN]  No audio stream found
+[INFO]  Container: Apple HTTP Live Streaming
+[INFO]  Duration:  00:00:08
+[INFO]  Video:     h264 640×360 @ 25.000 fps  pixel_fmt=yuv420p
+[INFO]  Selected HW-capable decoder: h264 (default was h264)
+[INFO]  Decoder opened: h264 (640×360)  [HW: VideoToolbox requested]
+[INFO]  Opened media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/master.m3u8 in 28 ms (t=0.235)
+[INFO]  VideoRenderer: 640×360 SDR (yuv420p → RGB24 sRGB)  matrix=BT.709  limited-range
+[INFO]  MediaSession: helpers open variant playlists — scrub media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v360/index.m3u8, thumbnails media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v180/index.m3u8 (stream 2)
+[INFO]  Keyframes: stream 0 — media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v360/index.m3u8: it has discontinuities, segment starts are not predicted
+[hls @ 0xc7ba4e800] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v360/main_000.ts' for reading
+[hls @ 0xc7b94e300] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v360/main_001.ts' for reading
+[hls @ 0xc7ba4e580] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v180/main_000.ts' for reading
+[hls @ 0xc7b94e300] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v360/main_002.ts' for reading
+[INFO]  Subtitles: 0 choice(s); initial off (none available)
+[INFO]  timeline: loading ad-continuous/timeline.json
+[INFO]  ThumbnailStrip: sampling variant playlist media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v180/index.m3u8 (180p), open + probe 2 ms (t=0.239)
+[INFO]  ThumbnailStrip: 0 keyframes in index for stream 0 — seek-sampling 9 points (stride 0.89 s)
+[hls @ 0xc7ba4e580] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v180/main_000.ts' for reading
+[INFO]  ScrubDecoder: ready — variant playlist media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v360/index.m3u8 (open + probe 4 ms) (t=0.240)
+[hls @ 0xc7ba4e580] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v180/main_007.ts' for reading
+[INFO]  ThumbnailStrip: coarse pass done (2 thumbnails)
+[hls @ 0xc7ba4e580] The m3u8 list sequence may have been wrapped.
+[hls @ 0xc7ba4e580] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v180/main_000.ts' for reading
+[hls @ 0xc7ba4e580] The m3u8 list sequence may have been wrapped.
+[hls @ 0xc7ba4e580] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v180/main_001.ts' for reading
+[hls @ 0xc7ba4e580] The m3u8 list sequence may have been wrapped.
+[hls @ 0xc7ba4e580] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v180/main_002.ts' for reading
+[INFO]  timeline: loaded ad-continuous/timeline.json: 66 events on 200 reference frames, 2 curves, 1 attributions; the ladder report media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous.json: its SHA-256 is the one the document names
+[INFO]  timeline: matched to media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/master.m3u8 by master SHA-256
+[hls @ 0xc7ba4e580] The m3u8 list sequence may have been wrapped.
+[hls @ 0xc7ba4e580] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v180/ad_000.ts' for reading
+[hls @ 0xc7ba4e580] The m3u8 list sequence may have been wrapped.
+[hls @ 0xc7ba4e580] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v180/ad_001.ts' for reading
+[hls @ 0xc7ba4e580] The m3u8 list sequence may have been wrapped.
+[hls @ 0xc7ba4e580] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v180/main_005.ts' for reading
+[hls @ 0xc7ba4e580] The m3u8 list sequence may have been wrapped.
+[hls @ 0xc7ba4e580] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v180/main_006.ts' for reading
+[INFO]  ThumbnailStrip: decode complete (8 thumbnails)
+[INFO]  Decoder: VideoToolbox HW decode active (zero-copy IOSurface path)
+[hls @ 0xc7b94e300] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v360/ad_000.ts' for reading
+[INFO]  first-frame: pts=10.000 640x360 VideoToolbox, 108 ms after open (t=0.345)
+[INFO]  VideoRenderer: HW zero-copy path ready: '420v' bound as R8 / RG8, 8-bit samples (BT.709 matrix, limited-range)
+[hls @ 0xc7b94e300] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v360/ad_001.ts' for reading
+[hls @ 0xc7b94e300] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v360/main_005.ts' for reading
+[INFO]  --speed-seq: t=2.04 event 1 0
+[INFO]  playback paused (t=2.425)
+[INFO]  --speed-seq: scrub to position 6.000 (pts 16.000)
+[INFO]  --speed-seq: t=2.50 event 6 6
+[hls @ 0xc7ba4e800] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v360/main_005.ts' for reading
+[hls @ 0xc7ba4e800] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v360/main_006.ts' for reading
+[INFO]  scrub-trace: frame pts=16.000 640x360 stream 0 for 16.000 (56 ms after the request) (t=2.906)
+[INFO]  timeline: the seek to PTS 13.360 not sent: the seek bar was being dragged, and its release seeks
+[INFO]  timeline: --ui-timeline pick=attribution:0@3 at 3.04 s after the first frame picked pair:1 at reference frame 84 (VMAF 22.237), in the document's attribution 0; seek decision: seek to PTS 13.360
+[INFO]  --speed-seq: t=4.05 event 7 0
+[hls @ 0xc7b94e300] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v360/main_006.ts' for reading
+[hls @ 0xc7b94e300] Opening 'media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/v360/main_007.ts' for reading
+[INFO]  Demuxer: end of media — waiting for a seek or track switch (t=4.447)
+[INFO]  switch-trace: first frame after seek pts=16.000 — took 7 ms
+[INFO]  --speed-seq: seek landed at pts 16.000 640x360
+[INFO]  --timeline-report: wrote extras/drag.txt (t=7.608)
+[INFO]  --speed-seq: t=8.00 event 10 0
+[INFO]  ui-snapshot: wrote extras/drag.png (2560×1440) — pts=16.000 640x360 (paused)
+[INFO]  MediaSession: closing media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-continuous/master.m3u8
+[INFO]  MediaSession: threads stopped (6 ms)
+[INFO]  ScrubDecoder: stopped (1 requests decoded from a keyframe read, 0 from a seek)

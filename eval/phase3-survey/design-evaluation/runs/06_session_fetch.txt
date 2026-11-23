@@ -1,0 +1,32 @@
+$ sh tools/session_fetch.sh <out>/design-evaluation/bin/fetch <out>/design-evaluation/../testgen/media/ad-x264-a v180/ad_000.ts 2.3 <out>/design-evaluation/out/session/ad-switch-fetch.json
+(in <out>/design-evaluation)
+started 2026-11-01T04:33:47.986794Z, ended 2026-11-01T04:33:50.916662Z, exit status 0, wall 2.930 s
+--- stdout ---
+slow path: v180/ad_000.ts, delay before its response head: 2.3 s
+label	t_start_us	t_open_us	t_end_us	duration_us	bytes	open_result	status_line
+master	824	6283	6406	5582	455	0	HTTP/1.0 200 OK
+playlist v270	6411	6947	7134	723	490	0	HTTP/1.0 200 OK
+v270 main_000	7137	7485	8056	919	66552	0	HTTP/1.0 200 OK
+v270 main_001	8059	8378	8637	578	66176	0	HTTP/1.0 200 OK
+v270 main_002	8641	9045	9415	774	63356	0	HTTP/1.0 200 OK
+playlist v180	9419	9855	9888	469	490	0	HTTP/1.0 200 OK
+v180 ad_000	9890	2321654	2323023	2313133	12032	0	HTTP/1.0 200 OK
+v180 ad_001	2323092	2325983	2326661	3569	12408	0	HTTP/1.0 200 OK
+v270 main_005	2326681	2329031	2329787	3106	66176	0	HTTP/1.0 200 OK
+v270 main_006	2329807	2331906	2332699	2892	70688	0	HTTP/1.0 200 OK
+v270 main_007	2332711	2334564	2335153	2442	63544	0	HTTP/1.0 200 OK
+--- server log ---
+server: "GET /master.m3u8 HTTP/1.1" 200 -
+server: "GET /v270/index.m3u8 HTTP/1.1" 200 -
+server: "GET /v270/main_000.ts HTTP/1.1" 200 -
+server: "GET /v270/main_001.ts HTTP/1.1" 200 -
+server: "GET /v270/main_002.ts HTTP/1.1" 200 -
+server: "GET /v180/index.m3u8 HTTP/1.1" 200 -
+server: "GET /v180/ad_000.ts HTTP/1.1" 200 -
+server: "GET /v180/ad_001.ts HTTP/1.1" 200 -
+server: "GET /v270/main_005.ts HTTP/1.1" 200 -
+server: "GET /v270/main_006.ts HTTP/1.1" 200 -
+server: "GET /v270/main_007.ts HTTP/1.1" 200 -
+--- stderr ---
+
+--- end ---

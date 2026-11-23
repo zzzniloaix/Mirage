@@ -1,0 +1,414 @@
+$ ./testgen degraded media/ramp-refused --codec libx264 --source ramp
+(in <out>/testgen)
+--- stdout ---
+--- stderr ---
+[libx264 @ 0xbf5100000] using cpu capabilities: ARMv8 NEON DotProd I8MM
+[libx264 @ 0xbf5100000] profile High, level 3.0, 4:2:0, 8-bit
+[libx264 @ 0xbf5100000] frame I:1     Avg QP:19.00  size:  4999
+[libx264 @ 0xbf5100000] frame P:6     Avg QP:22.00  size:   314
+[libx264 @ 0xbf5100000] frame B:18    Avg QP:23.67  size:   357
+[libx264 @ 0xbf5100000] consecutive B-frames:  4.0%  0.0%  0.0% 96.0%
+[libx264 @ 0xbf5100000] mb I  I16..4: 48.7% 47.3%  4.0%
+[libx264 @ 0xbf5100000] mb P  I16..4:  1.3%  0.4%  0.0%  P16..4:  9.3%  1.9%  0.4%  0.0%  0.0%    skip:86.7%
+[libx264 @ 0xbf5100000] mb B  I16..4:  0.0%  0.0%  0.0%  B16..8:  4.3%  1.2%  0.2%  direct: 0.2%  skip:94.0%  L0:43.7% L1:53.9% BI: 2.4%
+[libx264 @ 0xbf5100000] 8x8 transform intra:45.1% inter:1.2%
+[libx264 @ 0xbf5100000] coded y,uvDC,uvAC intra: 31.7% 0.0% 0.0% inter: 0.3% 0.0% 0.0%
+[libx264 @ 0xbf5100000] i16 v,h,dc,p:  0%  0%  0% 100%
+[libx264 @ 0xbf5100000] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 24% 25%  1% 32%  0%  0%  0% 14%  3%
+[libx264 @ 0xbf5100000] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 27% 12% 39%  8%  2%  0%  1%  6%  5%
+[libx264 @ 0xbf5100000] i8c dc,h,v,p: 100%  0%  0%  0%
+[libx264 @ 0xbf5100000] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0xbf5100000] kb/s:106.50
+[libx264 @ 0xbf5100380] using cpu capabilities: ARMv8 NEON DotProd I8MM
+[libx264 @ 0xbf5100380] profile High, level 2.1, 4:2:0, 8-bit
+[libx264 @ 0xbf5100380] frame I:1     Avg QP:19.00  size:  3292
+[libx264 @ 0xbf5100380] frame P:6     Avg QP:22.00  size:  1165
+[libx264 @ 0xbf5100380] frame B:18    Avg QP:23.67  size:   628
+[libx264 @ 0xbf5100380] consecutive B-frames:  4.0%  0.0%  0.0% 96.0%
+[libx264 @ 0xbf5100380] mb I  I16..4: 70.8% 24.5%  4.7%
+[libx264 @ 0xbf5100380] mb P  I16..4:  4.9%  0.3%  0.0%  P16..4: 12.0%  4.4%  2.2%  0.0%  0.0%    skip:76.2%
+[libx264 @ 0xbf5100380] mb B  I16..4:  0.0%  0.0%  0.0%  B16..8:  4.4%  1.7%  1.4%  direct: 0.8%  skip:91.7%  L0:34.0% L1:51.2% BI:14.8%
+[libx264 @ 0xbf5100380] 8x8 transform intra:19.9% inter:1.1%
+[libx264 @ 0xbf5100380] coded y,uvDC,uvAC intra: 16.3% 0.0% 0.0% inter: 2.4% 0.0% 0.0%
+[libx264 @ 0xbf5100380] i16 v,h,dc,p:  0%  0%  0% 100%
+[libx264 @ 0xbf5100380] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu:  2% 18%  1% 56%  0%  0%  0% 17%  6%
+[libx264 @ 0xbf5100380] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu:  3%  8% 37% 24%  2%  1%  1% 10% 14%
+[libx264 @ 0xbf5100380] i8c dc,h,v,p: 100%  0%  0%  0%
+[libx264 @ 0xbf5100380] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0xbf5100380] kb/s:172.62
+[libx264 @ 0xbf5100700] using cpu capabilities: ARMv8 NEON DotProd I8MM
+[libx264 @ 0xbf5100700] profile High, level 1.2, 4:2:0, 8-bit
+[libx264 @ 0xbf5100700] frame I:1     Avg QP:19.00  size:  2467
+[libx264 @ 0xbf5100700] frame P:6     Avg QP:22.00  size:   565
+[libx264 @ 0xbf5100700] frame B:18    Avg QP:23.67  size:   437
+[libx264 @ 0xbf5100700] consecutive B-frames:  4.0%  0.0%  0.0% 96.0%
+[libx264 @ 0xbf5100700] mb I  I16..4: 52.9% 40.4%  6.7%
+[libx264 @ 0xbf5100700] mb P  I16..4:  6.2%  0.8%  0.0%  P16..4: 18.6%  5.2%  2.8%  0.0%  0.0%    skip:66.4%
+[libx264 @ 0xbf5100700] mb B  I16..4:  0.0%  0.0%  0.0%  B16..8:  5.8%  2.3%  1.9%  direct: 1.2%  skip:88.8%  L0:44.7% L1:31.4% BI:23.9%
+[libx264 @ 0xbf5100700] 8x8 transform intra:31.7% inter:0.2%
+[libx264 @ 0xbf5100700] coded y,uvDC,uvAC intra: 26.0% 0.0% 0.0% inter: 3.1% 0.0% 0.0%
+[libx264 @ 0xbf5100700] i16 v,h,dc,p:  0%  0%  0% 100%
+[libx264 @ 0xbf5100700] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 18% 13%  1% 45%  0%  0%  0% 21%  2%
+[libx264 @ 0xbf5100700] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 12%  8% 18% 37%  4%  0%  1%  6% 14%
+[libx264 @ 0xbf5100700] i8c dc,h,v,p: 100%  0%  0%  0%
+[libx264 @ 0xbf5100700] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0xbf5100700] kb/s:109.85
+[libx264 @ 0xbf5100a80] using cpu capabilities: ARMv8 NEON DotProd I8MM
+[libx264 @ 0xbf5100a80] profile High, level 3.0, 4:2:0, 8-bit
+[libx264 @ 0xbf5100a80] frame I:1     Avg QP:19.00  size:  5060
+[libx264 @ 0xbf5100a80] frame P:6     Avg QP:22.00  size:   353
+[libx264 @ 0xbf5100a80] frame B:18    Avg QP:23.67  size:   367
+[libx264 @ 0xbf5100a80] consecutive B-frames:  4.0%  0.0%  0.0% 96.0%
+[libx264 @ 0xbf5100a80] mb I  I16..4: 46.5% 49.7%  3.8%
+[libx264 @ 0xbf5100a80] mb P  I16..4:  1.2%  0.5%  0.0%  P16..4:  9.0%  1.7%  1.0%  0.0%  0.0%    skip:86.5%
+[libx264 @ 0xbf5100a80] mb B  I16..4:  0.0%  0.0%  0.0%  B16..8:  4.8%  1.2%  0.2%  direct: 0.2%  skip:93.6%  L0:46.4% L1:51.1% BI: 2.5%
+[libx264 @ 0xbf5100a80] 8x8 transform intra:47.8% inter:0.7%
+[libx264 @ 0xbf5100a80] coded y,uvDC,uvAC intra: 33.3% 0.0% 0.0% inter: 0.4% 0.0% 0.0%
+[libx264 @ 0xbf5100a80] i16 v,h,dc,p:  0%  0%  0% 100%
+[libx264 @ 0xbf5100a80] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 23% 27%  1% 33%  0%  0%  0% 13%  3%
+[libx264 @ 0xbf5100a80] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 20% 18% 35% 10%  2%  0%  1%  8%  6%
+[libx264 @ 0xbf5100a80] i8c dc,h,v,p: 100%  0%  0%  0%
+[libx264 @ 0xbf5100a80] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0xbf5100a80] kb/s:110.29
+[libx264 @ 0xbf5100a80] using cpu capabilities: ARMv8 NEON DotProd I8MM
+[libx264 @ 0xbf5100a80] profile High, level 2.1, 4:2:0, 8-bit
+[libx264 @ 0xbf5100a80] frame I:1     Avg QP:19.00  size:  3296
+[libx264 @ 0xbf5100a80] frame P:6     Avg QP:22.00  size:  1132
+[libx264 @ 0xbf5100a80] frame B:18    Avg QP:23.67  size:   609
+[libx264 @ 0xbf5100a80] consecutive B-frames:  4.0%  0.0%  0.0% 96.0%
+[libx264 @ 0xbf5100a80] mb I  I16..4: 69.8% 25.1%  5.1%
+[libx264 @ 0xbf5100a80] mb P  I16..4:  6.1%  0.5%  0.0%  P16..4: 11.5%  3.7%  2.0%  0.0%  0.0%    skip:76.2%
+[libx264 @ 0xbf5100a80] mb B  I16..4:  0.0%  0.0%  0.0%  B16..8:  4.6%  1.6%  1.3%  direct: 0.9%  skip:91.6%  L0:42.1% L1:46.7% BI:11.1%
+[libx264 @ 0xbf5100a80] 8x8 transform intra:20.0% inter:0.3%
+[libx264 @ 0xbf5100a80] coded y,uvDC,uvAC intra: 16.7% 0.0% 0.0% inter: 2.3% 0.0% 0.0%
+[libx264 @ 0xbf5100a80] i16 v,h,dc,p:  0%  0%  0% 100%
+[libx264 @ 0xbf5100a80] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu:  3% 21%  1% 50%  0%  0%  0% 20%  5%
+[libx264 @ 0xbf5100a80] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu:  5%  8% 37% 21%  5%  0%  1% 10% 12%
+[libx264 @ 0xbf5100a80] i8c dc,h,v,p: 100%  0%  0%  0%
+[libx264 @ 0xbf5100a80] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0xbf5100a80] kb/s:168.42
+[libx264 @ 0xbf5100a80] using cpu capabilities: ARMv8 NEON DotProd I8MM
+[libx264 @ 0xbf5100a80] profile High, level 1.2, 4:2:0, 8-bit
+[libx264 @ 0xbf5100a80] frame I:1     Avg QP:19.00  size:  2509
+[libx264 @ 0xbf5100a80] frame P:6     Avg QP:22.00  size:   502
+[libx264 @ 0xbf5100a80] frame B:18    Avg QP:23.67  size:   435
+[libx264 @ 0xbf5100a80] consecutive B-frames:  4.0%  0.0%  0.0% 96.0%
+[libx264 @ 0xbf5100a80] mb I  I16..4: 57.5% 35.8%  6.7%
+[libx264 @ 0xbf5100a80] mb P  I16..4:  8.2%  0.8%  0.1%  P16..4: 17.6%  4.0%  2.2%  0.0%  0.0%    skip:67.1%
+[libx264 @ 0xbf5100a80] mb B  I16..4:  0.0%  0.0%  0.0%  B16..8:  6.7%  2.1%  1.8%  direct: 1.6%  skip:87.9%  L0:43.2% L1:36.1% BI:20.7%
+[libx264 @ 0xbf5100a80] 8x8 transform intra:26.4% inter:1.2%
+[libx264 @ 0xbf5100a80] coded y,uvDC,uvAC intra: 23.6% 0.0% 0.0% inter: 3.0% 0.0% 0.0%
+[libx264 @ 0xbf5100a80] i16 v,h,dc,p:  0%  0%  0% 100%
+[libx264 @ 0xbf5100a80] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 20% 14%  1% 41%  0%  0%  0% 22%  3%
+[libx264 @ 0xbf5100a80] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 14%  7% 21% 33%  6%  0%  1%  7% 11%
+[libx264 @ 0xbf5100a80] i8c dc,h,v,p: 100%  0%  0%  0%
+[libx264 @ 0xbf5100a80] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0xbf5100a80] kb/s:106.76
+[libx264 @ 0xbf5100a80] using cpu capabilities: ARMv8 NEON DotProd I8MM
+[libx264 @ 0xbf5100a80] profile High, level 3.0, 4:2:0, 8-bit
+[libx264 @ 0xbf5100a80] frame I:1     Avg QP:19.00  size:  5118
+[libx264 @ 0xbf5100a80] frame P:6     Avg QP:22.00  size:   411
+[libx264 @ 0xbf5100a80] frame B:18    Avg QP:23.67  size:   341
+[libx264 @ 0xbf5100a80] consecutive B-frames:  4.0%  0.0%  0.0% 96.0%
+[libx264 @ 0xbf5100a80] mb I  I16..4: 45.7% 50.3%  4.0%
+[libx264 @ 0xbf5100a80] mb P  I16..4:  1.8%  0.7%  0.0%  P16..4:  8.9%  1.4%  0.6%  0.0%  0.0%    skip:86.6%
+[libx264 @ 0xbf5100a80] mb B  I16..4:  0.0%  0.0%  0.0%  B16..8:  3.4%  1.4%  0.2%  direct: 0.2%  skip:94.9%  L0:41.2% L1:56.1% BI: 2.7%
+[libx264 @ 0xbf5100a80] 8x8 transform intra:47.4% inter:0.7%
+[libx264 @ 0xbf5100a80] coded y,uvDC,uvAC intra: 33.0% 0.0% 0.0% inter: 0.4% 0.0% 0.0%
+[libx264 @ 0xbf5100a80] i16 v,h,dc,p:  0%  0%  0% 100%
+[libx264 @ 0xbf5100a80] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 25% 26%  1% 31%  0%  0%  0% 14%  4%
+[libx264 @ 0xbf5100a80] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 23% 14% 40%  7%  2%  0%  1%  8%  5%
+[libx264 @ 0xbf5100a80] i8c dc,h,v,p: 100%  0%  0%  0%
+[libx264 @ 0xbf5100a80] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0xbf5100a80] kb/s:109.78
+[libx264 @ 0xbf5100a80] using cpu capabilities: ARMv8 NEON DotProd I8MM
+[libx264 @ 0xbf5100a80] profile High, level 2.1, 4:2:0, 8-bit
+[libx264 @ 0xbf5100a80] frame I:1     Avg QP:19.00  size:  3161
+[libx264 @ 0xbf5100a80] frame P:6     Avg QP:22.00  size:  1162
+[libx264 @ 0xbf5100a80] frame B:18    Avg QP:23.67  size:   624
+[libx264 @ 0xbf5100a80] consecutive B-frames:  4.0%  0.0%  0.0% 96.0%
+[libx264 @ 0xbf5100a80] mb I  I16..4: 74.7% 19.6%  5.7%
+[libx264 @ 0xbf5100a80] mb P  I16..4:  4.3%  0.2%  0.0%  P16..4: 12.2%  4.3%  2.8%  0.0%  0.0%    skip:76.3%
+[libx264 @ 0xbf5100a80] mb B  I16..4:  0.0%  0.0%  0.0%  B16..8:  4.2%  1.8%  1.2%  direct: 1.0%  skip:91.7%  L0:40.2% L1:45.3% BI:14.5%
+[libx264 @ 0xbf5100a80] 8x8 transform intra:16.3% inter:0.9%
+[libx264 @ 0xbf5100a80] coded y,uvDC,uvAC intra: 15.9% 0.0% 0.0% inter: 2.4% 0.0% 0.0%
+[libx264 @ 0xbf5100a80] i16 v,h,dc,p:  0%  0%  0% 100%
+[libx264 @ 0xbf5100a80] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu:  3% 26%  1% 44%  0%  0%  0% 19%  7%
+[libx264 @ 0xbf5100a80] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 13%  9% 29% 27%  3%  0%  0%  8% 12%
+[libx264 @ 0xbf5100a80] i8c dc,h,v,p: 100%  0%  0%  0%
+[libx264 @ 0xbf5100a80] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0xbf5100a80] kb/s:170.95
+[libx264 @ 0xbf5100a80] using cpu capabilities: ARMv8 NEON DotProd I8MM
+[libx264 @ 0xbf5100a80] profile High, level 1.2, 4:2:0, 8-bit
+[libx264 @ 0xbf5100a80] frame I:1     Avg QP:19.00  size:  2324
+[libx264 @ 0xbf5100a80] frame P:6     Avg QP:22.00  size:   532
+[libx264 @ 0xbf5100a80] frame B:18    Avg QP:23.67  size:   435
+[libx264 @ 0xbf5100a80] consecutive B-frames:  4.0%  0.0%  0.0% 96.0%
+[libx264 @ 0xbf5100a80] mb I  I16..4: 68.8% 23.3%  7.9%
+[libx264 @ 0xbf5100a80] mb P  I16..4:  6.8%  0.6%  0.0%  P16..4: 18.1%  4.6%  1.8%  0.0%  0.0%    skip:68.2%
+[libx264 @ 0xbf5100a80] mb B  I16..4:  0.0%  0.0%  0.0%  B16..8:  6.3%  2.3%  1.6%  direct: 1.8%  skip:88.0%  L0:42.6% L1:34.4% BI:23.0%
+[libx264 @ 0xbf5100a80] 8x8 transform intra:18.5% inter:0.2%
+[libx264 @ 0xbf5100a80] coded y,uvDC,uvAC intra: 18.8% 0.0% 0.0% inter: 3.1% 0.0% 0.0%
+[libx264 @ 0xbf5100a80] i16 v,h,dc,p:  0%  0%  0% 100%
+[libx264 @ 0xbf5100a80] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 25% 16%  1% 27%  0%  0%  0% 25%  6%
+[libx264 @ 0xbf5100a80] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu:  8% 15% 20% 33%  3%  0%  1%  7% 12%
+[libx264 @ 0xbf5100a80] i8c dc,h,v,p: 100%  0%  0%  0%
+[libx264 @ 0xbf5100a80] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0xbf5100a80] kb/s:106.75
+[libx264 @ 0xbf5100a80] using cpu capabilities: ARMv8 NEON DotProd I8MM
+[libx264 @ 0xbf5100a80] profile High, level 3.0, 4:2:0, 8-bit
+[libx264 @ 0xbf5100a80] frame I:1     Avg QP:19.00  size:  4963
+[libx264 @ 0xbf5100a80] frame P:7     Avg QP:22.00  size:   368
+[libx264 @ 0xbf5100a80] frame B:17    Avg QP:23.71  size:   343
+[libx264 @ 0xbf5100a80] consecutive B-frames:  4.0% 16.0%  0.0% 80.0%
+[libx264 @ 0xbf5100a80] mb I  I16..4: 48.9% 47.1%  4.0%
+[libx264 @ 0xbf5100a80] mb P  I16..4:  0.1%  0.3%  0.0%  P16..4:  9.1%  2.7%  0.6%  0.0%  0.0%    skip:87.2%
+[libx264 @ 0xbf5100a80] mb B  I16..4:  0.0%  0.0%  0.0%  B16..8:  3.4%  1.4%  0.3%  direct: 0.2%  skip:94.8%  L0:42.4% L1:55.4% BI: 2.2%
+[libx264 @ 0xbf5100a80] 8x8 transform intra:48.0% inter:6.0%
+[libx264 @ 0xbf5100a80] coded y,uvDC,uvAC intra: 33.0% 0.0% 0.0% inter: 0.4% 0.0% 0.0%
+[libx264 @ 0xbf5100a80] i16 v,h,dc,p:  0%  0%  0% 100%
+[libx264 @ 0xbf5100a80] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 23% 25%  1% 33%  0%  0%  0% 14%  4%
+[libx264 @ 0xbf5100a80] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 23% 18% 37%  7%  2%  0%  1%  7%  6%
+[libx264 @ 0xbf5100a80] i8c dc,h,v,p: 100%  0%  0%  0%
+[libx264 @ 0xbf5100a80] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0xbf5100a80] kb/s:106.90
+[libx264 @ 0xbf5100a80] using cpu capabilities: ARMv8 NEON DotProd I8MM
+[libx264 @ 0xbf5100a80] profile High, level 2.1, 4:2:0, 8-bit
+[libx264 @ 0xbf5100a80] frame I:1     Avg QP:19.00  size:  3181
+[libx264 @ 0xbf5100a80] frame P:6     Avg QP:22.00  size:  1098
+[libx264 @ 0xbf5100a80] frame B:18    Avg QP:23.67  size:   628
+[libx264 @ 0xbf5100a80] consecutive B-frames:  4.0%  0.0%  0.0% 96.0%
+[libx264 @ 0xbf5100a80] mb I  I16..4: 74.9% 19.6%  5.5%
+[libx264 @ 0xbf5100a80] mb P  I16..4:  4.2%  0.4%  0.0%  P16..4: 12.9%  3.0%  3.4%  0.0%  0.0%    skip:76.2%
+[libx264 @ 0xbf5100a80] mb B  I16..4:  0.0%  0.0%  0.0%  B16..8:  4.3%  1.9%  1.2%  direct: 1.0%  skip:91.6%  L0:34.6% L1:48.3% BI:17.0%
+[libx264 @ 0xbf5100a80] 8x8 transform intra:17.1% inter:0.7%
+[libx264 @ 0xbf5100a80] coded y,uvDC,uvAC intra: 15.5% 0.0% 0.0% inter: 2.4% 0.0% 0.0%
+[libx264 @ 0xbf5100a80] i16 v,h,dc,p:  0%  0%  0% 100%
+[libx264 @ 0xbf5100a80] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu:  3% 15%  2% 51%  0%  0%  0% 19% 11%
+[libx264 @ 0xbf5100a80] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu:  6%  9% 39% 20%  4%  0%  0% 10% 12%
+[libx264 @ 0xbf5100a80] i8c dc,h,v,p: 100%  0%  0%  0%
+[libx264 @ 0xbf5100a80] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0xbf5100a80] kb/s:168.61
+[libx264 @ 0xbf5100a80] using cpu capabilities: ARMv8 NEON DotProd I8MM
+[libx264 @ 0xbf5100a80] profile High, level 1.2, 4:2:0, 8-bit
+[libx264 @ 0xbf5100a80] frame I:1     Avg QP:19.00  size:  2412
+[libx264 @ 0xbf5100a80] frame P:6     Avg QP:22.00  size:   430
+[libx264 @ 0xbf5100a80] frame B:18    Avg QP:23.67  size:   417
+[libx264 @ 0xbf5100a80] consecutive B-frames:  4.0%  0.0%  0.0% 96.0%
+[libx264 @ 0xbf5100a80] mb I  I16..4: 57.5% 34.6%  7.9%
+[libx264 @ 0xbf5100a80] mb P  I16..4:  6.9%  0.8%  0.0%  P16..4: 20.5%  4.4%  0.8%  0.0%  0.0%    skip:66.7%
+[libx264 @ 0xbf5100a80] mb B  I16..4:  0.0%  0.0%  0.0%  B16..8:  6.1%  2.2%  1.4%  direct: 1.7%  skip:88.7%  L0:41.2% L1:37.3% BI:21.5%
+[libx264 @ 0xbf5100a80] 8x8 transform intra:26.9% inter:0.2%
+[libx264 @ 0xbf5100a80] coded y,uvDC,uvAC intra: 22.9% 0.0% 0.0% inter: 2.8% 0.0% 0.0%
+[libx264 @ 0xbf5100a80] i16 v,h,dc,p:  0%  0%  0% 100%
+[libx264 @ 0xbf5100a80] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 21% 15%  0% 41%  0%  0%  0% 22%  1%
+[libx264 @ 0xbf5100a80] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu:  9%  6% 30% 30%  4%  0%  0%  8% 14%
+[libx264 @ 0xbf5100a80] i8c dc,h,v,p: 100%  0%  0%  0%
+[libx264 @ 0xbf5100a80] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0xbf5100a80] kb/s:99.94
+[libx264 @ 0xbf5100a80] using cpu capabilities: ARMv8 NEON DotProd I8MM
+[libx264 @ 0xbf5100a80] profile High, level 3.0, 4:2:0, 8-bit
+[libx264 @ 0xbf5100a80] frame I:1     Avg QP:19.00  size:  5022
+[libx264 @ 0xbf5100a80] frame P:6     Avg QP:22.00  size:   349
+[libx264 @ 0xbf5100a80] frame B:18    Avg QP:23.67  size:   349
+[libx264 @ 0xbf5100a80] consecutive B-frames:  4.0%  0.0%  0.0% 96.0%
+[libx264 @ 0xbf5100a80] mb I  I16..4: 45.1% 50.7%  4.2%
+[libx264 @ 0xbf5100a80] mb P  I16..4:  1.1%  0.4%  0.0%  P16..4:  9.4%  2.1%  1.0%  0.0%  0.0%    skip:86.0%
+[libx264 @ 0xbf5100a80] mb B  I16..4:  0.0%  0.0%  0.0%  B16..8:  4.8%  1.1%  0.2%  direct: 0.2%  skip:93.7%  L0:44.5% L1:53.2% BI: 2.3%
+[libx264 @ 0xbf5100a80] 8x8 transform intra:48.6% inter:2.9%
+[libx264 @ 0xbf5100a80] coded y,uvDC,uvAC intra: 34.0% 0.0% 0.0% inter: 0.3% 0.0% 0.0%
+[libx264 @ 0xbf5100a80] i16 v,h,dc,p:  0%  0%  0% 100%
+[libx264 @ 0xbf5100a80] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 25% 25%  1% 33%  0%  0%  0% 12%  4%
+[libx264 @ 0xbf5100a80] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 20% 17% 39%  8%  3%  0%  1%  7%  5%
+[libx264 @ 0xbf5100a80] i8c dc,h,v,p: 100%  0%  0%  0%
+[libx264 @ 0xbf5100a80] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0xbf5100a80] kb/s:107.21
+[libx264 @ 0xbf5100a80] using cpu capabilities: ARMv8 NEON DotProd I8MM
+[libx264 @ 0xbf5100a80] profile High, level 2.1, 4:2:0, 8-bit
+[libx264 @ 0xbf5100a80] frame I:1     Avg QP:43.00  size:  1459
+[libx264 @ 0xbf5100a80] frame P:6     Avg QP:46.00  size:   189
+[libx264 @ 0xbf5100a80] frame B:18    Avg QP:47.67  size:    63
+[libx264 @ 0xbf5100a80] consecutive B-frames:  4.0%  0.0%  0.0% 96.0%
+[libx264 @ 0xbf5100a80] mb I  I16..4: 26.7% 70.0%  3.3%
+[libx264 @ 0xbf5100a80] mb P  I16..4:  3.8% 28.3%  0.1%  P16..4:  2.4%  0.2%  0.1%  0.0%  0.0%    skip:65.3%
+[libx264 @ 0xbf5100a80] mb B  I16..4:  0.2%  0.2%  0.0%  B16..8:  3.4%  0.7%  0.0%  direct: 0.0%  skip:95.6%  L0:50.1% L1:48.8% BI: 1.1%
+[libx264 @ 0xbf5100a80] 8x8 transform intra:81.3% inter:0.0%
+[libx264 @ 0xbf5100a80] coded y,uvDC,uvAC intra: 24.9% 0.0% 0.0% inter: 0.0% 0.0% 0.0%
+[libx264 @ 0xbf5100a80] i16 v,h,dc,p: 47% 18%  1% 35%
+[libx264 @ 0xbf5100a80] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu:  3%  1% 95%  0%  0%  0%  0%  0%  1%
+[libx264 @ 0xbf5100a80] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu:  3%  7% 72% 12%  0%  0%  0%  3%  4%
+[libx264 @ 0xbf5100a80] i8c dc,h,v,p: 100%  0%  0%  0%
+[libx264 @ 0xbf5100a80] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0xbf5100a80] kb/s:29.80
+[libx264 @ 0xbf5100a80] using cpu capabilities: ARMv8 NEON DotProd I8MM
+[libx264 @ 0xbf5100a80] profile High, level 1.2, 4:2:0, 8-bit
+[libx264 @ 0xbf5100a80] frame I:1     Avg QP:19.00  size:  2475
+[libx264 @ 0xbf5100a80] frame P:6     Avg QP:22.00  size:   498
+[libx264 @ 0xbf5100a80] frame B:18    Avg QP:23.67  size:   437
+[libx264 @ 0xbf5100a80] consecutive B-frames:  4.0%  0.0%  0.0% 96.0%
+[libx264 @ 0xbf5100a80] mb I  I16..4: 58.3% 34.2%  7.5%
+[libx264 @ 0xbf5100a80] mb P  I16..4:  6.2%  0.7%  0.0%  P16..4: 18.6%  5.0%  1.2%  0.0%  0.0%    skip:68.3%
+[libx264 @ 0xbf5100a80] mb B  I16..4:  0.0%  0.0%  0.0%  B16..8:  7.0%  2.0%  2.0%  direct: 1.5%  skip:87.6%  L0:45.0% L1:32.3% BI:22.7%
+[libx264 @ 0xbf5100a80] 8x8 transform intra:27.1% inter:0.7%
+[libx264 @ 0xbf5100a80] coded y,uvDC,uvAC intra: 24.2% 0.0% 0.0% inter: 3.0% 0.0% 0.0%
+[libx264 @ 0xbf5100a80] i16 v,h,dc,p:  0%  0%  0% 100%
+[libx264 @ 0xbf5100a80] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 19% 14%  0% 42%  0%  0%  0% 22%  2%
+[libx264 @ 0xbf5100a80] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 17% 12% 19% 32%  5%  0%  0%  4% 11%
+[libx264 @ 0xbf5100a80] i8c dc,h,v,p: 100%  0%  0%  0%
+[libx264 @ 0xbf5100a80] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0xbf5100a80] kb/s:106.67
+[libx264 @ 0xbf5100a80] using cpu capabilities: ARMv8 NEON DotProd I8MM
+[libx264 @ 0xbf5100a80] profile High, level 3.0, 4:2:0, 8-bit
+[libx264 @ 0xbf5100a80] frame I:1     Avg QP:19.00  size:  5038
+[libx264 @ 0xbf5100a80] frame P:6     Avg QP:22.00  size:   404
+[libx264 @ 0xbf5100a80] frame B:18    Avg QP:23.67  size:   374
+[libx264 @ 0xbf5100a80] consecutive B-frames:  4.0%  0.0%  0.0% 96.0%
+[libx264 @ 0xbf5100a80] mb I  I16..4: 45.7% 50.2%  4.1%
+[libx264 @ 0xbf5100a80] mb P  I16..4:  0.9%  0.4%  0.0%  P16..4:  9.2%  2.1%  0.8%  0.0%  0.0%    skip:86.6%
+[libx264 @ 0xbf5100a80] mb B  I16..4:  0.0%  0.0%  0.0%  B16..8:  4.2%  1.4%  0.2%  direct: 0.3%  skip:93.9%  L0:43.4% L1:54.1% BI: 2.4%
+[libx264 @ 0xbf5100a80] 8x8 transform intra:48.7% inter:2.4%
+[libx264 @ 0xbf5100a80] coded y,uvDC,uvAC intra: 33.8% 0.0% 0.0% inter: 0.4% 0.0% 0.0%
+[libx264 @ 0xbf5100a80] i16 v,h,dc,p:  0%  0%  0% 100%
+[libx264 @ 0xbf5100a80] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 23% 24%  1% 35%  0%  0%  0% 13%  4%
+[libx264 @ 0xbf5100a80] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 25% 17% 35%  8%  2%  0%  1%  7%  5%
+[libx264 @ 0xbf5100a80] i8c dc,h,v,p: 100%  0%  0%  0%
+[libx264 @ 0xbf5100a80] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0xbf5100a80] kb/s:113.50
+[libx264 @ 0xbf5100a80] using cpu capabilities: ARMv8 NEON DotProd I8MM
+[libx264 @ 0xbf5100a80] profile High, level 2.1, 4:2:0, 8-bit
+[libx264 @ 0xbf5100a80] frame I:1     Avg QP:19.00  size:  3195
+[libx264 @ 0xbf5100a80] frame P:6     Avg QP:22.00  size:  1038
+[libx264 @ 0xbf5100a80] frame B:18    Avg QP:23.67  size:   598
+[libx264 @ 0xbf5100a80] consecutive B-frames:  4.0%  0.0%  0.0% 96.0%
+[libx264 @ 0xbf5100a80] mb I  I16..4: 76.3% 19.2%  4.5%
+[libx264 @ 0xbf5100a80] mb P  I16..4:  4.9%  0.3%  0.1%  P16..4: 13.5%  5.2%  1.9%  0.0%  0.0%    skip:74.1%
+[libx264 @ 0xbf5100a80] mb B  I16..4:  0.0%  0.0%  0.0%  B16..8:  4.6%  1.8%  1.3%  direct: 0.8%  skip:91.5%  L0:38.7% L1:52.1% BI: 9.3%
+[libx264 @ 0xbf5100a80] 8x8 transform intra:15.9% inter:3.3%
+[libx264 @ 0xbf5100a80] coded y,uvDC,uvAC intra: 14.5% 0.0% 0.0% inter: 2.4% 0.0% 0.0%
+[libx264 @ 0xbf5100a80] i16 v,h,dc,p:  0%  0%  0% 100%
+[libx264 @ 0xbf5100a80] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu:  2% 19%  2% 52%  0%  0%  0% 18%  8%
+[libx264 @ 0xbf5100a80] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu:  5% 10% 35% 26%  2%  0%  2%  7% 12%
+[libx264 @ 0xbf5100a80] i8c dc,h,v,p: 100%  0%  0%  0%
+[libx264 @ 0xbf5100a80] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0xbf5100a80] kb/s:161.55
+[libx264 @ 0xbf5100a80] using cpu capabilities: ARMv8 NEON DotProd I8MM
+[libx264 @ 0xbf5100a80] profile High, level 1.2, 4:2:0, 8-bit
+[libx264 @ 0xbf5100a80] frame I:1     Avg QP:19.00  size:  2498
+[libx264 @ 0xbf5100a80] frame P:6     Avg QP:22.00  size:   577
+[libx264 @ 0xbf5100a80] frame B:18    Avg QP:23.67  size:   436
+[libx264 @ 0xbf5100a80] consecutive B-frames:  4.0%  0.0%  0.0% 96.0%
+[libx264 @ 0xbf5100a80] mb I  I16..4: 52.5% 40.8%  6.7%
+[libx264 @ 0xbf5100a80] mb P  I16..4:  6.4%  0.3%  0.1%  P16..4: 18.8%  4.4%  2.2%  0.0%  0.0%    skip:67.6%
+[libx264 @ 0xbf5100a80] mb B  I16..4:  0.0%  0.0%  0.0%  B16..8:  6.0%  2.5%  1.6%  direct: 1.5%  skip:88.4%  L0:41.0% L1:35.4% BI:23.6%
+[libx264 @ 0xbf5100a80] 8x8 transform intra:30.4% inter:1.1%
+[libx264 @ 0xbf5100a80] coded y,uvDC,uvAC intra: 25.3% 0.0% 0.0% inter: 3.3% 0.0% 0.0%
+[libx264 @ 0xbf5100a80] i16 v,h,dc,p:  0%  0%  0% 100%
+[libx264 @ 0xbf5100a80] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 16% 12%  1% 46%  0%  0%  0% 20%  5%
+[libx264 @ 0xbf5100a80] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 20%  6% 18% 32%  5%  0%  1%  5% 14%
+[libx264 @ 0xbf5100a80] i8c dc,h,v,p: 100%  0%  0%  0%
+[libx264 @ 0xbf5100a80] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0xbf5100a80] kb/s:110.46
+[libx264 @ 0xbf5100a80] using cpu capabilities: ARMv8 NEON DotProd I8MM
+[libx264 @ 0xbf5100a80] profile High, level 3.0, 4:2:0, 8-bit
+[libx264 @ 0xbf5100a80] frame I:1     Avg QP:19.00  size:  4877
+[libx264 @ 0xbf5100a80] frame P:6     Avg QP:22.00  size:   357
+[libx264 @ 0xbf5100a80] frame B:18    Avg QP:23.67  size:   335
+[libx264 @ 0xbf5100a80] consecutive B-frames:  4.0%  0.0%  0.0% 96.0%
+[libx264 @ 0xbf5100a80] mb I  I16..4: 49.0% 46.8%  4.1%
+[libx264 @ 0xbf5100a80] mb P  I16..4:  1.7%  0.6%  0.0%  P16..4:  8.6%  2.0%  0.5%  0.0%  0.0%    skip:86.6%
+[libx264 @ 0xbf5100a80] mb B  I16..4:  0.0%  0.0%  0.0%  B16..8:  3.2%  1.5%  0.2%  direct: 0.2%  skip:94.8%  L0:46.5% L1:50.7% BI: 2.8%
+[libx264 @ 0xbf5100a80] 8x8 transform intra:44.3% inter:0.8%
+[libx264 @ 0xbf5100a80] coded y,uvDC,uvAC intra: 30.1% 0.0% 0.0% inter: 0.4% 0.0% 0.0%
+[libx264 @ 0xbf5100a80] i16 v,h,dc,p:  0%  0%  0% 100%
+[libx264 @ 0xbf5100a80] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 23% 25%  1% 32%  0%  0%  0% 15%  3%
+[libx264 @ 0xbf5100a80] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 25% 17% 37%  8%  1%  0%  1%  7%  3%
+[libx264 @ 0xbf5100a80] i8c dc,h,v,p: 100%  0%  0%  0%
+[libx264 @ 0xbf5100a80] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0xbf5100a80] kb/s:104.46
+[libx264 @ 0xbf5100a80] using cpu capabilities: ARMv8 NEON DotProd I8MM
+[libx264 @ 0xbf5100a80] profile High, level 2.1, 4:2:0, 8-bit
+[libx264 @ 0xbf5100a80] frame I:1     Avg QP:19.00  size:  3222
+[libx264 @ 0xbf5100a80] frame P:6     Avg QP:22.00  size:  1070
+[libx264 @ 0xbf5100a80] frame B:18    Avg QP:23.67  size:   642
+[libx264 @ 0xbf5100a80] consecutive B-frames:  4.0%  0.0%  0.0% 96.0%
+[libx264 @ 0xbf5100a80] mb I  I16..4: 75.3% 19.6%  5.1%
+[libx264 @ 0xbf5100a80] mb P  I16..4:  5.2%  0.3%  0.0%  P16..4: 12.0%  3.8%  2.4%  0.0%  0.0%    skip:76.4%
+[libx264 @ 0xbf5100a80] mb B  I16..4:  0.0%  0.0%  0.0%  B16..8:  4.0%  1.6%  1.3%  direct: 1.0%  skip:92.1%  L0:38.0% L1:44.8% BI:17.3%
+[libx264 @ 0xbf5100a80] 8x8 transform intra:16.0% inter:0.8%
+[libx264 @ 0xbf5100a80] coded y,uvDC,uvAC intra: 14.9% 0.0% 0.0% inter: 2.4% 0.0% 0.0%
+[libx264 @ 0xbf5100a80] i16 v,h,dc,p:  0%  0%  0% 100%
+[libx264 @ 0xbf5100a80] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu:  2% 23%  1% 49%  0%  0%  0% 19%  6%
+[libx264 @ 0xbf5100a80] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu:  4% 10% 36% 27%  3%  0%  1% 10%  9%
+[libx264 @ 0xbf5100a80] i8c dc,h,v,p: 100%  0%  0%  0%
+[libx264 @ 0xbf5100a80] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0xbf5100a80] kb/s:169.57
+[libx264 @ 0xbf5100a80] using cpu capabilities: ARMv8 NEON DotProd I8MM
+[libx264 @ 0xbf5100a80] profile High, level 1.2, 4:2:0, 8-bit
+[libx264 @ 0xbf5100a80] frame I:1     Avg QP:19.00  size:  2407
+[libx264 @ 0xbf5100a80] frame P:6     Avg QP:22.00  size:   428
+[libx264 @ 0xbf5100a80] frame B:18    Avg QP:23.67  size:   422
+[libx264 @ 0xbf5100a80] consecutive B-frames:  4.0%  0.0%  0.0% 96.0%
+[libx264 @ 0xbf5100a80] mb I  I16..4: 61.2% 31.2%  7.5%
+[libx264 @ 0xbf5100a80] mb P  I16..4:  5.6%  0.7%  0.0%  P16..4: 18.4%  3.9%  1.3%  0.0%  0.0%    skip:70.1%
+[libx264 @ 0xbf5100a80] mb B  I16..4:  0.0%  0.0%  0.0%  B16..8:  5.3%  2.4%  1.7%  direct: 1.8%  skip:88.7%  L0:42.5% L1:33.1% BI:24.4%
+[libx264 @ 0xbf5100a80] 8x8 transform intra:25.7% inter:0.0%
+[libx264 @ 0xbf5100a80] coded y,uvDC,uvAC intra: 22.8% 0.0% 0.0% inter: 2.9% 0.0% 0.0%
+[libx264 @ 0xbf5100a80] i16 v,h,dc,p:  0%  0%  0% 100%
+[libx264 @ 0xbf5100a80] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 21% 14%  1% 39%  0%  0%  0% 20%  6%
+[libx264 @ 0xbf5100a80] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 17%  9% 19% 35%  3%  0%  1%  5% 10%
+[libx264 @ 0xbf5100a80] i8c dc,h,v,p: 100%  0%  0%  0%
+[libx264 @ 0xbf5100a80] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0xbf5100a80] kb/s:100.50
+[libx264 @ 0xbf5100a80] using cpu capabilities: ARMv8 NEON DotProd I8MM
+[libx264 @ 0xbf5100a80] profile High, level 3.0, 4:2:0, 8-bit
+[libx264 @ 0xbf5100a80] frame I:1     Avg QP:19.00  size:  5001
+[libx264 @ 0xbf5100a80] frame P:6     Avg QP:22.00  size:   325
+[libx264 @ 0xbf5100a80] frame B:18    Avg QP:23.67  size:   326
+[libx264 @ 0xbf5100a80] consecutive B-frames:  4.0%  0.0%  0.0% 96.0%
+[libx264 @ 0xbf5100a80] mb I  I16..4: 47.2% 49.0%  3.8%
+[libx264 @ 0xbf5100a80] mb P  I16..4:  1.2%  0.7%  0.0%  P16..4:  8.8%  1.9%  0.3%  0.0%  0.0%    skip:87.1%
+[libx264 @ 0xbf5100a80] mb B  I16..4:  0.0%  0.0%  0.0%  B16..8:  4.3%  1.3%  0.2%  direct: 0.2%  skip:94.1%  L0:45.1% L1:53.4% BI: 1.4%
+[libx264 @ 0xbf5100a80] 8x8 transform intra:47.6% inter:1.3%
+[libx264 @ 0xbf5100a80] coded y,uvDC,uvAC intra: 32.8% 0.0% 0.0% inter: 0.3% 0.0% 0.0%
+[libx264 @ 0xbf5100a80] i16 v,h,dc,p:  0%  0%  0% 100%
+[libx264 @ 0xbf5100a80] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 24% 26%  1% 32%  0%  0%  0% 13%  3%
+[libx264 @ 0xbf5100a80] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 25% 15% 37%  8%  2%  0%  0%  8%  5%
+[libx264 @ 0xbf5100a80] i8c dc,h,v,p: 100%  0%  0%  0%
+[libx264 @ 0xbf5100a80] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0xbf5100a80] kb/s:102.62
+[libx264 @ 0xbf5100a80] using cpu capabilities: ARMv8 NEON DotProd I8MM
+[libx264 @ 0xbf5100a80] profile High, level 2.1, 4:2:0, 8-bit
+[libx264 @ 0xbf5100a80] frame I:1     Avg QP:19.00  size:  3253
+[libx264 @ 0xbf5100a80] frame P:6     Avg QP:22.00  size:  1142
+[libx264 @ 0xbf5100a80] frame B:18    Avg QP:23.67  size:   648
+[libx264 @ 0xbf5100a80] consecutive B-frames:  4.0%  0.0%  0.0% 96.0%
+[libx264 @ 0xbf5100a80] mb I  I16..4: 72.7% 22.4%  4.9%
+[libx264 @ 0xbf5100a80] mb P  I16..4:  6.4%  0.6%  0.0%  P16..4: 11.9%  4.0%  1.6%  0.0%  0.0%    skip:75.6%
+[libx264 @ 0xbf5100a80] mb B  I16..4:  0.0%  0.0%  0.0%  B16..8:  4.5%  1.7%  1.3%  direct: 0.9%  skip:91.7%  L0:39.3% L1:43.9% BI:16.8%
+[libx264 @ 0xbf5100a80] 8x8 transform intra:18.3% inter:0.3%
+[libx264 @ 0xbf5100a80] coded y,uvDC,uvAC intra: 15.9% 0.0% 0.0% inter: 2.4% 0.0% 0.0%
+[libx264 @ 0xbf5100a80] i16 v,h,dc,p:  0%  0%  0% 100%
+[libx264 @ 0xbf5100a80] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu:  2% 22%  1% 50%  0%  0%  0% 20%  5%
+[libx264 @ 0xbf5100a80] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu:  8% 10% 34% 26%  2%  0%  0%  9% 10%
+[libx264 @ 0xbf5100a80] i8c dc,h,v,p: 100%  0%  0%  0%
+[libx264 @ 0xbf5100a80] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0xbf5100a80] kb/s:174.18
+[libx264 @ 0xbf5100a80] using cpu capabilities: ARMv8 NEON DotProd I8MM
+[libx264 @ 0xbf5100a80] profile High, level 1.2, 4:2:0, 8-bit
+[libx264 @ 0xbf5100a80] frame I:1     Avg QP:19.00  size:  2522
+[libx264 @ 0xbf5100a80] frame P:6     Avg QP:22.00  size:   517
+[libx264 @ 0xbf5100a80] frame B:18    Avg QP:23.67  size:   431
+[libx264 @ 0xbf5100a80] consecutive B-frames:  4.0%  0.0%  0.0% 96.0%
+[libx264 @ 0xbf5100a80] mb I  I16..4: 50.8% 43.3%  5.8%
+[libx264 @ 0xbf5100a80] mb P  I16..4:  7.5%  0.7%  0.0%  P16..4: 17.3%  4.6%  2.8%  0.0%  0.0%    skip:67.1%
+[libx264 @ 0xbf5100a80] mb B  I16..4:  0.0%  0.0%  0.0%  B16..8:  5.8%  2.2%  1.8%  direct: 1.5%  skip:88.8%  L0:38.6% L1:36.1% BI:25.4%
+[libx264 @ 0xbf5100a80] 8x8 transform intra:31.8% inter:0.5%
+[libx264 @ 0xbf5100a80] coded y,uvDC,uvAC intra: 25.2% 0.0% 0.0% inter: 3.0% 0.0% 0.0%
+[libx264 @ 0xbf5100a80] i16 v,h,dc,p:  0%  0%  0% 100%
+[libx264 @ 0xbf5100a80] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 19% 12%  1% 45%  0%  0%  0% 20%  2%
+[libx264 @ 0xbf5100a80] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu:  5% 11% 25% 34%  5%  0%  0%  7% 12%
+[libx264 @ 0xbf5100a80] i8c dc,h,v,p: 100%  0%  0%  0%
+[libx264 @ 0xbf5100a80] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0xbf5100a80] kb/s:107.10
+testgen: BANDWIDTH of v270 (234624) isn't below that of v360 (169952)
+--- exit status 1, wall time 0.596 s (time.monotonic) ---

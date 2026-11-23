@@ -1,0 +1,28 @@
+# Each snapshot by its decoded pixels' MD5 (FFmpeg's md5 muxer): the player before this
+# change and this one. "same" where the pixels are identical.
+
+tests/pathb_snapshot_regression.sh (the video viewport, --snapshot after 30 frames):
+  hw.png  before 67bded15cd36f632bc663ef3d88a2c9d  after 67bded15cd36f632bc663ef3d88a2c9d  same
+  sw.png  before 4a90a035628bddd67efcddce28b68425  after 4a90a035628bddd67efcddce28b68425  same
+
+tests/engineer_tools_snapshots.sh (the whole window): before, run 1 and run 2, and after:
+  frame_inspector_hdr.png  before-1 vs before-2: same; after vs before-1: same; after vs before-2: same
+    690b55c2c514e4805ccf081af6329668  690b55c2c514e4805ccf081af6329668  690b55c2c514e4805ccf081af6329668
+  frame_inspector_sdr.png  before-1 vs before-2: same; after vs before-1: same; after vs before-2: same
+    6e74d21f9253287f3cfa0d4fb02d2bd1  6e74d21f9253287f3cfa0d4fb02d2bd1  6e74d21f9253287f3cfa0d4fb02d2bd1
+  frame_inspector_tag_switch.png  before-1 vs before-2: same; after vs before-1: same; after vs before-2: same
+    80f8c2c11491b0989ca582d38c22b48c  80f8c2c11491b0989ca582d38c22b48c  80f8c2c11491b0989ca582d38c22b48c
+  frame_sizes.png  before-1 vs before-2: same; after vs before-1: same; after vs before-2: same
+    bde1f9cac587876eaef765f464ef4cf1  bde1f9cac587876eaef765f464ef4cf1  bde1f9cac587876eaef765f464ef4cf1
+  loudness_51.png  before-1 vs before-2: differ in x 0-3199, y 100-1944; after vs before-1: differ in x 2633-2968, y 1261-1373; after vs before-2: differ in x 0-3199, y 100-1944
+    0aeaa8cd19b1b54c6e28c5fff673fb34  9d909b288937ee55fe31c9601a967928  fe4fd1a7927e4bb80c1ffab4c88f8564
+  loudness_aac.png  before-1 vs before-2: differ in x 2420-3131, y 1365-1553; after vs before-1: differ in x 2420-3107, y 1261-1553; after vs before-2: differ in x 2633-3131, y 1261-1370
+    cf76f068499d0055cf79bcc114916ade  3770394c1d78274b08456ed28a3ed085  af8eb8e747e0a466f8756b559807e200
+  scopes_histogram.png  before-1 vs before-2: same; after vs before-1: same; after vs before-2: same
+    8b03739b9722f0ec0d0c00fa7da3991e  8b03739b9722f0ec0d0c00fa7da3991e  8b03739b9722f0ec0d0c00fa7da3991e
+  scopes_parade.png  before-1 vs before-2: same; after vs before-1: same; after vs before-2: same
+    fa3f85f2ea116f1dc617e05a8620943e  fa3f85f2ea116f1dc617e05a8620943e  fa3f85f2ea116f1dc617e05a8620943e
+  scopes_vectorscope.png  before-1 vs before-2: same; after vs before-1: same; after vs before-2: same
+    78eb22b7a79cf23f4142a0ea67b455fe  78eb22b7a79cf23f4142a0ea67b455fe  78eb22b7a79cf23f4142a0ea67b455fe
+  scopes_waveform_hdr.png  before-1 vs before-2: same; after vs before-1: same; after vs before-2: same
+    a7b99d0bf041b044e25551a86b381853  a7b99d0bf041b044e25551a86b381853  a7b99d0bf041b044e25551a86b381853

@@ -1,0 +1,7 @@
+# cwd: <out>
+# command: 'sh' '-c' 'python3 -I -B design/tools/render.py design review-adversarial/render/design.rendered.md && cmp design.md review-adversarial/render/design.rendered.md && echo 'design.md is byte-identical to its render from design/src and design/*.json''
+# started: 2026-11-01T06:00:51Z, ended: 2026-11-01T06:00:51Z (UTC)
+# stdout and stderr, in order:
+review-adversarial/render/design.rendered.md: 185772 bytes; 42 questions, 18 packages, 35 P-entries, 20 risks
+design.md is byte-identical to its render from design/src and design/*.json
+# exit status: 0

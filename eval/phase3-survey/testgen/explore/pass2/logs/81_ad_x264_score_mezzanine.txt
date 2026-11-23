@@ -1,0 +1,18 @@
+$ <scratch>/accept/wt/build/macos-release/mirage_vmaf --ladder master.m3u8 --mezzanine ../mezzanine/ad.mkv --out ../../reports/ad-x264-mezzanine.json
+(in <out>/testgen/media/ad-x264-a)
+--- stdout ---
+[INFO]  VMAFAnalyzer: 75 frames  mean=91.10  min=83.69  p5=88.35  [Analysis]
+[WARN]  VMAFAnalyzer: 76.92% of the frames failed to pair by timestamp (250 of 325: 1 unmatched reference, 249 after a discontinuity), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 75 frame pairs that paired
+mirage_vmaf: pair 3 of 3, v180/index.m3u8: 75 frame pairs scored
+[INFO]  VMAFAnalyzer: 75 frames  mean=97.60  min=91.20  p5=95.77  [Analysis]
+[WARN]  VMAFAnalyzer: 76.92% of the frames failed to pair by timestamp (250 of 325: 1 unmatched reference, 249 after a discontinuity), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 75 frame pairs that paired
+mirage_vmaf: pair 2 of 3, v270/index.m3u8: 75 frame pairs scored
+[INFO]  VMAFAnalyzer: 75 frames  mean=99.94  min=95.42  p5=100.00  [Analysis]
+[WARN]  VMAFAnalyzer: 76.92% of the frames failed to pair by timestamp (250 of 325: 1 unmatched reference, 249 after a discontinuity), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 75 frame pairs that paired
+mirage_vmaf: pair 1 of 3, v360/index.m3u8: 75 frame pairs scored
+mirage_vmaf: 3 of 3 pairs of the ladder scored against ../mezzanine/ad.mkv (mezzanine), 0 entries skipped, 11 at a time; the run is complete; report written to ../../reports/ad-x264-mezzanine.json
+--- stderr ---
+mirage_vmaf: warning: pair 3 of 3, v180/index.m3u8: 76.92% of the frames failed to pair by timestamp (250 of 325: 1 unmatched reference, 249 after a discontinuity), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 75 frame pairs that paired
+mirage_vmaf: warning: pair 2 of 3, v270/index.m3u8: 76.92% of the frames failed to pair by timestamp (250 of 325: 1 unmatched reference, 249 after a discontinuity), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 75 frame pairs that paired
+mirage_vmaf: warning: pair 1 of 3, v360/index.m3u8: 76.92% of the frames failed to pair by timestamp (250 of 325: 1 unmatched reference, 249 after a discontinuity), above the threshold of 1% (DECISIONS.md D-028); the scores are those of the 75 frame pairs that paired
+--- exit status 0, wall time 1.054 s (time.monotonic) ---

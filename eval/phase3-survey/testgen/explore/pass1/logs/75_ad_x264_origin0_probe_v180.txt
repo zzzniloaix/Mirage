@@ -1,0 +1,410 @@
+$ ./testgen probe media/ad-x264-origin0/v180/index.m3u8
+(in <out>/testgen)
+--- stdout ---
+format hls, stream 0: h264 320x180, time base 1/90000, start_time 900000, avg_frame_rate 25/1, r_frame_rate 25/1
+packet   0 pts 900000 dts 892800 (10.000000 / 9.920000 s) size 13971 key
+packet   1 pts 907200 dts 896400 (10.080000 / 9.960000 s) size 984
+packet   2 pts 903600 dts 900000 (10.040000 / 10.000000 s) size 407
+frame   0 pts 900000 (10.000000 s) type I key
+packet   3 pts 914400 dts 903600 (10.160000 / 10.040000 s) size 1060
+frame   1 pts 903600 (10.040000 s) type B
+packet   4 pts 910800 dts 907200 (10.120000 / 10.080000 s) size 472
+frame   2 pts 907200 (10.080000 s) type P
+packet   5 pts 921600 dts 910800 (10.240000 / 10.120000 s) size 1206
+frame   3 pts 910800 (10.120000 s) type B
+packet   6 pts 918000 dts 914400 (10.200000 / 10.160000 s) size 407
+frame   4 pts 914400 (10.160000 s) type P
+packet   7 pts 928800 dts 918000 (10.320000 / 10.200000 s) size 1228
+frame   5 pts 918000 (10.200000 s) type B
+packet   8 pts 925200 dts 921600 (10.280000 / 10.240000 s) size 426
+frame   6 pts 921600 (10.240000 s) type P
+packet   9 pts 936000 dts 925200 (10.400000 / 10.280000 s) size 1247
+frame   7 pts 925200 (10.280000 s) type B
+packet  10 pts 932400 dts 928800 (10.360000 / 10.320000 s) size 441
+frame   8 pts 928800 (10.320000 s) type P
+packet  11 pts 943200 dts 932400 (10.480000 / 10.360000 s) size 1275
+frame   9 pts 932400 (10.360000 s) type B
+packet  12 pts 939600 dts 936000 (10.440000 / 10.400000 s) size 453
+frame  10 pts 936000 (10.400000 s) type P
+packet  13 pts 946800 dts 939600 (10.520000 / 10.440000 s) size 1116
+frame  11 pts 939600 (10.440000 s) type B
+packet  14 pts 954000 dts 943200 (10.600000 / 10.480000 s) size 1386
+frame  12 pts 943200 (10.480000 s) type P
+packet  15 pts 950400 dts 946800 (10.560000 / 10.520000 s) size 528
+frame  13 pts 946800 (10.520000 s) type P
+packet  16 pts 961200 dts 950400 (10.680000 / 10.560000 s) size 1417
+frame  14 pts 950400 (10.560000 s) type B
+packet  17 pts 957600 dts 954000 (10.640000 / 10.600000 s) size 586
+frame  15 pts 954000 (10.600000 s) type P
+packet  18 pts 972000 dts 957600 (10.800000 / 10.640000 s) size 1975
+frame  16 pts 957600 (10.640000 s) type B
+packet  19 pts 964800 dts 961200 (10.720000 / 10.680000 s) size 625
+frame  17 pts 961200 (10.680000 s) type P
+packet  20 pts 968400 dts 964800 (10.760000 / 10.720000 s) size 600
+frame  18 pts 964800 (10.720000 s) type B
+packet  21 pts 979200 dts 968400 (10.880000 / 10.760000 s) size 1360
+frame  19 pts 968400 (10.760000 s) type B
+packet  22 pts 975600 dts 972000 (10.840000 / 10.800000 s) size 496
+frame  20 pts 972000 (10.800000 s) type P
+packet  23 pts 986400 dts 975600 (10.960000 / 10.840000 s) size 1376
+frame  21 pts 975600 (10.840000 s) type B
+packet  24 pts 982800 dts 979200 (10.920000 / 10.880000 s) size 519
+frame  22 pts 979200 (10.880000 s) type P
+packet  25 pts 990000 dts 982800 (11.000000 / 10.920000 s) size 13991 key
+frame  23 pts 982800 (10.920000 s) type B
+packet  26 pts 997200 dts 986400 (11.080000 / 10.960000 s) size 952
+frame  24 pts 986400 (10.960000 s) type P
+packet  27 pts 993600 dts 990000 (11.040000 / 11.000000 s) size 523
+frame  25 pts 990000 (11.000000 s) type I key
+packet  28 pts 1011600 dts 993600 (11.240000 / 11.040000 s) size 1518
+frame  26 pts 993600 (11.040000 s) type B
+packet  29 pts 1004400 dts 997200 (11.160000 / 11.080000 s) size 597
+frame  27 pts 997200 (11.080000 s) type P
+packet  30 pts 1000800 dts 1000800 (11.120000 / 11.120000 s) size 553
+frame  28 pts 1000800 (11.120000 s) type B
+packet  31 pts 1008000 dts 1004400 (11.200000 / 11.160000 s) size 574
+frame  29 pts 1004400 (11.160000 s) type B
+packet  32 pts 1026000 dts 1008000 (11.400000 / 11.200000 s) size 1591
+frame  30 pts 1008000 (11.200000 s) type B
+packet  33 pts 1018800 dts 1011600 (11.320000 / 11.240000 s) size 623
+frame  31 pts 1011600 (11.240000 s) type P
+packet  34 pts 1015200 dts 1015200 (11.280000 / 11.280000 s) size 564
+frame  32 pts 1015200 (11.280000 s) type B
+packet  35 pts 1022400 dts 1018800 (11.360000 / 11.320000 s) size 590
+frame  33 pts 1018800 (11.320000 s) type B
+packet  36 pts 1040400 dts 1022400 (11.560000 / 11.360000 s) size 1574
+frame  34 pts 1022400 (11.360000 s) type B
+packet  37 pts 1033200 dts 1026000 (11.480000 / 11.400000 s) size 571
+frame  35 pts 1026000 (11.400000 s) type P
+packet  38 pts 1029600 dts 1029600 (11.440000 / 11.440000 s) size 562
+frame  36 pts 1029600 (11.440000 s) type B
+packet  39 pts 1036800 dts 1033200 (11.520000 / 11.480000 s) size 563
+frame  37 pts 1033200 (11.480000 s) type B
+packet  40 pts 1047600 dts 1036800 (11.640000 / 11.520000 s) size 1190
+frame  38 pts 1036800 (11.520000 s) type B
+packet  41 pts 1044000 dts 1040400 (11.600000 / 11.560000 s) size 550
+frame  39 pts 1040400 (11.560000 s) type P
+packet  42 pts 1062000 dts 1044000 (11.800000 / 11.600000 s) size 1657
+frame  40 pts 1044000 (11.600000 s) type B
+packet  43 pts 1054800 dts 1047600 (11.720000 / 11.640000 s) size 420
+frame  41 pts 1047600 (11.640000 s) type P
+packet  44 pts 1051200 dts 1051200 (11.680000 / 11.680000 s) size 470
+frame  42 pts 1051200 (11.680000 s) type B
+packet  45 pts 1058400 dts 1054800 (11.760000 / 11.720000 s) size 511
+frame  43 pts 1054800 (11.720000 s) type B
+packet  46 pts 1069200 dts 1058400 (11.880000 / 11.760000 s) size 1203
+frame  44 pts 1058400 (11.760000 s) type B
+packet  47 pts 1065600 dts 1062000 (11.840000 / 11.800000 s) size 360
+frame  45 pts 1062000 (11.800000 s) type P
+packet  48 pts 1076400 dts 1065600 (11.960000 / 11.840000 s) size 1170
+frame  46 pts 1065600 (11.840000 s) type B
+packet  49 pts 1072800 dts 1069200 (11.920000 / 11.880000 s) size 399
+frame  47 pts 1069200 (11.880000 s) type P
+packet  50 pts 1080000 dts 1072800 (12.000000 / 11.920000 s) size 14081 key
+frame  48 pts 1072800 (11.920000 s) type B
+packet  51 pts 1087200 dts 1076400 (12.080000 / 11.960000 s) size 863
+frame  49 pts 1076400 (11.960000 s) type P
+packet  52 pts 1083600 dts 1080000 (12.040000 / 12.000000 s) size 357
+frame  50 pts 1080000 (12.000000 s) type I key
+packet  53 pts 1098000 dts 1083600 (12.200000 / 12.040000 s) size 1502
+frame  51 pts 1083600 (12.040000 s) type B
+packet  54 pts 1090800 dts 1087200 (12.120000 / 12.080000 s) size 517
+frame  52 pts 1087200 (12.080000 s) type P
+packet  55 pts 1094400 dts 1090800 (12.160000 / 12.120000 s) size 547
+frame  53 pts 1090800 (12.120000 s) type B
+packet  56 pts 1108800 dts 1094400 (12.320000 / 12.160000 s) size 1737
+frame  54 pts 1094400 (12.160000 s) type B
+packet  57 pts 1101600 dts 1098000 (12.240000 / 12.200000 s) size 499
+frame  55 pts 1098000 (12.200000 s) type P
+packet  58 pts 1105200 dts 1101600 (12.280000 / 12.240000 s) size 575
+frame  56 pts 1101600 (12.240000 s) type B
+packet  59 pts 1116000 dts 1105200 (12.400000 / 12.280000 s) size 1263
+frame  57 pts 1105200 (12.280000 s) type B
+packet  60 pts 1112400 dts 1108800 (12.360000 / 12.320000 s) size 468
+frame  58 pts 1108800 (12.320000 s) type P
+packet  61 pts 1123200 dts 1112400 (12.480000 / 12.360000 s) size 1206
+frame  59 pts 1112400 (12.360000 s) type B
+packet  62 pts 1119600 dts 1116000 (12.440000 / 12.400000 s) size 592
+frame  60 pts 1116000 (12.400000 s) type P
+packet  63 pts 1137600 dts 1119600 (12.640000 / 12.440000 s) size 1484
+frame  61 pts 1119600 (12.440000 s) type B
+packet  64 pts 1130400 dts 1123200 (12.560000 / 12.480000 s) size 517
+frame  62 pts 1123200 (12.480000 s) type P
+packet  65 pts 1126800 dts 1126800 (12.520000 / 12.520000 s) size 550
+frame  63 pts 1126800 (12.520000 s) type B
+packet  66 pts 1134000 dts 1130400 (12.600000 / 12.560000 s) size 488
+frame  64 pts 1130400 (12.560000 s) type B
+packet  67 pts 1144800 dts 1134000 (12.720000 / 12.600000 s) size 1081
+frame  65 pts 1134000 (12.600000 s) type B
+packet  68 pts 1141200 dts 1137600 (12.680000 / 12.640000 s) size 460
+frame  66 pts 1137600 (12.640000 s) type P
+packet  69 pts 1159200 dts 1141200 (12.880000 / 12.680000 s) size 1474
+frame  67 pts 1141200 (12.680000 s) type B
+packet  70 pts 1152000 dts 1144800 (12.800000 / 12.720000 s) size 437
+frame  68 pts 1144800 (12.720000 s) type P
+packet  71 pts 1148400 dts 1148400 (12.760000 / 12.760000 s) size 444
+frame  69 pts 1148400 (12.760000 s) type B
+packet  72 pts 1155600 dts 1152000 (12.840000 / 12.800000 s) size 482
+frame  70 pts 1152000 (12.800000 s) type B
+packet  73 pts 1166400 dts 1155600 (12.960000 / 12.840000 s) size 1113
+frame  71 pts 1155600 (12.840000 s) type B
+packet  74 pts 1162800 dts 1159200 (12.920000 / 12.880000 s) size 509
+frame  72 pts 1159200 (12.880000 s) type P
+packet  75 pts 7200 dts 0 (0.080000 / 0.000000 s) size 2809 key
+frame  73 pts 1162800 (12.920000 s) type B
+packet  76 pts 10800 dts 3600 (0.120000 / 0.040000 s) size 66
+frame  74 pts 1166400 (12.960000 s) type P
+packet  77 pts 14400 dts 7200 (0.160000 / 0.080000 s) size 121
+frame  75 pts 7200 (0.080000 s) type I key
+packet  78 pts 28800 dts 10800 (0.320000 / 0.120000 s) size 188
+frame  76 pts 10800 (0.120000 s) type P
+packet  79 pts 21600 dts 14400 (0.240000 / 0.160000 s) size 77
+frame  77 pts 14400 (0.160000 s) type P
+packet  80 pts 18000 dts 18000 (0.200000 / 0.200000 s) size 61
+frame  78 pts 18000 (0.200000 s) type B
+packet  81 pts 25200 dts 21600 (0.280000 / 0.240000 s) size 38
+frame  79 pts 21600 (0.240000 s) type B
+packet  82 pts 32400 dts 25200 (0.360000 / 0.280000 s) size 120
+frame  80 pts 25200 (0.280000 s) type B
+packet  83 pts 46800 dts 28800 (0.520000 / 0.320000 s) size 297
+frame  81 pts 28800 (0.320000 s) type P
+packet  84 pts 39600 dts 32400 (0.440000 / 0.360000 s) size 87
+frame  82 pts 32400 (0.360000 s) type P
+packet  85 pts 36000 dts 36000 (0.400000 / 0.400000 s) size 49
+frame  83 pts 36000 (0.400000 s) type B
+packet  86 pts 43200 dts 39600 (0.480000 / 0.440000 s) size 40
+frame  84 pts 39600 (0.440000 s) type B
+packet  87 pts 61200 dts 43200 (0.680000 / 0.480000 s) size 334
+frame  85 pts 43200 (0.480000 s) type B
+packet  88 pts 54000 dts 46800 (0.600000 / 0.520000 s) size 79
+frame  86 pts 46800 (0.520000 s) type P
+packet  89 pts 50400 dts 50400 (0.560000 / 0.560000 s) size 55
+frame  87 pts 50400 (0.560000 s) type B
+packet  90 pts 57600 dts 54000 (0.640000 / 0.600000 s) size 44
+frame  88 pts 54000 (0.600000 s) type B
+packet  91 pts 75600 dts 57600 (0.840000 / 0.640000 s) size 446
+frame  89 pts 57600 (0.640000 s) type B
+packet  92 pts 68400 dts 61200 (0.760000 / 0.680000 s) size 82
+frame  90 pts 61200 (0.680000 s) type P
+packet  93 pts 64800 dts 64800 (0.720000 / 0.720000 s) size 60
+frame  91 pts 64800 (0.720000 s) type B
+packet  94 pts 72000 dts 68400 (0.800000 / 0.760000 s) size 38
+frame  92 pts 68400 (0.760000 s) type B
+packet  95 pts 90000 dts 72000 (1.000000 / 0.800000 s) size 372
+frame  93 pts 72000 (0.800000 s) type B
+packet  96 pts 82800 dts 75600 (0.920000 / 0.840000 s) size 100
+frame  94 pts 75600 (0.840000 s) type P
+packet  97 pts 79200 dts 79200 (0.880000 / 0.880000 s) size 48
+frame  95 pts 79200 (0.880000 s) type B
+packet  98 pts 86400 dts 82800 (0.960000 / 0.920000 s) size 38
+frame  96 pts 82800 (0.920000 s) type B
+packet  99 pts 93600 dts 86400 (1.040000 / 0.960000 s) size 298
+frame  97 pts 86400 (0.960000 s) type B
+packet 100 pts 97200 dts 90000 (1.080000 / 1.000000 s) size 2867 key
+frame  98 pts 90000 (1.000000 s) type P
+packet 101 pts 104400 dts 93600 (1.160000 / 1.040000 s) size 171
+frame  99 pts 93600 (1.040000 s) type P
+packet 102 pts 100800 dts 97200 (1.120000 / 1.080000 s) size 40
+frame 100 pts 97200 (1.080000 s) type I key
+packet 103 pts 118800 dts 100800 (1.320000 / 1.120000 s) size 208
+frame 101 pts 100800 (1.120000 s) type B
+packet 104 pts 111600 dts 104400 (1.240000 / 1.160000 s) size 68
+frame 102 pts 104400 (1.160000 s) type P
+packet 105 pts 108000 dts 108000 (1.200000 / 1.200000 s) size 51
+frame 103 pts 108000 (1.200000 s) type B
+packet 106 pts 115200 dts 111600 (1.280000 / 1.240000 s) size 45
+frame 104 pts 111600 (1.240000 s) type B
+packet 107 pts 122400 dts 115200 (1.360000 / 1.280000 s) size 137
+frame 105 pts 115200 (1.280000 s) type B
+packet 108 pts 126000 dts 118800 (1.400000 / 1.320000 s) size 189
+frame 106 pts 118800 (1.320000 s) type P
+packet 109 pts 129600 dts 122400 (1.440000 / 1.360000 s) size 160
+frame 107 pts 122400 (1.360000 s) type P
+packet 110 pts 133200 dts 126000 (1.480000 / 1.400000 s) size 163
+frame 108 pts 126000 (1.400000 s) type P
+packet 111 pts 147600 dts 129600 (1.640000 / 1.440000 s) size 327
+frame 109 pts 129600 (1.440000 s) type P
+packet 112 pts 140400 dts 133200 (1.560000 / 1.480000 s) size 109
+frame 110 pts 133200 (1.480000 s) type P
+packet 113 pts 136800 dts 136800 (1.520000 / 1.520000 s) size 50
+frame 111 pts 136800 (1.520000 s) type B
+packet 114 pts 144000 dts 140400 (1.600000 / 1.560000 s) size 45
+frame 112 pts 140400 (1.560000 s) type B
+packet 115 pts 151200 dts 144000 (1.680000 / 1.600000 s) size 335
+frame 113 pts 144000 (1.600000 s) type B
+packet 116 pts 154800 dts 147600 (1.720000 / 1.640000 s) size 195
+frame 114 pts 147600 (1.640000 s) type P
+packet 117 pts 158400 dts 151200 (1.760000 / 1.680000 s) size 169
+frame 115 pts 151200 (1.680000 s) type P
+packet 118 pts 172800 dts 154800 (1.920000 / 1.720000 s) size 387
+frame 116 pts 154800 (1.720000 s) type P
+packet 119 pts 165600 dts 158400 (1.840000 / 1.760000 s) size 79
+frame 117 pts 158400 (1.760000 s) type P
+packet 120 pts 162000 dts 162000 (1.800000 / 1.800000 s) size 47
+frame 118 pts 162000 (1.800000 s) type B
+packet 121 pts 169200 dts 165600 (1.880000 / 1.840000 s) size 44
+frame 119 pts 165600 (1.840000 s) type B
+packet 122 pts 176400 dts 169200 (1.960000 / 1.880000 s) size 138
+frame 120 pts 169200 (1.880000 s) type B
+packet 123 pts 183600 dts 172800 (2.040000 / 1.920000 s) size 266
+frame 121 pts 172800 (1.920000 s) type P
+packet 124 pts 180000 dts 176400 (2.000000 / 1.960000 s) size 54
+frame 122 pts 176400 (1.960000 s) type P
+packet 125 pts 1350000 dts 1342800 (15.000000 / 14.920000 s) size 13446 key
+frame 123 pts 180000 (2.000000 s) type B
+packet 126 pts 1364400 dts 1346400 (15.160000 / 14.960000 s) size 1448
+frame 124 pts 183600 (2.040000 s) type P
+packet 127 pts 1357200 dts 1350000 (15.080000 / 15.000000 s) size 542
+frame 125 pts 1350000 (15.000000 s) type I key
+packet 128 pts 1353600 dts 1353600 (15.040000 / 15.040000 s) size 554
+frame 126 pts 1353600 (15.040000 s) type B
+packet 129 pts 1360800 dts 1357200 (15.120000 / 15.080000 s) size 496
+frame 127 pts 1357200 (15.080000 s) type B
+packet 130 pts 1368000 dts 1360800 (15.200000 / 15.120000 s) size 1072
+frame 128 pts 1360800 (15.120000 s) type B
+packet 131 pts 1378800 dts 1364400 (15.320000 / 15.160000 s) size 1869
+frame 129 pts 1364400 (15.160000 s) type P
+packet 132 pts 1371600 dts 1368000 (15.240000 / 15.200000 s) size 663
+frame 130 pts 1368000 (15.200000 s) type P
+packet 133 pts 1375200 dts 1371600 (15.280000 / 15.240000 s) size 607
+frame 131 pts 1371600 (15.240000 s) type B
+packet 134 pts 1386000 dts 1375200 (15.400000 / 15.280000 s) size 1292
+frame 132 pts 1375200 (15.280000 s) type B
+packet 135 pts 1382400 dts 1378800 (15.360000 / 15.320000 s) size 617
+frame 133 pts 1378800 (15.320000 s) type P
+packet 136 pts 1400400 dts 1382400 (15.560000 / 15.360000 s) size 1676
+frame 134 pts 1382400 (15.360000 s) type B
+packet 137 pts 1393200 dts 1386000 (15.480000 / 15.400000 s) size 649
+frame 135 pts 1386000 (15.400000 s) type P
+packet 138 pts 1389600 dts 1389600 (15.440000 / 15.440000 s) size 597
+frame 136 pts 1389600 (15.440000 s) type B
+packet 139 pts 1396800 dts 1393200 (15.520000 / 15.480000 s) size 593
+frame 137 pts 1393200 (15.480000 s) type B
+packet 140 pts 1414800 dts 1396800 (15.720000 / 15.520000 s) size 1905
+frame 138 pts 1396800 (15.520000 s) type B
+packet 141 pts 1407600 dts 1400400 (15.640000 / 15.560000 s) size 592
+frame 139 pts 1400400 (15.560000 s) type P
+packet 142 pts 1404000 dts 1404000 (15.600000 / 15.600000 s) size 604
+frame 140 pts 1404000 (15.600000 s) type B
+packet 143 pts 1411200 dts 1407600 (15.680000 / 15.640000 s) size 645
+frame 141 pts 1407600 (15.640000 s) type B
+packet 144 pts 1429200 dts 1411200 (15.880000 / 15.680000 s) size 1807
+frame 142 pts 1411200 (15.680000 s) type B
+packet 145 pts 1422000 dts 1414800 (15.800000 / 15.720000 s) size 589
+frame 143 pts 1414800 (15.720000 s) type P
+packet 146 pts 1418400 dts 1418400 (15.760000 / 15.760000 s) size 542
+frame 144 pts 1418400 (15.760000 s) type B
+packet 147 pts 1425600 dts 1422000 (15.840000 / 15.800000 s) size 731
+frame 145 pts 1422000 (15.800000 s) type B
+packet 148 pts 1436400 dts 1425600 (15.960000 / 15.840000 s) size 1222
+frame 146 pts 1425600 (15.840000 s) type B
+packet 149 pts 1432800 dts 1429200 (15.920000 / 15.880000 s) size 594
+frame 147 pts 1429200 (15.880000 s) type P
+packet 150 pts 1440000 dts 1432800 (16.000000 / 15.920000 s) size 13922 key
+frame 148 pts 1432800 (15.920000 s) type B
+packet 151 pts 1450800 dts 1436400 (16.120000 / 15.960000 s) size 1585
+frame 149 pts 1436400 (15.960000 s) type P
+packet 152 pts 1443600 dts 1440000 (16.040000 / 16.000000 s) size 504
+frame 150 pts 1440000 (16.000000 s) type I key
+packet 153 pts 1447200 dts 1443600 (16.080000 / 16.040000 s) size 521
+frame 151 pts 1443600 (16.040000 s) type B
+packet 154 pts 1458000 dts 1447200 (16.200000 / 16.080000 s) size 1141
+frame 152 pts 1447200 (16.080000 s) type B
+packet 155 pts 1454400 dts 1450800 (16.160000 / 16.120000 s) size 605
+frame 153 pts 1450800 (16.120000 s) type P
+packet 156 pts 1465200 dts 1454400 (16.280000 / 16.160000 s) size 1178
+frame 154 pts 1454400 (16.160000 s) type B
+packet 157 pts 1461600 dts 1458000 (16.240000 / 16.200000 s) size 587
+frame 155 pts 1458000 (16.200000 s) type P
+packet 158 pts 1472400 dts 1461600 (16.360000 / 16.240000 s) size 1220
+frame 156 pts 1461600 (16.240000 s) type B
+packet 159 pts 1468800 dts 1465200 (16.320000 / 16.280000 s) size 464
+frame 157 pts 1465200 (16.280000 s) type P
+packet 160 pts 1479600 dts 1468800 (16.440000 / 16.320000 s) size 1177
+frame 158 pts 1468800 (16.320000 s) type B
+packet 161 pts 1476000 dts 1472400 (16.400000 / 16.360000 s) size 548
+frame 159 pts 1472400 (16.360000 s) type P
+packet 162 pts 1483200 dts 1476000 (16.480000 / 16.400000 s) size 1232
+frame 160 pts 1476000 (16.400000 s) type B
+packet 163 pts 1490400 dts 1479600 (16.560000 / 16.440000 s) size 1246
+frame 161 pts 1479600 (16.440000 s) type P
+packet 164 pts 1486800 dts 1483200 (16.520000 / 16.480000 s) size 611
+frame 162 pts 1483200 (16.480000 s) type P
+packet 165 pts 1504800 dts 1486800 (16.720000 / 16.520000 s) size 1687
+frame 163 pts 1486800 (16.520000 s) type B
+packet 166 pts 1497600 dts 1490400 (16.640000 / 16.560000 s) size 641
+frame 164 pts 1490400 (16.560000 s) type P
+packet 167 pts 1494000 dts 1494000 (16.600000 / 16.600000 s) size 645
+frame 165 pts 1494000 (16.600000 s) type B
+packet 168 pts 1501200 dts 1497600 (16.680000 / 16.640000 s) size 718
+frame 166 pts 1497600 (16.640000 s) type B
+packet 169 pts 1512000 dts 1501200 (16.800000 / 16.680000 s) size 1254
+frame 167 pts 1501200 (16.680000 s) type B
+packet 170 pts 1508400 dts 1504800 (16.760000 / 16.720000 s) size 703
+frame 168 pts 1504800 (16.720000 s) type P
+packet 171 pts 1526400 dts 1508400 (16.960000 / 16.760000 s) size 1643
+frame 169 pts 1508400 (16.760000 s) type B
+packet 172 pts 1519200 dts 1512000 (16.880000 / 16.800000 s) size 656
+frame 170 pts 1512000 (16.800000 s) type P
+packet 173 pts 1515600 dts 1515600 (16.840000 / 16.840000 s) size 613
+frame 171 pts 1515600 (16.840000 s) type B
+packet 174 pts 1522800 dts 1519200 (16.920000 / 16.880000 s) size 598
+frame 172 pts 1519200 (16.880000 s) type B
+packet 175 pts 1530000 dts 1522800 (17.000000 / 16.920000 s) size 13355 key
+frame 173 pts 1522800 (16.920000 s) type B
+packet 176 pts 1537200 dts 1526400 (17.080000 / 16.960000 s) size 986
+frame 174 pts 1526400 (16.960000 s) type P
+packet 177 pts 1533600 dts 1530000 (17.040000 / 17.000000 s) size 483
+frame 175 pts 1530000 (17.000000 s) type I key
+packet 178 pts 1551600 dts 1533600 (17.240000 / 17.040000 s) size 1454
+frame 176 pts 1533600 (17.040000 s) type B
+packet 179 pts 1544400 dts 1537200 (17.160000 / 17.080000 s) size 664
+frame 177 pts 1537200 (17.080000 s) type P
+packet 180 pts 1540800 dts 1540800 (17.120000 / 17.120000 s) size 478
+frame 178 pts 1540800 (17.120000 s) type B
+packet 181 pts 1548000 dts 1544400 (17.200000 / 17.160000 s) size 537
+frame 179 pts 1544400 (17.160000 s) type B
+packet 182 pts 1558800 dts 1548000 (17.320000 / 17.200000 s) size 1170
+frame 180 pts 1548000 (17.200000 s) type B
+packet 183 pts 1555200 dts 1551600 (17.280000 / 17.240000 s) size 601
+frame 181 pts 1551600 (17.240000 s) type P
+packet 184 pts 1566000 dts 1555200 (17.400000 / 17.280000 s) size 1233
+frame 182 pts 1555200 (17.280000 s) type B
+packet 185 pts 1562400 dts 1558800 (17.360000 / 17.320000 s) size 444
+frame 183 pts 1558800 (17.320000 s) type P
+packet 186 pts 1573200 dts 1562400 (17.480000 / 17.360000 s) size 1142
+frame 184 pts 1562400 (17.360000 s) type B
+packet 187 pts 1569600 dts 1566000 (17.440000 / 17.400000 s) size 481
+frame 185 pts 1566000 (17.400000 s) type P
+packet 188 pts 1580400 dts 1569600 (17.560000 / 17.440000 s) size 1194
+frame 186 pts 1569600 (17.440000 s) type B
+packet 189 pts 1576800 dts 1573200 (17.520000 / 17.480000 s) size 504
+frame 187 pts 1573200 (17.480000 s) type P
+packet 190 pts 1594800 dts 1576800 (17.720000 / 17.520000 s) size 1622
+frame 188 pts 1576800 (17.520000 s) type B
+packet 191 pts 1587600 dts 1580400 (17.640000 / 17.560000 s) size 482
+frame 189 pts 1580400 (17.560000 s) type P
+packet 192 pts 1584000 dts 1584000 (17.600000 / 17.600000 s) size 515
+frame 190 pts 1584000 (17.600000 s) type B
+packet 193 pts 1591200 dts 1587600 (17.680000 / 17.640000 s) size 437
+frame 191 pts 1587600 (17.640000 s) type B
+packet 194 pts 1602000 dts 1591200 (17.800000 / 17.680000 s) size 1028
+frame 192 pts 1591200 (17.680000 s) type B
+packet 195 pts 1598400 dts 1594800 (17.760000 / 17.720000 s) size 380
+frame 193 pts 1594800 (17.720000 s) type P
+packet 196 pts 1609200 dts 1598400 (17.880000 / 17.760000 s) size 1052
+frame 194 pts 1598400 (17.760000 s) type B
+packet 197 pts 1605600 dts 1602000 (17.840000 / 17.800000 s) size 431
+frame 195 pts 1602000 (17.800000 s) type P
+packet 198 pts 1616400 dts 1605600 (17.960000 / 17.840000 s) size 1192
+frame 196 pts 1605600 (17.840000 s) type B
+packet 199 pts 1612800 dts 1609200 (17.920000 / 17.880000 s) size 431
+frame 197 pts 1609200 (17.880000 s) type P
+frame 198 pts 1612800 (17.920000 s) type B
+frame 199 pts 1616400 (17.960000 s) type P
+summary: 200 packets, 200 frames, 0 packets flagged corrupt, 0 frames flagged corrupt, 0 decode errors, 0 continuity check failures logged, 0 'Packet corrupt' warnings, 0 messages at warning level or above
+timestamp jumps between consecutive frames (back, or forward by more than 1.5 frames): 2
+  before frame 75: -12.880000 s (12.960000 -> 0.080000)
+  before frame 125: +12.960000 s (2.040000 -> 15.000000)
+--- stderr ---
+--- exit status 0, wall time 0.075 s (time.monotonic) ---

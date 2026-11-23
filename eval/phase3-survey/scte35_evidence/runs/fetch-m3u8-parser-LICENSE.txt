@@ -1,0 +1,12 @@
+command: curl -sS -L --max-time 90 -o downloads/m3u8-parser-LICENSE/body -w 'http_code=%{http_code}
+url_effective=%{url_effective}
+size_download=%{size_download}
+content_type=%{content_type}
+' 'https://raw.githubusercontent.com/videojs/m3u8-parser/b0cbc6d9a565b5d0137c806aa6172350c5d339c4/LICENSE'
+date_utc: 2026-11-01T03:46:43Z
+http_code=200
+url_effective=https://raw.githubusercontent.com/videojs/m3u8-parser/b0cbc6d9a565b5d0137c806aa6172350c5d339c4/LICENSE
+size_download=551
+content_type=text/plain; charset=utf-8
+curl_exit=0
+sha256=384e325564c4bf899f1a47f2a439700eec2d482659a3a6b968e78ce9d85a3d72

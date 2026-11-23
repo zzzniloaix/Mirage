@@ -1,0 +1,52 @@
+# One command of the schema survey, run in <repo> by tools/run.py, started 2026-11-01T03:32:23Z, ended 2026-11-01T03:32:25Z (UTC).
+# <repo>: the worktree of vmaf/phase-3 at 75cf6e0; <out>: the survey's output directory; <scratch>: the scratch directory.
+# The command, then its standard output and standard error as they came, then its exit status.
+
+$ python3 -I <out>/schema-survey/tools/report_inventory.py
+Committed reports, by what wrote them and the keys of today's format they have.
+(A group is one combination; its directories are listed with their file counts.)
+
+group 1: player, 1 files
+  has: (none of them)
+  under: eval/baseline/bipbop16x9 (1)
+group 2: pair, 20 files
+  has: reference_mode, model_sha256, frame_limit, scored_as, dis_conversion, frames[].ref_pts
+  under: eval/consistency/acceptance-full (4); eval/consistency/models-300 (4); eval/consistency/scalers-300 (12)
+group 3: pair, 13 files
+  has: reference_mode, ffmpeg_libraries, config_file, model_sha256, frame_limit, scored_as, dis_conversion, ref_conversion, warnings, pooled.p1, frames[].ref_pts
+  under: eval/consistency/align-cases-before (9); eval/consistency/defaults-300 (4)
+group 4: pair, 17 files
+  has: reference_mode, ffmpeg_libraries, config_file, model_sha256, frame_limit, scored_as, dis_conversion, ref_conversion, warnings, alignment, alignment.vmaf_contexts, pooled.p1, frames[].ref_index, frames[].ref_pts
+  under: eval/consistency/align-cases-d028 (9); eval/consistency/defaults-full (4); eval/consistency/ladder-300 (4)
+group 5: pair, 22 files
+  has: frame_limit, scored_as, dis_conversion, frames[].ref_pts
+  under: eval/consistency/color-cases-after (18); eval/consistency/diag-after-300 (4)
+group 6: pair, 41 files
+  has: frame_limit, scored_as, frames[].ref_pts
+  under: eval/consistency/color-cases-before (20); eval/consistency/diag-before-300 (8); eval/consistency/format-cases-before (13)
+group 7: pair, 12 files
+  has: reference_mode, model_sha256, frame_limit, scored_as, dis_conversion, warnings, frames[].ref_pts
+  under: eval/consistency/format-cases-after (12)
+group 8: pair, 12 files
+  has: reference_mode, ffmpeg_libraries, model_sha256, frame_limit, scored_as, dis_conversion, ref_conversion, warnings, frames[].ref_pts
+  under: eval/consistency/format-cases-d022 (12)
+group 9: ladder, 1 files
+  has: reference_mode, ffmpeg_libraries, config_file, model_sha256, frame_limit, scored_as, dis_conversion, ref_conversion, warnings, alignment, alignment.vmaf_contexts, pooled.p1, frames[].ref_index, frames[].ref_pts
+  under: eval/consistency/ladder-300 (1)
+group 10: pair, 4 files
+  has: reference_mode, ffmpeg_libraries, config_file, model_sha256, frame_limit, scored_as, dis_conversion, ref_conversion, warnings, alignment, alignment.vmaf_contexts, pooled.p1, pooled.min_without_context_first_frames, frames[].ref_index, frames[].ref_pts
+  under: eval/consistency/negotiation-cases (4)
+group 11: ladder, 7 files
+  has: reference_mode, ffmpeg_libraries, config_file, model_sha256, frame_limit, status, pool, scored_as, dis_conversion, ref_conversion, warnings, alignment, alignment.sequences, alignment.vmaf_contexts, pooled.p1, pooled.min_without_context_first_frames, frames[].ref_index, frames[].ref_pts, pool.pair_memory[], not_scored
+  under: eval/ladder/acceptance-c673738 (7)
+group 12: ladder, 16 files
+  has: reference_mode, ffmpeg_libraries, config_file, model_sha256, frame_limit, status, pool, scored_as, dis_conversion, ref_conversion, warnings, alignment, alignment.vmaf_contexts, pooled.p1, pooled.min_without_context_first_frames, frames[].ref_index, frames[].ref_pts, not_scored
+  under: eval/ladder/advanced-cdn-full-af17121 (1); eval/ladder/advanced-cdn-full-b706ed3 (1); eval/ladder/advanced-local-300 (4); eval/ladder/advanced-local-300-mem1g-1cc1ab0 (2); eval/ladder/advanced-local-300-mem1g-a3d011b (2); eval/ladder/advanced-local-300-mem1g-af17121 (2); eval/ladder/advanced-local-300-mem1g-b706ed3 (2); eval/ladder/advanced-local-300-mem1g-dfed5a3 (2)
+group 13: pair, 1 files
+  has: reference_mode, ffmpeg_libraries, config_file, model_sha256, frame_limit, scored_as, dis_conversion, ref_conversion, warnings, alignment, alignment.sequences, alignment.vmaf_contexts, pooled.p1, pooled.min_without_context_first_frames, frames[].ref_index, frames[].ref_pts
+  under: eval/run_all/2026-10-30-d063 (1)
+
+pair: 142 files, 6329615 bytes as committed, 55667229 bytes of JSON text, 443312 per-frame scores
+ladder: 24 files, 6007252 bytes as committed, 90249809 bytes of JSON text, 637200 per-frame scores
+player: 1 files, 2084594 bytes as committed, 2084594 bytes of JSON text, 215784 per-frame scores
+(exit status 0)

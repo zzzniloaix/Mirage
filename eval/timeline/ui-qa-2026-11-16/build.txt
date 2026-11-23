@@ -1,0 +1,9 @@
+# Taken after run.sh's run, with the sources unchanged since (environment.txt's hash-objects):
+# the build the run used was current, and its player the one environment.txt names.
+$ ninja -C <build> -n
+ninja: Entering directory `<build>'
+ninja: no work to do.
+# exit status 0
+
+$ shasum -a 256 <build>/mirage
+57db380d4db54fb47cc206875104e228c7e49de464f38d22af230edb3277c0c5
