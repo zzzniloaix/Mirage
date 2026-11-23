@@ -1,0 +1,17 @@
+Timeline unscored/timeline.json: 73 events on 200 reference frames, offsets in seconds on the reference's playlist time
+Ladder report media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin.session.json: its SHA-256 is the one the document names
+Query: reference frames 125-149 (25 frames) (--frames)
+Overlap: half-open on reference frames, margins 0 s before and 0 s after
+
+Curve session:0, the session "the composite example, its ad played by the reference": entry 1, segments 0-2, reference frames 0-74 (75 frames); entry 0, segments 3-4, reference frames 75-124 (50 frames), not scored; entry 1, segments 5-7, reference frames 125-199 (75 frames); scored against entry 0 (<out>/media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin/v360/index.m3u8, 640x360, BANDWIDTH 613632; rank 1 from the top, 3 from the bottom)
+Interval: reference frames 125-149 (25 frames), 5.000-6.000 s; 25 points, min 96.606, mean 98.045
+  playlist discontinuity    entry 0, segment 5 at +0.000 s (+0 frames): line 20, discontinuity sequence 2
+  playlist discontinuity    entry 1, segment 5 at +0.000 s (+0 frames): line 20, discontinuity sequence 2
+  playlist segment          entry 0, segment 5 at +0.000 s to +1.000 s (+0 to +25 frames): main_005.ts, EXTINF 1 s
+  playlist segment          entry 1, segment 5 at +0.000 s to +1.000 s (+0 to +25 frames): main_005.ts, EXTINF 1 s
+  scte35   cue_in           entry 0, segment 5 at +0.000 s (+0 frames): line 21, #EXT-X-CUE-IN
+  scte35   cue_in           entry 1, segment 5 at +0.000 s (+0 frames): line 21, #EXT-X-CUE-IN
+  player   variant_switch   entry 1 at +0.000 s (+0 frames): entry 0 (v360/index.m3u8, 640x360, BANDWIDTH 613632; rank 1 from the top, 3 from the bottom) -> entry 1 (v270/index.m3u8, 480x270, BANDWIDTH 565504; rank 2 from the top, 2 from the bottom)
+  player   variant_span     entry 1 at +0.000 s to +3.000 s (+0 to +75 frames): entry 1 (v270/index.m3u8, 480x270, BANDWIDTH 565504; rank 2 from the top, 2 from the bottom), segments 5-7
+  decoder  keyframe         entry 0, segment 5 at +0.000 s (+0 frames): frame 125 of its input
+  decoder  keyframe         entry 1, segment 5 at +0.000 s (+0 frames): frame 125 of its input

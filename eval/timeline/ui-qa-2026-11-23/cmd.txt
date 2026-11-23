@@ -1,0 +1,38 @@
+# The commands of ui-qa-followups.sh's run, from <out>, each with its exit status; <home> is
+# <out>.home, the players' HOME.
+$ MIRAGE_KEEP_MEDIA=<out>/media <build>/mirage_tests 'attribution acceptance: a degraded segment and an ad boundary' > tests/mirage_tests.txt 2>&1
+# exit status 0
+$ MIRAGE_KEEP_MEDIA=<out>/media <build>/mirage_tests 'attribution acceptance: test 3*' > tests/mirage_tests_example.txt 2>&1
+# exit status 0
+$ <build>/mirage_vmaf timeline --report media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin.json --out inside-ad/timeline.json --threshold 6 --window 50 --min-points 12 > inside-ad/timeline.log 2>&1
+# exit status 0
+$ HOME=<out>.home caffeinate -i perl -e 'alarm shift; exec @ARGV' 60 <build>/mirage --qa-no-focus --window 1280x720 media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/master.m3u8 --timeline inside-ad/timeline.json --speed-seq panel:E@0.5,panel:E@3.4,pause@3.8,snap@8 --ui-snapshot inside-ad/run.png 0 --timeline-report inside-ad/run.txt 7 > inside-ad/run.log 2>&1
+# exit status 0
+# unscored/plan.json written by the script: the composite example's plan, its ad played by entry 0
+$ <build>/mirage_vmaf timeline --report media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin.session.json --out unscored/timeline.json --session unscored/plan.json --fetch off --threshold 6 --window 50 --min-points 12 > unscored/timeline.log 2>&1
+# exit status 0
+$ HOME=<out>.home caffeinate -i perl -e 'alarm shift; exec @ARGV' 60 <build>/mirage --qa-no-focus --window 1280x720 media/attribution_acceptance__test_3__the_work_order_s_example_on_a_scripted_session_whose_ad_segment_is_answered_late/ad-main-origin/master.m3u8 --timeline unscored/timeline.json --ui-timeline zoom=2:6,curves=session:0,pick=4@3,pick=5.5@3.5 --speed-seq pause@2.5,snap@8 --ui-snapshot unscored/run.png 0 --timeline-report unscored/run.txt 7 > unscored/run.log 2>&1
+# exit status 0
+$ <build>/mirage_vmaf timeline --report media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin.json --out step-back/timeline.json --threshold 6 --window 50 --min-points 12 > step-back/timeline.log 2>&1
+# exit status 0
+$ HOME=<out>.home caffeinate -i perl -e 'alarm shift; exec @ARGV' 60 <build>/mirage --qa-no-focus --window 1280x720 media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/master.m3u8 --timeline step-back/timeline.json --speed-seq pause@0.5,seek:2@1,fwd@2.00,fwd@2.10,fwd@2.20,fwd@2.30,fwd@2.40,fwd@2.50,fwd@2.60,fwd@2.70,fwd@2.80,fwd@2.90,fwd@3.00,fwd@3.10,fwd@3.20,fwd@3.30,fwd@3.40,fwd@3.50,fwd@3.60,fwd@3.70,fwd@3.80,fwd@3.90,fwd@4.00,fwd@4.10,fwd@4.20,fwd@4.30,fwd@4.40,back@5,snap@9 --ui-snapshot step-back/run.png 0 --timeline-report step-back/run.txt 8 > step-back/run.log 2>&1
+# exit status 0
+$ HOME=<out>.home caffeinate -i perl -e 'alarm shift; exec @ARGV' 60 <build>/mirage --qa-no-focus --window 1280x720 media/attribution_acceptance__a_degraded_segment_and_an_ad_boundary/ad-main-origin/master.m3u8 --timeline step-back/timeline.json --speed-seq pause@0.5,seek:2@1,fwd@2.00,fwd@2.10,fwd@2.20,fwd@2.30,fwd@2.40,fwd@2.50,fwd@2.60,fwd@2.70,fwd@2.80,fwd@2.90,fwd@3.00,fwd@3.10,fwd@3.20,fwd@3.30,fwd@3.40,fwd@3.50,fwd@3.60,fwd@3.70,fwd@3.80,fwd@3.90,fwd@4.00,fwd@4.10,fwd@4.20,fwd@4.30,fwd@4.40,back@5,fwd@6.00,fwd@6.08,fwd@6.16,fwd@6.24,fwd@6.32,fwd@6.40,fwd@6.48,fwd@6.56,fwd@6.64,fwd@6.72,fwd@6.80,fwd@6.88,fwd@6.96,fwd@7.04,fwd@7.12,fwd@7.20,fwd@7.28,fwd@7.36,fwd@7.44,fwd@7.52,fwd@7.60,fwd@7.68,fwd@7.76,fwd@7.84,fwd@7.92,fwd@8.00,fwd@8.08,fwd@8.16,fwd@8.24,fwd@8.32,fwd@8.40,fwd@8.48,fwd@8.56,fwd@8.64,fwd@8.72,fwd@8.80,fwd@8.88,fwd@8.96,fwd@9.04,fwd@9.12,fwd@9.20,fwd@9.28,fwd@9.36,fwd@9.44,fwd@9.52,fwd@9.60,fwd@9.68,fwd@9.76,fwd@9.84,fwd@9.92,snap@14 --ui-snapshot step-back/fwd.png 0 --timeline-report step-back/fwd.txt 13 > step-back/fwd.log 2>&1
+# exit status 0
+$ <build>/mirage_vmaf attribute --timeline unscored/timeline.json --curve session:0 --frames 125-149 > unscored/run.attribute.txt 2>&1
+# exit status 0
+$ ffmpeg -v error -y -i inside-ad/run.png -vf crop=iw:ih/2:0:ih/2,scale=iw/2:ih/2:flags=lanczos snapshots/inside-ad-run.png > snapshots/inside-ad-run.ffmpeg.log 2>&1
+# exit status 0
+$ ffmpeg -v error -y -i unscored/run.png -vf crop=iw:ih/2:0:ih/2,scale=iw/2:ih/2:flags=lanczos snapshots/unscored-run.png > snapshots/unscored-run.ffmpeg.log 2>&1
+# exit status 0
+$ ffmpeg -v error -y -i step-back/run.png -vf crop=iw:ih/2:0:ih/2,scale=iw/2:ih/2:flags=lanczos snapshots/step-back-run.png > snapshots/step-back-run.ffmpeg.log 2>&1
+# exit status 0
+$ ffmpeg -v error -y -i step-back/fwd.png -vf crop=iw:ih/2:0:ih/2,scale=iw/2:ih/2:flags=lanczos snapshots/step-back-fwd.png > snapshots/step-back-fwd.ffmpeg.log 2>&1
+# exit status 0
+# the full-size captures moved to <out>.full
+$ python3 -I -B <repo>/eval/timeline/check_ui_followups.py <out> > checks.txt 2>&1
+# exit status 0
+$ python3 -I -B <repo>/eval/timeline/check.py redact <out> --build <build> --repo <repo> > redact.txt 2>&1
+# exit status 0
+$ python3 -I -B <repo>/eval/timeline/check.py redact <out> --search-only --build <build> --repo <repo> > search.txt 2>&1
+# exit status 0 (the last line of this file: the search ran before it was written)

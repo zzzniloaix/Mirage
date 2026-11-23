@@ -1,0 +1,53 @@
+# The environment of ui-qa-followups.sh's run: <repo> is the checkout, <build> its debug
+# build, <out> the output directory.
+$ git -C <repo> rev-parse HEAD   (start of the run)
+5fe009abba0d0f60d8c6555bc7c8b91daab77c8f
+
+$ git -C <repo> status --porcelain   (start of the run)
+
+$ git -C <repo> hash-object <each changed or new file of src/>
+
+$ sw_vers
+ProductName:		macOS
+ProductVersion:		26.6.2
+BuildVersion:		25G83
+
+$ uname -srm
+Darwin 25.6.0 arm64
+
+$ sysctl -n machdep.cpu.brand_string hw.ncpu vm.loadavg
+Apple M3 Pro
+12
+{ 7.06 5.68 6.20 }
+
+$ python3 -I -B --version   (the interpreter of check_ui_followups.py and check.py)
+Python 3.14.7
+
+$ ffmpeg -version   (its first line)
+ffmpeg version 8.1.1 Copyright (c) 2000-2026 the FFmpeg developers
+
+$ <build>/mirage
+sha256: f9211ad1397a5aab763530eb42546b05bdd4c1faabf17635fc4a34475446361c
+size: 21689064 bytes
+
+$ <build>/mirage_vmaf
+sha256: ad7f849057dfe0742988c454def3117e01d2ef2d17834ae07eeb8130d30cdc05
+size: 9750360 bytes
+
+$ <build>/mirage_tests
+sha256: 902f6ac5c92da9e3b011e5bb74f8be3594935aa1748ad571e093abf7bd614a38
+size: 39487040 bytes
+
+$ pgrep -f VTDecoderXPCService | wc -l   (before the windows)
+4
+
+$ ioreg -n Root -d1 -a | plutil -extract IOConsoleUsers xml1 -o - - | grep -A1 CGSSessionScreenIsLocked
+(no audio in D-069's ladders: the video follows its own clock, locked screen or not)
+
+$ pgrep -f VTDecoderXPCService | wc -l   (after the windows)
+4
+
+$ git -C <repo> rev-parse HEAD   (end of the run)
+5fe009abba0d0f60d8c6555bc7c8b91daab77c8f
+
+$ git -C <repo> status --porcelain   (end of the run)

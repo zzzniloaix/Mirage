@@ -1,0 +1,20 @@
+Filters: "attribution acceptance: test 3*"
+Randomness seeded to: 100951106
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+mirage_tests is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+attribution acceptance: test 3, the work order's example on a scripted session
+whose ad segment is answered late
+-------------------------------------------------------------------------------
+<repo>/tests/test_attribution_session.cpp:548
+...............................................................................
+
+<repo>/tests/test_attribution_session.cpp:559: warning:
+  ad-main-origin: made with libx264
+
+===============================================================================
+All tests passed (442 assertions in 1 test case)
+

@@ -1,0 +1,61 @@
+ok   inside-ad: the document loaded
+ok   inside-ad: matched by the master's SHA-256, its entries in order
+ok   inside-ad: on screen entry 0, the top rung the player starts on (the report: entry 0)
+ok   inside-ad: the panel closed, opened again and paused while the ad played, 3-5 s after the first frame (the log: 2 toggles, opened at 3.4 s, paused at 3.8 s)
+ok   inside-ad: no seek, no step and no switch in the run
+ok   inside-ad: on opening, no playhead, for PTS 10.400 s, that of the ad's frame 85 played then, 10.400 s, within 1 frame
+ok   inside-ad: PTS 10.400 s lies in sequences [0, 1], the layout's [0, 1], more than one
+ok   inside-ad: the pause, then the report written
+ok   inside-ad: no playhead known again between the opening and the report
+ok   inside-ad: the report gives no playhead's frame
+ok   inside-ad: the report's PTS on screen, 10.800000 s, that of the ad's frame 95 paused on, 10.800 s, within 1 frame
+ok   inside-ad: the report: no playhead, PTS 10.800000 s lying in sequences [0, 1], the layout's [0, 1], and why (D-124 (c))
+ok   inside-ad: the snapshot after the report, of the frame paused on (the log: pts=10.800)
+ok   unscored: the document's session span over the ad, reference frames 75-124, played by entry 0 and not scored, its other spans scored (D-105 (b))
+ok   unscored: the document loaded
+ok   unscored: matched by the master's SHA-256, its entries in order
+ok   unscored: on screen entry 0, the top rung the player starts on (the report: entry 0)
+ok   unscored: the playhead's frame within half a frame of the frame on screen
+ok   unscored: the view 2-6 s
+ok   unscored: the session's curve alone shown
+ok   unscored: the report names the span that isn't scored, 3.000-5.000 s
+ok   unscored: no curve drawn over the span, 3.000-5.000 s (the report: [(2.0, 3.0), (5.0, 6.0)])
+ok   unscored: the curve drawn over the rest of the view, [(2.0, 3.0), (5.0, 6.0)] (the report: [(2.0, 3.0), (5.0, 6.0)])
+ok   unscored: the pick at 4 s, inside the span, picks nothing (D-124 (a))
+ok   unscored: the pick at 5.5 s picks the session's frame there, outside the span (the report: session:0, reference frame 137 at 5.480 s)
+ok   unscored: the card's 11 lines are mirage_vmaf attribute's
+ok   unscored: frame 137 sought by its PTS, 15.480 s (the report: 15.480 s)
+ok   unscored: the seek landed within half a frame of the frame's PTS (the log: 15.480)
+ok   unscored: the card says the seek was made
+ok   step-back: position 2 s starts the segment before the ad, frame 50, 25 frames before the ad's first, frame 75 (the layout)
+ok   step-back/run: the document loaded
+ok   step-back/run: matched by the master's SHA-256, its entries in order
+ok   step-back/run: on screen entry 0, the top rung the player starts on (the report: entry 0)
+ok   step-back/run: no switch in the run
+ok   step-back/run: the paused seek to position 2 s showed frame 50, PTS 12.000 s (the log: 12.000)
+ok   step-back/run: the playhead known from the seek's frame on, frame 50, sequence 0
+ok   step-back/run: 25 frame steps forward showed frames 51-75, the last the ad's first at PTS 10.000 s (the log: 25 steps, the last at 10.000 s)
+ok   step-back/run: no line of no playhead through the steps, the playhead following them into the ad's sequence 1 where its PTS step back (D-046)
+ok   step-back/run: the step back from the ad's first frame, PTS 10.000 s, asked for 9.940 s, 1.5 frames before it and before the stream's start, 10.000 s
+ok   step-back/run: the step back showed PTS 10.000 s, frame 0's by the layout, where the scrub decoder's seek lands
+ok   step-back/run: the report written after the step back
+ok   step-back/run: in sequence 0, the PTS on screen, 10.000 s, is frame 0's, the one on screen (the layout: frame 0)
+ok   step-back/run: the report's playhead on frame 0, sequence 0, the frame on screen at PTS 10.000 s (the report: frame 0, sequence 0, PTS 10.000000, +0.000000 s)
+ok   step-back/run: the snapshot after the report, of the frame on screen (the log: pts=10.000)
+ok   step-back/fwd: the document loaded
+ok   step-back/fwd: matched by the master's SHA-256, its entries in order
+ok   step-back/fwd: on screen entry 0, the top rung the player starts on (the report: entry 0)
+ok   step-back/fwd: no switch in the run
+ok   step-back/fwd: the paused seek to position 2 s showed frame 50, PTS 12.000 s (the log: 12.000)
+ok   step-back/fwd: the playhead known from the seek's frame on, frame 50, sequence 0
+ok   step-back/fwd: 25 frame steps forward showed frames 51-75, the last the ad's first at PTS 10.000 s (the log: 25 steps, the last at 10.000 s)
+ok   step-back/fwd: no line of no playhead through the steps, the playhead following them into the ad's sequence 1 where its PTS step back (D-046)
+ok   step-back/fwd: the step back from the ad's first frame, PTS 10.000 s, asked for 9.940 s, 1.5 frames before it and before the stream's start, 10.000 s
+ok   step-back/fwd: the step back showed PTS 10.000 s, frame 0's by the layout, where the scrub decoder's seek lands
+ok   step-back/fwd: 50 frame steps forward after the step back showed the pipeline's frames 76-125, the last the main content's first after the ad at PTS 15.000 s (the log: 50 steps, the last at 15.000 s)
+ok   step-back/fwd: the report written after the last step
+ok   step-back/fwd: no line of no playhead after the step back
+ok   step-back/fwd: in sequence 1, the PTS on screen, 15.000 s, is frame 125's, the one on screen (the layout: frame 125)
+ok   step-back/fwd: the report's playhead on frame 125, sequence 1, the frame on screen at PTS 15.000 s (the report: frame 125, sequence 1, PTS 15.000000, +0.000000 s)
+ok   step-back/fwd: the snapshot after the report, of the frame on screen (the log: pts=15.000)
+check_ui_followups.py: PASS: 60 of 60 checks passed
